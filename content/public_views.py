@@ -41,10 +41,10 @@ from events.identity import (
 from events.queries import event_public_record, published_event_records
 from historical_registrations.services import public_registration_total
 
-from . import catalogue, wiki_content
+from . import catalogue, wiki_content, wiki_reader
 from .article_content import article_view, render_body_markdown
 from .article_faq import ArticleFaq, article_faq
-from .docs_projection import docs_pages
+from .docs_reader import docs_pages
 from .event_banners import event_banner_url
 from .event_content import event_date_groups, event_groups
 from .event_speakers import event_speaker_records
@@ -919,7 +919,7 @@ def wiki_hub(request: HttpRequest) -> HttpResponse:
         return wiki_search(request)
     pagination = paginate_public_request(
         request,
-        catalogue.wiki_pages(),
+        wiki_reader.wiki_pages(),
         clean_base_path="/wiki",
         catalogue_label="Wiki catalogue pages",
     )
@@ -941,7 +941,7 @@ def wiki_hub(request: HttpRequest) -> HttpResponse:
 
 @require_safe
 def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    page = catalogue.wiki_page(slug)
+    page = wiki_reader.wiki_page(slug)
     if page is None:
         raise Http404
     wiki_trail = trail(("Wiki", "/wiki"), (page["title"], page["public_path"]))
@@ -1043,7 +1043,7 @@ def wiki_search_json(request: HttpRequest) -> JsonResponse:
 
 @require_safe
 def wiki_special(request: HttpRequest, category: str = "all") -> HttpResponse:
-    pages = catalogue.wiki_pages()
+    pages = wiki_reader.wiki_pages()
     special_tags = set(WIKI_SPECIAL_CATEGORIES.values())
     if category == "all":
         pages = tuple(page for page in pages if special_tags.intersection(page["tags"]))
@@ -1080,7 +1080,7 @@ def wiki_feed(request: HttpRequest) -> HttpResponse:
             xml_escape(_canonical(page["public_path"])),
             xml_escape(page["summary"]),
         )
-        for page in catalogue.wiki_pages()[-30:]
+        for page in wiki_reader.wiki_pages()[-30:]
     )
     return _xml_response(
         '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>'
@@ -1268,7 +1268,7 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
             ("/wiki/special-pages", ""),
             *((f"/wiki/special-pages/{category}", "") for category in WIKI_SPECIAL_CATEGORIES),
         )
-        return discovery + tuple((record["public_path"], "") for record in catalogue.wiki_pages())
+        return discovery + tuple((record["public_path"], "") for record in wiki_reader.wiki_pages())
     raise Http404
 
 

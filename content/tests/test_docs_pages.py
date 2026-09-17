@@ -1,7 +1,7 @@
 """The two documentation pages a reader actually meets: the hub and a detail page.
 
-``test_docs_projection`` owns the source projection -- what pages exist, where they
-live, and what their markdown renders to.  This module owns what the two templates
+``test_docs_reader`` owns the read model -- what pages exist, where they
+live, and what their markdown rendered to.  This module owns what the two templates
 make of that: how the hub groups 105 pages so they can be found, how search ranks
 and explains a result, and how a detail page says where the reader is, what else is
 in the guide, and where to go next.
@@ -10,7 +10,7 @@ in the guide, and where to go next.
 from __future__ import annotations
 
 import re
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -21,10 +21,10 @@ from content.docs_presentation import (
     docs_rail,
     docs_search_results,
 )
-from content.docs_projection import (
+from content.docs_reader import (
     DOCS_ROOT_PATH,
+    DocsNavigationItem,
     DocsNavigationTree,
-    build_docs_navigation,
     docs_navigation_tree,
     docs_page,
 )
@@ -45,7 +45,7 @@ def three_level_tree() -> DocsNavigationTree:
             "parent_path": parent,
         }
 
-    return build_docs_navigation(
+    return _tree(
         (
             page(DOCS_ROOT_PATH, "Documentation", None),
             page("/docs/area/", "Area", None),
@@ -55,6 +55,54 @@ def three_level_tree() -> DocsNavigationTree:
             page("/docs/guide/section-a/leaf-2/", "Leaf 2", "/docs/guide/section-a/"),
             page("/docs/guide/section-b/", "Section B", "/docs/guide/"),
         )
+    )
+
+
+def _tree(pages: tuple[dict[str, object], ...]) -> DocsNavigationTree:
+    """Assemble one synthetic tree in the shape the read model hands templates.
+
+    The real hierarchy is the shared knowledge base app's stored parent links;
+    the presentation helpers under test only ever see the tree the read model
+    builds from them, so a synthetic tree is built here rather than pulled
+    through the database.
+    """
+
+    children: dict[str | None, list[dict[str, object]]] = {}
+    for page in pages:
+        raw_parent = page["parent_path"]
+        parent = None if raw_parent is None else str(raw_parent)
+        children.setdefault(None if parent == DOCS_ROOT_PATH else parent, []).append(page)
+    by_path: dict[str, DocsNavigationItem] = {}
+
+    def build(page: dict[str, object]) -> DocsNavigationItem:
+        path = str(page["public_path"])
+        item = DocsNavigationItem(
+            page=MappingProxyType(dict(page)),
+            children=tuple(build(child) for child in children.get(path, ())),
+        )
+        by_path[path] = item
+        return item
+
+    root_page = next(page for page in pages if page["public_path"] == DOCS_ROOT_PATH)
+    root = DocsNavigationItem(
+        page=MappingProxyType(dict(root_page)),
+        children=tuple(build(child) for child in children.get(None, ()) if child is not root_page),
+    )
+    by_path[DOCS_ROOT_PATH] = root
+    preorder: list[DocsNavigationItem] = []
+
+    def visit(item: DocsNavigationItem) -> None:
+        preorder.append(item)
+        for child in item.children:
+            visit(child)
+
+    visit(root)
+    ordered = tuple(preorder)
+    return DocsNavigationTree(
+        root=root,
+        preorder=ordered,
+        documents=ordered[1:],
+        by_path=MappingProxyType(dict(by_path)),
     )
 
 

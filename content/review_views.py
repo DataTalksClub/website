@@ -29,17 +29,16 @@ from .docs_presentation import (
     docs_search_results,
     docs_sibling_family_pages,
 )
-from .docs_projection import (
+from .docs_reader import (
     DOCS_ROOT_PATH,
     docs_asset_path,
     docs_breadcrumbs,
     docs_navigation_tree,
     docs_parent,
     docs_sequential_navigation,
-    render_docs_markdown,
 )
-from .docs_projection import (
-    docs_page as projected_docs_page,
+from .docs_reader import (
+    docs_page as published_docs_page,
 )
 from .faq_data import (
     faq_answer_text,
@@ -82,10 +81,10 @@ def _render(
 
 @require_safe
 def docs_home(request: HttpRequest) -> HttpResponse:
-    document = projected_docs_page(DOCS_ROOT_PATH)
+    document = published_docs_page(DOCS_ROOT_PATH)
     if document is None:
         raise Http404("Documentation home is unavailable.")
-    rendered, headings = render_docs_markdown(document)
+    rendered, headings = _stored_html(document)
     navigation = docs_navigation_tree()
     heading_id, rendered_body = docs_body_without_primary_heading(rendered)
     # `q` is the search mode switch, the same contract the wiki hub uses: a query
@@ -117,6 +116,17 @@ def docs_home(request: HttpRequest) -> HttpResponse:
     )
 
 
+def _stored_html(document: dict[str, Any]) -> tuple[str, tuple[dict[str, Any], ...]]:
+    """The page's rendered HTML and headings, both stored by the sync.
+
+    The documentation pipeline (``content.docs_rendering``) runs once per sync,
+    not once per request: the page carries the HTML it produced, and the heading
+    metadata the table of contents reads travels in the page's record.
+    """
+
+    return str(document.get("body_html") or ""), tuple(document.get("headings") or ())
+
+
 def _docs_detail_context(
     document: dict[str, Any], rendered: str, headings: tuple[dict[str, Any], ...]
 ) -> dict[str, Any]:
@@ -136,7 +146,7 @@ def _docs_detail_context(
         "docs_headings": headings,
         "docs_sections": sections,
         "docs_total_pages": len(navigation.documents),
-        # The projection answers in its own dict shape; the page draws the site's
+        # The read model answers in its own dict shape; the page draws the site's
         # one trail, so the levels are turned into a core.breadcrumbs.Trail here
         # rather than the template hand-writing nav/ol/li markup of its own.  The
         # document itself is the last level: a Docs page's h1 is the heading the
@@ -167,10 +177,10 @@ def docs_page(request: HttpRequest, doc_path: str) -> HttpResponse:
     public_path = f"/docs/{doc_path.lstrip('/')}"
     if not public_path.endswith("/"):
         public_path += "/"
-    document = projected_docs_page(public_path)
+    document = published_docs_page(public_path)
     if document is None:
         raise Http404("Documentation page is unavailable.")
-    rendered, headings = render_docs_markdown(document)
+    rendered, headings = _stored_html(document)
     _heading_id, rendered_body = docs_body_without_primary_heading(rendered)
     return _render(
         request,

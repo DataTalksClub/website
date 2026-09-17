@@ -19,7 +19,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils.html import escape
 
-from content import catalogue
+from content import catalogue, wiki_reader
 from content.models import ContentSource
 from content.pagination import PUBLIC_PAGE_SIZE
 from content.public_views import WIKI_SPECIAL_CATEGORIES, _wiki_search_results
@@ -49,13 +49,13 @@ TEMPLATE_SYNTAX = ("{#", "#}", "{%", "%}", "{{", "}}")
 def _wiki_page(slug: str) -> dict[str, Any]:
     """The published wiki page a test names, which the catalogue must hold."""
 
-    record = catalogue.wiki_page(slug)
+    record = wiki_reader.wiki_page(slug)
     assert record is not None, slug
     return record
 
 
 def wiki_paths() -> dict[str, str]:
-    page = catalogue.wiki_pages()[0]
+    page = wiki_reader.wiki_pages()[0]
     return {
         "hub": reverse("wiki-home"),
         "results": f"{reverse('wiki-home')}?q=machine+learning",
@@ -127,7 +127,7 @@ class WikiHubTests(TestCase):
         self.body = self.client.get(reverse("wiki-home")).content.decode()
 
     def test_the_hub_keeps_its_title_search_field_and_catalogue_count(self) -> None:
-        records = catalogue.wiki_pages()
+        records = wiki_reader.wiki_pages()
 
         self.assertIn("DataTalks.Club Podcast Wiki", self.body)
         self.assertIn('<label class="sr-only" for="wiki-query">Search the Wiki</label>', self.body)
@@ -166,7 +166,7 @@ class WikiHubTests(TestCase):
         existing order, with no topic repeated between two pages and none lost.
         """
 
-        records = catalogue.wiki_pages()
+        records = wiki_reader.wiki_pages()
         self.assertEqual(
             [(record["title"], record["slug"]) for record in records],
             sorted(
@@ -718,7 +718,7 @@ class WikiPageTests(TestCase):
         self.assertFalse(
             [
                 record["slug"]
-                for record in catalogue.wiki_pages()
+                for record in wiki_reader.wiki_pages()
                 if any(not relation["href"] for relation in record["relations"])
             ],
             "a wiki page now carries an unlinked relation: assert its rendering here",
@@ -752,7 +752,7 @@ class WikiPageTests(TestCase):
     def test_an_ampersand_in_a_relation_label_is_escaped(self) -> None:
         record = next(
             page
-            for page in catalogue.wiki_pages()
+            for page in wiki_reader.wiki_pages()
             if any("&" in relation["label"] for relation in page["relations"])
         )
         relation = next(item for item in record["relations"] if "&" in item["label"])
@@ -766,7 +766,7 @@ class WikiPageTests(TestCase):
 
     def test_an_anchor_the_source_never_defined_still_lands_on_the_page(self) -> None:
         page = next(
-            (record for record in catalogue.wiki_pages() if record["unresolved_fragment_ids"]),
+            (record for record in wiki_reader.wiki_pages() if record["unresolved_fragment_ids"]),
             None,
         )
         if page is None:

@@ -10,8 +10,8 @@ input and lives with the other one-time inputs outside this repository, at
 See ``scripts/prod/__init__.py`` for what the two sync models mean.
 
 Everything the file claims is checked before anything is written: the schema
-version, the pinned revision, the page hierarchy (through the same navigation
-builder the site renders from), every page body against its recorded digest,
+version, the pinned revision, the page hierarchy, every page body against its
+recorded digest,
 and every image against its recorded size and digest on disk.  A file that
 fails any of those is refused whole -- a partially imported documentation tree
 is worse than none, because half of it would 404 without saying so.
@@ -72,14 +72,81 @@ def _asset_file(source_path: str) -> Path | None:
     return path
 
 
+def _validate_reviewed_hierarchy(pages: list[Any], *, root_path: str) -> None:
+    """Refuse a reviewed file whose parent-path hierarchy cannot be a tree.
+
+    Every rule the retired projection's navigation builder enforced, in the same
+    order: canonical unique public paths, unique source paths, a title, a parent
+    reference that is either absent or a page in the same file, exactly one
+    root, and no page that is its own ancestor.
+    """
+
+    by_path: dict[str, dict[str, Any]] = {}
+    source_paths: set[str] = set()
+    for page in pages:
+        if not isinstance(page, dict):
+            raise DocsImportFailure("reviewed_docs_navigation_invalid")
+        public_path = page.get("public_path")
+        source_path = page.get("source_path")
+        title = page.get("title")
+        parent_path = page.get("parent_path")
+        if (
+            not isinstance(public_path, str)
+            or not public_path.startswith(root_path)
+            or not public_path.endswith("/")
+            or "?" in public_path
+            or "#" in public_path
+            or public_path in by_path
+            or not isinstance(source_path, str)
+            or not source_path
+            or source_path in source_paths
+            or not isinstance(title, str)
+            or not title.strip()
+            or not (parent_path is None or isinstance(parent_path, str))
+        ):
+            raise DocsImportFailure("reviewed_docs_navigation_invalid")
+        by_path[public_path] = page
+        source_paths.add(source_path)
+
+    root_page = by_path.get(root_path)
+    if root_page is None or root_page.get("parent_path") is not None:
+        raise DocsImportFailure("reviewed_docs_navigation_invalid")
+
+    resolved: set[str] = {root_path}
+    for page in by_path.values():
+        public_path = str(page["public_path"])
+        if public_path in resolved:
+            continue
+        chain: list[str] = []
+        seen: set[str] = set()
+        current = page
+        while True:
+            current_path = str(current["public_path"])
+            if current_path in resolved:
+                break
+            if current_path in seen:
+                raise DocsImportFailure("reviewed_docs_navigation_invalid")
+            seen.add(current_path)
+            chain.append(current_path)
+            parent_path = current.get("parent_path")
+            if parent_path is None or parent_path == root_path:
+                break
+            if parent_path == current_path:
+                raise DocsImportFailure("reviewed_docs_navigation_invalid")
+            parent = by_path.get(str(parent_path))
+            if parent is None:
+                raise DocsImportFailure("reviewed_docs_navigation_invalid")
+            current = parent
+        resolved.update(chain)
+
+
 def load_reviewed_docs(path: Path) -> dict[str, Any]:
     """Parse and fully validate the reviewed file without touching the database."""
 
-    from content.docs_projection import (
+    from content.docs_reader import (
         DOCS_ASSET_CONTENT_TYPES,
         DOCS_ROOT_PATH,
         DOCS_SOURCE_REVISION,
-        build_docs_navigation,
     )
 
     try:
@@ -140,12 +207,12 @@ def load_reviewed_docs(path: Path) -> dict[str, Any]:
         seen_asset_paths.add(public_path)
         seen_asset_sources.add(source_path)
 
-    # The hierarchy is checked with the builder the site renders from, so a file
-    # that imports cleanly is one the navigation can actually be built from.
-    try:
-        build_docs_navigation(pages)
-    except Exception as error:  # noqa: BLE001 - re-raised as a bounded condition code
-        raise DocsImportFailure("reviewed_docs_navigation_invalid") from error
+    # The hierarchy is checked before anything is written, so a file that
+    # imports cleanly is one a navigation can actually be built from. The site's
+    # own tree comes from the stored parent links of the shared knowledge base
+    # app now (D7.1), which this file predates, so the reviewed file's own
+    # parent-path hierarchy is validated here.
+    _validate_reviewed_hierarchy(pages, root_path=DOCS_ROOT_PATH)
 
     public_paths: set[str] = set()
     source_paths: set[str] = set()
@@ -187,12 +254,13 @@ def load_reviewed_docs(path: Path) -> dict[str, Any]:
 
 
 def _document_rows(pages: list[dict[str, Any]], *, release: Any) -> list[Any]:
-    from content.docs_projection import DOCS_CONTENT_KIND, render_docs_markdown
+    from content.docs_reader import DOCS_CONTENT_KIND
+    from content.docs_rendering import render_docs_markdown
     from content.models import ContentDocument
 
     rows = []
     for page in pages:
-        rendered, _headings = render_docs_markdown(page)
+        rendered, _headings = render_docs_markdown(str(page["body"]))
         rows.append(
             ContentDocument(
                 release=release,
@@ -238,7 +306,7 @@ def run(*, path: Path | None = None, apply: bool = True) -> dict[str, Any]:
 
     from django.db import transaction
 
-    from content.docs_projection import DOCS_SOURCE_STABLE_ID
+    from content.docs_reader import DOCS_SOURCE_STABLE_ID
     from content.models import (
         ContentAsset,
         ContentDocument,

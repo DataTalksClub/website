@@ -26,7 +26,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.navigation import login_url_for_path
-from content import catalogue
+from content import catalogue, wiki_reader
 from courses.models.cohort import Cohort
 from events.queries import published_event_records
 
@@ -186,7 +186,7 @@ class DesignFiveAShellTests(TestCase):
             visible=True,
         )
         cls.episode = catalogue.podcasts()[0]
-        cls.wiki_page = catalogue.wiki_pages()[0]
+        cls.wiki_page = wiki_reader.wiki_pages()[0]
         # The reference fixture's richest synthetic profile: it carries the
         # credits across collections that a person page draws on, so the shell
         # comparison sees the page in its fullest ordinary shape.

@@ -107,6 +107,8 @@ class EditorialReportTests(TestCase):
     """The report itself, read from a database through the public readers."""
 
     def test_a_database_that_skipped_step_four_reports_every_collection_empty(self) -> None:
+        from community_base.knowledge_base.models import KnowledgeBasePage
+
         from content.models import (
             ActiveContentPath,
             ContentAsset,
@@ -121,8 +123,10 @@ class EditorialReportTests(TestCase):
         # Releases and the registry rows are left alone: a release nothing
         # points at publishes nothing, which is the state a database is in
         # before its first editorial import and after a failed one alike.
-        # The synced rows the wiki and docs readers draw from are step-four
-        # content just the same, so a database without them reads as empty.
+        # The wiki and documentation pages the knowledge base app holds are
+        # step-four content just the same, so a database without them reads as
+        # empty.
+        KnowledgeBasePage.objects.all().delete()
         ActiveContentPath.objects.all().delete()
         ContentRelation.objects.all().delete()
         ContentDocument.objects.all().delete()

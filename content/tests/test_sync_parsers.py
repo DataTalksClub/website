@@ -8,6 +8,13 @@ from community_base.content_sync.checkout import ImmutableCheckout
 from community_base.content_sync.media import media_store
 from community_base.content_sync.models import ContentSource
 from community_base.content_sync.parsers import get_parser
+from community_base.knowledge_base.models import (
+    BODY_HTML_SITE,
+    SECTION_DOCS,
+    SECTION_WIKI,
+    STATUS_PUBLISHED,
+    KnowledgeBasePage,
+)
 from django.test import TestCase
 
 from content.models import SyncedDocument
@@ -548,9 +555,9 @@ def _docs_page(title: str, parent: str | None = None, body: str = "A paragraph.\
 class DocsParserTests(_CheckoutCase):
     def setUp(self) -> None:
         super().setUp()
-        # The reference data seeds the synced docs rows the catalogue reads;
-        # the parser contract tests exercise their own synced state from empty.
-        SyncedDocument.objects.filter(source__slug="dtc-docs").delete()
+        # The reference data seeds the documentation pages the read model
+        # serves; the parser contract tests exercise their own state from empty.
+        KnowledgeBasePage.objects.filter(section=SECTION_DOCS).delete()
 
     def test_discover_scopes_pages_and_resolves_hierarchy(self) -> None:
         source = _source("dtc-docs")
@@ -572,22 +579,22 @@ class DocsParserTests(_CheckoutCase):
         with self.checkout(tree) as checkout:
             self.assertEqual(parser.discover(checkout, other), [])
             items = parser.discover(checkout, source)
+            # A parent is stored before its children, so the items come back
+            # parents first rather than in key order.
             self.assertEqual(
                 [item.key for item in items],
-                ["courses/faq-course", "general/deep-dive", "index"],
+                ["index", "courses/faq-course", "general/deep-dive"],
             )
-            course, deep, home = items
-            self.assertEqual(home.data["record"]["public_path"], "/docs/")
-            self.assertEqual(course.data["record"]["public_path"], "/docs/courses/faq-course/")
-            self.assertEqual(deep.data["record"]["public_path"], "/docs/general/deep-dive/")
-            home_metadata = home.data["record"]["metadata"]
-            self.assertIsNone(home_metadata["parent_path"])
-            course_metadata = course.data["record"]["metadata"]
-            self.assertEqual(course_metadata["parent"], "Docs Home")
-            self.assertEqual(course_metadata["parent_path"], "/docs/")
-            deep_metadata = deep.data["record"]["metadata"]
-            self.assertEqual(deep_metadata["parent_path"], "/docs/courses/faq-course/")
+            home, course, deep = items
+            self.assertEqual(home.data["public_path"], "/docs/")
+            self.assertEqual(course.data["public_path"], "/docs/courses/faq-course/")
+            self.assertEqual(deep.data["public_path"], "/docs/general/deep-dive/")
+            self.assertIsNone(home.data["parent_key"])
+            self.assertEqual(course.data["record"]["parent"], "Docs Home")
+            self.assertEqual(course.data["parent_key"], "index")
+            self.assertEqual(deep.data["parent_key"], "courses/faq-course")
             self.assertEqual(deep.data["record"]["images"], ["general/images/diagram.png"])
+            self.assertIn("<p>A paragraph.", deep.data["body_html"])
 
     def test_discover_resolves_liquid_relative_url_image_references(self) -> None:
         # The real source repository always wraps an image ``src`` in Jekyll's
@@ -626,13 +633,22 @@ class DocsParserTests(_CheckoutCase):
             items = parser.discover(checkout, source)
             result = parser.upsert(items[0], source, media_store())
             self.assertEqual(result.action, "created")
-            stored = SyncedDocument.objects.get(source=source, content_kind="docs")
+            stored = KnowledgeBasePage.objects.get(section=SECTION_DOCS, slug="general/deep-dive")
             self.assertEqual(stored.public_path, "/docs/general/deep-dive/")
-            self.assertTrue(stored.record["metadata"]["edit_url"].endswith("general/deep-dive.md"))
-            self.assertEqual(stored.record["metadata"]["has_toc"], True)
+            self.assertEqual(stored.get_absolute_url(), "/docs/general/deep-dive/")
+            self.assertTrue(stored.record["edit_url"].endswith("general/deep-dive.md"))
+            self.assertEqual(stored.record["has_toc"], True)
+            # The site rendered this body; the package stored that HTML instead
+            # of rendering the markdown itself.
+            self.assertEqual(stored.body_html_source, BODY_HTML_SITE)
+            self.assertIn("<p>A paragraph.</p>", stored.body_html)
             self.assertEqual(parser.upsert(items[0], source, media_store()).action, "unchanged")
             self.assertEqual(parser.soft_delete_missing({"other"}, source), 1)
-            self.assertFalse(SyncedDocument.objects.filter(source=source).exists())
+            self.assertFalse(
+                KnowledgeBasePage.objects.filter(
+                    section=SECTION_DOCS, status=STATUS_PUBLISHED
+                ).exists()
+            )
 
     def test_rejects_colliding_public_paths(self) -> None:
         source = _source("dtc-docs")
@@ -820,9 +836,10 @@ def _synced_row(source, content_kind: str, slug: str, public_path: str) -> Synce
 class PodwikiParserTests(_CheckoutCase):
     def setUp(self) -> None:
         super().setUp()
-        # The reference data seeds the synced wiki rows the catalogue reads;
-        # the parser contract tests exercise their own synced state from empty.
+        # The reference data seeds the wiki rows the catalogue reads; the
+        # parser contract tests exercise their own synced state from empty.
         SyncedDocument.objects.filter(source__slug="dtc-podwiki").delete()
+        KnowledgeBasePage.objects.filter(section=SECTION_WIKI).delete()
 
     def _entities(self, podcast_slug: str = "test-episode") -> None:
         entities = _source("dtc-content-entities")
@@ -902,6 +919,9 @@ class PodwikiParserTests(_CheckoutCase):
             for item in items:
                 result = parser.upsert(item, source, media_store())
                 self.assertEqual(result.action, "created")
+        # The pages are knowledge base rows; only the three singletons -- the
+        # graph, the search corpus and the declared asset paths -- stay synced
+        # documents.
         self.assertEqual(
             sorted(
                 SyncedDocument.objects.filter(source=source).values_list(
@@ -909,12 +929,16 @@ class PodwikiParserTests(_CheckoutCase):
                 )
             ),
             [
-                ("wiki", "hello-wiki"),
                 ("wiki_assets", "wiki_assets"),
                 ("wiki_graph", "wiki_graph"),
                 ("wiki_search", "wiki_search"),
             ],
         )
+        stored = KnowledgeBasePage.objects.get(section=SECTION_WIKI, slug="hello-wiki")
+        self.assertEqual(stored.get_absolute_url(), "/wiki/hello-wiki")
+        self.assertEqual(stored.title, "Hello Wiki")
+        self.assertEqual(stored.record["fragment_ids"], ["section-one"])
+        self.assertIsNone(stored.parent_id)
         graph = SyncedDocument.objects.get(source=source, content_kind="wiki_graph")
         self.assertEqual(graph.public_path, "/-/podwiki/wiki_graph")
         self.assertEqual(graph.slug, "")
@@ -925,6 +949,9 @@ class PodwikiParserTests(_CheckoutCase):
                 self.assertEqual(parser.upsert(item, source, media_store()).action, "unchanged")
         self.assertEqual(parser.soft_delete_missing(set(), source), 4)
         self.assertFalse(SyncedDocument.objects.filter(source=source).exists())
+        self.assertFalse(
+            KnowledgeBasePage.objects.filter(section=SECTION_WIKI, status=STATUS_PUBLISHED).exists()
+        )
 
     def test_withdrawn_podcasts_drop_from_graph_and_search(self) -> None:
         source = _source("dtc-podwiki")

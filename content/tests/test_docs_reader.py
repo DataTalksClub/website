@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import re
-from copy import deepcopy
+from collections.abc import Mapping
 from typing import Any
-from unittest.mock import patch
 
+from community_base.content_sync.models import ContentSource as EngineContentSource
+from community_base.knowledge_base import sync as knowledge_base_sync
+from community_base.knowledge_base.models import SECTION_DOCS, KnowledgeBasePage
+from community_base.knowledge_base.sync import KnowledgeBaseSyncError
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 from django.utils.html import escape as html_escape
@@ -18,38 +21,57 @@ from content.docs_presentation import (
     docs_meta_description,
     docs_meta_title,
 )
-from content.docs_projection import (
+from content.docs_reader import (
+    DOCS_ENGINE_SOURCE_SLUG,
     DOCS_ROOT_PATH,
     DOCS_SOURCE_REVISION,
-    _prepare_markdown,
-    build_docs_navigation,
+    _docs_state,
+    _docs_tree,
     docs_asset_path,
+    docs_assets,
     docs_breadcrumbs,
     docs_navigation_tree,
     docs_page,
     docs_pages,
     docs_parent,
-    docs_projection,
     docs_sequential_navigation,
-    render_docs_markdown,
 )
+from content.docs_rendering import _prepare_markdown, render_docs_markdown
 
 
-class DocsProjectionTests(TestCase):
+def stored_html(page: Mapping[str, Any] | None) -> str:
+    """The HTML the sync rendered, which the page stores and the route serves.
+
+    Documentation bodies are rendered once, when the sync writes the page, so
+    what a reader is served is what the row holds rather than a fresh render.
+    """
+
+    assert page is not None
+    return str(page["body_html"])
+
+
+def _clear_docs_caches() -> None:
+    """Forget the read model's per-state caches after writing rows directly."""
+
+    _docs_state.cache_clear()
+    _docs_tree.cache_clear()
+
+
+class DocsReadModelTests(TestCase):
     def test_the_published_documentation_is_complete_and_addressable(self) -> None:
-        projection = docs_projection()
-        self.assertEqual(projection["root_path"], DOCS_ROOT_PATH)
-        self.assertTrue(projection["pages"])
+        pages = docs_pages()
+        self.assertTrue(pages)
+        self.assertEqual(docs_navigation_tree().root.public_path, DOCS_ROOT_PATH)
         # Which revision the pages came from is the ingest's business, checked
         # when the reviewed file is imported. What matters here is that every
         # published page has its own address.
         self.assertEqual(
-            len({page["public_path"] for page in projection["pages"]}),
-            len(projection["pages"]),
+            len({page["public_path"] for page in pages}),
+            len(pages),
         )
         page = docs_page("/docs/courses/ai-dev-tools-zoomcamp/getting-started/")
         if page is None:
-            self.fail("getting-started projection page is missing")
+            self.fail("getting-started page is missing")
         self.assertEqual(page["parent_path"], "/docs/courses/ai-dev-tools-zoomcamp/")
 
     def test_docs_home_and_detail_emit_source_content_and_canonicals(self) -> None:
@@ -142,7 +164,7 @@ class DocsProjectionTests(TestCase):
         general = docs_page("/docs/general/")
         self.assertIsNotNone(general)
         assert general is not None
-        rendered, _headings = render_docs_markdown(general)
+        rendered = stored_html(general)
         _heading_id, rendered_body = docs_body_without_primary_heading(rendered)
         expected = docs_meta_description(general, rendered_body)
         response = self.client.get(general["public_path"])
@@ -151,15 +173,18 @@ class DocsProjectionTests(TestCase):
             f'<meta name="description" content="{html_escape(expected)}">',
         )
 
-    def test_tree_is_complete_ordered_and_stable_across_source_reordering(self) -> None:
-        pages = docs_projection()["pages"]
+    def test_tree_is_complete_and_its_siblings_keep_the_source_order(self) -> None:
+        pages = docs_pages()
         tree = docs_navigation_tree()
-        reversed_tree = build_docs_navigation(tuple(reversed(pages)))
         self.assertEqual(tree.root.public_path, DOCS_ROOT_PATH)
+        # The hierarchy is the shared app's stored parent links, so it does not
+        # depend on the order the pages are read back in: every published page
+        # is in the tree exactly once.
         self.assertEqual(
-            [item.public_path for item in tree.preorder],
-            [item.public_path for item in reversed_tree.preorder],
+            sorted(item.public_path for item in tree.preorder),
+            sorted(page["public_path"] for page in pages),
         )
+        self.assertEqual(len(tree.preorder), len(pages))
         for item in tree.preorder:
             expected = sorted(
                 item.children,
@@ -171,46 +196,34 @@ class DocsProjectionTests(TestCase):
             )
             self.assertEqual(list(item.children), expected)
 
-    def test_tree_validation_fails_closed_with_bounded_source_diagnostics(self) -> None:
-        root: dict[str, Any] = {
-            "source_path": "index.md",
-            "public_path": DOCS_ROOT_PATH,
-            "title": "Home",
-            "parent_path": None,
-        }
-        section: dict[str, Any] = {
-            "source_path": "section.md",
-            "public_path": "/docs/section/",
-            "title": "Section",
-            "parent_path": None,
-        }
-        child: dict[str, Any] = {
-            "source_path": "child.md",
-            "public_path": "/docs/child/",
-            "title": "Child",
-            "parent_path": "/docs/section/",
-        }
-        fixtures: dict[str, list[dict[str, Any]]] = {
-            "orphan": [root, child | {"parent_path": "/docs/missing/"}],
-            "self_parent": [root, child | {"parent_path": "/docs/child/"}],
-            "parent_cycle": [
-                root,
-                section | {"parent_path": "/docs/child/"},
-                child | {"parent_path": "/docs/section/"},
-            ],
-            "duplicate_public_path": [root, section, child | {"public_path": "/docs/section/"}],
-            "duplicate_source_path": [root, section, child | {"source_path": "section.md"}],
-            "noncanonical_public_path": [root, section | {"public_path": "/docs/section"}],
-        }
-        for code, fixture in fixtures.items():
-            with (
-                self.subTest(code=code),
-                self.assertRaisesRegex(
-                    ImproperlyConfigured,
-                    rf"Docs navigation {code}: [^\n]{{1,160}}$",
-                ),
-            ):
-                build_docs_navigation(tuple(fixture))
+    def test_a_published_page_outside_the_root_is_refused_not_half_shown(self) -> None:
+        """A second root is a broken corpus, and the read model says so."""
+
+        stray = KnowledgeBasePage.objects.filter(section=SECTION_DOCS).exclude(
+            public_path=DOCS_ROOT_PATH
+        )[0]
+        KnowledgeBasePage.objects.filter(pk=stray.pk).update(parent=None)
+        _clear_docs_caches()
+
+        with self.assertRaisesRegex(ImproperlyConfigured, r"Docs navigation orphan: [^\n]{1,160}$"):
+            docs_navigation_tree()
+
+    def test_the_stored_hierarchy_refuses_a_parent_the_corpus_does_not_hold(self) -> None:
+        """The parent link is the package's, and it is resolved, not guessed."""
+
+        source = EngineContentSource.objects.get(slug=DOCS_ENGINE_SOURCE_SLUG)
+        with self.assertRaises(KnowledgeBaseSyncError):
+            knowledge_base_sync.upsert_page(
+                source,
+                section=SECTION_DOCS,
+                slug="courses/not-a-page/child",
+                title="Child",
+                parent_slug="courses/not-a-page",
+                public_path="/docs/courses/not-a-page/child/",
+                commit_sha="0" * 40,
+                source_path="courses/not-a-page/child.md",
+                checksum="0" * 64,
+            )
 
     def test_landing_groups_come_from_the_source_hierarchy(self) -> None:
         tree = docs_navigation_tree()
@@ -241,14 +254,15 @@ class DocsProjectionTests(TestCase):
             with self.subTest(public_path=item.public_path):
                 self.assertIn(current.public_path, home_destinations)
 
-    def test_root_only_projection_has_explicit_empty_state_without_empty_nav(self) -> None:
-        root = deepcopy(docs_page(DOCS_ROOT_PATH) or {})
-        tree = build_docs_navigation((root,))
-        with (
-            patch("content.review_views.projected_docs_page", return_value=root),
-            patch("content.review_views.docs_navigation_tree", return_value=tree),
-        ):
-            response = self.client.get(DOCS_ROOT_PATH)
+    def test_root_only_corpus_has_explicit_empty_state_without_empty_nav(self) -> None:
+        # The hub reads the database, so the corpus is emptied down to its root
+        # page the way a first sync would leave it rather than by patching.
+        KnowledgeBasePage.objects.filter(section=SECTION_DOCS).exclude(
+            public_path=DOCS_ROOT_PATH
+        ).delete()
+        _clear_docs_caches()
+
+        response = self.client.get(DOCS_ROOT_PATH)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "DataTalks.Club Zoomcamps Notes and Resources")
         self.assertContains(response, "No documentation sections are available yet.")
@@ -295,7 +309,7 @@ class DocsProjectionTests(TestCase):
         for path in (DOCS_ROOT_PATH, "/docs/general/guidelines/ai-usage/"):
             page = docs_page(path)
             if page is None:
-                self.fail(f"projected Docs page is missing: {path}")
+                self.fail(f"published Docs page is missing: {path}")
             response = self.client.get(path)
             self.assertNotContains(response, "Search documentation on GitHub")
             self.assertNotContains(response, DOCS_SOURCE_REVISION)
@@ -303,7 +317,7 @@ class DocsProjectionTests(TestCase):
     def test_curriculum_presentation_preserves_the_source_learning_flow(self) -> None:
         page = docs_page("/docs/courses/ml-zoomcamp/curriculum/")
         self.assertIsNotNone(page)
-        rendered, _headings = render_docs_markdown(page or {})
+        rendered = stored_html(page)
         heading_id, body = docs_body_without_primary_heading(rendered)
         curriculum = docs_curriculum(body)
         self.assertEqual(heading_id, "curriculum")
@@ -350,7 +364,7 @@ class DocsProjectionTests(TestCase):
             "## Cohort changes\n\n"
             "Notes.\n"
         )
-        rendered, _headings = render_docs_markdown({"body": source})
+        rendered, _headings = render_docs_markdown(source)
         _heading_id, body = docs_body_without_primary_heading(rendered)
         curriculum = docs_curriculum(body)
         self.assertIsNotNone(curriculum)
@@ -380,7 +394,7 @@ class DocsProjectionTests(TestCase):
         self.assertContains(queried, '<link rel="canonical" href="https://datatalks.club/docs/">')
 
     def test_every_projected_page_is_a_trailing_slash_public_page(self) -> None:
-        for page in docs_projection()["pages"]:
+        for page in docs_pages():
             public_path = page["public_path"]
             with self.subTest(public_path=public_path):
                 response = self.client.get(public_path)
@@ -405,14 +419,10 @@ class DocsProjectionTests(TestCase):
 
     def test_markdown_renderer_rewrites_liquid_and_sanitizes_html(self) -> None:
         html, headings = render_docs_markdown(
-            {
-                "body": (
-                    "# One heading\n\n"
-                    "## One heading\n\n"
-                    "[guide]({{ '/courses/ml-zoomcamp/' | relative_url }})\n\n"
-                    "<script>alert('no')</script><a href=\"javascript:alert(1)\">bad</a>"
-                )
-            }
+            "# One heading\n\n"
+            "## One heading\n\n"
+            "[guide]({{ '/courses/ml-zoomcamp/' | relative_url }})\n\n"
+            "<script>alert('no')</script><a href=\"javascript:alert(1)\">bad</a>"
         )
         self.assertEqual([item["id"] for item in headings], ["one-heading", "one-heading-1"])
         self.assertIn('href="/docs/courses/ml-zoomcamp/"', html)
@@ -546,18 +556,18 @@ class DocsProjectionTests(TestCase):
             with self.subTest(public_path=public_path):
                 page = docs_page(public_path)
                 self.assertIsNotNone(page)
-                rendered, _ = render_docs_markdown(page or {})
+                rendered = stored_html(page)
                 for destination in destinations:
                     self.assertIn(f'href="{destination}', rendered)
                 self.assertNotRegex(
                     rendered,
                     r'href="(?:https://datatalks\.club)?/(?:events|podcast|books)\.html',
                 )
-        activities, _ = render_docs_markdown(docs_page("/docs/activities/") or {})
+        activities = stored_html(docs_page("/docs/activities/"))
         self.assertIn('href="/events"', activities)
         self.assertNotIn("luma.com", activities.lower())
         self.assertNotIn(">Luma<", activities)
-        workshops, _ = render_docs_markdown(docs_page("/docs/activities/workshops/") or {})
+        workshops = stored_html(docs_page("/docs/activities/workshops/"))
         self.assertIn("via Luma", workshops)
 
     def test_all_affected_docs_pages_apply_slack_and_newsletter_exceptions(self) -> None:
@@ -570,19 +580,17 @@ class DocsProjectionTests(TestCase):
             with self.subTest(public_path=public_path):
                 page = docs_page(public_path)
                 self.assertIsNotNone(page)
-                rendered, _ = render_docs_markdown(page or {})
+                rendered = stored_html(page)
                 self.assertIn(heading_copy, rendered)
                 self.assertNotRegex(rendered, r'href="[^" ]*newsletter\.html')
-        ml_resources, _ = render_docs_markdown(
-            docs_page("/docs/courses/ml-zoomcamp/resources/") or {}
-        )
+        ml_resources = stored_html(docs_page("/docs/courses/ml-zoomcamp/resources/"))
         self.assertIn('href="https://us19.campaign-archive.com/home/', ml_resources)
 
-        for page in docs_projection()["pages"]:
+        for page in docs_pages():
             if not re.search(r"/slack(?:/guidelines)?\.html", str(page["body"])):
                 continue
             with self.subTest(public_path=page["public_path"]):
-                rendered, _ = render_docs_markdown(page)
+                rendered = stored_html(page)
                 self.assertNotRegex(
                     rendered,
                     r'href="(?:https://datatalks\.club)?/slack(?:/guidelines)?\.html',
@@ -596,8 +604,8 @@ class DocsProjectionTests(TestCase):
             r"\]\(\s*(?:<)?https://(?:app\.slack\.com|datatalks-club\.slack\.com)/"
         )
         affected = 0
-        for page in docs_projection()["pages"]:
-            rendered, _ = render_docs_markdown(page)
+        for page in docs_pages():
+            rendered = stored_html(page)
             with self.subTest(public_path=page["public_path"]):
                 self.assertNotRegex(rendered, r'href="[^"]*app\.slack\.com')
                 self.assertNotRegex(rendered, r'href="[^"]*datatalks-club\.slack\.com')
@@ -609,52 +617,42 @@ class DocsProjectionTests(TestCase):
 
     def test_absolute_canonical_slack_destinations_render_root_relative(self) -> None:
         canonical_absolute = re.compile(r"\]\(\s*(?:<)?https://datatalks\.club/slack(?![\w./-])")
-        affected = [
-            page
-            for page in docs_projection()["pages"]
-            if canonical_absolute.search(str(page["body"]))
-        ]
+        affected = [page for page in docs_pages() if canonical_absolute.search(str(page["body"]))]
         self.assertGreater(len(affected), 0)
         for page in affected:
             with self.subTest(public_path=page["public_path"]):
-                rendered, _ = render_docs_markdown(page)
+                rendered = stored_html(page)
                 self.assertNotRegex(rendered, r'href="https://(?:www\.)?datatalks\.club/slack[?"]')
                 self.assertIn('href="/slack"', rendered)
 
     def test_slack_product_documentation_citations_stay_external(self) -> None:
         help_destination = re.compile(r"\]\(\s*(?:<)?(https://slack\.com/help/[^\s)>]+)")
         citations: dict[str, set[str]] = {}
-        for page in docs_projection()["pages"]:
+        for page in docs_pages():
             for match in help_destination.finditer(str(page["body"])):
                 citations.setdefault(page["public_path"], set()).add(match.group(1))
         self.assertGreater(len(citations), 0)
         for public_path, urls in citations.items():
             with self.subTest(public_path=public_path):
-                rendered, _ = render_docs_markdown(docs_page(public_path) or {})
+                rendered = stored_html(docs_page(public_path))
                 for url in urls:
                     self.assertIn(f'href="{url}"', rendered)
 
-    def test_rendering_leaves_every_stored_page_unchanged(self) -> None:
+    def test_rendering_leaves_every_stored_body_unchanged(self) -> None:
         """Rendering is a read. A renderer that edited its source would drift."""
 
-        before = {
-            page["public_path"]: (page["body"], page["body_sha256"])
-            for page in docs_projection()["pages"]
-        }
+        before = {page["public_path"]: (page["body"], page["body_sha256"]) for page in docs_pages()}
 
-        for page in docs_projection()["pages"]:
-            render_docs_markdown(page)
+        for page in docs_pages():
+            render_docs_markdown(str(page["body"]))
 
-        after = {
-            page["public_path"]: (page["body"], page["body_sha256"])
-            for page in docs_projection()["pages"]
-        }
+        after = {page["public_path"]: (page["body"], page["body_sha256"]) for page in docs_pages()}
         self.assertEqual(after, before)
         for body, digest in after.values():
             self.assertEqual(hashlib.sha256(body.encode("utf-8")).hexdigest(), digest)
 
     def test_referenced_assets_are_served_only_from_the_pinned_allowlist(self) -> None:
-        asset = docs_projection()["assets"][0]
+        asset = docs_assets()[0]
         public_path = asset["public_path"]
         response = self.client.get(public_path)
         self.assertEqual(response.status_code, 200)
@@ -664,13 +662,13 @@ class DocsProjectionTests(TestCase):
         self.assertEqual(response.headers["Cache-Control"], "public, max-age=86400")
         resolved = docs_asset_path(public_path.removeprefix("/docs/assets/"))
         if resolved is None:
-            self.fail("projected asset did not resolve")
+            self.fail("published asset did not resolve")
         self.assertEqual(resolved[1], asset["content_type"])
 
         for path in (
             "/docs/assets/images/not-referenced.png",
             "/docs/assets/../docs_assets",
-            "/docs/assets/images/brand-assets/../../../../content/docs_projection.py",
+            "/docs/assets/images/brand-assets/../../../../content/docs_reader.py",
         ):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 404)

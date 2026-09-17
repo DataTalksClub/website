@@ -1,5 +1,13 @@
 """Podwiki parser: the community wiki from ``DataTalksClub/podwiki``.
 
+The pages are stored in the shared ``community_base.knowledge_base`` app, in its
+``wiki`` section (D7.1): a flat set of pages, each keeping the ``/wiki/<slug>``
+path it has always served at as its own ``public_path``. A wiki page is not
+markdown -- it is the parsed block structure the site's own templates render --
+so the whole parsed record travels in the page's ``record``, which the package
+stores and never interprets. The graph, search corpus and asset digests are not
+pages and stay ``SyncedDocument`` singleton rows the catalogue reads.
+
 The record rules are the projection builder's wiki rules (``_wiki``): one
 page per top-level ``_wiki/*.md`` document, the knowledge graph
 (``graph/graph.json``) and the search corpus (``search/search-corpus.json``)
@@ -29,6 +37,8 @@ from urllib.parse import urlsplit
 from community_base.content_sync.checkout import ImmutableCheckout
 from community_base.content_sync.orchestration import UpsertResult
 from community_base.content_sync.parsers import SourceItem, register_parser
+from community_base.knowledge_base import sync as knowledge_base_sync
+from community_base.knowledge_base.models import SECTION_WIKI
 
 from content.models import SyncedDocument
 from scripts import build_public_projection as builder
@@ -163,6 +173,7 @@ class PodwikiParser:
                     "stable_key": record["slug"],
                     "public_path": record["public_path"],
                     "source_path": record["source_path"],
+                    "commit_sha": checkout.commit_sha,
                     "checksum": _derived_checksum(record["provenance"]["checksum"], record),
                 },
             )
@@ -176,11 +187,30 @@ class PodwikiParser:
     def upsert(self, item, source, media):
         data = item.data
         record = data["record"]
+        if data["content_kind"] == CONTENT_KIND:
+            # A wiki page is a knowledge base page: the shared app owns the row,
+            # the title, the summary and the public path, and stores the rest of
+            # the record -- blocks, tags, relations, heading fragments -- as the
+            # site's own opaque metadata. Wiki pages are a flat set, so no page
+            # carries a parent.
+            page, action = knowledge_base_sync.upsert_page(
+                source,
+                section=SECTION_WIKI,
+                slug=data["stable_key"],
+                title=record.get("title") or data["stable_key"],
+                summary=record.get("summary") or "",
+                public_path=data["public_path"],
+                record=record,
+                commit_sha=data["commit_sha"],
+                source_path=data["source_path"],
+                checksum=data["checksum"],
+            )
+            return UpsertResult(page, action)
         document, action = base.upsert_document(
             source,
             content_kind=data["content_kind"],
             stable_key=data["stable_key"],
-            slug=data["stable_key"] if data["content_kind"] == CONTENT_KIND else "",
+            slug="",
             title=record.get("title") or data["stable_key"],
             summary=record.get("summary") or "",
             public_path=data["public_path"],
@@ -193,7 +223,9 @@ class PodwikiParser:
     def soft_delete_missing(self, seen_keys, source):
         if source.slug != SOURCE_SLUG:
             return 0
-        deleted = base.delete_missing(source, CONTENT_KIND, seen_keys)
+        deleted = len(
+            knowledge_base_sync.delete_missing(source, SECTION_WIKI, seen_slugs=seen_keys)
+        )
         for kind, marker in SINGLETON_ITEM_KEYS.items():
             # The singletons are structural: discover fails when their source
             # artifacts are absent, so a missing marker only means an earlier

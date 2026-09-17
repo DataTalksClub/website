@@ -296,8 +296,8 @@ def _editorial_content_report() -> dict[str, Any]:
     never ran.
     """
 
-    from content import catalogue
-    from content.docs_projection import docs_pages
+    from content import catalogue, wiki_reader
+    from content.docs_reader import docs_pages
     from content.faq_data import faq_courses
     from content.models import ContentAsset, ContentDocument, ContentSource
     from core.models import Sponsor
@@ -309,7 +309,7 @@ def _editorial_content_report() -> dict[str, Any]:
         "podcasts": len(catalogue.podcasts()),
         "books": len(catalogue.books()),
         "people": len(catalogue.people()),
-        "wiki": len(catalogue.wiki_pages()),
+        "wiki": len(wiki_reader.wiki_pages()),
         "media": len(catalogue.media()),
         "docs": len(docs_pages()),
         "faq": len(faq),

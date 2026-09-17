@@ -12,7 +12,7 @@ from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import Resolver404, resolve
 
-from content import catalogue
+from content import catalogue, wiki_reader
 from content.event_content import event_groups
 from courses.models.cohort import Cohort
 from events.queries import published_event_records
@@ -49,7 +49,7 @@ class PublishedCatalogueTests(TestCase):
         "podcasts": catalogue.podcasts,
         "books": catalogue.books,
         "people": catalogue.people,
-        "wiki": catalogue.wiki_pages,
+        "wiki": wiki_reader.wiki_pages,
         "courses": catalogue.courses,
         "media": catalogue.media,
     }
@@ -340,7 +340,7 @@ class PublishedCatalogueTests(TestCase):
         self.assertFalse(after.upcoming)
 
     def test_wiki_fragments_and_corpus_targets_resolve(self) -> None:
-        for page in catalogue.wiki_pages():
+        for page in wiki_reader.wiki_pages():
             response = self.client.get(page["public_path"])
             body = response.content.decode()
             for fragment in page["fragment_ids"]:
@@ -348,7 +348,7 @@ class PublishedCatalogueTests(TestCase):
 
         person_relations = [
             relation
-            for page in catalogue.wiki_pages()
+            for page in wiki_reader.wiki_pages()
             for relation in page["relations"]
             if relation["type"] == "person"
         ]

@@ -11,7 +11,7 @@ from content.docs_presentation import (
     docs_hub,
     docs_rail,
 )
-from content.docs_projection import docs_navigation_tree, docs_page, render_docs_markdown
+from content.docs_reader import docs_navigation_tree, docs_page
 from playwright_tests.accessibility_support import assert_accessible_page
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
@@ -63,8 +63,7 @@ def curriculum_items() -> tuple:
 
     page = docs_page("/docs/courses/ml-zoomcamp/curriculum/")
     assert page is not None
-    rendered, _headings = render_docs_markdown(page)
-    _heading_id, body = docs_body_without_primary_heading(rendered)
+    _heading_id, body = docs_body_without_primary_heading(str(page["body_html"]))
     curriculum = docs_curriculum(body)
     assert curriculum is not None
     return curriculum.items

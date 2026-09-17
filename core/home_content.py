@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import NoReverseMatch, reverse
 
-from content import catalogue
+from content import wiki_reader
 from core.graph_layout import GraphLayout, GraphPoint, ring_layouts
 from courses.services.public_course_catalog import (
     cohort_recency_key,
@@ -234,7 +234,7 @@ def published_display(value: str) -> str:
 
 
 def _wiki_pages() -> dict[str, dict[str, Any]]:
-    return {str(page["slug"]): page for page in catalogue.wiki_pages()}
+    return {str(page["slug"]): page for page in wiki_reader.wiki_pages()}
 
 
 def _wiki_topic(pages: dict[str, dict[str, Any]], slug: str) -> WikiTopic | None:
