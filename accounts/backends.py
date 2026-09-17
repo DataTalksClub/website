@@ -30,10 +30,12 @@ class DurableAccountBackend(AuthenticationBackend):
         return CustomUser.objects.filter(
             is_active=True,
         ).filter(
-            Q(identity__identity_state__in=(
-                IdentityState.States.LEGACY,
-                IdentityState.States.ACTIVE,
-            ))
+            Q(
+                identity__identity_state__in=(
+                    IdentityState.States.LEGACY,
+                    IdentityState.States.ACTIVE,
+                )
+            )
             | Q(identity__isnull=True)
         )
 

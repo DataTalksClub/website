@@ -305,9 +305,7 @@ def import_mailchimp_course_tags(
             continue
 
         account = (
-            CustomUser.objects.filter(
-                identity__normalized_email=normalized_email
-            )
+            CustomUser.objects.filter(identity__normalized_email=normalized_email)
             .order_by("pk")
             .first()
         )
