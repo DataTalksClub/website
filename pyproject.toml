@@ -201,6 +201,8 @@ module = [
     "courses.tests.test_leaderboard_project_stars",
     "courses.tests.test_course_family_docs_cross_link",
     "courses.tests.test_course_family_seo",
+    "scripts.prod.import_shared_course_platform",
+    "scripts.tests.test_import_shared_course_platform",
 ]
 ignore_errors = false
 

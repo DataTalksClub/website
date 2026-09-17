@@ -226,7 +226,8 @@ registration (`sync_course_repository_sources`), and the reviewed public content
 `import_sponsors`, `import_testimonials`), each of which writes the rows of its
 own domain straight from a reviewed source and so needs nothing already there.
 The rest reconcile: `import_events`, the registration and Mailchimp importers,
-and the media sync scripts.
+the media sync scripts, and `import_shared_course_platform` (step 9, which reads
+only what steps 1-4 wrote).
 
 **Measured**: against a database that had only just been migrated, importing
 `mlops-zoomcamp-2022` created the `mlops-zoomcamp` family, the cohort, 6 homeworks,

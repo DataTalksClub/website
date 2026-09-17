@@ -250,7 +250,8 @@ def _refuse_mapping_drift() -> None:
         package_written,
         package_defaults,
     ) in _mapping().items():
-        site_model = apps.get_model(*site_label.split("."))
+        site_app, site_name = site_label.split(".")
+        site_model = apps.get_model(site_app, site_name)
         unnamed_site = {
             field.name for field in site_model._meta.concrete_fields if not field.primary_key
         } - set(site_fields)
@@ -260,7 +261,8 @@ def _refuse_mapping_drift() -> None:
             # A pair that writes no package row: its package side is checked
             # through the family that really writes that model.
             continue
-        package_model = apps.get_model(*package_label.split("."))
+        package_app, package_name = package_label.split(".")
+        package_model = apps.get_model(package_app, package_name)
         unnamed_package = {
             field.name
             for field in package_model._meta.concrete_fields
@@ -380,14 +382,14 @@ def _mapping() -> dict[
         "source_checksum": _PROV,
     }
 
-    def concrete(model: type, exclude: set[str]) -> dict[str, str]:
+    def concrete(model: Any, exclude: set[str]) -> dict[str, str]:
         return {
             field.name: _COPIED
             for field in model._meta.concrete_fields
             if field.name not in exclude
         }
 
-    def written(model: type, exclude: set[str]) -> frozenset:
+    def written(model: Any, exclude: set[str]) -> frozenset:
         return frozenset(
             field.name for field in model._meta.concrete_fields if field.name not in exclude
         )

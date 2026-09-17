@@ -110,7 +110,7 @@ def _import_family_graph() -> None:
         content_markdown="Draft body.",
         published=False,
     )
-    hidden_module = site.SharedModule.objects.filter(slug="extra").first()
+    hidden_module = site.SharedModule.objects.get(slug="extra")
     site.SharedLesson.objects.create(
         module=hidden_module,
         position=1,

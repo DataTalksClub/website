@@ -59,6 +59,12 @@ that importer now creates the cohort and its family from the reviewed catalogue.
 ``scripts/tests/test_prod_conventions.py``, so a module that gains or loses the ability is
 a deliberate edit rather than a surprise.
 
+``import_shared_course_platform`` is the P6 step of the production data migration
+(``_docs/runbooks/production-data-migration.md``, step 9): it is **reconciling, not
+bootstrapping** -- it reads only rows that steps 1-4 already wrote, so it runs after
+step 4 and before anything serves from the shared course tables (that flip is D5.2,
+DataTalksClub/website#415, not this step).
+
 Course catalogue order
 ----------------------
 
