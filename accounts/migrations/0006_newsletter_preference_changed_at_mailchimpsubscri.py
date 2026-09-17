@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(
-            model_name="customuser",
+            model_name="user",
             name="newsletter_preference_changed_at",
             field=models.DateTimeField(
                 blank=True,

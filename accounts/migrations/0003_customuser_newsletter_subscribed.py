@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(
-            model_name='customuser',
+            model_name='user',
             name='newsletter_subscribed',
             field=models.BooleanField(default=True, help_text='Whether this account receives newsletter email.', verbose_name='Newsletter subscribed'),
         ),

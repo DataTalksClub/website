@@ -220,7 +220,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "website.wsgi.application"
 ASGI_APPLICATION = "website.asgi.application"
 
-AUTH_USER_MODEL = "accounts.CustomUser"
+AUTH_USER_MODEL = "accounts.User"
 AUTHENTICATION_BACKENDS = ["accounts.backends.DurableAccountBackend"]
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"

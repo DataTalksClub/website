@@ -27,12 +27,12 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.AddField(
-            model_name='customuser',
+            model_name='user',
             name='cmp_source_user_id',
             field=models.BigIntegerField(blank=True, db_index=True, editable=False, null=True, verbose_name='CMP source user ID'),
         ),
         migrations.AddConstraint(
-            model_name='customuser',
+            model_name='user',
             constraint=models.UniqueConstraint(condition=models.Q(('cmp_source_user_id__isnull', False)), fields=('cmp_source_user_id',), name='accounts_cmp_source_user_id_unique'),
         ),
     ]

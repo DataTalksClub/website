@@ -11,11 +11,11 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RemoveConstraint(
-            model_name='customuser',
+            model_name='user',
             name='accounts_cmp_source_user_id_unique',
         ),
         migrations.RemoveField(
-            model_name='customuser',
+            model_name='user',
             name='cmp_source_user_id',
         ),
     ]

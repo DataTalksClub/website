@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='CustomUser',
+            name='User',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('password', models.CharField(max_length=128, verbose_name='password')),
@@ -50,6 +50,16 @@ class Migration(migrations.Migration):
                 ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),
             ],
             options={
+                # The model carries the name ``User`` from the very first
+                # migration, and the table keeps its pre-rename physical name
+                # until accounts.0009 moves it. That is not cosmetic: every
+                # migration that references ``settings.AUTH_USER_MODEL`` --
+                # this one, django.contrib.admin's, allauth's -- resolves it
+                # against historical state at the moment it is applied, and
+                # AUTH_USER_MODEL now reads ``accounts.User``. A RenameModel
+                # in a later migration would leave every one of those
+                # unrenderable on a fresh database, this migration included.
+                'db_table': 'accounts_customuser',
                 'verbose_name': 'user',
                 'verbose_name_plural': 'users',
                 'abstract': False,
@@ -120,7 +130,7 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.AddConstraint(
-            model_name='customuser',
+            model_name='user',
             constraint=models.UniqueConstraint(condition=models.Q(('identity_state', 'active'), ('normalized_email__isnull', False)), fields=('normalized_email',), name='accounts_active_normalized_email_unique'),
         ),
         migrations.AddIndex(
