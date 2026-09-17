@@ -15,6 +15,7 @@ from scripts.render_course_platform_inventory import (
     route_entries,
 )
 from scripts.verify_course_platform_adoption import (
+    retired_adoption_destinations,
     verify_cadmin_reference_allowlist,
 )
 
@@ -94,11 +95,23 @@ def _read_tsv(path: Path) -> list[dict[str, str]]:
 
 
 def _protected_course_template_rows() -> list[dict[str, str]]:
-    return [
+    """The adopted course templates this repository still serves.
+
+    The manifest is derived from the pinned upstream checkout, so a template the
+    target has deliberately retired stays recorded there. Only a destination named
+    in the reviewed ``RETIRED_ADOPTION_DESTINATIONS`` list drops out here; a
+    template that disappears without that review still fails the pin below.
+    """
+
+    rows = [
         row
         for row in _read_tsv(MANIFEST_PATH)
         if row["source_path"].startswith(PROTECTED_COURSE_TEMPLATE_PREFIX)
     ]
+    retired = retired_adoption_destinations(
+        REPO_ROOT, (row["destination_path"] for row in rows)
+    )
+    return [row for row in rows if row["destination_path"] not in retired]
 
 
 class CoursePlatformAdoptionContractTests(SimpleTestCase):

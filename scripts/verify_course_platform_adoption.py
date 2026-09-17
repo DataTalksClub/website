@@ -82,10 +82,20 @@ class IntegrationPatchEntry:
 # straight out of a production export.  Leaving a loaded weapon in the drawer with the
 # safety on is not a safety measure; the production importers in ``scripts/prod/``
 # replace it and name their forbidden tables explicitly.
+#
+# ``courses/templates/projects/list.html``, ``courses/templates/projects/list_all.html``
+# and ``courses/views/course_project_submissions.py`` were retired when the project
+# submission galleries were unified: every project-list route now renders through
+# ``courses/templates/projects/site_gallery.html`` and
+# ``courses.views.site_project_gallery.project_gallery_view``, so the adopted
+# per-assignment and course-wide list pages have no route left to serve.
 RETIRED_ADOPTION_DESTINATIONS = frozenset(
     {
         "courses/models/course.py",
+        "courses/templates/projects/list.html",
+        "courses/templates/projects/list_all.html",
         "courses/tests/test_load_rds_export_script.py",
+        "courses/views/course_project_submissions.py",
         "scripts/load_rds_export.py",
     }
 )
