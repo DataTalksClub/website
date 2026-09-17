@@ -141,7 +141,7 @@ Resumability
 ------------
 
 Both tables, and the synthesis pass, are processed in ascending source-id order,
-in fixed-size batches, tracked in ``accounts_ext.models.CmpLearnerImportProgress``.
+in fixed-size batches, tracked in ``accounts.models.CmpLearnerImportProgress``.
 Each batch's writes and its watermark advance happen inside one transaction, so a
 process killed mid-batch leaves nothing partially written for the next run to
 double-count; a re-run's first query is ``id > last_source_id``, so it does not
@@ -166,6 +166,7 @@ from django.utils.dateparse import parse_datetime
 from accounts.identity_values import normalize_account_email
 from accounts.models import CmpLearnerClaim, CmpLearnerImportBinding, CustomUser
 from accounts_ext.models import CmpLearnerImportProgress
+from courses.models.learner_profile import LearnerProfile
 
 __all__ = [
     "CmpClaimsStore",
@@ -203,9 +204,11 @@ ACCOUNTS_TABLE = "accounts_customuser"
 EMAIL_ADDRESS_TABLE = "account_emailaddress"
 SYNTHESIZED_EMAIL_ADDRESS_TABLE = "account_emailaddress_synthesized"
 
-# Columns that exist on both the export's accounts_customuser and CustomUser with
-# the same meaning. password, is_staff, is_superuser, username and email are
-# handled explicitly, never through this list -- see _build_account.
+# Columns that exist on both the export's accounts_customuser and the live
+# user model with the same meaning. password, is_staff, is_superuser, username
+# and email are handled explicitly, never through this list -- see
+# _build_account. The course-platform profile columns land on the account's
+# ``LearnerProfile`` row, not on the user model (plan D3.1).
 _ACCOUNT_FIELDS: tuple[str, ...] = (
     "first_name",
     "last_name",
@@ -223,6 +226,20 @@ _ACCOUNT_FIELDS: tuple[str, ...] = (
     "preferred_timezone",
 )
 _BOOLEAN_ACCOUNT_FIELDS = frozenset({"is_active", "dark_mode"})
+_PROFILE_FIELDS = frozenset(
+    {
+        "role",
+        "certificate_name",
+        "dark_mode",
+        "about_me",
+        "github_url",
+        "linkedin_url",
+        "personal_website_url",
+        "country",
+        "region",
+        "registration_role",
+    }
+)
 _DATETIME_ACCOUNT_FIELDS = frozenset({"date_joined", "last_login"})
 # CharFields without null=True: a NULL from the export must become "", never None.
 _TEXT_DEFAULT_FIELDS = frozenset(
@@ -511,14 +528,20 @@ def _resolve_username(row: sqlite3.Row) -> str:
     return _unique_username(preferred, source_id=int(row["id"]))
 
 
-def _populate_profile_fields(user: CustomUser, row: sqlite3.Row) -> None:
-    """Copy the export's profile columns onto ``user``. Shared by a brand-new
+def _populate_profile_fields(user, row: sqlite3.Row) -> dict[str, object]:
+    """Copy the export's columns onto the account. Shared by a brand-new
     account and one attached from a different importer -- see
     ``_attach_existing_account``. Never touches ``username``, ``email``,
     ``is_staff``, ``is_superuser`` or the password; callers own those
-    explicitly. The CMP source id is never a field on ``user`` at all -- see
-    the module docstring's "Claim tracking" section."""
+    explicitly. The CMP source id is never a field on the account at all --
+    see the module docstring's "Claim tracking" section.
 
+    Returns the course-platform profile values for the account's
+    ``LearnerProfile`` row; the caller persists them once the account has a
+    primary key. Every other value is set on ``user`` directly.
+    """
+
+    profile_values: dict[str, object] = {}
     columns = row.keys()
     for name in _ACCOUNT_FIELDS:
         if name not in columns:
@@ -527,21 +550,35 @@ def _populate_profile_fields(user: CustomUser, row: sqlite3.Row) -> None:
         if name in _BOOLEAN_ACCOUNT_FIELDS:
             value = bool(value)
         elif name == "role":
-            valid_roles = {choice for choice, _label in CustomUser.ROLE_CHOICES}
-            value = value if value in valid_roles else CustomUser._meta.get_field("role").default
+            valid_roles = {choice for choice, _label in LearnerProfile.ROLE_CHOICES}
+            value = (
+                value if value in valid_roles else LearnerProfile._meta.get_field("role").default
+            )
         elif value is None and name in _TEXT_DEFAULT_FIELDS:
             value = ""
         elif value is None and name not in _NULLABLE_TEXT_FIELDS:
             continue  # leave the model default in place rather than guess
-        setattr(user, name, value)
+        if name in _PROFILE_FIELDS:
+            profile_values[name] = value
+        else:
+            setattr(user, name, value)
     for name in _DATETIME_ACCOUNT_FIELDS:
         if name not in columns:
             continue
         raw = row[name]
         setattr(user, name, parse_datetime(raw) if raw else None)
+    return profile_values
 
 
-def _build_account(row: sqlite3.Row) -> CustomUser:
+def _save_learner_profile(user, profile_values: dict[str, object]) -> None:
+    """Write the profile columns onto the account's ``LearnerProfile`` row."""
+
+    if not profile_values:
+        return
+    LearnerProfile.objects.update_or_create(user=user, defaults=profile_values)
+
+
+def _build_account(row: sqlite3.Row) -> tuple[CustomUser, dict[str, object]]:
     email = (row["email"] or "").strip()
     user = CustomUser(
         username=_resolve_username(row),
@@ -549,9 +586,9 @@ def _build_account(row: sqlite3.Row) -> CustomUser:
         is_staff=False,
         is_superuser=False,
     )
-    _populate_profile_fields(user, row)
+    profile_values = _populate_profile_fields(user, row)
     user.set_unusable_password()
-    return user
+    return user, profile_values
 
 
 def _find_cross_source_match(email: str, *, claims: CmpClaimsStore) -> CustomUser | None:
@@ -570,7 +607,9 @@ def _find_cross_source_match(email: str, *, claims: CmpClaimsStore) -> CustomUse
     normalized = normalize_account_email(email)
     if not normalized:
         return None
-    for candidate in CustomUser.objects.filter(normalized_email=normalized).order_by("pk"):
+    for candidate in CustomUser.objects.filter(
+        identity__normalized_email=normalized
+    ).order_by("pk"):
         if not claims.is_claimed_user(candidate.pk):
             return candidate
     return None
@@ -585,11 +624,12 @@ def _attach_existing_account(user: CustomUser, row: sqlite3.Row) -> CustomUser:
     The caller records the claim once this returns.
     """
 
-    _populate_profile_fields(user, row)
+    profile_values = _populate_profile_fields(user, row)
     user.is_staff = False
     user.is_superuser = False
     user.set_unusable_password()
     user.save()
+    _save_learner_profile(user, profile_values)
     return user
 
 
@@ -628,8 +668,9 @@ def _import_accounts(
                     account = _attach_existing_account(existing, row)
                     cross_source_matches.append(row["id"])
                 else:
-                    account = _build_account(row)
+                    account, profile_values = _build_account(row)
                     _save_new_account(account, source_id=int(row["id"]))
+                    _save_learner_profile(account, profile_values)
                 # Persisted inside this transaction, so the claim, the
                 # account row and the watermark commit or roll back as one.
                 # A later row in this same batch sharing this row's email

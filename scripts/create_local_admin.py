@@ -24,6 +24,7 @@ from accounts.services.local_provider_seed import (  # noqa: E402
     seed_local_social_providers,
 )
 from core.bootstrap import RuntimeEnvironment  # noqa: E402
+from accounts_ext.models import IdentityState
 
 EMAIL = "admin@aishippinglabs.com"
 PASSWORD = "admin123"
@@ -45,7 +46,9 @@ def create_or_reset_local_admin() -> tuple[CustomUser, bool]:
 
     normalized_email = normalize_account_email(EMAIL)
     matches = list(
-        get_user_model().objects.filter(normalized_email=normalized_email).order_by("pk")
+        get_user_model()
+        .objects.filter(identity__normalized_email=normalized_email)
+        .order_by("pk")
     )
     if len(matches) > 1:
         raise RuntimeError("create_local_admin: duplicate-email")
@@ -60,7 +63,7 @@ def create_or_reset_local_admin() -> tuple[CustomUser, bool]:
         user = matches[0]
         user.email = EMAIL
 
-    user.identity_state = CustomUser.IdentityState.ACTIVE
+    user.identity_state = IdentityState.States.ACTIVE
     user.is_active = True
     user.is_staff = True
     user.is_superuser = True

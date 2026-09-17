@@ -10,7 +10,7 @@ from accounts.identity_resolution import (
     identity_state_eligible,
     resolve_durable_user,
 )
-from accounts.models import CustomUser
+from accounts_ext.models import IdentityState, identity_state_of
 from course_management.observability import record_event
 
 
@@ -30,7 +30,7 @@ class DurableAccountSessionMiddleware:
         user = getattr(request, "user", None)
         if user is None or not getattr(user, "is_authenticated", False):
             return self.get_response(request)
-        if user.identity_state == CustomUser.IdentityState.ABSORBED:
+        if identity_state_of(user) == IdentityState.States.ABSORBED:
             source_user_id = user.pk
             survivor = resolve_durable_user(user)
             if survivor is None or not survivor.is_active:

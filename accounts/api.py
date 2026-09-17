@@ -4,12 +4,13 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 
 from accounts.auth import token_required
+from accounts_ext.models import identity_state_of
 
 
 def _identity_payload(user):
     return {
         "account_id": user.pk,
-        "identity_state": user.identity_state,
+        "identity_state": identity_state_of(user),
         "auth_user_model": "accounts.CustomUser",
     }
 

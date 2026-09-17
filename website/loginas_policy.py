@@ -20,6 +20,9 @@ def can_login_as(request, target_user):
         return False
     if not target_user.is_active:
         return False
-    if target_user.identity_state == target_user.IdentityState.QUARANTINED:
+    # Imported lazily: settings load this module before apps are ready.
+    from accounts_ext.models import IdentityState, identity_state_of
+
+    if identity_state_of(target_user) == IdentityState.States.QUARANTINED:
         return False
     return True

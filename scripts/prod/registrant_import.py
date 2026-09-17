@@ -103,6 +103,7 @@ from django.db import IntegrityError, transaction
 from django.utils.dateparse import parse_datetime
 
 from accounts.models import CustomUser
+from accounts_ext.models import normalized_email_of
 from event_registrants.models import (
     EventRegistrantIdentity,
     EventRegistrantImportProgress,
@@ -378,7 +379,11 @@ def resolve_registrant_identity(normalized_email: str) -> tuple[EventRegistrantI
     own.
     """
 
-    account = CustomUser.objects.filter(normalized_email=normalized_email).order_by("pk").first()
+    account = (
+        CustomUser.objects.filter(identity__normalized_email=normalized_email)
+        .order_by("pk")
+        .first()
+    )
     if account is not None:
         identity, _ = EventRegistrantIdentity.objects.get_or_create(account=account)
         return identity, "matched_account"
@@ -717,12 +722,14 @@ def _plan_one_event(
             skipped += 1
             continue
         writable += 1
-        account = CustomUser.objects.filter(normalized_email=email).order_by("pk").first()
+        account = (
+            CustomUser.objects.filter(identity__normalized_email=email).order_by("pk").first()
+        )
         if account is not None:
             matched_account += 1
             # An account's normalized_email is the consolidation key; the
             # empty fallback can never match a proposed row (none is empty).
-            key = account.normalized_email or email
+            key = normalized_email_of(account) or email
         else:
             prior = (
                 EventRegistrantIdentity.objects.filter(normalized_email=email, account__isnull=True)
@@ -744,7 +751,7 @@ def _plan_one_event(
         ).select_related("identity__account"):
             identity = registration.identity
             if identity.account_id is not None and identity.account is not None:
-                existing_key = identity.account.normalized_email
+                existing_key = normalized_email_of(identity.account)
             else:
                 existing_key = identity.normalized_email
             if existing_key:

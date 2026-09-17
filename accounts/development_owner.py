@@ -28,6 +28,7 @@ from accounts.studio_roles import (
     synchronize_studio_roles,
 )
 from accounts.studio_sessions import revoke_all_staff_sessions
+from accounts_ext.models import IdentityState, normalized_email_of
 from core.audit import AuditWriteContext, record_audit_event
 from core.bootstrap import RuntimeEnvironment
 from core.models import AuditEvent
@@ -112,10 +113,22 @@ def _runtime_allowed(*, allow_test: bool) -> bool:
 def _matching_users(normalized_email: str, *, using: str) -> tuple[CustomUser, ...]:
     matches: list[CustomUser] = []
     for user in get_user_model().objects.using(using).order_by("pk").iterator():
-        candidate = user.normalized_email or normalize_account_email(user.email)
+        candidate = normalized_email_of(user) or normalize_account_email(user.email)
         if candidate == normalized_email:
             matches.append(user)
     return tuple(matches)
+
+
+def _activate_identity(user, *, using: str) -> None:
+    """Point the user's identity row at ``active`` for this database."""
+
+    IdentityState.objects.using(using).update_or_create(
+        user=user,
+        defaults={
+            "identity_state": IdentityState.States.ACTIVE,
+            "normalized_email": normalize_account_email(user.email),
+        },
+    )
 
 
 def development_owner_exists(*, using: str = "default") -> bool:
@@ -218,16 +231,15 @@ def bootstrap_development_owner(
                     username=DEVELOPMENT_OWNER_USERNAME,
                     email=normalized_email,
                     password=password,
-                    identity_state=CustomUser.IdentityState.ACTIVE,
                     is_active=True,
                     is_staff=True,
                     is_superuser=True,
                 )
             )
+            _activate_identity(user, using=using)
         else:
             user = existing_user
             user.email = normalized_email
-            user.identity_state = CustomUser.IdentityState.ACTIVE
             user.is_active = True
             user.is_staff = True
             user.is_superuser = True
@@ -235,8 +247,6 @@ def bootstrap_development_owner(
                 user.set_password(password)
             user_update_fields = [
                 "email",
-                "normalized_email",
-                "identity_state",
                 "is_active",
                 "is_staff",
                 "is_superuser",
@@ -247,6 +257,7 @@ def bootstrap_development_owner(
                 using=using,
                 update_fields=user_update_fields,
             )
+            _activate_identity(user, using=using)
         user.groups.add(site_admin)
 
         human, human_created = APIPrincipal.objects.using(using).get_or_create(

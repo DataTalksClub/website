@@ -134,7 +134,11 @@ def _classify_read_only(normalized_email: str) -> tuple[EventRegistrantIdentity 
     a would-be-new identity is reported as ``None``, never inserted.
     """
 
-    account = CustomUser.objects.filter(normalized_email=normalized_email).order_by("pk").first()
+    account = (
+        CustomUser.objects.filter(identity__normalized_email=normalized_email)
+        .order_by("pk")
+        .first()
+    )
     if account is not None:
         identity = EventRegistrantIdentity.objects.filter(account=account).first()
         return identity, "matched_account"

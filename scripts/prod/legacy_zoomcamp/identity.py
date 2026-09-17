@@ -30,7 +30,7 @@ from courses.random_names import generate_random_name
 if TYPE_CHECKING:
     # ``courses.models.User`` is ``get_user_model()`` -- a value, so it cannot
     # annotate.  The configured model is what it resolves to at runtime.
-    from accounts.models import CustomUser as UserType
+    from accounts.models import User as UserType
 else:
     UserType = User
 
@@ -96,7 +96,7 @@ def _get_or_create_by_real_email(real_email: str) -> tuple[UserType, bool]:
     if not normalized or "@" not in normalized:
         return _get_or_create_synthetic(sha1_hex(real_email))
 
-    existing = User.objects.filter(normalized_email=normalized).order_by("id").first()
+    existing = User.objects.filter(identity__normalized_email=normalized).order_by("id").first()
     if existing is not None:
         return existing, False
 
