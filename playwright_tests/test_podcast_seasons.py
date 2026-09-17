@@ -12,6 +12,35 @@ SCREENSHOTS = Path(".tmp/screenshots/issue-132")
 PODCAST_HEADING = "Conversations with people who ship data"
 
 
+def _season_numbers() -> list[int]:
+    """The published season numbers, newest first, as the hub lists them."""
+
+    return [season.number for season in podcast_seasons()]
+
+
+def _season_scenarios() -> tuple[tuple[int, str, int | None, int | None], ...]:
+    """The latest, a middle and the oldest season, each with its neighbours.
+
+    The hub names a season's newer and older neighbours by their position in
+    this list, not by arithmetic, so both the three seasons and their
+    neighbours are read from the catalogue rather than written out.
+    """
+
+    numbers = _season_numbers()
+    assert len(numbers) >= 3, numbers
+    chosen = sorted({0, len(numbers) // 2, len(numbers) - 1})
+    assert len(chosen) == 3, numbers
+    return tuple(
+        (
+            numbers[index],
+            "/podcast" if index == 0 else f"/podcast?season={numbers[index]}",
+            numbers[index - 1] if index else None,
+            numbers[index + 1] if index + 1 < len(numbers) else None,
+        )
+        for index in chosen
+    )
+
+
 def _screenshot(page: Page, name: str, *, full_page: bool = True) -> None:
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
     page.screenshot(path=SCREENSHOTS / name, full_page=full_page)
@@ -49,7 +78,7 @@ def _assert_season_targets(page: Page) -> None:
           return {text: node.textContent.trim(), width: rect.width, height: rect.height};
         })"""
     )
-    assert len(sizes) >= 24
+    assert len(sizes) >= len(_season_numbers())
     assert all(item["width"] >= 44 and item["height"] >= 44 for item in sizes), sizes
 
 
@@ -74,7 +103,9 @@ def test_homepage_latest_episode_and_global_podcast_journey(page: Page, live_ser
         exact=True,
     ).click()
     expect(page).to_have_url(f"{origin}/podcast")
-    expect(page.get_by_role("heading", name="Season 24", exact=True)).to_be_visible()
+    expect(
+        page.get_by_role("heading", name=f"Season {_season_numbers()[0]}", exact=True)
+    ).to_be_visible()
     expect(page.locator("[data-podcast-episode]").first).to_contain_text(latest["title"])
 
 
@@ -187,11 +218,9 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
         lambda message: console_errors.append(message.text) if message.type == "error" else None,
     )
 
-    scenarios = (
-        (24, "/podcast", None, 23),
-        (12, "/podcast?season=12", 13, 11),
-        (1, "/podcast?season=1", 2, None),
-    )
+    scenarios = _season_scenarios()
+    selected = [number for number, _path, _newer, _older in scenarios]
+    latest_number = _season_numbers()[0]
     inventory = {season.number: season for season in podcast_seasons()}
     for season, path, newer, older in scenarios:
         response = page.goto(f"{origin}{path}", wait_until="networkidle")
@@ -210,15 +239,10 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
         navigation = page.get_by_role("navigation", name="Podcast seasons")
         expect(navigation.locator('[aria-current="page"]')).to_have_count(1)
         expect(navigation.locator('[aria-current="page"]')).to_have_text(f"Season {season}")
-        expect(navigation.get_by_role("link", name="Season 24", exact=True)).to_have_count(
-            0 if season == 24 else 1
-        )
-        expect(navigation.get_by_role("link", name="Season 12", exact=True)).to_have_count(
-            0 if season == 12 else 1
-        )
-        expect(navigation.get_by_role("link", name="Season 1", exact=True)).to_have_count(
-            0 if season == 1 else 1
-        )
+        for number in selected:
+            expect(
+                navigation.get_by_role("link", name=f"Season {number}", exact=True)
+            ).to_have_count(0 if season == number else 1)
         expect(page.locator('link[rel="canonical"]')).to_have_attribute(
             "href",
             f"https://datatalks.club{path}",
@@ -235,7 +259,7 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
             expect(page.locator('link[rel="prev"]')).to_have_count(0)
         else:
             newer_name = f"Newer season — Season {newer}"
-            newer_path = "/podcast" if newer == 24 else f"/podcast?season={newer}"
+            newer_path = "/podcast" if newer == latest_number else f"/podcast?season={newer}"
             expect(navigation.get_by_role("link", name=newer_name, exact=True)).to_have_attribute(
                 "href",
                 newer_path,
@@ -276,8 +300,12 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
         expect(page.locator("body.dark-mode")).to_have_count(0)
 
     if suffix == "mobile":
-        page.goto(f"{origin}/podcast?season=12", wait_until="networkidle")
-        older_link = page.get_by_role("link", name="Older season — Season 11", exact=True)
+        focus_season, focus_path, _newer, focus_older = scenarios[1]
+        assert focus_older is not None, scenarios
+        page.goto(f"{origin}{focus_path}", wait_until="networkidle")
+        older_link = page.get_by_role(
+            "link", name=f"Older season — Season {focus_older}", exact=True
+        )
 
         # Locator.focus() is a programmatic focus and does not establish the
         # keyboard modality that :focus-visible is intended to cover.  Start
@@ -296,7 +324,9 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
             if older_link.evaluate("element => element === document.activeElement"):
                 break
         else:
-            raise AssertionError("keyboard traversal did not focus Older season — Season 11")
+            raise AssertionError(
+                f"keyboard traversal did not focus Older season — Season {focus_older}"
+            )
 
         expect(older_link).to_be_focused()
         focus = older_link.evaluate(
@@ -315,7 +345,7 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
         # The design system's global focus ring is 3px solid at a 2px offset
         # (_docs/design/design-system.md); the ring still clears the control it marks.
         assert focus["offset"] >= 2, focus
-        _screenshot(page, "podcast-season-12-mobile-focus.png")
+        _screenshot(page, f"podcast-season-{focus_season}-mobile-focus.png")
 
     assert failed_requests == []
     assert console_errors == []
@@ -324,27 +354,33 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
 @pytest.mark.core
 def test_season_controls_activate_direct_normalized_destinations(page: Page, live_server) -> None:
     origin = live_server.url
+    # The hub's own season order decides which season is "older" than the
+    # latest and which the oldest is, so walk the list rather than naming the
+    # numbers of a retired corpus.
+    numbers = _season_numbers()
+    latest, second, middle, oldest = numbers[0], numbers[1], numbers[len(numbers) // 2], numbers[-1]
+    assert len({latest, second, middle, oldest}) == 4, numbers
     page.goto(f"{origin}/podcast", wait_until="networkidle")
 
-    page.get_by_role("link", name="Older season — Season 23", exact=True).click()
-    expect(page).to_have_url(f"{origin}/podcast?season=23")
-    expect(page.get_by_role("heading", name="Season 23", exact=True)).to_be_visible()
+    page.get_by_role("link", name=f"Older season — Season {second}", exact=True).click()
+    expect(page).to_have_url(f"{origin}/podcast?season={second}")
+    expect(page.get_by_role("heading", name=f"Season {second}", exact=True)).to_be_visible()
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href",
-        "https://datatalks.club/podcast?season=23",
+        f"https://datatalks.club/podcast?season={second}",
     )
 
-    page.get_by_role("link", name="Newer season — Season 24", exact=True).click()
+    page.get_by_role("link", name=f"Newer season — Season {latest}", exact=True).click()
     expect(page).to_have_url(f"{origin}/podcast")
-    expect(page.get_by_role("heading", name="Season 24", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name=f"Season {latest}", exact=True)).to_be_visible()
 
-    page.get_by_role("link", name="Season 12", exact=True).click()
-    expect(page).to_have_url(f"{origin}/podcast?season=12")
-    expect(page.get_by_role("heading", name="Season 12", exact=True)).to_be_visible()
+    page.get_by_role("link", name=f"Season {middle}", exact=True).click()
+    expect(page).to_have_url(f"{origin}/podcast?season={middle}")
+    expect(page.get_by_role("heading", name=f"Season {middle}", exact=True)).to_be_visible()
 
-    page.get_by_role("link", name="Season 1", exact=True).click()
-    expect(page).to_have_url(f"{origin}/podcast?season=1")
-    expect(page.get_by_role("heading", name="Season 1", exact=True)).to_be_visible()
+    page.get_by_role("link", name=f"Season {oldest}", exact=True).click()
+    expect(page).to_have_url(f"{origin}/podcast?season={oldest}")
+    expect(page.get_by_role("heading", name=f"Season {oldest}", exact=True)).to_be_visible()
     expect(page.get_by_role("link", name="Older season", exact=False)).to_have_count(0)
 
 
@@ -360,11 +396,7 @@ def test_no_javascript_320px_reduced_motion_and_200_percent_reflow(
     )
     page = context.new_page()
     try:
-        for season, path in (
-            (24, "/podcast"),
-            (12, "/podcast?season=12"),
-            (1, "/podcast?season=1"),
-        ):
+        for season, path, _newer, _older in _season_scenarios():
             response = page.goto(f"{live_server.url}{path}", wait_until="domcontentloaded")
             assert response is not None and response.status == 200
             expect(page.get_by_role("heading", name=f"Season {season}", exact=True)).to_be_visible()
@@ -386,20 +418,23 @@ def test_no_javascript_320px_reduced_motion_and_200_percent_reflow(
     )
     zoom_page = zoom_context.new_page()
     try:
+        zoom_season, zoom_path, _newer, _older = _season_scenarios()[1]
         response = zoom_page.goto(
-            f"{live_server.url}/podcast?season=12",
+            f"{live_server.url}{zoom_path}",
             wait_until="domcontentloaded",
         )
         assert response is not None and response.status == 200
         _settle_analytics_preferences(zoom_page)
         zoom_page.evaluate("document.documentElement.style.zoom = '2'")
-        expect(zoom_page.get_by_role("heading", name="Season 12", exact=True)).to_be_visible()
+        expect(
+            zoom_page.get_by_role("heading", name=f"Season {zoom_season}", exact=True)
+        ).to_be_visible()
         _assert_no_horizontal_overflow(zoom_page)
         _assert_season_targets(zoom_page)
         zoom_page.get_by_role("navigation", name="Podcast seasons").scroll_into_view_if_needed()
         _screenshot(
             zoom_page,
-            "podcast-season-12-200-percent-zoom.png",
+            f"podcast-season-{zoom_season}-200-percent-zoom.png",
             full_page=False,
         )
     finally:
@@ -409,13 +444,19 @@ def test_no_javascript_320px_reduced_motion_and_200_percent_reflow(
 @pytest.mark.core
 def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> None:
     origin = live_server.url
+    # A season the catalogue publishes and one it does not, both read from the
+    # catalogue: the alias carries a live selector, and the denial matrix needs
+    # a well-formed number with no season behind it.
+    numbers = _season_numbers()
+    published_season = numbers[len(numbers) // 2]
+    absent_season = max(numbers) + 1
     for alias in ("/podcast.html", "/podcast/"):
-        redirected = page.request.get(f"{origin}{alias}?season=12", max_redirects=0)
+        redirected = page.request.get(f"{origin}{alias}?season={published_season}", max_redirects=0)
         assert redirected.status == 301
-        assert redirected.headers["location"] == "/podcast?season=12"
-        final = page.goto(f"{origin}{alias}?season=12", wait_until="networkidle")
+        assert redirected.headers["location"] == f"/podcast?season={published_season}"
+        final = page.goto(f"{origin}{alias}?season={published_season}", wait_until="networkidle")
         assert final is not None and final.status == 200
-        expect(page).to_have_url(f"{origin}/podcast?season=12")
+        expect(page).to_have_url(f"{origin}/podcast?season={published_season}")
 
         invalid_redirect = page.request.get(f"{origin}{alias}?page=2", max_redirects=0)
         assert invalid_redirect.status == 301
@@ -465,8 +506,8 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
     denials = (
         ("GET", "/podcast?season=01", 400),
         ("GET", "/podcast?season=1&season=2", 400),
-        ("GET", "/podcast?season=25", 404),
-        ("POST", "/podcast?season=12", 405),
+        ("GET", f"/podcast?season={absent_season}", 404),
+        ("POST", f"/podcast?season={published_season}", 405),
     )
     for method, path, status in denials:
         response = (
