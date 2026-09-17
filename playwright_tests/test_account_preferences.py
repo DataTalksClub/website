@@ -26,6 +26,7 @@ from django.urls import reverse
 from playwright.sync_api import Browser, Page, expect
 
 from accounts.models import CustomUser
+from courses.models.learner_profile import LearnerProfile
 
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
 
@@ -139,8 +140,7 @@ def test_a_member_changes_the_theme_in_settings_and_the_page_follows(
     # No reload: the settings page repaints itself in the new theme.
     expect(page.locator("body")).to_have_attribute("data-dark-mode", "true")
     _screenshot(page, "settings-dark", suffix)
-    member.refresh_from_db()
-    assert member.dark_mode is True
+    assert LearnerProfile.objects.get(user=member).dark_mode is True
 
     # And the next page is served in it, from the account rather than a script.
     page.goto(live_server.url)
