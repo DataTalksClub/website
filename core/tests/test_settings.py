@@ -289,6 +289,23 @@ class ProductionSettingsTests(SimpleTestCase):
         self.assertEqual(database["ENGINE"], "django.db.backends.sqlite3")
         self.assertEqual(database["NAME"], str(BASE_DIR / ".tmp" / "alternate-local.sqlite3"))
 
+    def test_local_settings_run_durable_jobs_synchronously(self) -> None:
+        command = (
+            "import json; import website.settings.local as s; "
+            "print(json.dumps(s.COMMUNITY_BASE['JOBS_BACKEND']))"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", command],
+            cwd=os.getcwd(),
+            env=os.environ.copy(),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), "sync")
+
 
 class CollectstaticSettingsTests(SimpleTestCase):
     def import_collectstatic_settings(
