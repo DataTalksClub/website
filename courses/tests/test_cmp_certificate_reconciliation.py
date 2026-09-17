@@ -9,7 +9,7 @@ from unittest import mock
 
 from django.test import TestCase
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import Cohort, Course, Enrollment
 from courses.models.cmp_import import CmpHistoryClaim, CmpHistoryImportBinding
 from courses.services import cmp_certificate_reconciliation as service
@@ -39,7 +39,7 @@ class CmpCertificateReconciliationTests(TestCase):
             year=2025,
             title="AI Dev Tools 2025",
         )
-        self.learner = CustomUser.objects.create_user(username="learner")
+        self.learner = User.objects.create_user(username="learner")
         self.enrollment = Enrollment.objects.create(
             student=self.learner,
             course=self.cohort,
@@ -231,7 +231,7 @@ class CmpCertificateReconciliationTests(TestCase):
     def test_claim_repointed_after_preflight_is_refused_inside_apply_transaction(
         self,
     ) -> None:
-        other_learner = CustomUser.objects.create_user(username="other-learner")
+        other_learner = User.objects.create_user(username="other-learner")
         other_enrollment = Enrollment.objects.create(
             student=other_learner,
             course=self.cohort,
