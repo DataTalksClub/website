@@ -789,3 +789,47 @@ class SyncedDocument(models.Model):
 
     def __str__(self) -> str:
         return f"{self.content_kind}:{self.stable_key}@{self.source_id}"
+
+
+class EventSource(models.Model):
+    """The DTC source identity of one shared ``events.Event`` row.
+
+    The package event carries ``source_repo``/``source_path``/``source_commit``
+    but has no home for the reviewed ``source_key`` and ``source_checksum`` that
+    DTC's imports resolve events by and that the description bridge re-checks on
+    every import.  This row is that home: the exact
+    ``(repository, revision, source_key)`` tuple is unique here exactly as it
+    was on the former site ``events`` table, so a missing, duplicated, or
+    changed tuple blocks an import rather than landing content on the wrong
+    event (#412).
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.OneToOneField(
+        "events.Event",
+        on_delete=models.CASCADE,
+        related_name="source_identity",
+    )
+    repository = models.CharField(max_length=255)
+    revision = models.CharField(max_length=64)
+    source_key = models.CharField(max_length=512)
+    source_path = models.CharField(max_length=512, default="")
+    source_checksum = models.CharField(max_length=64, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("source_key", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("repository", "revision", "source_key"),
+                name="content_event_source_identity_unique",
+            ),
+            models.CheckConstraint(
+                condition=Q(repository__gt="") & Q(revision__gt="") & Q(source_key__gt=""),
+                name="content_event_source_identity_nonempty",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.source_key}@{self.revision}"

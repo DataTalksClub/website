@@ -18,6 +18,7 @@ from core.models import AuditEvent
 from core.services import ServiceContext
 from events.queries import published_event_records
 from historical_registrations.importers import clear_source_readers, source_reference_digest
+from events.identity import resolve_uuid
 from historical_registrations.models import (
     HistoricalRegistrationAggregateRevision,
     HistoricalRegistrationAggregateSlot,
@@ -200,7 +201,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         HistoricalRegistrationAggregateRevision.objects.create(
             source_run=run,
             external_event_identifier=f"synthetic-{suffix}",
-            event_id=self.event["identity_id"],
+            event_id=resolve_uuid(self.event["identity_id"]).pk,
             eligible_count=count,
             excluded_count=0,
             quarantined_count=0,
@@ -538,7 +539,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         HistoricalRegistrationAggregateRevision.objects.create(
             source_run=replacement,
             external_event_identifier="synthetic-same-run-second-replacement",
-            event_id=self.event["identity_id"],
+            event_id=resolve_uuid(self.event["identity_id"]).pk,
             eligible_count=9,
             excluded_count=0,
             quarantined_count=0,
@@ -669,7 +670,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         row_revision = uuid.uuid4()
         with patch("community_base.jobs.dispatch.get_backend"):
             replace_aggregate_with_row_projection(
-                event_id=self.event["identity_id"],
+                event_id=resolve_uuid(self.event["identity_id"]).pk,
                 provider="luma",
                 coverage_boundary="historical",
                 replacement_revision_id=row_revision,
@@ -752,7 +753,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         replacement_id = uuid.uuid4()
         with patch("community_base.jobs.dispatch.get_backend"):
             replaced = replace_aggregate_with_row_projection(
-                event_id=self.event["identity_id"],
+                event_id=resolve_uuid(self.event["identity_id"]).pk,
                 provider="luma",
                 coverage_boundary="historical",
                 replacement_revision_id=replacement_id,
@@ -776,7 +777,7 @@ class HistoricalRegistrationTotalTests(TestCase):
 
         with patch("community_base.jobs.dispatch.get_backend"):
             restored = restore_aggregate_from_row_projection(
-                event_id=self.event["identity_id"],
+                event_id=resolve_uuid(self.event["identity_id"]).pk,
                 provider="luma",
                 coverage_boundary="historical",
                 expected_slot_revision=replaced.revision,

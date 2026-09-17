@@ -21,7 +21,7 @@ from django.utils import timezone
 from event_qna import services
 from event_qna.errors import QnaError
 from event_qna.models import EventQnaRateLimit, EventQnaSession
-from events.models import create_event_identity
+from events.identity import create_event_identity
 
 IP_A = "203.0.113.10"
 IP_B = "203.0.113.20"
@@ -46,12 +46,12 @@ class RetentionContractTests(TestCase):
             source_revision="0" * 40,
             source_key="retention-contract-test",
         )
-        services.transition_session(self.event.id, EventQnaSession.State.OPEN)
+        services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
         self.session = EventQnaSession.objects.get(event=self.event)
 
     def test_null_retention_is_refused_at_the_command_boundary(self) -> None:
         with self.assertRaises(QnaError) as caught:
-            services.update_session(self.event.id, {"retention_days": None})
+            services.update_session(self.event.content_id, {"retention_days": None})
         self.assertEqual(caught.exception.status, 400)
         self.assertEqual(caught.exception.code, "retention_policy_required")
 
@@ -64,17 +64,17 @@ class RetentionContractTests(TestCase):
         for value in (0, -5, True, "365"):
             with self.subTest(value=value):
                 with self.assertRaises(QnaError):
-                    services.update_session(self.event.id, {"retention_days": value})
+                    services.update_session(self.event.content_id, {"retention_days": value})
         self.session.refresh_from_db()
         self.assertEqual(self.session.retention_days, 365)
 
     def test_a_finite_approved_value_still_applies(self) -> None:
-        services.update_session(self.event.id, {"retention_days": 30})
+        services.update_session(self.event.content_id, {"retention_days": 30})
         self.session.refresh_from_db()
         self.assertEqual(self.session.retention_days, 30)
 
     def test_the_inventory_counts_the_decision_gate_inputs(self) -> None:
-        services.transition_session(self.event.id, EventQnaSession.State.ARCHIVED)
+        services.transition_session(self.event.content_id, EventQnaSession.State.ARCHIVED)
         archived = EventQnaSession.objects.get(event=self.event)
 
         inventory = services.retention_inventory()
@@ -86,7 +86,7 @@ class RetentionContractTests(TestCase):
         self.assertIsNotNone(archived.archive_delete_at)
 
     def test_the_inventory_reports_past_due_and_indefinite_rows(self) -> None:
-        services.transition_session(self.event.id, EventQnaSession.State.ARCHIVED)
+        services.transition_session(self.event.content_id, EventQnaSession.State.ARCHIVED)
         EventQnaSession.objects.update(
             archive_delete_at=timezone.now() - timedelta(days=1),
             retention_days=None,

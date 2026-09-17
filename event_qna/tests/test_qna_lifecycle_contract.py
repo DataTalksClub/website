@@ -17,7 +17,7 @@ from django.utils import timezone
 
 from event_qna import security, services
 from event_qna.models import EventQnaSession
-from events.models import create_event_identity
+from events.identity import create_event_identity
 
 
 class EventQnaLifecycleEtagTests(TestCase):
@@ -28,24 +28,24 @@ class EventQnaLifecycleEtagTests(TestCase):
             source_revision="c" * 40,
             source_key="lifecycle-etag-test",
         )
-        services.transition_session(self.event.id, EventQnaSession.State.OPEN)
+        services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
         participant, _token = security.new_participant()
-        services.submit_question(self.event.id, text="First question", participant=participant)
-        self.open_etag = services.list_questions(self.event.id)[2]
+        services.submit_question(self.event.content_id, text="First question", participant=participant)
+        self.open_etag = services.list_questions(self.event.content_id)[2]
 
     def test_closing_without_question_changes_invalidates_the_etag(self) -> None:
-        services.transition_session(self.event.id, EventQnaSession.State.CLOSED)
-        items, _counts, closed_etag, session = services.list_questions(self.event.id)
+        services.transition_session(self.event.content_id, EventQnaSession.State.CLOSED)
+        items, _counts, closed_etag, session = services.list_questions(self.event.content_id)
         self.assertEqual(session.state, EventQnaSession.State.CLOSED)
         self.assertNotEqual(closed_etag, self.open_etag)
         # The questions themselves are untouched and stay readable.
         self.assertEqual(len(items), 1)
 
     def test_reopening_produces_a_third_validator(self) -> None:
-        services.transition_session(self.event.id, EventQnaSession.State.CLOSED)
-        _items, _counts, closed_etag, _session = services.list_questions(self.event.id)
-        services.transition_session(self.event.id, EventQnaSession.State.OPEN)
-        _items, _counts, reopened_etag, _session = services.list_questions(self.event.id)
+        services.transition_session(self.event.content_id, EventQnaSession.State.CLOSED)
+        _items, _counts, closed_etag, _session = services.list_questions(self.event.content_id)
+        services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
+        _items, _counts, reopened_etag, _session = services.list_questions(self.event.content_id)
         self.assertNotEqual(reopened_etag, self.open_etag)
         self.assertNotEqual(reopened_etag, closed_etag)
 
@@ -53,7 +53,7 @@ class EventQnaLifecycleEtagTests(TestCase):
         session = EventQnaSession.objects.get(event=self.event)
         session.expires_at = timezone.now() - timedelta(seconds=1)
         session.save()
-        _items, _counts, expired_etag, refreshed = services.list_questions(self.event.id)
+        _items, _counts, expired_etag, refreshed = services.list_questions(self.event.content_id)
         self.assertEqual(refreshed.state, EventQnaSession.State.CLOSED)
         self.assertNotEqual(expired_etag, self.open_etag)
 
@@ -62,16 +62,16 @@ class EventQnaLifecycleEtagTests(TestCase):
         # two orderings that happen to coincide must still carry different
         # ETags or a sort switch could be answered with a false 304.
         _items, _counts, popular_etag, _session = services.list_questions(
-            self.event.id, sort="popular"
+            self.event.content_id, sort="popular"
         )
         _items, _counts, recent_etag, _session = services.list_questions(
-            self.event.id, sort="recent"
+            self.event.content_id, sort="recent"
         )
         self.assertNotEqual(popular_etag, recent_etag)
 
     def test_unchanged_room_still_answers_304(self) -> None:
-        _items, _counts, etag, _session = services.list_questions(self.event.id)
-        _items, _counts, again_etag, _session = services.list_questions(self.event.id)
+        _items, _counts, etag, _session = services.list_questions(self.event.content_id)
+        _items, _counts, again_etag, _session = services.list_questions(self.event.content_id)
         self.assertEqual(etag, again_etag)
 
 
@@ -83,7 +83,7 @@ class EventQnaLifecyclePollContractTests(TestCase):
             source_revision="d" * 40,
             source_key="lifecycle-poll-test",
         )
-        services.transition_session(self.event.id, EventQnaSession.State.OPEN)
+        services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
         self.page_url = reverse(
             "public-event-qna",
             kwargs={"event_id": self.event.public_id, "slug": self.event.slug},
@@ -106,7 +106,7 @@ class EventQnaLifecyclePollContractTests(TestCase):
 
     def test_closed_poll_answers_200_with_the_new_state(self) -> None:
         stale = self._poll()
-        services.transition_session(self.event.id, EventQnaSession.State.CLOSED)
+        services.transition_session(self.event.content_id, EventQnaSession.State.CLOSED)
         client = Client()
         # The exact audit reproduction: the old validator, no question
         # change — the room must learn about the close, not cache it away.
@@ -119,9 +119,9 @@ class EventQnaLifecyclePollContractTests(TestCase):
     def test_participant_page_renders_lifecycle_from_the_session(self) -> None:
         participant, _token = security.new_participant()
         services.submit_question(
-            self.event.id, text="Readable while closed", participant=participant
+            self.event.content_id, text="Readable while closed", participant=participant
         )
-        services.transition_session(self.event.id, EventQnaSession.State.CLOSED)
+        services.transition_session(self.event.content_id, EventQnaSession.State.CLOSED)
         page = self.client.get(self.page_url)
         self.assertEqual(page.status_code, 200)
         body = page.content.decode()
@@ -133,7 +133,7 @@ class EventQnaLifecyclePollContractTests(TestCase):
         # The list itself renders client-side; the browser suite in
         # playwright_tests/test_qna_lifecycle_state.py owns readability.
 
-        services.transition_session(self.event.id, EventQnaSession.State.OPEN)
+        services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
         reopened = self.client.get(self.page_url)
         body = reopened.content.decode()
         self.assertNotIn('id="qna-question-form" method="post" hidden', body)

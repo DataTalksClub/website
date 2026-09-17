@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('cb_jobs', '0002_jobintent_cb_jobs_external_id_unique'),
-        ('events', '0007_delete_eventalias'),
+        ('events', '0003_provisional_integration_attempt'),
     ]
 
     operations = [

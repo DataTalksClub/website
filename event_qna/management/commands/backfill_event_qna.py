@@ -8,7 +8,7 @@ from django.core.management.base import BaseCommand, CommandError
 
 from event_qna.models import EventQnaSession
 from event_qna.services import ensure_event_qna
-from events.models import Event
+from community_base.events.models import Event
 
 
 class Command(BaseCommand):

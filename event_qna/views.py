@@ -213,7 +213,7 @@ def _route_session(
     )
     if actor is not None:
         return session, actor
-    if event.lifecycle not in services.PUBLIC_EVENT_LIFECYCLES:
+    if event.status not in services.PUBLIC_EVENT_LIFECYCLES:
         raise services.QnaNotFound()
     if session.state == services.EventQnaSession.State.ARCHIVED:
         raise services.QnaArchived()

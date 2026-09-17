@@ -22,7 +22,7 @@ from django.utils import timezone
 
 from event_qna import security, services
 from event_qna.models import EventQnaQuestion, EventQnaRateLimit, EventQnaSession
-from events.models import create_event_identity
+from events.identity import create_event_identity
 
 IP_A = "203.0.113.10"
 IP_B = "203.0.113.20"
@@ -51,7 +51,7 @@ class RateIdentityTests(TestCase):
             source_revision="e" * 40,
             source_key="rate-identity-test",
         )
-        services.transition_session(self.event.id, EventQnaSession.State.OPEN)
+        services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
 
     def _questions_path(self) -> str:
         return f"{services.event_qna_path(self.event)}/api/questions/"

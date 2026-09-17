@@ -140,7 +140,8 @@ def test_current_domain_scenarios_create_every_named_leaf_as_real_orm_or_simulat
         "accounts_management.custom_user": "accounts.customuser",
         "editorial_content.content_source": "content.contentsource",
         "adopted_courses.course": "courses.cohort",
-        "historical_event_totals.historical_source_run": "events.historicalregistrationsourcerun",
+        "historical_event_totals.historical_source_run":
+            "historical_registrations.historicalregistrationsourcerun",
         "operations_jobs.operation": "core.operation",
         "provider_neutral_messaging.captured_message": "messaging.captured_message",
     }

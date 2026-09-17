@@ -27,7 +27,7 @@ from django.utils.dateparse import parse_datetime
 from core.audit import AuditWriteContext, record_audit_event
 from core.models import RevisionConflict
 from core.runtime_config import get_str_setting
-from events.models import Event
+from community_base.events.models import Event
 
 from .backend import BackendSession, get_qna_backend
 from .errors import QnaArchived, QnaError, QnaNotFound
@@ -54,7 +54,10 @@ MAX_NAME_LENGTH = 60
 QUESTION_EDIT_WINDOW = 300
 ARCHIVE_DELETE_DAYS = 7
 COHOST_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,47}$")
-PUBLIC_EVENT_LIFECYCLES = frozenset({Event.Lifecycle.PUBLISHED, Event.Lifecycle.COMPLETED})
+# The package row carries the schedule and its status in one place; these
+# are the statuses a public Q&A room may open under (the former site
+# "published"/"completed" lifecycle pair).
+PUBLIC_EVENT_LIFECYCLES = frozenset({"upcoming", "completed"})
 PUBLIC_STATUSES = frozenset({EventQnaQuestion.Status.VISIBLE, EventQnaQuestion.Status.ANSWERED})
 QUESTION_STATUSES = frozenset(EventQnaQuestion.Status.values)
 DEFAULT_SETTINGS = {
@@ -95,7 +98,23 @@ class EventQnaProvisioning:
     job_created: bool
 
 
-def _coerce_event_id(event_id: uuid.UUID | str) -> uuid.UUID:
+def _coerce_event_id(event_id: uuid.UUID | str | int) -> uuid.UUID:
+    """Normalize any event handle to the site identity UUID (content_id).
+
+    The satellite rows store the shared row's integer key, so staff routes and
+    legacy queued intents carry either form; deduplication keys and durable
+    payloads keep the stable UUID either way.
+    """
+
+    if isinstance(event_id, int) and not isinstance(event_id, bool):
+        if event_id < 1:
+            raise EventQnaError("event_id_invalid")
+        from community_base.events.models import Event
+
+        try:
+            return Event.objects.values_list("content_id", flat=True).get(pk=event_id)
+        except Event.DoesNotExist as exc:
+            raise EventQnaNotFound("event_not_found") from exc
     if isinstance(event_id, uuid.UUID):
         if event_id.variant != uuid.RFC_4122:
             raise EventQnaError("event_id_invalid")
@@ -151,7 +170,10 @@ def _ensure_provisioning(
     dispatch: bool,
 ) -> EventQnaProvisioning | EventQnaSession:
     try:
-        event = Event.objects.using(using).get(pk=event_id)
+        # The site identity UUID (the package row's content_id) is the handle
+        # every caller and stored intent carries; the integer package key is an
+        # internal detail.
+        event = Event.objects.using(using).get(content_id=event_id)
     except Event.DoesNotExist as exc:
         raise EventQnaNotFound("event_not_found") from exc
 
@@ -159,10 +181,13 @@ def _ensure_provisioning(
     if not dispatch:
         return session
 
+    # The site identity UUID (content_id) is the stable handle in keys and
+    # payloads: the package's integer key is an internal detail, and intents
+    # queued before the swap carry the UUID.
     job, job_created = dispatch_after_commit(
         PROVISION_HANDLER,
-        provisioning_deduplication_key(event.id),
-        provisioning_payload(event.id),
+        provisioning_deduplication_key(event.content_id),
+        provisioning_payload(event.content_id),
         using=using,
     )
     if session.provisioning_job_id not in {None, job.id}:
@@ -183,7 +208,7 @@ def _ensure_provisioning(
 
 
 def ensure_event_qna(
-    event_id: uuid.UUID | str,
+    event_id: uuid.UUID | str | int,
     *,
     using: str = DEFAULT_DB_ALIAS,
 ) -> EventQnaProvisioning:
@@ -201,7 +226,7 @@ def ensure_event_qna(
 
 
 def ensure_native_event_qna(
-    event_id: uuid.UUID | str,
+    event_id: uuid.UUID | str | int,
     *,
     using: str = DEFAULT_DB_ALIAS,
 ) -> EventQnaSession:
@@ -289,20 +314,32 @@ def retry_event_qna_provision(
 # public, Studio, management API, and durable-job adapters mutate Q&A rows.
 
 
-def _qna_session(event_id: uuid.UUID | str, *, using: str = DEFAULT_DB_ALIAS) -> EventQnaSession:
+def _event_row(event_id: uuid.UUID | str | int, *, using: str = DEFAULT_DB_ALIAS) -> Event:
+    """The shared event row for any handle: identity UUID or integer row key."""
+
+    content_id = _coerce_event_id(event_id)
     try:
+        return Event.objects.using(using).get(content_id=content_id)
+    except Event.DoesNotExist as exc:
+        raise QnaNotFound() from exc
+
+
+def _qna_session(event_id: uuid.UUID | str | int, *, using: str = DEFAULT_DB_ALIAS) -> EventQnaSession:
+    try:
+        # The session FK stores the shared row's integer key, so resolve the
+        # handle to the row and filter by its primary key.
         return (
             EventQnaSession.objects.using(using)
             .select_related("event")
-            .get(event_id=_coerce_event_id(event_id))
+            .get(event_id=_event_row(event_id, using=using).pk)
         )
-    except (EventQnaSession.DoesNotExist, Event.DoesNotExist) as exc:
+    except EventQnaSession.DoesNotExist as exc:
         raise QnaNotFound() from exc
 
 
 def _public_session(event_id: uuid.UUID | str, *, using: str = DEFAULT_DB_ALIAS) -> EventQnaSession:
     session = _qna_session(event_id, using=using)
-    if session.event.lifecycle not in PUBLIC_EVENT_LIFECYCLES:
+    if session.event.status not in PUBLIC_EVENT_LIFECYCLES:
         raise QnaNotFound()
     if session.state == EventQnaSession.State.ARCHIVED:
         raise QnaArchived()
@@ -1275,7 +1312,9 @@ def serialize_session(
         "api_base": f"{event_qna_path(event)}/api",
         "max_length": MAX_QUESTION_LENGTH,
         "session_id": str(session.id),
-        "event_id": str(event.id),
+        # The exposed event identity is the site UUID (content_id); the
+        # integer row key stays internal to the shared schema.
+        "event_id": str(event.content_id),
         "state": session.state,
         "settings": {
             "listed": session.listed,

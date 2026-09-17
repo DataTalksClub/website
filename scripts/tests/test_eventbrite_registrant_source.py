@@ -16,6 +16,7 @@ import io
 import json
 import tempfile
 import uuid
+from datetime import UTC, datetime
 import zipfile
 from pathlib import Path
 
@@ -23,8 +24,11 @@ from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 
 from event_registrants.models import EventRegistrantIdentity, EventRegistration
-from events.models import Event
+from community_base.events.models import Event
+from content.models import EventSource
 from scripts.prod.registrant_import import RegistrantImportError, import_registrants
+
+STARTS_AT = datetime(2026, 8, 10, 15, 0, tzinfo=UTC)
 from scripts.prod.registration_sources.eventbrite_registrants import (
     PROVIDER,
     CanonicalEventbriteIdentity,
@@ -185,16 +189,22 @@ class DiscoverAndReadTests(SimpleTestCase):
 
 def _event(*, source_key: str) -> Event:
     event = Event(
-        id=uuid.uuid4(),
+        content_id=uuid.uuid4(),
+        public_id=8_001,
         title="Synthetic Eventbrite event",
         slug="synthetic-eventbrite-event",
-        source_repository="DataTalksClub/datatalksclub.github.io",
-        source_revision="a" * 40,
+        status="upcoming",
+        start_datetime=STARTS_AT,
+        source_repo="DataTalksClub/datatalksclub.github.io",
+        source_commit="a" * 40,
+    )
+    event.save()
+    EventSource.objects.create(
+        event=event,
+        repository="DataTalksClub/datatalksclub.github.io",
+        revision="a" * 40,
         source_key=source_key,
     )
-    event._allow_public_id_assignment = True
-    event.public_id = 8_001
-    event.save()
     return event
 
 
@@ -218,9 +228,9 @@ class EventbriteRegistrantSourcesIntegrationTests(TestCase):
                     {
                         "eventbrite_event_id": "123456",
                         "status": "resolved",
-                        "canonical_repository": event.source_repository,
-                        "canonical_revision": event.source_revision,
-                        "canonical_source_key": event.source_key,
+                        "canonical_repository": event.source_identity.repository,
+                        "canonical_revision": event.source_identity.revision,
+                        "canonical_source_key": event.source_identity.source_key,
                     }
                 ],
             )
@@ -272,9 +282,9 @@ class EventbriteRegistrantSourcesIntegrationTests(TestCase):
                     {
                         "eventbrite_event_id": "123456",
                         "status": "resolved",
-                        "canonical_repository": event.source_repository,
-                        "canonical_revision": event.source_revision,
-                        "canonical_source_key": event.source_key,
+                        "canonical_repository": event.source_identity.repository,
+                        "canonical_revision": event.source_identity.revision,
+                        "canonical_source_key": event.source_identity.source_key,
                     }
                 ],
             )

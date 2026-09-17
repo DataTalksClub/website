@@ -18,7 +18,7 @@ from django.test import SimpleTestCase, TestCase
 
 from content.models import ContentDocument
 from courses.models import Testimonial
-from events.models import Event
+from community_base.events.models import Event
 from test_support.django_runner import IsolatedSQLiteCreation
 
 

@@ -20,7 +20,7 @@ from django.utils import timezone
 
 from event_qna import security, services
 from event_qna.models import EventQnaSession
-from events.models import create_event_identity
+from events.identity import create_event_identity
 from management_auth.models import APICredential, APIPrincipal
 from management_auth.services import create_principal, issue_credential_once
 
@@ -33,10 +33,10 @@ class PrincipalNamespaceIsolationTests(TestCase):
             source_revision="d" * 40,
             source_key="idempotency-namespace-test",
         )
-        services.transition_session(self.event.id, EventQnaSession.State.OPEN)
+        services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
         participant, _token = security.new_participant()
         self.question = services.submit_question(
-            self.event.id, text="Namespace test question", participant=participant
+            self.event.content_id, text="Namespace test question", participant=participant
         )
         self.tokens: dict[str, str] = {}
         for name in ("principal-a", "principal-b"):
@@ -83,7 +83,7 @@ class PrincipalNamespaceIsolationTests(TestCase):
         return self.client.patch(
             reverse(
                 "api:admin-event-qna-moderate",
-                kwargs={"event_id": self.event.id, "question_id": self.question.question_id},
+                kwargs={"event_id": self.event.pk, "question_id": self.question.question_id},
             ),
             data=json.dumps(payload),
             content_type="application/json",

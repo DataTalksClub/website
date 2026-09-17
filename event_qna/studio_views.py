@@ -59,7 +59,7 @@ def _form_revision(request: HttpRequest) -> int:
 
 
 def _view_context(
-    request: HttpRequest, event_id: uuid.UUID, *, error: str = ""
+    request: HttpRequest, event_id: uuid.UUID | int, *, error: str = ""
 ) -> dict[str, object]:
     qna = admin_event_qna(event_id)
     event = EventQnaSession.objects.select_related("event").get(event_id=event_id).event
@@ -74,7 +74,7 @@ def _view_context(
 
 
 def _error_response(
-    request: HttpRequest, event_id: uuid.UUID, error: QnaError | RevisionConflict
+    request: HttpRequest, event_id: uuid.UUID | int, error: QnaError | RevisionConflict
 ) -> HttpResponse:
     if isinstance(error, RevisionConflict):
         message = "This form was stale: the session changed before your save was applied."
@@ -91,7 +91,7 @@ def _error_response(
 
 
 @capability_required("events.qna.read")
-def event_qna_detail(request: HttpRequest, event_id: uuid.UUID) -> HttpResponse:
+def event_qna_detail(request: HttpRequest, event_id: uuid.UUID | int) -> HttpResponse:
     if request.method not in {"GET", "HEAD"}:
         return HttpResponse("Method not allowed", status=405)
     try:
@@ -101,7 +101,7 @@ def event_qna_detail(request: HttpRequest, event_id: uuid.UUID) -> HttpResponse:
 
 
 def _session_update_result(
-    event_id: uuid.UUID,
+    event_id: uuid.UUID | int,
     payload: dict[str, Any],
     expected_revision: int,
     request: HttpRequest,
@@ -117,7 +117,7 @@ def _session_update_result(
 
 
 @capability_required("events.qna.manage")
-def event_qna_update(request: HttpRequest, event_id: uuid.UUID) -> HttpResponse:
+def event_qna_update(request: HttpRequest, event_id: uuid.UUID | int) -> HttpResponse:
     if request.method != "POST":
         return HttpResponse("Method not allowed", status=405)
     try:
@@ -154,7 +154,7 @@ def event_qna_update(request: HttpRequest, event_id: uuid.UUID) -> HttpResponse:
 
 
 def _moderate_result(
-    event_id: uuid.UUID,
+    event_id: uuid.UUID | int,
     question_id: str,
     payload: dict[str, Any],
     expected_revision: int,
@@ -175,7 +175,7 @@ def _moderate_result(
 @capability_required("events.qna.moderate")
 def event_qna_moderate(
     request: HttpRequest,
-    event_id: uuid.UUID,
+    event_id: uuid.UUID | int,
     question_id: str,
 ) -> HttpResponse:
     if request.method != "POST":
@@ -211,13 +211,13 @@ def event_qna_moderate(
     return HttpResponseRedirect(f"/studio/events/{event_id}/qna/?saved=1")
 
 
-def _retry_result(event_id: uuid.UUID, request: HttpRequest) -> dict[str, Any]:
+def _retry_result(event_id: uuid.UUID | int, request: HttpRequest) -> dict[str, Any]:
     result = retry_event_qna_provision(event_id, audit_context=_audit_context(request))
     return {"job_id": str(result.job.id), "status": result.job.status}
 
 
 @capability_required("events.qna.provision.retry")
-def event_qna_retry(request: HttpRequest, event_id: uuid.UUID) -> HttpResponse:
+def event_qna_retry(request: HttpRequest, event_id: uuid.UUID | int) -> HttpResponse:
     if request.method != "POST":
         return HttpResponse("Method not allowed", status=405)
     # Same contract as the API adapter: the confirmation is a server-checked
@@ -238,7 +238,7 @@ def event_qna_retry(request: HttpRequest, event_id: uuid.UUID) -> HttpResponse:
 
 
 @capability_required("events.qna.cohost.create")
-def event_qna_cohost(request: HttpRequest, event_id: uuid.UUID) -> HttpResponse:
+def event_qna_cohost(request: HttpRequest, event_id: uuid.UUID | int) -> HttpResponse:
     if request.method != "POST":
         return HttpResponse("Method not allowed", status=405)
     name = request.POST.get("name")
@@ -277,7 +277,7 @@ def event_qna_cohost(request: HttpRequest, event_id: uuid.UUID) -> HttpResponse:
     return render(request, "studio/event_qna_cohost_created.html", {"invite": holder["invite"]})
 
 
-def _revoke_result(event_id: uuid.UUID, invite_id: str, request: HttpRequest) -> dict[str, Any]:
+def _revoke_result(event_id: uuid.UUID | int, invite_id: str, request: HttpRequest) -> dict[str, Any]:
     revoke_cohost(event_id, invite_id, audit_context=_audit_context(request))
     return {"revoked": True}
 
@@ -285,7 +285,7 @@ def _revoke_result(event_id: uuid.UUID, invite_id: str, request: HttpRequest) ->
 @capability_required("events.qna.cohost.revoke")
 def event_qna_cohost_revoke(
     request: HttpRequest,
-    event_id: uuid.UUID,
+    event_id: uuid.UUID | int,
     invite_id: str,
 ) -> HttpResponse:
     if request.method != "POST":

@@ -17,7 +17,7 @@ from accounts.studio_test_support import make_studio_user
 from core.models import AuditEvent
 from event_qna import security, services
 from event_qna.models import EventQnaSession
-from events.models import create_event_identity
+from events.identity import create_event_identity
 
 MODERATION_AUDIT = "events.qna.question_moderated"
 DENIAL_AUDIT = "events_qna_moderate.audit"
@@ -45,7 +45,7 @@ class PublicModerationTestBase(TestCase):
             source_revision=uuid.uuid4().hex,
             source_key=f"public-moderation-{uuid.uuid4().hex[:8]}",
         )
-        services.transition_session(event.id, EventQnaSession.State.OPEN)
+        services.transition_session(event.content_id, EventQnaSession.State.OPEN)
         return event
 
     def make_staff_client(self, *, username: str = "qna-staff"):
@@ -86,7 +86,7 @@ class PublicModerationTestBase(TestCase):
 
     def submit_question(self, event: Any, text: str = "First question"):
         participant, _token = security.new_participant()
-        return services.submit_question(event.id, text=text, participant=participant)
+        return services.submit_question(event.content_id, text=text, participant=participant)
 
 
 class RevokedStaffSessionTests(PublicModerationTestBase):
@@ -287,12 +287,12 @@ class AuthorizedModerationTests(PublicModerationTestBase):
 class CohostModerationTests(PublicModerationTestBase):
     def make_cohost_client(self, event: Any, *, name: str = "moderator"):
         services.create_cohost(
-            event.id,
+            event.content_id,
             name=name,
             passcode="open-sesame-42",
             actor_ref="user:1",
         )
-        invite, error = services.redeem_cohost(event.id, name, "open-sesame-42")
+        invite, error = services.redeem_cohost(event.content_id, name, "open-sesame-42")
         self.assertIsNotNone(invite, error)
         assert invite is not None
         client = Client(enforce_csrf_checks=True)
@@ -348,7 +348,7 @@ class ParticipantContinuityTests(PublicModerationTestBase):
     def test_anonymous_participant_can_still_withdraw_own_question(self):
         event = self.make_event()
         participant, participant_token = security.new_participant()
-        question = services.submit_question(event.id, text="Withdraw me", participant=participant)
+        question = services.submit_question(event.content_id, text="Withdraw me", participant=participant)
         urls = _qna_urls(event)
         client = Client(enforce_csrf_checks=True)
         client.cookies[security.PARTICIPANT_COOKIE] = participant_token

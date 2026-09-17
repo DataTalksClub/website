@@ -14,7 +14,8 @@ from copy import deepcopy
 from django.test import TestCase
 
 from event_qna.models import EventQnaSession
-from events.models import Event, EventPublicIdSequence, create_event_identity
+from community_base.events.models import Event, EventPublicIdSequence
+from events.identity import create_event_identity
 from scripts.prod.identity_manifest import (
     EventIdentityError,
     import_identity_manifest,
@@ -41,7 +42,7 @@ class EventIdentityManifestTests(TestCase):
             {(str(item.id), item.public_id) for item in manifest.events},
             {
                 (str(event_id), public_id)
-                for event_id, public_id in Event.objects.values_list("id", "public_id")
+                for event_id, public_id in Event.objects.values_list("content_id", "public_id")
             },
         )
         for item in manifest.events:

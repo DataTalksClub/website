@@ -327,9 +327,13 @@ class ExplicitCurrentRegistrationTests(TestCase):
             )
 
         run.refresh_from_db()
-        aggregate = run.aggregate_revisions.get(external_event_identifier=current_id)
+        aggregate = run.aggregate_revisions.select_related("event__source_identity").get(
+            external_event_identifier=current_id
+        )
         self.assertEqual(run.state, HistoricalRegistrationSourceRun.State.STAGED)
-        self.assertEqual(str(aggregate.event_id), self.event["identity_id"])
+        self.assertEqual(
+            str(aggregate.event.source_identity.source_key), self.event["provenance"]["source_key"]
+        )
         self.assertEqual(HistoricalRegistrationSourceRun.objects.count(), 1)
 
     def test_luma_provider_url_remains_an_exact_legacy_bridge_key(self) -> None:

@@ -83,7 +83,7 @@ destination -- exists in that form only here: rebuilding it needs the exporter c
 authorized operator holds locally, and the legacy repository it was originally derived from is
 retired.
 
-`events.content_import` resolves every record by the exact legacy tuple preserved on it: repository
+`events.content_import` resolves every record by the exact legacy tuple preserved on the event's `content.EventSource` row: repository
 `DataTalksClub/datatalksclub.github.io`, revision `ee43d3fa0929faf691178d79f19528e6f15a83e5`, source
 path `_data/events.yaml`, source key, and source checksum
 `7eac8bcc9bfb3ec5f0b35434343a58eb766f8cc8451dca8a4a82ac4674aa213d`. It re-checks that tuple, the
@@ -91,4 +91,4 @@ title and the slug against the identity row already in the database and refuses 
 on any mismatch, so a missing, duplicated, or changed tuple blocks the import rather than landing a
 description on the wrong event. It also refuses a description that arrives without this bridge's
 provenance behind it. It never rereads the exporter and never creates an event -- including from any
-of the nine source gaps; identity import (`events.models`/`scripts.prod.identity_manifest`) is the only thing that creates events.
+of the nine source gaps; identity import (`events.identity`/`scripts.prod.identity_manifest`) is the only thing that creates events.

@@ -19,11 +19,12 @@ from typing import Any
 from django.conf import settings
 from django.test import TestCase
 
+from community_base.events.models import Event
+from content.models import EventSource
 from events.content_import import (
     EventContentImportError,
     import_new_event_content,
 )
-from events.models import Event, EventContent
 
 PROVIDER_REPOSITORY = "dtc-historical-source/luma"
 PROVIDER_REVISION = "luma-aggregate-v1"
@@ -32,23 +33,29 @@ STARTS_AT = "2026-08-10T15:00:00+00:00"
 
 def _event(*, public_id: int, source_key: str, repository: str = PROVIDER_REPOSITORY) -> Event:
     event = Event(
-        id=uuid.uuid4(),
+        content_id=uuid.uuid4(),
+        public_id=public_id,
         title="A synthetic workshop",
         slug=f"a-synthetic-workshop-{public_id}",
-        source_repository=repository,
-        source_revision=PROVIDER_REVISION,
+        status="upcoming",
+        start_datetime=STARTS_AT,
+        source_repo=repository,
+        source_commit=PROVIDER_REVISION,
+    )
+    event.save()
+    EventSource.objects.create(
+        event=event,
+        repository=repository,
+        revision=PROVIDER_REVISION,
         source_key=source_key,
     )
-    event._allow_public_id_assignment = True
-    event.public_id = public_id
-    event.save()
     return event
 
 
 def _record(event: Event, **overrides: Any) -> dict[str, Any]:
     record: dict[str, Any] = {
         "record_schema_version": 1,
-        "identity_id": str(event.id),
+        "identity_id": str(event.content_id),
         "type": "workshop",
         "starts_at": STARTS_AT,
         "ends_at": "",
@@ -69,9 +76,9 @@ def _record(event: Event, **overrides: Any) -> dict[str, Any]:
         "speakers": [],
         "links": [],
         "provenance": {
-            "repository": event.source_repository,
-            "revision": event.source_revision,
-            "source_key": event.source_key,
+            "repository": event.source_repo,
+            "revision": event.source_commit,
+            "source_key": event.source_identity.source_key,
         },
     }
     record.update(overrides)
@@ -112,25 +119,28 @@ class NewEventContentImportTests(TestCase):
 
         self.assertEqual((report.total, report.created, report.described), (1, 1, 1))
         self.assertFalse(report.replayed)
-        content = EventContent.objects.get(event=self.event)
-        self.assertEqual(content.type, EventContent.Type.WORKSHOP)
-        self.assertEqual(content.starts_at.isoformat(), STARTS_AT)
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.kind, "workshop")
+        self.assertEqual(
+            self.event.tags, ["dtc-type:workshop"]
+        )
+        self.assertEqual(self.event.start_datetime.isoformat(), STARTS_AT)
         # Luma states no end anybody reviewed, so the row states none either.
-        self.assertIsNone(content.ends_at)
+        self.assertIsNone(self.event.end_datetime)
 
     def test_replaying_changes_nothing(self) -> None:
         staged = self._stage([_record(self.event)])
         import_new_event_content(path=staged)
-        before = EventContent.objects.get(event=self.event).updated_at
+        before = Event.objects.get(pk=self.event.pk).updated_at
 
         report = import_new_event_content(path=staged)
 
         self.assertTrue(report.replayed)
         self.assertEqual((report.created, report.updated, report.unchanged), (0, 0, 1))
-        self.assertEqual(EventContent.objects.get(event=self.event).updated_at, before)
+        self.assertEqual(Event.objects.get(pk=self.event.pk).updated_at, before)
 
     def test_a_record_naming_an_identity_we_do_not_hold_is_refused(self) -> None:
-        """Creating an event is events.models.create_event_identity's job, and only its job."""
+        """Creating an event is events.identity.create_event_identity's job, and only its job."""
 
         record = _record(self.event, identity_id=str(uuid.uuid4()))
 
@@ -138,7 +148,7 @@ class NewEventContentImportTests(TestCase):
             import_new_event_content(path=self._stage([record]))
 
         self.assertEqual(str(refusal.exception), "new_event_content_identity_unknown")
-        self.assertFalse(EventContent.objects.filter(event=self.event).exists())
+        self.assertFalse(Event.objects.get(pk=self.event.pk).description_html)
 
     def test_a_record_built_for_another_source_cannot_land_here(self) -> None:
         """The 421 carry the legacy repository, so a staged record can never reach them."""
@@ -155,7 +165,7 @@ class NewEventContentImportTests(TestCase):
             import_new_event_content(path=self._stage([record]))
 
         self.assertEqual(str(refusal.exception), "new_event_content_provenance_conflict")
-        self.assertFalse(EventContent.objects.filter(event=legacy).exists())
+        self.assertFalse(Event.objects.get(pk=legacy.pk).description_html)
 
     def test_one_bad_record_stops_the_whole_candidate(self) -> None:
         other = _event(public_id=90_003, source_key="evt-Synthetic02")
@@ -167,7 +177,11 @@ class NewEventContentImportTests(TestCase):
                 )
             )
 
-        self.assertFalse(EventContent.objects.filter(event__in=(self.event, other)).exists())
+        self.assertFalse(
+            Event.objects.filter(pk__in=(self.event.pk, other.pk))
+            .exclude(description_html="")
+            .exists()
+        )
 
     def test_a_description_arriving_without_its_type_review_is_refused(self) -> None:
         """No source states the type, so the decision has to travel with the row."""
@@ -202,7 +216,7 @@ class NewEventContentImportTests(TestCase):
 
         self.assertEqual((report.total, report.created), (1, 1))
         self.assertTrue(report.dry_run)
-        self.assertFalse(EventContent.objects.filter(event=self.event).exists())
+        self.assertFalse(Event.objects.get(pk=self.event.pk).description_html)
 
     def test_an_empty_artifact_is_a_no_op_rather_than_a_failure(self) -> None:
         """It is written whenever the review is clean, which may be for no events."""
@@ -222,6 +236,6 @@ class NewEventContentImportTests(TestCase):
 
         import_new_event_content(path=self._stage([_record(self.event)]))
 
-        content = EventContent.objects.get(event=self.event)
-        self.assertEqual(content.speakers.count(), 0)
-        self.assertEqual(content.links.count(), 0)
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.event_host_links.count(), 0)
+        self.assertEqual(self.event.materials, [])

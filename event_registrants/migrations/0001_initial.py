@@ -52,7 +52,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('events', '0009_remove_historicalregistrationaggregaterevision_events_hist_agg_checksum_and_more'),
+        ('events', '0003_provisional_integration_attempt'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

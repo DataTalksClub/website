@@ -27,7 +27,7 @@ from event_qna.services import (
     update_question,
     update_session,
 )
-from events.models import EventIdentityNotFound
+from events.identity import EventIdentityNotFound
 from historical_registrations.importers import ProtectedSourceError
 from historical_registrations.models import HistoricalRegistrationSourceRun
 from historical_registrations.services import (
@@ -218,7 +218,7 @@ def _qna_audit_context(request: HttpRequest) -> AuditWriteContext:
     )
 
 
-def _audit_identity_access(request: HttpRequest, *, event_id: uuid.UUID | None = None) -> None:
+def _audit_identity_access(request: HttpRequest, *, event_id: uuid.UUID | int | None = None) -> None:
     identity = request.api_identity  # type: ignore[attr-defined]
     record_audit_event(
         action="events.identity.viewed",
@@ -918,7 +918,7 @@ def historical_import_rollback(request: HttpRequest, run_id: str) -> JsonRespons
 def historical_registration_total(request: HttpRequest, event_id: str) -> JsonResponse:
     capability = request.management_capability  # type: ignore[attr-defined]
     try:
-        return JsonResponse(capability.service(uuid.UUID(str(event_id))))
+        return JsonResponse(capability.service(event_id))
     except Exception as error:
         raise _historical_error(error) from error
 
@@ -939,7 +939,7 @@ def event_identity_list(request: HttpRequest) -> JsonResponse:
 def event_identity_detail(request: HttpRequest, event_id: str) -> JsonResponse:
     capability = request.management_capability  # type: ignore[attr-defined]
     try:
-        parsed_id = uuid.UUID(str(event_id))
+        parsed_id = int(event_id)
         result = capability.service(parsed_id)
         _audit_identity_access(request, event_id=parsed_id)
         return JsonResponse(result)
@@ -950,7 +950,7 @@ def event_identity_detail(request: HttpRequest, event_id: str) -> JsonResponse:
 @admin_capability("events.qna.read")
 def event_qna_read(request: HttpRequest, event_id: str) -> JsonResponse:
     try:
-        result = admin_event_qna(uuid.UUID(str(event_id)))
+        result = admin_event_qna(int(event_id))
         response = JsonResponse(result)
         response["ETag"] = f'"rev-{result["revision"]}"'
         response["Cache-Control"] = "private, no-store"
@@ -992,7 +992,7 @@ def _qna_update_result(
     request: HttpRequest, event_id: str, payload: dict, expected_revision: int
 ) -> dict:
     session = update_session(
-        uuid.UUID(str(event_id)),
+        int(event_id),
         payload,
         expected_revision=expected_revision,
         audit_context=_qna_audit_context(request),
@@ -1047,14 +1047,14 @@ def _qna_moderate_result(
     expected_revision: int,
 ) -> dict:
     question = update_question(
-        uuid.UUID(str(event_id)),
+        int(event_id),
         question_id,
         payload,
         moderator=True,
         audit_context=_qna_audit_context(request),
         expected_revision=expected_revision,
     )
-    session = EventQnaSession.objects.get(event_id=uuid.UUID(str(event_id)))
+    session = EventQnaSession.objects.get(event_id=int(event_id))
     return {**serialize_question(question), "session_revision": session.revision}
 
 
@@ -1083,7 +1083,7 @@ def event_qna_retry(request: HttpRequest, event_id: str) -> JsonResponse:
 
 def _qna_retry_result(request: HttpRequest, event_id: str) -> dict:
     result = retry_event_qna_provision(
-        uuid.UUID(str(event_id)),
+        int(event_id),
         audit_context=_qna_audit_context(request),
     )
     return {
@@ -1110,7 +1110,7 @@ def event_qna_cohost_create(request: HttpRequest, event_id: str) -> JsonResponse
 
     def command() -> OneTimeCommandResult:
         result = create_cohost(
-            uuid.UUID(str(event_id)),
+            int(event_id),
             name=payload.get("name"),
             passcode=payload.get("passcode"),
             actor_ref=f"api_principal:{identity.principal.id}",
@@ -1160,7 +1160,7 @@ def event_qna_cohost_revoke(request: HttpRequest, event_id: str, invite_id: str)
 
 def _qna_revoke_result(request: HttpRequest, event_id: str, invite_id: str) -> dict:
     revoke_cohost(
-        uuid.UUID(str(event_id)),
+        int(event_id),
         invite_id,
         audit_context=_qna_audit_context(request),
     )

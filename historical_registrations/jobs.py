@@ -1,11 +1,14 @@
 """Durable event-total cache invalidation intent.
 
+Moved verbatim from the former site ``events`` app (#412); this app owns
+registration totals, so the intent lives beside the code that submits it. The
+handler name keeps its historical ``events.registration_total.invalidate``
+form: durable intents stored before the app split reference it, and renaming it
+would orphan queued work.
+
 Positive public edge caching is intentionally disabled until #109.  The handler
 therefore validates/coalesces the durable intent and performs no network call;
 the job remains the hand-off seam for #109's cache provider.
-
-The Q&A provisioning handler now lives in ``event_qna.jobs``; it keeps the
-historical ``events.qna.provision`` intent name.
 """
 
 from __future__ import annotations

@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('events', '0008_remove_eventqnacohostinvite_events_qna_cohost_name_unique_and_more'),
+        ('events', '0003_provisional_integration_attempt'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

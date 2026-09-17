@@ -28,7 +28,7 @@ from django.urls import reverse
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
 from event_qna import security, services
 from event_qna.models import EventQnaSession
-from events.models import create_event_identity
+from events.identity import create_event_identity
 from management_auth.models import APIPrincipal
 from management_auth.services import create_principal, issue_credential_once
 
@@ -41,10 +41,10 @@ class ManagementContractTests(TestCase):
             source_revision="0" * 40,
             source_key="adapter-contract-test",
         )
-        services.transition_session(self.event.id, EventQnaSession.State.OPEN)
+        services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
         participant, _token = security.new_participant()
         self.question = services.submit_question(
-            self.event.id, text="Contract test question", participant=participant
+            self.event.content_id, text="Contract test question", participant=participant
         )
         self.studio_client = authenticated_studio_client(
             make_studio_user(username="qna-operator", roles=("event_operator",))
@@ -97,7 +97,7 @@ class ManagementContractTests(TestCase):
         payload["idempotency_key"] = key
         payload.update(extra or {})
         return self.studio_client.post(
-            reverse("studio:event-qna-update", kwargs={"event_id": self.event.id}), payload
+            reverse("studio:event-qna-update", kwargs={"event_id": self.event.pk}), payload
         )
 
     def _api_moderate(self, payload: dict[str, Any], *, if_match: str | None = "current"):
@@ -112,7 +112,7 @@ class ManagementContractTests(TestCase):
         return self.client.patch(
             reverse(
                 "api:admin-event-qna-moderate",
-                kwargs={"event_id": self.event.id, "question_id": self.question.question_id},
+                kwargs={"event_id": self.event.pk, "question_id": self.question.question_id},
             ),
             data=json.dumps(payload),
             content_type="application/json",
@@ -156,7 +156,7 @@ class ManagementContractTests(TestCase):
 
     def test_api_settings_survive_an_unrelated_studio_save(self) -> None:
         services.update_session(
-            self.event.id,
+            self.event.content_id,
             {"settings": {"listed": False, "answered_placement": "bottom"}},
         )
         session = self._session()
@@ -196,7 +196,7 @@ class ManagementContractTests(TestCase):
     def test_studio_moderation_honors_the_same_revision_contract(self) -> None:
         url = reverse(
             "studio:event-qna-moderate",
-            kwargs={"event_id": self.event.id, "question_id": self.question.question_id},
+            kwargs={"event_id": self.event.pk, "question_id": self.question.question_id},
         )
         stale = self.studio_client.post(
             url,
@@ -223,10 +223,10 @@ class ManagementContractTests(TestCase):
         # pinned question had no way to be unpinned from this surface even
         # though the view supported it.  The action/label pair must follow
         # the rendered server state, and a moderator can undo a pin here.
-        detail_url = reverse("studio:event-qna-detail", kwargs={"event_id": self.event.id})
+        detail_url = reverse("studio:event-qna-detail", kwargs={"event_id": self.event.pk})
         moderate_url = reverse(
             "studio:event-qna-moderate",
-            kwargs={"event_id": self.event.id, "question_id": self.question.question_id},
+            kwargs={"event_id": self.event.pk, "question_id": self.question.question_id},
         )
 
         def _moderate(action: str, key: str):
@@ -264,7 +264,7 @@ class ManagementContractTests(TestCase):
     # -- confirmation contracts ------------------------------------------
 
     def test_studio_retry_requires_explicit_confirmation(self) -> None:
-        url = reverse("studio:event-qna-retry", kwargs={"event_id": self.event.id})
+        url = reverse("studio:event-qna-retry", kwargs={"event_id": self.event.pk})
         unconfirmed = self.studio_client.post(url, {"idempotency_key": "retry-key-1"})
         self.assertEqual(unconfirmed.status_code, 400, unconfirmed.content)
 
@@ -275,14 +275,14 @@ class ManagementContractTests(TestCase):
 
     def test_studio_revoke_requires_explicit_confirmation(self) -> None:
         invite = services.create_cohost(
-            self.event.id,
+            self.event.content_id,
             name="operator",
             passcode="open-sesame-42",
             actor_ref="user:0",
         )
         url = reverse(
             "studio:event-qna-cohost-revoke",
-            kwargs={"event_id": self.event.id, "invite_id": str(invite["invite_id"])},
+            kwargs={"event_id": self.event.pk, "invite_id": str(invite["invite_id"])},
         )
         unconfirmed = self.studio_client.post(url, {"idempotency_key": "revoke-key-1"})
         self.assertEqual(unconfirmed.status_code, 400, unconfirmed.content)
@@ -296,7 +296,7 @@ class ManagementContractTests(TestCase):
     def test_studio_cohost_create_replay_creates_one_invite_and_no_passcode(
         self,
     ) -> None:
-        url = reverse("studio:event-qna-cohost", kwargs={"event_id": self.event.id})
+        url = reverse("studio:event-qna-cohost", kwargs={"event_id": self.event.pk})
         first = self.studio_client.post(
             url,
             {"name": "operator", "passcode": "open-sesame-42", "idempotency_key": "grant-key-1"},

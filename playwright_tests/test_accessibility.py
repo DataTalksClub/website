@@ -31,7 +31,8 @@ from course_management.datamailer_templates.accessibility import (
     render_current_transactional_email,
 )
 from courses.models import Cohort, HomeworkState, ProjectState, RegistrationCampaign
-from events.models import Event, canonical_detail_path
+from community_base.events.models import Event
+from events.identity import canonical_detail_path
 from events.queries import published_event_records
 from historical_registrations.models import (
     HistoricalRegistrationAggregateRevision,
@@ -292,7 +293,7 @@ def accessibility_environment() -> AccessibilityEnvironment:
     event = published_event_records()[0]
     database_event = Event.objects.filter(pk=event["identity_id"]).first()
     if database_event is not None:
-        event = {**event, "public_path": canonical_detail_path(database_event.id)}
+        event = {**event, "public_path": canonical_detail_path(database_event.content_id)}
     person_path = event["speakers"][0]["public_path"]
     article = catalogue.articles()[0]
     podcast = next(record for record in catalogue.podcasts() if record.get("transcript"))

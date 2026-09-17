@@ -19,7 +19,7 @@ from django.test import TestCase
 from event_qna import security, services
 from event_qna.models import EventQnaSession
 from event_qna.services import RevisionConflict
-from events.models import create_event_identity
+from events.identity import create_event_identity
 
 
 class ConflictContractTests(TestCase):
@@ -30,10 +30,10 @@ class ConflictContractTests(TestCase):
             source_revision="1" * 40,
             source_key="conflict-contract-test",
         )
-        services.transition_session(self.event.id, EventQnaSession.State.OPEN)
+        services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
         self.participant, _author_token = security.new_participant()
         self.question = services.submit_question(
-            self.event.id, text="Conflict contract question", participant=self.participant
+            self.event.content_id, text="Conflict contract question", participant=self.participant
         )
         # Submitting implicitly votes with the author's digest, so the vote
         # cases below speak as a second audience member: their first add is a
@@ -162,7 +162,7 @@ class ConflictContractTests(TestCase):
                 reverse(
                     "api:admin-event-qna-moderate",
                     kwargs={
-                        "event_id": self.event.id,
+                        "event_id": self.event.pk,
                         "question_id": self.question.question_id,
                     },
                 ),

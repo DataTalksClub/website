@@ -69,7 +69,8 @@ def _configure(database: Path) -> None:
 
 
 def build(*, luma_source: Path) -> dict[str, Any]:
-    from events.models import Event, canonical_event_date, normalize_event_title
+    from community_base.events.models import Event
+from events.identity import canonical_event_date, normalize_event_title
     from scripts.prod.registrant_import import (
         EXISTING_EVENT_AMBIGUOUS,
         EXISTING_EVENT_DATE_UNUSABLE,

@@ -96,6 +96,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from django.db import IntegrityError, transaction
@@ -107,8 +108,8 @@ from event_registrants.models import (
     EventRegistrantImportProgress,
     EventRegistration,
 )
-from events.models import (
-    Event,
+from community_base.events.models import Event
+from events.identity import (
     EventIdentityError,
     EventIdentityNotFound,
     canonical_event_date,
@@ -180,18 +181,20 @@ def provider_source_identity(*, provider: str, external_event_identifier: str) -
 
 
 def create_provider_event_identity(
-    *, provider: str, external_event_identifier: str, title: str
+    *, provider: str, external_event_identifier: str, title: str, start_at: str | None = None
 ) -> Event:
     """Mint an Event identity for one provider event, using the shared allocator.
 
-    This is plumbing, not editorial review: title and a canonical
-    ``/events/<public_id>/<slug>`` path, nothing that renders a registration
-    count.  It calls :func:`events.models.create_event_identity` -- the same
-    atomic, allocator-safe machinery the reviewed manifest import uses -- rather
-    than re-deriving a public ID or canonical path here.
+    This is plumbing, not editorial review: title, the export's start instant
+    and a canonical ``/events/<public_id>/<slug>`` path -- nothing that renders
+    a registration count.  It calls
+    :func:`events.identity.create_event_identity` -- the same atomic,
+    allocator-safe machinery the reviewed manifest import uses -- rather than
+    re-deriving a public ID or canonical path here.
 
-    Callers own idempotency: check :func:`events.models.resolve_source_identity`
-    with :func:`provider_source_identity` first, and skip creation if it already
+    Callers own idempotency: check
+    :func:`events.identity.resolve_source_identity` with
+    :func:`provider_source_identity` first, and skip creation if it already
     resolves. This function always inserts.
     """
 
@@ -200,6 +203,7 @@ def create_provider_event_identity(
     )
     return create_event_identity(
         title=title,
+        starts_at=datetime.fromisoformat(start_at) if start_at else None,
         source_repository=source.repository,
         source_revision=source.revision,
         source_key=source.source_key,
@@ -260,8 +264,10 @@ class ExistingEventIndex:
     def __init__(self, events: Any = None) -> None:
         self._by_dated_title: dict[tuple[str, str], list[Event]] = {}
         self._dates_by_title: dict[str, set[str]] = {}
-        for event in Event.objects.all() if events is None else events:
-            date = canonical_event_date(event.source_key)
+        for event in Event.objects.select_related(
+            "source_identity"
+        ) if events is None else events:
+            date = canonical_event_date(event.source_identity.source_key)
             if date is None:
                 continue
             title = normalize_event_title(event.title)

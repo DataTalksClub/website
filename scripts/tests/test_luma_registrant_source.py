@@ -12,6 +12,7 @@ import csv
 import json
 import tempfile
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 
 from django.conf import settings
@@ -19,12 +20,15 @@ from django.test import SimpleTestCase, TestCase
 
 from accounts.models import CustomUser
 from event_registrants.models import EventRegistrantIdentity, EventRegistration
-from events.models import Event
+from community_base.events.models import Event
+from content.models import EventSource
 from scripts.prod.registrant_import import (
     RegistrantImportError,
     create_provider_event_identity,
     import_registrants,
 )
+
+STARTS_AT = datetime(2026, 8, 10, 15, 0, tzinfo=UTC)
 from scripts.prod.registration_sources.luma_registrants import (
     PROVIDER,
     CanonicalLumaIdentity,
@@ -304,16 +308,22 @@ class LumaRegistrantSourceTests(LumaRegistrantExportMixin, TestCase):
 
 def _canonical_event(*, source_key: str) -> Event:
     event = Event(
-        id=uuid.uuid4(),
+        content_id=uuid.uuid4(),
+        public_id=9_001,
         title="Synthetic canonical event",
         slug="synthetic-canonical-event",
-        source_repository="DataTalksClub/datatalksclub.github.io",
-        source_revision="a" * 40,
+        status="upcoming",
+        start_datetime=STARTS_AT,
+        source_repo="DataTalksClub/datatalksclub.github.io",
+        source_commit="a" * 40,
+    )
+    event.save()
+    EventSource.objects.create(
+        event=event,
+        repository="DataTalksClub/datatalksclub.github.io",
+        revision="a" * 40,
         source_key=source_key,
     )
-    event._allow_public_id_assignment = True
-    event.public_id = 9_001
-    event.save()
     return event
 
 
@@ -392,9 +402,9 @@ class LumaIdentityResolutionIntegrationTests(LumaRegistrantExportMixin, TestCase
                 {
                     "luma_event_id": "evt-1",
                     "status": "resolved",
-                    "canonical_repository": event.source_repository,
-                    "canonical_revision": event.source_revision,
-                    "canonical_source_key": event.source_key,
+                    "canonical_repository": event.source_identity.repository,
+                    "canonical_revision": event.source_identity.revision,
+                    "canonical_source_key": event.source_identity.source_key,
                 }
             ],
         )
@@ -412,7 +422,7 @@ class LumaIdentityResolutionIntegrationTests(LumaRegistrantExportMixin, TestCase
         # No provider-minted identity was created for this export id -- the
         # resolved mapping's canonical Event is the only Event this event id
         # ever attaches to.
-        self.assertEqual(Event.objects.filter(source_key="evt-1").count(), 0)
+        self.assertEqual(EventSource.objects.filter(source_key="evt-1").count(), 0)
 
     def test_an_id_absent_from_the_mapping_still_falls_back_to_a_provider_minted_identity(
         self,

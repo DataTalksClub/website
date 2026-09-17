@@ -18,7 +18,10 @@ class Command(BaseCommand):
         del args
         event_id = options["event_id"]
         try:
-            parsed_event_id = uuid.UUID(event_id)
+            try:
+                parsed_event_id: uuid.UUID | int = int(event_id)
+            except ValueError:
+                parsed_event_id = uuid.UUID(event_id)
         except ValueError as exc:
             raise CommandError("event_id must be a canonical UUID") from exc
         if str(parsed_event_id) != event_id:

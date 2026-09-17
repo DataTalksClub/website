@@ -36,7 +36,8 @@ from courses.models import (
     User,
 )
 from courses.models.cohort import Cohort
-from events.models import Event, create_event_identity
+from community_base.events.models import Event
+from events.identity import create_event_identity
 
 SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 

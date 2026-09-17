@@ -32,7 +32,7 @@ from core.sponsors import public_events_hub_sponsors
 from course_management.observability import record_event
 from courses.models import Cohort, SharedLesson, SharedModule
 from event_qna.models import EventQnaSession
-from events.models import (
+from events.identity import (
     EventIdentityNotFound,
     canonical_detail_path,
     redirect_for_supplied_slug,
@@ -359,7 +359,7 @@ def _render_events(
 def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
     try:
         identity = resolve_public_id(event_id)
-        redirect_path = redirect_for_supplied_slug(identity.id, slug)
+        redirect_path = redirect_for_supplied_slug(identity.content_id, slug)
     except EventIdentityNotFound as exc:
         raise Http404 from exc
     if redirect_path is not None:
@@ -373,11 +373,11 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
         (
             item
             for item in (*grouped.upcoming, *grouped.recent)
-            if item.get("identity_id") == str(identity.id)
+            if item.get("identity_id") == str(identity.content_id)
         ),
-        {**projected, "identity_id": str(identity.id)},
+        {**projected, "identity_id": str(identity.content_id)},
     )
-    event["public_path"] = canonical_detail_path(identity.id)
+    event["public_path"] = canonical_detail_path(identity.content_id)
     event["banner_url"] = event_banner_url(event)
     # The credit says who spoke; the biography belongs to that person's own
     # profile and is joined in here, so the page never carries a copy that can
@@ -390,15 +390,15 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
     # The page states whether the event has happened in a word, using the same split the
     # events index draws its rows from.  An event the grouped catalogue cannot place —
     # the projected fallback record above — reports no state rather than an invented one.
-    if any(item.get("identity_id") == str(identity.id) for item in grouped.recent):
+    if any(item.get("identity_id") == str(identity.content_id) for item in grouped.recent):
         event_state = "past"
-    elif any(item.get("identity_id") == str(identity.id) for item in grouped.upcoming):
+    elif any(item.get("identity_id") == str(identity.content_id) for item in grouped.upcoming):
         event_state = "upcoming"
     else:
         event_state = ""
     entity = {
         "@type": "Event",
-        "url": _canonical(canonical_detail_path(identity.id)),
+        "url": _canonical(canonical_detail_path(identity.content_id)),
         "name": event["title"],
         "startDate": event["starts_at"],
         "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
@@ -417,7 +417,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
         entity["endDate"] = event["ends_at"]
     registration_total = public_registration_total(event)
     qna_url = ""
-    qna_session = EventQnaSession.objects.filter(event_id=identity.id).first()
+    qna_session = EventQnaSession.objects.filter(event_id=identity.pk).first()
     if qna_session is not None and qna_session.state in {
         EventQnaSession.State.OPEN,
         EventQnaSession.State.CLOSED,
@@ -457,7 +457,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
 @_public_event_route
 def event_detail_without_slug(request: HttpRequest, event_id: str) -> HttpResponse:
     try:
-        target = canonical_detail_path(resolve_public_id(event_id).id)
+        target = canonical_detail_path(resolve_public_id(event_id).content_id)
     except EventIdentityNotFound as exc:
         raise Http404 from exc
     return permanent_public_redirect(request, target=target)

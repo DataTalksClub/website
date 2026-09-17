@@ -60,7 +60,7 @@ from core.sponsors import (
     SponsorNotFound,
     SponsorRevisionConflict,
 )
-from events.models import EventIdentityNotFound, get_event_identity, list_event_identities
+from events.identity import EventIdentityNotFound, get_event_identity, list_event_identities
 from historical_registrations.importers import (
     ProtectedSourceError,
     registered_source_options,

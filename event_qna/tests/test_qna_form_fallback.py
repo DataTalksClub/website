@@ -16,7 +16,7 @@ from django.urls import reverse
 from core.models import RevisionConflict
 from event_qna import services
 from event_qna.models import EventQnaSession
-from events.models import create_event_identity
+from events.identity import create_event_identity
 
 
 class EventQnaFormFallbackTests(TestCase):
@@ -27,7 +27,7 @@ class EventQnaFormFallbackTests(TestCase):
             source_revision="e" * 40,
             source_key="form-fallback-test",
         )
-        services.transition_session(self.event.id, EventQnaSession.State.OPEN)
+        services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
         self.page_url = reverse(
             "public-event-qna",
             kwargs={"event_id": self.event.public_id, "slug": self.event.slug},
@@ -35,7 +35,7 @@ class EventQnaFormFallbackTests(TestCase):
         self.client = Client()
 
     def _count(self) -> int:
-        items, _counts, _etag, _session = services.list_questions(self.event.id)
+        items, _counts, _etag, _session = services.list_questions(self.event.content_id)
         return len(items)
 
     def test_native_post_creates_one_question_and_redirects_clean(self) -> None:
@@ -81,7 +81,7 @@ class EventQnaFormFallbackTests(TestCase):
         self.assertIn("Too many requests", body)
 
     def test_closed_session_post_rerenders_the_page_not_json(self) -> None:
-        services.transition_session(self.event.id, EventQnaSession.State.CLOSED)
+        services.transition_session(self.event.content_id, EventQnaSession.State.CLOSED)
         page = self.client.get(self.page_url)
         csrf = page.cookies["csrftoken"].value
         response = self.client.post(

@@ -11,7 +11,7 @@ from django.urls import reverse
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
 from event_qna import security, services
 from event_qna.models import EventQnaSession
-from events.models import create_event_identity
+from events.identity import create_event_identity
 from management_api.concurrency import revision_etag
 from management_auth.models import APIPrincipal
 from management_auth.services import create_principal, issue_credential_once
@@ -25,12 +25,12 @@ class EventQnaServiceTests(TestCase):
             source_revision="a" * 40,
             source_key="native-qna-test",
         )
-        services.transition_session(self.event.id, EventQnaSession.State.OPEN)
+        services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
         self.participant, _token = security.new_participant()
 
     def test_question_validation_implicit_vote_and_idempotent_votes(self) -> None:
         question = services.submit_question(
-            self.event.id,
+            self.event.content_id,
             text="  How does the native adapter work?  ",
             author_name="Ada",
             participant=self.participant,
@@ -40,57 +40,57 @@ class EventQnaServiceTests(TestCase):
         self.assertEqual(EventQnaSession.objects.get(event=self.event).q_total, 1)
 
         score, voted = services.vote_question(
-            self.event.id, question.question_id, participant=self.participant, add=True
+            self.event.content_id, question.question_id, participant=self.participant, add=True
         )
         self.assertEqual((score, voted), (1, True))
         other, _token = security.new_participant()
         score, voted = services.vote_question(
-            self.event.id, question.question_id, participant=other, add=True
+            self.event.content_id, question.question_id, participant=other, add=True
         )
         self.assertEqual((score, voted), (2, True))
         score, voted = services.vote_question(
-            self.event.id, question.question_id, participant=other, add=False
+            self.event.content_id, question.question_id, participant=other, add=False
         )
         self.assertEqual((score, voted), (1, False))
 
     def test_moderation_preserves_status_counters_and_singular_pin(self) -> None:
-        first = services.submit_question(self.event.id, text="First", participant=self.participant)
+        first = services.submit_question(self.event.content_id, text="First", participant=self.participant)
         second = services.submit_question(
-            self.event.id, text="Second", participant=self.participant
+            self.event.content_id, text="Second", participant=self.participant
         )
-        services.update_question(self.event.id, first.question_id, {"pinned": True}, moderator=True)
+        services.update_question(self.event.content_id, first.question_id, {"pinned": True}, moderator=True)
         services.update_question(
-            self.event.id, second.question_id, {"pinned": True}, moderator=True
+            self.event.content_id, second.question_id, {"pinned": True}, moderator=True
         )
         first.refresh_from_db()
         second.refresh_from_db()
         self.assertFalse(first.pinned)
         self.assertTrue(second.pinned)
         services.update_question(
-            self.event.id, second.question_id, {"status": "answered"}, moderator=True
+            self.event.content_id, second.question_id, {"status": "answered"}, moderator=True
         )
         session = EventQnaSession.objects.get(event=self.event)
         self.assertEqual((session.q_total, session.q_answered), (2, 1))
         services.update_question(
-            self.event.id, second.question_id, {"status": "deleted"}, moderator=True
+            self.event.content_id, second.question_id, {"status": "deleted"}, moderator=True
         )
         session.refresh_from_db()
         self.assertEqual((session.q_total, session.q_answered), (1, 0))
 
     def test_cohost_link_and_passcode_are_separate_and_revocable(self) -> None:
         invite = services.create_cohost(
-            self.event.id,
+            self.event.content_id,
             name="moderator",
             passcode="open-sesame-42",
             actor_ref="user:1",
         )
         self.assertNotIn(invite["passcode"], invite["join_url"])
-        found, error = services.redeem_cohost(self.event.id, "MODERATOR", "  open-sesame42 ")
+        found, error = services.redeem_cohost(self.event.content_id, "MODERATOR", "  open-sesame42 ")
         self.assertIsNone(error)
         assert found is not None
         self.assertEqual(found.name, "moderator")
-        services.revoke_cohost(self.event.id, found.invite_id)
-        found, error = services.redeem_cohost(self.event.id, "moderator", "open-sesame-42")
+        services.revoke_cohost(self.event.content_id, found.invite_id)
+        found, error = services.redeem_cohost(self.event.content_id, "moderator", "open-sesame-42")
         self.assertIsNone(found)
         self.assertTrue(error)
 
@@ -103,7 +103,7 @@ class EventQnaHttpTests(TestCase):
             source_revision="b" * 40,
             source_key="http-qna-test",
         )
-        services.transition_session(self.event.id, EventQnaSession.State.OPEN)
+        services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
         self.slug = self.event.slug
         self.page_url = reverse(
             "public-event-qna",
@@ -149,7 +149,7 @@ class EventQnaHttpTests(TestCase):
         self.assertContains(participant, 'id="qna-sort"')
 
         invite = services.create_cohost(
-            self.event.id,
+            self.event.content_id,
             name="review-host",
             passcode="bounded-review-42",
             actor_ref="test:qna-shell",
@@ -178,12 +178,12 @@ class EventQnaHttpTests(TestCase):
         )
 
     def test_archived_public_session_is_gone_but_idempotent_provisioning_remains(self) -> None:
-        services.transition_session(self.event.id, EventQnaSession.State.ARCHIVED)
+        services.transition_session(self.event.content_id, EventQnaSession.State.ARCHIVED)
         response = Client().get(self.page_url)
         self.assertEqual(response.status_code, 410)
         self.assertEqual(
-            services.ensure_event_qna(self.event.id).session.id,
-            services.ensure_event_qna(self.event.id).session.id,
+            services.ensure_event_qna(self.event.content_id).session.id,
+            services.ensure_event_qna(self.event.content_id).session.id,
         )
 
     def test_qr_routes_return_bounded_share_assets(self) -> None:
@@ -248,7 +248,7 @@ class EventQnaManagementTests(TestCase):
         }
 
     def test_admin_api_reads_and_idempotently_updates_session(self) -> None:
-        url = reverse("api:admin-event-qna-read", kwargs={"event_id": self.event.id})
+        url = reverse("api:admin-event-qna-read", kwargs={"event_id": self.event.pk})
         read = self.client.get(url, **self._headers("qna-read"))
         self.assertEqual(read.status_code, 200, read.content)
         self.assertEqual(read.json()["contract"], "qna.v1")
@@ -276,7 +276,7 @@ class EventQnaManagementTests(TestCase):
         user = make_studio_user(username="qna-studio", roles=("event_operator",))
         client = authenticated_studio_client(user)
         response = client.get(
-            reverse("studio:event-qna-detail", kwargs={"event_id": self.event.id})
+            reverse("studio:event-qna-detail", kwargs={"event_id": self.event.pk})
         )
         self.assertEqual(response.status_code, 200, response.content)
         self.assertContains(response, "Configure the event session")
@@ -284,7 +284,7 @@ class EventQnaManagementTests(TestCase):
         self.assertIn("no-store", response["Cache-Control"])
 
     def test_admin_cohost_creation_is_one_time_and_does_not_replay_the_passcode(self) -> None:
-        url = reverse("api:admin-event-qna-cohost-create", kwargs={"event_id": self.event.id})
+        url = reverse("api:admin-event-qna-cohost-create", kwargs={"event_id": self.event.pk})
         first = self.client.post(
             url,
             data=json.dumps({"name": "operator", "passcode": "open-sesame-42"}),

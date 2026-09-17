@@ -18,8 +18,8 @@ from django.db.models import Q
 from core.audit import AuditWriteContext, record_audit_event
 from core.models import AuditEvent, RevisionConflict
 from core.services import ServiceContext
-from events.models import (
-    Event,
+from community_base.events.models import Event
+from events.identity import (
     EventIdentityError,
     EventIdentityNotFound,
     canonical_detail_path,
@@ -97,13 +97,23 @@ def _validate_coverage(value: str) -> str:
     return value
 
 
-def _canonical_event(event_id: uuid.UUID | str) -> dict[str, Any]:
-    """Resolve a CMP aggregate target by UUID, then exact source provenance only."""
+def _canonical_event(event_id: uuid.UUID | str | int) -> dict[str, Any]:
+    """Resolve a CMP aggregate target by identity UUID or row key, provenance only.
+
+    The aggregate's ``event_id`` column carries the shared row's integer key;
+    intents and reports from before the swap carry the site identity UUID the
+    row keeps as ``content_id``, and both resolve to the same event.
+    """
 
     try:
-        resolved = resolve_uuid(event_id)
+        if isinstance(event_id, int) and not isinstance(event_id, bool):
+            from community_base.events.models import Event
+
+            resolved = Event.objects.get(pk=event_id)
+        else:
+            resolved = resolve_uuid(event_id)
         record = event_public_record(resolved)
-        if record.get("identity_id") != str(resolved.id):
+        if record.get("identity_id") != str(resolved.content_id):
             raise EventIdentityError("event_projection_identity_mismatch")
         return record
     except (EventIdentityError, EventIdentityNotFound, ValueError, TypeError) as exc:
@@ -129,7 +139,7 @@ def _aggregate_matches_projection(aggregate: HistoricalRegistrationAggregateRevi
         event = _canonical_event(aggregate.event_id)
     except HistoricalRegistrationInvalid:
         return False
-    return event.get("identity_id") == str(aggregate.event_id)
+    return event.get("identity_id") == str(aggregate.event.content_id)
 
 
 def _mask_identifier(value: str) -> str:
@@ -527,7 +537,7 @@ def resolve_unmatched_aggregates(
 
     events_by_date: dict[str, list[Event]] = defaultdict(list)
     for event in Event.objects.all():
-        date = canonical_event_date(event.source_key)
+        date = canonical_event_date(event.source_identity.source_key)
         if date is not None:
             events_by_date[date].append(event)
 
@@ -596,7 +606,9 @@ def resolve_unmatched_aggregates(
             target_label="historical-registration-aggregate",
             outcome=AuditEvent.Outcome.SUCCEEDED,
             context=_audit_context(context, actor=actor),
-            changes={"event_id": {"before": None, "after": str(canonical_event.id)}},
+            changes={
+                "event_id": {"before": None, "after": str(canonical_event.content_id)}
+            },
             metadata={
                 "provider": provider,
                 "reason_code": "auto_matched_exact_title_date",
@@ -607,7 +619,7 @@ def resolve_unmatched_aggregates(
             {
                 "provider": provider,
                 "external_event_identifier": aggregate.external_event_identifier,
-                "canonical_event_id": str(canonical_event.id),
+                "canonical_event_id": str(canonical_event.content_id),
                 "canonical_event_public_id": canonical_event.public_id,
                 "canonical_event_slug": canonical_event.slug,
                 "matched_date": date,
@@ -693,10 +705,11 @@ def validate_source(
 
 
 def _event_key(event: Event) -> tuple[str, str, str, str]:
+    source = event.source_identity
     return (
-        event.source_repository,
-        event.source_revision,
-        event.source_key,
+        source.repository,
+        source.revision,
+        source.source_key,
         event.slug,
     )
 
@@ -786,7 +799,7 @@ def _bump_public_total(
                 repository=repository,
                 revision=canonical_revision,
                 source_key=source_key,
-            ).id
+            ).content_id
         )
     except (EventIdentityError, EventIdentityNotFound) as exc:
         raise HistoricalRegistrationConflict("event_identity_unmapped") from exc
@@ -1337,9 +1350,9 @@ def restore_aggregate_from_row_projection(
     prior = (
         HistoricalRegistrationAggregateRevision.objects.select_related("event")
         .filter(
-            event__source_repository=key[0],
-            event__source_revision=key[1],
-            event__source_key=key[2],
+            event__source_identity__repository=key[0],
+            event__source_identity__revision=key[1],
+            event__source_identity__source_key=key[2],
             source_run__provider=provider,
             coverage_boundary=coverage_boundary,
             state=HistoricalRegistrationAggregateRevision.State.SUPERSEDED,
@@ -1435,7 +1448,9 @@ def get_run_detail(run_id: uuid.UUID) -> dict[str, Any]:
             {
                 "id": str(item.id),
                 "external_event": _mask_identifier(item.external_event_identifier),
-                "event_id": str(item.event_id) if item.event_id else None,
+                # The identity UUID is the stable handle this API has always
+                # exposed; the integer row key stays internal.
+                "event_id": str(item.event.content_id) if item.event_id else None,
                 "resolved": item.event_id is not None,
                 "canonical_slug": item.event.slug if item.event is not None else "",
                 "eligible_count": item.eligible_count,

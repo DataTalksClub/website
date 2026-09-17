@@ -24,7 +24,7 @@ from courses.services.testimonials import homepage_testimonials
 from courses.views.course import course_view
 from courses.views.course_aliases import legacy_course_redirect
 from courses.views.course_list import course_list
-from events.models import Event
+from community_base.events.models import Event
 from test_support.course_catalog import build_reviewed_catalog
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

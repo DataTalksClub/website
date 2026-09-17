@@ -18,7 +18,7 @@ from django.urls import reverse
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
 from event_qna import services
 from event_qna.models import EventQnaSession
-from events.models import create_event_identity
+from events.identity import create_event_identity
 
 #: The exact participant-facing schema: contract, canonical paths, state,
 #: public settings, text limit, capability flags, banner.  Nothing else.
@@ -67,7 +67,7 @@ class PublicConfigContractTests(TestCase):
             source_revision="3" * 40,
             source_key="public-config-test",
         )
-        services.transition_session(self.event.id, EventQnaSession.State.OPEN)
+        services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
         self.path = f"{services.event_qna_path(self.event)}/"
 
     def test_an_anonymous_config_has_exactly_the_safe_schema(self) -> None:
@@ -94,10 +94,10 @@ class PublicConfigContractTests(TestCase):
         body = response.content
         # Neither internal UUID may appear anywhere in the rendered page.
         self.assertNotIn(str(session.id).encode(), body)
-        self.assertNotIn(str(self.event.id).encode(), body)
+        self.assertNotIn(str(self.event.content_id).encode(), body)
 
     def test_a_closed_session_carries_the_banner_and_refusal_flags(self) -> None:
-        services.update_session(self.event.id, {"state": "closed"})
+        services.update_session(self.event.content_id, {"state": "closed"})
 
         config = _embedded_config(self.client.get(self.path))
 
@@ -150,7 +150,7 @@ class PublicConfigContractTests(TestCase):
         session = EventQnaSession.objects.get(event=self.event)
 
         response = self.client.get(
-            reverse("api:admin-event-qna-read", kwargs={"event_id": self.event.id}),
+            reverse("api:admin-event-qna-read", kwargs={"event_id": self.event.pk}),
             HTTP_AUTHORIZATION=f"Bearer {issued.response['token']}",
         )
 
@@ -158,6 +158,6 @@ class PublicConfigContractTests(TestCase):
         payload = response.json()
         # The management DTO keeps its identities and internals unchanged.
         self.assertEqual(payload["session_id"], str(session.id))
-        self.assertEqual(payload["event_id"], str(self.event.id))
+        self.assertEqual(payload["event_id"], str(self.event.content_id))
         self.assertIn("revision", payload)
         self.assertIn("retention_days", payload)

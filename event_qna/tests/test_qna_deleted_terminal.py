@@ -15,7 +15,7 @@ from django.test import TestCase
 from event_qna import security, services
 from event_qna.errors import QnaError
 from event_qna.models import EventQnaSession
-from events.models import create_event_identity
+from events.identity import create_event_identity
 
 
 class DeletedQuestionTerminalTests(TestCase):
@@ -26,10 +26,10 @@ class DeletedQuestionTerminalTests(TestCase):
             source_revision="b" * 40,
             source_key="terminal-deletion-test",
         )
-        services.transition_session(self.event.id, EventQnaSession.State.OPEN)
+        services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
         self.participant, _token = security.new_participant()
         self.question = services.submit_question(
-            self.event.id, text="Visible question", participant=self.participant
+            self.event.content_id, text="Visible question", participant=self.participant
         )
 
     def _session(self) -> EventQnaSession:
@@ -37,7 +37,7 @@ class DeletedQuestionTerminalTests(TestCase):
 
     def _delete(self) -> None:
         services.update_question(
-            self.event.id, self.question.question_id, {"status": "deleted"}, moderator=True
+            self.event.content_id, self.question.question_id, {"status": "deleted"}, moderator=True
         )
 
     def test_a_deleted_question_leaves_every_collection_including_moderator_ones(self) -> None:
@@ -46,7 +46,7 @@ class DeletedQuestionTerminalTests(TestCase):
         for moderator in (False, True):
             with self.subTest(moderator=moderator):
                 items, counts, _etag, _session = services.list_questions(
-                    self.event.id, moderator=moderator
+                    self.event.content_id, moderator=moderator
                 )
                 self.assertEqual(items, [])
                 self.assertEqual((counts["visible"], counts["answered"]), (0, 0))
@@ -54,7 +54,7 @@ class DeletedQuestionTerminalTests(TestCase):
 
     def test_a_deleted_filter_is_not_a_listable_status(self) -> None:
         with self.assertRaises(QnaError) as caught:
-            services.list_questions(self.event.id, moderator=True, statuses={"deleted"})
+            services.list_questions(self.event.content_id, moderator=True, statuses={"deleted"})
         self.assertEqual(caught.exception.code, "invalid_status")
 
     def test_a_deleted_question_can_never_be_restored_or_edited(self) -> None:
@@ -64,7 +64,7 @@ class DeletedQuestionTerminalTests(TestCase):
             with self.subTest(payload=payload):
                 with self.assertRaises(QnaError) as caught:
                     services.update_question(
-                        self.event.id, self.question.question_id, payload, moderator=True
+                        self.event.content_id, self.question.question_id, payload, moderator=True
                     )
                 self.assertEqual(caught.exception.status, 409)
                 self.assertEqual(caught.exception.code, "deleted")
@@ -74,7 +74,7 @@ class DeletedQuestionTerminalTests(TestCase):
 
         with self.assertRaises(QnaError) as caught:
             services.update_question(
-                self.event.id,
+                self.event.content_id,
                 self.question.question_id,
                 {"status": "visible"},
                 participant=self.participant,
@@ -88,7 +88,7 @@ class DeletedQuestionTerminalTests(TestCase):
         before = (self._session().q_total, self._session().q_answered)
 
         services.update_question(
-            self.event.id, self.question.question_id, {"status": "deleted"}, moderator=True
+            self.event.content_id, self.question.question_id, {"status": "deleted"}, moderator=True
         )
 
         self.question.refresh_from_db()
@@ -100,7 +100,7 @@ class DeletedQuestionTerminalTests(TestCase):
 
         with self.assertRaises(QnaError) as caught:
             services.update_question(
-                self.event.id, self.question.question_id, {"pinned": True}, moderator=True
+                self.event.content_id, self.question.question_id, {"pinned": True}, moderator=True
             )
         self.assertEqual(caught.exception.code, "deleted")
         self.question.refresh_from_db()

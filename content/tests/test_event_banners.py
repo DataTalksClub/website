@@ -6,7 +6,8 @@ from pathlib import Path
 from django.test import TestCase
 
 from content.event_banners import EVENT_BANNER_FILENAMES, event_banner_url
-from events.models import Event, canonical_detail_path
+from community_base.events.models import Event
+from events.identity import canonical_detail_path
 from events.queries import published_event_records
 from test_support.reference_data import load_reviewed_reference_data
 
@@ -48,7 +49,7 @@ class EventBannerPageTests(TestCase):
         for identity_id, filename in EVENT_BANNER_FILENAMES.items():
             with self.subTest(identity_id=identity_id):
                 event = Event.objects.get(pk=identity_id)
-                response = self.client.get(canonical_detail_path(event.id))
+                response = self.client.get(canonical_detail_path(event.content_id))
                 body = response.content.decode()
                 image_path = f"/static/core/event-banners/{filename}"
                 canonical_image_url = f"https://datatalks.club{image_path}"
@@ -73,7 +74,7 @@ class EventBannerPageTests(TestCase):
         self.assertIsNotNone(event)
         assert event is not None
 
-        response = self.client.get(canonical_detail_path(event.id))
+        response = self.client.get(canonical_detail_path(event.content_id))
         body = response.content.decode()
 
         self.assertEqual(response.status_code, 200)
