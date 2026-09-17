@@ -12,7 +12,7 @@ the full journey.
 What stays permanent, in ``accounts/``, and why this package does not own it
 ------------------------------------------------------------------------------
 
-``accounts.models.CustomUser.IdentityState.ABSORBED``, ``AccountIdentityAlias``
+``accounts_ext.models.IdentityState.States.ABSORBED``, ``AccountIdentityAlias``
 and ``AccountIdentityQuarantine`` are not reconciliation-only bookkeeping: an
 absorbed account's session is resolved to its survivor on every request for
 the life of the application (``accounts.identity_resolution``,
@@ -89,6 +89,16 @@ from accounts_ext.models import (
     AccountIdentityAlias,
     AccountIdentityQuarantine,
     AccountReconciliationRun,
+    IdentityState,
+    identity_state_of,
+    identity_state_row,
+    normalized_email_of,
+)
+from courses.models.learner_profile import (
+    LearnerProfile,
+    ensure_learner_profile,
+    learner_profile_for,
+    profile_field_default,
 )
 from course_management.observability import record_event
 
@@ -106,6 +116,64 @@ PROFILE_FIELDS = (
     "dark_mode",
     "preferred_timezone",
 )
+# The course-platform fields among PROFILE_FIELDS moved onto the account's
+# ``LearnerProfile`` row (plan D3.1); every other PROFILE_FIELD still lives on
+# the user row. Field access routes through these sets.
+_LEARNER_PROFILE_FIELDS = frozenset(
+    {
+        "role",
+        "certificate_name",
+        "country",
+        "region",
+        "registration_role",
+        "github_url",
+        "linkedin_url",
+        "personal_website_url",
+        "about_me",
+        "dark_mode",
+    }
+)
+
+
+def _field_value(user, field: str) -> Any:
+    if field in _LEARNER_PROFILE_FIELDS:
+        profile = learner_profile_for(user)
+        return (
+            getattr(profile, field) if profile is not None else profile_field_default(field)
+        )
+    return getattr(user, field)
+
+
+def _user_row_snapshot(user) -> dict[str, Any]:
+    # Everything the pre-D3.1 single-row compare-and-swap guarded that still
+    # lives on the user row (first/last name, timezone) plus the authority
+    # fields; identity and learner-profile fields are guarded separately.
+    return {
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "preferred_timezone": user.preferred_timezone,
+        "is_active": user.is_active,
+        "is_staff": user.is_staff,
+        "is_superuser": user.is_superuser,
+    }
+
+
+def _identity_row_snapshot(identity_row) -> dict[str, Any] | None:
+    if identity_row is None:
+        return None
+    return {
+        "normalized_email": identity_row.normalized_email,
+        "identity_state": identity_row.identity_state,
+    }
+
+
+def _profile_row_snapshot(profile_row) -> dict[str, Any] | None:
+    if profile_row is None:
+        return None
+    return {field: getattr(profile_row, field) for field in sorted(_LEARNER_PROFILE_FIELDS)}
+
+
 OWNERSHIP_EVIDENCE = frozenset(
     {
         "verified_normalized_email",
@@ -178,14 +246,18 @@ def _candidate_tokens() -> tuple[dict[int, set[str]], dict[str, set[int]]]:
     tokens_by_user: dict[int, set[str]] = defaultdict(set)
     users_by_token: dict[str, set[int]] = defaultdict(set)
 
-    users = CustomUser.objects.order_by("pk").only(
-        "pk",
-        "username",
-        "email",
-        "normalized_email",
+    users = (
+        CustomUser.objects.select_related("identity")
+        .order_by("pk")
+        .only(
+            "pk",
+            "username",
+            "email",
+            "identity__normalized_email",
+        )
     )
     for user in users:
-        email = user.normalized_email or normalize_account_email(user.email)
+        email = normalized_email_of(user) or normalize_account_email(user.email)
         username = (
             user.username.strip().casefold()
             if isinstance(user.username, str) and user.username.strip()
@@ -230,7 +302,7 @@ def _authority_signature(user: CustomUser) -> tuple[Any, ...]:
         user.is_active,
         user.is_staff,
         user.is_superuser,
-        user.role,
+        _field_value(user, "role"),
         tuple(user.groups.order_by("pk").values_list("pk", flat=True)),
         tuple(user.user_permissions.order_by("pk").values_list("pk", flat=True)),
     )
@@ -466,9 +538,9 @@ def _mapping_conflicts(
         if existing_alias.survivor_id == survivor.pk:
             return []
         return ["source_alias_conflict"]
-    if survivor.identity_state in {
-        CustomUser.IdentityState.ABSORBED,
-        CustomUser.IdentityState.QUARANTINED,
+    if identity_state_of(survivor) in {
+        IdentityState.States.ABSORBED,
+        IdentityState.States.QUARANTINED,
     }:
         return ["survivor_unavailable"]
     if not survivor.is_active:
@@ -494,7 +566,7 @@ def _mapping_conflicts(
         conflicts.append("source_security_disabled")
 
     for field in PROFILE_FIELDS:
-        if getattr(source, field) == getattr(survivor, field):
+        if _field_value(source, field) == _field_value(survivor, field):
             continue
         if field not in mapping.field_decisions:
             conflicts.append(f"field_decision_required:{field}")
@@ -581,10 +653,10 @@ def _is_valid_audit_authority(user: CustomUser | None) -> bool:
     return bool(
         user is not None
         and user.is_active
-        and user.identity_state
+        and identity_state_of(user)
         in {
-            CustomUser.IdentityState.ACTIVE,
-            CustomUser.IdentityState.LEGACY,
+            IdentityState.States.ACTIVE,
+            IdentityState.States.LEGACY,
         }
     )
 
@@ -628,14 +700,23 @@ def _profile_changes(
     source: CustomUser,
     survivor: CustomUser,
     mapping: ReviewedMapping,
-) -> list[str]:
+) -> tuple[LearnerProfile, list[str]]:
+    # Applies every "source" decision onto the survivor in memory: user-row
+    # fields on the user, learner-profile fields on the survivor's profile
+    # row (created if absent). Returns the profile row and the decided field
+    # names; the caller persists them behind the compare-and-swap checks.
     update_fields: list[str] = []
+    survivor_profile = ensure_learner_profile(survivor)
     for field, decision in mapping.field_decisions.items():
         if decision != "source":
             continue
-        setattr(survivor, field, getattr(source, field))
+        value = _field_value(source, field)
+        if field in _LEARNER_PROFILE_FIELDS:
+            setattr(survivor_profile, field, value)
+        else:
+            setattr(survivor, field, value)
         update_fields.append(field)
-    return update_fields
+    return survivor_profile, update_fields
 
 
 def _reparent_relations(*, source_id: int, survivor_id: int) -> None:
@@ -717,29 +798,22 @@ def _apply_one_mapping(
             return
         raise ReconciliationError("source alias changed across reconciliation runs")
 
-    source = CustomUser.objects.get(pk=mapping.source_user_id)
-    survivor = CustomUser.objects.get(pk=mapping.survivor_user_id)
-    source_snapshot = {
-        "email": source.email,
-        "normalized_email": source.normalized_email,
-        "identity_state": source.identity_state,
-        "is_active": source.is_active,
-        "is_staff": source.is_staff,
-        "is_superuser": source.is_superuser,
-        "role": source.role,
-        **{field: getattr(source, field) for field in PROFILE_FIELDS},
-    }
-    survivor_snapshot = {
-        "email": survivor.email,
-        "normalized_email": survivor.normalized_email,
-        "identity_state": survivor.identity_state,
-        "is_active": survivor.is_active,
-        "is_staff": survivor.is_staff,
-        "is_superuser": survivor.is_superuser,
-        "role": survivor.role,
-        **{field: getattr(survivor, field) for field in PROFILE_FIELDS},
-    }
-    update_fields = _profile_changes(
+    source = CustomUser.objects.select_related("identity").get(pk=mapping.source_user_id)
+    survivor = CustomUser.objects.select_related("identity").get(pk=mapping.survivor_user_id)
+    source_identity_row = identity_state_row(source)
+    survivor_identity_row = identity_state_row(survivor)
+    source_profile_row = learner_profile_for(source)
+    survivor_profile_row = learner_profile_for(survivor)
+    # The single-row compare-and-swap of the pre-D3.1 model becomes three
+    # guarded row snapshots -- user row, identity row, learner-profile row --
+    # all checked before any write inside the caller's transaction.
+    source_user_snapshot = _user_row_snapshot(source)
+    survivor_user_snapshot = _user_row_snapshot(survivor)
+    source_identity_snapshot = _identity_row_snapshot(source_identity_row)
+    survivor_identity_snapshot = _identity_row_snapshot(survivor_identity_row)
+    source_profile_snapshot = _profile_row_snapshot(source_profile_row)
+    survivor_profile_snapshot = _profile_row_snapshot(survivor_profile_row)
+    survivor_profile, update_fields = _profile_changes(
         source=source,
         survivor=survivor,
         mapping=mapping,
@@ -747,24 +821,77 @@ def _apply_one_mapping(
     survivor_email = normalize_account_email(survivor.email)
     if survivor_email is None or survivor_email not in _verified_email_set(survivor.pk):
         raise IntegrityError("survivor verified email changed during apply")
-    source_claimed = CustomUser.objects.filter(
-        pk=source.pk,
-        **source_snapshot,
-    ).update(identity_state=CustomUser.IdentityState.ABSORBED)
-    if source_claimed != 1:
-        raise IntegrityError("source identity changed during apply")
 
-    survivor_updates = {field: getattr(survivor, field) for field in update_fields}
-    survivor_updates.update(
-        normalized_email=survivor_email,
-        identity_state=CustomUser.IdentityState.ACTIVE,
-    )
-    survivor_claimed = CustomUser.objects.filter(
-        pk=survivor.pk,
-        **survivor_snapshot,
-    ).update(**survivor_updates)
-    if survivor_claimed != 1:
+    if not CustomUser.objects.filter(pk=source.pk, **source_user_snapshot).exists():
+        raise IntegrityError("source identity changed during apply")
+    if source_identity_snapshot is not None and not IdentityState.objects.filter(
+        user_id=source.pk,
+        **source_identity_snapshot,
+    ).exists():
+        raise IntegrityError("source identity changed during apply")
+    if source_profile_snapshot is not None and not LearnerProfile.objects.filter(
+        user_id=source.pk,
+        **source_profile_snapshot,
+    ).exists():
+        raise IntegrityError("source identity changed during apply")
+    if source_identity_row is None:
+        IdentityState.objects.create(
+            user_id=source.pk,
+            identity_state=IdentityState.States.ABSORBED,
+        )
+    else:
+        IdentityState.objects.filter(user_id=source.pk).update(
+            identity_state=IdentityState.States.ABSORBED,
+        )
+
+    if not CustomUser.objects.filter(pk=survivor.pk, **survivor_user_snapshot).exists():
         raise IntegrityError("survivor identity changed during apply")
+    if survivor_identity_snapshot is not None and not IdentityState.objects.filter(
+        user_id=survivor.pk,
+        **survivor_identity_snapshot,
+    ).exists():
+        raise IntegrityError("survivor identity changed during apply")
+    if survivor_profile_snapshot is not None and not LearnerProfile.objects.filter(
+        user_id=survivor.pk,
+        **survivor_profile_snapshot,
+    ).exists():
+        raise IntegrityError("survivor identity changed during apply")
+
+    survivor_user_updates = {
+        field: getattr(survivor, field)
+        for field in update_fields
+        if field not in _LEARNER_PROFILE_FIELDS
+    }
+    if survivor_user_updates:
+        CustomUser.objects.filter(pk=survivor.pk, **survivor_user_snapshot).update(
+            **survivor_user_updates
+        )
+    if survivor_identity_row is None:
+        IdentityState.objects.create(
+            user_id=survivor.pk,
+            normalized_email=survivor_email,
+            identity_state=IdentityState.States.ACTIVE,
+        )
+    else:
+        IdentityState.objects.filter(
+            user_id=survivor.pk,
+            normalized_email=survivor_identity_row.normalized_email,
+            identity_state=survivor_identity_row.identity_state,
+        ).update(
+            normalized_email=survivor_email,
+            identity_state=IdentityState.States.ACTIVE,
+        )
+    if survivor_profile_row is None:
+        # _profile_changes already applied the decisions onto this row.
+        survivor_profile.save()
+    else:
+        LearnerProfile.objects.filter(user_id=survivor.pk).update(
+            **{
+                field: getattr(survivor_profile, field)
+                for field in update_fields
+                if field in _LEARNER_PROFILE_FIELDS
+            }
+        )
 
     _reparent_relations(
         source_id=source.pk,
@@ -1005,10 +1132,10 @@ def _validated_aliases(plan: MappingPlan) -> tuple[AccountIdentityAlias, ...]:
         survivor = CustomUser.objects.filter(pk=survivor_user_id).first()
         if (
             source is None
-            or source.identity_state != CustomUser.IdentityState.ABSORBED
+            or identity_state_of(source) != IdentityState.States.ABSORBED
             or survivor is None
             or not survivor.is_active
-            or survivor.identity_state != CustomUser.IdentityState.ACTIVE
+            or identity_state_of(survivor) != IdentityState.States.ACTIVE
         ):
             raise ReconciliationError("rollback identity state is unsafe")
     return aliases
