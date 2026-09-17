@@ -13,7 +13,6 @@ from django.test import RequestFactory, SimpleTestCase, TestCase, override_setti
 from core.middleware import RequestBoundaryMiddleware
 from core.security import (
     MAX_REQUEST_BODY_BYTES,
-    MAX_WEBHOOK_BODY_BYTES,
     UnsafeInputError,
     neutralize_csv_formula,
     resolve_bounded_path,
@@ -162,8 +161,7 @@ class RequestBoundaryBodyTests(SimpleTestCase):
 
     def test_asgi_missing_content_length_over_limit_is_rejected_before_parser(self) -> None:
         request = self._asgi_request(
-            b"x" * (MAX_WEBHOOK_BODY_BYTES + 1),
-            path="/api/datamailer/events",
+            b"x" * (MAX_REQUEST_BODY_BYTES + 1),
         )
         called = False
 
@@ -185,8 +183,7 @@ class RequestBoundaryBodyTests(SimpleTestCase):
 
     def test_asgi_understated_content_length_is_rejected_before_parser(self) -> None:
         request = self._asgi_request(
-            b"x" * (MAX_WEBHOOK_BODY_BYTES + 1),
-            path="/api/datamailer/events",
+            b"x" * (MAX_REQUEST_BODY_BYTES + 1),
             content_length="1",
         )
         response = RequestBoundaryMiddleware(lambda _request: HttpResponse("downstream"))(request)
@@ -242,27 +239,3 @@ class ResponseBoundaryTests(TestCase):
         self.assertEqual(response.headers["Cross-Origin-Resource-Policy"], "same-origin")
         self.assertNotIn("Access-Control-Allow-Origin", response.headers)
 
-    @override_settings(DATAMAILER_WEBHOOK_TOKEN="synthetic-webhook-token")
-    def test_webhook_body_limit_returns_bounded_json_without_parsing(self) -> None:
-        body = json.dumps(
-            {
-                "event_id": "evt-body-limit",
-                "event_type": "contact.hard_bounced",
-                "email": "student@example.com",
-                "padding": "x" * (256 * 1024),
-            }
-        )
-        response = self.client.post(
-            "/api/datamailer/events",
-            body,
-            content_type="application/json",
-            HTTP_AUTHORIZATION="Bearer synthetic-webhook-token",
-        )
-        self.assertEqual(response.status_code, 413)
-        self.assertNotIn("padding", response.content.decode())
-
-    def test_webhook_unsupported_method_reaches_post_method_guard(self) -> None:
-        response = self.client.get("/api/datamailer/events")
-
-        self.assertEqual(response.status_code, 405)
-        self.assertEqual(response.headers["Allow"], "POST")

@@ -26,14 +26,21 @@ class ProjectSubmissionViewTestBase(ProjectViewTestBase):
         self.assertEqual(response.status_code, 302)
         submission = self.get_project_submission()
         send_email.assert_called_once()
-        payload = send_email.call_args.args[0]
+        kwargs = send_email.call_args.kwargs
+        self.assertEqual(kwargs["purpose"], "project-submission-confirmation")
+        self.assertEqual(kwargs["to"], "test@test.com")
+        self.assertEqual(kwargs["category"], "submission-results")
+        self.assertEqual(
+            kwargs["idempotency_key"],
+            f"project-submission:{submission.id}:{submission.submitted_at.isoformat()}",
+        )
+        context = kwargs["context"]
 
-        self.assert_project_confirmation_payload(payload, submission)
-        self.assert_project_confirmation_context(payload, submission)
-        self.assert_project_submission_fields(payload)
+        self.assert_project_confirmation_context(context, submission)
+        self.assert_project_submission_fields(context)
         self.assertIn(
             "GitHub repository: https://github.com/test/project",
-            payload["context"]["submission_summary_text"],
+            context["submission_summary_text"],
         )
 
     def prepare_project_with_learning_cap(self):

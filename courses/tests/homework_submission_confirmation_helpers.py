@@ -14,7 +14,7 @@ def confirmation_post_data(test_case):
     }
 
 
-def datamailer_preference_post_data(test_case):
+def minimal_submission_post_data(test_case):
     answer_key = f"answer_{test_case.multiple_choice_question.id}"
     return {
         answer_key: ["2"],
@@ -30,25 +30,21 @@ def public_base_url_post_data(test_case):
     }
 
 
-def assert_confirmation_payload_basics(test_case, payload, submission):
-    test_case.assertEqual(payload["email"], "student@example.com")
+def assert_confirmation_send(test_case, send_package_mail, submission):
+    send_package_mail.assert_called_once()
+    kwargs = send_package_mail.call_args.kwargs
+    test_case.assertEqual(kwargs["purpose"], "homework-submission-confirmation")
+    test_case.assertEqual(kwargs["to"], "student@example.com")
+    test_case.assertEqual(kwargs["category"], "submission-results")
     test_case.assertEqual(
-        payload["template_key"],
-        "homework-submission-confirmation",
+        kwargs["idempotency_key"],
+        f"homework-submission:{submission.id}:{submission.submitted_at.isoformat()}",
     )
-    test_case.assertEqual(payload["category_tag"], "submission-results")
-    test_case.assertEqual(
-        payload["idempotency_key"],
-        (f"homework-submission:{submission.id}:{submission.submitted_at.isoformat()}"),
-    )
-    test_case.assertEqual(
-        payload["metadata"]["event"],
-        "homework_submission",
-    )
+    test_case.assertEqual(kwargs["user"].pk, submission.student_id)
+    return kwargs["context"]
 
 
-def assert_confirmation_context(test_case, payload, submission):
-    context = payload["context"]
+def assert_confirmation_context(test_case, context, submission):
     test_case.assertEqual(context["submission_id"], submission.id)
     test_case.assertEqual(
         context["update_url"],
@@ -72,14 +68,14 @@ def assert_confirmation_context(test_case, payload, submission):
     )
 
 
-def assert_confirmation_summary(test_case, payload):
+def assert_confirmation_summary(test_case, context):
     test_case.assertIn(
         "Time spent on lectures: 2.5 hours",
-        payload["context"]["submission_summary_text"],
+        context["submission_summary_text"],
     )
     test_case.assertIn(
         "Pick all matching options: 1. Alpha, 3. Gamma",
-        payload["context"]["submitted_answers_text"],
+        context["submitted_answers_text"],
     )
 
 
@@ -139,10 +135,10 @@ def expected_submission_fields():
     return fields
 
 
-def assert_submission_fields(test_case, payload):
+def assert_submission_fields(test_case, context):
     expected_fields = expected_submission_fields()
     test_case.assertEqual(
-        payload["context"]["submission_fields"],
+        context["submission_fields"],
         expected_fields,
     )
 
@@ -199,9 +195,9 @@ def submitted_answer_records(test_case):
     return records
 
 
-def assert_submitted_answers(test_case, payload):
+def assert_submitted_answers(test_case, context):
     expected_answers = submitted_answer_records(test_case)
     test_case.assertEqual(
-        payload["context"]["submitted_answers"],
+        context["submitted_answers"],
         expected_answers,
     )

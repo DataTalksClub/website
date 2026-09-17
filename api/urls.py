@@ -14,7 +14,6 @@ from .views import project_exports
 from .views import projects
 from .views import questions
 from .views import registration_campaigns
-from .views import webhooks
 
 urlpatterns = [
     path(

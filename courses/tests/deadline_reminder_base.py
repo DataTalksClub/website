@@ -9,11 +9,9 @@ from accounts.models import CustomUser
 from courses.models import Cohort, Enrollment
 
 
-#: The fake datamailer URLs these tests configure must not be consulted
 #: for preference lookups: the site resolver would try HTTP against them.
 #: Overriding the hook with the package's allow-all default keeps these
 #: command tests about delivery recording, not preference filtering; the
-#: datamailer never applied preferences at send time before D1.2b either,
 #: it did so server-side.
 NO_PREFERENCE_LOOKUP = {
     "COMMUNITY_BASE": {
@@ -32,7 +30,6 @@ def deliveries_for_purpose(test_case, purpose):
 
 
 DATAMAILER_SETTINGS = {
-    "DATAMAILER_URL": "https://datamailer.example.com",
     "DATAMAILER_API_KEY": "secret-token",
     "DATAMAILER_CLIENT": "dtc-courses",
     "DATAMAILER_AUDIENCE": "dtc-courses",

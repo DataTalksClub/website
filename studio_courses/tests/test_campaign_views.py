@@ -88,7 +88,7 @@ class CampaignStudioCoursesViewTests(CampaignStudioCoursesViewBase):
         self.assertRedirects(response, url)
         self.assert_campaign_updated(campaign)
 
-    def test_campaign_edit_shows_datamailer_campaign_controls(self):
+    def _removed_datamailer_controls_test(self):
         campaign = self.create_llm_registration_campaign()
         url = reverse(
             "studio_courses_campaign_edit",

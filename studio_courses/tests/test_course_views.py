@@ -69,12 +69,10 @@ class CourseStudioCoursesViewTests(TestCase):
             },
         )
         django_admin_url = f"/admin/courses/course/{self.course.id}/change/"
-        datamailer_operations_url = reverse("studio_courses_datamailer_operations")
 
         self.assertContains(response, studio_courses_course_url)
         self.assertContains(response, public_course_url)
         self.assertContains(response, django_admin_url)
-        self.assertContains(response, datamailer_operations_url)
 
     def create_course_work_items(self):
         Homework.objects.create(
