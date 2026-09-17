@@ -399,6 +399,96 @@ class CompleteObjectPassesTests(TestCase):
         self.assertEqual(report.matched, 1)
 
 
+class CohortReportTests(TestCase):
+    """The courses report, for cohorts on either curriculum architecture."""
+
+    SHA = "a" * 40
+    CHECKSUM = "b" * 64
+
+    def _provenance(self, content_id: str, path: str) -> dict[str, str]:
+        return {
+            "source_content_id": content_id,
+            "source_path": path,
+            "source_commit_sha": self.SHA,
+            "source_checksum": self.CHECKSUM,
+        }
+
+    def test_a_shared_curriculum_cohort_counts_its_modules_and_lessons(self) -> None:
+        from courses.models import Cohort, Course, CurriculumFormat, SharedCurriculum, SharedModule
+        from scripts.verify_local_dataset import _cohort_report
+
+        course = Course.objects.create(slug="shared-report-family", title="Shared Report Family")
+        cohort = Cohort.objects.create(
+            course=course,
+            slug="shared-report-family-2026",
+            title="Shared Report Family 2026",
+            description="A shared-curriculum cohort for the verifier gate.",
+            curriculum_format=CurriculumFormat.SHARED,
+        )
+        shared = SharedCurriculum.objects.create(
+            course=course,
+            parser_version="course-repository-v2",
+            **self._provenance("11111111-1111-4111-8111-111111111111", "course.yaml"),
+        )
+        cohort.shared_curriculum = shared
+        cohort.save()
+        module = SharedModule.objects.create(
+            curriculum=shared,
+            position=0,
+            slug="01-intro",
+            title="Introduction",
+            **self._provenance("22222222-2222-4222-8222-222222222222", "01-intro/module.yaml"),
+        )
+        module.lessons.create(
+            position=0,
+            slug="01-lesson",
+            title="Lesson One",
+            **self._provenance("33333333-3333-4333-8333-333333333333", "01-intro/01-lesson.md"),
+        )
+        module.lessons.create(
+            position=1,
+            slug="02-lesson",
+            title="Lesson Two",
+            **self._provenance("44444444-4444-4444-8444-444444444444", "01-intro/02-lesson.md"),
+        )
+
+        report = _cohort_report(
+            {
+                "expected_cohorts": [cohort.slug],
+                "module_curricula": {cohort.slug: (1, 2)},
+            }
+        )
+
+        self.assertEqual(report["curriculum_counts"][cohort.slug], {"modules": 1, "units": 2})
+        self.assertEqual(report["curriculum_count_mismatches"], {})
+
+    def test_an_unlisted_shared_curriculum_cohort_is_flagged(self) -> None:
+        from courses.models import Cohort, Course, CurriculumFormat, SharedCurriculum
+        from scripts.verify_local_dataset import _cohort_report
+
+        course = Course.objects.create(
+            slug="unlisted-shared-family", title="Unlisted Shared Family"
+        )
+        cohort = Cohort.objects.create(
+            course=course,
+            slug="unlisted-shared-family-2026",
+            title="Unlisted Shared Family 2026",
+            description="A shared-curriculum cohort the manifest never names.",
+            curriculum_format=CurriculumFormat.SHARED,
+        )
+        shared = SharedCurriculum.objects.create(
+            course=course,
+            parser_version="course-repository-v2",
+            **self._provenance("55555555-5555-4555-8555-555555555555", "course.yaml"),
+        )
+        cohort.shared_curriculum = shared
+        cohort.save()
+
+        report = _cohort_report({"expected_cohorts": [], "module_curricula": {}})
+
+        self.assertIn(cohort.slug, report["modules_format_unexpected"])
+
+
 def _write_manifest(directory: Path, payload: Any) -> Path:
     import json
 

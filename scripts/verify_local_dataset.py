@@ -175,6 +175,22 @@ def _cohort_report(expectations: dict[str, Any]) -> dict[str, Any]:
         )
         .values("slug", "module_total", "unit_total")
     }
+    # A cohort on the newer shared-curriculum architecture (courses.SharedCurriculum
+    # /SharedModule/SharedLesson -- see _docs/planning/shared-curriculum-submodules-design.md)
+    # carries the same module/unit shape through a different set of tables. Without this,
+    # every such cohort reported zero modules and zero units here regardless of what its
+    # curriculum actually holds.
+    module_counts.update(
+        {
+            row["slug"]: (row["module_total"], row["unit_total"])
+            for row in Cohort.objects.filter(curriculum_format="shared")
+            .annotate(
+                module_total=Count("shared_curriculum__modules", distinct=True),
+                unit_total=Count("shared_curriculum__modules__lessons"),
+            )
+            .values("slug", "module_total", "unit_total")
+        }
+    )
     family_rows = list(Course.objects.prefetch_related("cohorts").order_by("slug"))
     families = {family.slug: family.cohorts.count() for family in family_rows}
     # One real course must own exactly one family row. A course split across two rows
@@ -186,6 +202,14 @@ def _cohort_report(expectations: dict[str, Any]) -> dict[str, Any]:
     modules_format = sorted(
         slug for slug, cohort in cohorts.items() if cohort.curriculum_format == "modules"
     )
+    # Both curriculum architectures carry a module/unit curriculum the reviewed
+    # manifest must name; only their storage differs (see the shared-curriculum
+    # comment above _cohort_report's shared module_counts pass).
+    curriculum_bearing = sorted(
+        slug
+        for slug, cohort in cohorts.items()
+        if cohort.curriculum_format in ("modules", "shared")
+    )
     module_curricula = expectations["module_curricula"]
     return {
         "cohort_total": len(cohorts),
@@ -195,9 +219,9 @@ def _cohort_report(expectations: dict[str, Any]) -> dict[str, Any]:
             slug for slug in sorted(expectations["expected_cohorts"]) if slug not in cohorts
         ],
         "modules_format_cohorts": modules_format,
-        # A modules-format cohort the reviewed manifest does not name is a
+        # A curriculum-bearing cohort the reviewed manifest does not name is a
         # reviewed-manifest edit away from acceptance -- never a code change.
-        "modules_format_unexpected": sorted(set(modules_format) - set(module_curricula)),
+        "modules_format_unexpected": sorted(set(curriculum_bearing) - set(module_curricula)),
         "curriculum_counts": {
             slug: {
                 "modules": module_counts.get(slug, (0, 0))[0],
