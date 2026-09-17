@@ -134,9 +134,7 @@ def test_docs_system_hierarchy_and_responsive_evidence(
         expect(page.locator(".docs-course-card")).to_have_count(len(hub.families))
         # Every family card carries its own course drawing; the hub used to be
         # the one index page on the site with no illustration at all.
-        expect(page.locator(".docs-course-figure .doodle-light")).to_have_count(
-            len(hub.families)
-        )
+        expect(page.locator(".docs-course-figure .doodle-light")).to_have_count(len(hub.families))
         for title in (
             *(guide.title for guide in hub.families),
             *(guide.title for guide in hub.sectioned),

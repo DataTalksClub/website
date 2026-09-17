@@ -142,9 +142,7 @@ class PublicRouteAndSeoTests(TestCase):
         response = self.client.get("/sitemaps/docs.xml")
         self.assertEqual(response.status_code, 200)
         document = ElementTree.fromstring(response.content)
-        locations = {
-            node.text or "" for node in document.findall("s:url/s:loc", SITEMAP_NAMESPACE)
-        }
+        locations = {node.text or "" for node in document.findall("s:url/s:loc", SITEMAP_NAMESPACE)}
         self.assertEqual(locations, {f"https://datatalks.club{path}" for path in expected_paths})
 
     def test_explicit_hub_redirects_are_permanent_one_hop_and_query_preserving(self) -> None:
