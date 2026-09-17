@@ -134,15 +134,18 @@ def test_rejects_non_youtube_lesson_video_url() -> None:
     assert diagnostic_code(raised) == "lesson_video_url_invalid"
 
 
-def test_rejects_unknown_lesson_frontmatter_keys() -> None:
+def test_ignores_unknown_lesson_frontmatter_keys() -> None:
     snapshot = fixture_snapshot()
     path = "cohorts/2026/01-agentic-rag/lessons/01-intro.md"
-    replace_bytes(snapshot, path, b"video_url:", b"published: true\nvideo_url:")
+    replace_bytes(snapshot, path, b"video_url:", b"next_url: 02-next.md\nvideo_url:")
 
-    with pytest.raises(CourseRepositoryValidationError) as raised:
-        parse_course_repository(snapshot)
+    source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
 
-    assert diagnostic_code(raised) == "unknown_key"
+    modules_cohort = source.cohorts[2]
+    module_item, _project_item = modules_cohort.flow
+    intro = module_item.module.units[0]
+    assert intro.source_path == path
+    assert intro.metadata.video_url == "https://www.youtube.com/watch?v=fixture-intro"
 
 
 def test_accepts_an_arbitrary_slug_like_cohort_identifier() -> None:

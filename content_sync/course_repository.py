@@ -303,14 +303,20 @@ def _strict_mapping(
     pointer: str,
     allowed: frozenset[str],
     required: frozenset[str],
+    ignore_unknown: bool = False,
 ) -> dict[str, Any]:
     if not isinstance(value, dict):
         _fail("mapping_required", path, pointer)
     unknown = sorted(set(value) - allowed)
     if unknown:
-        key = unknown[0]
-        code = "plaintext_answer_not_allowed" if key in _PLAINTEXT_ANSWER_KEYS else "unknown_key"
-        _fail(code, path, f"{pointer}/{key}")
+        if ignore_unknown:
+            value = {key: item for key, item in value.items() if key in allowed}
+        else:
+            key = unknown[0]
+            code = (
+                "plaintext_answer_not_allowed" if key in _PLAINTEXT_ANSWER_KEYS else "unknown_key"
+            )
+            _fail(code, path, f"{pointer}/{key}")
     missing = sorted(required - set(value))
     if missing:
         _fail("required_key_missing", path, f"{pointer}/{missing[0]}")
@@ -569,7 +575,13 @@ def _parse_lesson_frontmatter(
     snapshot: Mapping[str, bytes],
     limits: CourseRepositoryLimits,
 ) -> tuple[str, LessonMetadata]:
-    """Extract the strict lesson metadata block and return body Markdown."""
+    """Extract the lesson metadata block and return body Markdown.
+
+    Frontmatter keys outside ``allowed`` are dropped rather than rejected: a
+    course repository can add editorial fields (e.g. site navigation hints)
+    that this importer has no use for yet, and one such field must not take
+    the whole repository's pull down.
+    """
 
     lines = raw.splitlines(keepends=True)
     if not lines or lines[0].strip() != "---":
@@ -590,6 +602,7 @@ def _parse_lesson_frontmatter(
         pointer="/frontmatter",
         allowed=frozenset({"video_url", "code"}),
         required=frozenset(),
+        ignore_unknown=True,
     )
 
     video_url: str | None = None
