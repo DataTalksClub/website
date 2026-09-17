@@ -23,6 +23,7 @@ from scripts.prod.import_shared_course_platform import (
     SelfPacedCohortNotUnique,
     SharedBackfillRequired,
     UnknownDeliveryMode,
+    _package_carries,
     import_course_platform,
 )
 
@@ -545,6 +546,46 @@ class SharedCoursePlatformImportTests(ImportRunMixin, TestCase):
             cw.ProjectEvaluationScore.objects.filter(submission__project=project).count(),
             1,
         )
+
+    def test_decision_18_answers_every_pooled_review_field(self) -> None:
+        """Decision 18: review_state is derived; the pooled window and batch stay default."""
+
+        from community_base.coursework import models as cw
+
+        from courses import models as site
+
+        if not _package_carries(cw.ProjectSubmission, "review_state"):
+            self.skipTest("the pinned community-base release predates C5.2f")
+
+        def review_states() -> set[str]:
+            return set(
+                cw.ProjectSubmission.objects.filter(project__slug="final").values_list(
+                    "review_state", flat=True
+                )
+            )
+
+        # The fixture project is still COLLECTING_SUBMISSIONS: nobody is assigned yet.
+        self.run_import(apply=True)
+        self.assertEqual(review_states(), {"AW"})
+
+        site.Project.objects.filter(slug="final").update(
+            state=site.ProjectState.PEER_REVIEWING.value
+        )
+        self.run_import(apply=True)
+        self.assertEqual(review_states(), {"IR"})
+
+        site.Project.objects.filter(slug="final").update(state=site.ProjectState.COMPLETED.value)
+        self.run_import(apply=True)
+        self.assertEqual(review_states(), {"SC"})
+
+        # Pooled review itself does not migrate: no window is invented, no batch is formed.
+        project = cw.Project.objects.get(cohort__slug="2026", slug="final")
+        self.assertEqual(
+            project.pooled_review_window_days,
+            cw.Project._meta.get_field("pooled_review_window_days").default,
+        )
+        self.assertIsNone(cw.PeerReview.objects.get(reviewer__project=project).batch)
+        self.assertEqual(cw.PeerReviewBatch.objects.count(), 0)
 
     def test_registration_and_editorial_families_copy(self) -> None:
         from community_base.coursework import models as cw

@@ -43,6 +43,13 @@ item by item before the D5.2 freeze weekend.  In brief:
   skipped and counted, and the count equality is asserted on that migratable
   subset (decision 11); derived rows -- statistics, leaderboard positions --
   are copied verbatim, never recomputed (decision 13).
+- The package's pooled (self-paced) peer-review machinery has no site
+  counterpart, so decision 18 answers its three fields explicitly rather than
+  by omission: ``ProjectSubmission.review_state`` is derived from the site
+  project's state, because in deadline mode it is exactly that mirror;
+  ``Project.pooled_review_window_days`` and ``PeerReview.batch`` are left at
+  their package defaults, because a pooled window and a pooled batch are
+  things the site never had and this import must not invent.
 
 Three refusals, all before any family is written
 ------------------------------------------------
@@ -117,6 +124,19 @@ MAX_NAMED_ROWS = 20
 _COURSE_STATUS_VISIBLE = "published"
 _COURSE_STATUS_HIDDEN = "draft"
 _MODE_LIVE_TO_COHORT = {"live": "cohort", "self_paced": "self_paced"}
+
+#: Decision 18: the package's per-submission peer-review lifecycle
+#: (``ProjectSubmission.review_state``, package issue C5.2f) is, in deadline mode, a pure
+#: mirror of the whole-project ``Project.state`` -- which is the only thing the site records.
+#: This table is the package's own mirror, copied from the ``cb_coursework`` migration that
+#: backfills the field for rows that predate it: ``COMPLETED -> SCORED``,
+#: ``PEER_REVIEWING -> IN_REVIEW``, and everything else stays at the field's
+#: ``AWAITING_ASSIGNMENT`` default.  Rows this import creates arrive after that migration has
+#: run, so the derivation has to happen here or a migrated submission of a finished project
+#: would read as never assigned -- and drop out of the package leaderboard and project
+#: statistics, both of which now filter on ``review_state == SCORED``.
+_PROJECT_STATE_TO_REVIEW_STATE = {"CO": "SC", "PR": "IR"}
+_REVIEW_STATE_AWAITING_ASSIGNMENT = "AW"
 
 
 class CoursePlatformImportError(RuntimeError):
@@ -752,7 +772,11 @@ def _mapping() -> dict[
             "state": _COPIED,
         },
         written(site.Project, {"course"}) | {"cohort"},
-        frozenset(),
+        # Decision 18: pooled review is a package-only capability (C5.2g).  The site has no
+        # review window to copy, and deriving one from ``peer_review_due_date`` would fabricate
+        # an operator knob out of a historical date, so the package default (7 days) stands and
+        # an operator sets it when a pooled project is first run.
+        frozenset({"pooled_review_window_days"}),
     )
 
     mapping[("courses.ReviewCriteria", "cb_coursework.ReviewCriteria", False)] = (
@@ -780,7 +804,7 @@ def _mapping() -> dict[
 
     mapping[("courses.ProjectSubmission", "cb_coursework.ProjectSubmission", False)] = (
         {
-            "project": _COPIED,
+            "project": "copied; its state also derives review_state (decision 18)",
             "student": _COPIED,
             "enrollment": _COPIED,
             "github_link": _COPIED,
@@ -801,7 +825,7 @@ def _mapping() -> dict[
             "passed": _COPIED,
             "volunteer_review_only": _COPIED,
         },
-        written(site.ProjectSubmission, set()),
+        written(site.ProjectSubmission, set()) | {"review_state"},
         frozenset(),
     )
 
@@ -828,7 +852,11 @@ def _mapping() -> dict[
             "state": _COPIED,
         },
         written(site.PeerReview, set()),
-        frozenset(),
+        # Decision 18: a pooled review batch (C5.2f) is a package-only row.  Every migrated
+        # review is deadline-mode, whose due date is its project's ``peer_review_due_date``,
+        # and for which the package's own contract is ``batch = None``.  The import creates no
+        # ``PeerReviewBatch`` rows and leaves the FK null.
+        frozenset({"batch"}),
     )
 
     mapping[("courses.CriteriaResponse", "cb_coursework.CriteriaResponse", False)] = (
@@ -1604,9 +1632,24 @@ def _import_criteria_assignments(site: Any, maps: _Maps, report: _Report) -> Non
         report.migrated("criteria_assignments")
 
 
+def _package_carries(model: Any, field_name: str) -> bool:
+    """True when the installed package release has ``field_name`` on ``model``.
+
+    The C5.2f/g fields decision 18 answers landed on community-base after the release this
+    site currently pins, and this one-time import has to read correctly on both sides of that
+    pin bump.  Naming a field the installed release does not have is already harmless to
+    refusal 3 -- it only complains about model fields the mapping does *not* name -- but
+    *writing* one is not, so the one derived value asks first.  The guard goes away with the
+    pin bump that carries C5.2f.
+    """
+
+    return any(field.name == field_name for field in model._meta.concrete_fields)
+
+
 def _import_project_submissions(site: Any, maps: _Maps, report: _Report) -> None:
     from community_base.coursework.models import ProjectSubmission
 
+    derives_review_state = _package_carries(ProjectSubmission, "review_state")
     rows = list(site.ProjectSubmission.objects.select_related("project", "student").order_by("pk"))
     report.family("project_submissions", len(rows))
     for row in rows:
@@ -1630,6 +1673,10 @@ def _import_project_submissions(site: Any, maps: _Maps, report: _Report) -> None
             "passed": row.passed,
             "volunteer_review_only": row.volunteer_review_only,
         }
+        if derives_review_state:
+            values["review_state"] = _PROJECT_STATE_TO_REVIEW_STATE.get(
+                row.project.state, _REVIEW_STATE_AWAITING_ASSIGNMENT
+            )
         shared, _ = ProjectSubmission.objects.update_or_create(
             project=maps.projects[row.project_id],
             student=row.student,
