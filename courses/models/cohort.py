@@ -7,6 +7,7 @@ from django.db import models
 from django.db.models import Q
 
 from accounts.models import CustomUser
+from courses.curriculum_source_validators import validate_course_progression
 from courses.random_names import generate_random_name
 
 from .curriculum_import import (
@@ -17,22 +18,6 @@ from .curriculum_import import (
 )
 
 User = CustomUser
-
-
-def validate_course_progression(value):
-    """Keep the persisted learner journey identical to the source contract."""
-
-    if value == []:
-        return
-    if not isinstance(value, list) or len(value) != 3:
-        raise ValidationError("Course progression must contain exactly three steps.")
-    for step in value:
-        if not isinstance(step, dict) or set(step) != {"heading", "description"}:
-            raise ValidationError(
-                "Each progression step must contain only heading and description."
-            )
-        if not all(isinstance(step[key], str) and step[key].strip() for key in step):
-            raise ValidationError("Progression headings and descriptions cannot be blank.")
 
 
 class CurriculumFormat(models.TextChoices):

@@ -54,9 +54,26 @@ def validate_unit_code_sources(value: object) -> None:
         validate_source_path(source_path)
 
 
+def validate_course_progression(value: object) -> None:
+    """Keep the persisted learner journey identical to the source contract."""
+
+    if value == []:
+        return
+    if not isinstance(value, list) or len(value) != 3:
+        raise ValidationError("Course progression must contain exactly three steps.")
+    for step in value:
+        if not isinstance(step, dict) or set(step) != {"heading", "description"}:
+            raise ValidationError(
+                "Each progression step must contain only heading and description."
+            )
+        if not all(isinstance(step[key], str) and step[key].strip() for key in step):
+            raise ValidationError("Progression headings and descriptions cannot be blank.")
+
+
 __all__ = [
     "MAX_CODE_SOURCE_LABEL_CHARS",
     "MAX_SOURCE_PATH_CHARS",
+    "validate_course_progression",
     "validate_source_path",
     "validate_unit_code_sources",
 ]
