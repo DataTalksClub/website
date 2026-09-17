@@ -117,12 +117,14 @@ ACCOUNT_MANY_TO_MANY_RELATIONS = (
 
 
 def _field_classification(name: str) -> str:
+    # ``normalized_email``/``identity_state`` (identity), ``role`` (authority)
+    # and ``dark_mode`` (preference) left this model with the D3.1 field move,
+    # so the inventory no longer classifies them here: they are fields of
+    # ``accounts_ext.IdentityState`` and ``courses.LearnerProfile``.
     if name in {
         "id",
         "username",
         "email",
-        "normalized_email",
-        "identity_state",
         "password",
         "last_login",
         "date_joined",
@@ -134,10 +136,9 @@ def _field_classification(name: str) -> str:
         "is_superuser",
         "groups",
         "user_permissions",
-        "role",
     }:
         return "authority"
-    if name in {"dark_mode", "preferred_timezone"}:
+    if name == "preferred_timezone":
         return "preference"
     return "profile"
 
