@@ -9,10 +9,10 @@ dependencies = [
     "boto3>=1.43.33,<2",
 # Shared DataTalks.Club package (kernel); pinned release, see
 # `uv run python scripts/community_base_link.py link` for a local development link.
-    # Pinned to the events-accounts-decoupling fix: installing the shared
-    # events app must not require the shared accounts app (#411 adopts it
-    # later); v0.4.6 plus the lazy email-resolution imports.
-    "community-base @ git+https://github.com/DataTalksClub/community-base@27d6816614212dfc61f08590e3c8c94dee3bcc75",
+    # Pinned to the v0.4.7 release: installing the shared events app must
+    # not require the shared accounts app (#411 adopts it later) - v0.4.6
+    # plus the lazy email-resolution imports, released as a tag.
+    "community-base @ git+https://github.com/DataTalksClub/community-base@v0.4.7",
     "cryptography>=50,<51",
     "django>=6.0,<6.1",
     "django-allauth>=65.10,<66",
