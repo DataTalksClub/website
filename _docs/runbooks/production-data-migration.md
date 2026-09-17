@@ -87,6 +87,7 @@ deliberately do nothing", it says so.
 | 20 | **Testimonials** | one-time then Studio | `scripts/prod/import_testimonials.py` — **no longer a migration** | 8 |
 | 21 | `rds-aisl_prod` | — | **explicitly out of scope** — §14 | — |
 | 22 | Site assets in `core/static/core/` (18 + 14 orphaned) | one-time publish, then per-release | **owner ruling: no assets in the repository** — §11 B12, B13 | **7** |
+| 23 | Site course tables → the shared course apps | one-time | P6 import — **to build**, D5.1 [#414](https://github.com/DataTalksClub/website/issues/414), step 9 below | **9** |
 
 The owner's original list had ten sources. `DataTalksClub/podwiki`, `faq`,
 `docs`, the CMP repository's course specs, public media, sponsors and testimonials
@@ -2120,6 +2121,118 @@ through the revisioned service, a partial run leaves a valid append-only history
 rather than a corrupt one — a re-run adds revisions, it does not rewrite them.
 
 **Duration.** Seconds. Both sets are tens of rows.
+
+### Step 9 — Shared course platform (P6)
+
+> **This step cannot run yet, by construction.** The importer is a D5.1 build
+> item ([#414](https://github.com/DataTalksClub/website/issues/414)), and the two
+> shared apps it writes into (`community_base.curriculum`,
+> `community_base.coursework`) cannot be installed on this site until the D4.1
+> events cutover (#412) moves the `events` label to the package app: the
+> curriculum migration depends on a package-events node the site chain does not
+> have, and the package `Course.instructors` targets `events.Host`, which the
+> site events app does not define. Until both have landed, this step is a spec,
+> not a command. The decisions it will implement are recorded, numbered and
+> open to owner veto in
+> `_docs/architecture/course-platform-shared-apps-mapping.md` ("D5.1 decision
+> record").
+
+```
+uv run --frozen python scripts/prod/import_shared_course_platform.py <target>
+```
+
+The entry point follows the reviewed-target conventions of every other
+`scripts/prod` importer: a `--database <path>` rehearsal run, and production
+supplies `--deployment-target … --allow-production-write …`. `scripts/prod/__init__.py`
+records it as **reconciling, not bootstrapping**: it reads only rows that steps
+1–4 already wrote, so it runs **after step 4** and before anything serves from
+the package tables (that flip is D5.2, #415 — not this step).
+
+**What it does.** For every course family: one package `Course` (status
+`published` when the site row is visible), one package `Cohort` per site cohort
+(`identifier` becomes the package slug, `delivery_mode` `live` renames to `mode`
+`cohort` in the mapping, not a datafix), the shared current-curriculum graph as
+package modules and units with per-cohort placements, enrollments with
+`enrolled_at` re-stamped from the site's `enrollment_date`, and the entire
+coursework family with the two FK renames (`Homework`/`Project`/`ReviewCriteria`/
+`CourseRegistration` `course` → `cohort`, `RegistrationCampaign.current_course` →
+`current_cohort`). Every enrollment with a non-empty `certificate_url` gets a
+package `Certificate` row whose `url` is **byte-identical** — checkpoint below,
+not a hope.
+
+**Three refusals that are correct, not bugs.**
+
+- **A course still on the bespoke cohort-owned graph.** The run fails with a
+  bounded report naming the course; run the site's own
+  `migrate_shared_curriculum` backfill first. P6 does not reimplement it.
+- **A delivery mode that is neither `live` nor `self_paced`.** Stop and name
+  it; inventing a mapping in the importer is how a silent value corruption
+  ships.
+- **A mapping-coverage failure** (either model grew a field the mapping does
+  not name). Model drift must fail the run, never drop a field quietly.
+
+**Expected counts — an equality, not a list of numbers.** The row counts move
+with every daily export, so this step pins a relation instead: for every mapped
+family, package rows equal the site's *migratable* rows — the subset left after
+skipping unpublished shared modules, retired or unpublished shared lessons, and
+the recorded gaps (terminal-homework bindings, project flow placements,
+link/code-source content, cohort-level overrides, assets, course people). The
+run's report prints, per family: created, attached, skipped, and every gap
+count. A gap count is a decision recorded, not an error; an *unexplained*
+difference between package rows and migratable site rows is a stop.
+
+**Checkpoint — counts, certificates, modes**
+
+```
+$TARGET uv run --frozen python manage.py shell -v 0 <<'PY'
+import sys
+from django.apps import apps
+site = apps.get_model("courses", "Cohort")
+cb = apps.get_model("cb_curriculum", "Cohort")
+PAIRS = [
+    ("courses", "Course", "cb_curriculum", "Course"),
+    ("courses", "Cohort", "cb_curriculum", "Cohort"),
+    ("courses", "Enrollment", "cb_curriculum", "Enrollment"),
+    ("courses", "Homework", "cb_coursework", "Homework"),
+    ("courses", "Submission", "cb_coursework", "Submission"),
+    ("courses", "Project", "cb_coursework", "Project"),
+    ("courses", "CourseRegistration", "cb_coursework", "CourseRegistration"),
+]
+for sa, sm, pa, pm in PAIRS:
+    n_source = apps.get_model(sa, sm).objects.count()
+    n_dest = apps.get_model(pa, pm).objects.count()
+    print(("ok " if n_dest >= n_source else "BAD"), sm, n_source, "->", n_dest)
+missing = sum(
+    1 for url in apps.get_model("courses", "Enrollment")
+    .objects.exclude(certificate_url="").values_list("certificate_url", flat=True)
+    if not apps.get_model("cb_curriculum", "Certificate")
+    .filter(enrollment__certificate_url=url, url=url).exists()
+)
+print("certificate urls not preserved:", missing)
+modes = set(cb.objects.values_list("mode", flat=True))
+print("package cohort modes:", sorted(modes))
+sys.exit(1 if (missing or modes - {"cohort", "self_paced"}) else 0)
+PY
+```
+
+`>=` on the first loop rather than `==`: the site tables keep serving until the
+D5.2 flip, and a post-import site write (a new registration, a homework
+submission) widens the site side without faulting the import. The rehearsal
+database is frozen, so there `==` must hold exactly; production runs the check
+once and reads the deltas. The importer's own report is the per-family truth;
+this checkpoint is the coarse net under it.
+
+**Failure and recovery.** **Recoverable by re-run.** Transactions bound at one
+course (its graph) and one cohort (its placements, enrollments and coursework).
+Families with a natural key attach by it; families without one (the submission
+and review chains, statistics) attach by in-parent `pk` ordering of the site
+tables, which is stable because the site tables are frozen for the migration
+window — the same frozen-source rule step 4's export pin relies on.
+
+**Duration.** Not measured yet — the importer does not exist. The dominant
+costs are the two largest site tables (`courses_answer`, ~218k rows;
+`courses_criteriaresponse`, ~108k), so budget minutes, not seconds, and record
+the real number at the §8 rehearsal.
 
 ---
 
