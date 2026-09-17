@@ -1,4 +1,9 @@
+from community_base.mail.service import IDEMPOTENCY_PATTERN
+
 from courses.models import QuestionTypes
+from courses.views.homework_confirmation import (
+    homework_confirmation_idempotency_key,
+)
 
 
 def confirmation_post_data(test_case):
@@ -38,8 +43,11 @@ def assert_confirmation_send(test_case, send_package_mail, submission):
     test_case.assertEqual(kwargs["category"], "submission-results")
     test_case.assertEqual(
         kwargs["idempotency_key"],
-        f"homework-submission:{submission.id}:{submission.submitted_at.isoformat()}",
+        homework_confirmation_idempotency_key(submission),
     )
+    # The key reaches community_base.mail.send, which refuses anything the
+    # pattern below does not match; an aware isoformat's "+" is exactly that.
+    test_case.assertRegex(kwargs["idempotency_key"], IDEMPOTENCY_PATTERN)
     test_case.assertEqual(kwargs["user"].pk, submission.student_id)
     return kwargs["context"]
 

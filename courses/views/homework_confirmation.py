@@ -4,7 +4,7 @@ from typing import Any
 from django.http import HttpRequest
 from django.urls import reverse
 
-from course_management.package_mail import send_package_mail
+from course_management.package_mail import mail_idempotency_key, send_package_mail
 from courses.models.cohort import Cohort, User
 from courses.models.homework import Homework, Submission
 from courses.views.homework_submission_summary import (
@@ -170,9 +170,20 @@ def homework_confirmation_payload_context(
 
 
 def homework_confirmation_idempotency_key(submission: Submission) -> str:
-    return (
-        f"homework-submission:{submission.id}:"
-        f"{submission.submitted_at.isoformat()}"
+    """The replay boundary for one saved submission.
+
+    The package validates keys against ``^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$``
+    and an aware ``isoformat()`` ends in ``+00:00``, whose ``+`` that pattern
+    rejects, so the parts go through the shared builder rather than into an
+    f-string. The key still identifies exactly one submission at one saved
+    time, which is what makes a re-save a new message and a replay the same
+    one.
+    """
+
+    return mail_idempotency_key(
+        "homework-submission",
+        str(submission.id),
+        submission.submitted_at.isoformat(),
     )
 
 

@@ -298,3 +298,96 @@ class PreviewCommandTest(PackageNotificationBase):
             stdout=out,
         )
         self.assertIn("recipient(s) would be emailed", out.getvalue())
+
+
+class SubmissionConfirmationKeyTest(PackageNotificationBase):
+    """The confirmation keys must survive the package's key validator.
+
+    Every confirmation test in courses/tests mocks ``send_package_mail``, so a
+    key the package would refuse looks fine there and fails only on a real
+    send -- in an ``on_commit`` callback, after the learner's submission is
+    already saved. These two send for real.
+    """
+
+    def _homework_submission(self):
+        course = self.create_course()
+        homework = Homework.objects.create(
+            course=course,
+            slug="homework-1",
+            title="Homework 1",
+            due_date=timezone.now() + timedelta(days=3),
+        )
+        student = create_user("confirm@example.com")
+        enrollment = self.create_enrollment(student, course)
+        submission = Submission.objects.create(
+            homework=homework,
+            student=student,
+            enrollment=enrollment,
+            submitted_at=timezone.now(),
+        )
+        return course, homework, submission, student
+
+    @override_settings(PUBLIC_BASE_URL="https://courses.example.com")
+    def test_a_homework_confirmation_reaches_the_package_with_a_valid_key(self):
+        from courses.views.homework_confirmation import (
+            HomeworkConfirmationEmailData,
+            send_homework_confirmation_email,
+        )
+
+        course, homework, submission, student = self._homework_submission()
+        send_homework_confirmation_email(
+            HomeworkConfirmationEmailData(
+                user=student,
+                course=course,
+                homework=homework,
+                submission=submission,
+                update_url="https://courses.example.com/courses/ml-zoomcamp/2026/homework/homework-1",
+            )
+        )
+
+        delivery = EmailDelivery.objects.get(recipient_email="confirm@example.com")
+        self.assertEqual(delivery.purpose, "homework-submission-confirmation")
+        self.assertEqual(delivery.category, "submission-results")
+        self.assertIn(str(submission.id), delivery.idempotency_key)
+
+    @override_settings(PUBLIC_BASE_URL="https://courses.example.com")
+    def test_a_project_confirmation_reaches_the_package_with_a_valid_key(self):
+        from courses.views.project_confirmation import (
+            ProjectConfirmationEmailData,
+            send_project_confirmation_email,
+        )
+
+        course = self.create_course()
+        project = Project.objects.create(
+            course=course,
+            slug="midterm",
+            title="Midterm",
+            submission_due_date=timezone.now() + timedelta(days=3),
+            peer_review_due_date=timezone.now() + timedelta(days=6),
+            state=ProjectState.COMPLETED.value,
+        )
+        student = create_user("confirm-project@example.com")
+        enrollment = self.create_enrollment(student, course)
+        submission = ProjectSubmission.objects.create(
+            project=project,
+            student=student,
+            enrollment=enrollment,
+            submitted_at=timezone.now(),
+            github_link="https://github.com/example/project",
+        )
+        send_project_confirmation_email(
+            ProjectConfirmationEmailData(
+                user=student,
+                course=course,
+                project=project,
+                submission=submission,
+                update_url="https://courses.example.com/courses/ml-zoomcamp/2026/project/midterm",
+            )
+        )
+
+        delivery = EmailDelivery.objects.get(
+            recipient_email="confirm-project@example.com",
+        )
+        self.assertEqual(delivery.purpose, "project-submission-confirmation")
+        self.assertEqual(delivery.category, "submission-results")
+        self.assertIn(str(submission.id), delivery.idempotency_key)

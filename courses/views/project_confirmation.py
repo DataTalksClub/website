@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from django.http import HttpRequest
 from django.urls import reverse
 
-from course_management.package_mail import send_package_mail
+from course_management.package_mail import mail_idempotency_key, send_package_mail
 from courses.models.cohort import Cohort, User
 from courses.models.project import Project, ProjectSubmission
 from courses.views.project_confirmation_context import (
@@ -76,9 +76,17 @@ def project_confirmation_payload_context(
 def project_confirmation_idempotency_key(
     submission: ProjectSubmission,
 ) -> str:
-    return (
-        f"project-submission:{submission.id}:"
-        f"{submission.submitted_at.isoformat()}"
+    """The replay boundary for one saved project submission.
+
+    Built through the shared sanitizer for the reason spelled out on
+    ``homework_confirmation_idempotency_key``: an aware ``isoformat()``
+    carries a ``+`` the package's key pattern refuses.
+    """
+
+    return mail_idempotency_key(
+        "project-submission",
+        str(submission.id),
+        submission.submitted_at.isoformat(),
     )
 
 

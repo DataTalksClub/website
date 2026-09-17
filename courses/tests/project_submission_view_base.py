@@ -1,7 +1,12 @@
 from dataclasses import dataclass
 from typing import Any
 
+from community_base.mail.service import IDEMPOTENCY_PATTERN
+
 from courses.tests.project_view_base import ProjectViewTestBase
+from courses.views.project_confirmation import (
+    project_confirmation_idempotency_key,
+)
 
 
 @dataclass(frozen=True)
@@ -32,8 +37,12 @@ class ProjectSubmissionViewTestBase(ProjectViewTestBase):
         self.assertEqual(kwargs["category"], "submission-results")
         self.assertEqual(
             kwargs["idempotency_key"],
-            f"project-submission:{submission.id}:{submission.submitted_at.isoformat()}",
+            project_confirmation_idempotency_key(submission),
         )
+        # The key reaches community_base.mail.send, which refuses anything
+        # the pattern below does not match; an aware isoformat's "+" is
+        # exactly that.
+        self.assertRegex(kwargs["idempotency_key"], IDEMPOTENCY_PATTERN)
         context = kwargs["context"]
 
         self.assert_project_confirmation_context(context, submission)
