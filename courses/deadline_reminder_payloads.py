@@ -1,6 +1,5 @@
 from django.urls import reverse
 
-from course_management import email_templates
 from course_management.public_urls import public_url
 from accounts.services.timezones import format_deadline_for_user
 from courses.deadline_reminder_types import (
@@ -11,14 +10,13 @@ from courses.views.url_utils import canonical_cohort_url_kwargs
 
 
 def deadline_send_payload(
-    config,
     *,
     event_key,
     template_context,
     metadata,
 ):
-    payload = {
-        "template_key": email_templates.DEADLINE_REMINDER,
+    return {
+        "template_key": "deadline-reminder",
         "category_tag": "deadline-reminders",
         "idempotency_key": event_key,
         "context": template_context,
@@ -28,12 +26,6 @@ def deadline_send_payload(
             "event": "deadline_reminder",
         },
     }
-    if config is not None:
-        payload["audience"] = config.audience
-        payload["client"] = config.client
-        if config.from_email:
-            payload["from_email"] = config.from_email
-    return payload
 
 
 def transient_recipient_list_send_payload(event):
@@ -120,7 +112,6 @@ def build_reminder_event(data):
     list_key = reminder_list_key(data)
     list_name = reminder_list_name(data)
     send_payload = deadline_send_payload(
-        data.config,
         event_key=event_key,
         template_context=context,
         metadata=data.metadata,

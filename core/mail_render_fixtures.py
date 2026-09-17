@@ -7,6 +7,8 @@ type-aware so list-valued template variables iterate.
 
 from __future__ import annotations
 
+from typing import Any
+
 from community_base.mail.backends.ses_local import render_delivery
 from community_base.mail.models import EmailDelivery
 
@@ -37,8 +39,12 @@ def render_package_template(template_key: str):
         "site_name": "DataTalks.Club",
         "site_url": "https://courses.datatalks.club",
     }
+    override: Any
     for position, key in enumerate(template.required_context, start=2):
-        context[key] = CONTEXT_OVERRIDES.get(key, f"Q{position}Z")
+        context[key] = f"Q{position}Z"
+    # Block-tag-only variables (a {% for %} over a list) never appear as
+    # {{ }} placeholders, so the overrides are applied unconditionally.
+    context.update(CONTEXT_OVERRIDES)
     delivery = EmailDelivery(
         template_key=template_key,
         recipient_email="learner@example.com",

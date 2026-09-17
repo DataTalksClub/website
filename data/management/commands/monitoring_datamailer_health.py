@@ -2,9 +2,10 @@ import json
 
 from django.core.management.base import BaseCommand
 
-from course_management.datamailer_outbox_status import (
-    datamailer_outbox_status_summary,
-)
+from django.db import models
+from django.utils import timezone
+
+from data.models import DatamailerOutboxEvent
 from course_management.observability import record_event
 from data.management.commands.datamailer_callback_status import (
     callback_event_aggregate,
@@ -39,15 +40,21 @@ class Command(BaseCommand):
 
 
 def datamailer_health_payload():
-    outbox_summary = datamailer_outbox_status_summary()
+    outbox_counts = dict(
+        DatamailerOutboxEvent.objects.values_list("status")
+        .annotate(count=models.Count("id"))
+        .values_list("status", "count"),
+    )
+    due_count = DatamailerOutboxEvent.objects.filter(
+        status__in=("pending", "retrying"),
+        next_attempt_at__lte=timezone.now(),
+    ).count()
     send_summary = datamailer_send_audit_summary(limit=5)
     callback_aggregate = callback_event_aggregate()
     callback_counts = callback_event_counts()
-    event_counts = outbox_summary["event_counts"]
     failed_sends = send_summary["totals"]["failed"]
-    due_count = outbox_summary["due_count"]
-    failed_outbox = event_counts.get("failed", 0)
-    retrying_outbox = event_counts.get("retrying", 0)
+    failed_outbox = outbox_counts.get("failed", 0)
+    retrying_outbox = outbox_counts.get("retrying", 0)
     status = "ok"
     if failed_sends or failed_outbox or retrying_outbox:
         status = "warning"
@@ -55,10 +62,10 @@ def datamailer_health_payload():
     return {
         "status": status,
         "outbox_due_count": due_count,
-        "outbox_pending_count": event_counts.get("pending", 0),
+        "outbox_pending_count": outbox_counts.get("pending", 0),
         "outbox_retrying_count": retrying_outbox,
         "outbox_failed_count": failed_outbox,
-        "outbox_acked_count": event_counts.get("acked", 0),
+        "outbox_acked_count": outbox_counts.get("acked", 0),
         "send_total_count": send_summary["totals"]["total"],
         "send_failed_count": failed_sends,
         "send_succeeded_count": send_summary["totals"]["succeeded"],

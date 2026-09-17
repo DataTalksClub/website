@@ -86,10 +86,8 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        config = DatamailerConfig.from_settings()
         now = aware_now(options["now"])
         events = build_reminder_events(
-            config,
             now,
             course_slug=options["course_slug"],
         )

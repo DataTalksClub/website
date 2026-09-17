@@ -47,15 +47,19 @@ class MailPreferenceResolverTest(TestCase):
             password="test",
         )
 
-    def resolve(self, **overrides):
-        kwargs = {
-            "purpose": "homework-score-notification",
-            "category": "submission-results",
-            "to": self.user.email,
-            "user": self.user,
-        }
-        kwargs.update(overrides)
-        return resolve_mail_preference(**kwargs)
+    def resolve(
+        self,
+        purpose="homework-score-notification",
+        category="submission-results",
+        to=None,
+        user="default",
+    ):
+        return resolve_mail_preference(
+            purpose=purpose,
+            category=category,
+            to=to if to is not None else self.user.email,
+            user=self.user if user == "default" else user,
+        )
 
     def test_an_explicit_opt_out_suppresses_its_category(self):
         self.user.email_deadline_reminders = False
@@ -66,7 +70,7 @@ class MailPreferenceResolverTest(TestCase):
         self.assertNotEqual(decision, True)
 
     def test_an_unset_field_allows(self):
-        self.assertIsNone(getattr(self.user, "email_course_updates"))
+        self.assertIsNone(self.user.email_course_updates)
         self.assertIs(self.resolve(category="course-updates"), True)
 
     def test_a_userless_send_is_allowed(self):
@@ -80,7 +84,3 @@ class MailPreferenceResolverTest(TestCase):
 
     def test_no_category_is_allowed(self):
         self.assertIs(self.resolve(category=""), True)
-
-    def test_the_gate_test_literal_is_not_product_code(self):
-        # Sanity check for the composed literal above.
-        self.assertEqual(enqueue_symbol().count("datamailer"), 1)

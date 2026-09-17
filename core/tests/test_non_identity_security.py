@@ -8,7 +8,7 @@ from unittest import mock
 
 from django.core.handlers.asgi import ASGIRequest
 from django.http import HttpRequest, HttpResponse
-from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, TestCase
 
 from core.middleware import RequestBoundaryMiddleware
 from core.security import (
@@ -238,4 +238,3 @@ class ResponseBoundaryTests(TestCase):
         self.assertEqual(response.headers["Referrer-Policy"], "same-origin")
         self.assertEqual(response.headers["Cross-Origin-Resource-Policy"], "same-origin")
         self.assertNotIn("Access-Control-Allow-Origin", response.headers)
-

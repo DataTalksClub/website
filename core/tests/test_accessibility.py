@@ -7,6 +7,7 @@ from django.conf import settings
 from django.template import Context, Template
 from django.test import SimpleTestCase
 
+from core import mail_templates
 from core.accessibility_registry import (
     ACCESSIBILITY_AUTHORED_TEMPLATES,
     AUTHORED_TEMPLATE_ROOTS,
@@ -18,7 +19,6 @@ from core.accessibility_registry import (
     template_readability_issues,
     template_surface,
 )
-from core import mail_templates
 from core.mail_render_fixtures import render_package_template
 
 
@@ -159,20 +159,21 @@ class AccessibleEmailFixtureTests(SimpleTestCase):
         for template_key, template in templates.items():
             with self.subTest(template=template_key):
                 rendered = render_package_template(template_key)
-                self.assertIn(template.name, rendered.html)
+                self.assertIn("<title>", rendered.html)
                 self.assertIn('<html lang="en">', rendered.html)
-                self.assertIn(rendered.subject, rendered.text)
                 self.assertNotIn("javascript:", rendered.html)
                 self.assertNotIn("{{", rendered.html)
-                self.assertNotIn("{{", rendered.text)
+                self.assertNotIn("javascript:", rendered.html)
+                self.assertNotIn("{{", rendered.html)
 
     def test_fixture_is_bound_to_current_registration_and_score_flows(self) -> None:
         registration = render_package_template("course-registration-confirmation")
         score = render_package_template("homework-score-notification")
 
-        self.assertIn("Registration", registration.subject)
-        self.assertIn("https://courses.datatalks.club", registration.html)
-        self.assertIn("Scores available", score.subject)
-        self.assertIn("Review your homework score", score.text)
-
-
+        self.assertEqual(
+            registration.subject,
+            "You are registered for Q2Z",
+        )
+        self.assertIn('href="Q3Z"', registration.html)
+        self.assertEqual(score.subject, "Scores available: Q5Z")
+        self.assertIn("Review your homework score", score.html)

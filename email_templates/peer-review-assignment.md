@@ -1,7 +1,7 @@
 ---
 name: Peer review assignment
 subject: "Peer review is open: {{ project_title }}"
-footer_note: "If you don't want to receive homework/project submission emails, turn them off in your profile: {{ profile_url }}"
+footer_note: "You receive homework and project submission emails because you submitted; opt out on your profile settings page."
 ---
 
 Hi {{ user_name }},
