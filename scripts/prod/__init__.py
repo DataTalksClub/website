@@ -124,7 +124,6 @@ BOOTSTRAPPING_ENTRY_POINTS = frozenset(
         "import_public_content",
         "import_sponsors",
         "import_testimonials",
-        "sync_content",
         "sync_course_repositories",
         "sync_course_repository_sources",
     }
@@ -166,11 +165,6 @@ SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
     "import_mailchimp_subscriptions": (
         "Needs Mailchimp provider credentials and reads subscriber-level personal "
         "data. Step 6, excluded from the local dataset runner."
-    ),
-    "sync_content": (
-        "Not decided yet. Its absence from the general script command is recorded here rather "
-        "than left silent; deciding whether it gets a target belongs to the ingest "
-        "consolidation epic, DataTalksClub/website#310."
     ),
     "sync_public_media_hydrate": (
         "Not decided yet. It is not a general script command; deciding whether it gets one belongs to the ingest "

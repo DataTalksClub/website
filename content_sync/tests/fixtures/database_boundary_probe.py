@@ -20,25 +20,36 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
-from typing import Any
 
 from django.test import SimpleTestCase
 
 from content.models import ContentSource
-from content_sync.dtc_content.adapter import adapt_dtc_content_checkout
-from content_sync.dtc_content.contract import ACCEPTED_CONTENT_COMMIT
-from content_sync.dtc_content.parity import published_catalogue
+
+
+def _planted_reader(root: Path) -> object:
+    """A module-level helper reaching the catalogue through one more hop,
+    the shape a real adapter-then-parity call chain had (#324)."""
+
+    return _planted_reader_inner(root)
+
+
+def _planted_reader_inner(root: Path) -> object:
+    from content import catalogue
+
+    return catalogue.articles()
 
 
 def _planted_helper(root: Path) -> object:
     """A module-level helper, the shape ``_overlay_diagnostic`` has."""
 
-    return adapt_dtc_content_checkout(root, commit_sha=ACCEPTED_CONTENT_COMMIT)
+    return _planted_reader(root)
 
 
 class PlantedDirectCatalogueReaderTests(SimpleTestCase):
     def test_reads_the_catalogue_in_the_test_body(self) -> None:
-        self.assertIsInstance(published_catalogue(), dict)
+        from content import catalogue
+
+        self.assertIsInstance(catalogue.articles(), tuple)
 
 
 class PlantedIndirectCatalogueReaderTests(SimpleTestCase):
@@ -56,12 +67,12 @@ class PlantedManagerAccessTests(SimpleTestCase):
 
 class PlantedFunctionBodyImportTests(SimpleTestCase):
     def test_reads_the_catalogue_through_a_function_body_import(self) -> None:
-        # Bound here and nowhere else in this module, so the analysis can only
-        # follow it by reading imports inside a function body.
-        from content_sync.dtc_content.parity import verify_initial_projection_parity
+        # Bound here and nowhere else in this module (a function defined in
+        # this module would already be in its own namespace), so the analysis
+        # can only follow it by reading imports inside a function body.
+        from content.catalogue import articles
 
-        bundle: Any = object()
-        self.assertIsNotNone(verify_initial_projection_parity(bundle))
+        self.assertIsInstance(articles(), tuple)
 
 
 class PlantedRowFreeTests(SimpleTestCase):
