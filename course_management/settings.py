@@ -217,30 +217,6 @@ CLOUDWATCH_APP_METRIC_REGION = os.getenv(
     os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "")),
 )
 
-DATAMAILER_URL = os.getenv("DATAMAILER_URL", "")
-DATAMAILER_API_KEY = os.getenv("DATAMAILER_API_KEY", "")
-DATAMAILER_CLIENT = os.getenv("DATAMAILER_CLIENT", "")
-DATAMAILER_AUDIENCE = os.getenv("DATAMAILER_AUDIENCE", "")
-DATAMAILER_FROM_EMAIL = os.getenv("DATAMAILER_FROM_EMAIL", "")
-DATAMAILER_STRICT = os.getenv("DATAMAILER_STRICT", "0") == "1"
-DATAMAILER_TIMEOUT_SECONDS = float(os.getenv("DATAMAILER_TIMEOUT_SECONDS", "60"))
-# When enabled, transactional sends carry Datamailer's "dry_run" flag: the full
-# prod send path runs (/api/transactional/send -> audit) but
-# Datamailer renders the email and returns it inline without delivering. Used by
-# the e2e smoke suite (and any non-delivering deployment) to mimic prod safely.
-DATAMAILER_TRANSACTIONAL_DRY_RUN = os.getenv("DATAMAILER_TRANSACTIONAL_DRY_RUN", "0") == "1"
-DATAMAILER_WEBHOOK_TOKEN = os.getenv("DATAMAILER_WEBHOOK_TOKEN", "")
-DATAMAILER_IMPORT_S3_BUCKET = os.getenv("DATAMAILER_IMPORT_S3_BUCKET", "")
-DATAMAILER_IMPORT_S3_PREFIX = os.getenv("DATAMAILER_IMPORT_S3_PREFIX", "datamailer-imports").strip(
-    "/"
-)
-DATAMAILER_IMPORT_URL_EXPIRES_SECONDS_VALUE = os.getenv(
-    "DATAMAILER_IMPORT_URL_EXPIRES_SECONDS", "3600"
-)
-DATAMAILER_IMPORT_URL_EXPIRES_SECONDS = int(DATAMAILER_IMPORT_URL_EXPIRES_SECONDS_VALUE)
-DATAMAILER_IMPORT_S3_REGION = os.getenv("DATAMAILER_IMPORT_S3_REGION", "")
-DATAMAILER_SYNC_ON_USER_CREATE = os.getenv("DATAMAILER_SYNC_ON_USER_CREATE", "1") == "1"
-# Cache configuration
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",

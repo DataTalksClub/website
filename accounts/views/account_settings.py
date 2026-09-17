@@ -5,9 +5,7 @@ from accounts.forms import AccountSettingsForm
 from accounts.services.social_connections import list_social_connections
 from accounts.services.timezones import browser_timezone_name, get_timezone_label
 from accounts.views.account_toggles import LOCAL_ACCOUNT_TOGGLE_FIELDS
-from course_management.datamailer.preference_categories import (
-    EMAIL_PREFERENCE_CATEGORIES,
-)
+from accounts.email_preferences import EMAIL_PREFERENCE_CATEGORIES
 from courses.models import Enrollment
 
 

@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from course_management import email_templates
-from course_management.datamailer.client import public_url
+from course_management.public_urls import public_url
 from accounts.services.timezones import format_deadline_for_user
 from courses.deadline_reminder_types import (
     ReminderEvent,

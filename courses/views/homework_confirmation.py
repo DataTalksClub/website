@@ -4,10 +4,7 @@ from typing import Any
 from django.http import HttpRequest
 from django.urls import reverse
 
-from course_management import email_templates
-from course_management.datamailer.sync.transactional import (
-    send_transactional_email,
-)
+from course_management.package_mail import send_package_mail
 from courses.models.cohort import Cohort, User
 from courses.models.homework import Homework, Submission
 from courses.views.homework_submission_summary import (
@@ -145,24 +142,16 @@ def send_homework_confirmation_email(data: HomeworkConfirmationEmailData) -> Non
     if not data.user.email:
         return
 
-    payload = homework_confirmation_payload(data)
-    send_transactional_email(payload)
-
-
-def homework_confirmation_payload(data: HomeworkConfirmationEmailData) -> dict:
-    idempotency_key = homework_confirmation_idempotency_key(
-        data.submission
+    send_package_mail(
+        purpose="homework-submission-confirmation",
+        to=data.user.email,
+        context=homework_confirmation_payload_context(data),
+        idempotency_key=homework_confirmation_idempotency_key(
+            data.submission,
+        ),
+        category="submission-results",
+        user=data.user,
     )
-    context = homework_confirmation_payload_context(data)
-    metadata = homework_confirmation_email_metadata(data)
-    return {
-        "email": data.user.email,
-        "template_key": email_templates.HOMEWORK_SUBMISSION_CONFIRMATION,
-        "category_tag": "submission-results",
-        "idempotency_key": idempotency_key,
-        "context": context,
-        "metadata": metadata,
-    }
 
 
 def homework_confirmation_payload_context(
@@ -187,13 +176,3 @@ def homework_confirmation_idempotency_key(submission: Submission) -> str:
     )
 
 
-def homework_confirmation_email_metadata(
-    data: HomeworkConfirmationEmailData,
-) -> dict:
-    return {
-        "source": "course-management-platform",
-        "event": "homework_submission",
-        "course_slug": data.course.slug,
-        "homework_slug": data.homework.slug,
-        "submission_id": data.submission.id,
-    }
