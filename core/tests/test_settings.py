@@ -306,6 +306,23 @@ class ProductionSettingsTests(SimpleTestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout), "sync")
 
+    def test_local_settings_deliver_mail_in_memory(self) -> None:
+        command = (
+            "import json; import website.settings.local as s; "
+            "print(json.dumps(s.COMMUNITY_BASE['MAIL_BACKEND']))"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", command],
+            cwd=os.getcwd(),
+            env=os.environ.copy(),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), "memory")
+
 
 class CollectstaticSettingsTests(SimpleTestCase):
     def import_collectstatic_settings(

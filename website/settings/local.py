@@ -35,7 +35,12 @@ NOINDEX = True
 # Unlike `website.settings.development`, the workstation runs no Relay ingress to
 # receive durable-job callbacks, so the `relay` backend from `website.settings.base`
 # would only ever fail to submit. Match `local_review`/`test` and run jobs inline.
-COMMUNITY_BASE = {**COMMUNITY_BASE, "JOBS_BACKEND": "sync"}  # noqa: F405
+# MAIL_BACKEND has the identical problem one level down: with jobs now running
+# inline, a real `cb_mail.deliver` job (e.g. an enrollment confirmation) tries a
+# real relay delivery with no `RELAY_BASE_URL` configured and fails outright,
+# instead of the harmless queued-but-never-submitted state the old JOBS_BACKEND
+# left it in. `memory` matches `website.settings.test`.
+COMMUNITY_BASE = {**COMMUNITY_BASE, "JOBS_BACKEND": "sync", "MAIL_BACKEND": "memory"}  # noqa: F405
 # D2.2a: the package content source model requires a nonblank webhook
 # secret even locally, so local runs fall back to the shared local
 # development placeholder; deployed settings keep the env-only boundary
