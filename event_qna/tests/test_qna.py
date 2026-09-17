@@ -54,11 +54,15 @@ class EventQnaServiceTests(TestCase):
         self.assertEqual((score, voted), (1, False))
 
     def test_moderation_preserves_status_counters_and_singular_pin(self) -> None:
-        first = services.submit_question(self.event.content_id, text="First", participant=self.participant)
+        first = services.submit_question(
+            self.event.content_id, text="First", participant=self.participant
+        )
         second = services.submit_question(
             self.event.content_id, text="Second", participant=self.participant
         )
-        services.update_question(self.event.content_id, first.question_id, {"pinned": True}, moderator=True)
+        services.update_question(
+            self.event.content_id, first.question_id, {"pinned": True}, moderator=True
+        )
         services.update_question(
             self.event.content_id, second.question_id, {"pinned": True}, moderator=True
         )
@@ -85,7 +89,9 @@ class EventQnaServiceTests(TestCase):
             actor_ref="user:1",
         )
         self.assertNotIn(invite["passcode"], invite["join_url"])
-        found, error = services.redeem_cohost(self.event.content_id, "MODERATOR", "  open-sesame42 ")
+        found, error = services.redeem_cohost(
+            self.event.content_id, "MODERATOR", "  open-sesame42 "
+        )
         self.assertIsNone(error)
         assert found is not None
         self.assertEqual(found.name, "moderator")

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+from community_base.events.models import Event
 from django.test import TestCase
 from django.utils.html import escape
 
@@ -12,7 +13,6 @@ from content import catalogue, public_views
 from content.event_content import EventGroups, event_date_groups, event_groups
 from content.pagination import PUBLIC_PAGE_SIZE
 from content.public_routes import public_paths
-from community_base.events.models import Event
 from events.identity import canonical_detail_path
 from events.queries import published_event_records
 

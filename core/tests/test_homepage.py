@@ -3,6 +3,7 @@ from datetime import timedelta
 from pathlib import Path
 from unittest import mock
 
+from community_base.events.models import Event
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.db import OperationalError, connection
@@ -24,7 +25,6 @@ from courses.services.testimonials import homepage_testimonials
 from courses.views.course import course_view
 from courses.views.course_aliases import legacy_course_redirect
 from courses.views.course_list import course_list
-from community_base.events.models import Event
 from test_support.course_catalog import build_reviewed_catalog
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

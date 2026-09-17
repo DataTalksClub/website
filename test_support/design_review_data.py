@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from community_base.events.models import Event
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.urls import reverse
@@ -37,7 +38,6 @@ from courses.models import (
 from courses.services.local_course_seed import assert_local_database
 from event_qna.models import EventQnaCohostInvite, EventQnaQuestion, EventQnaSession
 from event_qna.services import event_qna_path
-from community_base.events.models import Event
 from scripts.prod.identity_manifest import load_identity_manifest
 from test_support.design_review_identity import FROZEN_AT, SEED
 from test_support.factories import FactoryContext, create_current_scenario
@@ -63,7 +63,9 @@ def ensure_checked_event_identity_snapshot() -> Event:
     schedules = event_schedules()
     existing = {event.content_id: event for event in Event.objects.all()}
     existing_public_ids = {
-        event.public_id: event.content_id for event in existing.values() if event.public_id is not None
+        event.public_id: event.content_id
+        for event in existing.values()
+        if event.public_id is not None
     }
     missing: list[Event] = []
     for item in manifest.events:

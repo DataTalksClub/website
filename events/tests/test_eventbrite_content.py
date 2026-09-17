@@ -15,8 +15,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from community_base.events.models import Event
 from django.test import TestCase
 
+from content.models import EventSource
 from events.eventbrite_content import (
     DESCRIPTION_RECORD_SCHEMA_VERSION,
     EventbriteDescriptionError,
@@ -26,8 +28,6 @@ from events.eventbrite_content import (
     render_description_html,
     render_description_text,
 )
-from community_base.events.models import Event
-from content.models import EventSource
 
 STARTS_AT = datetime(2021, 6, 1, 17, 0, tzinfo=UTC)
 

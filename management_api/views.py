@@ -218,12 +218,16 @@ def _qna_audit_context(request: HttpRequest) -> AuditWriteContext:
     )
 
 
-def _audit_identity_access(request: HttpRequest, *, event_id: uuid.UUID | int | None = None) -> None:
+def _audit_identity_access(
+    request: HttpRequest, *, event_id: uuid.UUID | int | None = None
+) -> None:
     identity = request.api_identity  # type: ignore[attr-defined]
     record_audit_event(
         action="events.identity.viewed",
         target_type="events.event",
-        target_id=event_id,
+        # The audit identity is the site UUID; a row key carries no UUID to
+        # record and is deliberately not inventoried here.
+        target_id=event_id if isinstance(event_id, uuid.UUID) else None,
         target_label="event-identity",
         outcome=AuditEvent.Outcome.SUCCEEDED,
         context=AuditWriteContext(

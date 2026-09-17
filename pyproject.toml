@@ -94,7 +94,14 @@ ignore_errors = true
 # and django-loginas are in the same situation (audit BE-16 opt-ins import
 # them directly).
 [[tool.mypy.overrides]]
-module = ["community_base.*", "allauth.*", "loginas.*"]
+module = [
+    "community_base.*",
+    "allauth.*",
+    "loginas.*",
+    # The Django mypy plugin resolves the "events" label to a module named
+    # events.*; the label belongs to community_base.events since D4.1.
+    "events.models",
+]
 ignore_missing_imports = true
 
 # Audit BE-16: the per-app ``ignore_errors = true`` overrides above are the

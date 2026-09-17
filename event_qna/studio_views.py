@@ -25,6 +25,7 @@ from studio.auth import capability_required
 from .errors import QnaError
 from .services import (
     EventQnaSession,
+    _event_row,
     admin_event_qna,
     create_cohost,
     retry_event_qna_provision,
@@ -62,7 +63,11 @@ def _view_context(
     request: HttpRequest, event_id: uuid.UUID | int, *, error: str = ""
 ) -> dict[str, object]:
     qna = admin_event_qna(event_id)
-    event = EventQnaSession.objects.select_related("event").get(event_id=event_id).event
+    event = (
+        EventQnaSession.objects.select_related("event")
+        .get(event_id=_event_row(event_id).pk)
+        .event
+    )
     return {
         "event": event,
         "qna": qna,
@@ -168,7 +173,7 @@ def _moderate_result(
         audit_context=_audit_context(request),
         expected_revision=expected_revision,
     )
-    revision = EventQnaSession.objects.get(event_id=event_id).revision
+    revision = EventQnaSession.objects.get(event_id=_event_row(event_id).pk).revision
     return {"status": question.status, "pinned": question.pinned, "revision": revision}
 
 
@@ -277,7 +282,9 @@ def event_qna_cohost(request: HttpRequest, event_id: uuid.UUID | int) -> HttpRes
     return render(request, "studio/event_qna_cohost_created.html", {"invite": holder["invite"]})
 
 
-def _revoke_result(event_id: uuid.UUID | int, invite_id: str, request: HttpRequest) -> dict[str, Any]:
+def _revoke_result(
+    event_id: uuid.UUID | int, invite_id: str, request: HttpRequest
+) -> dict[str, Any]:
     revoke_cohost(event_id, invite_id, audit_context=_audit_context(request))
     return {"revoked": True}
 

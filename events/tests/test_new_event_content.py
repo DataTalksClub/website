@@ -16,10 +16,10 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from community_base.events.models import Event
 from django.conf import settings
 from django.test import TestCase
 
-from community_base.events.models import Event
 from content.models import EventSource
 from events.content_import import (
     EventContentImportError,

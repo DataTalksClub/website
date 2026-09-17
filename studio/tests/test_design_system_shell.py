@@ -17,6 +17,7 @@ from __future__ import annotations
 import re
 from datetime import timedelta
 
+from community_base.events.models import Event
 from django.templatetags.static import static
 from django.test import TestCase
 from django.urls import reverse
@@ -36,7 +37,6 @@ from courses.models import (
     User,
 )
 from courses.models.cohort import Cohort
-from community_base.events.models import Event
 from events.identity import create_event_identity
 
 SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")

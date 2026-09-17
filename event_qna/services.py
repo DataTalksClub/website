@@ -16,6 +16,7 @@ from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
+from community_base.events.models import Event
 from community_base.jobs.dispatch import dispatch_after_commit
 from community_base.jobs.models import JobIntent
 from django.conf import settings
@@ -27,7 +28,6 @@ from django.utils.dateparse import parse_datetime
 from core.audit import AuditWriteContext, record_audit_event
 from core.models import RevisionConflict
 from core.runtime_config import get_str_setting
-from community_base.events.models import Event
 
 from .backend import BackendSession, get_qna_backend
 from .errors import QnaArchived, QnaError, QnaNotFound
@@ -266,7 +266,7 @@ def provisioning_state(session: EventQnaSession) -> QnaProvisioningState:
 
 
 def retry_event_qna_provision(
-    event_id: uuid.UUID | str,
+    event_id: uuid.UUID | str | int,
     *,
     using: str = DEFAULT_DB_ALIAS,
     audit_context: AuditWriteContext | None = None,
@@ -324,7 +324,9 @@ def _event_row(event_id: uuid.UUID | str | int, *, using: str = DEFAULT_DB_ALIAS
         raise QnaNotFound() from exc
 
 
-def _qna_session(event_id: uuid.UUID | str | int, *, using: str = DEFAULT_DB_ALIAS) -> EventQnaSession:
+def _qna_session(
+    event_id: uuid.UUID | str | int, *, using: str = DEFAULT_DB_ALIAS
+) -> EventQnaSession:
     try:
         # The session FK stores the shared row's integer key, so resolve the
         # handle to the row and filter by its primary key.
@@ -337,7 +339,9 @@ def _qna_session(event_id: uuid.UUID | str | int, *, using: str = DEFAULT_DB_ALI
         raise QnaNotFound() from exc
 
 
-def _public_session(event_id: uuid.UUID | str, *, using: str = DEFAULT_DB_ALIAS) -> EventQnaSession:
+def _public_session(
+    event_id: uuid.UUID | str | int, *, using: str = DEFAULT_DB_ALIAS
+) -> EventQnaSession:
     session = _qna_session(event_id, using=using)
     if session.event.status not in PUBLIC_EVENT_LIFECYCLES:
         raise QnaNotFound()
@@ -397,7 +401,7 @@ def _transition_locked(session: EventQnaSession, target: str) -> EventQnaSession
 
 
 def transition_session(
-    event_id: uuid.UUID | str,
+    event_id: uuid.UUID | str | int,
     target: str,
     *,
     using: str = DEFAULT_DB_ALIAS,
@@ -457,7 +461,7 @@ def _parse_expiry(value: object) -> Any:
 
 
 def update_session(
-    event_id: uuid.UUID | str,
+    event_id: uuid.UUID | str | int,
     payload: dict[str, Any],
     *,
     using: str = DEFAULT_DB_ALIAS,
@@ -582,7 +586,7 @@ def can_author_edit(question: EventQnaQuestion, participant: str | None, *, now=
 
 
 def submit_question(
-    event_id: uuid.UUID | str,
+    event_id: uuid.UUID | str | int,
     *,
     text: object,
     author_name: object = None,
@@ -672,7 +676,7 @@ def _set_pin_locked(
 
 
 def update_question(
-    event_id: uuid.UUID | str,
+    event_id: uuid.UUID | str | int,
     question_id: str,
     payload: dict[str, Any],
     *,
@@ -751,7 +755,7 @@ def update_question(
 
 
 def vote_question(
-    event_id: uuid.UUID | str,
+    event_id: uuid.UUID | str | int,
     question_id: str,
     *,
     participant: str,
@@ -870,7 +874,7 @@ def serialize_question(
 
 
 def list_questions(
-    event_id: uuid.UUID | str,
+    event_id: uuid.UUID | str | int,
     *,
     participant: str | None = None,
     moderator: bool = False,
@@ -940,7 +944,7 @@ def list_questions(
 
 
 def create_cohost(
-    event_id: uuid.UUID | str,
+    event_id: uuid.UUID | str | int,
     *,
     name: object = None,
     passcode: object = None,
@@ -1001,7 +1005,7 @@ def create_cohost(
 
 
 def redeem_cohost(
-    event_id: uuid.UUID | str,
+    event_id: uuid.UUID | str | int,
     name: object,
     passcode: object,
     *,
@@ -1043,7 +1047,7 @@ def cohost_for_request(
 
 
 def revoke_cohost(
-    event_id: uuid.UUID | str,
+    event_id: uuid.UUID | str | int,
     invite_id: str,
     *,
     using: str = DEFAULT_DB_ALIAS,
@@ -1071,7 +1075,7 @@ def revoke_cohost(
 
 
 def bulk_moderate(
-    event_id: uuid.UUID | str,
+    event_id: uuid.UUID | str | int,
     *,
     action: str,
     question_ids: object,
@@ -1355,7 +1359,9 @@ def serialize_session(
     return result
 
 
-def admin_event_qna(event_id: uuid.UUID | str, *, using: str = DEFAULT_DB_ALIAS) -> dict[str, Any]:
+def admin_event_qna(
+    event_id: uuid.UUID | str | int, *, using: str = DEFAULT_DB_ALIAS
+) -> dict[str, Any]:
     session = _qna_session(event_id, using=using)
     return serialize_session(session, moderator=True, include_questions=True, using=using)
 

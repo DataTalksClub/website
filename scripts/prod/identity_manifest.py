@@ -252,7 +252,7 @@ def import_identity_manifest(*, path: Path, dry_run: bool = False) -> IdentityIm
             raise EventIdentityError("public_id_uuid_conflict")
         if by_id is not None and by_id.public_id != item.public_id:
             raise EventIdentityError("public_id_renumber_forbidden")
-        if by_id is None:
+        if by_id is None or by_id_source is None:
             created += 1
         elif (
             by_id.title != item.title
@@ -262,7 +262,7 @@ def import_identity_manifest(*, path: Path, dry_run: bool = False) -> IdentityIm
         ):
             updated += 1
         if not dry_run:
-            if by_id is None:
+            if by_id is None or by_id_source is None:
                 # The shared row cannot exist without a schedule and the
                 # manifest does not carry one; the content import reconciles
                 # the real start within the same run (#412).
@@ -287,6 +287,7 @@ def import_identity_manifest(*, path: Path, dry_run: bool = False) -> IdentityIm
                     source_checksum=item.source_checksum,
                 )
             else:
+                assert by_id_source is not None
                 event = by_id
                 event.title = item.title
                 event.slug = event_title_slug(item.title)

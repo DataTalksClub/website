@@ -16,9 +16,9 @@ from django.test import TestCase, override_settings
 from content.event_content import event_groups
 from core.models import AuditEvent
 from core.services import ServiceContext
+from events.identity import resolve_uuid
 from events.queries import published_event_records
 from historical_registrations.importers import clear_source_readers, source_reference_digest
-from events.identity import resolve_uuid
 from historical_registrations.models import (
     HistoricalRegistrationAggregateRevision,
     HistoricalRegistrationAggregateSlot,

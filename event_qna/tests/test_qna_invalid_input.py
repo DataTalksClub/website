@@ -49,7 +49,9 @@ class InvalidInputTests(TestCase):
         ):
             with self.subTest(raw=raw):
                 if raw == {"allow_names": False}:
-                    services.update_session(self.event.content_id, {"settings": {"require_names": True}})
+                    services.update_session(
+                        self.event.content_id, {"settings": {"require_names": True}}
+                    )
                 with self.assertRaises(QnaError) as caught:
                     services.update_session(self.event.content_id, {"settings": raw})
                 self.assertEqual(caught.exception.status, 400)
@@ -142,7 +144,10 @@ class InvalidInputTests(TestCase):
         )
         with self.assertRaises(QnaError) as caught:
             services.update_question(
-                self.event.content_id, self.question.question_id, {"status": "visible"}, moderator=True
+                self.event.content_id,
+                self.question.question_id,
+                {"status": "visible"},
+                moderator=True,
             )
         self.assertEqual(caught.exception.status, 409)
         self.assertEqual(caught.exception.code, "deleted")

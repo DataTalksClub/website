@@ -4,11 +4,11 @@ import json
 import uuid
 from typing import Any
 
+from community_base.events.models import Event
 from django.core.management.base import BaseCommand, CommandError
 
 from event_qna.models import EventQnaSession
 from event_qna.services import ensure_event_qna
-from community_base.events.models import Event
 
 
 class Command(BaseCommand):

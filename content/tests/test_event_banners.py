@@ -3,10 +3,10 @@ from __future__ import annotations
 import struct
 from pathlib import Path
 
+from community_base.events.models import Event
 from django.test import TestCase
 
 from content.event_banners import EVENT_BANNER_FILENAMES, event_banner_url
-from community_base.events.models import Event
 from events.identity import canonical_detail_path
 from events.queries import published_event_records
 from test_support.reference_data import load_reviewed_reference_data

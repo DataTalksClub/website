@@ -13,9 +13,9 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime, timedelta
 
+from community_base.events.models import Event, EventHost, Host
 from django.test import TestCase
 
-from community_base.events.models import Event, EventHost, Host
 from events.queries import published_event_record, published_event_records
 
 STARTS_AT = datetime(2026, 6, 1, 17, 0, tzinfo=UTC)

@@ -20,9 +20,8 @@ import uuid
 from collections.abc import Iterable
 from typing import Any
 
-from django.db.models import Prefetch, Q
-
 from community_base.events.models import Event, EventHost
+from django.db.models import Prefetch, Q
 
 from content.models import EventSource
 

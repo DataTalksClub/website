@@ -348,7 +348,9 @@ class ParticipantContinuityTests(PublicModerationTestBase):
     def test_anonymous_participant_can_still_withdraw_own_question(self):
         event = self.make_event()
         participant, participant_token = security.new_participant()
-        question = services.submit_question(event.content_id, text="Withdraw me", participant=participant)
+        question = services.submit_question(
+            event.content_id, text="Withdraw me", participant=participant
+        )
         urls = _qna_urls(event)
         client = Client(enforce_csrf_checks=True)
         client.cookies[security.PARTICIPANT_COOKIE] = participant_token

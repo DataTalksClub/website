@@ -30,7 +30,9 @@ class EventQnaLifecycleEtagTests(TestCase):
         )
         services.transition_session(self.event.content_id, EventQnaSession.State.OPEN)
         participant, _token = security.new_participant()
-        services.submit_question(self.event.content_id, text="First question", participant=participant)
+        services.submit_question(
+            self.event.content_id, text="First question", participant=participant
+        )
         self.open_etag = services.list_questions(self.event.content_id)[2]
 
     def test_closing_without_question_changes_invalidates_the_etag(self) -> None:

@@ -22,16 +22,14 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import datetime, timezone as datetime_timezone
+from datetime import UTC, datetime
 from time import sleep
 from typing import Any
 
-from django.core.exceptions import ValidationError
-from django.db import OperationalError, transaction
-from django.db.models import Max, Q
-
 from community_base.events.models import Event, EventPublicIdSequence
 from community_base.events.services import allocate_public_id, reserve_public_id
+from django.db import OperationalError, transaction
+from django.db.models import Max
 from django.utils import timezone
 
 from content.models import EventSource
@@ -46,7 +44,7 @@ _PUBLIC_ID_ALLOCATION_ATTEMPTS = 5
 #: test factories, provider discovery before the export is read -- get this
 #: standing instant; every caller with real schedule data passes it and the
 #: content import reconciles it.
-DEFAULT_STARTS_AT = datetime(2026, 1, 1, tzinfo=datetime_timezone.utc)
+DEFAULT_STARTS_AT = datetime(2026, 1, 1, tzinfo=UTC)
 
 #: The package owns its own lifecycle vocabulary.  The site map is total: every
 #: DTC lifecycle value lands on the package status with the same public meaning.

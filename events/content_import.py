@@ -61,9 +61,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from django.db import transaction
-
 from community_base.events.models import Event, EventHost, Host
+from django.db import transaction
 
 from content.models import EventSource
 

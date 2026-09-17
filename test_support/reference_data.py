@@ -99,6 +99,7 @@ def load_event_identities() -> int:
     """
 
     from community_base.events.models import Event
+
     from content.models import EventSource
     from events.identity import (
         encode_event_tags,

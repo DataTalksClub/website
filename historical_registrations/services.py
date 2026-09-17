@@ -10,6 +10,7 @@ from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from community_base.events.models import Event
 from community_base.jobs.dispatch import dispatch_after_commit
 from django.conf import settings
 from django.db import IntegrityError, transaction
@@ -18,7 +19,6 @@ from django.db.models import Q
 from core.audit import AuditWriteContext, record_audit_event
 from core.models import AuditEvent, RevisionConflict
 from core.services import ServiceContext
-from community_base.events.models import Event
 from events.identity import (
     EventIdentityError,
     EventIdentityNotFound,
@@ -106,7 +106,9 @@ def _canonical_event(event_id: uuid.UUID | str | int) -> dict[str, Any]:
     """
 
     try:
-        if isinstance(event_id, int) and not isinstance(event_id, bool):
+        if isinstance(event_id, bool) or event_id is None:
+            raise EventIdentityError("event_projection_identity_mismatch")
+        if isinstance(event_id, int):
             from community_base.events.models import Event
 
             resolved = Event.objects.get(pk=event_id)
@@ -135,11 +137,14 @@ def _aggregate_matches_projection(aggregate: HistoricalRegistrationAggregateRevi
 
     if aggregate.event_id is None:
         return False
+    row = aggregate.event
+    if row is None:
+        return False
     try:
         event = _canonical_event(aggregate.event_id)
     except HistoricalRegistrationInvalid:
         return False
-    return event.get("identity_id") == str(aggregate.event.content_id)
+    return event.get("identity_id") == str(row.content_id)
 
 
 def _mask_identifier(value: str) -> str:
@@ -1450,7 +1455,7 @@ def get_run_detail(run_id: uuid.UUID) -> dict[str, Any]:
                 "external_event": _mask_identifier(item.external_event_identifier),
                 # The identity UUID is the stable handle this API has always
                 # exposed; the integer row key stays internal.
-                "event_id": str(item.event.content_id) if item.event_id else None,
+                "event_id": str(item.event.content_id) if item.event else None,
                 "resolved": item.event_id is not None,
                 "canonical_slug": item.event.slug if item.event is not None else "",
                 "eligible_count": item.eligible_count,

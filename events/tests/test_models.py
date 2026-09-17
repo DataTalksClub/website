@@ -12,11 +12,11 @@ from __future__ import annotations
 import re
 from typing import ClassVar
 
+from community_base.events.models import Event, EventPublicIdSequence
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import Resolver404, resolve
 
-from community_base.events.models import Event, EventPublicIdSequence
 from content import catalogue
 from events.identity import (
     EventIdentityNotFound,

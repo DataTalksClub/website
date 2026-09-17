@@ -14,11 +14,11 @@ import re
 from pathlib import Path
 
 import pytest
+from community_base.events.models import Event
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
 from content.event_content import event_date_groups, event_groups
 from content.pagination import PUBLIC_PAGE_SIZE
-from community_base.events.models import Event
 from playwright_tests.accessibility_support import assert_accessible_page
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-177")
@@ -378,5 +378,7 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
     event = Event.objects.get(id=first_of_page_two["identity_id"])
     uuid_path = page.request.get(f"{origin}/events/{event.id}", max_redirects=0)
     assert uuid_path.status == 404
-    dated_path = page.request.get(f"{origin}/events/{event.source_identity.source_key}", max_redirects=0)
+    dated_path = page.request.get(
+        f"{origin}/events/{event.source_identity.source_key}", max_redirects=0
+    )
     assert dated_path.status == 404
