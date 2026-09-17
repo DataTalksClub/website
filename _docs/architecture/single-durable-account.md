@@ -30,7 +30,7 @@ are:
 | Authority | active/staff/superuser flags, account role, groups, user permissions | Keep survivor authority only. Source groups and permissions remain provenance on the disabled source and are not unioned. |
 | Profile | names, certificate name, country, region, registration role, public URLs, About me | Preserve unchanged values. Every differing value requires an explicit `source` or `survivor` decision. |
 | Preference | dark mode and preferred timezone | Preserve the survivor unless a reviewer explicitly selects the source value. |
-| External consent | Datamailer preferences keyed by normalized contact email | Never merge or update during reconciliation. The survivor contact remains authoritative; a source contact is left untouched for the later privacy process. |
+| Mail category consent | the three opt-out fields on the account (D1.2ca moved them off the retired Datamailer store) | Never merge. Preserve the survivor's fields; the source account's fields are left untouched for the later privacy process. |
 | Course consent | registration newsletter choice and enrollment display/privacy flags | Preserve each owned row unchanged. Same-scope collisions fail closed instead of combining choices. |
 
 The dependent relationship inventory contains 21 direct or through-table user

@@ -18,6 +18,14 @@ Every drop is guarded on the table existing:
 Ordering needs no dependency on the deleted apps: on any database where their
 migrations are recorded, they applied long before this one, and the guard makes
 every other starting state a no-op.
+
+This migration is irreversible in the data sense and its reverse is a
+deliberate no-op: the models that described these tables are deleted in the
+same change, so nothing here could recreate their schema, and recreating empty
+tables would only hide the drop. The rows are not lost work -- the durable
+unsubscribes already live in ``cb_mail_pendingunsubscribe`` and the datamailer
+storage has been read-only history since D1.2b -- so the reverse leaves the
+database exactly as the forward migration left it and unapplies cleanly.
 """
 
 from django.db import migrations

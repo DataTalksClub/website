@@ -151,7 +151,6 @@ TYPECHECK_PATHS: Final = (
     "content",
     "content_sync",
     "events",
-    "email_app",
     "studio",
     "deploy",
     "ci",
