@@ -11,7 +11,11 @@ from content import catalogue
 
 pytestmark = [pytest.mark.core]
 
-REPRESENTATIVE = "s24e06-how-to-build-ai-that-actually-ships-in-production"
+# The reference catalogue's fully-populated episode: a video, chaptered
+# timestamps, show-note links and guests with their own profile links, which is
+# what this module measures.  Read every identifier off the record below rather
+# than restating one corpus's episode.
+REPRESENTATIVE = "synthetic-episode-one"
 
 
 def _episode(slug: str) -> dict[str, Any]:
@@ -20,6 +24,19 @@ def _episode(slug: str) -> dict[str, Any]:
     record = catalogue.podcast(slug)
     assert record is not None, slug
     return record
+
+
+def _person(key: str) -> dict[str, Any]:
+    """The profile record a guest credit resolves to."""
+
+    return catalogue.people_by_slug()[key]
+
+
+def _timestamp_href(episode: dict[str, Any]) -> str:
+    """The first transcript timestamp's deep link into the episode's own video."""
+
+    first = next(entry for entry in episode["transcript"] if "sec" in entry)
+    return f"https://www.youtube.com/watch?v={episode['video']['id']}&t={first['sec']}"
 
 
 def _settle_analytics_preferences(page: Page) -> None:
@@ -66,13 +83,17 @@ def test_episode_sections_player_and_guest_links_are_keyboard_reachable(
     expect(page.get_by_role("tab", name="Show Notes")).to_have_attribute("href", "#show-notes")
     expect(page.get_by_role("tab", name="Timestamps")).to_have_attribute("href", "#timestamps")
     expect(page.get_by_role("tab", name="Transcript")).to_have_attribute("href", "#transcript")
-    expect(page.locator("#show-notes a[target='_blank']")).to_have_count(2)
-    expect(page.locator(".guest-bio-card img")).to_have_attribute(
-        "alt", "Portrait of Aleksandr Kim"
+    expect(page.locator("#show-notes a[target='_blank']")).to_have_count(len(episode["resources"]))
+    guests = episode["guest_profiles"]
+    expect(page.locator(".guest-bio-card img").first).to_have_attribute(
+        "alt", f"Portrait of {guests[0]['name']}"
     )
-    expect(page.locator(".guest-bio-links a[target='_blank']")).to_have_count(2)
+    # Every guest card carries that guest's own profile links.
+    expect(page.locator(".guest-bio-links a[target='_blank']")).to_have_count(
+        sum(len(_person(guest["key"])["links"]) for guest in guests)
+    )
     expect(page.locator(".episode-timestamp").first).to_have_attribute(
-        "href", "https://www.youtube.com/watch?v=PosCx_4fwt0&t=0"
+        "href", _timestamp_href(episode)
     )
     _assert_no_horizontal_overflow(page)
 
@@ -90,12 +111,13 @@ def test_timestamp_enhancement_updates_player_and_keeps_native_target(
     # panel is actually visible and its links can receive real keyboard focus.
     page.get_by_role("tab", name="Timestamps").click()
     timestamp = page.locator("#timestamps .episode-timestamp").first
-    expect(timestamp).to_have_attribute("href", "https://www.youtube.com/watch?v=PosCx_4fwt0&t=0")
+    expect(timestamp).to_have_attribute("href", _timestamp_href(episode))
     timestamp.focus()
     timestamp.press("Enter")
+    video_id = episode["video"]["id"]
     expect(page.locator("#podcast-video-player")).to_have_attribute(
         "src",
-        "https://www.youtube-nocookie.com/embed/PosCx_4fwt0?enablejsapi=1&rel=0&start=0",
+        f"https://www.youtube-nocookie.com/embed/{video_id}?enablejsapi=1&rel=0&start=0",
     )
     expect(timestamp).to_be_focused()
 
@@ -182,7 +204,7 @@ def test_timestamp_and_section_links_remain_native_without_javascript(
         expect(page.locator("#timestamps")).to_be_visible()
         expect(page.locator("#transcript")).to_be_visible()
         expect(page.locator("#timestamps .episode-timestamp").first).to_have_attribute(
-            "href", "https://www.youtube.com/watch?v=PosCx_4fwt0&t=0"
+            "href", _timestamp_href(episode)
         )
         expect(page.locator("#timestamps .episode-timestamp").first).not_to_have_attribute(
             "href", "#"
