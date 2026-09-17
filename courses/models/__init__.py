@@ -6,6 +6,7 @@ from . import (  # noqa: F401
     curriculum,
     curriculum_import,
     homework,
+    learner_profile,
     project,
     shared_curriculum,
     testimonial,
@@ -47,6 +48,12 @@ from .homework import (
     Question,
     QuestionTypes,
     Submission,
+)
+from .learner_profile import (
+    LearnerProfile,
+    ensure_learner_profile,
+    learner_profile_for,
+    profile_field_default,
 )
 from .project import (
     CriteriaResponse,
@@ -102,6 +109,7 @@ __all__ = (
     "HomeworkState",
     "HomeworkStatistics",
     "InvalidCriteriaAnswerError",
+    "LearnerProfile",
     "LeaderboardComplaint",
     "PeerReview",
     "PeerReviewState",
