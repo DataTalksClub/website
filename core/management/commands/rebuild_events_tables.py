@@ -18,7 +18,11 @@ from django.core.management.base import BaseCommand, CommandParser
 from django.db import connection, transaction
 
 _REGISTRY_DELETES = (
-    # Permissions first: they reference the content types being removed.
+    # The site-owned provenance rows describe the legacy table's identity and
+    # are re-created by the reviewed import; they go before the tables their
+    # foreign keys point into (D4.1).
+    ("content_eventsource", "DELETE FROM content_eventsource"),
+    # Permissions next: they reference the content types being removed.
     (
         "auth_permission",
         "DELETE FROM auth_permission WHERE content_type_id IN "
@@ -49,11 +53,12 @@ class Command(BaseCommand):
         apply_changes = bool(options["apply"])
 
         with connection.cursor() as cursor:
-            tables = [
-                name
-                for name in connection.introspection.table_names(cursor)
-                if name.startswith("events_")
-            ]
+            names = connection.introspection.table_names(cursor)
+            # The shared app's own tables (events_event, ...) also start with
+            # events_; only tables the current migration graph does not own are
+            # legacy leftovers, so they -- and only they -- get dropped.
+            owned = set(connection.introspection.django_table_names(only_existing=True))
+            tables = [name for name in names if name.startswith("events_") and name not in owned]
             registry_counts = {
                 table: cursor.execute(
                     f"SELECT COUNT(*) FROM {table} WHERE {column} = 'events'"  # noqa: S608 -- table and column are code-owned literals.
@@ -86,9 +91,15 @@ class Command(BaseCommand):
                         quoted = connection.ops.quote_name(name)
                         cascade = " CASCADE" if connection.vendor == "postgresql" else ""
                         cursor.execute(f"DROP TABLE IF EXISTS {quoted}{cascade}")  # noqa: S608 -- identifier is quoted and introspected.
-                with connection.cursor() as cursor:
-                    for _table, statement in _REGISTRY_DELETES:
-                        cursor.execute(statement)
+                # The migration/content-type/permission rows describe the
+                # legacy app; they are cleared only when the legacy identity
+                # table itself is going.  If the shared app already owns
+                # events_event (an already-cut-over database), its registry
+                # rows must stay.
+                if "events_event" in tables:
+                    with connection.cursor() as cursor:
+                        for _table, statement in _REGISTRY_DELETES:
+                            cursor.execute(statement)
             finally:
                 if constraints_disabled:
                     connection.enable_constraint_checking()

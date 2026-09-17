@@ -57,12 +57,14 @@ class RebuildEventsTablesTests(TestCase):
 
         self.assertIn("Dropped", output)
         tables = _table_names()
-        self.assertFalse(
-            [name for name in tables if name.startswith("events_")],
-            "an events_ table survived the rebuild",
-        )
+        # Only legacy leftovers go: the shared app's own tables (which also
+        # start with events_) are owned by the current migration graph and
+        # must survive, because the command can meet them on an already-cut-
+        # over database.
+        self.assertNotIn("events_rebuild_probe", tables)
+        self.assertIn("events_event", tables)
         self.assertIn("django_site", tables)
-        self.assertEqual(_scalar("SELECT COUNT(*) FROM django_migrations WHERE app = 'events'"), 0)
-        self.assertEqual(
-            _scalar("SELECT COUNT(*) FROM django_content_type WHERE app_label = 'events'"), 0
+        # The package's own registry rows stay: only a legacy set is cleared.
+        self.assertGreater(
+            _scalar("SELECT COUNT(*) FROM django_migrations WHERE app = 'events'"), 0
         )
