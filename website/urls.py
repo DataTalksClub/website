@@ -121,12 +121,10 @@ urlpatterns = [
     ),
     # Relay renders these three paths into every message it sends, from its own
     # PUBLIC_BASE_URL. They are declared before the course aliases so a legacy
-    # slug can never shadow a live unsubscribe link.
-    path("", include("email_app.urls")),
-    # The package mail app (D1.2a) owns the same three recipient-link routes and
-    # the signed callback ingress. email_app stays mounted first so it keeps
-    # serving the recipient links until D1.2c retires it; the callback route is
-    # new here and live immediately.
+    # slug can never shadow a live unsubscribe link. Since D1.2cb the package
+    # mail app is the only owner of the recipient-link routes and the signed
+    # callback ingress (D1.2a mounted it; the retired email_app kept the paths
+    # until this retirement).
     path("", include("community_base.mail.urls")),
     path("health/live", core_views.liveness, name="health-live"),
     path("health/ready", core_views.readiness, name="health-ready"),

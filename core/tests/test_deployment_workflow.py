@@ -88,7 +88,9 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # gains the seven modules that replaced the retired Datamailer client (audit
 # BE-16), and the retired Datamailer pytest marker goes with the client.  No
 # dependency changed.
-STUDIO_COURSES_PYPROJECT_SHA256 = "82f8099a5f295ba8a19d7ecbbea43a424039de58bff5b43be436f2700a009d30"
+# D1.2cb moves it once more for another config-only edit: the ruff exclude and
+# mypy override lists lose the retired data app.  No dependency changed.
+STUDIO_COURSES_PYPROJECT_SHA256 = "509de48851689d31466ada3ec585c59f9747ae941f46a6360b4be54d507aa5aa"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
     "eaa1574e661b6d84a8bc406cba443a5e242cbafdcf58d2a5fdd5394385408f9c"
 )

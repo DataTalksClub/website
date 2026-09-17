@@ -140,11 +140,11 @@ class RuntimeSettingResolutionTests(TestCase):
         self.assertEqual(resolution.layer, runtime_config.SETTINGS_LAYER)
 
     def test_out_of_range_environment_value_falls_through_to_the_default(self) -> None:
-        with mock.patch.dict(os.environ, {"RELAY_LINK_BRIDGE_POOL_SIZE": "100000"}):
-            with override_settings(RELAY_LINK_BRIDGE_POOL_SIZE=0):
+        with mock.patch.dict(os.environ, {"PUBLIC_MEDIA_S3_TIMEOUT_SECONDS": "100000"}):
+            with override_settings(PUBLIC_MEDIA_S3_TIMEOUT_SECONDS=0):
                 reset_runtime_settings_cache()
-                resolution = resolve_runtime_setting("relay.link_bridge.pool_size")
-        self.assertEqual(resolution.value, 16)
+                resolution = resolve_runtime_setting("public_media.s3_timeout_seconds")
+        self.assertEqual(resolution.value, 5)
         self.assertEqual(resolution.layer, runtime_config.DEFAULT_LAYER)
 
     def test_snapshot_covers_every_runtime_key(self) -> None:
@@ -294,8 +294,6 @@ class EndpointSettingTests(TestCase):
         accepted = {
             "site.origin.canonical": "https://datatalks.club",
             "public_media.s3_endpoint_url": "https://storage.example.com",
-            # Relay has no public listener; in-VPC it is plain http.
-            "relay.link_bridge.base_url": "http://relay.internal:8000",
         }
         for key, value in accepted.items():
             with self.subTest(key=key):
@@ -312,7 +310,7 @@ class EndpointSettingTests(TestCase):
         refused = (
             # The two shapes a token travels in.
             ("site.origin.canonical", "https://operator:hunter2@datatalks.club"),
-            ("relay.link_bridge.base_url", "http://relay.internal:8000/#abc"),
+            ("public_media.s3_endpoint_url", "https://storage.example.com/#abc"),
             # An origin is a scheme and a host: a path here would be appended to
             # every canonical link on the site.
             ("site.origin.canonical", "https://datatalks.club/courses"),
@@ -347,8 +345,10 @@ class EndpointSettingTests(TestCase):
         with".  The ordinary resolution order gives it for free.
         """
 
-        key = "relay.link_bridge.base_url"
-        with mock.patch.dict(os.environ, {"RELAY_LINK_BRIDGE_BASE_URL": "https://booted.example"}):
+        key = "public_media.s3_endpoint_url"
+        with mock.patch.dict(
+            os.environ, {"PUBLIC_MEDIA_S3_ENDPOINT_URL": "https://booted.example"}
+        ):
             row = _store(key, OperationalSetting.ValueType.STRING, "https://written.example")
             reset_runtime_settings_cache()
             self.assertEqual(get_setting(key), "https://written.example")

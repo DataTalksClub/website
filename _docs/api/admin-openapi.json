@@ -816,7 +816,6 @@
             "enum": [
               "observability",
               "public_media",
-              "relay.link_bridge",
               "site.origin"
             ],
             "type": "string"
@@ -833,12 +832,7 @@
               "public_media.s3_prefix",
               "public_media.s3_region",
               "public_media.s3_timeout_seconds",
-              "public_media.store_backend",
-              "relay.link_bridge.base_url",
-              "relay.link_bridge.click_timeout_seconds",
-              "relay.link_bridge.open_timeout_seconds",
-              "relay.link_bridge.pool_size",
-              "relay.link_bridge.unsubscribe_timeout_seconds"
+              "public_media.store_backend"
             ],
             "type": "string"
           },
@@ -945,7 +939,6 @@
             "enum": [
               "observability",
               "public_media",
-              "relay.link_bridge",
               "site.origin"
             ],
             "type": "string"
@@ -962,12 +955,7 @@
               "public_media.s3_prefix",
               "public_media.s3_region",
               "public_media.s3_timeout_seconds",
-              "public_media.store_backend",
-              "relay.link_bridge.base_url",
-              "relay.link_bridge.click_timeout_seconds",
-              "relay.link_bridge.open_timeout_seconds",
-              "relay.link_bridge.pool_size",
-              "relay.link_bridge.unsubscribe_timeout_seconds"
+              "public_media.store_backend"
             ],
             "type": "string"
           },
@@ -1041,8 +1029,8 @@
             "items": {
               "$ref": "#/components/schemas/OperationalSetting"
             },
-            "maxItems": 16,
-            "minItems": 16,
+            "maxItems": 11,
+            "minItems": 11,
             "type": "array"
           }
         },
@@ -1074,12 +1062,7 @@
                     "public_media.s3_prefix",
                     "public_media.s3_region",
                     "public_media.s3_timeout_seconds",
-                    "public_media.store_backend",
-                    "relay.link_bridge.base_url",
-                    "relay.link_bridge.click_timeout_seconds",
-                    "relay.link_bridge.open_timeout_seconds",
-                    "relay.link_bridge.pool_size",
-                    "relay.link_bridge.unsubscribe_timeout_seconds"
+                    "public_media.store_backend"
                   ],
                   "type": "string"
                 },
@@ -1098,7 +1081,7 @@
               ],
               "type": "object"
             },
-            "maxItems": 16,
+            "maxItems": 11,
             "minItems": 1,
             "type": "array"
           }
@@ -1118,7 +1101,7 @@
             "items": {
               "$ref": "#/components/schemas/OperationalSettingResult"
             },
-            "maxItems": 16,
+            "maxItems": 11,
             "minItems": 1,
             "type": "array"
           }

@@ -63,7 +63,7 @@ class SettingsContractParityTest(SimpleTestCase):
 
     def test_every_site_declaration_maps_and_is_accepted(self):
         site_definitions = registered_operational_settings()
-        self.assertGreaterEqual(len(site_definitions), 18)
+        self.assertGreaterEqual(len(site_definitions), 13)
 
         adapter_owned = []
         for definition in site_definitions:

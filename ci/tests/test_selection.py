@@ -93,7 +93,7 @@ def test_an_unowned_jobs_change_selects_the_full_profile() -> None:
         (("core/a.py",), "shared_application"),
         (("content_sync/a.py",), "shared_application"),
         (("events/a.py",), "shared_application"),
-        (("email_app/a.py",), "shared_application"),
+        (("core/a.py",), "shared_application"),
         (("cadmin/legacy_urls.py",), "documentation_or_contract"),
         (("content/migrations/0001.py",), "migration_changed"),
         (("content/templates/content/a.txt",), "template_changed"),

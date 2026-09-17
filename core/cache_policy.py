@@ -140,8 +140,6 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "community_base.mail.callback_ingress.receive_callback": OPERATIONAL,
     "community_base.mail.views.tracking_click": OPERATIONAL,
     "community_base.mail.views.tracking_open": OPERATIONAL,
-    "email_app.views.tracking_click": OPERATIONAL,
-    "email_app.views.tracking_open": OPERATIONAL,
     # -- Private/dynamic: everything else, listed explicitly.  Registration,
     # capability-bearing URLs (unsubscribe tokens), participant/live Q&A,
     # cohort-scoped learner surfaces, accounts, Studio, admin, and APIs.
@@ -258,7 +256,6 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "django.contrib.admin.sites.password_change_done": PRIVATE_DYNAMIC,
     "django.contrib.auth.views.LogoutView": PRIVATE_DYNAMIC,
     "django.contrib.contenttypes.views.shortcut": PRIVATE_DYNAMIC,
-    "email_app.views.public_unsubscribe": PRIVATE_DYNAMIC,
     "event_qna.studio_views.event_qna_cohost": PRIVATE_DYNAMIC,
     "event_qna.studio_views.event_qna_cohost_revoke": PRIVATE_DYNAMIC,
     "event_qna.studio_views.event_qna_detail": PRIVATE_DYNAMIC,
