@@ -4909,7 +4909,7 @@
       "articles": 28,
       "books": 48,
       "courses": 12,
-      "media": 7,
+      "media": 11,
       "people": 6,
       "podcasts": 11,
       "transcripts": 0,
@@ -5157,6 +5157,62 @@
       "public_path": "/images/authors/ synthetic-spaced-author.jpg",
       "record_key": "images/authors/ synthetic-spaced-author.jpg",
       "slug": "images/authors/ synthetic-spaced-author.jpg"
+    },
+    {
+      "content_type": "image/jpeg",
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_key": "synthetic",
+        "source_path": "synthetic.md",
+        "source_url": "https://example.invalid/synthetic"
+      },
+      "public_path": "/images/authors/synthetic-rich-profile.jpg",
+      "record_key": "images/authors/synthetic-rich-profile.jpg",
+      "slug": "images/authors/synthetic-rich-profile.jpg"
+    },
+    {
+      "content_type": "image/jpeg",
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_key": "synthetic",
+        "source_path": "synthetic.md",
+        "source_url": "https://example.invalid/synthetic"
+      },
+      "public_path": "/images/authors/synthetic-sparse-profile.jpg",
+      "record_key": "images/authors/synthetic-sparse-profile.jpg",
+      "slug": "images/authors/synthetic-sparse-profile.jpg"
+    },
+    {
+      "content_type": "image/jpeg",
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_key": "synthetic",
+        "source_path": "synthetic.md",
+        "source_url": "https://example.invalid/synthetic"
+      },
+      "public_path": "/images/authors/synthetic-apostrophe-guest.jpg",
+      "record_key": "images/authors/synthetic-apostrophe-guest.jpg",
+      "slug": "images/authors/synthetic-apostrophe-guest.jpg"
+    },
+    {
+      "content_type": "image/jpeg",
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_key": "synthetic",
+        "source_path": "synthetic.md",
+        "source_url": "https://example.invalid/synthetic"
+      },
+      "public_path": "/images/authors/synthetic-apostrophe-profile.jpg",
+      "record_key": "images/authors/synthetic-apostrophe-profile.jpg",
+      "slug": "images/authors/synthetic-apostrophe-profile.jpg"
     }
   ],
   "people": [
