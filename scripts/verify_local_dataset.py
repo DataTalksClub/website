@@ -306,14 +306,14 @@ def _editorial_content_report() -> dict[str, Any]:
 def _event_report(as_of: date) -> dict[str, Any]:
     from django.utils import timezone
 
+    from community_base.events.models import Event
     from content.event_content import event_groups
-    from events.models import Event, EventContent
 
     groups = event_groups()
     # The freshness fact that cannot rot: did the import carry an event horizon
     # beyond the reviewed snapshot at all?  ``future_dated_events`` is reported
     # for operational context, but it decays as time passes and must never gate.
-    events_on_or_after_as_of = EventContent.objects.filter(starts_at__date__gte=as_of).count()
+    events_on_or_after_as_of = Event.objects.filter(start_datetime__date__gte=as_of).count()
     return {
         "checked_at": timezone.now().isoformat(),
         "as_of": as_of.isoformat(),
@@ -321,11 +321,10 @@ def _event_report(as_of: date) -> dict[str, Any]:
         "future_dated_events": len(groups.upcoming),
         "events_on_or_after_as_of": events_on_or_after_as_of,
         "next_event_starts_at": groups.upcoming[0]["starts_at"] if groups.upcoming else None,
+        # Identity and content are one shared row (#412); the former
+        # identities/content split no longer exists to report separately.
         "database_event_identities": Event.objects.count(),
-        # Identity alone publishes no page, so the two counts are reported
-        # separately: identities with no content behind them is the shape the
-        # dataset had while event content still lacked an importer.
-        "database_event_content": EventContent.objects.count(),
+        "database_event_content": Event.objects.exclude(description_html="").count(),
     }
 
 

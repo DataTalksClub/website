@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 
-from events.importers import (
+from historical_registrations.importers import (
     ADAPTER_VERSION,
     AggregateCandidate,
     CanonicalProposal,
@@ -28,10 +28,7 @@ from events.importers import (
     ProtectedSourceError,
     SourceReader,
 )
-from events.models import (
-    HistoricalRegistrationAggregateRevision,
-    HistoricalRegistrationSourceRun,
-)
+from historical_registrations.models import (HistoricalRegistrationAggregateRevision, HistoricalRegistrationSourceRun)
 
 from .safety import (
     MAX_ROWS,

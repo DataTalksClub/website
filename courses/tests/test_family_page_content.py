@@ -93,15 +93,17 @@ class MergeSyllabusRowsWithProjectsTests(SimpleTestCase):
                 "Capstone project",
             ],
         )
-        self.assertEqual([row.is_project for row in merged], [
-            False, False, True, False, False, True
-        ])
+        self.assertEqual(
+            [row.is_project for row in merged], [False, False, True, False, False, True]
+        )
         # A project row is starred, not numbered, and carries its own url.
         midterm_row = merged[2]
         self.assertEqual(midterm_row.index, "★")
         self.assertEqual(midterm_row.url, "/midterm")
         # The plain module rows keep their own original numbering.
-        self.assertEqual([row.index for row in merged if not row.is_project], ["01", "02", "03", "04"])
+        self.assertEqual(
+            [row.index for row in merged if not row.is_project], ["01", "02", "03", "04"]
+        )
 
     def test_a_project_due_before_every_dated_unit_leads_the_list(self):
         units = self._units()

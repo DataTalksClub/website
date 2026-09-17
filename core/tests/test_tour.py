@@ -89,7 +89,7 @@ class TourPageTests(TestCase):
         body = self._get().content.decode()
 
         self.assertIn('class="tour-hero-inner"', body)
-        self.assertIn('<h1>Take the tour</h1>', body)
+        self.assertIn("<h1>Take the tour</h1>", body)
         self.assertIn('class="tour-lede"', body)
         self.assertNotIn('class="tour-hero-commitment"', body)
         self.assertNotIn("Not a highlight reel", body)

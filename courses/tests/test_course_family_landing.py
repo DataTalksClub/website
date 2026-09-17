@@ -123,9 +123,7 @@ class CourseFamilyLandingTests(TestCase):
         # The stages break out to the shell's full width, on the page's own
         # lavender ground: the cards are too narrow to read at the reading
         # column, and the section introduces no band of its own.
-        self.assertContains(
-            response, 'class="family-transformation shell-breakout"', count=1
-        )
+        self.assertContains(response, 'class="family-transformation shell-breakout"', count=1)
 
     def journey_section(self, response) -> str:
         """The rendered three-stage section, markup only."""
@@ -190,9 +188,7 @@ class CourseFamilyLandingTests(TestCase):
         body = response.content.decode()
 
         opening_group = body[
-            body.index('class="family-opening-group"') : body.index(
-                'id="transformation-heading"'
-            )
+            body.index('class="family-opening-group"') : body.index('id="transformation-heading"')
         ]
         self.assertIn('id="fit-heading"', opening_group)
         self.assertIn("Good fit if", opening_group)
@@ -285,7 +281,7 @@ class CourseFamilyLandingTests(TestCase):
         # text stacked in the cream hero band above the CTAs); they now
         # render as plain prose of their own in the body, still not a
         # disclosure, and not inside the hero any more.
-        self.assertNotContains(response, "<details class=\"family-overview\"")
+        self.assertNotContains(response, '<details class="family-overview"')
         self.assertNotContains(response, "About this course and learning notes")
         self.assertContains(response, "This course is educational; results are not guaranteed.")
         self.assertNotContains(response, "<script>unsafe()")
@@ -330,7 +326,9 @@ class CourseFamilyLandingTests(TestCase):
         self.assertNotIn(self.family.prerequisites, starting_point_section)
 
     def test_weekly_commitment_is_escaped_and_not_in_the_hero(self):
-        self.family.weekly_commitment = "Free. <script>evil()</script> Plan for about 10 hours a week."
+        self.family.weekly_commitment = (
+            "Free. <script>evil()</script> Plan for about 10 hours a week."
+        )
         self.family.save(update_fields=["weekly_commitment"])
 
         response = self.client.get(self.url)
@@ -507,9 +505,7 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         self.assertEqual(stats["graduates"], "2")
         self.assertEqual(stats["projects"], "2")
         labels = [stat.label for stat in response.context["family_outcome_stats"]]
-        self.assertEqual(
-            labels, ["cohort since 2021", "sign ups", "projects", "graduates"]
-        )
+        self.assertEqual(labels, ["cohort since 2021", "sign ups", "projects", "graduates"])
         self.assertContains(response, 'id="outcomes-heading"')
         self.assertContains(response, "cohort since 2021")
         self.assertContains(response, "sign ups")
@@ -662,11 +658,16 @@ class CourseFamilySyllabusMergeTests(TestCase):
         titles = [row.title for row in rows]
         self.assertEqual(
             titles,
-            ["Homework 1", "Homework 2", "Midterm project", "Homework 3", "Homework 4", "Capstone project"],
+            [
+                "Homework 1",
+                "Homework 2",
+                "Midterm project",
+                "Homework 3",
+                "Homework 4",
+                "Capstone project",
+            ],
         )
-        self.assertEqual(
-            [row.is_project for row in rows], [False, False, True, False, False, True]
-        )
+        self.assertEqual([row.is_project for row in rows], [False, False, True, False, False, True])
         # The document order matches: the midterm's markup sits before
         # "Homework 3" and after "Homework 2".
         self.assertLess(
@@ -909,8 +910,10 @@ class CourseFamilyFaqPreviewTests(TestCase):
         cohort = make_cohort(family, 2026, project_count=1)
         user = User.objects.create_user(username="faq-order-learner")
         enrollment = Enrollment.objects.create(student=user, course=cohort)
+        project = cohort.project_set.first()
+        assert project is not None
         ProjectSubmission.objects.create(
-            project=cohort.project_set.first(),
+            project=project,
             student=user,
             enrollment=enrollment,
             github_link="https://github.com/example/learner-project",
@@ -951,7 +954,5 @@ class CourseFamilyFaqPreviewTests(TestCase):
         document = faq_course("machine-learning-zoomcamp")
         assert document is not None
         previewed = {question["question"] for question in faq_questions(document)[:5]}
-        quick_questions = {
-            item.question for item in response.context["family_quick_faq_items"]
-        }
+        quick_questions = {item.question for item in response.context["family_quick_faq_items"]}
         self.assertEqual(previewed & quick_questions, set())

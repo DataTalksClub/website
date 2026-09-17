@@ -30,7 +30,14 @@ email_app/jobs may receive identifiers from domains, but domains do not import w
   application services in `content` and `courses`, but those domain apps never import sync
   adapters.
 - `courses`: database-owned courses, cohorts, and learner workflows.
-- `events`: database-owned events, registrations, attendance, and exports.
+- `events` (site package, no longer an installed app since D4.1/#412): the site
+  adapter over the shared `community_base.events` app, which owns the `events`
+  label, schema, and product routes. It carries the DTC identity policy
+  (`events.identity`: public-ID allocation, `content_id` resolution, source
+  provenance in `content.EventSource`, canonical paths), the public record
+  reader (`events.queries`), the reviewed description/content imports
+  (`events.content_import`, `events.eventbrite_content`), and the slug policy.
+  Registration, reminders, and package studio CRUD stay package-owned.
 - `email_app`: logical `EmailDelivery` intents, Relay idempotency/correlation metadata, redacted
   transport projections, and callback/reconciliation commands. It owns no canonical template body,
   renderer, provider adapter, provider attempt/event stack, suppression engine, or sender worker.

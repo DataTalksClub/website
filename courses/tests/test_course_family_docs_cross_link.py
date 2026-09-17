@@ -31,8 +31,7 @@ class FamilyDocsCrossLinkTests(TestCase):
 
         self.assertContains(
             response,
-            '<a class="band-link" href="/docs/courses/ai-dev-tools-zoomcamp/">'
-            "Course docs →</a>",
+            '<a class="band-link" href="/docs/courses/ai-dev-tools-zoomcamp/">Course docs →</a>',
             html=True,
         )
         # Never an absolute host or a new tab for a same-site destination.

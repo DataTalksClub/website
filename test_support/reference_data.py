@@ -42,6 +42,8 @@ that ``content.catalogue`` actually reads runs unchanged and unmocked.
 
 from __future__ import annotations
 
+import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -76,28 +78,78 @@ _CATALOGUE_COLLECTIONS = (
 )
 
 
-def load_event_identities() -> int:
-    """Insert the synthetic event identity manifest exactly as it is checked in."""
+def event_schedules() -> dict[str, dict]:
+    """The synthetic content records indexed by the identity they belong to.
 
-    from events.models import Event, ensure_public_id_sequence
+    The shared event row cannot exist without a schedule, so the checked-in
+    identity manifest and the checked-in content fixture are joined here -- the
+    same join the production rebuild performs (#412).
+    """
+
+    payload = json.loads(EVENT_CONTENT.read_text(encoding="utf-8"))
+    return {record["identity_id"]: record for record in payload}
+
+
+def load_event_identities() -> int:
+    """Insert the synthetic event rows exactly as they are checked in.
+
+    Each manifest identity becomes one shared ``events.Event`` row (its
+    ``content_id`` is the site identity UUID) plus one ``content.EventSource``
+    provenance row, scheduled from the synthetic content fixture.
+    """
+
+    from community_base.events.models import Event
+
+    from content.models import EventSource
+    from events.identity import (
+        encode_event_tags,
+        ensure_public_id_sequence,
+        package_kind_for_type,
+    )
     from scripts.prod.identity_manifest import load_identity_manifest
 
     manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
-    events = [
-        Event(
-            id=item.id,
-            public_id=item.public_id,
-            title=item.title,
-            slug=item.slug,
-            source_repository=item.source.repository,
-            source_revision=item.source.revision,
-            source_key=item.source.source_key,
-            source_path=item.source_path,
-            source_checksum=item.source_checksum,
+    schedules = event_schedules()
+    events = []
+    sources = []
+    for item in manifest.events:
+        record = schedules[str(item.id)]
+        starts_at = datetime.fromisoformat(record["starts_at"])
+        ends_at = (
+            datetime.fromisoformat(record["ends_at"]) if record.get("ends_at") else None
         )
-        for item in manifest.events
-    ]
+        events.append(
+            Event(
+                content_id=item.id,
+                public_id=item.public_id,
+                title=item.title,
+                slug=item.slug,
+                status="upcoming",
+                start_datetime=starts_at,
+                end_datetime=ends_at,
+                kind=package_kind_for_type(record.get("type")),
+                tags=encode_event_tags(
+                    event_type=record.get("type"),
+                    season=record.get("season"),
+                    episode=record.get("episode"),
+                ),
+                source_repo=item.source.repository,
+                source_path=item.source_path,
+                source_commit=item.source.revision,
+            )
+        )
+        sources.append(
+            EventSource(
+                event=events[-1],
+                repository=item.source.repository,
+                revision=item.source.revision,
+                source_key=item.source.source_key,
+                source_path=item.source_path,
+                source_checksum=item.source_checksum,
+            )
+        )
     Event.objects.bulk_create(events)
+    EventSource.objects.bulk_create(sources)
     ensure_public_id_sequence()
     return len(events)
 
@@ -105,9 +157,9 @@ def load_event_identities() -> int:
 def load_event_content() -> int:
     """Attach the synthetic event content, the way the production import does.
 
-    Identity alone publishes nothing: :func:`events.queries.published_event_records`
-    reads ``EventContent``, so without this a test database holds addressable
-    events and no event pages.
+    The identities above are created scheduled but undescribed;
+    :func:`events.content_import.import_event_content` writes each row's
+    description, speakers and links, and the public records read the result.
     """
 
     from scripts.prod.import_events import import_content
@@ -792,7 +844,7 @@ def load_homepage_testimonials() -> int:
 def load_reviewed_reference_data() -> dict[str, int]:
     """Populate a freshly migrated database with the reference rows."""
 
-    from events.models import Event
+    from community_base.events.models import Event
 
     if Event.objects.exists():
         return {"events": 0, "testimonials": 0}

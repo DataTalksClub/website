@@ -109,7 +109,7 @@ class InteractiveSurfaceContractTests(SimpleTestCase):
         # grid's plain cards; the grid stays unmarked and the retired
         # class stays retired.
         self.assertIn('class="dashboard-overview-grid"', dashboard)
-        self.assertNotIn('dashboard-card', dashboard)
+        self.assertNotIn("dashboard-card", dashboard)
         self.assertIn('class="card stage-card"', stage_card)
         self.assertIn('class="card stage-card stage-card-rail"', stage_card)
         self.assertNotIn('class="card stage-card interactive-', stage_card)

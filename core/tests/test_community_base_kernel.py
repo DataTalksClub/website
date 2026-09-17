@@ -25,6 +25,7 @@ class KernelInstallationTests(SimpleTestCase):
         self.assertEqual(
             installed,
             [
+                "community_base.events",
                 "community_base.jobs",
                 "community_base.mail",
                 "community_base.kernel.apps.KernelConfig",

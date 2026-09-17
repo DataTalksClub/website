@@ -14,14 +14,14 @@ from zipfile import ZipFile, ZipInfo
 from django.conf import settings
 from django.test import SimpleTestCase, override_settings
 
-from events.importers import (
+from historical_registrations.importers import (
     AggregateCandidate,
     CanonicalProposal,
     ProtectedSourceError,
     clear_source_readers,
     derive_registered_source,
 )
-from events.models import HistoricalRegistrationAggregateRevision
+from historical_registrations.models import HistoricalRegistrationAggregateRevision
 from scripts.prod.registration_sources import register_source_readers, safe_source_facts
 from scripts.prod.registration_sources.eventbrite import (
     SCHEMA_FINGERPRINTS,

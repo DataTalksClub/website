@@ -1,6 +1,6 @@
 from django.urls import path, re_path
 
-from events.qna import views as qna_views
+from event_qna import views as qna_views
 
 from . import legal_views, public_views
 

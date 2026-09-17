@@ -9,8 +9,9 @@ database below ``.tmp``; no production or imported snapshot is an input.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 
+from community_base.events.models import Event
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.urls import reverse
@@ -35,18 +36,13 @@ from courses.models import (
     UnitReadState,
 )
 from courses.services.local_course_seed import assert_local_database
-from events.models import (
-    Event,
-    EventQnaCohostInvite,
-    EventQnaQuestion,
-    EventQnaSession,
-)
-from events.qna.services import event_qna_path
+from event_qna.models import EventQnaCohostInvite, EventQnaQuestion, EventQnaSession
+from event_qna.services import event_qna_path
 from scripts.prod.identity_manifest import load_identity_manifest
 from test_support.design_review_identity import FROZEN_AT, SEED
 from test_support.factories import FactoryContext, create_current_scenario
 
-from .reference_data import EVENT_IDENTITY_MANIFEST
+from .reference_data import EVENT_IDENTITY_MANIFEST, event_schedules
 
 #: Any checked identity from the reference fixture works here; this is not a
 #: pin on a specific real event, just a stable choice of which one the design
@@ -64,9 +60,12 @@ def ensure_checked_event_identity_snapshot() -> Event:
     """
 
     manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
-    existing = {event.id: event for event in Event.objects.all()}
+    schedules = event_schedules()
+    existing = {event.content_id: event for event in Event.objects.all()}
     existing_public_ids = {
-        event.public_id: event.id for event in existing.values() if event.public_id is not None
+        event.public_id: event.content_id
+        for event in existing.values()
+        if event.public_id is not None
     }
     missing: list[Event] = []
     for item in manifest.events:
@@ -74,26 +73,28 @@ def ensure_checked_event_identity_snapshot() -> Event:
         if current is not None:
             if (
                 current.public_id != item.public_id
-                or current.source_repository != item.source.repository
-                or current.source_revision != item.source.revision
-                or current.source_key != item.source.source_key
+                or current.source_repo != item.source.repository
+                or current.source_commit != item.source.revision
             ):
                 raise RuntimeError("checked public event identity mapping conflicts with test DB")
             continue
         if item.public_id in existing_public_ids:
             raise RuntimeError("checked public event ID conflicts with test DB")
+        record = schedules[str(item.id)]
         missing.append(
             Event(
-                id=item.id,
+                content_id=item.id,
                 public_id=item.public_id,
                 title=item.title,
                 slug=item.slug,
-                source_repository=item.source.repository,
-                source_revision=item.source.revision,
-                source_key=item.source.source_key,
+                status="upcoming",
+                start_datetime=datetime.fromisoformat(record["starts_at"]),
+                end_datetime=(
+                    datetime.fromisoformat(record["ends_at"]) if record.get("ends_at") else None
+                ),
+                source_repo=item.source.repository,
                 source_path=item.source_path,
-                source_checksum=item.source_checksum,
-                lifecycle=Event.Lifecycle.PUBLISHED,
+                source_commit=item.source.revision,
             )
         )
     if missing:

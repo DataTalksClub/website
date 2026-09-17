@@ -27,6 +27,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from content.podcast_routes import podcast_canonical_path
 from scripts.prod.public_projection_source import (
     COLLECTION_NAMES,
     EDITORIAL_ROUTE_COLLECTIONS,
@@ -41,7 +42,6 @@ from scripts.prod.public_projection_source import (
     _sha256,
     _tree_sha256,
 )
-from content.podcast_routes import podcast_canonical_path
 
 #: Kramdown inline target metadata, the canary the projection build pins per
 #: collection (``REVIEWED_TARGET_MARKER_COUNTS``).  The synthetic people carry

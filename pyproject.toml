@@ -9,7 +9,10 @@ dependencies = [
     "boto3>=1.43.33,<2",
 # Shared DataTalks.Club package (kernel); pinned release, see
 # `uv run python scripts/community_base_link.py link` for a local development link.
-    "community-base @ git+https://github.com/DataTalksClub/community-base@v0.4.6",
+    # Pinned to the events-accounts-decoupling fix: installing the shared
+    # events app must not require the shared accounts app (#411 adopts it
+    # later); v0.4.6 plus the lazy email-resolution imports.
+    "community-base @ git+https://github.com/DataTalksClub/community-base@27d6816614212dfc61f08590e3c8c94dee3bcc75",
     "cryptography>=50,<51",
     "django>=6.0,<6.1",
     "django-allauth>=65.10,<66",
@@ -91,7 +94,14 @@ ignore_errors = true
 # and django-loginas are in the same situation (audit BE-16 opt-ins import
 # them directly).
 [[tool.mypy.overrides]]
-module = ["community_base.*", "allauth.*", "loginas.*"]
+module = [
+    "community_base.*",
+    "allauth.*",
+    "loginas.*",
+    # The Django mypy plugin resolves the "events" label to a module named
+    # events.*; the label belongs to community_base.events since D4.1.
+    "events.models",
+]
 ignore_missing_imports = true
 
 # Audit BE-16: the per-app ``ignore_errors = true`` overrides above are the
@@ -189,6 +199,8 @@ module = [
     "scripts.tests.test_cmp_certificate_reconciliation_cli",
     "courses.tests.test_dashboard_participation_counts",
     "courses.tests.test_leaderboard_project_stars",
+    "courses.tests.test_course_family_docs_cross_link",
+    "courses.tests.test_course_family_seo",
 ]
 ignore_errors = false
 

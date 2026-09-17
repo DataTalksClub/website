@@ -18,7 +18,7 @@ import stat
 from collections.abc import Callable, Mapping
 from pathlib import Path, PurePosixPath
 
-from events.importers import CanonicalProposal, ProtectedSourceError
+from historical_registrations.importers import CanonicalProposal, ProtectedSourceError
 
 MAX_ARCHIVE_ENTRIES = 5_000
 MAX_COMPRESSED_BYTES = 512 * 1024 * 1024

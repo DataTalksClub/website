@@ -1,15 +1,17 @@
 """Read public event records from the database.
 
-The public event pages used to read a built projection file keyed by source
-provenance. Everything those pages show now lives in ``Event`` (identity) and
-``EventContent`` with its speakers and links (what the page says), so this
-module is the one place that turns those rows into the record shape the views
-and templates read.
+The public event pages read one record shape no matter where the rows live.
+Since #412 the rows are ``community_base.events.Event``: identity, schedule and
+description are one row, speakers are ``Host`` links resolved to site profile
+paths at read time, and the DTC display vocabulary (event type, podcast season
+and episode) plus the ordered link list ride in the row's ``tags`` and
+``materials`` JSON.  This module is the one place that turns a row into the
+record shape the views and templates read.
 
-An event with no content row yet is not published: identity is imported first
-and content follows, and a page that would have to invent a start time is a 404
-rather than a guess. An empty database therefore lists no events, which is a
-normal state and not a failure.
+Only publicly visible statuses are published: draft and cancelled rows never
+appear, and a page that would have to invent a start time is impossible by
+construction -- the shared row cannot exist without one.  An empty database
+therefore lists no events, which is a normal state and not a failure.
 """
 
 from __future__ import annotations
@@ -18,52 +20,79 @@ import uuid
 from collections.abc import Iterable
 from typing import Any
 
+from community_base.events.models import Event, EventHost
 from django.db.models import Prefetch, Q
 
-from .models import Event, EventContent, EventIdentityNotFound, EventLink, EventSpeaker
+from content.models import EventSource
+
+from .identity import EventIdentityNotFound, decode_event_tags, host_profile_url
+
+#: The statuses a public page may show, matching the published/completed split
+#: the former site ``Lifecycle`` carried.
+PUBLIC_STATUSES = ("upcoming", "completed")
 
 
-def _record(content: EventContent) -> dict[str, Any]:
-    event = content.event
+def _record(event: Event) -> dict[str, Any]:
+    event_type, season, episode = decode_event_tags(event.tags)
     public_path = f"/events/{event.public_id}/{event.slug}" if event.public_id is not None else ""
     return {
-        "identity_id": str(event.id),
+        "identity_id": str(event.content_id),
         "public_id": event.public_id,
         "slug": event.slug,
         "title": event.title,
         "public_path": public_path,
-        "type": content.type,
-        "starts_at": content.starts_at.isoformat(),
-        "ends_at": content.ends_at.isoformat() if content.ends_at is not None else "",
-        "season": content.season,
-        "episode": content.episode,
-        "description_html": content.description_html,
-        "description_text": content.description_text,
+        # A manifest-only row has no DTC type yet; the page treats "" as "no
+        # type stated" rather than inventing one.
+        "type": event_type or "",
+        "starts_at": event.start_datetime.isoformat(),
+        "ends_at": event.end_datetime.isoformat() if event.end_datetime is not None else "",
+        "season": season,
+        "episode": episode,
+        "description_html": event.description_html,
+        "description_text": event.description,
         "speakers": [
-            {"key": speaker.key, "name": speaker.name, "public_path": speaker.public_path}
-            for speaker in content.speakers.all()
+            {
+                "key": link.host.external_ref,
+                "name": link.host.name,
+                "public_path": host_profile_url(link.host),
+            }
+            for link in event.event_host_links.all()
         ],
-        "links": [{"label": link.label, "url": link.url} for link in content.links.all()],
-        # Where this event came from, carried from the identity row rather than
-        # from the content row: provenance belongs to the identity, which is
-        # frozen at import, and consumers match on it exactly.
-        "provenance": {
-            "repository": event.source_repository,
-            "revision": event.source_revision,
-            "source_key": event.source_key,
-            "source_path": event.source_path,
-            "checksum": event.source_checksum,
-        },
+        "links": [
+            {"label": entry.get("label", ""), "url": entry.get("url", "")}
+            for entry in (event.materials or [])
+            if isinstance(entry, dict)
+        ],
+        # Where this event came from.  Provenance belongs to the identity, and
+        # the reviewed tuple the imports resolve by lives on the site-owned
+        # ``content.EventSource`` row.
+        "provenance": _provenance(event),
+    }
+
+
+def _provenance(event: Event) -> dict[str, Any]:
+    try:
+        source = event.source_identity
+    except EventSource.DoesNotExist:
+        source = None
+    return {
+        "repository": source.repository if source else (event.source_repo or ""),
+        "revision": source.revision if source else (event.source_commit or ""),
+        "source_key": source.source_key if source else "",
+        "source_path": source.source_path if source else (event.source_path or ""),
+        "checksum": source.source_checksum if source else "",
     }
 
 
 def _published() -> Any:
     return (
-        EventContent.objects.select_related("event")
-        .filter(event__lifecycle__in=(Event.Lifecycle.PUBLISHED, Event.Lifecycle.COMPLETED))
+        Event.objects.filter(status__in=PUBLIC_STATUSES)
+        .select_related("source_identity")
         .prefetch_related(
-            Prefetch("speakers", queryset=EventSpeaker.objects.order_by("position")),
-            Prefetch("links", queryset=EventLink.objects.order_by("position")),
+            Prefetch(
+                "event_host_links",
+                queryset=EventHost.objects.select_related("host").order_by("position", "pk"),
+            )
         )
     )
 
@@ -71,27 +100,28 @@ def _published() -> Any:
 def published_event_records() -> tuple[dict[str, Any], ...]:
     """Every published event, newest first, as the record the pages read."""
 
-    return tuple(_record(content) for content in _published().order_by("-starts_at", "event_id"))
+    return tuple(_record(event) for event in _published().order_by("-start_datetime", "pk"))
 
 
 def published_event_record(event_id: uuid.UUID | str) -> dict[str, Any] | None:
     """One published event's record, or ``None`` when it publishes none."""
 
-    content = _published().filter(event_id=event_id).first()
-    return None if content is None else _record(content)
+    event = _published().filter(content_id=event_id).first()
+    return None if event is None else _record(event)
 
 
 def event_public_record(event: Event) -> dict[str, Any]:
-    """Return the public record for an Event, read from its own content rows.
+    """Return the public record for an Event, read from its own row.
 
-    An identity whose content has not been ingested yet publishes nothing, so
-    this raises rather than returning a record with an invented schedule.
+    An event row always carries its schedule, so unlike the split identity /
+    content rows this replaces, a resolved identity always publishes.  A row
+    whose status is not public raises, keeping the "404 rather than a guess"
+    contract the former content-less identity had.
     """
 
-    record = published_event_record(event.id)
-    if record is None:
+    if event.status not in PUBLIC_STATUSES:
         raise EventIdentityNotFound("event_content_unavailable")
-    return record
+    return _record(event)
 
 
 def published_event_records_by_path(paths: Iterable[str]) -> dict[str, dict[str, Any]]:
@@ -99,7 +129,7 @@ def published_event_records_by_path(paths: Iterable[str]) -> dict[str, dict[str,
 
     An event answers to two paths: the canonical ``/events/<public id>/<slug>``
     it carries, and ``/events/<identity uuid>/<slug>``, which is what the
-    catalogue's own cross-references were written with. A caller holding a
+    catalogue's own cross-references were written with.  A caller holding a
     mixture of both should not have to know which it has, so both forms are
     resolved here, and a path this database publishes nothing for is simply
     absent from the result.
@@ -123,10 +153,10 @@ def published_event_records_by_path(paths: Iterable[str]) -> dict[str, dict[str,
         return {}
 
     resolved: dict[str, dict[str, Any]] = {}
-    for content in _published().filter(
-        Q(event__public_id__in=public_ids) | Q(event_id__in=identity_ids)
+    for event in _published().filter(
+        Q(public_id__in=public_ids) | Q(content_id__in=identity_ids)
     ):
-        record = _record(content)
+        record = _record(event)
         resolved[record["public_path"]] = record
         resolved[f"/events/{record['identity_id']}/{record['slug']}"] = record
     return resolved

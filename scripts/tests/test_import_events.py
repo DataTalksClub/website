@@ -17,6 +17,7 @@ from django.conf import settings
 from django.test import TestCase
 
 import scripts.prod
+from content.models import EventSource
 from test_support.reference_data import EVENT_CONTENT, EVENT_IDENTITY_MANIFEST
 
 PROD_ROOT = Path(scripts.prod.__file__).resolve().parent
@@ -42,7 +43,7 @@ class EventImportTests(TestCase):
         replay against what is actually here.
         """
 
-        from events.models import Event
+        from community_base.events.models import Event
         from scripts.prod.import_events import import_identities
 
         before = Event.objects.count()
@@ -87,13 +88,12 @@ class EventImportTests(TestCase):
     def test_the_content_records_replay_onto_the_identities_they_describe(self) -> None:
         """The test database already holds them, so importing is a reconcile."""
 
-        from events.models import EventContent, EventLink, EventSpeaker
+        from community_base.events.models import Event
         from scripts.prod.import_events import import_content
 
         before = (
-            EventContent.objects.count(),
-            EventSpeaker.objects.count(),
-            EventLink.objects.count(),
+            Event.objects.count(),
+            Event.objects.exclude(description_html="").count(),
         )
 
         report = import_content(source=EVENT_CONTENT, apply=True)
@@ -104,9 +104,8 @@ class EventImportTests(TestCase):
         self.assertEqual(report["events"], report["unchanged"])
         self.assertEqual(
             (
-                EventContent.objects.count(),
-                EventSpeaker.objects.count(),
-                EventLink.objects.count(),
+                Event.objects.count(),
+                Event.objects.exclude(description_html="").count(),
             ),
             before,
         )
@@ -114,32 +113,34 @@ class EventImportTests(TestCase):
     def test_every_identity_gets_content_and_the_reviewed_share_is_described(self) -> None:
         """Some of the synthetic set carry a reviewed description; the rest correctly carry none."""
 
-        from events.models import Event, EventContent
+        from community_base.events.models import Event
         from scripts.prod.import_events import import_content
 
         report = import_content(source=EVENT_CONTENT, apply=True)
 
         self.assertEqual(report["events"], Event.objects.count())
-        self.assertEqual(report["events"], EventContent.objects.count())
         self.assertEqual(
             report["described"],
-            EventContent.objects.exclude(description_html="").count(),
+            Event.objects.exclude(description_html="").count(),
         )
         self.assertGreater(report["described"], 0)
         self.assertLess(report["described"], report["events"])
 
     def test_a_content_dry_run_writes_nothing(self) -> None:
-        from events.models import EventContent
+        from community_base.events.models import Event, EventHost
         from scripts.prod.import_events import import_content
 
-        EventContent.objects.filter(description_html="").delete()
-        remaining = EventContent.objects.count()
+        # Reduce every row to the manifest-only state the identity leg leaves:
+        # scheduled but undescribed, so the content leg would create content.
+        EventHost.objects.all().delete()
+        Event.objects.update(description_html="", description="", materials=[])
+        pending = Event.objects.count()
 
         report = import_content(source=EVENT_CONTENT, apply=False)
 
         self.assertFalse(report["applied"])
         self.assertGreater(report["created"], 0)
-        self.assertEqual(EventContent.objects.count(), remaining)
+        self.assertEqual(Event.objects.exclude(description_html="").count(), 0)
 
     def test_no_production_import_reads_the_legacy_site(self) -> None:
         """The repository must function without DataTalksClub/datatalksclub.github.io."""
@@ -267,7 +268,8 @@ class NewEventIdentityDiscoveryTests(TestCase):
         )
 
     def test_creates_an_identity_for_a_genuinely_new_event(self) -> None:
-        from events.models import Event, canonical_detail_path
+        from community_base.events.models import Event
+        from events.identity import canonical_detail_path
         from scripts.prod.import_events import discover_new_luma_event_identities
 
         self._write_luma_event(
@@ -294,16 +296,16 @@ class NewEventIdentityDiscoveryTests(TestCase):
         self.assertIn("Auto-created", created["reason"])
         self.assertEqual(Event.objects.count(), before + 1)
 
-        event = Event.objects.get(
-            source_repository="dtc-historical-source/luma", source_key="evt-BrandNew"
-        )
+        source = EventSource.objects.get(source_key="evt-BrandNew")
+        event = source.event
+        self.assertEqual(event.source_identity.repository, "dtc-historical-source/luma")
         self.assertEqual(event.public_id, created["public_id"])
-        self.assertEqual(canonical_detail_path(event.id), created["canonical_path"])
+        self.assertEqual(canonical_detail_path(event.content_id), created["canonical_path"])
 
     def _canonical_event(self, *, title: str, source_key: str):
         """One event shaped like a reviewed-manifest entry: a dated legacy source key."""
 
-        from events.models import create_event_identity
+        from events.identity import create_event_identity
 
         return create_event_identity(
             title=title,
@@ -322,7 +324,7 @@ class NewEventIdentityDiscoveryTests(TestCase):
         date and the exact title are the only thing the two share.
         """
 
-        from events.models import Event
+        from community_base.events.models import Event
         from scripts.prod.import_events import discover_new_luma_event_identities
 
         existing = self._canonical_event(
@@ -350,11 +352,11 @@ class NewEventIdentityDiscoveryTests(TestCase):
         self.assertEqual(Event.objects.count(), before)
         # Recognising it must not have attached anything to the event we kept.
         existing.refresh_from_db()
-        self.assertEqual(existing.source_key, "2026-09-08-an-event-we-already-have")
-        self.assertEqual(existing.source_repository, "DataTalksClub/datatalksclub.github.io")
+        self.assertEqual(existing.source_identity.source_key, "2026-09-08-an-event-we-already-have")
+        self.assertEqual(existing.source_identity.repository, "DataTalksClub/datatalksclub.github.io")
 
     def test_recognising_an_event_we_already_have_replays_as_a_no_op(self) -> None:
-        from events.models import Event
+        from community_base.events.models import Event
         from scripts.prod.import_events import discover_new_luma_event_identities
 
         self._canonical_event(
@@ -381,7 +383,7 @@ class NewEventIdentityDiscoveryTests(TestCase):
     def test_two_events_sharing_the_date_and_title_are_reported_not_resolved(self) -> None:
         """Folding two real events into one is worse than a duplicate, so neither wins."""
 
-        from events.models import Event
+        from community_base.events.models import Event
         from scripts.prod.import_events import discover_new_luma_event_identities
 
         self._canonical_event(
@@ -413,7 +415,7 @@ class NewEventIdentityDiscoveryTests(TestCase):
     def test_the_same_title_on_another_date_is_still_a_new_event(self) -> None:
         """A recurring series repeats its title; a different date is a different session."""
 
-        from events.models import Event
+        from community_base.events.models import Event
         from scripts.prod.import_events import discover_new_luma_event_identities
 
         self._canonical_event(title="Monthly Meetup", source_key="2026-09-08-monthly-meetup")
@@ -437,7 +439,7 @@ class NewEventIdentityDiscoveryTests(TestCase):
         self.assertEqual(Event.objects.count(), before + 1)
 
     def test_an_export_event_with_no_readable_date_is_reported_not_created(self) -> None:
-        from events.models import Event
+        from community_base.events.models import Event
         from scripts.prod.import_events import discover_new_luma_event_identities
 
         self._write_luma_event(
@@ -458,7 +460,7 @@ class NewEventIdentityDiscoveryTests(TestCase):
         self.assertEqual(Event.objects.count(), before)
 
     def test_a_second_run_creates_nothing_new(self) -> None:
-        from events.models import Event
+        from community_base.events.models import Event
         from scripts.prod.import_events import discover_new_luma_event_identities
 
         self._write_luma_event(
@@ -495,8 +497,8 @@ class NewEventIdentityDiscoveryTests(TestCase):
 
         import hashlib
 
-        from events.models import (
-            Event,
+        from community_base.events.models import Event
+        from historical_registrations.models import (
             HistoricalRegistrationAggregateRevision,
             HistoricalRegistrationSourceRun,
         )
@@ -554,7 +556,7 @@ class NewEventIdentityDiscoveryTests(TestCase):
         self.assertEqual(Event.objects.count(), before)
 
     def test_dry_run_creates_nothing(self) -> None:
-        from events.models import Event
+        from community_base.events.models import Event
         from scripts.prod.import_events import discover_new_luma_event_identities
 
         self._write_luma_event(
@@ -575,7 +577,7 @@ class NewEventIdentityDiscoveryTests(TestCase):
         self.assertEqual(Event.objects.count(), before)
 
     def test_a_zero_registration_event_is_reported_not_created_or_dropped(self) -> None:
-        from events.models import Event
+        from community_base.events.models import Event
         from scripts.prod.import_events import discover_new_luma_event_identities
 
         (self.root / "2026-09-08_empty-event_evt-empty.json").write_text(
@@ -656,7 +658,7 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
     def _duplicate_pair(self):
         """One reviewed-manifest event and the duplicate an unguarded run minted."""
 
-        from events.models import create_event_identity
+        from events.identity import create_event_identity
         from scripts.prod.registrant_import import create_provider_event_identity
 
         keep = create_event_identity(
@@ -682,7 +684,7 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
         return keep, duplicate
 
     def test_reporting_names_the_duplicate_and_changes_nothing(self) -> None:
-        from events.models import Event
+        from community_base.events.models import Event
         from scripts.prod.import_events import reconcile_duplicate_luma_identities
 
         keep, duplicate = self._duplicate_pair()
@@ -702,7 +704,7 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
         self.assertEqual(Event.objects.count(), before)
 
     def test_removal_deletes_the_inert_duplicate_and_keeps_the_event_we_had(self) -> None:
-        from events.models import Event
+        from community_base.events.models import Event
         from scripts.prod.import_events import reconcile_duplicate_luma_identities
 
         keep, duplicate = self._duplicate_pair()
@@ -728,8 +730,9 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
     def test_a_duplicate_carrying_dependent_rows_is_reported_and_kept(self) -> None:
         """Deleting this would destroy a real Q&A question, so a human decides."""
 
-        from events.models import Event, EventQnaQuestion, EventQnaSession
-        from events.qna.ids import opaque_id
+        from event_qna.ids import opaque_id
+        from event_qna.models import EventQnaQuestion, EventQnaSession
+        from community_base.events.models import Event
         from scripts.prod.import_events import reconcile_duplicate_luma_identities
 
         _keep, duplicate = self._duplicate_pair()
@@ -753,7 +756,7 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
     def test_a_provider_event_we_never_duplicated_is_not_reported(self) -> None:
         """Only an exact date-and-title twin counts; a genuinely new event is left alone."""
 
-        from events.models import Event
+        from community_base.events.models import Event
         from scripts.prod.import_events import reconcile_duplicate_luma_identities
         from scripts.prod.registrant_import import create_provider_event_identity
 
@@ -836,7 +839,7 @@ class RunAtomicityTests(TestCase):
     def test_the_leg_that_rolls_back_really_does_write(self) -> None:
         """Without this, the rollback assertion below would pass vacuously."""
 
-        from events.models import Event
+        from community_base.events.models import Event
         from scripts.prod.import_events import discover_new_luma_event_identities
 
         before = Event.objects.count()
@@ -849,9 +852,8 @@ class RunAtomicityTests(TestCase):
     def test_a_refused_run_leaves_no_partial_row_behind(self) -> None:
         from community_base.jobs.models import JobIntent
 
-        from events.models import (
-            Event,
-            EventContent,
+        from community_base.events.models import Event
+        from historical_registrations.models import (
             HistoricalRegistrationAggregateRevision,
             HistoricalRegistrationSourceRun,
         )
@@ -860,7 +862,7 @@ class RunAtomicityTests(TestCase):
         def counts() -> tuple[int, ...]:
             return (
                 Event.objects.count(),
-                EventContent.objects.count(),
+                Event.objects.exclude(description_html="").count(),
                 HistoricalRegistrationSourceRun.objects.count(),
                 HistoricalRegistrationAggregateRevision.objects.count(),
                 JobIntent.objects.count(),

@@ -52,8 +52,9 @@ from pathlib import Path
 from typing import NoReturn
 
 from accounts.identity_values import normalize_account_email
-from events.importers import ProtectedSourceError
-from events.models import Event, EventRegistration
+from historical_registrations.importers import ProtectedSourceError
+from event_registrants.models import EventRegistration
+from community_base.events.models import Event
 from scripts.prod.registrant_import import (
     PendingEventRegistrants,
     RegistrantImportError,
@@ -252,7 +253,7 @@ def load_resolved_luma_identities(path: Path) -> dict[str, CanonicalLumaIdentity
 
 
 def _resolve_canonical_event(identity: CanonicalLumaIdentity) -> Event | None:
-    from events.models import EventIdentityNotFound, resolve_source_identity
+    from events.identity import EventIdentityNotFound, resolve_source_identity
 
     try:
         return resolve_source_identity(

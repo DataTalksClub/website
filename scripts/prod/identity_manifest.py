@@ -26,11 +26,12 @@ from typing import Any
 
 from django.db import transaction
 
-from events.models import (
-    Event,
+from community_base.events.models import Event
+from content.models import EventSource
+from events.identity import (
+    DEFAULT_STARTS_AT,
     EventIdentityError,
     ensure_public_id_sequence,
-    insert_event_with_public_id,
 )
 from events.slugs import event_title_slug
 
@@ -219,12 +220,12 @@ def import_identity_manifest(*, path: Path, dry_run: bool = False) -> IdentityIm
 
     manifest = load_identity_manifest(path)
     existing = {
-        event.id: event
-        for event in Event.objects.filter(id__in=[item.id for item in manifest.events])
+        event.content_id: event
+        for event in Event.objects.filter(content_id__in=[item.id for item in manifest.events])
     }
     existing_by_source = {
-        (event.source_repository, event.source_revision, event.source_key): event
-        for event in Event.objects.all()
+        (source.repository, source.revision, source.source_key): source.event
+        for source in EventSource.objects.select_related("event")
     }
     existing_by_public_id = {
         event.public_id: event for event in Event.objects.exclude(public_id=None)
@@ -236,52 +237,69 @@ def import_identity_manifest(*, path: Path, dry_run: bool = False) -> IdentityIm
         source_key = (item.source.repository, item.source.revision, item.source.source_key)
         by_source = existing_by_source.get(source_key)
         by_id = existing.get(item.id)
-        if by_source is not None and by_source.id != item.id:
+        by_id_source = getattr(by_id, "source_identity", None)
+        if by_source is not None and by_source.content_id != item.id:
             raise EventIdentityError("source_identity_uuid_conflict")
         if by_id is not None and (
-            by_id.source_repository != item.source.repository
-            or by_id.source_revision != item.source.revision
-            or by_id.source_key != item.source.source_key
+            by_id_source is None
+            or by_id_source.repository != item.source.repository
+            or by_id_source.revision != item.source.revision
+            or by_id_source.source_key != item.source.source_key
         ):
             raise EventIdentityError("uuid_source_identity_conflict")
         by_public_id = existing_by_public_id.get(item.public_id)
-        if by_public_id is not None and by_public_id.id != item.id:
+        if by_public_id is not None and by_public_id.content_id != item.id:
             raise EventIdentityError("public_id_uuid_conflict")
         if by_id is not None and by_id.public_id != item.public_id:
             raise EventIdentityError("public_id_renumber_forbidden")
-        if by_id is None:
+        if by_id is None or by_id_source is None:
             created += 1
         elif (
             by_id.title != item.title
             or by_id.slug != item.slug
             or by_id.source_path != item.source_path
-            or by_id.source_checksum != item.source_checksum
+            or by_id_source.source_checksum != item.source_checksum
         ):
             updated += 1
         if not dry_run:
-            if by_id is None:
-                event = insert_event_with_public_id(
-                    id=item.id,
+            if by_id is None or by_id_source is None:
+                # The shared row cannot exist without a schedule and the
+                # manifest does not carry one; the content import reconciles
+                # the real start within the same run (#412).
+                event = Event(
+                    content_id=item.id,
                     public_id=item.public_id,
                     title=item.title,
-                    source_repository=item.source.repository,
-                    source_revision=item.source.revision,
+                    slug=event_title_slug(item.title),
+                    status="upcoming",
+                    start_datetime=DEFAULT_STARTS_AT,
+                    source_repo=item.source.repository,
+                    source_path=item.source_path,
+                    source_commit=item.source.revision,
+                )
+                event.save()
+                EventSource.objects.create(
+                    event=event,
+                    repository=item.source.repository,
+                    revision=item.source.revision,
                     source_key=item.source.source_key,
                     source_path=item.source_path,
                     source_checksum=item.source_checksum,
                 )
             else:
+                assert by_id_source is not None
                 event = by_id
                 event.title = item.title
-                event.slug = item.slug
+                event.slug = event_title_slug(item.title)
                 event.source_path = item.source_path
-                event.source_checksum = item.source_checksum
                 event.save()
+                by_id_source.source_checksum = item.source_checksum
+                by_id_source.save()
             # Replayed imports also repair Events created before Q&A existed;
             # the same idempotent service is used by the bounded backfill.
-            from events.qna.services import ensure_event_qna
+            from event_qna.services import ensure_event_qna
 
-            ensure_event_qna(event.id)
+            ensure_event_qna(event.content_id)
     if dry_run:
         return IdentityImportReport(
             len(manifest.events),

@@ -18,7 +18,9 @@ class RepositoryContractTests(SimpleTestCase):
             "content",
             "content_sync",
             "courses",
-            "events",
+            # D4.1: the shared app owns the events label; the site events
+            # package is an adapter, not an installed app.
+            "community_base.events",
             "email_app",
             "studio",
             "api",

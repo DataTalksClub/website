@@ -49,7 +49,7 @@ event renders no registration count at all.
 **New event identities** (``new_event_identities`` in the report): a genuinely
 new event -- one a fresh Luma export names that neither the reviewed manifest
 nor any prior provider-registration run has ever seen -- gets a real
-``Event`` row here, via ``events.models.create_event_identity``.  This is
+``Event`` row here, via ``events.identity.create_event_identity``.  This is
 title and a canonical path only; it never resolves or activates a
 registration count, and it never touches ``events/event_identity_manifest.json``.
 "Genuinely new" is decided against every event we already have: an export event
@@ -163,7 +163,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -199,7 +198,11 @@ NEW_EVENT_CONTENT_PATH = _CONTENT_STAGING_ROOT / "luma_event_descriptions.json"
 # from external raw Eventbrite content that never enters this repository
 # either; see that script's module docstring.
 EVENTBRITE_DESCRIPTIONS_PATH = (
-    Path.home() / "prod" / "dtc-data" / "eventbrite-content" / "staging"
+    Path.home()
+    / "prod"
+    / "dtc-data"
+    / "eventbrite-content"
+    / "staging"
     / "eventbrite_descriptions.json"
 )
 
@@ -235,7 +238,7 @@ def _main_checkout_root() -> Path:
 def import_identities(*, manifest: Path | None = None, apply: bool = True) -> dict[str, Any]:
     """Import the reviewed identity manifest atomically."""
 
-    from events.models import EventIdentityError
+    from events.identity import EventIdentityError
     from scripts.prod.identity_manifest import import_identity_manifest
 
     try:
@@ -269,9 +272,7 @@ def import_content(*, source: Path | None = None, apply: bool = True) -> dict[st
     from events.content_import import EventContentImportError, import_event_content
 
     try:
-        report = import_event_content(
-            path=source or EVENT_CONTENT_PATH, dry_run=not apply
-        )
+        report = import_event_content(path=source or EVENT_CONTENT_PATH, dry_run=not apply)
     except (EventContentImportError, OSError, ValueError) as error:
         raise EventImportError("event_content_invalid") from error
     return {
@@ -454,12 +455,14 @@ def discover_new_provider_events(
     Everything else is genuinely new and gets an identity, exactly as before.
     """
 
-    from events.models import (
+    from events.identity import (
         EventIdentityError,
         EventIdentityNotFound,
-        HistoricalRegistrationAggregateRevision,
         canonical_detail_path,
         resolve_source_identity,
+    )
+    from historical_registrations.models import (
+        HistoricalRegistrationAggregateRevision,
     )
     from scripts.prod.registrant_import import (
         EXISTING_EVENT_AMBIGUOUS,
@@ -519,7 +522,7 @@ def discover_new_provider_events(
                     "external_event_identifier": item.external_event_identifier,
                     "matched_date": match.date,
                     "matched_event_public_id": match.event.public_id,
-                    "matched_canonical_path": canonical_detail_path(match.event.id),
+                    "matched_canonical_path": canonical_detail_path(match.event.content_id),
                     "reason": (
                         "Already have this event: one existing event shares this "
                         "export event's date and its exact normalized title. No "
@@ -569,6 +572,7 @@ def discover_new_provider_events(
                 provider=provider,
                 external_event_identifier=item.external_event_identifier,
                 title=item.title,
+                start_at=item.start_at,
             )
         except EventIdentityError as error:
             raise EventImportError("provider_event_identity_invalid") from error
@@ -576,7 +580,7 @@ def discover_new_provider_events(
             {
                 **entry,
                 "public_id": event.public_id,
-                "canonical_path": canonical_detail_path(event.id),
+                "canonical_path": canonical_detail_path(event.content_id),
                 "reason": (
                     "Auto-created: no reviewed identity-manifest entry, no "
                     "aggregate revision row, and no event sharing this date "
@@ -616,7 +620,7 @@ def discover_new_luma_event_identities(*, luma_source: Path, apply: bool = True)
     decision.
     """
 
-    from events.importers import ProtectedSourceError
+    from historical_registrations.importers import ProtectedSourceError
     from scripts.prod.registration_sources.luma import discover_luma_events
 
     try:
@@ -660,7 +664,7 @@ _QNA_RELATIONS = (
 def _dependent_row_totals(event: Any) -> dict[str, int]:
     """Count everything a delete would take with this Event. Never reads a value."""
 
-    from events.models import EventQnaSession
+    from event_qna.models import EventQnaSession
 
     totals = {label: getattr(event, relation).count() for relation, label in _DEPENDENT_RELATIONS}
     session = EventQnaSession.objects.filter(event=event).first()
@@ -686,8 +690,8 @@ def reconcile_duplicate_provider_identities(
 
     from django.db import transaction
 
-    from events.models import (
-        Event,
+    from community_base.events.models import Event
+    from events.identity import (
         EventIdentityNotFound,
         canonical_detail_path,
         resolve_source_identity,
@@ -723,12 +727,13 @@ def reconcile_duplicate_provider_identities(
         duplicates.append(
             {
                 "external_event_identifier": item.external_event_identifier,
-                "duplicate_event_id": str(event.id),
+                "duplicate_event_id": str(event.content_id),
+                "duplicate_row_id": event.pk,
                 "duplicate_public_id": event.public_id,
-                "duplicate_canonical_path": canonical_detail_path(event.id),
-                "keep_event_id": str(match.event.id),
+                "duplicate_canonical_path": canonical_detail_path(event.content_id),
+                "keep_event_id": str(match.event.content_id),
                 "keep_public_id": match.event.public_id,
-                "keep_canonical_path": canonical_detail_path(match.event.id),
+                "keep_canonical_path": canonical_detail_path(match.event.content_id),
                 "matched_date": match.date,
                 "dependent_rows": dependents,
                 "removable": not dependents,
@@ -742,7 +747,7 @@ def reconcile_duplicate_provider_identities(
             # Re-check under the transaction: a dependent row written between
             # the report and the delete must still save the Event.
             for entry in removable:
-                event = Event.objects.get(pk=entry["duplicate_event_id"])
+                event = Event.objects.get(pk=entry["duplicate_row_id"])
                 if _dependent_row_totals(event):
                     raise EventImportError("duplicate_identity_dependent_rows_appeared")
                 event.delete()
@@ -771,7 +776,7 @@ def reconcile_duplicate_luma_identities(
 ) -> dict[str, Any]:
     """Read a Luma export and reconcile the duplicates a previous run minted."""
 
-    from events.importers import ProtectedSourceError
+    from historical_registrations.importers import ProtectedSourceError
     from scripts.prod.registration_sources.luma import discover_luma_events
 
     try:
@@ -804,8 +809,10 @@ def load_registration_facts() -> dict[str, dict[str, Any]]:
 def load_current_registration_input(path: Path | None):
     if path is None:
         return None
-    from events.current_registration import (
+    from historical_registrations.current_registration import (
         CurrentRegistrationInputError,
+    )
+    from historical_registrations.current_registration import (
         load_current_registration_input as _load,
     )
 
@@ -818,7 +825,7 @@ def load_current_registration_input(path: Path | None):
 def mapping_bridges(current_input) -> tuple[dict[str, dict[str, dict[str, str]]], dict]:
     """Resolve input targets by exact Event source identity and build adapter bridges."""
 
-    from events.models import EventIdentityNotFound, resolve_source_identity
+    from events.identity import EventIdentityNotFound, resolve_source_identity
 
     bridges: dict[str, dict[str, dict[str, str]]] = {name: {} for name in PROVIDERS}
     target_events: dict[tuple[str, str, str], Any] = {}
@@ -832,13 +839,14 @@ def mapping_bridges(current_input) -> tuple[dict[str, dict[str, dict[str, str]]]
         except EventIdentityNotFound as error:
             raise EventImportError("current_registration_target_unavailable") from error
         target_key = mapping.canonical_identity
-        if target_key in target_events and target_events[target_key].id != event.id:
+        if target_key in target_events and target_events[target_key].content_id != event.content_id:
             raise EventImportError("current_registration_target_ambiguous")
         target_events[target_key] = event
+        source = event.source_identity
         bridges[mapping.provider][mapping.provider_event_identity] = {
-            "repository": event.source_repository,
-            "revision": event.source_revision,
-            "source_key": event.source_key,
+            "repository": source.repository,
+            "revision": source.revision,
+            "source_key": source.source_key,
             "slug": event.slug,
         }
     return bridges, target_events
@@ -919,8 +927,8 @@ def stage_registration_aggregates(
 
     from core.services import ServiceContext
     from events.queries import event_public_record
-    from events.importers import source_reference_digest
-    from events.services import (
+    from historical_registrations.importers import source_reference_digest
+    from historical_registrations.services import (
         activate_explicit_current_source,
         public_registration_total,
         stage_derived_source,
@@ -1011,8 +1019,11 @@ def activate_unambiguous_mappings(
     """
 
     from core.services import ServiceContext
-    from events.importers import ProtectedSourceError
-    from events.services import ProviderEventMetadata, resolve_unmatched_aggregates
+    from historical_registrations.importers import ProtectedSourceError
+    from historical_registrations.services import (
+        ProviderEventMetadata,
+        resolve_unmatched_aggregates,
+    )
     from scripts.prod.registration_sources.luma import discover_luma_events
 
     try:
@@ -1042,9 +1053,7 @@ def activate_unambiguous_mappings(
     }
 
 
-def activation_coverage(
-    *, source_report: dict[str, Any], staged: dict[str, Any]
-) -> dict[str, Any]:
+def activation_coverage(*, source_report: dict[str, Any], staged: dict[str, Any]) -> dict[str, Any]:
     """Say plainly how much of the registration history is actually public.
 
     The adapters are not the gap -- resolving each provider event to a
@@ -1052,12 +1061,10 @@ def activation_coverage(
     bare success.
     """
 
-    from events.models import Event
+    from community_base.events.models import Event
 
     provider_events = sum(source_report[provider]["events"] for provider in PROVIDERS)
-    resolved = sum(
-        staged["sources"][provider]["explicit_mapping_total"] for provider in PROVIDERS
-    )
+    resolved = sum(staged["sources"][provider]["explicit_mapping_total"] for provider in PROVIDERS)
     unresolved = sum(staged["sources"][provider]["unresolved_total"] for provider in PROVIDERS)
     return {
         "canonical_events": Event.objects.count(),
@@ -1197,9 +1204,7 @@ def _run_legs(
         "registration_sources": source_report,
         "registration_import": staged,
         "aggregate_auto_resolution": aggregate_auto_resolution,
-        "activation_coverage": activation_coverage(
-            source_report=source_report, staged=staged
-        ),
+        "activation_coverage": activation_coverage(source_report=source_report, staged=staged),
         "event_content": content,
         "new_event_content": new_event_content,
         "eventbrite_descriptions": eventbrite_descriptions,

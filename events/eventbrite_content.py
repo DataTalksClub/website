@@ -407,7 +407,8 @@ def apply_eventbrite_descriptions(
     blank out a real Jekyll one.
     """
 
-    from .models import EventContent, EventIdentityNotFound, resolve_source_identity
+    from .content_import import _row_has_content
+    from .identity import EventIdentityNotFound, resolve_source_identity
 
     records = load_eventbrite_description_records(path)
 
@@ -425,22 +426,21 @@ def apply_eventbrite_descriptions(
         except EventIdentityNotFound:
             no_identity += 1
             continue
-        content = EventContent.objects.filter(event_id=event.id).first()
-        if content is None:
+        if not _row_has_content(event):
             no_content_yet += 1
             continue
         if (
-            content.description_html == record.description_html
-            and content.description_text == record.description_text
+            event.description_html == record.description_html
+            and event.description == record.description_text
         ):
             unchanged += 1
             continue
         applied += 1
         if dry_run:
             continue
-        content.description_html = record.description_html
-        content.description_text = record.description_text
-        content.save(update_fields=["description_html", "description_text", "updated_at"])
+        event.description_html = record.description_html
+        event.description = record.description_text
+        event.save(update_fields=["description_html", "description", "updated_at"])
 
     return EventbriteDescriptionApplyReport(
         total=len(records),

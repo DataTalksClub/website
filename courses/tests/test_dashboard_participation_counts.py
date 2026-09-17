@@ -38,9 +38,7 @@ class DashboardParticipationCountTestCase(TestCase):
                 email=f"participation-{index}@example.com",
                 password="test-password",
             )
-            self.enrollments.append(
-                Enrollment.objects.create(student=user, course=self.course)
-            )
+            self.enrollments.append(Enrollment.objects.create(student=user, course=self.course))
 
     def dashboard_url(self):
         return reverse(

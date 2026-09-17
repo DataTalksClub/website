@@ -17,6 +17,7 @@ from __future__ import annotations
 import re
 from datetime import timedelta
 
+from community_base.events.models import Event
 from django.templatetags.static import static
 from django.test import TestCase
 from django.urls import reverse
@@ -36,7 +37,7 @@ from courses.models import (
     User,
 )
 from courses.models.cohort import Cohort
-from events.models import Event, create_event_identity
+from events.identity import create_event_identity
 
 SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 
@@ -139,7 +140,7 @@ class StudioDesignFiveAShellTests(TestCase):
             "event identities": reverse("studio:event-identity-list"),
             "event identity detail": reverse(
                 "studio:event-identity-detail",
-                kwargs={"event_id": self.event.id},
+                kwargs={"event_id": self.event.content_id},
             ),
             "historical registration totals": reverse("studio:historical-registration-list"),
         }

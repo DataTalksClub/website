@@ -859,9 +859,7 @@ class _Parser:
                 else None
             ),
             progression=(
-                _course_progression(
-                    mapping["progression"], path=path, pointer="/progression"
-                )
+                _course_progression(mapping["progression"], path=path, pointer="/progression")
                 if "progression" in mapping
                 else None
             ),

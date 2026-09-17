@@ -22,7 +22,7 @@ from pathlib import Path, PurePosixPath
 from types import MappingProxyType
 from zipfile import BadZipFile, ZipFile
 
-from events.importers import (
+from historical_registrations.importers import (
     ADAPTER_VERSION,
     AggregateCandidate,
     CanonicalProposal,
@@ -30,10 +30,7 @@ from events.importers import (
     ProtectedSourceError,
     SourceReader,
 )
-from events.models import (
-    HistoricalRegistrationAggregateRevision,
-    HistoricalRegistrationSourceRun,
-)
+from historical_registrations.models import (HistoricalRegistrationAggregateRevision, HistoricalRegistrationSourceRun)
 
 from .safety import (
     MAX_ARCHIVE_ENTRIES,
