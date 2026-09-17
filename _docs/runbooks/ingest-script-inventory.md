@@ -487,8 +487,8 @@ command (and its `import_event_identity_manifest` alias) are retired: they
 wrapped this exact call, and had no caller once
 `scripts/prepare_local_data.py` was repointed at the function directly.
 
-Source: the checked-in, human-reviewed
-[`temporary/content/event_identity_manifest.json`](../../temporary/content/event_identity_manifest.json)
+Source: the human-reviewed
+`event_identity_manifest.json`, at `~/prod/dtc-data/content-staging/` (outside this repository)
 (421 events). No migration seeds it; `test_support/reference_data.py`
 loads the same file into every test database.
 Transform: allocates `public_id` via `EventPublicIdSequence`.
@@ -500,8 +500,8 @@ Destination: [`events/models.py`](../../events/models.py) (`Event`).
 `import_content()`, run straight after `import_identities()` in the same
 `run()`.
 
-Source: the checked-in, reviewed
-[`temporary/content/public_projection/events.json`](../../temporary/content/public_projection/events.json)
+Source: the reviewed
+`public_projection/events.json`, at `~/prod/dtc-data/content-staging/` (outside this repository)
 (421 records, 159 of them carrying a description). A staging artifact, not a
 serving path: built offline from the legacy `_data/events.yaml` and then
 rewritten by the description bridge, which stripped the "about the speaker"
@@ -566,8 +566,8 @@ file, renders the Markdown through the description bridge's own Markdown and
 link policies, and strips the speaker biography and the platform footer with
 the same `normalize_description_html` the 421 went through. `ends_at` is
 deliberately not taken: Luma derives it from a nominal duration.
-Destination: `temporary/content/luma_event_descriptions.json`, a staging
-artifact. Reporting is the default; `--write` replaces the file.
+Destination: `~/prod/dtc-data/content-staging/luma_event_descriptions.json` (outside this
+repository), a staging artifact. Reporting is the default; `--write` replaces the file.
 
 Nothing is inferred. A destination with no reviewed decision stops that event
 and is reported **by URL** (approving one is an edit to
@@ -763,8 +763,8 @@ Single stage.
 
 [`scripts/prod/import_testimonials.py`](../../scripts/prod/import_testimonials.py)
 
-Source: [`temporary/content/homepage_testimonials.json`](../../temporary/content/homepage_testimonials.json),
-reviewed and checked in. (`import_testimonials.py`'s own docstring still names the
+Source: `homepage_testimonials.json`, at `~/prod/dtc-data/content-staging/` (outside this
+repository), reviewed. (`import_testimonials.py`'s own docstring still names the
 file's old `courses/` home; its `REVIEWED_PATH` is correct.)
 Transform: none beyond validation; direct write, replay-safe.
 Destination: `Testimonial` (homepage and per-course placement).
@@ -814,12 +814,12 @@ Source: three pinned upstream checkouts (`DataTalksClub/content`,
 revisions.
 Transform: builds the whole catalogue — articles, podcasts, books, people, wiki,
 media manifest — with digest-verified provenance.
-Destination: [`temporary/content/public_projection/`](../../temporary/content/public_projection)`*.json`,
-a **staging artifact**. No request reads it.
+Destination: `public_projection/*.json`, at `~/prod/dtc-data/content-staging/` (outside this
+repository), a **staging artifact**. No request reads it.
 
 **Import**:
 [`scripts/prod/import_public_content.py`](../../scripts/prod/import_public_content.py).
-Source: that staging tree, plus `temporary/content/slack_page.json`, checked once
+Source: that staging tree, plus `slack_page.json` beside it, checked once
 through `scripts/projection_build/public_projection_source`.
 Transform: each record becomes one published document carrying that record
 verbatim in its adapter metadata; the five singleton records (manifest, platform
@@ -1243,8 +1243,8 @@ what makes `public_directory` the second value the
 
 [`scripts/prod/import_sponsors.py`](../../scripts/prod/import_sponsors.py)
 
-Source: [`temporary/content/sponsor_directory.json`](../../temporary/content/sponsor_directory.json),
-reviewed and checked in. (`import_sponsors.py`'s own docstring still names the
+Source: `sponsor_directory.json`, at `~/prod/dtc-data/content-staging/` (outside this
+repository), reviewed. (`import_sponsors.py`'s own docstring still names the
 file's old `core/` home; its `REVIEWED_PATH` is correct.) Every entry carries the `key` `Sponsor` already
 reserves as its natural identifier, so a second run is keyed on that rather
 than on name matching.
@@ -1290,7 +1290,8 @@ for an events_hub sponsor.
 # 12. FAQ — imported, not synced
 
 **Import**: [`scripts/prod/import_faq.py`](../../scripts/prod/import_faq.py).
-Source: `temporary/content/faq_projection.json`, a reviewed file pinned to a
+Source: `~/prod/dtc-data/content-staging/faq_projection.json` (outside this repository),
+a reviewed file pinned to a
 revision of `DataTalksClub/faq` (6 courses / 70 sections / 1,401 questions).
 Transform: checks the schema version, the pinned revision, the course order and
 every question's identifier, relationship, answer and edit URL against the
@@ -1314,7 +1315,8 @@ repository gets ingested.
 # 13. Docs — imported, not synced
 
 **Import**: [`scripts/prod/import_docs.py`](../../scripts/prod/import_docs.py).
-Source: `temporary/content/docs_projection.json`, a reviewed file pinned to a
+Source: `~/prod/dtc-data/content-staging/docs_projection.json` (outside this repository),
+a reviewed file pinned to a
 revision of `DataTalksClub/docs` (106 pages / 39 images).
 Transform: checks the schema version, the pinned revision, the page hierarchy
 through the same navigation builder the site renders from, every page body
@@ -1347,7 +1349,8 @@ and search corpus).
 
 Folded into 8.2 at both stages. The build reads podwiki as one of its three pinned
 upstream checkouts (`WIKI_REPOSITORY`, `build_public_projection.py:82`) into
-`temporary/content/public_projection/{wiki,wiki_graph,wiki_search}.json`, and
+`~/prod/dtc-data/content-staging/public_projection/{wiki,wiki_graph,wiki_search}.json`
+(outside this repository), and
 `import_public_content.py` then writes those records into `ContentDocument`, which
 is what a wiki request reads.
 

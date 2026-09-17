@@ -6,7 +6,8 @@ event description bridge supplies only a reviewed, sanitized description for 159
 The other 262 events intentionally have no description region.
 
 The bridge is a build artifact, not a synchronization path. Only the offline projection build
-reads it, from the committed `temporary/content/event_description_bridge.json`; public requests and
+reads it, from `~/prod/dtc-data/content-staging/event_description_bridge.json` (outside this
+repository); public requests and
 Django startup read the database and never see it. Nothing here needs the exporter checkout, makes a
 network request, reads a CSV, or inspects a guest record.
 

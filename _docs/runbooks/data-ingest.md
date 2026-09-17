@@ -26,14 +26,14 @@ they are named once here and used with these meanings throughout.
 | Term | What it is |
 | --- | --- |
 | **Source** | Where the data actually lives and is authored, upstream of us: a Luma export, the CMP production export, `DataTalksClub/content`, a course repository, the retired legacy site. We do not serve it and mostly cannot write to it. |
-| **Staging** | `temporary/content/`. Source data after review and processing, already in the shape the production database wants. Nothing serves it, nobody authors in it, and it is deleted once production is ingested. Its only purpose is to be pumped into prod. |
+| **Staging** | `~/prod/dtc-data/content-staging/` (outside this repository; it lived at `temporary/content/` inside it until 2026-09-11). Source data after review and processing, already in the shape the production database wants. Nothing serves it, nobody authors in it, and it is deleted once production is ingested. Its only purpose is to be pumped into prod. |
 | **Production database** | The target. Every public page reads it and nothing else. |
 
 Work moves in one direction: **source → staging → production database.** A thing
 that reads staging on a public request is a bug, and a thing that reaches past
 staging into a source at request time is a worse one.
 
-> **A naming leftover.** `temporary/content/public_projection/` is staging. It is
+> **A naming leftover.** `~/prod/dtc-data/content-staging/public_projection/` is staging. It is
 > called a *projection* because it once was one: the site read those JSON files
 > on every request, and "projection" named a read model served directly. Nothing
 > has served them since the database cutover. Read "projection" as "staging"
@@ -175,7 +175,7 @@ uv run --frozen python scripts/build_public_projection.py \
     --content-root     <DataTalksClub/content     @ 1375c506…> \
     --legacy-main-root <datatalksclub.github.io   @ ee43d3fa…> \
     --wiki-root        <DataTalksClub/podwiki     @ 988b79d0…> \
-    --output temporary/content/public_projection
+    --output ~/prod/dtc-data/content-staging/public_projection
 ```
 
 Each root is verified at `scripts/build_public_projection.py:187-196` (`_verify_checkout`):
@@ -192,7 +192,8 @@ currently **not reproducible** — see issue #253 and §11.
 
 ### What it writes
 
-`temporary/content/public_projection/`, all committed, ~37 MB excluding media:
+`~/prod/dtc-data/content-staging/public_projection/` (outside this repository since 2026-09-11,
+formerly `temporary/content/public_projection/` and committed), ~37 MB excluding media:
 
 | Artifact | Records | Source |
 | --- | ---: | --- |
@@ -225,7 +226,7 @@ database with no active release returns an empty collection rather than refusing
 to boot, because an absent catalogue is a normal state. `content/apps.py`'s remaining checks
 (`content.E003`–`E005`, `content.W001`) cover only the media store.
 
-The consequence for an operator: a hand-edit under `temporary/content/` is not
+The consequence for an operator: a hand-edit under `~/prod/dtc-data/content-staging/` is not
 caught at boot. It is caught by `uv run --frozen python scripts/ci.py content-update-check`, and by the importers
 themselves — each refuses a reviewed file whose declared counts, digests or pinned
 revision do not match. Somebody has to run them.
@@ -248,7 +249,7 @@ application** from that projection — `content/public_urls.py:213-228` routes t
 hub, detail, search corpus, graph, special pages, feed, sitemap, robots and assets.
 Owner ruling: **the wiki source stays in podwiki.** The serving stays ours.
 
-**4 — `DataTalksClub/faq`** @ `c8da1dee…` → `temporary/content/faq_projection.json`
+**4 — `DataTalksClub/faq`** @ `c8da1dee…` → `~/prod/dtc-data/content-staging/faq_projection.json`
 + `content/faq_assets/`, imported into `ContentDocument` by
 `scripts/prod/import_faq.py`. 6 courses, 70 sections, 1,401 questions, 99 assets.
 Served at `/faq/` by `content/review_views.py` via `content/faq_data.py`, from the
@@ -258,7 +259,7 @@ the reviewed file in this repository.** It is reviewed in by hand and only
 does not.
 
 **5 — `DataTalksClub/docs`** @ `3f23e006…` →
-`temporary/content/docs_projection.json` + `content/docs_assets/`, imported into
+`~/prod/dtc-data/content-staging/docs_projection.json` + `content/docs_assets/`, imported into
 `ContentDocument` and `ContentAsset` by `scripts/prod/import_docs.py`. 106 pages,
 39 images. Served at `/docs/` by `content/review_views.py`, from the database.
 **Same gap: no builder for the reviewed file in this repository.**
@@ -329,7 +330,7 @@ Reads that **take content** (fate required):
 | a6 | `build_public_projection.py:1385, 1541, 1556, 1641, 3078` | `_posts`, `_podcast`, `_books`, `images/**` | articles, podcasts, books, media — **`--mode fallback` only** | Nothing. Fallback is not accepted |
 
 **a5 is the only read that still wants the legacy repository at run time**, and
-`temporary/content/public_projection/media/` is gitignored (`.gitignore:23`, `git ls-files`
+`content/public_projection/media/` is gitignored (`.gitignore:23`, `git ls-files`
 returns 0 files). 438 of the 997 media records carry
 `"repository": "DataTalksClub/datatalksclub.github.io"` in their provenance.
 
@@ -361,7 +362,7 @@ boot-time refusal this table used to describe:
 | a8 | `content/article_faq.py` | the article FAQ is built from published documents now; what survives is the legacy Slack-URL rewrite (`_LEGACY_SLACK`, `:45`) |
 | a9 | `scripts/projection_build/event_description_bridge.py` | `LEGACY_REPOSITORY`, `LEGACY_REVISION`, `LEGACY_SOURCE_PATH = "_data/events.yaml"`, source checksum. A build-time pin now, not a runtime one |
 | a10 | `scripts/projection_build/event_speaker_bio_normalization.py` | `people_repository` in the committed normalization plan, which also pins the event count at exactly 421 (§12 item 8) |
-| a11 | `temporary/content/event_identity_manifest.json` | the legacy repo as per-event provenance. Read by `scripts/prod/import_events.py`; **no migration reads it any more** |
+| a11 | `~/prod/dtc-data/content-staging/event_identity_manifest.json` | the legacy repo as per-event provenance. Read by `scripts/prod/import_events.py`; **no migration reads it any more** |
 | a12 | `content_sync/dtc_content/adapter.py:151, 879, 1203-1205`; `contract.py:13` | the `migration.yaml` **inside a `DataTalksClub/content` checkout** — not a legacy read |
 
 Dead data, no code path:
@@ -561,8 +562,9 @@ to trip over.
 Settled by the owner: **images go to the CDN**, not into the content repository.
 
 The mechanism already exists and is landed — issue #301,
-`_docs/runbooks/public-media-objects.md`. `temporary/content/public_projection/media/` is
-gitignored; Django resolves `/images/<path>` against `temporary/content/public_projection/media.json`
+`_docs/runbooks/public-media-objects.md`. `content/public_projection/media/` (the local hydration
+root) is gitignored; Django resolves `/images/<path>` against
+`~/prod/dtc-data/content-staging/public_projection/media.json` (outside this repository)
 and reads the object through a pluggable store selected by
 `PUBLIC_MEDIA_STORE_BACKEND`:
 
@@ -744,7 +746,7 @@ uv run --frozen python scripts/prod/import_legacy_zoomcamp.py \
 
 ### 14 — Event identity manifest
 
-`temporary/content/event_identity_manifest.json` — schema version 4, **421 events**
+`~/prod/dtc-data/content-staging/event_identity_manifest.json` — schema version 4, **421 events**
 (no alias mechanism is retained). Imported by `scripts/prod/import_events.py`'s `import_identities()`
 (dry-run by default when called with `apply=False`; atomic), which reads that path
 as `IDENTITY_MANIFEST_PATH`. **No migration seeds it any more** — the ones that used
@@ -762,7 +764,7 @@ run it before any event registration import.
 
 ### 14.2 — Event content
 
-`temporary/content/public_projection/events.json` — 421 records, 159 of them
+`~/prod/dtc-data/content-staging/public_projection/events.json` — 421 records, 159 of them
 carrying a description. Imported by `scripts/prod/import_events.py`'s
 `import_content()`, which runs immediately after `import_identities()` in the
 same `run()`, into `EventContent` with its `EventSpeaker` and `EventLink` rows.
@@ -899,7 +901,7 @@ description. This is that stage.
 | | What it is | Who writes it |
 | --- | --- | --- |
 | `_docs/migration-data/local-event-type-input.json` | The reviewed `type` per description file — `webinar`, `workshop`, `podcast` or `conference` — with a `reason` | **A person.** Ships empty. |
-| `temporary/content/luma_event_descriptions.json` | The built staging artifact: finished descriptions with their schedule and provenance | `scripts/build_luma_event_descriptions.py --write` |
+| `~/prod/dtc-data/content-staging/luma_event_descriptions.json` | The built staging artifact: finished descriptions with their schedule and provenance | `scripts/build_luma_event_descriptions.py --write` |
 
 **Build.** `scripts/build_luma_event_descriptions.py` reads a description export root
 holding `descriptions/*.md` beside `_json/*.json`, one pair per event, named alike.
@@ -985,12 +987,12 @@ yet, and that is the honest state.
 
 ### 15 — Event description bridge
 
-`temporary/content/event_description_bridge.json`, built by
+`~/prod/dtc-data/content-staging/event_description_bridge.json`, built by
 `scripts/build_event_description_bridge.py`. 159 described events matched, 262
 undescribed, 9 gaps, from 168 source pairs.
 
 Its inputs are `--exporter-root` (a Luma exporter checkout) and
-`temporary/content/public_projection/events.json` — **it does not read the legacy repository**,
+`~/prod/dtc-data/content-staging/public_projection/events.json` — **it does not read the legacy repository**,
 despite naming it in `LEGACY_REPOSITORY`. That constant is provenance stamping only
 (§5.2 a9).
 
@@ -1375,7 +1377,7 @@ it would be built from, unchanged except that its step 7 is struck for the reaso
    course-repository check must not either until #273 says what those fields mean.
 
 One thing the editorial check settled that this sketch got wrong: the served side is the
-**database**, not `temporary/content/public_projection/*.json`, and `parity.py` is not
+**database**, not `~/prod/dtc-data/content-staging/public_projection/*.json`, and `parity.py` is not
 the way in. `parity.py` is pinned to `ACCEPTED_CONTENT_COMMIT` and only iterates
 projection → bundle; the shipped check reads `ContentDocument` rows and diffs both
 directions, which is why it needed neither the adapter nor the bundle.
@@ -1450,7 +1452,8 @@ What genuinely differs, and needs care rather than a separate pipeline:
    `scripts/tests/test_prepare_local_data_order.py` holds the orchestrator to it.
 4. `scripts/prod/import_public_content.py`, `import_faq.py`, `import_docs.py`,
    `import_sponsors.py`, `import_testimonials.py` — the reviewed one-time inputs under
-   `temporary/content/`. All bootstrap; none depends on another.
+   `~/prod/dtc-data/content-staging/` (outside this repository). All bootstrap; none depends on
+   another.
 5. `scripts/prod/import_events.py`, whose own `run()` performs six legs in a fixed
    order because each reconciles against the one before it: identity import (§14),
    content import (§14.2), the Eventbrite description-precedence overlay (landed
@@ -1528,7 +1531,7 @@ explicit script commands resolve:
   into. The domain no longer hard-codes provider names, row counts or CSV header
   digests.
 - The projection build helpers live in `scripts/projection_build/`, and the staging
-  files they produce live under `temporary/content/`.
+  files they produce live under `~/prod/dtc-data/content-staging/` (outside this repository).
 - The four CMP entry points — `import_cmp_content`, `import_cmp_learners`,
   `import_cmp_learner_history` and `import_account_reconciliation` — have explicit script
   commands, listed under "Not in the bootstrap order, and why" above. They were runbook-only
@@ -1610,7 +1613,8 @@ closed, so an old item number still leads somewhere.
    before #326 is.
 
 5. **The FAQ and docs staging files have no builder in this repository.**
-   `temporary/content/faq_projection.json` and `temporary/content/docs_projection.json`
+   `~/prod/dtc-data/content-staging/faq_projection.json` and
+   `~/prod/dtc-data/content-staging/docs_projection.json`
    are reviewed in by hand and only shape-checked (`ci/content_update.py:47-48`).
    `scripts/prod/import_faq.py` and `scripts/prod/import_docs.py` now read them into
    the database, so the *import* side is closed — what is missing is a reproducer that
@@ -1697,7 +1701,7 @@ closed, so an old item number still leads somewhere.
     repository boundary, or the projection build fails (§6.2).
 
 16. **Four importer docstrings and one service still name files that moved to
-    `temporary/content/`.** `scripts/prod/import_sponsors.py`,
+    `~/prod/dtc-data/content-staging/`.** `scripts/prod/import_sponsors.py`,
     `scripts/prod/import_testimonials.py`, `scripts/prod/import_faq.py`,
     `scripts/prod/import_docs.py` and `core/sponsors.py` name
     `core/sponsor_directory.json`, `courses/homepage_testimonials.json`,
@@ -1765,7 +1769,7 @@ number can appear twice in this table for two unrelated defects.
 
 ### Never do these
 
-- Do not hand-edit anything in `temporary/content/`. Nothing checks it at startup any
+- Do not hand-edit anything in `~/prod/dtc-data/content-staging/`. Nothing checks it at startup any
   more — `content.E002` is gone and the app's remaining checks (`content/apps.py`,
   `content.E003`–`E005`, `content.W001`) only cover the media store — so an edit here
   is silently carried into the database by the next import instead of refusing to boot.

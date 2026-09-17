@@ -102,9 +102,11 @@ content from it **in the interim is fine**; depending on it at the end is not.
 
 **Owner ruling: the legacy repository lives only in temporary one-time
 prod-ingest scripts, never anywhere else.** No runtime view, service, check,
-builder, adapter, or synchronized sync reads it. The committed snapshot it
-produced now sits at `temporary/content/` as explicit ingest input, excluded
-from the release image. The remaining legacy reads are the violation list in
+builder, adapter, or synchronized sync reads it. The snapshot it produced now
+sits at `~/prod/dtc-data/content-staging/` (outside this repository; it was
+committed at `temporary/content/` inside it until 2026-09-11) as explicit
+ingest input, excluded from the release image. The remaining legacy reads are
+the violation list in
 `_docs/architecture/database-only-content.md`; each is removed by its own move:
 people and article FAQ pairs into `DataTalksClub/content`, events as a one-off
 export, images to the CDN.
@@ -137,8 +139,9 @@ the redirect fires first. **Django wins. The two 302s are transitional and retir
 once the sync works** (§11 B10).
 
 > **This is not already how it works, despite appearances.** There is **no builder
-> in this repository** for either reviewed file. `temporary/content/faq_projection.json`
-> and `temporary/content/docs_projection.json` are reviewed in by hand and only
+> in this repository** for either reviewed file.
+> `~/prod/dtc-data/content-staging/faq_projection.json`
+> and `~/prod/dtc-data/content-staging/docs_projection.json` are reviewed in by hand and only
 > *checked*, by `ci/content_update.py`. `scripts/prod/import_faq.py` and
 > `import_docs.py` load them into the database, so both pages are database-served —
 > what is missing is the sync: no builder regenerates either file from its source
@@ -977,7 +980,7 @@ reconciled.
 
 **First, sync new events against the current export — before anything else in
 this step runs.** The reviewed identity manifest
-(`temporary/content/event_identity_manifest.json`)
+(`~/prod/dtc-data/content-staging/event_identity_manifest.json`)
 is frozen at the moment it was built; Luma keeps moving. Confirmed today: four
 real events dated 2026-09-08 through 2026-09-15 exist on Luma but were in
 neither the prepared export available at the time nor the manifest — not a
@@ -1155,7 +1158,7 @@ uv run --frozen python scripts/build_public_projection.py \
     --content-root <DataTalksClub/content @ pin> \
     --legacy-main-root <datatalksclub.github.io @ pin> \
     --wiki-root <DataTalksClub/podwiki @ pin> \
-    --output temporary/content/public_projection
+    --output ~/prod/dtc-data/content-staging/public_projection
 ```
 
 Expected: wiki 282 · podcasts 203 (201 transcripts) · articles 55 · people 438 ·
@@ -1192,7 +1195,7 @@ CONTENT_UPDATE_FAMILY=all uv run --frozen python scripts/ci.py content-update-ch
 reads its catalogue from the database, so there is no projection file for a
 startup check to verify, and `content/apps.py`'s remaining checks
 (`content.E003`–`E005`, `content.W001`) cover only the media store. A hand-edit
-under `temporary/content/` is therefore carried silently into the database by the
+under `~/prod/dtc-data/content-staging/` is therefore carried silently into the database by the
 next import rather than refusing to boot. `uv run --frozen python scripts/ci.py content-update-check` is the
 checkpoint that still catches it, and it has to be run deliberately.
 
@@ -2023,11 +2026,11 @@ then owns.
 **Testimonials now have theirs — `scripts/prod/import_testimonials.py`.** The six
 quotes used to be inserted by a data-bearing migration and are now an explicit
 import, reading the reviewed set from
-`temporary/content/homepage_testimonials.json`. Every row is keyed on its
+`~/prod/dtc-data/content-staging/homepage_testimonials.json`. Every row is keyed on its
 `source_url`, so a replay reports `replayed`, creates nothing, and never touches a
 testimonial an editor added by hand. **Sponsors have theirs too** —
 `scripts/prod/import_sponsors.py`, reading
-`temporary/content/sponsor_directory.json` through `core.sponsors`' shared
+`~/prod/dtc-data/content-staging/sponsor_directory.json` through `core.sponsors`' shared
 create/update/archive/reactivate services, keyed on each entry's `key`.
 
 What it has to write into, read rather than invented:
@@ -3280,7 +3283,7 @@ Non-negotiable, and every one of these has a reason behind it.
   excludes the whole payload of step 4.
 - A member's email address is visible to admins in Studio and nowhere else.
 - In a log, identify a person by user id, never by email address.
-- Do not hand-edit anything under `temporary/content/`. Nothing refuses to boot over it
+- Do not hand-edit anything under `~/prod/dtc-data/content-staging/`. Nothing refuses to boot over it
   any more (`content.E002` is gone); the next import carries the edit into the database
   silently. `uv run --frozen python scripts/ci.py content-update-check` is the check, and somebody has to run it.
 - Do not add a second entry point for course-repository ingest. There is one and
