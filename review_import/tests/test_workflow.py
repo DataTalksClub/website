@@ -224,6 +224,9 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "title": "Data Engineering Zoomcamp",
             "description": "Data engineering course family.",
             "starting_point": "",
+            "prerequisites": "",
+            "weekly_commitment": "",
+            "progression": "[]",
             "outcome": "Build reliable data systems.",
             "github_repo_url": "https://github.com/DataTalksClub/data-engineering-zoomcamp",
             "docs_url": "",
@@ -241,6 +244,9 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "title": "Machine Learning Zoomcamp",
             "description": "Machine learning course family.",
             "starting_point": "",
+            "prerequisites": "",
+            "weekly_commitment": "",
+            "progression": "[]",
             "outcome": "Train practical machine learning models.",
             "github_repo_url": "https://github.com/DataTalksClub/machine-learning-zoomcamp",
             "docs_url": "",
@@ -844,20 +850,42 @@ class ReviewImportWorkflowTests(TestCase):
                 connection.execute("SELECT COUNT(*) FROM events_event").fetchone()[0],
                 0,
             )
-            event_id = uuid.uuid4().hex
+            # The shared ``community_base.events`` row: a numeric primary key, the
+            # site identity in ``content_id``, and every NOT NULL column the package
+            # migration wrote without a database-level default.
+            event_id = 1
             _insert(
                 connection,
                 "events_event",
                 {
                     "id": event_id,
+                    "content_id": uuid.uuid4().hex,
                     "title": "Synthetic dependency event",
                     "slug": "synthetic-dependency-event",
-                    "lifecycle": "published",
-                    "source_repository": "synthetic-repository",
-                    "source_revision": "synthetic-revision",
-                    "source_key": "synthetic-event",
+                    "description": "",
+                    "description_html": "",
+                    "kind": "workshop",
+                    "platform": "zoom",
+                    "start_datetime": "2026-08-12T00:00:00+00:00",
+                    "timezone": "UTC",
+                    "zoom_meeting_id": "",
+                    "zoom_join_url": "",
+                    "location": "",
+                    "tags": "[]",
+                    "required_level": 0,
+                    "status": "upcoming",
+                    "recording_url": "",
+                    "recording_s3_url": "",
+                    "recording_embed_url": "",
+                    "transcript_url": "",
+                    "transcript_text": "",
+                    "timestamps": "[]",
+                    "materials": "[]",
+                    "ics_sequence": 0,
+                    "title_is_auto": 0,
+                    "source_repo": "synthetic-repository",
                     "source_path": "/events/synthetic-dependency-event",
-                    "source_checksum": "a" * 64,
+                    "source_commit": "synthetic-revision",
                     "created_at": "2026-08-12T00:00:00+00:00",
                     "updated_at": "2026-08-12T00:00:00+00:00",
                 },
@@ -866,7 +894,7 @@ class ReviewImportWorkflowTests(TestCase):
                 """
                 CREATE TABLE review_import_synthetic_dependency (
                     id INTEGER PRIMARY KEY,
-                    event_id CHAR(32),
+                    event_id INTEGER,
                     FOREIGN KEY (event_id) REFERENCES events_event(id)
                 )
                 """
