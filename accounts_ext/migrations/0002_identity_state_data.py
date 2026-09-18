@@ -31,14 +31,14 @@ def copy_identity_state(apps, schema_editor):
     code deploy and the migrate run.
     """
 
-    CustomUser = apps.get_model("accounts", "CustomUser")
+    User = apps.get_model("accounts", "User")
     IdentityState = apps.get_model("accounts_ext", "IdentityState")
 
     existing_user_ids = set(
         IdentityState.objects.values_list("user_id", flat=True).iterator()
     )
     identities = []
-    for user in CustomUser.objects.iterator():
+    for user in User.objects.iterator():
         if user.pk in existing_user_ids:
             continue
         identities.append(
@@ -66,7 +66,7 @@ def restore_user_identity_columns(apps, schema_editor):
     account.
     """
 
-    CustomUser = apps.get_model("accounts", "CustomUser")
+    User = apps.get_model("accounts", "User")
     IdentityState = apps.get_model("accounts_ext", "IdentityState")
 
     identities_by_user_id = {
@@ -76,19 +76,19 @@ def restore_user_identity_columns(apps, schema_editor):
         )
     }
     restored = []
-    for user in CustomUser.objects.iterator():
+    for user in User.objects.iterator():
         identity = identities_by_user_id.get(user.pk)
         if identity is None:
             continue
         user.normalized_email, user.identity_state = identity
         restored.append(user)
         if len(restored) >= BATCH_SIZE:
-            CustomUser.objects.bulk_update(
+            User.objects.bulk_update(
                 restored, ["normalized_email", "identity_state"], batch_size=BATCH_SIZE
             )
             restored = []
     if restored:
-        CustomUser.objects.bulk_update(
+        User.objects.bulk_update(
             restored, ["normalized_email", "identity_state"], batch_size=BATCH_SIZE
         )
 

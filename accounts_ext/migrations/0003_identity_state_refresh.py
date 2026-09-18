@@ -49,14 +49,14 @@ def _batched(values, size):
 def refresh_identity_state(apps, schema_editor):
     """Create the missing identity rows and update the ones that differ."""
 
-    CustomUser = apps.get_model("accounts", "CustomUser")
+    User = apps.get_model("accounts", "User")
     IdentityState = apps.get_model("accounts_ext", "IdentityState")
 
-    user_ids = CustomUser.objects.order_by("pk").values_list("pk", flat=True).iterator()
+    user_ids = User.objects.order_by("pk").values_list("pk", flat=True).iterator()
     for chunk in _batched(user_ids, BATCH_SIZE):
         user_values = {
             row[0]: row[1:]
-            for row in CustomUser.objects.filter(pk__in=chunk).values_list(
+            for row in User.objects.filter(pk__in=chunk).values_list(
                 "pk", *IDENTITY_FIELDS
             )
         }
@@ -97,7 +97,7 @@ def back_copy_user_identity_columns(apps, schema_editor):
     superseded.
     """
 
-    CustomUser = apps.get_model("accounts", "CustomUser")
+    User = apps.get_model("accounts", "User")
     IdentityState = apps.get_model("accounts_ext", "IdentityState")
 
     row_ids = (
@@ -111,7 +111,7 @@ def back_copy_user_identity_columns(apps, schema_editor):
             )
         }
         restored = []
-        for user in CustomUser.objects.filter(pk__in=chunk).iterator():
+        for user in User.objects.filter(pk__in=chunk).iterator():
             values = row_values.get(user.pk)
             if values is None:
                 continue
@@ -124,7 +124,7 @@ def back_copy_user_identity_columns(apps, schema_editor):
                 setattr(user, field, value)
             restored.append(user)
         if restored:
-            CustomUser.objects.bulk_update(
+            User.objects.bulk_update(
                 restored, IDENTITY_FIELDS, batch_size=BATCH_SIZE
             )
 

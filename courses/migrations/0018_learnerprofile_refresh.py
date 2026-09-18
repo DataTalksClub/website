@@ -56,13 +56,13 @@ def refresh_learner_profiles(apps, schema_editor):
     """Create the missing profile rows and update the ones that differ."""
 
     LearnerProfile = apps.get_model("courses", "LearnerProfile")
-    CustomUser = apps.get_model("accounts", "CustomUser")
+    User = apps.get_model("accounts", "User")
 
-    user_ids = CustomUser.objects.order_by("pk").values_list("pk", flat=True).iterator()
+    user_ids = User.objects.order_by("pk").values_list("pk", flat=True).iterator()
     for chunk in _batched(user_ids, BATCH_SIZE):
         user_values = {
             row[0]: row[1:]
-            for row in CustomUser.objects.filter(pk__in=chunk).values_list(
+            for row in User.objects.filter(pk__in=chunk).values_list(
                 "pk", *PROFILE_FIELDS
             )
         }
@@ -105,7 +105,7 @@ def back_copy_user_profile_columns(apps, schema_editor):
     """
 
     LearnerProfile = apps.get_model("courses", "LearnerProfile")
-    CustomUser = apps.get_model("accounts", "CustomUser")
+    User = apps.get_model("accounts", "User")
 
     profile_ids = (
         LearnerProfile.objects.order_by("user_id").values_list("user_id", flat=True).iterator()
@@ -118,7 +118,7 @@ def back_copy_user_profile_columns(apps, schema_editor):
             )
         }
         restored = []
-        for user in CustomUser.objects.filter(pk__in=chunk).iterator():
+        for user in User.objects.filter(pk__in=chunk).iterator():
             values = profile_values.get(user.pk)
             if values is None:
                 continue
@@ -131,7 +131,7 @@ def back_copy_user_profile_columns(apps, schema_editor):
                 setattr(user, field, value)
             restored.append(user)
         if restored:
-            CustomUser.objects.bulk_update(restored, PROFILE_FIELDS, batch_size=BATCH_SIZE)
+            User.objects.bulk_update(restored, PROFILE_FIELDS, batch_size=BATCH_SIZE)
 
 
 class Migration(migrations.Migration):

@@ -29,8 +29,8 @@ from __future__ import annotations
 
 from test_support.migrations import MigrationWindowTestCase
 
-#: The user model's name in migration state. D3.1e renames it to ``User``.
-USER_MODEL = "CustomUser"
+#: The user model's name in migration state, renamed by D3.1e.
+USER_MODEL = "User"
 
 #: ``accounts`` is held before its contract migration so the user columns the
 #: refresh reads are still in the schema, on this branch and on every later one.
