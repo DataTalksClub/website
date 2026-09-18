@@ -141,13 +141,16 @@ def _published_pages():
     """The published documentation pages of the enabled source.
 
     A disabled source publishes nothing, the way a disabled source empties every
-    other synced collection.
+    other synced collection. Ownership is the page's ``source`` foreign key:
+    C7.9c (community-base v0.5.0) gave ``source_content_id`` back its documented
+    meaning -- the item's own ``content_id`` from the content format -- and moved
+    the source it used to hold into the key that names it.
     """
 
     source_ids = EngineContentSource.objects.filter(
         slug=DOCS_ENGINE_SOURCE_SLUG, is_enabled=True
     ).values_list("id", flat=True)
-    return hierarchy.published_pages(SECTION_DOCS).filter(source_content_id__in=source_ids)
+    return hierarchy.published_pages(SECTION_DOCS).filter(source_id__in=source_ids)
 
 
 def _published_records() -> tuple[list[KnowledgeBasePage], dict[int, dict[str, Any]]]:

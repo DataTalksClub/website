@@ -9,10 +9,13 @@ dependencies = [
     "boto3>=1.43.33,<2",
 # Shared DataTalks.Club package (kernel); pinned release, see
 # `uv run python scripts/community_base_link.py link` for a local development link.
-    # Pinned to the v0.4.7 release: installing the shared events app must
-    # not require the shared accounts app (#411 adopts it later) - v0.4.6
-    # plus the lazy email-resolution imports, released as a tag.
-    "community-base @ git+https://github.com/DataTalksClub/community-base@v0.4.7",
+    # Pinned to the v0.5.3 release: D7.1 needs C7.4, which gives the shared
+    # knowledge base app a site-owned page identity (slug unique per parent,
+    # a stored public path), site-supplied rendered HTML and a site-owned
+    # `record` object. v0.4.7 rejects both the slash paths and the body HTML.
+    # v0.5.3 is the current release; v0.5.0 is the intermediate that first
+    # carried C7.4.
+    "community-base @ git+https://github.com/DataTalksClub/community-base@v0.5.3",
     "cryptography>=50,<51",
     "django>=6.0,<6.1",
     "django-allauth>=65.10,<66",

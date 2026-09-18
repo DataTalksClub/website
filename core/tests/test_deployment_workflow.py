@@ -84,9 +84,16 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # ignore_missing_imports override for `events.models` -- the Django plugin
 # resolves the `events` label to that module name, which community_base.events
 # owns since D4.1 -- and a run of quality-gate opt-ins, both configuration only.
-STUDIO_COURSES_PYPROJECT_SHA256 = "766129bfc5250290b8750ea85350e3d678557fbac41b17033b9bd9499cb8880f"
+# D7.1 moves the shared dependency once more, and both seals move with it: the
+# v0.5.3 release (fb7098c6) carries C7.4, without which the shared knowledge
+# base app cannot hold DataTalks.Club's documentation tree or its wiki bodies.
+# v0.5.0 is the intermediate release that first carried C7.4; the pin goes to
+# the current release rather than that intermediate. The dependency itself is
+# the only change: one pinned tag in pyproject.toml, and the one locked
+# revision it resolves to in uv.lock.
+STUDIO_COURSES_PYPROJECT_SHA256 = "6a6582073f847cc8380f6920db654ced66b893c2d0fa1e31552117ff70c26db3"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "eaa1574e661b6d84a8bc406cba443a5e242cbafdcf58d2a5fdd5394385408f9c"
+    "977b7912107c074c8e1e9c92caf4a42487bb858f4f3a114e8dbe63fd9af38edf"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"

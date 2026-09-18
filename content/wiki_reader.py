@@ -50,12 +50,18 @@ def wiki_sync_stamp() -> tuple[int, str]:
 
 
 def _published_pages():
-    """The published wiki pages of the enabled source."""
+    """The published wiki pages of the enabled source.
+
+    Ownership is the page's ``source`` foreign key. C7.9c (community-base
+    v0.5.0) gave ``source_content_id`` back its documented meaning -- the
+    item's own ``content_id`` from the content format -- and moved the source
+    it used to hold into the key that names it.
+    """
 
     source_ids = EngineContentSource.objects.filter(
         slug=WIKI_SOURCE_SLUG, is_enabled=True
     ).values_list("id", flat=True)
-    return hierarchy.published_pages(SECTION_WIKI).filter(source_content_id__in=source_ids)
+    return hierarchy.published_pages(SECTION_WIKI).filter(source_id__in=source_ids)
 
 
 def _record(page: KnowledgeBasePage) -> Record:
