@@ -141,7 +141,7 @@ Resumability
 ------------
 
 Both tables, and the synthesis pass, are processed in ascending source-id order,
-in fixed-size batches, tracked in ``accounts.models.CmpLearnerImportProgress``.
+in fixed-size batches, tracked in ``accounts_ext.models.CmpLearnerImportProgress``.
 Each batch's writes and its watermark advance happen inside one transaction, so a
 process killed mid-batch leaves nothing partially written for the next run to
 double-count; a re-run's first query is ``id > last_source_id``, so it does not
