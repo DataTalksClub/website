@@ -1,13 +1,23 @@
 """The accounts_ext extension models (plan issue D3.1).
 
-``IdentityState`` is a genuinely new table; it receives the identity
-reconciliation columns moved off the auth user model, and the data copy below
-fills it from the user table. The conditional unique constraint
-``accounts_active_normalized_email_unique`` is NOT created here: it still
-exists, under that exact name, on the user table (accounts.0001), and the
-index name cannot exist twice. The accounts contract migration (plan issue
-D3.1d) drops the old index, and ``accounts_ext.0002`` creates the identically
-named one on this table -- the constraint moves without a rename.
+Schema only. ``IdentityState`` is a genuinely new table; it receives the
+identity reconciliation columns moved off the auth user model, and
+``0002_identity_state_data`` -- a separate migration, deliberately -- copies
+the values into it. The create and the copy are split because a migration
+that does both cannot be half-reversed: unapplying it would run the
+back-copy, drop the table and unwind four state-only model moves in one
+step, so there is no state in which the values are restored onto the user
+columns and the expand still stands. That state is exactly what a rollback of
+the reader switch needs (playbook P7, decision D41), so it has to be
+reachable: reverse ``0002`` alone and the values are back on the user columns
+with this migration still applied.
+
+The conditional unique constraint ``accounts_active_normalized_email_unique``
+is NOT created here: it still exists, under that exact name, on the user table
+(accounts.0001), and the index name cannot exist twice. The accounts contract
+migration (plan issue D3.1d) drops the old index, and
+``accounts_ext.0004_identitystate_unique`` creates the identically named one
+on this table -- the constraint moves without a rename.
 
 The four identity evidence models (``AccountIdentityAlias``,
 ``AccountIdentityQuarantine``, ``AccountReconciliationRun``,
@@ -25,75 +35,6 @@ import uuid
 import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
-
-BATCH_SIZE = 1000
-
-
-def copy_identity_state(apps, schema_editor):
-    """Copy the reconciliation values off every user row, verbatim.
-
-    Guarded: users that already carry an ``IdentityState`` row are skipped,
-    so the copy stays idempotent on databases where rows appeared between the
-    code deploy and the migrate run.
-    """
-
-    CustomUser = apps.get_model("accounts", "CustomUser")
-    IdentityState = apps.get_model("accounts_ext", "IdentityState")
-
-    existing_user_ids = set(
-        IdentityState.objects.values_list("user_id", flat=True).iterator()
-    )
-    identities = []
-    for user in CustomUser.objects.iterator():
-        if user.pk in existing_user_ids:
-            continue
-        identities.append(
-            IdentityState(
-                user_id=user.pk,
-                normalized_email=user.normalized_email,
-                identity_state=user.identity_state,
-            )
-        )
-        if len(identities) >= BATCH_SIZE:
-            IdentityState.objects.bulk_create(identities, batch_size=BATCH_SIZE)
-            identities = []
-    if identities:
-        IdentityState.objects.bulk_create(identities, batch_size=BATCH_SIZE)
-
-
-def restore_user_identity_columns(apps, schema_editor):
-    """Reverse copy: write the reconciliation values back onto the user rows.
-
-    The user-table columns still exist while this runs (the accounts contract
-    migration has not been reversed yet). Users without a row keep whatever
-    their columns hold, mirroring a row-less bulk-created account.
-    """
-
-    CustomUser = apps.get_model("accounts", "CustomUser")
-    IdentityState = apps.get_model("accounts_ext", "IdentityState")
-
-    identities_by_user_id = {
-        user_id: (normalized_email, identity_state)
-        for user_id, normalized_email, identity_state in IdentityState.objects.values_list(
-            "user_id", "normalized_email", "identity_state"
-        )
-    }
-    restored = []
-    for user in CustomUser.objects.iterator():
-        identity = identities_by_user_id.get(user.pk)
-        if identity is None:
-            continue
-        user.normalized_email, user.identity_state = identity
-        restored.append(user)
-        if len(restored) >= BATCH_SIZE:
-            CustomUser.objects.bulk_update(
-                restored, ["normalized_email", "identity_state"], batch_size=BATCH_SIZE
-            )
-            restored = []
-    if restored:
-        CustomUser.objects.bulk_update(
-            restored, ["normalized_email", "identity_state"], batch_size=BATCH_SIZE
-        )
 
 
 class Migration(migrations.Migration):
@@ -315,5 +256,4 @@ class Migration(migrations.Migration):
                 ),
             ],
         ),
-        migrations.RunPython(copy_identity_state, restore_user_identity_columns),
     ]

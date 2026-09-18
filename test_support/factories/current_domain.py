@@ -291,9 +291,9 @@ def _rejected(model_label: str, reason: str) -> RejectedDomainValue:
 
 def _accounts(context: FactoryContext, state: str) -> dict[str, object]:
     User = _model("accounts.CustomUser")
-    Alias = _model("accounts.AccountIdentityAlias")
-    Quarantine = _model("accounts.AccountIdentityQuarantine")
-    Reconciliation = _model("accounts.AccountReconciliationRun")
+    Alias = _model("accounts_ext.AccountIdentityAlias")
+    Quarantine = _model("accounts_ext.AccountIdentityQuarantine")
+    Reconciliation = _model("accounts_ext.AccountReconciliationRun")
     Token = _model("accounts.Token")
     Group = _model("auth.Group")
     Permission = _model("auth.Permission")
