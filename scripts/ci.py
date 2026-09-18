@@ -21,6 +21,15 @@ from typing import Final
 PROJECT_ROOT: Final = Path(__file__).resolve().parents[1]
 UV: Final = ("uv", "run", "--frozen")
 TEST_MEDIA_STORE: Final = "memory"
+TEST_MEDIA_ENVIRONMENT_UNSET: Final = (
+    "PUBLIC_MEDIA_LOCAL_ROOT",
+    "PUBLIC_MEDIA_MAX_OBJECT_BYTES",
+    "PUBLIC_MEDIA_S3_BUCKET",
+    "PUBLIC_MEDIA_S3_ENDPOINT_URL",
+    "PUBLIC_MEDIA_S3_PREFIX",
+    "PUBLIC_MEDIA_S3_REGION",
+    "PUBLIC_MEDIA_S3_TIMEOUT_SECONDS",
+)
 PLAYWRIGHT_EXCLUSIONS: Final = (
     "not quarantine and not remote_readonly and not remote_mutation "
     "and not live_email and not live_provider"
@@ -265,13 +274,18 @@ def _test_environment(*, async_unsafe: bool = False) -> dict[str, str]:
     updates = {
         "DTC_TEST_RUN_ID": os.environ.get("DTC_TEST_RUN_ID", f"ci-{os.getpid()}"),
         "DJANGO_SETTINGS_MODULE": "website.settings.test",
-        "PUBLIC_MEDIA_STORE_BACKEND": os.environ.get(
-            "PUBLIC_MEDIA_STORE_BACKEND", TEST_MEDIA_STORE
-        ),
+        # Test commands own their offline media backend.  Inheriting an ambient
+        # production-shaped ``s3`` value makes the same maintained command
+        # contact the network (or fail for missing credentials) depending on
+        # the invoking developer shell.
+        "PUBLIC_MEDIA_STORE_BACKEND": TEST_MEDIA_STORE,
     }
     if async_unsafe:
         updates["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
-    return _environment(**updates)
+    environment = _environment(**updates)
+    for name in TEST_MEDIA_ENVIRONMENT_UNSET:
+        environment.pop(name, None)
+    return environment
 
 
 def _run(command: tuple[str, ...], *, environment: dict[str, str] | None = None) -> None:

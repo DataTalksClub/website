@@ -25,7 +25,7 @@ from django.test.utils import CaptureQueriesContext
 
 from content import catalogue, wiki_reader
 from content.models import ContentSource, SyncedDocument
-from content.tests.factories import activate, make_ready_release
+from content.tests.factories import activate, make_ready_release, make_source
 
 
 class CacheBindingTestBase(TestCase):
@@ -34,7 +34,13 @@ class CacheBindingTestBase(TestCase):
         # The release cache is process-wide; start each test from cold so the
         # queries counted below are this test's own.
         catalogue._records.cache_clear()
-        self.source = ContentSource.objects.get(stable_id=catalogue.PUBLIC_CONTENT_STABLE_ID)
+        # This is a unit test of the caching primitive itself (ARC-01), not of
+        # any currently-live collection's dispatch -- every editorial kind
+        # reads SyncedDocument now (see catalogue.SYNCED_KIND_SOURCES), so
+        # nothing seeds this row as a side effect any more.  A fresh, enabled
+        # source with no release is exactly the "absent pointer" starting
+        # state these tests build on.
+        self.source = make_source(stable_id=catalogue.PUBLIC_CONTENT_STABLE_ID)
 
 
 class FailedReadRecoveryTests(CacheBindingTestBase):

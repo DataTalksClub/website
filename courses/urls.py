@@ -54,7 +54,7 @@ urlpatterns = [
     ),
     path(
         "<slug:course_slug>/<slug:cohort_identifier>/projects",
-        site_project_gallery.project_gallery_view,
+        site_project_gallery.cohort_projects_redirect,
         name="cohort_projects",
     ),
     path(
@@ -202,7 +202,7 @@ urlpatterns = [
     # literal segment rather than colliding with it.
     path(
         "<slug:course_slug>/projects/all",
-        site_project_gallery.project_gallery_view,
+        site_project_gallery.family_projects_redirect,
         name="family_projects",
     ),
     path(

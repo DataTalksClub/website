@@ -49,8 +49,10 @@ Scope, deliberately narrow:
   explicit ``{repository_slug: cmp_slug}`` pair the caller already knows names the same
   assignment, used only as a fallback when title matching finds nothing.
 
-Running it twice is a no-op: every write is keyed on a natural key, and a homework's
-questions are replaced as a set.
+Running it twice is a no-op: every write is keyed on the same natural key the learner
+history importer uses. Questions reconcile by text and source order, and review criteria
+by description, so their target primary keys and imported learner references survive a
+content replay.
 """
 
 from __future__ import annotations
@@ -64,8 +66,10 @@ from types import MappingProxyType
 from typing import Any, NoReturn
 
 from django.db import transaction
+from django.db.models.deletion import ProtectedError
 
 from courses.models import (
+    Answer,
     Cohort,
     Homework,
     Module,
@@ -220,9 +224,11 @@ class CohortReport:
     homework_written: int = 0
     homework_removed: int = 0
     questions_written: int = 0
+    questions_retained: int = 0
     projects_written: int = 0
     projects_removed: int = 0
     criteria_written: int = 0
+    criteria_retained: int = 0
     rebound_modules: tuple[tuple[str, str, str], ...] = ()
     unpaired_cmp_homework: tuple[str, ...] = ()
     unpaired_repository_homework: tuple[str, ...] = ()
@@ -268,9 +274,11 @@ class CmpContentImportResult:
             "homework_written": sum(row.homework_written for row in self.imported),
             "homework_removed": sum(row.homework_removed for row in self.imported),
             "questions_written": sum(row.questions_written for row in self.imported),
+            "questions_retained": sum(row.questions_retained for row in self.imported),
             "projects_written": sum(row.projects_written for row in self.imported),
             "projects_removed": sum(row.projects_removed for row in self.imported),
             "criteria_written": sum(row.criteria_written for row in self.imported),
+            "criteria_retained": sum(row.criteria_retained for row in self.imported),
             "modules_rebound": sum(len(row.rebound_modules) for row in self.imported),
             "unpaired_cmp_homework": sorted(
                 slug for row in self.imported for slug in row.unpaired_cmp_homework
@@ -289,9 +297,11 @@ class CmpContentImportResult:
                     "homework": row.homework_written,
                     "homework_removed": row.homework_removed,
                     "questions": row.questions_written,
+                    "questions_retained": row.questions_retained,
                     "projects": row.projects_written,
                     "projects_removed": row.projects_removed,
                     "criteria": row.criteria_written,
+                    "criteria_retained": row.criteria_retained,
                 }
                 for row in self.imported
             ],
@@ -740,6 +750,7 @@ def _import_cohort(
 
     written = 0
     questions_written = 0
+    questions_retained = 0
     source_slugs: set[str] = set()
     rebound: list[tuple[str, str, str]] = []
     unpaired_cmp: list[str] = []
@@ -762,7 +773,9 @@ def _import_cohort(
                 unpaired_cmp.append(slug)
         existing[slug] = homework
         written += 1
-        questions_written += _replace_questions(connection, source["id"], homework)
+        question_count, retained_count = _reconcile_questions(connection, source["id"], homework)
+        questions_written += question_count
+        questions_retained += retained_count
 
     leftover = Homework.objects.filter(course=cohort).exclude(slug__in=source_slugs)
     if is_modules:
@@ -800,38 +813,32 @@ def _import_cohort(
         Project.objects.filter(course=cohort).exclude(slug__in=project_slugs).delete()[0]
     )
 
-    criteria_rows = _rows(
-        connection,
-        "SELECT * FROM courses_reviewcriteria WHERE course_id = ? ORDER BY id",
-        (course_id,),
-    )
-    ReviewCriteria.objects.filter(course=cohort).delete()
-    ReviewCriteria.objects.bulk_create(
-        [
-            ReviewCriteria(course=cohort, **_values(source, _CRITERIA_FIELDS))
-            for source in criteria_rows
-        ]
-    )
+    criteria_written, criteria_retained = _reconcile_criteria(connection, course_id, cohort)
 
     return CohortReport(
         cohort_slug=cohort.slug,
         homework_written=written,
         homework_removed=removed,
         questions_written=questions_written,
+        questions_retained=questions_retained,
         projects_written=projects_written,
         projects_removed=projects_removed,
-        criteria_written=len(criteria_rows),
+        criteria_written=criteria_written,
+        criteria_retained=criteria_retained,
         rebound_modules=tuple(rebound),
         unpaired_cmp_homework=tuple(sorted(unpaired_cmp)),
         unpaired_repository_homework=unpaired_repository,
     )
 
 
-def _replace_questions(connection: sqlite3.Connection, homework_id: Any, homework: Homework) -> int:
-    """Replace a homework's questions as a set.
+def _reconcile_questions(
+    connection: sqlite3.Connection, homework_id: Any, homework: Homework
+) -> tuple[int, int]:
+    """Reconcile questions without deleting imported learner answers.
 
-    A CMP question carries no stable business key, so ordinal replacement is the honest
-    idempotency rule: importing twice yields the same set rather than a second copy.
+    Text plus source order is the same identity used by the history importer. Reusing
+    those rows keeps answer foreign keys stable on replay, including the one reviewed
+    source homework that repeats a question verbatim.
     """
 
     rows = _rows(
@@ -839,8 +846,63 @@ def _replace_questions(connection: sqlite3.Connection, homework_id: Any, homewor
         "SELECT * FROM courses_question WHERE homework_id = ? ORDER BY id",
         (homework_id,),
     )
-    Question.objects.filter(homework=homework).delete()
-    Question.objects.bulk_create(
-        [Question(homework=homework, **_values(source, _QUESTION_FIELDS)) for source in rows]
+    available: dict[str, list[Question]] = {}
+    for question in Question.objects.filter(homework=homework).order_by("pk"):
+        available.setdefault(question.text, []).append(question)
+
+    for source in rows:
+        values = _values(source, _QUESTION_FIELDS)
+        matches = available.get(values["text"], [])
+        if matches:
+            question = matches.pop(0)
+            _apply(question, values)
+        else:
+            Question.objects.create(homework=homework, **values)
+
+    retained = 0
+    for leftovers in available.values():
+        for question in leftovers:
+            if Answer.objects.filter(question=question).exists():
+                retained += 1
+            else:
+                question.delete()
+    return len(rows), retained
+
+
+def _reconcile_criteria(
+    connection: sqlite3.Connection, course_id: Any, cohort: Cohort
+) -> tuple[int, int]:
+    """Reconcile criteria by the history importer's documented natural key.
+
+    A criterion description is unique within a source cohort. Keeping the target row
+    preserves criteria responses, evaluation scores, and project assignments. A stale
+    referenced row is retained and counted instead of turning source drift into learner
+    history deletion or a verbose ``ProtectedError`` containing record representations.
+    """
+
+    rows = _rows(
+        connection,
+        "SELECT * FROM courses_reviewcriteria WHERE course_id = ? ORDER BY id",
+        (course_id,),
     )
-    return len(rows)
+    available: dict[str, list[ReviewCriteria]] = {}
+    for criterion in ReviewCriteria.objects.filter(course=cohort).order_by("pk"):
+        available.setdefault(criterion.description, []).append(criterion)
+
+    for source in rows:
+        values = _values(source, _CRITERIA_FIELDS)
+        matches = available.get(values["description"], [])
+        if matches:
+            criterion = matches.pop(0)
+            _apply(criterion, values)
+        else:
+            ReviewCriteria.objects.create(course=cohort, **values)
+
+    retained = 0
+    for leftovers in available.values():
+        for criterion in leftovers:
+            try:
+                criterion.delete()
+            except ProtectedError:
+                retained += 1
+    return len(rows), retained

@@ -2,9 +2,10 @@
 
 The event-description bridge remains the source of the rendered event body.  This migration-owned
 transform runs after that bridge, removes profile copy that was pasted into an event description,
-and leaves the bridge provenance attached to the resulting record.  Its checked plan lives under
-``_docs/migrations`` so a projection rebuild can repeat exactly the same review decisions without
-reading an exporter checkout or a protected provider dump.
+and leaves the bridge provenance attached to the resulting record.  Its reviewed plan lives outside
+this repository, at ``~/prod/dtc-data/content-staging/`` (see
+``_docs/architecture/database-only-content.md``), so a projection rebuild can repeat exactly the
+same review decisions without reading an exporter checkout or a protected provider dump.
 """
 
 from __future__ import annotations
@@ -19,10 +20,16 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+#: Outside this repository, at ~/prod/dtc-data/content-staging/ -- see
+#: _docs/architecture/database-only-content.md.
 NORMALIZATION_PATH = (
-    REPOSITORY_ROOT / "_docs" / "migrations" / "event-speaker-bio-normalization.json"
+    Path.home() / "prod" / "dtc-data" / "content-staging" / "event_speaker_bio_normalization.json"
 )
+#: Kept as its original checked-in identity, not repointed to the ~/prod move above: the
+#: reviewed plan's own embedded ``schema.path`` still reads this value, and already-normalized
+#: real corpus events carry it (via ``content_sha256``) in their replay provenance, so changing
+#: it would invalidate every event this plan has already been applied to (mirrors
+#: ``event_description_bridge.py``'s ``BRIDGE_PUBLIC_PATH``, kept for the same reason).
 NORMALIZATION_PUBLIC_PATH = "_docs/migrations/event-speaker-bio-normalization.json"
 NORMALIZATION_SCHEMA_VERSION = 1
 

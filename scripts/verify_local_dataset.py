@@ -282,18 +282,23 @@ def _content_report() -> dict[str, Any]:
 def _editorial_content_report() -> dict[str, Any]:
     """What the editorial catalogue publishes, counted through the public readers.
 
-    ``content.catalogue`` resolves the active release of ``dtc-public-content``;
-    ``docs_pages`` and ``faq_courses`` do the same for their own sources.  Reading
-    them rather than counting ``ContentDocument`` rows directly matters, because a
-    re-run writes and activates a *new* release and leaves the superseded one in
-    place: after two imports the table holds 4,406 rows and the site still serves
-    2,203.  The row totals are reported for context and nothing is failed on them.
+    Articles, podcasts, books, people, wiki, media, docs and FAQ all read
+    ``content.models.SyncedDocument`` rows now, written by the live
+    ``community_base.content_sync`` engine (``manage.py sync_content`` against
+    a real checkout, or its webhook) -- ``content.catalogue``, ``docs_pages``
+    and ``faq_courses`` resolve their own synced source rather than a staged
+    release.  ``content_document_total`` is reported for context only: the
+    older ``ContentDocument`` mechanism these readers no longer touch still
+    has other, unrelated writers (course-repository registration), so a
+    nonzero count here is not evidence either way about the editorial
+    catalogue.
 
-    Sponsors and testimonials are the other two step-4 importers.  They write
-    ``core.Sponsor`` and ``courses.Testimonial`` rather than documents, so they are
-    counted from their own models, but they fail for the same reason: a homepage
-    with no member stories and a directory with no supporters is an importer that
-    never ran.
+    Sponsors and testimonials are imported separately, from
+    ``scripts/prod/import_sponsors.py`` and ``import_testimonials.py``.  They
+    write ``core.Sponsor`` and ``courses.Testimonial`` rather than documents,
+    so they are counted from their own models, and they fail for the same
+    reason as an empty collection: a homepage with no member stories and a
+    directory with no supporters is an importer that never ran.
     """
 
     from content import catalogue, wiki_reader
@@ -482,22 +487,20 @@ def _editorial_failures(editorial: dict[str, Any]) -> list[str]:
 
     A missing collection means the site serves an empty blog, podcast, wiki,
     documentation tree or FAQ, which is the exact shape a database has when
-    nothing ran ``scripts/prod/import_public_content.py``, ``import_faq.py`` or
-    ``import_docs.py``.  It is reported per importer, so the failure names the
-    command to run rather than a count to go and look up.
+    nothing has ever run ``manage.py sync_content`` against a real checkout
+    for that source (or replayed its webhook).  It is reported per collection,
+    so the failure names what is missing rather than a count to go and look up.
     """
 
     failures: list[str] = []
     if editorial["empty_collections"]:
         failures.append(
             "editorial catalogue publishes nothing for "
-            f"{editorial['empty_collections']}: run the step 4 importers "
-            "(run the editorial import scripts)"
+            f"{editorial['empty_collections']}: run manage.py sync_content "
+            "against a real checkout for the missing source(s)"
         )
-    if not editorial["content_asset_total"]:
-        failures.append("no content assets, so scripts/prod/import_docs.py never ran")
     if not editorial["faq_section_total"]:
-        failures.append("no FAQ sections, so scripts/prod/import_faq.py never ran")
+        failures.append("no FAQ sections, so the dtc-faq sync (manage.py sync_content) never ran")
     if not editorial["sponsor_total"]:
         failures.append("no sponsors, so scripts/prod/import_sponsors.py never ran")
     if not editorial["testimonial_total"]:

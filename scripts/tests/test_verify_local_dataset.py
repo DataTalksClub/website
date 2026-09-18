@@ -82,11 +82,10 @@ class EditorialFailureTests(TestCase):
         self.assertTrue(failures)
         joined = " ".join(failures)
         for importer in (
-            # The catalogue-wide failure names its recovery, not an old
-            # command spelling: "run the editorial import scripts".
-            "editorial import scripts",
-            "import_docs.py",
-            "import_faq.py",
+            # The catalogue-wide failure names its recovery: the live sync
+            # engine, not a retired command spelling.
+            "sync_content",
+            "dtc-faq sync",
             "import_sponsors.py",
             "import_testimonials.py",
         ):
@@ -142,25 +141,24 @@ class EditorialReportTests(TestCase):
         self.assertEqual(report["active_catalogue_release"], "")
         self.assertTrue(_editorial_failures(report))
 
-    def test_the_step_four_importers_make_the_same_report_pass(self) -> None:
+    def test_the_synced_reference_baseline_makes_the_report_pass(self) -> None:
+        """Every test database starts from ``load_reviewed_reference_data()``.
+
+        Articles, podcasts, books, people, wiki, media, docs and FAQ all
+        publish from ``content.models.SyncedDocument`` rows now (the
+        ``load_synced_*`` loaders), not from a step-4 importer replaying a
+        staged release, so there is nothing left to run here: the baseline
+        every other test already starts from is the thing under test.
+        """
         import json
         import tempfile
 
-        from scripts.prod.import_docs import run as import_docs
-        from scripts.prod.import_faq import run as import_faq
         from scripts.prod.import_sponsors import run as import_sponsors
         from scripts.prod.import_testimonials import run as import_testimonials
-        from test_support.reference_data import (
-            DOCS_PROJECTION,
-            FAQ_PROJECTION,
-            HOMEPAGE_TESTIMONIALS,
-            load_reviewed_public_content,
-        )
+        from test_support.reference_data import HOMEPAGE_TESTIMONIALS
 
-        # The reviewed snapshot lives outside this repository, so the importers
-        # run against the synthetic reference sources the test database itself
-        # is seeded from: the real write paths over a smaller checked-in input.
-        # The sponsor directory has no checked-in fixture, so the test writes
+        # Sponsors and testimonials are still separate, one-time importers;
+        # the sponsor directory has no checked-in fixture, so the test writes
         # one synthetic entry.
         scratch = Path(tempfile.mkdtemp(prefix="step-four-importers-", dir=Path(".tmp")))
         self.addCleanup(lambda: shutil.rmtree(scratch, ignore_errors=True))
@@ -184,26 +182,13 @@ class EditorialReportTests(TestCase):
             ),
             encoding="utf-8",
         )
-
-        for importer in (
-            load_reviewed_public_content,
-            lambda: import_faq(path=FAQ_PROJECTION),
-            lambda: import_docs(path=DOCS_PROJECTION),
-            lambda: import_sponsors(path=sponsor_directory),
-            lambda: import_testimonials(path=HOMEPAGE_TESTIMONIALS),
-        ):
-            importer()
+        import_sponsors(path=sponsor_directory)
+        import_testimonials(path=HOMEPAGE_TESTIMONIALS)
 
         report = _editorial_content_report()
 
         self.assertEqual(report["empty_collections"], [])
         self.assertEqual(_editorial_failures(report), [])
-        # The row totals are context, not a gate: a re-import supersedes a
-        # release rather than replacing its rows, so the table outgrows what
-        # the site publishes and only the published counts can be asserted.
-        self.assertGreaterEqual(
-            report["content_document_total"], sum(report["published_records"].values())
-        )
 
 
 class MediaStoreFailureDecisionTests(TestCase):
@@ -274,12 +259,11 @@ class MediaStoreReportTests(TestCase):
         return LocalMediaStore(root=root, maximum_object_bytes=10_000_000)
 
     def _imported_media(self) -> tuple[Any, tuple[dict[str, Any], ...]]:
-        # The synthetic reference catalogue stands in for the reviewed
-        # projection: the same production write path, a checked-in input the
-        # corpus-less CI job can read.
-        from test_support.reference_data import load_reviewed_public_content
-
-        load_reviewed_public_content()
+        # Every test database already starts from load_reviewed_reference_data(),
+        # which seeds media via load_synced_media() -- the live SyncedDocument
+        # path content.catalogue.media() actually reads now.  There is nothing
+        # left to import here; content.catalogue no longer has a second,
+        # ContentDocument-backed mechanism to seed instead.
         from content import catalogue
 
         records = catalogue.media()

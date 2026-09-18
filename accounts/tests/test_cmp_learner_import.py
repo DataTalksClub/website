@@ -225,6 +225,23 @@ class CmpLearnerImportBasicsTests(_ClaimsFixtureMixin, TestCase):
         self.assertEqual(u2.identity_state, CustomUser.IdentityState.LEGACY)
         self.assertEqual(u15515.identity_state, CustomUser.IdentityState.LEGACY)
 
+    def test_command_summary_reports_collision_counts_without_source_ids(self):
+        source = self._source(
+            [
+                _account_row(2, email="shared@example.com", username="admin"),
+                _account_row(15515, email="shared@example.com", username="shared@example.com"),
+            ],
+            [(1, "shared@example.com", 1, 1, 15515)],
+        )
+        result = self._import(source)
+
+        summary = result.summary()
+        self.assertEqual(summary["synthesis_skipped_collision_count"], 1)
+        self.assertEqual(summary["cross_source_match_count"], 0)
+        self.assertNotIn("synthesis_skipped_collisions", summary)
+        self.assertNotIn("cross_source_matches", summary)
+        self.assertNotIn("15515", str(summary))
+
     def test_an_account_a_different_importer_already_created_is_attached_not_duplicated(self):
         """The exact shape ``import_legacy_zoomcamp.py`` leaves behind: an
         account with just a username and a real email, unclaimed by this
@@ -235,7 +252,9 @@ class CmpLearnerImportBasicsTests(_ClaimsFixtureMixin, TestCase):
         members ``verified_owner_ambiguous`` and locked out.
         """
 
-        legacy_user = CustomUser(username="zc-hist-deadbeef", email="shared-learner@example.invalid")
+        legacy_user = CustomUser(
+            username="zc-hist-deadbeef", email="shared-learner@example.invalid"
+        )
         legacy_user.set_unusable_password()
         legacy_user.save()
         legacy_pk = legacy_user.pk

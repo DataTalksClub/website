@@ -102,7 +102,10 @@ class CourseFamilyLandingTests(TestCase):
             body.index('id="register-heading"'),
             body.index("Explore all learner projects"),
         )
-        self.assertContains(response, reverse("family_projects", args=[self.family.slug]))
+        self.assertContains(
+            response,
+            f"{reverse('all_projects')}?course={self.family.slug}",
+        )
         self.assertContains(response, reverse("registration_campaign", args=[self.campaign.slug]))
         self.assertNotContains(response, "What people build")
         self.assertNotContains(response, 'class="family-built-grid"')

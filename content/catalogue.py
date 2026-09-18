@@ -582,17 +582,6 @@ def wiki_asset_paths() -> frozenset[str]:
     return frozenset(declared) if isinstance(declared, dict) else frozenset()
 
 
-def manifest() -> Record:
-    """What the active release records about itself.
-
-    Its provenance, its per-collection counts and the artifacts it was built
-    from. Nothing a reader sees comes from here; it is what the release says it
-    is, kept beside the records it published.
-    """
-
-    return singleton("manifest")
-
-
 def courses() -> tuple[Record, ...]:
     """The course records the catalogue publishes.
 

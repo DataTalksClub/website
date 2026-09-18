@@ -1,0 +1,25 @@
+{% if pagination_page.has_other_pages %}
+  <nav class="gallery-pagination" aria-label="{{ pagination_label|default:'Pagination' }}">
+    {% if pagination_page.has_previous %}
+      <a class="gallery-page-step" href="?page={{ pagination_page.previous_page_number }}{{ pagination_querystring|default:'' }}" rel="prev" aria-label="Previous page">Previous</a>
+    {% else %}
+      <span class="gallery-page-step is-disabled" aria-disabled="true">Previous</span>
+    {% endif %}
+    <div class="gallery-page-numbers">
+      {% for page_number in pagination_range %}
+        {% if page_number == pagination_page.paginator.ELLIPSIS %}
+          <span class="gallery-page-gap" aria-hidden="true">{{ page_number }}</span>
+        {% elif page_number == pagination_page.number %}
+          <span class="gallery-page-number is-current" aria-current="page"><span class="sr-only">Page </span>{{ page_number }}</span>
+        {% else %}
+          <a class="gallery-page-number" href="?page={{ page_number }}{{ pagination_querystring|default:'' }}" aria-label="Page {{ page_number }}">{{ page_number }}</a>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% if pagination_page.has_next %}
+      <a class="gallery-page-step" href="?page={{ pagination_page.next_page_number }}{{ pagination_querystring|default:'' }}" rel="next" aria-label="Next page">Next</a>
+    {% else %}
+      <span class="gallery-page-step is-disabled" aria-disabled="true">Next</span>
+    {% endif %}
+  </nav>
+{% endif %}

@@ -64,29 +64,34 @@ default anyway). `content_sync/dtc_content/parity.py` itself stays --
 `content_sync/dtc_content/repository.py` still imports it unconditionally for
 a real, ongoing production check gated to that same frozen commit.
 
-`test_support/reference_data.py` no longer reads this tree either. It runs
-the same real `scripts/prod/*` importers -- unmocked, for real -- over a
-small, synthetic, git-tracked fixture set at
-`test_support/fixtures/reference/` to fill every Django test database. The one
-exception is the editorial catalogue (articles/podcasts/books/people/wiki/
-courses/media): its real loader
-(`scripts/prod/public_projection_source.load_checked_projection`) validates
-its input against the exact accepted upstream revisions and a handful of
-pinned counts from the real reviewed snapshot (issue #253) -- by design, so a
-drifted or compromised upstream is refused rather than silently imported. A
-synthetic catalogue cannot satisfy that pin and still be synthetic, so
-`test_support/reference_data.py` calls `scripts/prod/import_public_content.run`
-(the real, unmocked database-writing path) with only that one file-reading,
-upstream-pinned loader swapped out. See that module's docstring for the full
-reasoning.
+`test_support/reference_data.py` no longer reads this tree either. Articles,
+podcasts, books, people, media, FAQ, the podcast platform links and `/slack`
+all read `content.models.SyncedDocument` rows now, written by the live
+`community_base.content_sync` engine (`manage.py sync_content` against a real
+checkout, or its webhook) -- `content/catalogue.py` and `content/faq_data.py`
+resolve their own synced source rather than a staged `ContentDocument`
+release. The wiki and documentation pages that same engine syncs land in
+`community_base.knowledge_base` instead of `SyncedDocument`, and
+`content/wiki_reader.py` and `content/docs_reader.py` read them; the wiki
+graph, the wiki search corpus and the declared asset paths are not pages and
+stay `SyncedDocument` singletons the catalogue reads. `test_support/reference_data.py`'s `load_synced_*`
+functions seed the same shape of rows from a small, synthetic, git-tracked
+fixture set at `test_support/fixtures/reference/`, in the parser's own record
+shape, rather than running an importer. The three importers that used to fill
+this exact gap by writing a staged `ContentDocument` release --
+`scripts/prod/import_public_content.py`, `import_faq.py` and `import_docs.py`
+-- read no longer anything reads, so they were deleted outright, not moved.
 
 | Surface | Read path | Ingest |
 | --- | --- | --- |
-| Articles, podcasts, books, people, courses, media, graph, search, routes | `content/catalogue.py` -> `ContentDocument` | `scripts/prod/import_public_content.py` |
-| Wiki pages | `content/wiki_reader.py` -> `community_base.knowledge_base.KnowledgeBasePage` | `content/sync_parsers/podwiki.py` |
-| Documentation | `content/docs_reader.py` -> `community_base.knowledge_base.KnowledgeBasePage` | `content/sync_parsers/docs.py` |
-| Course FAQ | `content/faq_data.py` -> `ContentDocument` | `scripts/prod/import_faq.py` |
-| `/slack` | `content/review_views.py` -> `ContentDocument` | (page row) |
+| Articles, podcasts, books, media, graph, search, routes | `content/catalogue.py` -> `SyncedDocument` (`dtc-content`) | `manage.py sync_content` / webhook |
+| People | `content/catalogue.py` -> `SyncedDocument` (`dtc-main-site`) | `manage.py sync_content` / webhook |
+| Wiki pages | `content/wiki_reader.py` -> `community_base.knowledge_base.KnowledgeBasePage` | `manage.py sync_content` / webhook |
+| Wiki graph, wiki search | `content/catalogue.py` -> `SyncedDocument` (`dtc-podwiki`) | `manage.py sync_content` / webhook |
+| Courses (catalogue copy) | `content/catalogue.py` -> `SyncedDocument` (per course repository) | `manage.py sync_content` / webhook |
+| Documentation | `content/docs_reader.py` -> `community_base.knowledge_base.KnowledgeBasePage` | `manage.py sync_content` / webhook |
+| Course FAQ | `content/faq_data.py` -> `SyncedDocument` (`dtc-faq`) | `manage.py sync_content` / webhook |
+| `/slack` | `content/catalogue.py` -> `SyncedDocument` (`dtc-content`) | `manage.py sync_content` / webhook |
 | Article FAQ sections | `content/article_faq.py` -> the article's own row | with the article |
 | Events | `events/queries.py` -> `Event`/`EventContent` | `scripts/prod/import_events.py` (identity, then content) |
 | Sponsors | `core/sponsors.py` -> `Sponsor` | `scripts/prod/import_sponsors.py` |
@@ -110,16 +115,24 @@ helpers are `content/event_content.py`, its route inventory is
 `content/public_routes.py`, and its graph safety contract is
 `content/public_graph.py`.
 
-The projection *files* live outside this repository now, at
-`~/prod/dtc-data/content-staging/`, as ingest input. `scripts/staging/` holds
-the code that builds a staging artifact from a reviewed source
+The projection *files* -- the frozen legacy public-content build, not the
+articles/podcasts/books/people/wiki/docs/FAQ this repository now serves from
+`SyncedDocument` -- still live outside this repository, at
+`~/prod/dtc-data/content-staging/public_projection/`. Nothing in this
+repository reads that tree any more: `scripts/prod/import_public_content.py`,
+its only real reader, was deleted once `content/catalogue.py` moved off
+`ContentDocument`. `scripts/prod/public_projection_source.py` (moved from the
+now-retired `scripts/projection_build/` package) still loads and fully checks
+that tree's shape, but only its own focused tests
+(`scripts/tests/test_public_projection_media_digest.py`,
+`scripts/tests/test_projection_marker_provenance.py`, against a synthetic
+stand-in) exercise it now -- it kept its `scripts/prod/` home because those
+tests still import it from there. `scripts/staging/` holds the unrelated, still-live code that builds an event
+description/bio staging artifact from a reviewed source
 (`event_description_bridge.py`, `event_speaker_bio_normalization.py`,
-`event_description_link_policy.py`, `luma_event_descriptions.py`); the code
-that checks the frozen legacy build,
-`scripts/prod/public_projection_source.py` (moved from the now-retired
-`scripts/projection_build/` package -- it is a live dependency of
-`scripts/prod/import_public_content.py`, so it moved rather than deleted).
-Neither is on a public request path.
+`event_description_link_policy.py`, `luma_event_descriptions.py`) for
+`scripts/prod/import_events.py` -- a different domain from the editorial
+catalogue above, and not on a public request path either.
 
 ### Still to do
 
@@ -246,9 +259,10 @@ Stage 2's separation is also done: `event_description_bridge.py`,
 moved from the retired `scripts/projection_build/` package to
 `scripts/staging/`, where `scripts/staging/luma_event_descriptions.py`'s live
 dependency on them is described alongside it. `public_projection_source.py`
-moved to `scripts/prod/`, next to its one remaining caller,
-`scripts/prod/import_public_content.py`; `scripts/projection_build/__init__.py`
-and the now-empty package were deleted.
+moved to `scripts/prod/`, next to its then one remaining caller,
+`scripts/prod/import_public_content.py` (since deleted -- `public_projection_source.py`
+stayed, since its own tests still exercise it directly; see the update note below);
+`scripts/projection_build/__init__.py` and the now-empty package were deleted.
 
 **What Stage 3 said to delete did not come out** -- `scripts/repin_projection_digests.py`
 and `scripts/build_public_projection.py` still exist, just repointed at the new
@@ -265,6 +279,22 @@ deleting them on those tests no longer needing them -- that gate is unchanged
 by the relocation, and nothing here removes it. Deleting them, if ever wanted,
 is a decision for whoever decides the staging tree itself should finally be
 deleted (Stage 4 below) -- not a step this relocation took.
+
+**Update, once the live sync parsers existed:** the "real callers" named above were
+this doc's Stage 3 snapshot, before `content/sync_parsers/*.py` (the live
+`community_base.content_sync` parsers) existed. They import
+`scripts/build_public_projection.py`'s parsing/derivation helpers directly
+(`from scripts import build_public_projection as builder`) -- `_frontmatter`,
+`_string`, `_article_blocks`, `_provenance`, `_canonicalize_wiki_document_urls` and
+others -- which is the real reason the module could not simply be deleted once
+`import_public_content.py`, `import_faq.py` and `import_docs.py` were. Its CLI, its
+projection-writing orchestration, and everything reachable only from them (`build()`,
+`_courses`, `_copy_media`, the wiki/people/events builders, the editorial-route
+manifest writer) were removed instead, leaving a much smaller file of just the
+helpers those parsers and `content/public_records.py`/`scripts/repin_projection_digests.py`
+still use. The four tests named above still exercise it too, alongside those
+live callers -- none of that changes this section's point that the *staging tree*
+itself is a separate, later decision.
 
 `temporary/content/public_projection/` and the reviewed JSON files beside it
 are gone from this repository (moved, `git rm`'d), including

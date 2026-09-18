@@ -40,11 +40,8 @@ class ProjectListLinkViewTests(ProjectListViewTestBase):
         self.assertContains(response, leaderboard_url)
         self.assertContains(response, self.submission.github_link)
         self.assertContains(response, 'aria-label="Open repository"')
-        submissions_url = reverse(
-            "cohort_projects",
-            kwargs={
-                "course_slug": self.course.course.slug,
-                "cohort_identifier": self.course.identifier,
-            },
+        submissions_url = (
+            f"{reverse('all_projects')}?course={self.course.course.slug}"
+            f"&amp;cohort={self.course.identifier}"
         )
         self.assertContains(response, submissions_url)

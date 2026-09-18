@@ -17,7 +17,7 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.sqlite3.creation import DatabaseCreation
 from django.test import SimpleTestCase, TestCase
 
-from content.models import ContentDocument
+from content.models import SyncedDocument
 from courses.models import Testimonial
 from test_support.django_runner import IsolatedSQLiteCreation
 
@@ -54,4 +54,4 @@ class ReferenceDataReachesThisWorkerTests(TestCase):
         # see test_support/reference_data.py's module docstring.
         self.assertEqual(Event.objects.count(), 46)
         self.assertEqual(Testimonial.objects.count(), 6)
-        self.assertGreater(ContentDocument.objects.count(), 0)
+        self.assertGreater(SyncedDocument.objects.count(), 0)

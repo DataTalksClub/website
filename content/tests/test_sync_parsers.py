@@ -974,6 +974,104 @@ class PodwikiParserTests(_CheckoutCase):
         self.assertEqual([node["id"] for node in graph["nodes"]], ["wiki:hello-wiki"])
         self.assertEqual([document["id"] for document in search["docs"]], ["hello-wiki"])
 
+    def test_course_wiki_and_event_nodes_drop_from_graph_and_search(self) -> None:
+        """This site has no /course-wiki/ route and no way to resolve a wiki
+        event citation to its own event page: both degrade like a podcast
+        episode the catalogue does not publish, not a hard failure."""
+
+        import json
+
+        source = _source("dtc-podwiki")
+        self._entities()
+        parser = get_parser("wiki")
+        graph = {
+            "generated_at": "2024-05-01T00:00:00Z",
+            "counts": {"guides": 0},
+            "nodes": [
+                {
+                    "id": "wiki:hello-wiki",
+                    "collection": "wiki",
+                    "title": "Hello Wiki",
+                    "type": "page",
+                    "url": "/wiki/hello-wiki",
+                },
+                {
+                    "id": "course:some-lesson",
+                    "collection": "course_wiki",
+                    "title": "Some Lesson",
+                    "type": "course",
+                    "url": "/course-wiki/some-lesson/",
+                },
+                {
+                    "id": "event:some-webinar",
+                    "collection": "event",
+                    "title": "Some Webinar",
+                    "type": "event",
+                    "url": "https://www.youtube.com/watch?v=fixture-webinar",
+                },
+            ],
+            "links": [
+                {
+                    "kind": "citation",
+                    "source": "wiki:hello-wiki",
+                    "target": "course:some-lesson",
+                    "weight": 1,
+                },
+                {
+                    "kind": "citation",
+                    "source": "wiki:hello-wiki",
+                    "target": "event:some-webinar",
+                    "weight": 1,
+                },
+            ],
+        }
+        search = {
+            "docs": [
+                {
+                    "id": "hello-wiki",
+                    "document_type": "wiki",
+                    "title": "Hello Wiki",
+                    "url": "/wiki/hello-wiki#section-one",
+                    "segment_title": "Section One",
+                    "text": "Body text.",
+                },
+                {
+                    "id": "course:some-lesson",
+                    "document_type": "page",
+                    "level": "course",
+                    "title": "Some Lesson",
+                    "url": "/course-wiki/some-lesson/",
+                    "text": "Lesson notes.",
+                },
+                {
+                    "id": "event:some-webinar",
+                    "document_type": "page",
+                    "level": "event",
+                    "title": "Some Webinar",
+                    "url": "https://www.youtube.com/watch?v=fixture-webinar",
+                    "text": "Webinar notes.",
+                },
+            ]
+        }
+        tree = {
+            "_wiki/hello-wiki.md": _wiki_page(
+                "Hello Wiki", "A section.\n\n## Section One\n\nBody text."
+            ),
+            "graph/graph.json": json.dumps(graph).encode(),
+            "search/search-corpus.json": json.dumps(search).encode(),
+            "assets/og-default.png": b"\x89PNG\r\n\x1a\npng-bytes",
+        }
+        with self.checkout(tree) as checkout:
+            items = parser.discover(checkout, source)
+        by_key = {item.key: item.data["record"] for item in items}
+        published_graph = by_key["$wiki_graph"]
+        published_search = by_key["$wiki_search"]
+        self.assertEqual(
+            published_graph["counts"], {"guides": 0, "nodes": 1, "links": 0, "podcasts": 0}
+        )
+        self.assertEqual([node["id"] for node in published_graph["nodes"]], ["wiki:hello-wiki"])
+        self.assertEqual([document["id"] for document in published_search["docs"]], ["hello-wiki"])
+
     def test_refuses_to_sync_without_the_entity_sources(self) -> None:
         source = _source("dtc-podwiki")
         # The reference data seeds the podcast, book and people rows the

@@ -251,8 +251,8 @@ class DatabaseBoundaryAnalysisTests(SimpleTestCase):
                 "test_reaches_the_catalogue_through_a_sibling_and_a_helper",
                 "self.helper",
                 f"{PROBE_MODULE}._planted_helper",
-                "content_sync.dtc_content.adapter.adapt_dtc_content_checkout",
-                "content_sync.dtc_content.adapter._checked_contracts",
+                f"{PROBE_MODULE}._planted_reader",
+                f"{PROBE_MODULE}._planted_reader_inner",
             ),
         )
         self.assertTrue(reach.chain[-1].startswith("content.catalogue."), reach.described())
@@ -271,7 +271,7 @@ class DatabaseBoundaryAnalysisTests(SimpleTestCase):
         # Bound nowhere but inside the planted method, so a chain can only come
         # from reading the function body.
         self.assertNotIn(
-            "verify_initial_projection_parity",
+            "articles",
             database_boundary._namespace(PROBE_MODULE),
         )
         reaches = [
@@ -286,8 +286,6 @@ class DatabaseBoundaryAnalysisTests(SimpleTestCase):
             (
                 "PlantedFunctionBodyImportTests."
                 "test_reads_the_catalogue_through_a_function_body_import",
-                "content_sync.dtc_content.parity.verify_initial_projection_parity",
-                "content_sync.dtc_content.parity.published_catalogue",
             ),
         )
         self.assertTrue(reach.chain[-1].startswith("content.catalogue."), reach.described())

@@ -1,8 +1,13 @@
 """Shared reviewed-artifact release creation for the editorial importers.
 
-``import_public_content``, ``import_faq`` and ``import_docs`` all turn one
-reviewed artifact into one ``ContentRelease``.  They used to inline the same
-~40 lines, and that inline copy had two defects (audit REL-18): the release
+``import_public_content``, ``import_faq`` and ``import_docs`` used to turn one
+reviewed artifact into one ``ContentRelease`` each; all three were deleted once
+``content/catalogue.py``, ``content/docs_projection.py`` and ``content/faq_data.py``
+moved to reading ``content.models.SyncedDocument`` exclusively (see
+``_docs/architecture/database-only-content.md``).  This module's shared release
+logic remains a live dependency of the reviewed-release importers that still
+exist. They used to inline the same ~40 lines, and that inline copy had two
+defects (audit REL-18): the release
 sequence was ``max(sequence)+1`` read without any lock, so two concurrent
 imports of one source could allocate the same sequence and crash on the
 database constraint; and ``commit_sha`` was synthesized from that counter --

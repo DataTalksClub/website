@@ -16,6 +16,8 @@ from courses.models import (
     Cohort,
     Course,
     Enrollment,
+    PeerReview,
+    PeerReviewState,
     Project,
     ProjectState,
     ProjectSubmission,
@@ -152,6 +154,10 @@ class SiteProjectGallerySubmissionListTests(SiteProjectGalleryTestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "projects/site_gallery.html")
+        self.assertContains(
+            response,
+            '<link rel="canonical" href="https://datatalks.club/courses/projects">',
+        )
 
     def test_retired_legacy_listing_routes_have_no_compatibility_names(self):
         for route_name in ("list_all_project_submissions", "project_list"):
@@ -232,6 +238,91 @@ class SiteProjectGalleryLinkTests(SiteProjectGalleryTestBase):
         self.assertContains(response, self.gallery_url())
 
 
+class ProjectGalleryCanonicalRouteTests(SiteProjectGalleryTestBase):
+    def test_cohort_path_redirects_one_hop_to_stable_filter_values(self):
+        old_url = reverse(
+            "cohort_projects",
+            kwargs={
+                "course_slug": self.de_family.slug,
+                "cohort_identifier": self.de_2024.identifier,
+            },
+        )
+        response = self.client.get(
+            old_url,
+            {
+                "course": self.de_family.slug,
+                "cohort": self.de_2024.identifier,
+                "project": self.de_project_2024.slug,
+                "sort": "votes",
+                "page": "02",
+                "unknown": "discarded",
+            },
+        )
+
+        expected = (
+            f"{self.gallery_url()}?course=de-zoomcamp&cohort=2024"
+            "&project=pipeline-2024&sort=votes&page=2"
+        )
+        self.assertRedirects(response, expected, status_code=301, fetch_redirect_response=False)
+        final = self.client.get(response.headers["Location"])
+        self.assertEqual(final.status_code, 200)
+        self.assertTemplateUsed(final, "projects/site_gallery.html")
+
+    def test_cohort_redirect_head_has_same_location_and_no_body(self):
+        old_url = reverse(
+            "cohort_projects",
+            kwargs={
+                "course_slug": self.de_family.slug,
+                "cohort_identifier": self.de_2024.identifier,
+            },
+        )
+        get_response = self.client.get(old_url)
+        head_response = self.client.head(old_url)
+
+        self.assertEqual(head_response.status_code, 301)
+        self.assertEqual(head_response.headers["Location"], get_response.headers["Location"])
+        self.assertEqual(head_response.content, b"")
+
+    def test_cohort_redirect_rejects_mismatched_or_ambiguous_state(self):
+        old_url = reverse(
+            "cohort_projects",
+            kwargs={
+                "course_slug": self.de_family.slug,
+                "cohort_identifier": self.de_2024.identifier,
+            },
+        )
+        for query in (
+            {"course": self.ml_family.slug},
+            {"cohort": self.de_2023.identifier},
+            {"project": self.de_project_2023.slug},
+            [("sort", "votes"), ("sort", "recent")],
+        ):
+            with self.subTest(query=query):
+                response = self.client.get(old_url, query)
+                self.assertEqual(response.status_code, 404)
+
+    def test_generated_cohort_links_use_the_canonical_gallery(self):
+        response = self.client.get(
+            reverse(
+                "cohort",
+                kwargs={
+                    "course_slug": self.de_family.slug,
+                    "cohort_identifier": self.de_2024.identifier,
+                },
+            )
+        )
+        expected = (
+            f"{self.gallery_url()}?course={self.de_family.slug}"
+            f"&amp;cohort={self.de_2024.identifier}"
+        )
+        self.assertContains(response, f'href="{expected}"')
+        old_url = reverse(
+            "cohort_projects",
+            args=[self.de_family.slug, self.de_2024.identifier],
+        )
+        self.assertNotContains(response, f'href="{old_url}"')
+
+
 class SiteProjectGalleryPaginationTests(SiteProjectGalleryTestBase):
     def test_paginates_submissions_like_the_family_gallery(self):
         bulk_family = Course.objects.create(slug="bulk-zoomcamp", title="Bulk Zoomcamp")
@@ -281,24 +372,16 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
                 ("ml-zoomcamp", "ML Zoomcamp"),
             ],
         )
-        self.assertEqual(
-            list(filters.fields["cohort"].choices),
-            [
-                ("", "All cohorts"),
-                (str(self.ml_2025.pk), "ML Zoomcamp · 2025"),
-                (str(self.de_2024.pk), "Data Engineering Zoomcamp · 2024"),
-                (str(self.de_2023.pk), "Data Engineering Zoomcamp · 2023"),
-            ],
-        )
-        self.assertEqual(len(filters.fields["project"].choices), 4)
+        self.assertEqual(list(filters.fields["cohort"].choices), [("", "All cohorts")])
+        self.assertEqual(list(filters.fields["project"].choices), [("", "All assignments")])
 
     def test_course_cohort_and_assignment_filters_combine(self):
         response = self.client.get(
             self.gallery_url(),
             {
                 "course": "de-zoomcamp",
-                "cohort": str(self.de_2024.pk),
-                "project": str(self.de_project_2024.pk),
+                "cohort": self.de_2024.identifier,
+                "project": self.de_project_2024.slug,
             },
         )
 
@@ -306,8 +389,8 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
             [row.id for row in response.context["submissions"]], [self.submission_de_2024.id]
         )
         self.assertContains(response, '<option value="de-zoomcamp" selected>')
-        self.assertContains(response, f'<option value="{self.de_2024.pk}" selected>')
-        self.assertContains(response, f'<option value="{self.de_project_2024.pk}" selected>')
+        self.assertContains(response, f'<option value="{self.de_2024.identifier}" selected>')
+        self.assertContains(response, f'<option value="{self.de_project_2024.slug}" selected>')
         self.assertContains(response, "Clear filters")
 
     def test_cohort_choices_narrow_to_the_selected_course(self):
@@ -321,8 +404,8 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
             list(filters.fields["cohort"].choices),
             [
                 ("", "All cohorts"),
-                (str(self.de_2024.pk), "Data Engineering Zoomcamp · 2024"),
-                (str(self.de_2023.pk), "Data Engineering Zoomcamp · 2023"),
+                (self.de_2024.identifier, "Data Engineering Zoomcamp · 2024"),
+                (self.de_2023.identifier, "Data Engineering Zoomcamp · 2023"),
             ],
         )
 
@@ -330,24 +413,20 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
         # Owner follow-up: "same here" -- Assignment must narrow the same way.
         by_course = self.client.get(self.gallery_url(), {"course": "de-zoomcamp"})
         self.assertEqual(
-            {label for _, label in by_course.context["gallery_filters"].fields["project"].choices},
-            {
-                "All assignments",
-                f"{self.de_project_2024.title} · Data Engineering Zoomcamp 2024",
-                f"{self.de_project_2023.title} · Data Engineering Zoomcamp 2023",
-            },
+            list(by_course.context["gallery_filters"].fields["project"].choices),
+            [("", "All assignments")],
         )
 
         by_cohort = self.client.get(
-            self.gallery_url(), {"course": "de-zoomcamp", "cohort": str(self.de_2024.pk)}
+            self.gallery_url(), {"course": "de-zoomcamp", "cohort": self.de_2024.identifier}
         )
         self.assertEqual(
             list(by_cohort.context["gallery_filters"].fields["project"].choices),
             [
                 ("", "All assignments"),
                 (
-                    str(self.de_project_2024.pk),
-                    f"{self.de_project_2024.title} · Data Engineering Zoomcamp 2024",
+                    self.de_project_2024.slug,
+                    self.de_project_2024.title,
                 ),
             ],
         )
@@ -361,35 +440,43 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
         self.assertTrue(none_filters.fields["cohort"].widget.attrs.get("disabled"))
         self.assertTrue(none_filters.fields["project"].widget.attrs.get("disabled"))
         self.assertContains(none_selected, "Pick a course to see its cohorts.")
-        self.assertContains(none_selected, "Pick a course or cohort to see its assignments.")
+        self.assertContains(none_selected, "Pick a cohort to see its assignments.")
 
         course_selected = self.client.get(self.gallery_url(), {"course": "de-zoomcamp"})
         course_filters = course_selected.context["gallery_filters"]
         self.assertNotIn("disabled", course_filters.fields["cohort"].widget.attrs)
-        # A course alone is enough to unlock Assignment too.
-        self.assertNotIn("disabled", course_filters.fields["project"].widget.attrs)
+        self.assertTrue(course_filters.fields["project"].widget.attrs.get("disabled"))
 
-    def test_the_family_gallery_starts_with_cohort_already_unlocked(self):
-        # The family-scoped gallery already fixes the course via the route,
-        # so Cohort should not need a redundant course pick to unlock.
+        cohort_selected = self.client.get(
+            self.gallery_url(),
+            {"course": "de-zoomcamp", "cohort": self.de_2024.identifier},
+        )
+        self.assertNotIn(
+            "disabled",
+            cohort_selected.context["gallery_filters"].fields["project"].widget.attrs,
+        )
+
+    def test_the_family_gallery_redirects_to_the_canonical_filter_url(self):
         response = self.client.get(
             reverse("family_projects", kwargs={"course_slug": "de-zoomcamp"})
         )
-
-        self.assertNotIn(
-            "disabled", response.context["gallery_filters"].fields["cohort"].widget.attrs
+        self.assertRedirects(
+            response,
+            f"{self.gallery_url()}?course=de-zoomcamp",
+            status_code=301,
+            fetch_redirect_response=False,
         )
 
-    def test_no_course_selected_keeps_every_cohort_and_assignment_offered(self):
+    def test_no_course_selected_does_not_disclose_downstream_facets(self):
         response = self.client.get(self.gallery_url())
         filters = response.context["gallery_filters"]
 
-        self.assertEqual(len(filters.fields["cohort"].choices), 4)
-        self.assertEqual(len(filters.fields["project"].choices), 4)
+        self.assertEqual(list(filters.fields["cohort"].choices), [("", "All cohorts")])
+        self.assertEqual(list(filters.fields["project"].choices), [("", "All assignments")])
 
     def test_applying_a_narrowed_cohort_choice_still_filters_correctly(self):
         response = self.client.get(
-            self.gallery_url(), {"course": "de-zoomcamp", "cohort": str(self.de_2024.pk)}
+            self.gallery_url(), {"course": "de-zoomcamp", "cohort": self.de_2024.identifier}
         )
 
         self.assertEqual(
@@ -507,36 +594,45 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
         self.submission_ml_2025.passed = False
         self.submission_ml_2025.save(update_fields=["passed"])
 
-        response = self.client.get(
+        redirect = self.client.get(
             reverse(
                 "cohort_projects",
                 kwargs={"course_slug": "ml-zoomcamp", "cohort_identifier": "2025"},
             )
         )
+        self.assertEqual(redirect.status_code, 301)
+        response = self.client.get(redirect.headers["Location"])
 
         submission_ids = [submission.id for submission in response.context["submissions"]]
         self.assertIn(self.submission_ml_2025.id, submission_ids)
 
-    def test_gallery_shows_no_score_and_no_pass_fail_badge(self):
-        # Owner feedback: "it's 0 votes. let's remove both votes and
-        # scores" -- and the pass/fail badge is redundant once the gallery
-        # only lists passed submissions (see test_only_passed_submissions).
+    def test_gallery_shows_review_count_and_explicit_pass_state(self):
         self.submission_ml_2025.project_score = 99
         self.submission_ml_2025.passed = True
         self.submission_ml_2025.save(update_fields=["project_score", "passed"])
         self.ml_project_2025.state = ProjectState.COMPLETED.value
         self.ml_project_2025.save(update_fields=["state"])
+        reviewer = self._submission(
+            self.ml_project_2025,
+            self.ml_2025,
+            "https://github.com/example/reviewer",
+        )
+        PeerReview.objects.create(
+            submission_under_evaluation=self.submission_ml_2025,
+            reviewer=reviewer,
+            note_to_peer="",
+            state=PeerReviewState.SUBMITTED.value,
+        )
 
         response = self.client.get(self.gallery_url(), {"course": "ml-zoomcamp"})
 
-        self.assertNotContains(response, "99 score")
-        self.assertNotContains(response, "score</span>")
-        # The two "status-pill-live"/"status-pill-wait" class *definitions*
-        # legitimately appear in every page's shared inline stylesheet, so
-        # the badge itself is checked by its rendered text instead.
-        self.assertNotContains(response, ">Passed<")
-        self.assertNotContains(response, "Not passed")
-        self.assertNotContains(response, "Not graded yet")
+        self.assertContains(response, '<th scope="col">Reviews</th>')
+        self.assertContains(response, '<th scope="col">Status</th>')
+        submission = next(
+            row for row in response.context["submissions"] if row.pk == self.submission_ml_2025.pk
+        )
+        self.assertEqual(submission.review_count, 1)
+        self.assertContains(response, ">Passed<")
 
     def test_gallery_shows_no_vote_count(self):
         voter = User.objects.create_user(username="gallery-vote-count-voter")
@@ -564,8 +660,8 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
             self.gallery_url(),
             {
                 "course": "ml-zoomcamp",
-                "cohort": str(self.ml_2025.pk),
-                "project": str(self.ml_project_2025.pk),
+                "cohort": self.ml_2025.identifier,
+                "project": self.ml_project_2025.slug,
                 "sort": "votes",
                 "unrelated": "discard-me",
             },
@@ -576,8 +672,8 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
             {
                 "page": ["2"],
                 "course": ["ml-zoomcamp"],
-                "cohort": [str(self.ml_2025.pk)],
-                "project": [str(self.ml_project_2025.pk)],
+                "cohort": [self.ml_2025.identifier],
+                "project": [self.ml_project_2025.slug],
                 "sort": ["votes"],
             },
         )
@@ -628,14 +724,14 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
         self.assertEqual(template_readability_issues(template.read_text()), [])
 
 
-class SharedGalleryPaginationSemanticsTests(SimpleTestCase):
+class GalleryPaginationSemanticsTests(SimpleTestCase):
     def test_first_middle_and_last_pages_keep_live_links_and_disabled_semantics(self):
         paginator = Paginator(range(51), 25)
         for number in (1, 2, 3):
             with self.subTest(page=number):
                 page = paginator.page(number)
                 markup = render_to_string(
-                    "include/pagination.html",
+                    "projects/_gallery_pagination.html",
                     {
                         "pagination_page": page,
                         "pagination_range": paginator.page_range,
@@ -644,22 +740,21 @@ class SharedGalleryPaginationSemanticsTests(SimpleTestCase):
                     },
                 )
                 self.assertIn('aria-label="Project submission pages"', markup)
-                for label, arrow, destination, relation in (
-                    ("Previous page", "←", number - 1, "prev"),
-                    ("Next page", "→", number + 1, "next"),
+                for label, destination, relation in (
+                    ("Previous page", number - 1, "prev"),
+                    ("Next page", number + 1, "next"),
                 ):
                     if destination in paginator.page_range:
                         self.assertInHTML(
-                            '<a class="filter-pill pagination-step" '
+                            '<a class="gallery-page-step" '
                             f'href="?page={destination}&amp;course=example" rel="{relation}" '
-                            f'aria-label="{label}"><span aria-hidden="true">{arrow}</span></a>',
+                            f'aria-label="{label}">{label.removesuffix(" page")}</a>',
                             markup,
                         )
                     else:
                         self.assertInHTML(
-                            '<span class="status-pill pagination-step" role="link" '
-                            f'aria-disabled="true" aria-label="{label}">'
-                            f'<span aria-hidden="true">{arrow}</span></span>',
+                            '<span class="gallery-page-step is-disabled" '
+                            f'aria-disabled="true">{label.removesuffix(" page")}</span>',
                             markup,
                         )
-                self.assertNotIn('<span class="status-pill pagination-step" aria-label=', markup)
+                self.assertNotIn('role="link"', markup)

@@ -77,7 +77,6 @@ class ProjectVotingBase(TestCase):
             commit_id=data.commit_id,
         )
 
-
     def project_list_url(self):
         return reverse(
             "cohort_project_list",
@@ -99,9 +98,7 @@ class ProjectVotingBase(TestCase):
         self.assertEqual(vote_count, count)
 
     def assert_submission_voted(self, submission, voted=True):
-        vote_exists = ProjectVote.objects.filter(
-            submission=submission
-        ).exists()
+        vote_exists = ProjectVote.objects.filter(submission=submission).exists()
         self.assertEqual(vote_exists, voted)
 
 
@@ -125,9 +122,7 @@ class ProjectVotingActionTestCase(ProjectVotingBase):
             response = self.post_vote(self.submission)
             self.assertEqual(response.status_code, 302)
 
-        vote_count = ProjectVote.objects.filter(
-            submission=self.submission
-        ).count()
+        vote_count = ProjectVote.objects.filter(submission=self.submission).count()
         self.assertEqual(vote_count, 1)
 
     def test_user_can_remove_vote(self):
@@ -147,9 +142,7 @@ class ProjectVotingActionTestCase(ProjectVotingBase):
         )
 
         self.assertEqual(response.status_code, 302)
-        vote_exists = ProjectVote.objects.filter(
-            submission=self.submission
-        ).exists()
+        vote_exists = ProjectVote.objects.filter(submission=self.submission).exists()
         self.assertFalse(vote_exists)
 
     def test_ajax_vote_returns_updated_vote_state(self):
@@ -223,7 +216,10 @@ class ProjectVotingAllSubmissionsTestCase(ProjectVotingBase):
             submission=self.submission,
             voter=self.voter,
         )
-        url = reverse("cohort_projects", args=[self.course.course.slug, self.course.identifier])
+        url = (
+            f"{reverse('all_projects')}?course={self.course.course.slug}"
+            f"&cohort={self.course.identifier}"
+        )
 
         response = self.client.get(url)
 

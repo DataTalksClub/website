@@ -143,6 +143,7 @@ def test_ignores_unknown_lesson_frontmatter_keys() -> None:
 
     modules_cohort = source.cohorts[2]
     module_item, _project_item = modules_cohort.flow
+    assert isinstance(module_item, ModuleFlowSource)
     intro = module_item.module.units[0]
     assert intro.source_path == path
     assert intro.metadata.video_url == "https://www.youtube.com/watch?v=fixture-intro"

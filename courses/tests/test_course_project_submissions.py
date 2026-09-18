@@ -93,12 +93,9 @@ class CourseProjectSubmissionsViewBase(TestCase):
         self.create_project_submissions()
 
     def submissions_url(self):
-        return reverse(
-            "cohort_projects",
-            kwargs={
-                "course_slug": self.course.course.slug,
-                "cohort_identifier": self.course.identifier,
-            },
+        return (
+            f"{reverse('all_projects')}?course={self.course.course.slug}"
+            f"&cohort={self.course.identifier}"
         )
 
     def get_submissions_response(self, login=False):

@@ -147,40 +147,34 @@ def _json_management_command(name: str, **options: Any) -> dict[str, Any]:
     return report
 
 
-def _import_editorial_content() -> dict[str, Any]:
-    """Step 4 of the documented bootstrap order, as one block.
+def _import_sponsor_and_testimonial_content() -> dict[str, Any]:
+    """The narrowed step 4 of the documented bootstrap order.
 
-    ``_docs/runbooks/data-ingest.md`` §11 step 4 names five reviewed one-time inputs
-    under ``~/prod/dtc-data/content-staging/`` (outside this repository -- see
-    ``_docs/architecture/database-only-content.md``).  All five declare
-    ``BOOTSTRAPS_EMPTY_DATABASE`` and
-    none depends on another, so the order within the block carries no meaning -- what
-    matters is that the block runs, and that it runs after the course catalogue rather
-    than instead of it.  Only testimonials used to run here, so a rehearsal database
-    had no articles, podcasts, books, people, wiki, docs, FAQ or sponsors and nothing
-    said so.
+    ``_docs/runbooks/data-ingest.md`` §11 step 4 used to name five reviewed one-time
+    inputs under ``~/prod/dtc-data/content-staging/`` (outside this repository -- see
+    ``_docs/architecture/database-only-content.md``): the editorial catalogue
+    (``import_public_content.py``, ``import_faq.py``, ``import_docs.py``) plus sponsors
+    and testimonials.  The three editorial-catalogue importers are gone -- articles,
+    podcasts, books, people, wiki, docs and FAQ all read
+    ``content.models.SyncedDocument`` rows now, written by the live
+    ``community_base.content_sync`` engine (``manage.py sync_content`` against a real
+    checkout, or its webhook), which this offline rehearsal has no checkout to run
+    against.  A rehearsal database therefore has an empty editorial catalogue by
+    design; see the open decision point in the runbook's step 4 for what, if
+    anything, should change that.
 
-    Every one is replay-safe: the three catalogue importers write and activate a fresh
-    release, and the sponsor and testimonial importers key each row on its natural key
-    and report ``replayed``.  These are the production importers themselves, not a
-    second copy of what they do.
+    Sponsors and testimonials are unaffected: they still write ``core.Sponsor`` and
+    ``courses.Testimonial`` from their own reviewed one-time inputs, key each row on
+    its natural key, and report ``replayed`` on a rerun -- these are the production
+    importers themselves, not a second copy of what they do.
     """
 
-    from scripts.prod.import_docs import DocsImportFailure
-    from scripts.prod.import_docs import run as import_docs
-    from scripts.prod.import_faq import FaqImportFailure
-    from scripts.prod.import_faq import run as import_faq
-    from scripts.prod.import_public_content import PublicContentImportFailure
-    from scripts.prod.import_public_content import run as import_public_content
     from scripts.prod.import_sponsors import SponsorDirectoryImportFailure
     from scripts.prod.import_sponsors import run as import_sponsors
     from scripts.prod.import_testimonials import TestimonialImportFailure
     from scripts.prod.import_testimonials import run as import_testimonials
 
     steps: tuple[tuple[str, Any, type[RuntimeError]], ...] = (
-        ("public_content", import_public_content, PublicContentImportFailure),
-        ("faq", import_faq, FaqImportFailure),
-        ("docs", import_docs, DocsImportFailure),
         ("sponsors", import_sponsors, SponsorDirectoryImportFailure),
         ("testimonials", import_testimonials, TestimonialImportFailure),
     )
@@ -283,10 +277,12 @@ def run(
             ).summary()
         except CmpContentImportError as error:
             raise LocalPreparationError(f"cmp_content_{error}") from error
-    # Step 4, after the catalogue and before the event stage: real reviewed
-    # content from the production importers rather than a seeder, so the rehearsal
-    # database holds the same editorial catalogue a production database does.
-    editorial_content = _import_editorial_content()
+    # Step 4, after the catalogue and before the event stage: sponsors and
+    # testimonials, from the production importers rather than a seeder. The
+    # editorial catalogue itself (articles/podcasts/books/people/wiki/docs/FAQ)
+    # is not seeded here -- it requires a live `manage.py sync_content` run
+    # against a real checkout, which this offline rehearsal does not attempt.
+    editorial_content = _import_sponsor_and_testimonial_content()
     # Step 5, and the rehearsal's one event stage: `import_events.run()` itself,
     # all five legs in their fixed order under its one transaction. The
     # rehearsal used to run only the identity and content legs before the

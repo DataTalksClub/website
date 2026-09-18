@@ -394,7 +394,6 @@ class LearnerImportPhaseReport:
             "source_total": self.source_total,
             "written": self.written,
             "skipped": self.skipped,
-            "last_source_id": self.last_source_id,
             "completed": self.completed,
         }
 
@@ -412,18 +411,12 @@ class LearnerImportResult:
             "accounts": self.accounts.as_dict(),
             "email_addresses": self.email_addresses.as_dict(),
             "synthesized_email_addresses": self.synthesized_email_addresses.as_dict(),
-            # Source accounts_customuser ids only -- never an email. These are the
-            # accounts the export gave no email row at all, whose address is
-            # already claimed by another account's verified row; they stay
-            # without one, for the existing reconciliation mechanism to find.
-            "synthesis_skipped_collisions": list(self.synthesis_skipped_collisions),
-            # Source accounts_customuser ids only -- never an email. These
-            # rows were attached onto an account a different importer (today:
-            # import_legacy_zoomcamp) already created for the same address,
-            # rather than creating a duplicate. This call's matches only --
-            # not cumulative across a killed-and-resumed run, see
-            # _import_accounts.
-            "cross_source_matches": list(self.cross_source_matches),
+            # A command summary is safe to retain as operational evidence. Source
+            # ids are still available on the in-process result for reviewed repair
+            # code, but printing them would turn an aggregate-only run log into a
+            # learner-record log.
+            "synthesis_skipped_collision_count": len(self.synthesis_skipped_collisions),
+            "cross_source_match_count": len(self.cross_source_matches),
             "applied": True,
         }
 

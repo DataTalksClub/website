@@ -55,28 +55,6 @@ class PublishedCatalogueTests(TestCase):
     }
 
     def test_accepted_provenance(self) -> None:
-        self.assertTrue(catalogue.manifest()["sources"]["preferred_content"]["accepted"])
-        self.assertFalse(catalogue.manifest()["sources"]["fallback_selection"]["accepted"])
-        self.assertEqual(
-            catalogue.manifest()["sources"]["preferred_content"]["revision"],
-            "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
-        )
-        self.assertEqual(
-            catalogue.manifest()["sources"]["preferred_content"]["editorial_overlay_sha256"],
-            "b2e6f23da40b6afbc310340196101422ac5de466b89e409c0ce5f24f5bf20326",
-        )
-        self.assertEqual(
-            catalogue.manifest()["wiki_assets"],
-            {
-                "/wiki/assets/og-default.png": (
-                    "afddea001f9cf846630cb7a8046352a52d4d6c2edacd0feaaecb0e8d9b27e8de"
-                )
-            },
-        )
-        self.assertEqual(
-            catalogue.manifest()["runtime_contract"]["source_execution"],
-            "none",
-        )
         for collection in (
             "articles",
             "podcasts",
@@ -98,8 +76,12 @@ class PublishedCatalogueTests(TestCase):
                 self.assertTrue(record["provenance"]["source_key"])
 
     def test_editorial_provenance_keeps_owner_approved_internal_sources(self) -> None:
-        preferred_revision = catalogue.manifest()["sources"]["preferred_content"]["revision"]
-        legacy_revision = catalogue.manifest()["sources"]["legacy_main"]["revision"]
+        # Every record synced from one source shares that source's commit, so
+        # any one record's revision names it -- there is no separate manifest
+        # to read it from now that content arrives through the live sync
+        # engine rather than a staged, reviewed release.
+        preferred_revision = self.collections["articles"]()[0]["provenance"]["revision"]
+        legacy_revision = catalogue.people()[0]["provenance"]["revision"]
         for collection, prefix in (
             ("articles", "articles/"),
             ("podcasts", "podcasts/"),

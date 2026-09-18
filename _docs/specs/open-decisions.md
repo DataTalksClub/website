@@ -102,7 +102,7 @@ slug and a cohort identifier from ever landing on the same bare route.
 | `/courses/<family>/<identifier>/homework/<homework-slug>` | one cohort's assignment |
 | `/courses/<family>/<identifier>/leaderboard` | cohort leaderboard |
 | `/courses/<family>/<identifier>/dashboard` | cohort dashboard |
-| `/courses/<family>/<identifier>/projects` | cohort projects |
+| `/courses/projects?course=<family>&cohort=<identifier>` | cohort project gallery with stable pre-set filters |
 | `/courses/<family>/<identifier>/calendar.ics` | cohort calendar feed |
 
 Cohort identifiers are stable slug-like values (`2026`, `spring-2027`, `self-paced`); `year` is
@@ -113,6 +113,11 @@ remain as explicit one-hop redirect aliases recorded in
 `_docs/compatibility/course-route-contracts.json` with owner, reason, and status. A shared
 module/lesson path never doubles as a cohort identifier -- enforced by a model-level guard on both
 `Cohort` and `SharedModule`, not just by route lookup order.
+
+Amendment (2026-09-17): the owner selected the site-wide project gallery as the one rendered
+gallery URL. Former family/cohort gallery paths are validated one-hop GET/HEAD redirects to stable
+slug/identifier query values; `02-url-link-seo-compatibility.md` owns the complete redirect and
+query contract.
 
 Owner input received: no known external/third-party API consumers of `courses.datatalks.club`
 beyond browsers and the known internal paths already catalogued in

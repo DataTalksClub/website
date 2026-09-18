@@ -118,13 +118,9 @@ BOOTSTRAPPING_ENTRY_POINTS = frozenset(
     {
         "import_cmp_content",
         "import_cmp_learners",
-        "import_docs",
-        "import_faq",
         "import_legacy_zoomcamp",
-        "import_public_content",
         "import_sponsors",
         "import_testimonials",
-        "sync_content",
         "sync_course_repositories",
         "sync_course_repository_sources",
     }
@@ -167,11 +163,6 @@ SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
         "Needs Mailchimp provider credentials and reads subscriber-level personal "
         "data. Step 6, excluded from the local dataset runner."
     ),
-    "sync_content": (
-        "Not decided yet. Its absence from the general script command is recorded here rather "
-        "than left silent; deciding whether it gets a target belongs to the ingest "
-        "consolidation epic, DataTalksClub/website#310."
-    ),
     "sync_public_media_hydrate": (
         "Not decided yet. It is not a general script command; deciding whether it gets one belongs to the ingest "
         "consolidation epic, DataTalksClub/website#310."
@@ -200,11 +191,14 @@ SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
 # entry points (`import_events.py`, `import_event_registrants.py`) compose --
 # neither opens a database connection or a provider export file of its own.
 # `public_projection_source` reads and fully checks the built public
-# projection files; `import_public_content.py` is the real entry point that
-# composes it (moved here from the retired `scripts/projection_build/`
-# package, where it lived beside the same kind of build/validation helpers
-# rather than entry points -- see
-# `_docs/architecture/database-only-content.md`).
+# projection files.  Its former entry point, `import_public_content.py`, was
+# removed once `content/catalogue.py` and friends moved to reading
+# `content.models.SyncedDocument` exclusively -- the projection files it
+# validates have no reader left in this repository.  It stays as a library
+# module because its own focused tests
+# (`scripts/tests/test_public_projection_media_digest.py`,
+# `scripts/tests/test_projection_marker_provenance.py`) still exercise it
+# directly; see `_docs/architecture/database-only-content.md`.
 LIBRARY_MODULES = frozenset(
     {"identity_manifest", "registrant_import", "reviewed_release", "public_projection_source"}
 )

@@ -122,15 +122,20 @@ class FamilyProjectGalleryTestBase(TestCase):
         )
 
     def gallery_url(self):
-        return reverse("family_projects", kwargs={"course_slug": self.family.slug})
+        return f"{reverse('all_projects')}?course={self.family.slug}"
 
 
 class FamilyProjectGallerySubmissionListTests(FamilyProjectGalleryTestBase):
-    def test_route_renders_the_gallery_template(self):
-        response = self.client.get(self.gallery_url())
-
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "projects/site_gallery.html")
+    def test_old_family_route_redirects_to_the_canonical_gallery(self):
+        response = self.client.get(
+            reverse("family_projects", kwargs={"course_slug": self.family.slug})
+        )
+        self.assertRedirects(
+            response,
+            self.gallery_url(),
+            status_code=301,
+            fetch_redirect_response=False,
+        )
 
     def test_lists_individual_submissions_newest_cohort_first(self):
         response = self.client.get(self.gallery_url())
@@ -246,9 +251,12 @@ class FamilyProjectGalleryEmptyCaseTests(TestCase):
 
         response = self.client.get(reverse("family_projects", kwargs={"course_slug": family.slug}))
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(list(response.context["submissions"]), [])
-        self.assertContains(response, "No project submissions yet")
+        self.assertRedirects(
+            response,
+            f"{reverse('all_projects')}?course={family.slug}",
+            status_code=301,
+            fetch_redirect_response=False,
+        )
 
     def test_an_unknown_family_404s(self):
         response = self.client.get(

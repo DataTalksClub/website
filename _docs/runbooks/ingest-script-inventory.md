@@ -802,31 +802,24 @@ calls it: `prepare_dtc_content_candidate` is referenced only from
 view, webhook or job invokes it. A push to `DataTalksClub/content` still changes
 nothing here. Deferred past launch by design.
 
-## 8.2 One-time import — what actually fills the database
+## 8.2 One-time import — removed; the editorial catalogue now syncs live
 
-Two stages, and only the second writes to the database.
-
-**Build (offline, not in `scripts/prod/`)**:
-[`scripts/build_public_projection.py`](../../scripts/build_public_projection.py)
-over [`scripts/projection_build/`](../../scripts/projection_build).
-Source: three pinned upstream checkouts (`DataTalksClub/content`,
-`DataTalksClub/datatalksclub.github.io`, `DataTalksClub/podwiki`) at exact
-revisions.
-Transform: builds the whole catalogue — articles, podcasts, books, people, wiki,
-media manifest — with digest-verified provenance.
-Destination: `public_projection/*.json`, at `~/prod/dtc-data/content-staging/` (outside this
-repository), a **staging artifact**. No request reads it.
-
-**Import**:
-[`scripts/prod/import_public_content.py`](../../scripts/prod/import_public_content.py).
-Source: that staging tree, plus `slack_page.json` beside it, checked once
-through `scripts/projection_build/public_projection_source`.
-Transform: each record becomes one published document carrying that record
-verbatim in its adapter metadata; the five singleton records (manifest, platform
-links, wiki graph, wiki search index, route manifest) become one document apiece.
-Destination: [`content/models.py`](../../content/models.py) (`ContentDocument`,
-`ContentRelease`, `ActiveContentPath`, `ContentAsset`), read on every public
-request by [`content/catalogue.py`](../../content/catalogue.py).
+This section used to describe a two-stage pipeline
+(`scripts/build_public_projection.py` building a staging tree, then
+`scripts/prod/import_public_content.py` importing it into `ContentDocument`).
+`import_public_content.py` was deleted once `content/catalogue.py` moved to
+reading `content.models.SyncedDocument` exclusively: articles, podcasts, books,
+people, wiki and media all arrive now through the live
+`community_base.content_sync` engine (`manage.py sync_content` against a real
+`DataTalksClub/content`/`DataTalksClub/datatalksclub.github.io`/`DataTalksClub/podwiki`
+checkout, or its webhook), not from a staged, digest-verified snapshot.
+`scripts/build_public_projection.py` itself was not deleted — it kept its
+parsing/derivation helpers (`_frontmatter`, `_string`, `_article_blocks`,
+`_provenance`, and others), which `content/sync_parsers/*.py` — the live sync
+parsers — import directly; only its CLI and the staging-tree-writing
+orchestration are gone. `scripts/prod/public_projection_source.py` still loads
+and fully checks the old staging tree's shape, but only its own tests exercise
+it now, against a synthetic stand-in.
 
 ## 8.3 Drift check — reports, never writes
 
@@ -1287,57 +1280,33 @@ for an events_hub sponsor.
 
 ---
 
-# 12. FAQ — imported, not synced
+# 12. FAQ — now synced, not imported
 
-**Import**: [`scripts/prod/import_faq.py`](../../scripts/prod/import_faq.py).
-Source: `~/prod/dtc-data/content-staging/faq_projection.json` (outside this repository),
-a reviewed file pinned to a
-revision of `DataTalksClub/faq` (6 courses / 70 sections / 1,401 questions).
-Transform: checks the schema version, the pinned revision, the course order and
-every question's identifier, relationship, answer and edit URL against the
-declared counts, and refuses the file whole on any mismatch. Each course becomes
-one published document, because each course is one public page.
-Destination: `ContentDocument`, read by
-[`content/faq_data.py`](../../content/faq_data.py) on every `/faq/` request.
-
-**Still not built**: `content_sync/faq/` does not exist, and neither does a
-builder that regenerates `faq_projection.json` from the source repository. The
-file is reviewed in by hand and shape-checked by `ci/content_update.py` only —
-no sync builder, in either direction.
-
-Notes: FAQ was named as one of the two good *presentation* models (alongside
-podwiki) — that's about how FAQ content is laid out and served, unrelated to
-this entry, which is the still-open question of how FAQ's own source
-repository gets ingested.
+`scripts/prod/import_faq.py` (which imported a reviewed
+`~/prod/dtc-data/content-staging/faq_projection.json` snapshot into
+`ContentDocument`) is deleted. The `dtc-faq` parser
+(`content/sync_parsers/faq.py`) in the live `community_base.content_sync` engine
+reads `DataTalksClub/faq` directly now (`manage.py sync_content`, or its
+webhook), writing `content.models.SyncedDocument` rows, which
+[`content/faq_data.py`](../../content/faq_data.py) reads on every `/faq/`
+request. The "still not built" gap this section used to record — no builder
+that regenerates a reviewed snapshot from the source repository — no longer
+applies: there is no snapshot to regenerate.
 
 ---
 
-# 13. Docs — imported, not synced
+# 13. Docs — now synced, not imported
 
-**Import**: [`scripts/prod/import_docs.py`](../../scripts/prod/import_docs.py).
-Source: `~/prod/dtc-data/content-staging/docs_projection.json` (outside this repository),
-a reviewed file pinned to a
-revision of `DataTalksClub/docs` (106 pages / 39 images).
-Transform: checks the schema version, the pinned revision, the page hierarchy,
-every page body against its recorded digest and every image against its recorded
-size and digest,
-and refuses the file whole on any mismatch — a half-imported documentation tree
-would 404 without saying so. Each run writes a new release and activates it.
-Destination: `ContentDocument` and `ContentAsset`. Since D7.1 the served
-documentation is not this staged release: it is the `dtc-docs` parser's
-`community_base.knowledge_base` pages, read by
-[`content/docs_reader.py`](../../content/docs_reader.py).
-
-**Still not built**: `content_sync/docs/` does not exist, and nothing regenerates
-`docs_projection.json` from the source repository. Same gap as FAQ.
-
-Notes: docs *presentation* Pass 0 landed today, entirely on the existing
-projection, no source-repository changes. This entry is the separate
-question of syncing the docs repository itself — covered in
-`.tmp/content-ingest-design.md` and `.tmp/docs-layout-proposal.md`
-(uncommitted, not linkable), with five owner decisions pending, including
-whether `/docs/` even stays live (CloudFront currently 302s it away
-regardless of what Django serves).
+`scripts/prod/import_docs.py` (which imported a reviewed
+`~/prod/dtc-data/content-staging/docs_projection.json` snapshot into
+`ContentDocument`/`ContentAsset`) is deleted. The `dtc-docs` parser
+(`content/sync_parsers/docs.py`) in the live `community_base.content_sync`
+engine reads `DataTalksClub/docs` directly now, and since D7.1 it writes
+`community_base.knowledge_base` pages rather than `SyncedDocument` rows;
+[`content/docs_reader.py`](../../content/docs_reader.py) reads them on every
+`/docs/` request. `content/docs_projection.py`, the read model that stood
+between the two, went with the staged release. The "still not built" gap this
+section used to record no longer applies, for the same reason as FAQ above.
 
 ---
 
@@ -1349,17 +1318,20 @@ and search corpus).
 
 ## 14.1 What actually serves the site today
 
-Folded into 8.2 at both stages. The build reads podwiki as one of its three pinned
-upstream checkouts (`WIKI_REPOSITORY`, `build_public_projection.py:82`) into
-`~/prod/dtc-data/content-staging/public_projection/{wiki,wiki_graph,wiki_search}.json`
-(outside this repository), and
-`import_public_content.py` then writes those records into `ContentDocument`, which
-is what a wiki request reads.
+Now synced, like FAQ (12) and docs (13): the `dtc-podwiki` parser
+(`content/sync_parsers/podwiki.py`) in the live `community_base.content_sync`
+engine reads `DataTalksClub/podwiki` directly (`manage.py sync_content`, or its
+webhook), writing `content.models.SyncedDocument` rows for the wiki pages, the
+wiki graph and the search corpus, which `content/catalogue.py` reads. §8.2's
+old two-stage build-then-import pipeline (`import_public_content.py` writing
+what the build staged into `ContentDocument`) is gone; `WIKI_REPOSITORY` still
+names the same upstream in `scripts/build_public_projection.py`, now only as a
+constant `content/sync_parsers/podwiki.py` reads directly.
 
-## 14.2 Database sync — not built
+## 14.2 Database sync — built
 
-No `content_sync/podwiki/` or equivalent exists. Same gap as FAQ (12) and
-docs (13): a static build only, no dynamic sync builder in either direction.
+`content_sync/podwiki` has no dedicated package, but the `dtc-podwiki` parser
+above is exactly this section's old gap, closed.
 
 ---
 

@@ -147,9 +147,9 @@ class ProjectDesignFiveAShellTests(TestCase):
                 "cohort_project_list",
                 kwargs={**route_kwargs, "project_slug": project_slug},
             ),
-            "all project submissions": reverse(
-                "cohort_projects",
-                kwargs=route_kwargs,
+            "all project submissions": (
+                f"{reverse('all_projects')}?course={route_kwargs['course_slug']}"
+                f"&cohort={route_kwargs['cohort_identifier']}"
             ),
             "peer evaluations": reverse(
                 "cohort_projects_eval",
@@ -233,9 +233,7 @@ class ProjectDesignFiveAShellTests(TestCase):
 
     def test_every_project_page_carries_the_trail_back_to_the_course(self) -> None:
         course_url = reverse("cohort", kwargs=self.course_route_kwargs())
-        family_url = reverse(
-            "course_family", kwargs={"course_slug": self.course.course.slug}
-        )
+        family_url = reverse("course_family", kwargs={"course_slug": self.course.course.slug})
 
         for name, body in self.rendered_pages().items():
             with self.subTest(page=name):
@@ -244,9 +242,7 @@ class ProjectDesignFiveAShellTests(TestCase):
                     r'<nav class="(?:shell shell-reading )?breadcrumbs" aria-label="Breadcrumb">',
                 )
                 self.assertIn(f'<a href="{reverse("course_list")}">Courses</a>', body)
-                self.assertIn(
-                    f'<a href="{family_url}">{self.course.course.title}</a>', body
-                )
+                self.assertIn(f'<a href="{family_url}">{self.course.course.title}</a>', body)
                 self.assertIn(f'<a href="{course_url}">{self.course.identifier}</a>', body)
                 self.assertIn('<li aria-current="page">', body)
 
@@ -281,7 +277,7 @@ class ProjectDesignFiveAShellTests(TestCase):
                         '{% extends "courses/_submission_page.html" %}',
                         page,
                     )
-                elif template.name != "_base.html":
+                elif not template.name.startswith("_"):
                     self.assertIn("{% extends 'projects/_base.html' %}", page)
 
         for name, body in self.rendered_pages().items():
@@ -299,7 +295,7 @@ class ProjectDesignFiveAShellTests(TestCase):
         self.assertIn('{% extends "courses/_submission_page.html" %}', review_template)
         self.assertIn('{% extends "core/content_page.html" %}', shared_template)
         self.assertIn(
-            '{% block content_band_class %}submission-band{% endblock %}',
+            "{% block content_band_class %}submission-band{% endblock %}",
             shared_template,
         )
 

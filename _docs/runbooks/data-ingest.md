@@ -250,20 +250,20 @@ application** from that projection — `content/public_urls.py:213-228` routes t
 hub, detail, search corpus, graph, special pages, feed, sitemap, robots and assets.
 Owner ruling: **the wiki source stays in podwiki.** The serving stays ours.
 
-**4 — `DataTalksClub/faq`** @ `c8da1dee…` → `~/prod/dtc-data/content-staging/faq_projection.json`
-+ `content/faq_assets/`, imported into `ContentDocument` by
-`scripts/prod/import_faq.py`. 6 courses, 70 sections, 1,401 questions, 99 assets.
-Served at `/faq/` by `content/review_views.py` via `content/faq_data.py`, from the
-database. Owner ruling: **FAQ stays where it is.** **Gap: there is no builder for
-the reviewed file in this repository.** It is reviewed in by hand and only
-*checked* by `ci/content_update.py`. Every other family has a reproducer; this one
-does not.
+**4 — `DataTalksClub/faq`** @ `c8da1dee…`. `scripts/prod/import_faq.py`, which used to
+import a reviewed `faq_projection.json` snapshot into `ContentDocument`, is gone:
+`content/faq_data.py` reads `content.models.SyncedDocument` rows now, written by the
+live `community_base.content_sync` engine's `dtc-faq` parser (`manage.py sync_content`
+against a real checkout, or its webhook) — 6 courses, 70 sections, 1,401 questions, 99
+assets, same as before. Served at `/faq/` by `content/review_views.py` via
+`content/faq_data.py`, from the database. Owner ruling: **FAQ stays where it is.**
 
-**5 — `DataTalksClub/docs`** @ `3f23e006…` →
-`~/prod/dtc-data/content-staging/docs_projection.json` + `content/docs_assets/`, imported into
-`ContentDocument` and `ContentAsset` by `scripts/prod/import_docs.py`. 106 pages,
-39 images. Served at `/docs/` by `content/review_views.py`, from the database.
-**Same gap: no builder for the reviewed file in this repository.**
+**5 — `DataTalksClub/docs`** @ `3f23e006…`. `scripts/prod/import_docs.py`, which used
+to import a reviewed `docs_projection.json` snapshot into `ContentDocument` and
+`ContentAsset`, is gone: `content/docs_projection.py` reads
+`content.models.SyncedDocument` rows now, written by the live
+`community_base.content_sync` engine's `dtc-docs` parser — 106 pages, 39 images, same
+as before. Served at `/docs/` by `content/review_views.py`, from the database.
 
 **6 — `DataTalksClub/course-management-platform`** @ `98a23528…`. Two unrelated uses:
 `scripts/production_like_course_specs.json` is pinned from it and produces
@@ -396,12 +396,12 @@ The redirect behaviour is documented in
 21.7% of the contract, now 302.
 
 > **Live contradiction, flagged for decision.** Django *also* serves `/docs/` and
-> `/faq/` itself (`website/urls.py:62-84`) out of the database, filled by
-> `scripts/prod/import_docs.py` and `import_faq.py` — sourced from
+> `/faq/` itself (`website/urls.py:62-84`) out of the database, filled by the live
+> `community_base.content_sync` engine's `dtc-docs` and `dtc-faq` parsers — sourced from
 > `DataTalksClub/docs` and
 > `DataTalksClub/faq`, **not** from the legacy repo. In production the CloudFront
 > 302 fires first, so those Django routes are shadowed. Both facts are true and
-> they point in opposite directions: either the projections are dead weight and
+> they point in opposite directions: either the routes are dead weight and
 > should go, or the redirects should. Nobody should discover this mid-migration.
 > `/podwiki` is a deliberate 404 (`conftest.py:82`).
 
@@ -646,7 +646,7 @@ Things that will surprise you:
 | **Reads** | `courses_course`, `courses_homework`, `courses_question`, `courses_project`, `courses_reviewcriteria`, `courses_registrationcampaign` — enforced by `_assert_content_only()` at `cmp_content_import.py:312-340` |
 | **Refuses to read** | `courses_enrollment`, `courses_submission`, `courses_answer`, `courses_projectsubmission`, `courses_peerreview`, `courses_criteriaresponse`, `courses_courseregistration` |
 | **Writes** | ~991 rows: cohort content and registration campaign definitions |
-| **Idempotency** | Safe. Every write keyed on a natural key; prints a JSON summary |
+| **Idempotency** | Safe, including after learner history exists. Questions reconcile by text/source order and criteria by description, preserving learner foreign keys; referenced stale definitions are retained and aggregate-counted. Prints a JSON summary |
 | **Bootstrap** | **Yes.** `BOOTSTRAPS_EMPTY_DATABASE = True` — it mints its own cohort and family from the reviewed catalogue, so no placeholder seeder is needed. It still *reconciles* against whatever the repository pull wrote, which is why it runs last in `COURSE_CATALOGUE_ORDER` (§11) |
 
 ```
@@ -691,6 +691,11 @@ creates no account with a usable password, staff or superuser rights, or a
 and course registrations "belong to a separate importer that reconciles against the
 cohorts and homework `import_cmp_content` writes".
 
+Its command summary is aggregate-only: reconciliation collisions and cross-source
+matches are counts, never lists of source account ids. The in-process result retains
+the ids for reviewed repair code, while `--status` is the explicit operator-only path
+for progress watermarks.
+
 **That separate importer is `scripts/prod/import_cmp_learner_history.py`**
 (`BOOTSTRAPS_EMPTY_DATABASE = False`, `:61`) over
 `courses/services/cmp_learner_history_import.py`, whose `TABLE_ORDER` (`:171-181`) is
@@ -701,7 +706,7 @@ cohorts, homework, questions, projects and criteria come from `import_cmp_conten
 accounts from `import_cmp_learners`, and a row whose parent is missing is counted under
 a named bucket and skipped rather than given a placeholder parent. It is resumable,
 tracks progress per table in `CmpHistoryImportProgress`, and reports counts and bounded
-codes only, never payload. `scripts/load_rds_export.py`, the broad loader that used to
+codes only, never payload or source-row ids. `scripts/load_rds_export.py`, the broad loader that used to
 look like the candidate, is deleted — `scripts/tests/test_retired_broad_loader.py`
 asserts its absence. `review_import/` imports a *sanitized* subset for local review and
 deliberately leaves the learner tables empty.
@@ -1095,7 +1100,10 @@ and an ambient `DTC_SQLITE_PATH`/`DTC_ENVIRONMENT`/`DJANGO_SETTINGS_MODULE` unse
    (§13), then `scripts/prod/sync_course_repositories.py` against each registered course
    repository checkout (§3), then `scripts/prod/import_cmp_content.py --source <rds export>`
    (§11). CMP runs last because it reconciles.
-3. The five independent, order-free reviewed one-time imports (§4, §11 items 4): `import_public_content.py`, `import_faq.py`, `import_docs.py`, `import_sponsors.py`, `import_testimonials.py`.
+3. The two independent, order-free reviewed one-time imports (§4, §11 item 4):
+   `import_sponsors.py`, `import_testimonials.py`. The editorial catalogue
+   (articles/podcasts/books/people/wiki/docs/FAQ) is no longer seeded this way — it
+   needs a live `manage.py sync_content` run against a real checkout instead.
 4. `import_events.py` (§14-17) — one call, six legs internally sequenced.
 5. `import_mailchimp_course_tags.py` (§18) — after step 2, since it needs the course
    catalogue's cohorts to already exist.
@@ -1159,11 +1167,13 @@ the offline fixture store; the `/images/…` view resolves its record from the d
   `scripts/prod/sync_course_repositories.py` and the webhook view. It is not a content
   store and never was.
 - **`ContentDocument`, `ContentRelease`, `ActiveContentPath` and `ContentAsset` are
-  live at both ends.** `scripts/prod/import_public_content.py` writes the editorial
-  catalogue, `import_faq.py` the FAQ, `import_docs.py` the documentation and its
-  assets; every table in the row above is read on a public request.
-  `content/queries.py`'s `resolve_public_document` is called from
-  `content/public_views.py:1272` and `content/review_views.py:359`.
+  dead for the editorial catalogue, FAQ and docs.** `import_public_content.py`,
+  `import_faq.py` and `import_docs.py`, which used to write those three collections
+  into this mechanism, are gone — `content/catalogue.py`, `content/faq_data.py` and
+  `content/docs_projection.py` read `content.models.SyncedDocument` rows now, written
+  by the live `community_base.content_sync` engine. Nothing in this repository writes
+  `ContentDocument`/`ContentRelease` for those three collections any more, and nothing
+  reads them for a public request either.
 - **What is still wired to nothing is the *push-sync* half.**
   `prepare_dtc_content_candidate` (`content_sync/dtc_content/preparation.py`) — the
   function that would turn a pushed `DataTalksClub/content` revision into a release —
@@ -1454,10 +1464,23 @@ What genuinely differs, and needs care rather than a separate pipeline:
    order still refuses on a homework slug collision the first time one cohort is
    described by both CMP and a repository.
    `scripts/tests/test_prepare_local_data_order.py` holds the orchestrator to it.
-4. `scripts/prod/import_public_content.py`, `import_faq.py`, `import_docs.py`,
-   `import_sponsors.py`, `import_testimonials.py` — the reviewed one-time inputs under
-   `~/prod/dtc-data/content-staging/` (outside this repository). All bootstrap; none depends on
-   another.
+4. `scripts/prod/import_sponsors.py`, `import_testimonials.py` — the reviewed one-time
+   inputs under `~/prod/dtc-data/content-staging/` (outside this repository). Both
+   bootstrap; neither depends on the other. `import_public_content.py`, `import_faq.py`
+   and `import_docs.py` used to be part of this step; they were removed once
+   `content/catalogue.py`, `content/docs_projection.py` and `content/faq_data.py`
+   moved to reading `content.models.SyncedDocument` exclusively — the live
+   `community_base.content_sync` engine (`manage.py sync_content` against a real
+   checkout, or its webhook) is the only way that content arrives now.
+   **Open decision point:** `scripts/prepare_local_data.py`'s offline rehearsal has no
+   checkout to run `sync_content` against, so a rehearsal database now has an empty
+   editorial catalogue (articles, podcasts, books, people, wiki, docs, FAQ) by
+   construction, and `scripts/verify_local_dataset.py`'s editorial gate reports exactly
+   that and fails.  Whether the rehearsal should be taught to run `sync_content`
+   against pinned local checkouts, or the gate should treat an offline rehearsal's
+   empty editorial catalogue as expected rather than a failure, is a product decision
+   nobody has made yet — this note exists so the next person hitting that failure does
+   not read it as a regression in either script.
 5. `scripts/prod/import_events.py`, whose own `run()` performs six legs in a fixed
    order because each reconciles against the one before it: identity import (§14),
    content import (§14.2), the Eventbrite description-precedence overlay (landed
@@ -1616,14 +1639,17 @@ closed, so an old item number still leads somewhere.
    revision a rebuild would have to read cannot be fetched, so #253 cannot be closed
    before #326 is.
 
-5. **The FAQ and docs staging files have no builder in this repository.**
-   `~/prod/dtc-data/content-staging/faq_projection.json` and
-   `~/prod/dtc-data/content-staging/docs_projection.json`
-   are reviewed in by hand and only shape-checked (`ci/content_update.py:47-48`).
-   `scripts/prod/import_faq.py` and `scripts/prod/import_docs.py` now read them into
-   the database, so the *import* side is closed — what is missing is a reproducer that
-   rebuilds either file from `DataTalksClub/faq` and `DataTalksClub/docs`. Every other
-   family has one.
+5. **The FAQ and docs staging files have no builder in this repository, and are no
+   longer an import input either.** `~/prod/dtc-data/content-staging/faq_projection.json`
+   and `~/prod/dtc-data/content-staging/docs_projection.json` are reviewed in by hand and
+   only shape-checked (`ci/content_update.py:47-48`). `scripts/prod/import_faq.py` and
+   `scripts/prod/import_docs.py`, which used to read them into the database, are gone —
+   the live `community_base.content_sync` engine reads `DataTalksClub/faq` and
+   `DataTalksClub/docs` checkouts directly, not these staged snapshots, so nothing in
+   this repository reads either file any more. (`test_support/reference_data.py`'s
+   `DOCS_PROJECTION`/`FAQ_PROJECTION` are a separate, small synthetic fixture pair
+   under `test_support/fixtures/reference/`, not these files.) The reproducer gap this
+   item originally recorded no longer blocks anything a public request reads.
 
 6. **`/faq/` and `/docs/` are both served by Django and 302'd away by CloudFront**
    (§5.3). Django still routes them (`website/urls.py:62-84` → `content/review_views.py`),
@@ -1639,8 +1665,8 @@ closed, so an old item number still leads somewhere.
    recorded here because anyone reaching for "just add it to the bridge" needs to know
    it does not work.
 
-8. **`_docs/migrations/event-speaker-bio-normalization.json` pins exactly 421 events and
-   has no generator in this repository.** A 422nd event fails the build with `event
+8. **`~/prod/dtc-data/content-staging/event_speaker_bio_normalization.json` pins exactly
+   421 events and has no generator in this repository.** A 422nd event fails the build with `event
    speaker-bio projection count mismatch`
    (`scripts/projection_build/event_speaker_bio_normalization.py:483-485`). Since §14.3
    now mints identities for genuinely new events, the count this file pins and the
@@ -1675,12 +1701,12 @@ closed, so an old item number still leads somewhere.
     count-asserted at `:1923-1924`, so it is deliberate and visible rather than silent
     (§6).
 
-12. **The projection's `courses` collection (12 records) is imported and read by no
-    view.** `scripts/prod/import_public_content.py` writes it into `ContentDocument`
-    and `scripts/projection_build/public_projection_source.py` lists `courses` in
-    `COLLECTION_NAMES`, but `/courses`
-    is served from `courses.models.Cohort`. Nothing resolves a page through those
-    documents.
+12. **The projection's `courses` collection (12 records) was imported and read by no
+    view even before `import_public_content.py` (which wrote it into `ContentDocument`)
+    was removed entirely** — `/courses` is served from `courses.models.Cohort`, never
+    through those documents. `scripts/prod/public_projection_source.py` still lists
+    `courses` in `COLLECTION_NAMES` for the projection files it validates, but nothing
+    reads that collection out of the database any more.
 
 13. **The pinned revisions are behind upstream, so the site is missing records that
     exist today** — 4 people, 3 podcast episodes, 1 book, 8 event rows, 1 wiki page
@@ -1704,13 +1730,14 @@ closed, so an old item number still leads somewhere.
     **Changing our counts requires a matching podwiki graph rebuild**, across a
     repository boundary, or the projection build fails (§6.2).
 
-16. **Four importer docstrings and one service still name files that moved to
-    `~/prod/dtc-data/content-staging/`.** `scripts/prod/import_sponsors.py`,
-    `scripts/prod/import_testimonials.py`, `scripts/prod/import_faq.py`,
-    `scripts/prod/import_docs.py` and `core/sponsors.py` name
-    `core/sponsor_directory.json`, `courses/homepage_testimonials.json`,
-    `content/faq_projection.json` and `content/docs_projection.json`. Each script's
-    `REVIEWED_PATH` is correct, so only the prose misleads. Recorded, not fixed.
+16. **Two importer docstrings and one service still name files that moved to
+    `~/prod/dtc-data/content-staging/`.** `scripts/prod/import_sponsors.py` and
+    `scripts/prod/import_testimonials.py` name `core/sponsor_directory.json` and
+    `courses/homepage_testimonials.json`; `core/sponsors.py` names the same. Each
+    script's `REVIEWED_PATH` is correct, so only the prose misleads. Recorded, not
+    fixed. (`import_faq.py` and `import_docs.py`, which this item also used to name
+    for `content/faq_projection.json`/`content/docs_projection.json`, are gone —
+    those two collections no longer have an importer at all, see item 5 above.)
 
     The `--identity-manifest` half of this item is closed:
     `scripts/prepare_local_data.py` imports `IDENTITY_MANIFEST_PATH` from
@@ -1759,8 +1786,7 @@ number can appear twice in this table for two unrelated defects.
 | Import CMP course content | `uv run --frozen python scripts/prod/import_cmp_content.py --database … --source …` |
 | Import CMP learner accounts | `uv run --frozen python scripts/prod/import_cmp_learners.py --database … --source …` (the account layer of step 4 — §8) |
 | Import CMP learner history | `uv run --frozen python scripts/prod/import_cmp_learner_history.py --database … --source …` (the other nine tables; run it after the two above, against the same database — §8) |
-| Import the editorial catalogue | `uv run --frozen python scripts/prod/import_public_content.py --database …` |
-| Import the FAQ and the docs | `uv run --frozen python scripts/prod/import_faq.py --database …`, then `import_docs.py` |
+| Sync the editorial catalogue, FAQ and docs (articles/podcasts/books/people/wiki/faq/docs) | `manage.py sync_content` against a real checkout, or its webhook — there is no offline importer for these any more (§4 item 5) |
 | Import sponsors and testimonials | `uv run --frozen python scripts/prod/import_sponsors.py --database …`, then `import_testimonials.py` |
 | Import event identities and content | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --eventbrite-source …` (identity import is always the first step; content follows it in the same run) |
 | Create identities for new events in a fresh Luma export (§14.3) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --discover-new-events-only` |
