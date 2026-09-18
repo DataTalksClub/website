@@ -698,6 +698,44 @@ class SharedAccountSurfaceTests(TestCase):
         self.assertFalse(inventory["content_projection_account_creation"])
         self.assertEqual(len(inventory["inventory_checksum"]), 64)
 
+    def test_inventory_still_names_every_field_the_reviewed_merge_decides(self) -> None:
+        # The inventory reaches the account's fields by enumeration, so the
+        # D3.1 field move could take a field out of the report without taking
+        # it out of the account. Every field the reviewed merge asks an
+        # operator to decide has to keep appearing, with the row that now
+        # holds it and the category the architecture document gives it.
+        from scripts.prod.account_reconciliation import PROFILE_FIELDS
+
+        inventory = account_inventory()
+        fields = {item["name"]: item for item in inventory["account_fields"]}
+
+        self.assertEqual(sorted(set(PROFILE_FIELDS) - set(fields)), [])
+        expected_home = {
+            "role": ("courses.LearnerProfile", "authority"),
+            "certificate_name": ("courses.LearnerProfile", "profile"),
+            "country": ("courses.LearnerProfile", "profile"),
+            "region": ("courses.LearnerProfile", "profile"),
+            "registration_role": ("courses.LearnerProfile", "profile"),
+            "github_url": ("courses.LearnerProfile", "profile"),
+            "linkedin_url": ("courses.LearnerProfile", "profile"),
+            "personal_website_url": ("courses.LearnerProfile", "profile"),
+            "about_me": ("courses.LearnerProfile", "profile"),
+            "dark_mode": ("courses.LearnerProfile", "preference"),
+            "normalized_email": ("accounts_ext.IdentityState", "identity"),
+            "identity_state": ("accounts_ext.IdentityState", "identity"),
+            "email": ("accounts.CustomUser", "identity"),
+            "preferred_timezone": ("accounts.CustomUser", "preference"),
+        }
+        for name, (model_label, classification) in expected_home.items():
+            with self.subTest(field=name):
+                self.assertEqual(fields[name]["model_label"], model_label)
+                self.assertEqual(fields[name]["classification"], classification)
+        # The join column and the extension rows' surrogate keys are not
+        # account fields and must not appear twice under one name.
+        names = [item["name"] for item in inventory["account_fields"]]
+        self.assertEqual(sorted(names), sorted(set(names)))
+        self.assertNotIn("user", names)
+
 
 class SessionLifecycleTests(TestCase):
     def test_ordinary_identity_release_preserves_the_existing_session(self) -> None:
