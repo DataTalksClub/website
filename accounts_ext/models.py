@@ -64,7 +64,7 @@ class IdentityState(models.Model):
             # The conditional unique constraint moved off the user model under
             # its original name (plan D3.1): it moves, it is not renamed. An
             # index name exists once per database, so accounts_ext.0001 left it
-            # out and accounts_ext.0002 creates it here, after the accounts
+            # out and accounts_ext.0004 creates it here, after the accounts
             # contract migration dropped the old index.
             models.UniqueConstraint(
                 fields=("normalized_email",),

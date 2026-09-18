@@ -8,7 +8,7 @@ every value is already where it is read from.
 
 The conditional unique constraint ``accounts_active_normalized_email_unique``
 is removed here and recreated, under the same name, over
-``accounts_ext.IdentityState`` by ``accounts_ext.0002`` -- it moves, it is not
+``accounts_ext.IdentityState`` by ``accounts_ext.0004`` -- it moves, it is not
 renamed. It could not be created there while this index still held the name, so
 that migration depends on this one.
 
@@ -32,8 +32,8 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("accounts", "0007_move_identity_models_state"),
-        ("accounts_ext", "0001_initial"),
-        ("courses", "0017_learnerprofile_data"),
+        ("accounts_ext", "0003_identity_state_refresh"),
+        ("courses", "0018_learnerprofile_refresh"),
     ]
 
     operations = [

@@ -16,7 +16,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("accounts_ext", "0001_initial"),
+        ("accounts_ext", "0003_identity_state_refresh"),
         ("accounts", "0008_contract_moved_fields"),
     ]
 
