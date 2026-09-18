@@ -14,7 +14,7 @@ from django.test import TestCase, override_settings
 
 from core.bootstrap import RuntimeEnvironment
 from core.models import IdempotencyRecord
-from courses.models import Cohort, Course
+from courses.models import Cohort, Course, LearnerProfile
 from courses.services.development_content_import import (
     APPROVED_SCHEMA_CHECKSUM,
     ArtifactContract,
@@ -134,6 +134,37 @@ class DevelopmentContentImportTests(TestCase):
         self.assertGreater(next_course.pk, 101)
         self.assertTrue(get_user_model().objects.filter(pk=user.pk).exists())
         self.assertEqual(IdempotencyRecord.objects.count(), 1)
+
+    def test_account_learner_profiles_are_not_course_activity(self) -> None:
+        # Every migrated database carries one learner-profile row per account
+        # (plan D3.1a): the course-platform fields moved off the user table into
+        # this app.  ``create_user`` alone leaves no such row, which is why the
+        # preservation test above cannot see this -- the target-activity guard
+        # reaches its protected set by enumerating ``courses_`` tables, so the
+        # move silently turned every account into course activity.
+        dataset = _single_course_dataset()
+        contract = _contract(dataset)
+        user = get_user_model().objects.create_user(
+            username="profiled-user",
+            email="profiled@example.invalid",
+        )
+        profile = LearnerProfile.objects.create(user=user, about_me="Member bio")
+
+        with patch(
+            "courses.services.development_content_import._load_artifact",
+            return_value=dataset,
+        ):
+            outcome = import_development_course_content(
+                Path("unused"),
+                contract=contract,
+                allow_test_environment=True,
+            )
+
+        self.assertTrue(outcome.imported)
+        self.assertTrue(outcome.sensitive_tables_preserved)
+        profile.refresh_from_db()
+        self.assertEqual(profile.about_me, "Member bio")
+        self.assertEqual(LearnerProfile.objects.count(), 1)
 
     def test_partial_or_different_target_is_refused_without_receipt(self) -> None:
         dataset = _single_course_dataset()
