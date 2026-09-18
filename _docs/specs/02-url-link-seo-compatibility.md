@@ -165,7 +165,7 @@ same decision):
 | `/courses/<family>/<identifier>/homework/<slug>/submissions` | assignment submissions |
 | `/courses/<family>/<identifier>/leaderboard` | cohort leaderboard |
 | `/courses/<family>/<identifier>/dashboard` | cohort dashboard |
-| `/courses/<family>/<identifier>/projects` | cohort projects |
+| `/courses/projects?course=<family>&cohort=<identifier>` | cohort project gallery with stable pre-set filters |
 | `/courses/<family>/<identifier>/enrollment` | cohort enrollment |
 | `/courses/<family>/<identifier>/calendar.ics` | cohort calendar feed |
 
@@ -184,6 +184,15 @@ The old `/courses/<family>/cohorts/<identifier>/...` namespace (canonical from 2
 2026-09-15) is retired: one generic redirect (`courses.views.route_redirects
 .cohorts_prefix_redirect`) 301s any `.../cohorts/<suffix>` request to the flat shape above,
 preserving the rest of the path and the query string, rather than a manifest of per-route aliases.
+
+The site-wide learner-project gallery at `/courses/projects` is the sole rendered project-gallery
+URL. Its dependent public filter identity is `course=<family slug>`, then `cohort=<cohort
+identifier>`, then optional `project=<project slug>`; database primary keys never appear in
+generated gallery URLs. The former `/courses/<family>/<identifier>/projects` and
+`/courses/<family>/projects/all` paths remain GET/HEAD-only one-hop permanent redirects. They
+validate the visible route objects, reject duplicated or mismatched course/cohort/project state,
+preserve only compatible `project`, `sort`, and positive `page` values, and drop unknown query
+keys. Internal links emit the canonical filtered URL directly rather than relying on the redirect.
 
 Other explicit redirect-only aliases (each recorded in
 `_docs/compatibility/course-route-contracts.json` with owner, reason, and status; one hop, raw query

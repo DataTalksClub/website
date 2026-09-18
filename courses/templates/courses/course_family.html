@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load breadcrumbs seo %}
+{% load breadcrumbs seo project_gallery %}
 
 {% block document_title %}
   {{ course_family.title }}: cohorts, syllabus and registration — DataTalks.Club
@@ -1200,7 +1200,7 @@
           {% endif %}
           <div class="panel panel-mint panel-outlined family-proof">
             {% if has_learner_projects %}
-              {% url 'family_projects' course_slug=course_family.slug as family_projects_url %}
+              {% family_projects_url course_family as family_projects_url %}
               {% include "core/_button.html" with href=family_projects_url label="Explore all learner projects" variant="primary" %}
             {% endif %}
             {% if family_project_brief %}

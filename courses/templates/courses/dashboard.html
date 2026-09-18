@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load breadcrumbs seo %}
+{% load breadcrumbs seo project_gallery %}
 
 {% block document_title %}{{ course.title }} dashboard — DataTalks.Club{% endblock %}
 
@@ -911,7 +911,8 @@
                 </a>
               {% endif %}
               {% if project_total_submissions %}
-                <a class="cta cta-compact cta-subtle interactive-lift" href="{% url 'cohort_projects' course.course.slug course.identifier %}">
+                {% cohort_projects_url course as project_submissions_url %}
+                <a class="cta cta-compact cta-subtle interactive-lift" href="{{ project_submissions_url }}">
                   Project submissions
                 </a>
               {% endif %}
@@ -1078,7 +1079,8 @@
                 {% endif %}
               </div>
               <p class="card-foot">
-                <a class="band-link" href="{% url 'cohort_projects' course.course.slug course.identifier %}">
+                {% cohort_projects_url course as project_submissions_url %}
+                <a class="band-link" href="{{ project_submissions_url }}">
                   View All Project Submissions →
                 </a>
               </p>

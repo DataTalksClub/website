@@ -1,5 +1,5 @@
 {% extends 'projects/_base.html' %}
-{% load breadcrumbs %}
+{% load breadcrumbs project_gallery %}
 
 {% block document_title %}
   {% if project %}
@@ -231,6 +231,69 @@
     gap: 0.5rem;
   }
 
+  .gallery-status {
+    display: inline-flex;
+    justify-self: start;
+    white-space: nowrap;
+  }
+
+  .gallery-status.is-passed {
+    background: var(--mint);
+  }
+
+  .gallery-pagination {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .gallery-page-numbers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    justify-content: center;
+  }
+
+  .gallery-page-number,
+  .gallery-page-step,
+  .gallery-page-gap {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+    min-height: 2.75rem;
+  }
+
+  .gallery-page-number,
+  .gallery-page-step {
+    border: 2px solid var(--line);
+    border-radius: 0.65rem;
+    color: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-width: 2.75rem;
+    padding: 0.45rem 0.7rem;
+    text-decoration: none;
+  }
+
+  .gallery-page-number.is-current {
+    background: var(--indigo);
+    color: var(--on-indigo);
+  }
+
+  .gallery-page-step.is-disabled {
+    border-color: var(--line-soft);
+    color: var(--muted);
+    opacity: 0.65;
+  }
+
+  .gallery-page-gap {
+    color: var(--muted);
+    min-width: 1.5rem;
+  }
+
   .project-vote-form {
     margin: 0;
   }
@@ -265,9 +328,90 @@
     }
   }
 
+  /* The desktop table is useful for scanning, but forcing seven columns into
+     a phone viewport makes every word wrap into a vertical ribbon. Keep the
+     table markup and its relationships, while presenting each body row as a
+     labelled record at narrow widths. */
+  @media (max-width: 48rem) {
+    .gallery-scroll {
+      overflow: visible;
+    }
+
+    .gallery-table,
+    .gallery-table tbody {
+      display: block;
+    }
+
+    .gallery-table thead {
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      height: 1px;
+      overflow: hidden;
+      position: absolute;
+      white-space: nowrap;
+      width: 1px;
+    }
+
+    .gallery-table .gallery-submission-row {
+      background: color-mix(in srgb, var(--card) 76%, transparent);
+      border: 1.5px solid var(--line-soft);
+      border-radius: 0.8rem;
+      display: grid;
+      gap: 0.15rem;
+      margin-bottom: 0.8rem;
+      padding: 0.7rem;
+    }
+
+    .gallery-table .gallery-submission-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .gallery-table .gallery-submission-row > td {
+      border: 0;
+      display: grid;
+      gap: 0.75rem;
+      grid-template-columns: minmax(5.25rem, 0.35fr) minmax(0, 1fr);
+      min-width: 0;
+      padding: 0.35rem 0;
+    }
+
+    .gallery-table .gallery-submission-row > td::before {
+      color: var(--muted);
+      content: attr(data-label);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .gallery-cell-repository {
+      min-width: 0;
+    }
+
+    .gallery-group-row,
+    .gallery-group-row th {
+      display: block;
+    }
+  }
+
   @media (max-width: 28rem) {
     .gallery-filter-fields {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    .gallery-pagination {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .gallery-page-numbers {
+      grid-column: 1 / -1;
+      grid-row: 1;
+    }
+
+    .gallery-page-step:last-child {
+      justify-self: end;
     }
   }
 {% endblock %}
@@ -302,7 +446,8 @@
         </p>
       {% endif %}
       <div class="project-toolbar">
-        <a class="band-link" href="{% url 'cohort_projects' course.course.slug course.identifier %}">All cohort projects →</a>
+        {% cohort_projects_url course as project_submissions_url %}
+        <a class="band-link" href="{{ project_submissions_url }}">All cohort projects →</a>
       </div>
     {% elif course %}
       <p class="mono-label mono-label-indigo">{{ course_family.title }}</p>
@@ -332,17 +477,18 @@
           {% if field.name == 'cohort' and field.field.widget.attrs.disabled %}
             <p class="field-hint" id="id_cohort-help">Pick a course to see its cohorts.</p>
           {% elif field.name == 'project' and field.field.widget.attrs.disabled %}
-            <p class="field-hint" id="id_project-help">Pick a course or cohort to see its assignments.</p>
+            <p class="field-hint" id="id_project-help">Pick a cohort to see its assignments.</p>
           {% endif %}
           {{ field.errors }}
         </div>
       {% endfor %}
     </div>
-    {% if gallery_has_filters %}
-      <div class="gallery-filter-actions">
+    <div class="gallery-filter-actions">
+      <button class="cta cta-primary cta-compact interactive-lift" type="submit">Apply filters</button>
+      {% if gallery_has_filters %}
         <a class="band-link" href="{{ gallery_url }}">Clear filters</a>
-      </div>
-    {% endif %}
+      {% endif %}
+    </div>
   </form>
 {% endblock %}
 
@@ -352,7 +498,7 @@
   {% else %}
     <section class="gallery-results" aria-labelledby="site-gallery-heading">
       <div class="gallery-result-head">
-        <h2 id="site-gallery-heading">Project repositories</h2>
+        <h2 id="site-gallery-heading">Projects</h2>
         {% if submissions %}
           <p>
             {{ submissions_page.start_index|floatformat:"0g" }}–{{ submissions_page.end_index|floatformat:"0g" }}
@@ -361,7 +507,7 @@
         {% endif %}
       </div>
       {% if submissions %}
-        <div class="gallery-scroll" tabindex="0" role="region" aria-label="Project repositories">
+        <div class="gallery-scroll" tabindex="0" role="region" aria-label="Projects">
           <table class="gallery-table">
             <thead>
               <tr>
@@ -370,6 +516,8 @@
                 <th scope="col">Repository</th>
                 <th scope="col">Assignment</th>
                 <th scope="col">Author</th>
+                <th scope="col">Reviews</th>
+                <th scope="col">Status</th>
                 {% if project %}
                   <th scope="col">Actions</th>
                 {% endif %}
@@ -383,9 +531,9 @@
                   </tr>
                 {% endif %}
                 <tr class="gallery-submission-row">
-                  <td>{{ submission.family.title }}</td>
-                  <td>{{ submission.cohort.identifier }}</td>
-                  <td class="gallery-cell-repository">
+                  <td data-label="Course">{{ submission.family.title }}</td>
+                  <td data-label="Cohort">{{ submission.cohort.identifier }}</td>
+                  <td class="gallery-cell-repository" data-label="Repository">
                     {% if submission.repository_url %}
                       <a href="{{ submission.repository_url }}" target="_blank" rel="noopener noreferrer" aria-label="Open repository">
                         {{ submission.repository_label }} ↗ <span class="sr-only">(opens in a new tab)</span>
@@ -394,14 +542,22 @@
                       Repository link unavailable
                     {% endif %}
                   </td>
-                  <td>{{ submission.assignment.title }}</td>
-                  <td>
+                  <td data-label="Assignment">{{ submission.assignment.title }}</td>
+                  <td data-label="Author">
                     <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=submission.family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">
                       {{ submission.enrollment.display_name }}
                     </a>
                   </td>
+                  <td data-label="Reviews">{{ submission.review_count }}</td>
+                  <td data-label="Status">
+                    {% if submission.passed %}
+                      <span class="status-pill gallery-status is-passed">Passed</span>
+                    {% else %}
+                      <span class="status-pill gallery-status">Not passed</span>
+                    {% endif %}
+                  </td>
                   {% if project %}
-                    <td class="gallery-cell-actions">
+                    <td class="gallery-cell-actions" data-label="Actions">
                       <div class="gallery-card-actions">
                         {% if is_authenticated %}
                           <form method="post" class="project-vote-form" data-submission-id="{{ submission.id }}" data-own="{{ submission.own|yesno:'true,false' }}">
@@ -460,11 +616,11 @@
             <a class="cta cta-secondary cta-compact interactive-lift" href="{{ gallery_url }}">Clear filters</a>
           {% else %}
             <h3>No project submissions yet</h3>
-            <p>Projects will appear here once learners submit their work in a course.</p>
+            <p>Only public submissions that passed appear in this directory. More courses and cohorts appear as eligible work is imported.</p>
           {% endif %}
         </div>
       {% endif %}
-      {% include 'include/pagination.html' with pagination_page=submissions_page pagination_range=page_range pagination_label='Project submission pages' %}
+      {% include 'projects/_gallery_pagination.html' with pagination_page=submissions_page pagination_range=page_range pagination_label='Project submission pages' %}
     </section>
   {% endif %}
   {% if project.state == 'CO' %}

@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load breadcrumbs seo static custom_filters %}
+{% load breadcrumbs seo static custom_filters project_gallery %}
 
 {% block document_title %}
   {{ course.title }} — DataTalks.Club
@@ -431,7 +431,7 @@
             {% include "core/_button.html" with href=course_leaderboard_url label="Course leaderboard" variant="secondary" compact=True %}
             {% url 'cohort_dashboard' course.course.slug course.identifier as course_dashboard_url %}
             {% include "core/_button.html" with href=course_dashboard_url label="Course dashboard" variant="secondary" compact=True %}
-            {% url 'cohort_projects' course.course.slug course.identifier as project_submissions_url %}
+            {% cohort_projects_url course as project_submissions_url %}
             {% include "core/_button.html" with href=project_submissions_url label="Project submissions" variant="secondary" compact=True %}
             {% if is_authenticated and has_enrollment %}
               {% url 'cohort_enrollment' course.course.slug course.identifier as enrollment_url %}
@@ -611,7 +611,8 @@
                 </ol>
                 {% if has_completed_projects %}
                   <p class="course-more">
-                    <a class="band-link" href="{% url 'cohort_projects' course.course.slug course.identifier %}">
+                    {% cohort_projects_url course as project_submissions_url %}
+                    <a class="band-link" href="{{ project_submissions_url }}">
                       See all submitted projects →
                     </a>
                   </p>
@@ -736,7 +737,8 @@
               </div>
               {% if has_completed_projects %}
                 <p class="course-more">
-                  <a class="band-link" href="{% url 'cohort_projects' course.course.slug course.identifier %}">
+                  {% cohort_projects_url course as project_submissions_url %}
+                  <a class="band-link" href="{{ project_submissions_url }}">
                     See all submitted projects →
                   </a>
                 </p>

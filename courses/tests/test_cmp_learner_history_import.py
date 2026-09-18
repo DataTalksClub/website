@@ -756,6 +756,7 @@ class ReportingTests(HistoryImportFixture):
         self.assertNotIn("private@example.invalid", rendered)
         self.assertNotIn("Learner 1", rendered)
         self.assertNotIn("Pseudonym 1", rendered)
+        self.assertNotIn("last_source_id", rendered)
 
 
 class SubmissionImportTests(HistoryImportFixture):

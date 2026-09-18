@@ -1,7 +1,8 @@
 from django.core.paginator import Paginator
-from django.db.models import Count
+from django.db.models import Count, Q
 
 from courses.models.project import (
+    PeerReviewState,
     ProjectState,
     ProjectSubmission,
 )
@@ -12,7 +13,6 @@ from courses.views.project_submission_display import (
     sort_project_submissions_for_view,
 )
 from courses.votes import PROJECT_VOTES_PER_PROJECT
-
 
 PROJECT_SUBMISSIONS_PAGE_SIZE = 25
 
@@ -32,16 +32,14 @@ def project_submissions_page(request, project, viewer_state):
         viewer_state=viewer_state,
     )
 
-    submissions_page = paginate_project_submissions(
-        request, submissions_list
-    )
+    submissions_page = paginate_project_submissions(request, submissions_list)
     apply_project_group_headings(submissions_page)
     return submissions_page
 
 
 def projects_list_context(course, project, submissions_page, viewer_state):
     page_range = submissions_page.paginator.get_elided_page_range(
-        submissions_page.number
+        submissions_page.number, on_each_side=1, on_ends=1
     )
 
     return {
@@ -71,8 +69,14 @@ def _project_submissions_queryset(project):
         volunteer_review_only=False,
     )
     submissions = submissions.select_related("enrollment")
-    vote_count_annotation = Count("votes")
-    submissions = submissions.annotate(vote_count=vote_count_annotation)
+    submissions = submissions.annotate(
+        vote_count=Count("votes", distinct=True),
+        review_count=Count(
+            "reviews_under_evaluation",
+            filter=Q(reviews_under_evaluation__state=PeerReviewState.SUBMITTED.value),
+            distinct=True,
+        ),
+    )
 
     if project.state == ProjectState.COMPLETED.value:
         return submissions.order_by("-project_score")

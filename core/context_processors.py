@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 EXPLICIT_PUBLIC_CANONICALS = {
     "/courses": "https://datatalks.club/courses",
+    "/courses/projects": "https://datatalks.club/courses/projects",
 }
 
 PUBLIC_COURSE_COHORT_ROUTE_NAMES = frozenset(

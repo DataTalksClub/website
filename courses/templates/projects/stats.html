@@ -1,5 +1,5 @@
 {% extends 'projects/_base.html' %}
-{% load breadcrumbs %}
+{% load breadcrumbs project_gallery %}
 {% block document_title %}
   {{ project.title }} statistics — {{ course.title }} — DataTalks.Club
 {% endblock %}
@@ -249,7 +249,8 @@
     </div>
     <div class="stats-actions">
       <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'cohort_project' course.course.slug course.identifier project.slug %}">Project details</a>
-      <a class="cta cta-compact cta-subtle interactive-lift" href="{% url 'cohort_projects' course.course.slug course.identifier %}">All project submissions</a>
+      {% cohort_projects_url course as project_submissions_url %}
+      <a class="cta cta-compact cta-subtle interactive-lift" href="{{ project_submissions_url }}">All project submissions</a>
     </div>
   </div>
 {% endblock %}

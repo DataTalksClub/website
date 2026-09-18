@@ -23,10 +23,28 @@ materializing every submission the site (or one family) has ever collected --
 a multi-year family can hold thousands, and the site holds every family's.
 """
 
-from django.db.models import Case, Count, IntegerField, Value, When
+from django.db.models import Case, Count, IntegerField, Q, Value, When
 
 from courses.models.cohort import Cohort, Course
-from courses.models.project import ProjectState, ProjectSubmission
+from courses.models.project import PeerReviewState, ProjectState, ProjectSubmission
+
+
+def _public_annotations():
+    """Aggregate public gallery facts without multiplying either join.
+
+    ``review_count`` means completed peer reviews received by this submission.
+    Assigned-but-unsubmitted reviews are not scores and are deliberately excluded.
+    """
+
+    return {
+        "vote_count": Count("votes", distinct=True),
+        "review_count": Count(
+            "reviews_under_evaluation",
+            filter=Q(reviews_under_evaluation__state=PeerReviewState.SUBMITTED.value),
+            distinct=True,
+        ),
+        "display_score": _submission_display_score(),
+    }
 
 
 def _submission_display_score():
@@ -75,10 +93,7 @@ def family_project_submissions(family: Course):
         project__course_id__in=cohort_ids,
         volunteer_review_only=False,
     ).select_related("project", "project__course", "enrollment")
-    submissions = submissions.annotate(
-        vote_count=Count("votes"),
-        display_score=_submission_display_score(),
-    )
+    submissions = submissions.annotate(**_public_annotations())
     return submissions.order_by(
         "-project__course__year",
         "-project__course_id",
@@ -98,13 +113,11 @@ def site_project_submissions():
     across different families group together in the reading order rather
     than interleaving arbitrarily.
 
-    This one function backs three routes through ``project_gallery_view``
-    (site-wide, family-wide, *and* the per-cohort ``cohort_projects``
-    listing), so it deliberately does not filter to passed submissions --
-    the family-wide and site-wide galleries do that themselves, at the view
-    layer, because the per-cohort listing was not asked to change and must
-    not silently lose its ungraded/failed submissions as a side effect. See
-    ``courses/views/site_project_gallery.py``.
+    This one function backs the canonical site-wide gallery and its
+    course/cohort filter scopes. It deliberately does not filter to passed
+    submissions: the view applies that gate for broad discovery, while a
+    complete course+cohort selection retains the old cohort listing's
+    ungraded/failed rows. See ``courses/views/site_project_gallery.py``.
 
     ``select_related`` reaches two hops past the submission's own project --
     ``project__course`` is the cohort, ``project__course__course`` is that
@@ -120,10 +133,7 @@ def site_project_submissions():
         project__course_id__in=cohort_ids,
         volunteer_review_only=False,
     ).select_related("project", "project__course", "project__course__course", "enrollment")
-    submissions = submissions.annotate(
-        vote_count=Count("votes"),
-        display_score=_submission_display_score(),
-    )
+    submissions = submissions.annotate(**_public_annotations())
     return submissions.order_by(
         "-project__course__year",
         "project__course__course__title",

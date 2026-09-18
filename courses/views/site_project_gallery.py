@@ -4,8 +4,10 @@ from urllib.parse import unquote, urlencode, urlsplit
 from django import forms
 from django.core.paginator import Paginator
 from django.db.models import Count
+from django.http import Http404, HttpResponse, HttpResponsePermanentRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import NoReverseMatch, reverse
+from django.views.decorators.http import require_http_methods
 
 from courses.models.cohort import Cohort, Course
 from courses.models.project import Project
@@ -18,6 +20,7 @@ from courses.views.project_submission_viewer import project_viewer_state
 from courses.views.project_submission_votes import project_vote_response
 
 SITE_PROJECT_SUBMISSIONS_PAGE_SIZE = 25
+GALLERY_SORTS = frozenset({"cohort", "recent", "votes"})
 
 
 class ProjectGalleryFilters(forms.Form):
@@ -92,9 +95,8 @@ def _choice_rows(submissions):
         .values(
             "project__course__course__slug",
             "project__course__course__title",
-            "project__course_id",
             "project__course__identifier",
-            "project_id",
+            "project__slug",
             "project__title",
         )
         .annotate(total=Count("pk", distinct=True))
@@ -102,7 +104,13 @@ def _choice_rows(submissions):
 
 
 def _filter_choices(
-    rows, family=None, cohort=None, project=None, selected_course="", selected_cohort=""
+    rows,
+    *,
+    selected_course="",
+    selected_cohort="",
+    family=None,
+    cohort=None,
+    project=None,
 ):
     """Compute the Course/Cohort/Assignment option lists, each narrowed by
     what was already picked -- selecting a course should not still offer
@@ -119,40 +127,36 @@ def _filter_choices(
         (row["project__course__course__slug"], row["project__course__course__title"])
         for row in rows
     }
-    cohort_rows = rows
-    if selected_course:
-        cohort_rows = [
-            row for row in rows if row["project__course__course__slug"] == selected_course
-        ]
+    cohort_rows = (
+        [row for row in rows if row["project__course__course__slug"] == selected_course]
+        if selected_course
+        else []
+    )
     cohorts = {
         (
-            str(row["project__course_id"]),
+            row["project__course__identifier"],
             f"{row['project__course__course__title']} · {row['project__course__identifier']}",
         )
         for row in cohort_rows
     }
-    project_rows = cohort_rows
-    if selected_cohort:
-        project_rows = [
-            row for row in cohort_rows if str(row["project__course_id"]) == selected_cohort
-        ]
+    project_rows = (
+        [row for row in cohort_rows if row["project__course__identifier"] == selected_cohort]
+        if selected_cohort
+        else []
+    )
     projects = {
         (
-            str(row["project_id"]),
-            (
-                f"{row['project__title']} · "
-                f"{row['project__course__course__title']} "
-                f"{row['project__course__identifier']}"
-            ),
+            row["project__slug"],
+            row["project__title"],
         )
         for row in project_rows
     }
     if family:
         courses.add((family.slug, family.title))
     if cohort:
-        cohorts.add((str(cohort.pk), f"{family.title} · {cohort.identifier}"))
+        cohorts.add((cohort.identifier, f"{family.title} · {cohort.identifier}"))
     if project:
-        projects.add((str(project.pk), f"{project.title} · {family.title} {cohort.identifier}"))
+        projects.add((project.slug, project.title))
     return (
         sorted(courses, key=lambda item: (item[1].casefold(), item[0])),
         sorted(cohorts, key=lambda item: item[1].casefold(), reverse=True),
@@ -166,20 +170,20 @@ def _gallery_filters(request, rows, family=None, cohort=None, project=None):
     if family:
         data["course"] = family.slug
     if cohort:
-        data["cohort"] = str(cohort.pk)
+        data["cohort"] = cohort.identifier
     if project:
-        data["project"] = str(project.pk)
+        data["project"] = project.slug
     if "sort" not in data:
         data["sort"] = "cohort"
 
     filters = ProjectGalleryFilters(data)
     courses, cohorts, projects = _filter_choices(
         rows,
-        family,
-        cohort,
-        project,
         selected_course=data.get("course", ""),
         selected_cohort=data.get("cohort", ""),
+        family=family,
+        cohort=cohort,
+        project=project,
     )
     cast(forms.ChoiceField, filters.fields["course"]).choices = [("", "All courses"), *courses]
     cast(forms.ChoiceField, filters.fields["cohort"]).choices = [("", "All cohorts"), *cohorts]
@@ -187,21 +191,25 @@ def _gallery_filters(request, rows, family=None, cohort=None, project=None):
         ("", "All assignments"),
         *projects,
     ]
-    # Progressive disclosure: Cohort and Assignment are mostly noise before
-    # their prerequisite narrows them (see _filter_choices above), so each
-    # stays disabled -- the same real `.field-input[disabled]` treatment
-    # every other disabled field on the site already gets -- until a course
-    # (for Cohort), or a course or cohort (for Assignment), is chosen. The
-    # server still accepts an already-submitted value either way; this only
-    # affects what the control offers to *change* next.
+    # The dependency is strict, including without JavaScript: Course unlocks
+    # Cohort, and a valid Cohort unlocks Assignment.
     if not data.get("course"):
         cast(forms.ChoiceField, filters.fields["cohort"]).widget.attrs.update(
             {"disabled": True, "aria-describedby": "id_cohort-help"}
         )
-    if not (data.get("course") or data.get("cohort")):
+    if not data.get("cohort"):
         cast(forms.ChoiceField, filters.fields["project"]).widget.attrs.update(
             {"disabled": True, "aria-describedby": "id_project-help"}
         )
+    duplicate_fields = [
+        name
+        for name in ("course", "cohort", "project", "sort")
+        if len(request.GET.getlist(name)) > 1
+    ]
+    if duplicate_fields:
+        filters.is_valid()
+        for name in duplicate_fields:
+            filters.add_error(name, "Choose one value.")
     return filters, courses
 
 
@@ -212,9 +220,9 @@ def _apply_filters(submissions, filters):
     if values["course"]:
         submissions = submissions.filter(project__course__course__slug=values["course"])
     if values["cohort"]:
-        submissions = submissions.filter(project__course_id=int(values["cohort"]))
+        submissions = submissions.filter(project__course__identifier=values["cohort"])
     if values["project"]:
-        submissions = submissions.filter(project_id=int(values["project"]))
+        submissions = submissions.filter(project__slug=values["project"])
     if values["sort"] == "recent":
         return submissions.order_by("-submitted_at", "-pk")
     if values["sort"] == "votes":
@@ -232,6 +240,82 @@ def _decorate_rows(submissions, family=None, cohort=None, project=None):
         )
 
 
+def cohort_gallery_url(cohort: Cohort) -> str:
+    """The sole public cohort-gallery location, using stable identities."""
+
+    query = urlencode({"course": cohort.course.slug, "cohort": cohort.identifier})
+    return f"{reverse('all_projects')}?{query}"
+
+
+def _one_query_value(request, name: str) -> str:
+    values = request.GET.getlist(name)
+    if len(values) > 1:
+        raise Http404
+    return values[0] if values else ""
+
+
+def _compatibility_gallery_query(request, family: Course, cohort: Cohort | None = None) -> str:
+    """Keep only validated state on an old gallery path.
+
+    Route identity wins. A conflicting query identity is rejected instead of
+    redirecting to a different course or widening the result set.
+    """
+
+    supplied_course = _one_query_value(request, "course")
+    supplied_cohort = _one_query_value(request, "cohort")
+    if supplied_course and supplied_course != family.slug:
+        raise Http404
+    if cohort and supplied_cohort and supplied_cohort != cohort.identifier:
+        raise Http404
+
+    query: dict[str, str] = {"course": family.slug}
+    selected_cohort = cohort
+    if selected_cohort is None and supplied_cohort:
+        selected_cohort = get_object_or_404(
+            Cohort,
+            course=family,
+            identifier=supplied_cohort,
+            visible=True,
+        )
+    if selected_cohort is not None:
+        query["cohort"] = selected_cohort.identifier
+
+    project_slug = _one_query_value(request, "project")
+    if project_slug:
+        if selected_cohort is None:
+            raise Http404
+        project = get_object_or_404(Project, course=selected_cohort, slug=project_slug)
+        query["project"] = project.slug
+
+    sort = _one_query_value(request, "sort")
+    if sort:
+        if sort not in GALLERY_SORTS:
+            raise Http404
+        if sort != "cohort":
+            query["sort"] = sort
+
+    page = _one_query_value(request, "page")
+    if page:
+        if not page.isascii() or not page.isdigit() or int(page) < 1:
+            raise Http404
+        query["page"] = str(int(page))
+    return urlencode(query)
+
+
+@require_http_methods(["GET", "HEAD"])
+def cohort_projects_redirect(request, course_slug: str, cohort_identifier: str) -> HttpResponse:
+    family, cohort, _project = _scope_objects(course_slug, cohort_identifier, None)
+    query = _compatibility_gallery_query(request, family, cohort)
+    return HttpResponsePermanentRedirect(f"{reverse('all_projects')}?{query}")
+
+
+@require_http_methods(["GET", "HEAD"])
+def family_projects_redirect(request, course_slug: str) -> HttpResponse:
+    family, _cohort, _project = _scope_objects(course_slug, None, None)
+    query = _compatibility_gallery_query(request, family)
+    return HttpResponsePermanentRedirect(f"{reverse('all_projects')}?{query}")
+
+
 def project_gallery_view(
     request,
     course_slug: str | None = None,
@@ -246,16 +330,34 @@ def project_gallery_view(
             raise ValueError("Only an assignment-scoped gallery accepts votes")
         return project_vote_response(request, cohort, project)
 
-    public_submissions = site_project_submissions()
-    if cohort is None:
-        # Only the family-wide (``family_projects``) and site-wide
-        # (``all_projects``) galleries: don't show a "Passed"/"Not passed"
-        # badge, only show submissions that passed at all. The per-cohort
-        # listing (``cohort_projects``) was not asked to change, so it keeps
-        # showing every submission regardless of grading state.
-        public_submissions = public_submissions.filter(passed=True)
-    facet_rows = _choice_rows(public_submissions)
+    all_public_submissions = site_project_submissions()
+    eligible_submissions = all_public_submissions.filter(passed=True)
+    facet_rows = _choice_rows(eligible_submissions)
+    requested_course = request.GET.get("course", "")
+    requested_cohort = request.GET.get("cohort", "")
+    if requested_course and requested_cohort:
+        # The canonical course+cohort query replaces the old cohort route and
+        # therefore remains valid for a cohort whose only public submissions
+        # are not passed. Add only that exact requested scope; never disclose
+        # unrelated failed-only facets.
+        facet_rows.extend(
+            row
+            for row in _choice_rows(all_public_submissions)
+            if row["project__course__course__slug"] == requested_course
+            and row["project__course__identifier"] == requested_cohort
+        )
     filters, courses = _gallery_filters(request, facet_rows, family, cohort, project)
+
+    if project is None and filters.is_valid():
+        selected = filters.cleaned_data
+        if selected["course"]:
+            family = Course.objects.filter(slug=selected["course"], visible=True).first()
+        if family is not None and selected["cohort"]:
+            cohort = Cohort.objects.filter(
+                course=family,
+                identifier=selected["cohort"],
+                visible=True,
+            ).first()
 
     context = {}
     if project:
@@ -263,7 +365,14 @@ def project_gallery_view(
         submissions_page = project_submissions_page(request, project, viewer_state)
         context.update(projects_list_context(cohort, project, submissions_page, viewer_state))
     else:
-        submissions = _apply_filters(public_submissions, filters)
+        # A complete course+cohort selection is the canonical replacement for
+        # the old cohort listing, so it retains that listing's passed and
+        # not-passed rows. Wider discovery remains passed-only.
+        cohort_scoped = filters.is_valid() and bool(filters.cleaned_data["cohort"])
+        submissions = _apply_filters(
+            all_public_submissions if cohort_scoped else eligible_submissions,
+            filters,
+        )
         paginator = Paginator(submissions, SITE_PROJECT_SUBMISSIONS_PAGE_SIZE)
         submissions_page = paginator.get_page(request.GET.get("page"))
         context.update(

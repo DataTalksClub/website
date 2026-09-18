@@ -645,7 +645,7 @@ Things that will surprise you:
 | **Reads** | `courses_course`, `courses_homework`, `courses_question`, `courses_project`, `courses_reviewcriteria`, `courses_registrationcampaign` — enforced by `_assert_content_only()` at `cmp_content_import.py:312-340` |
 | **Refuses to read** | `courses_enrollment`, `courses_submission`, `courses_answer`, `courses_projectsubmission`, `courses_peerreview`, `courses_criteriaresponse`, `courses_courseregistration` |
 | **Writes** | ~991 rows: cohort content and registration campaign definitions |
-| **Idempotency** | Safe. Every write keyed on a natural key; prints a JSON summary |
+| **Idempotency** | Safe, including after learner history exists. Questions reconcile by text/source order and criteria by description, preserving learner foreign keys; referenced stale definitions are retained and aggregate-counted. Prints a JSON summary |
 | **Bootstrap** | **Yes.** `BOOTSTRAPS_EMPTY_DATABASE = True` — it mints its own cohort and family from the reviewed catalogue, so no placeholder seeder is needed. It still *reconciles* against whatever the repository pull wrote, which is why it runs last in `COURSE_CATALOGUE_ORDER` (§11) |
 
 ```
@@ -690,6 +690,11 @@ creates no account with a usable password, staff or superuser rights, or a
 and course registrations "belong to a separate importer that reconciles against the
 cohorts and homework `import_cmp_content` writes".
 
+Its command summary is aggregate-only: reconciliation collisions and cross-source
+matches are counts, never lists of source account ids. The in-process result retains
+the ids for reviewed repair code, while `--status` is the explicit operator-only path
+for progress watermarks.
+
 **That separate importer is `scripts/prod/import_cmp_learner_history.py`**
 (`BOOTSTRAPS_EMPTY_DATABASE = False`, `:61`) over
 `courses/services/cmp_learner_history_import.py`, whose `TABLE_ORDER` (`:171-181`) is
@@ -700,7 +705,7 @@ cohorts, homework, questions, projects and criteria come from `import_cmp_conten
 accounts from `import_cmp_learners`, and a row whose parent is missing is counted under
 a named bucket and skipped rather than given a placeholder parent. It is resumable,
 tracks progress per table in `CmpHistoryImportProgress`, and reports counts and bounded
-codes only, never payload. `scripts/load_rds_export.py`, the broad loader that used to
+codes only, never payload or source-row ids. `scripts/load_rds_export.py`, the broad loader that used to
 look like the candidate, is deleted — `scripts/tests/test_retired_broad_loader.py`
 asserts its absence. `review_import/` imports a *sanitized* subset for local review and
 deliberately leaves the learner tables empty.

@@ -538,7 +538,7 @@ def _question_map(connection: sqlite3.Connection, homework: Mapping[int, int]) -
     """Source question id -> target pk, by text within its homework.
 
     A question carries no business key of its own, so ``import_cmp_content``
-    replaces a homework's questions as a set, in source-id order.  Text is
+    reconciles a homework's questions by text, in source-id order. Text is
     therefore the identity, and where one homework repeats a text verbatim --
     exactly one homework in the export does -- the repeats are paired in that
     same order.  A text the target does not hold stays out of the map, and the
@@ -595,8 +595,8 @@ def _project_map(connection: sqlite3.Connection, cohorts: Mapping[int, int]) -> 
 def _criteria_map(connection: sqlite3.Connection, cohorts: Mapping[int, int]) -> dict[int, int]:
     """Source review criterion id -> target pk, by ``(cohort, description)``.
 
-    A criterion has no slug.  ``import_cmp_content`` replaces a cohort's criteria
-    as a set, copying the description verbatim, and a description is unique
+    A criterion has no slug. ``import_cmp_content`` reconciles a cohort's criteria
+    by its verbatim description, and a description is unique
     within a course throughout the export -- so the description is the identity.
     A criterion the target does not hold keeps its responses and scores out
     rather than attaching them to a different question about the project.
@@ -1037,7 +1037,6 @@ class TableReport:
             # Counts only. A source value here would be a learner's answer.
             "unresolved": {name: count for name, count in sorted(self.unresolved.items()) if count},
             "unresolved_total": sum(self.unresolved.values()),
-            "last_source_id": self.last_source_id,
             "completed": self.completed,
         }
 

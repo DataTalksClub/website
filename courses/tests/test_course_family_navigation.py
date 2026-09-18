@@ -117,7 +117,7 @@ class CourseFamilyNavigationTest(TestCase):
             response,
             (
                 f'<a href="{reverse("course_family", kwargs={"course_slug": self.family.slug})}">'
-                f'{self.family.title}</a>'
+                f"{self.family.title}</a>"
             ),
         )
         # The trail stops at the family: this cohort is the heading below it, and
@@ -134,7 +134,6 @@ class CourseFamilyNavigationTest(TestCase):
         for route_name in (
             "cohort_dashboard",
             "cohort_leaderboard",
-            "cohort_projects",
             "cohort_calendar",
         ):
             with self.subTest(route=route_name):
@@ -146,6 +145,12 @@ class CourseFamilyNavigationTest(TestCase):
                     },
                 )
                 self.assertContains(response, f'href="{route_url}"')
+
+        projects_url = (
+            f"{reverse('all_projects')}?course={self.family.slug}"
+            f"&amp;cohort={self.current.identifier}"
+        )
+        self.assertContains(response, f'href="{projects_url}"')
 
         self.assertContains(response, "Course dashboard")
         self.assertContains(response, "Course leaderboard")

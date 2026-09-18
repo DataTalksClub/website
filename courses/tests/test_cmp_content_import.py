@@ -9,13 +9,14 @@ from __future__ import annotations
 
 import sqlite3
 import tempfile
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from courses.models import (
+    Answer,
     Cohort,
     CohortSharedModule,
     Course,
@@ -23,6 +24,7 @@ from courses.models import (
     Homework,
     Module,
     Project,
+    ProjectCriteriaAssignment,
     Question,
     ReviewCriteria,
     SharedCurriculum,
@@ -202,7 +204,7 @@ class CmpContentImportTests(TestCase):
         )
 
     def _seed_placeholder(self, cohort: Cohort) -> tuple[Homework, Project]:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         homework = Homework.objects.create(
             course=cohort,
             slug="homework-01-week-1",
@@ -262,13 +264,40 @@ class CmpContentImportTests(TestCase):
         _build_source(self.source, cohort_slugs=("de-zoomcamp-2026",))
 
         import_cmp_course_content(self.source)
+        student = get_user_model().objects.create_user(
+            username="replay-learner", email="replay@example.com"
+        )
+        enrollment = Enrollment.objects.create(student=student, course=cohort)
+        submission = Submission.objects.create(
+            homework=Homework.objects.get(course=cohort, slug="hw1"),
+            student=student,
+            enrollment=enrollment,
+        )
+        question = Question.objects.get(homework=submission.homework)
+        answer = Answer.objects.create(
+            submission=submission,
+            question=question,
+            answer_text="1",
+        )
+        criterion = ReviewCriteria.objects.get(course=cohort)
+        assignment = ProjectCriteriaAssignment.objects.create(
+            project=Project.objects.get(course=cohort, slug="project1"),
+            criteria=criterion,
+            position=1,
+        )
         first = self._snapshot(cohort)
         second_result = import_cmp_course_content(self.source)
 
         self.assertEqual(self._snapshot(cohort), first)
+        answer.refresh_from_db()
+        assignment.refresh_from_db()
+        self.assertEqual(answer.question_id, question.pk)
+        self.assertEqual(assignment.criteria_id, criterion.pk)
         summary = second_result.summary()
         self.assertEqual(summary["homework_removed"], 0)
         self.assertEqual(summary["projects_removed"], 0)
+        self.assertEqual(summary["questions_retained"], 0)
+        self.assertEqual(summary["criteria_retained"], 0)
 
     def _snapshot(self, cohort: Cohort) -> tuple:
         return (
@@ -309,7 +338,7 @@ class CmpContentImportTests(TestCase):
                 slug=slug,
                 title=title,
                 description="From the course repository",
-                due_date=datetime.now(timezone.utc) + timedelta(days=7),
+                due_date=datetime.now(UTC) + timedelta(days=7),
             )
             modules[slug] = Module.objects.create(
                 cohort=cohort,
@@ -401,7 +430,9 @@ class CmpContentImportTests(TestCase):
         self.assertTrue(Homework.objects.filter(course=cohort, slug="homework-99").exists())
         self.assertEqual(result.summary()["unpaired_repository_homework"], ["homework-99"])
 
-    def _shared_cohort(self, repository_slug: str, repository_title: str) -> tuple[Cohort, CohortSharedModule]:
+    def _shared_cohort(
+        self, repository_slug: str, repository_title: str
+    ) -> tuple[Cohort, CohortSharedModule]:
         """Build a shared-curriculum cohort whose one placement terminates in
         a repository-authored homework carrying an irregular slug/title."""
 
@@ -428,7 +459,7 @@ class CmpContentImportTests(TestCase):
             slug=repository_slug,
             title=repository_title,
             description="From the course repository",
-            due_date=datetime.now(timezone.utc) + timedelta(days=7),
+            due_date=datetime.now(UTC) + timedelta(days=7),
         )
         placement = CohortSharedModule.objects.create(
             cohort=cohort, shared_module=shared_module, position=0, terminal_homework=homework
@@ -529,7 +560,7 @@ class CmpContentImportTests(TestCase):
             course=cohort,
             slug="hw1",
             title="Homework 1: Real",
-            due_date=datetime.now(timezone.utc) + timedelta(days=7),
+            due_date=datetime.now(UTC) + timedelta(days=7),
         )
         _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
 
@@ -556,7 +587,7 @@ class CmpContentImportTests(TestCase):
             course=cohort,
             slug="hw1",
             title="Homework 1: Real",
-            due_date=datetime.now(timezone.utc) + timedelta(days=7),
+            due_date=datetime.now(UTC) + timedelta(days=7),
         )
         student = get_user_model().objects.create_user(
             username="learner", email="learner@example.com", password="x"
