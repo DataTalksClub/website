@@ -89,6 +89,18 @@ _SEARCH_DOCUMENT_FIELDS = {
 _FRAGMENT_ROUTE = re.compile(r"/wiki/([A-Za-z0-9._-]+)")
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
+#: Collections the graph/search corpus carries that this site has no reader
+#: for: ``course_wiki`` names the (unimported) ``_course_wiki/`` pages and
+#: points at an unrouted ``/course-wiki/...``; ``event`` cites a DTC event by
+#: its raw recording link (YouTube etc.) rather than this site's own event
+#: page, which the wiki repository has no way to resolve to. Both degrade
+#: the same way an unresolvable podcast reference does: present upstream,
+#: absent here, never a hard failure.
+_UNSUPPORTED_GRAPH_COLLECTIONS = frozenset({"course_wiki", "event"})
+#: The search corpus's own field naming for the same two collections
+#: (``level`` "course" for a ``course_wiki`` node, "event" for an ``event`` one).
+_UNSUPPORTED_SEARCH_LEVELS = frozenset({"course", "event"})
+
 
 def _derived_checksum(source_checksum: str, record: dict) -> str:
     # The record derives from its source file plus data the sync does not own
@@ -252,11 +264,13 @@ class PodwikiParser:
         )
         # A podcast node whose episode the catalogue does not publish has no
         # destination; the node and every link through it leave the graph, and
-        # the declared counts describe what actually remains.
+        # the declared counts describe what actually remains. See
+        # _UNSUPPORTED_GRAPH_COLLECTIONS for the other kind that degrades here.
         stale_nodes = {
             node["id"]
             for node in graph.get("nodes", [])
-            if node.get("collection") == "podcast" and not node.get("url")
+            if (node.get("collection") == "podcast" and not node.get("url"))
+            or node.get("collection") in _UNSUPPORTED_GRAPH_COLLECTIONS
         }
         if stale_nodes:
             graph["nodes"] = [node for node in graph["nodes"] if node.get("id") not in stale_nodes]
@@ -303,6 +317,11 @@ class PodwikiParser:
         active_documents: list[dict] = []
         for document in search["docs"]:
             if not isinstance(document, dict):
+                continue
+            # The search corpus's own two unsupported collections (see
+            # _UNSUPPORTED_GRAPH_COLLECTIONS/_UNSUPPORTED_SEARCH_LEVELS)
+            # degrade the same way their graph nodes do.
+            if document.get("level") in _UNSUPPORTED_SEARCH_LEVELS:
                 continue
             episode_slug = document.get("episode_slug")
             if episode_slug and episode_slug not in podcast_paths:
