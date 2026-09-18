@@ -723,8 +723,8 @@ class SharedAccountSurfaceTests(TestCase):
             "dark_mode": ("courses.LearnerProfile", "preference"),
             "normalized_email": ("accounts_ext.IdentityState", "identity"),
             "identity_state": ("accounts_ext.IdentityState", "identity"),
-            "email": ("accounts.CustomUser", "identity"),
-            "preferred_timezone": ("accounts.CustomUser", "preference"),
+            "email": ("accounts.User", "identity"),
+            "preferred_timezone": ("accounts.User", "preference"),
         }
         for name, (model_label, classification) in expected_home.items():
             with self.subTest(field=name):
