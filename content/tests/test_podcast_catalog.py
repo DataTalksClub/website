@@ -953,25 +953,28 @@ class PodcastSeasonNavigationTests(TestCase):
             self.assertIn("PodcastEpisode", types)
 
     def test_detail_routes_are_all_hierarchical_stable_id_paths(self) -> None:
-        podcasts = catalogue.podcasts()
-        migration = catalogue.singleton("editorial_route_migration")
-        podcast_finals = {
-            item["final_path"] for item in migration["finals"] if item["collection"] == "podcasts"
-        }
-        podcast_aliases = [
-            item for item in migration["aliases"] if item["collection"] == "podcasts"
-        ]
+        """Every published episode's own path is a hierarchical, non-.html final.
 
-        self.assertEqual({episode["public_path"] for episode in podcasts}, podcast_finals)
+        This used to also check those finals and their aliases against the
+        catalogue's ``editorial_route_migration`` singleton -- a frozen,
+        once-migrated fact about the reviewed catalogue's redirect graph, on
+        the retired ``ContentDocument`` mechanism (see
+        ``content/tests/test_editorial_route_migration_contract.py``, which
+        dropped the equivalent check the same way once
+        ``import_public_content.py`` -- the singleton's only writer -- was
+        deleted). What remains here is the live behavior a real request still
+        depends on: the canonical path answers, and the legacy flat spelling
+        does not.
+        """
+
+        podcasts = catalogue.podcasts()
+        podcast_finals = {episode["public_path"] for episode in podcasts}
+
         self.assertTrue(all(path.startswith("/podcast/") for path in podcast_finals))
         self.assertFalse(any(path.endswith(".html") for path in podcast_finals))
         self.assertIn(GENAI_PILOTS_PATH, podcast_finals)
         self.assertIn(AI_ADOPTION_PATH, podcast_finals)
         self.assertIn(AI_PRODUCTION_PATH, podcast_finals)
-        self.assertEqual(
-            {item["final_path"] for item in podcast_aliases},
-            podcast_finals - {GENAI_PILOTS_PATH},
-        )
 
         # Every episode answers 200 on its hierarchical final.
         episode = podcasts[0]

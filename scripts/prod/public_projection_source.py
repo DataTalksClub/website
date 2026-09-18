@@ -7,9 +7,14 @@ graph and the editorial route manifest, and returns the whole checked
 catalogue.
 
 Nothing a public request touches calls it. The site reads articles, podcasts,
-books, people, wiki pages and their assets from the database; this module is
-what ``scripts/prod/import_public_content.py`` uses to decide the files are
-worth importing, and what the parity tooling compares against.
+books, people, wiki pages and their assets from ``content.models.SyncedDocument``
+rows now, written by the live ``community_base.content_sync`` engine -- not from
+this module's checked file tree. ``scripts/prod/import_public_content.py``, the
+only real entry point that ever composed this loader, was deleted once that cutover
+was complete; this module stayed because its own focused tests
+(``scripts/tests/test_public_projection_media_digest.py``,
+``scripts/tests/test_projection_marker_provenance.py``) still exercise it directly,
+against a synthetic stand-in for the file tree it once decided was worth importing.
 """
 
 from __future__ import annotations

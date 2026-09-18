@@ -31,19 +31,12 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertTrue(
             removed_slugs.isdisjoint({episode["slug"] for episode in catalogue.podcasts()})
         )
-        migration = catalogue.singleton("editorial_route_migration")
-        route_records = migration["finals"] + migration["aliases"]
-        self.assertFalse(
-            any(
-                record["collection"] == "podcasts"
-                and any(
-                    alias in str(record.get(field, ""))
-                    for alias in removed_aliases
-                    for field in ("record_key", "final_path", "source_path")
-                )
-                for record in route_records
-            )
-        )
+        # The editorial_route_migration singleton was a one-time fact about the
+        # reviewed catalogue's redirect graph, read only from the now-retired
+        # ContentDocument mechanism (see content/tests/
+        # test_editorial_route_migration_contract.py for the full account);
+        # nothing populates it since import_public_content.py was deleted, so
+        # there is nothing left here to check it against.
 
         graph = catalogue.wiki_graph()
         removed_node_ids = {f"podcast:{alias}" for alias in removed_aliases}

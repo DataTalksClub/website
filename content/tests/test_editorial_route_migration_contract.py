@@ -9,7 +9,6 @@ from django.conf import settings
 from django.test import TestCase
 
 from content import catalogue
-from content.podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_canonical_path
 
 
 class EditorialRouteMigrationContractTests(TestCase):
@@ -37,6 +36,18 @@ class EditorialRouteMigrationContractTests(TestCase):
     # historically; git history holds it. The other tests in this file check
     # the reviewed policy document's own internal consistency and are
     # unaffected by which catalogue (real or synthetic) is loaded.
+    #
+    # test_manifest_has_every_source_to_final_mapping_without_graph_hazards
+    # went the same way, for the same reason, once import_public_content.py --
+    # the only writer of the editorial_route_migration singleton it read --
+    # was deleted: content/catalogue.py's editorial kinds all read
+    # SyncedDocument now (see _docs/architecture/database-only-content.md),
+    # and editorial_route_migration was never one of them -- it stayed on the
+    # retired ContentDocument mechanism, unread by any live route
+    # (content/public_routes.py resolves aliases without it). It was a real,
+    # once-migrated fact about the reviewed catalogue's redirect graph, not a
+    # property any synthetic catalogue could reconstruct, so there is nothing
+    # left here to assert against; git history holds the proof.
 
     @expectedFailure
     def test_the_cutover_policy_still_pins_the_manifest_it_publishes(self) -> None:
@@ -56,61 +67,6 @@ class EditorialRouteMigrationContractTests(TestCase):
             self.policy["manifest"]["required_content_sha256"],
             catalogue.singleton("editorial_route_migration")["content_sha256"],
         )
-
-    def test_manifest_has_every_source_to_final_mapping_without_graph_hazards(self) -> None:
-        migration = catalogue.singleton("editorial_route_migration")
-        finals = {item["final_path"]: item for item in migration["finals"]}
-        aliases = {item["source_path"]: item for item in migration["aliases"]}
-
-        self.assertTrue(set(finals).isdisjoint(aliases))
-        self.assertTrue(all(item["final_path"] in finals for item in aliases.values()))
-        self.assertTrue(all(item["status_code"] == 301 for item in aliases.values()))
-        self.assertTrue(all(item["query_policy"] == "preserve_raw" for item in aliases.values()))
-        self.assertTrue(all(item["final_path"] not in aliases for item in aliases.values()))
-        for final_path, final in finals.items():
-            if final["collection"] == "podcasts":
-                episode = catalogue.podcast(final["record_key"])
-                assert episode is not None, final["record_key"]
-                self.assertEqual(
-                    final_path,
-                    podcast_canonical_path(
-                        season=episode["season"],
-                        episode=episode["episode"],
-                        slug=final["record_key"],
-                    ),
-                )
-            else:
-                self.assertTrue(final_path.endswith(".html"))
-            clean_path = (
-                f"/podcast/{final['record_key']}"
-                if final["collection"] == "podcasts"
-                else final_path.removesuffix(".html")
-            )
-            if (
-                final["collection"] == "podcasts"
-                and final["record_key"] in PODCAST_HIERARCHICAL_ONLY_SLUGS
-            ):
-                self.assertNotIn(clean_path, aliases)
-                self.assertNotIn(f"{clean_path}/", aliases)
-                continue
-            self.assertEqual(
-                {
-                    aliases[clean_path]["final_path"],
-                    aliases[f"{clean_path}/"]["final_path"],
-                },
-                {final_path},
-            )
-            self.assertEqual(
-                set(final["source"]),
-                {
-                    "repository",
-                    "revision",
-                    "source_path",
-                    "source_key",
-                    "checksum",
-                    "source_url",
-                },
-            )
 
     def test_seo_policy_has_named_owners_baseline_windows_and_exact_thresholds(self) -> None:
         self.assertEqual(self.policy["schema_version"], 1)

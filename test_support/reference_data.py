@@ -26,18 +26,15 @@ asserted the real corpus's exact shape (a literal 421, a literal 1,684, a
 pinned real digest) were rewritten or removed alongside this change; see the
 commit that introduced this fixture set for the full accounting.
 
-Every importer here still runs for real: this only supplies a different,
-smaller input.  The one exception is the public content catalogue
-(articles/podcasts/books/people/wiki/courses/media): its real loader
-(``scripts/prod/public_projection_source.load_checked_projection``) validates
-its input against the exact accepted upstream revisions, source repositories,
-and a handful of pinned counts from the real reviewed snapshot (issue #253) --
-by design, so a compromised or drifted upstream is refused rather than
-silently imported.  A synthetic catalogue cannot satisfy that pin and still be
-synthetic, so ``load_reviewed_public_content`` below calls the same
-``scripts/prod/import_public_content.run`` production write path with just its
-file-reading, upstream-pinned loader swapped out -- the database-writing half
-that ``content.catalogue`` actually reads runs unchanged and unmocked.
+The documentation, course FAQ and editorial-catalogue importers
+(``scripts/prod/import_docs.py``, ``import_faq.py``, ``import_public_content.py``)
+that used to seed this database's baseline are gone: ``content/catalogue.py``,
+``content/docs_projection.py`` and ``content/faq_data.py`` read only
+``content.models.SyncedDocument`` rows now, written by the live
+``community_base.content_sync`` engine, so the ``load_synced_*`` functions
+below are the only loaders those pages' tests ever depended on -- see the
+commit that removed the dead ``ContentDocument``/``ContentRelease`` import
+path for the full accounting.
 """
 
 from __future__ import annotations
@@ -46,7 +43,6 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch
 
 from django.db import transaction
 
@@ -165,21 +161,6 @@ def load_event_content() -> int:
     return int(import_content(source=EVENT_CONTENT, apply=True)["events"])
 
 
-def load_reviewed_docs() -> int:
-    """Publish the synthetic documentation, the way the production import does.
-
-    The docs used to be read straight out of a file in the app, so every test
-    that touched a documentation route got them for free. They are database
-    rows now, and hundreds of tests still read them without creating them, so
-    the same import production runs seeds them here -- once, after ``migrate``,
-    like the event identities above.
-    """
-
-    from scripts.prod.import_docs import run
-
-    return int(run(path=DOCS_PROJECTION, apply=True)["pages"])
-
-
 def load_synced_docs() -> int:
     """Publish the synthetic documentation as synced rows, the way the engine does.
 
@@ -265,14 +246,6 @@ def load_synced_docs() -> int:
         )
     SyncedDocument.objects.bulk_create(rows)
     return len(rows)
-
-
-def load_reviewed_faq() -> int:
-    """Publish the synthetic course FAQ, the way the production import does."""
-
-    from scripts.prod.import_faq import run
-
-    return int(run(path=FAQ_PROJECTION, apply=True)["courses"])
 
 
 def load_synced_faq() -> int:
@@ -389,32 +362,6 @@ def _synthetic_catalogue() -> dict[str, Any]:
     for name in _CATALOGUE_COLLECTIONS:
         catalogue[name] = tuple(catalogue[name])
     return catalogue
-
-
-def load_reviewed_public_content() -> int:
-    """Publish the synthetic editorial catalogue, the way the production import does.
-
-    ``scripts.prod.import_public_content.run`` is the real, unmocked write
-    path: it opens a reviewed release, converts the catalogue's records to
-    ``ContentDocument`` rows, and activates the release, exactly as production
-    does. Only ``load_reviewed_catalogue`` -- the file-reading step that
-    checks the real catalogue against the accepted upstream pin -- is replaced
-    with the small synthetic set, because that pin is specifically about the
-    real reviewed snapshot and a synthetic stand-in cannot satisfy it (see the
-    module docstring).
-    """
-
-    import scripts.prod.import_public_content as import_public_content
-
-    catalogue = _synthetic_catalogue()
-    with (
-        patch.object(import_public_content, "load_reviewed_catalogue", return_value=catalogue),
-        patch.object(import_public_content, "REVIEWED_SLACK_PAGE", SLACK_PAGE),
-    ):
-        report = import_public_content.run(apply=True)
-    # Re-running the seeder's input returns the replay receipt, which carries
-    # no document count: the identical artifact already owns its release.
-    return int(report.get("documents", 0))
 
 
 def load_synced_wiki() -> int:
@@ -850,11 +797,8 @@ def load_reviewed_reference_data() -> dict[str, int]:
     return {
         "events": events,
         "event_content": load_event_content(),
-        "docs": load_reviewed_docs(),
         "synced_docs": load_synced_docs(),
-        "faq": load_reviewed_faq(),
         "synced_faq": load_synced_faq(),
-        "public_content": load_reviewed_public_content(),
         "synced_wiki": load_synced_wiki(),
         "synced_editorial": load_synced_editorial(),
         "synced_media": load_synced_media(),

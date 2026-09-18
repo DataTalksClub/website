@@ -14,20 +14,29 @@ from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 
 from content import catalogue
-from content.models import ContentDocument, ContentSource
+from content.models import ContentSource, SyncedDocument
 
 
 class CatalogueReadTests(TestCase):
     def test_books_arrive_in_their_stored_editorial_order(self) -> None:
+        # Built independently of catalogue.py's own sort (newest-published
+        # first, slug descending as the tiebreak) so this is not the reader
+        # agreeing with itself: books carry no stored position column, the
+        # engine's synced rows are the only authority now (issue #384).
         stored = list(
-            ContentDocument.objects.filter(
+            SyncedDocument.objects.filter(
+                source__slug=catalogue.EDITORIAL_SOURCE_SLUG,
                 content_kind="book",
                 is_published=True,
-                release__source__stable_id=catalogue.PUBLIC_CONTENT_STABLE_ID,
-            ).values_list("adapter_metadata", flat=True)
+            ).values_list("record", flat=True)
         )
         expected = [
-            record["record"]["slug"] for record in sorted(stored, key=lambda held: held["position"])
+            record["slug"]
+            for record in sorted(
+                stored,
+                key=lambda record: (str(record.get("published", "")), str(record.get("slug", ""))),
+                reverse=True,
+            )
         ]
 
         self.assertEqual([book["slug"] for book in catalogue.books()], expected)

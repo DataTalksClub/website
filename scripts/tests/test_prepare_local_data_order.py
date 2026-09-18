@@ -6,11 +6,15 @@ CMP reconciles: it matches its rows against what the course repositories wrote.
 Running it first is not merely out of order, it is a different result -- the
 CMP-first arrangement worked only while no cohort was described by both sources.
 
-Step 4 -- the reviewed editorial inputs under `~/prod/dtc-data/content-staging/`
-(outside this repository) -- has to run
+Step 4 -- sponsors and testimonials, from their own reviewed one-time inputs
+under `~/prod/dtc-data/content-staging/` (outside this repository) -- has to run
 at all, and after the catalogue. Only testimonials used to, so a rehearsal
-database came out with no articles, podcasts, books, people, wiki, docs, FAQ or
-sponsors, and nothing in the run said so.
+database came out with no sponsors and nothing in the run said so. The
+editorial catalogue (articles, podcasts, books, people, wiki, docs, FAQ) is no
+longer part of this step: it reads `content.models.SyncedDocument` rows now,
+written by the live `community_base.content_sync` engine, which this offline
+rehearsal has no checkout to run against -- see the open decision point in the
+runbook's step 4.
 """
 
 from __future__ import annotations
@@ -24,13 +28,10 @@ import scripts.prod
 PROD_ROOT = Path(scripts.prod.__file__).resolve().parent
 ORCHESTRATOR = PROD_ROOT.parents[1] / "scripts" / "prepare_local_data.py"
 
-# The five modules `_docs/runbooks/data-ingest.md` §11 step 4 names. Every one
-# declares BOOTSTRAPS_EMPTY_DATABASE, so the set is checked against that
+# The two modules `_docs/runbooks/data-ingest.md` §11 step 4 names now. Both
+# declare BOOTSTRAPS_EMPTY_DATABASE, so the set is checked against that
 # declaration rather than repeated as a literal a reader has to trust.
 EDITORIAL_ENTRY_POINTS = (
-    "import_public_content",
-    "import_faq",
-    "import_docs",
     "import_sponsors",
     "import_testimonials",
 )
@@ -69,7 +70,9 @@ class LocalPreparationOrderTests(TestCase):
 
     def test_the_editorial_content_is_imported_after_the_course_catalogue(self) -> None:
         cmp_import = self.source.index("import_cmp_course_content(")
-        editorial = self.source.index("editorial_content = _import_editorial_content()")
+        editorial = self.source.index(
+            "editorial_content = _import_sponsor_and_testimonial_content()"
+        )
         self.assertLess(
             cmp_import,
             editorial,
@@ -86,7 +89,9 @@ class LocalPreparationOrderTests(TestCase):
         the earlier event writes committed.
         """
 
-        editorial = self.source.index("editorial_content = _import_editorial_content()")
+        editorial = self.source.index(
+            "editorial_content = _import_sponsor_and_testimonial_content()"
+        )
         event_stage = self.source.index("event_pipeline = run_event_pipeline(")
         self.assertLess(
             editorial,
