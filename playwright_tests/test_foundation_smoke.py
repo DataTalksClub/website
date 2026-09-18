@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
-from content import catalogue
+from content import catalogue, wiki_reader
 from content.docs_reader import docs_assets
 from content.podcast_content import podcast_seasons
 from content.podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS
@@ -440,7 +440,7 @@ def test_oldest_latest_details_and_media_fallback(page: Page, live_server) -> No
         # The first book carries no preview image, so its detail page is also the
         # media fallback this test is named for.
         catalogue.books()[0]["public_path"],
-        catalogue.wiki_pages()[0]["public_path"],
+        wiki_reader.wiki_pages()[0]["public_path"],
     ):
         response = page.goto(f"{origin}{path}")
         assert response is not None and response.status == 200
