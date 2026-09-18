@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% comment %}
+Site override of the community_base public template seam (community-base
+community_base/kernel/template_contract.py, D7.5). The package's shared public
+pages extend community_base/public/base.html rather than base.html directly, so a
+site whose chrome names the contracted slots differently can map its own names
+onto the contract in exactly one place.
+
+The site's own base.html, as Django resolves that loader path here, is
+course_platform_templates/base.html (templates/ has no base.html of its own;
+course_platform_templates comes first in TEMPLATES DIRS). Three of the five
+contracted block names are already spelled the same way there and need no
+mapping: content, title, extra_js.
+
+The other two are not. page_head_metadata is the contract's name for a page's
+head-metadata slot; this site's equivalent is meta_robots. Nesting
+page_head_metadata inside meta_robots makes it reachable, because Django
+resolves blocks by name across the whole inheritance chain, not by lexical
+position: page_head_metadata's content now renders wherever meta_robots
+renders in course_platform_templates/base.html, right after </title>. This is
+the fix for the live SEO defect: two community_base mail pages set
+"noindex, nofollow" through page_head_metadata, and with no block of that name
+anywhere in the chain, Django silently dropped it.
+
+meta_description has no site equivalent at all: this site's own bespoke public
+pages write <meta name="description"> straight into their own <head>, never
+through a shared block, so there is no existing name to map onto. The
+contract's own leaf templates fill meta_description with plain description
+text, not a whole tag (docs/02-architecture.md section 5), so this file
+supplies the missing <meta> element itself and puts the block inside its
+content attribute, nested in the same reachable position as page_head_metadata.
+{% endcomment %}
+
+{% block meta_robots %}
+    {% block page_head_metadata %}
+    {% endblock %}
+    <meta name="description" content="{% block meta_description %}{% endblock %}">
+{% endblock %}
