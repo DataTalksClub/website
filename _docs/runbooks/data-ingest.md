@@ -1635,8 +1635,8 @@ closed, so an old item number still leads somewhere.
    recorded here because anyone reaching for "just add it to the bridge" needs to know
    it does not work.
 
-8. **`_docs/migrations/event-speaker-bio-normalization.json` pins exactly 421 events and
-   has no generator in this repository.** A 422nd event fails the build with `event
+8. **`~/prod/dtc-data/content-staging/event_speaker_bio_normalization.json` pins exactly
+   421 events and has no generator in this repository.** A 422nd event fails the build with `event
    speaker-bio projection count mismatch`
    (`scripts/projection_build/event_speaker_bio_normalization.py:483-485`). Since §14.3
    now mints identities for genuinely new events, the count this file pins and the

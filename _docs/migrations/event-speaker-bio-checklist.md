@@ -5,8 +5,9 @@ deterministic outcome of the review: an event with no description, an event with
 material, or an event whose speaker bio and/or external-platform footer was removed.
 
 The authoritative replay data is
-`_docs/migrations/event-speaker-bio-normalization.json`; its transform is
-`scripts/projection_build/event_speaker_bio_normalization.py`. The projection builder applies the checked
+`~/prod/dtc-data/content-staging/event_speaker_bio_normalization.json` (outside this repository —
+see `_docs/architecture/database-only-content.md`); its transform is
+`scripts/staging/event_speaker_bio_normalization.py`. The projection builder applies the checked
 bridge first, then replays this migration transform, retaining the bridge source hashes and
 adding normalization provenance to each changed event. The original bridge and external source
 data remain unchanged for export or audit use.
