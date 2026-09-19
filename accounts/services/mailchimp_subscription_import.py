@@ -88,7 +88,8 @@ from collections.abc import Iterator
 from typing import Any
 
 from accounts.identity_values import normalize_account_email
-from accounts.models import CustomUser, MailchimpSubscriptionImportRun
+from accounts.models import MailchimpSubscriptionImportRun, CustomUser
+from accounts_ext.models import IdentityState
 
 __all__ = [
     "DEFAULT_BATCH_SIZE",
@@ -197,11 +198,13 @@ def _process_subscribed_file(path: Path, *, batch_size: int, apply: bool) -> Mai
         wanted = {value for value in normalized_by_row if value}
         accounts = (
             list(
-                CustomUser.objects.filter(normalized_email__in=wanted).only(
+                CustomUser.objects.select_related("identity")
+                .filter(identity__normalized_email__in=wanted)
+                .only(
                     "pk",
-                    "normalized_email",
                     "newsletter_subscribed",
                     "newsletter_preference_changed_at",
+                    "identity__normalized_email",
                 )
             )
             if wanted
@@ -209,7 +212,7 @@ def _process_subscribed_file(path: Path, *, batch_size: int, apply: bool) -> Mai
         )
         by_email: dict[str, list[CustomUser]] = {}
         for account in accounts:
-            by_email.setdefault(account.normalized_email, []).append(account)
+            by_email.setdefault(account.identity.normalized_email, []).append(account)
 
         to_update: dict[int, CustomUser] = {}
         for normalized in normalized_by_row:

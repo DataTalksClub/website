@@ -21,7 +21,13 @@ from accounts.identity_resolution import (
 )
 from accounts.identity_values import normalize_account_email, sha256_text
 from accounts.models import Token
-from accounts_ext.models import AccountIdentityQuarantine
+from accounts_ext.models import (
+    AccountIdentityQuarantine,
+    IdentityState,
+    identity_state_of,
+    identity_state_row,
+    normalized_email_of,
+)
 from course_management.observability import record_event
 
 User = get_user_model()
@@ -200,7 +206,7 @@ def _deny_link(
 
 
 def _account_email(user: Any) -> str | None:
-    return user.normalized_email or normalize_account_email(user.email)
+    return normalized_email_of(user) or normalize_account_email(user.email)
 
 
 def _candidate_users_for_verified_email(email: str) -> tuple[Any, ...]:
@@ -233,9 +239,9 @@ def _candidate_users_for_verified_email(email: str) -> tuple[Any, ...]:
     )
     account_column_ids = set(
         User.objects.filter(
-            Q(normalized_email=email) | Q(email__iexact=email),
+            Q(identity__normalized_email=email) | Q(email__iexact=email),
         )
-        .exclude(identity_state=User.IdentityState.ABSORBED)
+        .exclude(identity__identity_state=IdentityState.States.ABSORBED)
         .values_list("pk", flat=True)
     )
     users = User.objects.filter(pk__in=verified_row_ids | account_column_ids).order_by("pk")
@@ -249,50 +255,71 @@ def _candidate_users_for_verified_email(email: str) -> tuple[Any, ...]:
 def _has_unresolved_email_collision(*, email: str, user_id: int) -> bool:
     """Would activating ``email`` on ``user_id`` collide with another account?
 
-    ``normalized_email`` is written by ``CustomUser.save()``, so for every
-    account this site created the indexed equality below is the whole answer.
-    A bulk import that writes rows without going through the model leaves the
-    column empty, so those rows — and only those — are still compared in
-    Python.  The scan this replaces read all ~20,000 account rows on every
-    first sign-in.
+    ``normalized_email`` is written by the accounts_ext save receiver, so for
+    every account this site created the indexed equality below is the whole
+    answer.  A bulk import that writes rows without going through the model
+    leaves the key empty (or the identity row absent entirely), so those rows
+    are still compared in Python.  The scan this replaces read all ~20,000
+    account rows on every first sign-in.
     """
 
     candidates = User.objects.exclude(pk=user_id).exclude(
-        identity_state=User.IdentityState.ABSORBED,
+        identity__identity_state=IdentityState.States.ABSORBED,
     )
-    if candidates.filter(normalized_email=email).exists():
+    if candidates.filter(identity__normalized_email=email).exists():
         return True
     unnormalized = candidates.filter(
-        Q(normalized_email__isnull=True) | Q(normalized_email=""),
+        Q(identity__normalized_email__isnull=True)
+        | Q(identity__normalized_email="")
+        | Q(identity__isnull=True),
     )
-    for candidate in unnormalized.only("email", "normalized_email").iterator():
+    for candidate in unnormalized.only("email").iterator():
         if normalize_account_email(candidate.email) == email:
             return True
     return False
 
 
 def _activate_verified_identity(user: Any, email: str) -> Any:
+    # The identity columns now live on the identity row, so the old
+    # single-row compare-and-swap becomes two guarded updates inside one
+    # transaction: either both commit, or a failed guard rolls both back --
+    # the same "nothing moved unless everything matched" contract.
     with transaction.atomic():
         current = User.objects.get(pk=user.pk)
-        if current.identity_state in {
-            User.IdentityState.ABSORBED,
-            User.IdentityState.QUARANTINED,
+        current_state = identity_state_row(current)
+        if current_state is not None and current_state.identity_state in {
+            IdentityState.States.ABSORBED,
+            IdentityState.States.QUARANTINED,
         }:
             raise IntegrityError("identity is unavailable")
         if _has_unresolved_email_collision(email=email, user_id=current.pk):
             raise IntegrityError("normalized email is ambiguous")
-        updated = User.objects.filter(
+        if current_state is None:
+            # A row-less bulk-created account has no state to compare
+            # against; create its identity row directly.
+            IdentityState.objects.create(
+                user_id=current.pk,
+                normalized_email=email,
+                identity_state=IdentityState.States.ACTIVE,
+            )
+            identity_updated = 1
+        else:
+            identity_updated = IdentityState.objects.filter(
+                user_id=current.pk,
+                normalized_email=current_state.normalized_email,
+                identity_state=current_state.identity_state,
+            ).update(
+                normalized_email=email,
+                identity_state=IdentityState.States.ACTIVE,
+            )
+        user_updated = User.objects.filter(
             pk=current.pk,
             email=current.email,
-            normalized_email=current.normalized_email,
-            identity_state=current.identity_state,
             is_active=current.is_active,
         ).update(
             email=current.email or email,
-            normalized_email=email,
-            identity_state=User.IdentityState.ACTIVE,
         )
-        if updated != 1:
+        if identity_updated != 1 or user_updated != 1:
             raise IntegrityError("identity changed during activation")
         return User.objects.get(pk=current.pk)
 
@@ -427,7 +454,7 @@ class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):
                 reason="verified_owner_unavailable",
                 user_ids=candidate_ids,
             )
-        if resolved_user.identity_state == User.IdentityState.QUARANTINED:
+        if identity_state_of(resolved_user) == IdentityState.States.QUARANTINED:
             _deny_link(
                 request=request,
                 sociallogin=sociallogin,
@@ -498,7 +525,7 @@ class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):
                 sociallogin=sociallogin,
                 reason="existing_connection_unavailable",
             )
-        if user.identity_state == User.IdentityState.QUARANTINED:
+        if identity_state_of(user) == IdentityState.States.QUARANTINED:
             _deny_link(
                 request=request,
                 sociallogin=sociallogin,

@@ -19,12 +19,12 @@ from django.test import (
 )
 from django.urls import reverse
 
-from accounts.models import CustomUser
 from accounts.studio_sessions import (
     create_staff_session,
     revoke_staff_session,
 )
 from accounts.studio_test_support import make_studio_user
+from accounts_ext.models import IdentityState
 from core.bootstrap import RuntimeEnvironment
 from core.models import AuditEvent
 from website.admin_gate import BreakGlassAdminGateMiddleware
@@ -47,13 +47,20 @@ def staff_requester(**overrides):
 
 def learner(**overrides):
     fields = dict(
+        pk=7,
         is_active=True,
         is_staff=False,
         is_superuser=False,
-        identity_state=CustomUser.IdentityState.LEGACY,
+        identity_state=IdentityState.States.LEGACY,
     )
     fields.update(overrides)
-    return CustomUser(**fields)
+    identity_state = fields.pop("identity_state")
+    # Duck-typed stand-in: the policy reads is_active/is_staff/is_superuser
+    # and the identity row through accounts_ext helpers, so the fixture
+    # mirrors exactly those attributes.
+    target = SimpleNamespace(**fields)
+    target.identity = SimpleNamespace(identity_state=identity_state)
+    return target
 
 
 class CanLoginAsPolicyTests(SimpleTestCase):
@@ -74,7 +81,7 @@ class CanLoginAsPolicyTests(SimpleTestCase):
             learner(is_staff=True),
             learner(is_superuser=True),
             learner(is_active=False),
-            learner(identity_state=CustomUser.IdentityState.QUARANTINED),
+            learner(identity_state=IdentityState.States.QUARANTINED),
         ):
             with self.subTest(target=target):
                 self.assertFalse(can_login_as(staff_requester(), target))

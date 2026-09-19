@@ -6,6 +6,7 @@ from django.db.models import Q
 
 from accounts.identity_values import normalize_account_email
 from accounts.models import CustomUser
+from accounts_ext.models import IdentityState
 
 
 class DurableAccountBackend(AuthenticationBackend):
@@ -24,12 +25,18 @@ class DurableAccountBackend(AuthenticationBackend):
         return self._authenticate_by_username(login, password, request=request)
 
     def _eligible(self):
+        # A missing identity row (bulk-created accounts) reads as the old
+        # column default: state ``legacy``, which may hold or acquire access.
         return CustomUser.objects.filter(
             is_active=True,
-            identity_state__in=(
-                CustomUser.IdentityState.LEGACY,
-                CustomUser.IdentityState.ACTIVE,
-            ),
+        ).filter(
+            Q(
+                identity__identity_state__in=(
+                    IdentityState.States.LEGACY,
+                    IdentityState.States.ACTIVE,
+                )
+            )
+            | Q(identity__isnull=True)
         )
 
     #: One matching account authenticates; two is enough to see the address
@@ -52,7 +59,7 @@ class DurableAccountBackend(AuthenticationBackend):
             return ()
         candidates = tuple(
             self._eligible()
-            .filter(normalized_email=normalized)
+            .filter(identity__normalized_email=normalized)
             .order_by("pk")[: self._MAX_EMAIL_CANDIDATES]
         )
         if candidates:
@@ -60,7 +67,11 @@ class DurableAccountBackend(AuthenticationBackend):
         matches = []
         for user in (
             self._eligible()
-            .filter(Q(normalized_email="") | Q(normalized_email__isnull=True))
+            .filter(
+                Q(identity__normalized_email="")
+                | Q(identity__normalized_email__isnull=True)
+                | Q(identity__isnull=True)
+            )
             .order_by("pk")
             .iterator()
         ):

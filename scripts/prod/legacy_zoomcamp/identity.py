@@ -96,7 +96,7 @@ def _get_or_create_by_real_email(real_email: str) -> tuple[UserType, bool]:
     if not normalized or "@" not in normalized:
         return _get_or_create_synthetic(sha1_hex(real_email))
 
-    existing = User.objects.filter(normalized_email=normalized).order_by("id").first()
+    existing = User.objects.filter(identity__normalized_email=normalized).order_by("id").first()
     if existing is not None:
         return existing, False
 

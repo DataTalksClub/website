@@ -71,13 +71,7 @@ EXEMPT_PREFIXES = (
 #: Reviewed, phase-scoped exemptions.  Each entry names the module, why it is
 #: not switched yet, and the issue that removes it.  An empty mapping is the
 #: end state.
-REVIEWED_UNSWITCHED: dict[str, str] = {
-    # The account-merge apply guards the user row, the identity row and the
-    # profile row in one compare-and-swap; splitting its reads from its writes
-    # across two deploys would let an operator merge write a decided field to
-    # the column nobody reads. It moves whole in D3.1c (#392).
-    "scripts/prod/account_reconciliation/__init__.py": "switched whole in D3.1c (#392)",
-}
+REVIEWED_UNSWITCHED: dict[str, str] = {}
 
 
 def _tracked(*patterns: str) -> tuple[Path, ...]:

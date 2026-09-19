@@ -30,13 +30,12 @@ from django.test import Client, TestCase, TransactionTestCase
 from django.utils import timezone
 
 from accounts.identity_resolution import resolve_durable_user_id
-from accounts.models import CustomUser, Token
-from accounts_ext.models import (
-    AccountIdentityAlias,
-    AccountIdentityQuarantine,
-    AccountReconciliationRun,
+from accounts.models import (
+    CustomUser,
+    Token,
 )
 from accounts.tests.test_single_identity import create_verified_user
+from courses.models.learner_profile import LearnerProfile
 from core.models import AuditEvent, StaffSession
 from courses.models import (
     Cohort,
@@ -46,6 +45,12 @@ from courses.models import (
     Project,
     ProjectSubmission,
     Submission,
+)
+from accounts_ext.models import (
+    AccountIdentityAlias,
+    AccountIdentityQuarantine,
+    AccountReconciliationRun,
+    IdentityState,
 )
 from management_auth.models import APIPrincipal
 from scripts.prod.account_reconciliation import (
@@ -299,15 +304,18 @@ class ReviewedReconciliationTests(TestCase):
         token.refresh_from_db()
         self.assertEqual(self.source.pk, report["applied_source_user_ids"][0])
         self.assertEqual(
-            self.source.identity_state,
-            CustomUser.IdentityState.ABSORBED,
+            IdentityState.objects.get(user=self.source).identity_state,
+            IdentityState.States.ABSORBED,
         )
         self.assertTrue(self.source.is_active)
         self.assertEqual(
-            self.survivor.identity_state,
-            CustomUser.IdentityState.ACTIVE,
+            IdentityState.objects.get(user=self.survivor).identity_state,
+            IdentityState.States.ACTIVE,
         )
-        self.assertEqual(self.survivor.certificate_name, "Synthetic Learner")
+        self.assertEqual(
+            LearnerProfile.objects.get(user=self.survivor).certificate_name,
+            "Synthetic Learner",
+        )
         self.assertEqual(enrollment.student_id, self.survivor.pk)
         self.assertFalse(enrollment.display_on_leaderboard)
         self.assertFalse(enrollment.display_public_profile)
@@ -385,8 +393,9 @@ class ReviewedReconciliationTests(TestCase):
     def test_idempotent_replay_fails_if_absorbed_state_was_tampered(self) -> None:
         plan = self.plan()
         apply_reviewed_mapping(plan)
-        self.source.identity_state = CustomUser.IdentityState.LEGACY
-        self.source.save(update_fields=("identity_state",))
+        IdentityState.objects.filter(user=self.source).update(
+            identity_state=IdentityState.States.LEGACY,
+        )
 
         with self.assertRaises(ReconciliationError):
             apply_reviewed_mapping(plan)
@@ -571,8 +580,14 @@ class ReconciliationConcurrencyTests(TestCase):
         )
         source.refresh_from_db()
         survivor.refresh_from_db()
-        self.assertEqual(source.identity_state, CustomUser.IdentityState.ABSORBED)
-        self.assertEqual(survivor.identity_state, CustomUser.IdentityState.ACTIVE)
+        self.assertEqual(
+            IdentityState.objects.get(user=source).identity_state,
+            IdentityState.States.ABSORBED,
+        )
+        self.assertEqual(
+            IdentityState.objects.get(user=survivor).identity_state,
+            IdentityState.States.ACTIVE,
+        )
 
 
 class ReconciliationTransactionalFailureTests(TransactionTestCase):
@@ -605,8 +620,8 @@ class ReconciliationTransactionalFailureTests(TransactionTestCase):
     def assert_no_merge_writes(self) -> None:
         self.source.refresh_from_db()
         self.assertNotEqual(
-            self.source.identity_state,
-            CustomUser.IdentityState.ABSORBED,
+            IdentityState.objects.get(user=self.source).identity_state,
+            IdentityState.States.ABSORBED,
         )
         self.assertFalse(AccountIdentityAlias.objects.exists())
         self.assertFalse(AccountReconciliationRun.objects.exists())
@@ -632,8 +647,10 @@ class ReconciliationTransactionalFailureTests(TransactionTestCase):
         self.assertEqual(audit.actor_ref, f"user:{self.source.pk}")
 
     def test_absorbed_survivor_never_becomes_the_denied_audit_actor(self) -> None:
-        self.survivor.identity_state = CustomUser.IdentityState.ABSORBED
-        self.survivor.save(update_fields=("identity_state",))
+        IdentityState.objects.filter(user=self.survivor).update(
+            identity_state=IdentityState.States.ABSORBED,
+        )
+        self.survivor.refresh_from_db()
 
         with self.assertRaises(ReconciliationBlocked):
             apply_reviewed_mapping(self.plan())
@@ -644,10 +661,14 @@ class ReconciliationTransactionalFailureTests(TransactionTestCase):
         self.assertNotEqual(audit.actor_id, self.survivor.pk)
 
     def test_invalid_source_and_survivor_use_system_audit_authority(self) -> None:
-        self.source.identity_state = CustomUser.IdentityState.QUARANTINED
-        self.source.save(update_fields=("identity_state",))
-        self.survivor.identity_state = CustomUser.IdentityState.ABSORBED
-        self.survivor.save(update_fields=("identity_state",))
+        IdentityState.objects.filter(user=self.source).update(
+            identity_state=IdentityState.States.QUARANTINED,
+        )
+        self.source.refresh_from_db()
+        IdentityState.objects.filter(user=self.survivor).update(
+            identity_state=IdentityState.States.ABSORBED,
+        )
+        self.survivor.refresh_from_db()
 
         with self.assertRaises(ReconciliationBlocked):
             apply_reviewed_mapping(self.plan())

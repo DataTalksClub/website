@@ -4,18 +4,32 @@ from accounts.identity_resolution import (
     AccountEmailResolutionStatus,
     resolve_accounts_by_email,
 )
+from accounts_ext.models import (
+    AccountIdentityAlias,
+    IdentityState,
+    normalized_email_of,
+)
 from accounts.models import CustomUser
-from accounts_ext.models import AccountIdentityAlias
 
 
 class AccountEmailResolutionTestCase(TestCase):
     def create_user(self, username, email, **kwargs):
-        return CustomUser.objects.create(
+        identity_state = kwargs.pop("identity_state", None)
+        normalized_email = kwargs.pop("normalized_email", None)
+        user = CustomUser.objects.create(
             username=username,
             email=email,
             password="password",
             **kwargs,
         )
+        identity_defaults = {}
+        if identity_state is not None:
+            identity_defaults["identity_state"] = identity_state
+        if normalized_email is not None:
+            identity_defaults["normalized_email"] = normalized_email
+        if identity_defaults:
+            IdentityState.objects.update_or_create(user=user, defaults=identity_defaults)
+        return user
 
     def create_alias(self, source, survivor):
         return AccountIdentityAlias.objects.create(
@@ -34,7 +48,7 @@ class AccountEmailResolutionTestCase(TestCase):
         active = self.create_user(
             "active",
             "active@example.com",
-            identity_state=CustomUser.IdentityState.ACTIVE,
+            identity_state=IdentityState.States.ACTIVE,
         )
 
         with self.assertNumQueries(2):
@@ -57,7 +71,9 @@ class AccountEmailResolutionTestCase(TestCase):
     def test_distinct_eligible_collision_is_ambiguous(self):
         first = self.create_user("first", "collision@example.com")
         second = self.create_user("second", "other@example.com")
-        CustomUser.objects.filter(pk=second.pk).update(normalized_email=first.normalized_email)
+        IdentityState.objects.filter(user=second).update(
+            normalized_email=normalized_email_of(first)
+        )
 
         result = resolve_accounts_by_email(["COLLISION@example.com"])["collision@example.com"]
 
@@ -73,10 +89,10 @@ class AccountEmailResolutionTestCase(TestCase):
         unavailable = self.create_user(
             "unavailable",
             "other@example.com",
-            identity_state=CustomUser.IdentityState.QUARANTINED,
+            identity_state=IdentityState.States.QUARANTINED,
         )
-        CustomUser.objects.filter(pk=unavailable.pk).update(
-            normalized_email=eligible.normalized_email,
+        IdentityState.objects.filter(user=unavailable).update(
+            normalized_email=normalized_email_of(eligible),
         )
 
         result = resolve_accounts_by_email(["COLLISION@example.com"])[
@@ -94,12 +110,12 @@ class AccountEmailResolutionTestCase(TestCase):
         source = self.create_user(
             "source",
             "former@example.com",
-            identity_state=CustomUser.IdentityState.ABSORBED,
+            identity_state=IdentityState.States.ABSORBED,
         )
         survivor = self.create_user(
             "survivor",
             "current@example.com",
-            identity_state=CustomUser.IdentityState.ACTIVE,
+            identity_state=IdentityState.States.ACTIVE,
         )
         self.create_alias(source, survivor)
 
@@ -116,7 +132,7 @@ class AccountEmailResolutionTestCase(TestCase):
         quarantined = self.create_user(
             "quarantined",
             "quarantined@example.com",
-            identity_state=CustomUser.IdentityState.QUARANTINED,
+            identity_state=IdentityState.States.QUARANTINED,
         )
         inactive = self.create_user(
             "inactive",
@@ -126,7 +142,7 @@ class AccountEmailResolutionTestCase(TestCase):
         absorbed = self.create_user(
             "absorbed",
             "absorbed@example.com",
-            identity_state=CustomUser.IdentityState.ABSORBED,
+            identity_state=IdentityState.States.ABSORBED,
         )
 
         results = resolve_accounts_by_email([quarantined.email, inactive.email, absorbed.email])
@@ -147,12 +163,12 @@ class AccountEmailResolutionTestCase(TestCase):
         absorbed = self.create_user(
             "absorbed",
             "absorbed@example.com",
-            identity_state=CustomUser.IdentityState.ABSORBED,
+            identity_state=IdentityState.States.ABSORBED,
         )
         unavailable_survivor = self.create_user(
             "unavailable-survivor",
             "survivor@example.com",
-            identity_state=CustomUser.IdentityState.QUARANTINED,
+            identity_state=IdentityState.States.QUARANTINED,
         )
         self.create_alias(absorbed, unavailable_survivor)
         aliased_legacy = self.create_user(

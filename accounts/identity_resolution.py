@@ -7,7 +7,7 @@ from typing import Any
 
 from accounts.identity_values import normalize_account_email
 from accounts.models import CustomUser
-from accounts_ext.models import AccountIdentityAlias
+from accounts_ext.models import AccountIdentityAlias, IdentityState, identity_state_of
 
 
 class AccountEmailResolutionStatus(StrEnum):
@@ -24,8 +24,8 @@ class AccountEmailResolutionStatus(StrEnum):
 #: resolver, the legacy token decorator, and the management credential checks.
 IDENTITY_ELIGIBLE_STATES = frozenset(
     {
-        CustomUser.IdentityState.LEGACY,
-        CustomUser.IdentityState.ACTIVE,
+        IdentityState.States.LEGACY,
+        IdentityState.States.ACTIVE,
     }
 )
 
@@ -33,14 +33,14 @@ IDENTITY_ELIGIBLE_STATES = frozenset(
 def identity_state_eligible(user: Any) -> bool:
     """True when ``user``'s identity state may hold or acquire access."""
 
-    return getattr(user, "identity_state", None) in IDENTITY_ELIGIBLE_STATES
+    return identity_state_of(user) in IDENTITY_ELIGIBLE_STATES
 
 
 @dataclass(frozen=True)
 class AccountEmailResolution:
     normalized_email: str
     status: AccountEmailResolutionStatus
-    user: CustomUser | None = None
+    user: Any | None = None
     matched_user_ids: tuple[int, ...] = ()
 
     @property
@@ -69,9 +69,9 @@ def resolve_accounts_by_email(
         return {}
 
     users = list(
-        CustomUser.objects.filter(normalized_email__in=normalized_emails).order_by(
-            "normalized_email", "pk"
-        )
+        CustomUser.objects.select_related("identity")
+        .filter(identity__normalized_email__in=normalized_emails)
+        .order_by("identity__normalized_email", "pk")
     )
     user_ids = [user.pk for user in users]
     aliases_by_source_id = {
@@ -81,10 +81,10 @@ def resolve_accounts_by_email(
         )
     }
 
-    users_by_email: dict[str, list[CustomUser]] = {email: [] for email in normalized_emails}
+    users_by_email: dict[str, list[Any]] = {email: [] for email in normalized_emails}
     for user in users:
-        if user.normalized_email in users_by_email:
-            users_by_email[user.normalized_email].append(user)
+        if user.identity.normalized_email in users_by_email:
+            users_by_email[user.identity.normalized_email].append(user)
 
     return {
         normalized_email: _resolve_email_candidates(
@@ -98,7 +98,7 @@ def resolve_accounts_by_email(
 
 def _resolve_email_candidates(
     normalized_email: str,
-    candidates: list[CustomUser],
+    candidates: list[Any],
     aliases_by_source_id: dict[int, AccountIdentityAlias],
 ) -> AccountEmailResolution:
     matched_user_ids = tuple(user.pk for user in candidates)
@@ -108,11 +108,11 @@ def _resolve_email_candidates(
             status=AccountEmailResolutionStatus.NOT_FOUND,
         )
 
-    available_users: dict[int, CustomUser] = {}
+    available_users: dict[int, Any] = {}
     has_unavailable_candidate = False
     eligible_states = {
-        CustomUser.IdentityState.ACTIVE,
-        CustomUser.IdentityState.LEGACY,
+        IdentityState.States.ACTIVE,
+        IdentityState.States.LEGACY,
     }
 
     for candidate in candidates:
@@ -121,18 +121,19 @@ def _resolve_email_candidates(
             has_unavailable_candidate = True
             continue
 
-        if candidate.identity_state == CustomUser.IdentityState.ABSORBED:
+        candidate_state = candidate.identity.identity_state
+        if candidate_state == IdentityState.States.ABSORBED:
             if alias is None:
                 has_unavailable_candidate = True
                 continue
             survivor = alias.survivor
-            if not survivor.is_active or survivor.identity_state not in eligible_states:
+            if not survivor.is_active or identity_state_of(survivor) not in eligible_states:
                 has_unavailable_candidate = True
                 continue
             available_users[survivor.pk] = survivor
             continue
 
-        if alias is not None or candidate.identity_state not in eligible_states:
+        if alias is not None or candidate_state not in eligible_states:
             has_unavailable_candidate = True
             continue
         available_users[candidate.pk] = candidate
@@ -167,7 +168,7 @@ def resolve_durable_user_id(user_id: int) -> int | None:
     if alias is None:
         return user_id
     survivor = alias.survivor
-    if not survivor.is_active or survivor.identity_state not in IDENTITY_ELIGIBLE_STATES:
+    if not survivor.is_active or identity_state_of(survivor) not in IDENTITY_ELIGIBLE_STATES:
         # A quarantined survivor is just as unavailable as a disabled or
         # absorbed one: alias continuity never rescues a quarantined account
         # back into access (audit BE-08).
@@ -178,7 +179,7 @@ def resolve_durable_user_id(user_id: int) -> int | None:
 def resolve_durable_user(user: Any) -> CustomUser | None:
     if user is None or getattr(user, "pk", None) is None:
         return None
-    if user.identity_state != CustomUser.IdentityState.ABSORBED:
+    if identity_state_of(user) != IdentityState.States.ABSORBED:
         return user
     survivor_id = resolve_durable_user_id(user.pk)
     if survivor_id is None or survivor_id == user.pk:

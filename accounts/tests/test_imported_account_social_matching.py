@@ -43,8 +43,14 @@ from accounts.auth import (
     ConsolidatingSocialAccountAdapter,
     _has_unresolved_email_collision,
 )
-from accounts.models import CustomUser
-from accounts_ext.models import AccountIdentityAlias, AccountIdentityQuarantine
+from accounts_ext.models import (
+    AccountIdentityAlias,
+    AccountIdentityQuarantine,
+    IdentityState,
+)
+from accounts.models import (
+    CustomUser,
+)
 from courses.models import (
     Answer,
     AnswerTypes,
@@ -162,7 +168,7 @@ class ImportedAccountSignInTestCase(TestCase):
         user.set_unusable_password()
         user.save()
         if normalized_email is not None:
-            CustomUser.objects.filter(pk=user.pk).update(
+            IdentityState.objects.filter(user=user).update(
                 normalized_email=normalized_email or None,
             )
             user.refresh_from_db()
@@ -517,7 +523,7 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
             email="raw.insert@example.invalid",
             normalized_email="",
         )
-        self.assertIsNone(user.normalized_email)
+        self.assertIsNone(IdentityState.objects.get(user=user).normalized_email)
         history = self.imported_history(user)
 
         client, response = self.sign_in(
@@ -701,8 +707,9 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
         self.assert_signed_in_as(client, user)
         user.refresh_from_db()
         self.assertEqual(user.email, "zoe.member@example.invalid")
-        self.assertEqual(user.normalized_email, "zoe.member@example.invalid")
-        self.assertEqual(user.identity_state, CustomUser.IdentityState.ACTIVE)
+        identity = IdentityState.objects.get(user=user)
+        self.assertEqual(identity.normalized_email, "zoe.member@example.invalid")
+        self.assertEqual(identity.identity_state, IdentityState.States.ACTIVE)
 
 
 class ImportedAccountMatchingCostTests(ImportedAccountSignInTestCase):
@@ -966,8 +973,8 @@ class ImportedAccountMatchingFailsClosedTests(ImportedAccountSignInTestCase):
             email="absorbed@example.invalid",
             username="absorbed",
         )
-        CustomUser.objects.filter(pk=absorbed.pk).update(
-            identity_state=CustomUser.IdentityState.ABSORBED,
+        IdentityState.objects.filter(user=absorbed).update(
+            identity_state=IdentityState.States.ABSORBED,
         )
         AccountIdentityAlias.objects.create(
             source_user_id=absorbed.pk,

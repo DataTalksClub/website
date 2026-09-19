@@ -24,6 +24,7 @@ from accounts.services.local_provider_seed import (  # noqa: E402
     seed_local_social_providers,
 )
 from core.bootstrap import RuntimeEnvironment  # noqa: E402
+from accounts_ext.models import IdentityState, set_identity_state
 
 EMAIL = "admin@aishippinglabs.com"
 PASSWORD = "admin123"
@@ -45,7 +46,9 @@ def create_or_reset_local_admin() -> tuple[CustomUser, bool]:
 
     normalized_email = normalize_account_email(EMAIL)
     matches = list(
-        get_user_model().objects.filter(normalized_email=normalized_email).order_by("pk")
+        get_user_model()
+        .objects.filter(identity__normalized_email=normalized_email)
+        .order_by("pk")
     )
     if len(matches) > 1:
         raise RuntimeError("create_local_admin: duplicate-email")
@@ -60,12 +63,14 @@ def create_or_reset_local_admin() -> tuple[CustomUser, bool]:
         user = matches[0]
         user.email = EMAIL
 
-    user.identity_state = CustomUser.IdentityState.ACTIVE
     user.is_active = True
     user.is_staff = True
     user.is_superuser = True
     user.set_password(PASSWORD)
     user.save()
+    # The identity state lives on its own row now, so it is written after the
+    # account exists rather than as another column on the same save.
+    set_identity_state(user, IdentityState.States.ACTIVE)
     return user, created
 
 
