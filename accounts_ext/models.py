@@ -59,11 +59,19 @@ class IdentityState(models.Model):
         db_index=True,
     )
 
-    # The conditional unique constraint ``accounts_active_normalized_email_unique``
-    # is not declared here yet: it still exists, under that exact name, on the
-    # user table, and an index name exists once per database. It moves onto
-    # this model in the accounts contract phase (plan issue D3.1d), which is
-    # what drops it from the user table.
+    class Meta:
+        constraints = [
+            # The conditional unique constraint moved off the user model under
+            # its original name (plan D3.1): it moves, it is not renamed. An
+            # index name exists once per database, so accounts_ext.0001 left it
+            # out and accounts_ext.0004 creates it here, after the accounts
+            # contract migration dropped the old index.
+            models.UniqueConstraint(
+                fields=("normalized_email",),
+                condition=(Q(identity_state="active") & Q(normalized_email__isnull=False)),
+                name="accounts_active_normalized_email_unique",
+            ),
+        ]
 
     def __str__(self):
         return f"identity:{self.user_id}:{self.identity_state}"

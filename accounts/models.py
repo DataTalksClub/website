@@ -3,71 +3,10 @@ import uuid
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import Q
 from django.utils import timezone
-
-from accounts.identity_values import normalize_account_email
 
 
 class CustomUser(AbstractUser):
-    class IdentityState(models.TextChoices):
-        LEGACY = "legacy", "Legacy-compatible"
-        ACTIVE = "active", "Verified active identity"
-        QUARANTINED = "quarantined", "Needs identity review"
-        ABSORBED = "absorbed", "Absorbed into a survivor"
-
-    ROLE_CHOICES = (
-        ("student", "Student"),
-        ("instructor", "Instructor"),
-    )
-
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="student")
-    certificate_name = models.CharField(
-        verbose_name="Certificate name",
-        max_length=255,
-        blank=True,
-        null=True,
-        help_text="Your actual name that will appear on your certificates",
-    )
-    country = models.CharField(
-        verbose_name="Country",
-        max_length=100,
-        blank=True,
-    )
-    region = models.CharField(
-        verbose_name="Region",
-        max_length=100,
-        blank=True,
-    )
-    registration_role = models.CharField(
-        verbose_name="Registration role",
-        max_length=40,
-        blank=True,
-        help_text="Role last used on a course registration form",
-    )
-    github_url = models.URLField(
-        verbose_name="GitHub URL",
-        blank=True,
-        null=True,
-    )
-    linkedin_url = models.URLField(
-        verbose_name="LinkedIn URL",
-        blank=True,
-        null=True,
-    )
-    personal_website_url = models.URLField(
-        verbose_name="Personal website URL",
-        blank=True,
-        null=True,
-    )
-    about_me = models.TextField(
-        verbose_name="About me",
-        blank=True,
-        null=True,
-    )
-    dark_mode = models.BooleanField(
-        verbose_name="Dark mode", default=False, help_text="Enable dark mode theme"
-    )
     preferred_timezone = models.CharField(
         verbose_name="Preferred timezone",
         max_length=100,
@@ -118,32 +57,9 @@ class CustomUser(AbstractUser):
         ),
     )
 
-    # This is an expand-only identity key. The legacy ``email`` and
-    # ``username`` columns remain available throughout the compatibility
-    # window; a later contract migration may remove neither without the
-    # production-like rehearsal owned by issue #60.
-    normalized_email = models.EmailField(
-        max_length=254,
-        blank=True,
-        null=True,
-        editable=False,
-        db_index=True,
-    )
-    identity_state = models.CharField(
-        max_length=16,
-        choices=IdentityState.choices,
-        default=IdentityState.LEGACY,
-        db_index=True,
-    )
-
-    class Meta(AbstractUser.Meta):
-        constraints = [
-            models.UniqueConstraint(
-                fields=("normalized_email",),
-                condition=(Q(identity_state="active") & Q(normalized_email__isnull=False)),
-                name="accounts_active_normalized_email_unique",
-            ),
-        ]
+    # The course-platform person fields live on ``courses.LearnerProfile`` and
+    # the identity reconciliation state, with its conditional unique
+    # constraint, on ``accounts_ext.IdentityState`` (plan issue D3.1).
 
     @classmethod
     def from_db(cls, db, field_names, values):
@@ -162,10 +78,9 @@ class CustomUser(AbstractUser):
             self._loaded_newsletter_subscribed = self.newsletter_subscribed
 
     def save(self, *args, **kwargs):
-        self.normalized_email = normalize_account_email(self.email)
+        # ``normalized_email`` moved to ``accounts_ext.IdentityState``; the
+        # same save-path invariant is kept by ``accounts_ext.signals``.
         update_fields = kwargs.get("update_fields")
-        if update_fields is not None and "email" in update_fields:
-            kwargs["update_fields"] = tuple(dict.fromkeys((*update_fields, "normalized_email")))
         # A locally made newsletter decision -- any save that changes
         # ``newsletter_subscribed`` away from its loaded value -- is stamped
         # with the decision time, and the Mailchimp import treats a non-null
@@ -178,7 +93,7 @@ class CustomUser(AbstractUser):
             self.newsletter_preference_changed_at = timezone.now()
             if update_fields is not None:
                 kwargs["update_fields"] = tuple(
-                    dict.fromkeys((*kwargs["update_fields"], "newsletter_preference_changed_at"))
+                    dict.fromkeys((*update_fields, "newsletter_preference_changed_at"))
                 )
         super().save(*args, **kwargs)
 

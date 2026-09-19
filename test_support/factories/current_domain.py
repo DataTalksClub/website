@@ -294,6 +294,7 @@ def _accounts(context: FactoryContext, state: str) -> dict[str, object]:
     Alias = _model("accounts_ext.AccountIdentityAlias")
     Quarantine = _model("accounts_ext.AccountIdentityQuarantine")
     Reconciliation = _model("accounts_ext.AccountReconciliationRun")
+    IdentityState = _model("accounts_ext.IdentityState")
     Token = _model("accounts.Token")
     Group = _model("auth.Group")
     Permission = _model("auth.Permission")
@@ -308,8 +309,16 @@ def _accounts(context: FactoryContext, state: str) -> dict[str, object]:
         email=context.synthetic_email(user_factory, state),
         password="!synthetic-unusable",
         is_staff=True,
-        identity_state="active" if state != "stale_conflict" else "quarantined",
         date_joined=context.frozen_at,
+    )
+    # The identity state left the user model in the contract phase (D3.1). The
+    # row that holds it now is created by the extension signal on the save
+    # above; the factory decides its value here rather than on the account.
+    IdentityState.objects.update_or_create(
+        user=user,
+        defaults={
+            "identity_state": "active" if state != "stale_conflict" else "quarantined",
+        },
     )
     group = Group.objects.create(
         id=_integer(context, f"{prefix}.staff_group", state),

@@ -1,18 +1,26 @@
-"""D3.1a: the additive extension models and their data copy.
+"""D3.1: the extension models, their data copy and the contract.
 
-Covers what the expand half of plan issue D3.1 ships: ``courses.LearnerProfile``
-and ``accounts_ext.IdentityState`` exist with the moved fields' shapes mirrored
-verbatim, the four identity evidence models kept their physical tables while
-their app registration moved, and the identity save-path invariant that used to
-live on ``CustomUser.save`` is preserved by the extension signal.
+Covers what the field move ships: ``courses.LearnerProfile`` and
+``accounts_ext.IdentityState`` carry the moved fields with their shapes
+mirrored verbatim, the four identity evidence models kept their physical
+tables while their app registration moved, the identity save-path invariant
+that used to live on ``CustomUser.save`` is preserved by the extension signal,
+and -- since the contract phase -- the user model declares none of the twelve
+moved fields and the conditional unique constraint is enforced on
+``IdentityState`` alone.
 
-No reader is switched and no field is removed by this phase, so the user model
-still declares the moved fields and both copies stay in step.
+The "mirrored verbatim" check reads the original field definitions out of the
+migration state just before the contract migration rather than restating them,
+so a drift on either side fails even though the columns are gone from the live
+model.
 """
 
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
+from django.db import transaction
+from django.db.migrations.loader import MigrationLoader
+from django.db import connection
 from django.test import TestCase
 
 from accounts_ext.models import IdentityState
@@ -32,40 +40,65 @@ MOVED_COURSE_FIELDS = (
 )
 MOVED_IDENTITY_FIELDS = ("normalized_email", "identity_state")
 
+#: The last migration state in which the user model still declared all twelve.
+PRE_CONTRACT_MIGRATION = ("accounts", "0007_move_identity_models_state")
+
+COMPARED_ATTRIBUTES = ("max_length", "null", "blank", "choices", "help_text")
+
+
+def _pre_contract_user_fields():
+    loader = MigrationLoader(connection)
+    state = loader.project_state([PRE_CONTRACT_MIGRATION])
+    model = state.apps.get_model("accounts", "CustomUser")
+    return {field.name: field for field in model._meta.get_fields()}
+
 
 class ExtensionModelsExistTestCase(TestCase):
-    def test_learner_profile_exists_with_mirrored_shapes(self):
-        profile_fields = {field.name: field for field in LearnerProfile._meta.get_fields()}
-        user_fields = {field.name: field for field in get_user_model()._meta.get_fields()}
-        for field_name in MOVED_COURSE_FIELDS:
-            self.assertIn(field_name, profile_fields)
-            moved, original = profile_fields[field_name], user_fields[field_name]
+    def _assert_mirrors_the_original(self, model, field_names):
+        originals = _pre_contract_user_fields()
+        moved_fields = {field.name: field for field in model._meta.get_fields()}
+        for field_name in field_names:
+            self.assertIn(field_name, moved_fields)
+            moved, original = moved_fields[field_name], originals[field_name]
             self.assertEqual(moved.get_default(), original.get_default(), field_name)
-            self.assertEqual(moved.max_length, original.max_length, field_name)
-            self.assertEqual(moved.null, original.null, field_name)
-            self.assertEqual(moved.blank, original.blank, field_name)
-            self.assertEqual(moved.choices, original.choices, field_name)
-            self.assertEqual(moved.help_text, original.help_text, field_name)
+            for attribute in COMPARED_ATTRIBUTES:
+                self.assertEqual(
+                    getattr(moved, attribute),
+                    getattr(original, attribute),
+                    f"{field_name}.{attribute} drifted from the column it moved from",
+                )
+
+    def test_learner_profile_mirrors_the_columns_it_received(self):
+        self._assert_mirrors_the_original(LearnerProfile, MOVED_COURSE_FIELDS)
         related = LearnerProfile._meta.get_field("user")
         self.assertEqual(related.remote_field.related_name, "learner_profile")
 
-    def test_identity_state_exists_with_moved_shapes(self):
-        state_fields = {field.name: field for field in IdentityState._meta.get_fields()}
-        user_fields = {field.name: field for field in get_user_model()._meta.get_fields()}
-        for field_name in MOVED_IDENTITY_FIELDS:
-            self.assertIn(field_name, state_fields)
-            moved, original = state_fields[field_name], user_fields[field_name]
-            self.assertEqual(moved.get_default(), original.get_default(), field_name)
-            self.assertEqual(moved.max_length, original.max_length, field_name)
-            self.assertEqual(moved.null, original.null, field_name)
-            self.assertEqual(moved.choices, original.choices, field_name)
+    def test_identity_state_mirrors_the_columns_it_received(self):
+        self._assert_mirrors_the_original(IdentityState, MOVED_IDENTITY_FIELDS)
         related = IdentityState._meta.get_field("user")
         self.assertEqual(related.remote_field.related_name, "identity")
 
-    def test_the_user_model_still_declares_the_moved_fields(self):
-        # This phase is purely additive: the contract phase (D3.1d) removes them.
+    def test_the_user_model_no_longer_declares_the_moved_fields(self):
         field_names = {field.name for field in get_user_model()._meta.get_fields()}
         for field_name in (*MOVED_COURSE_FIELDS, *MOVED_IDENTITY_FIELDS):
+            self.assertNotIn(field_name, field_names)
+
+    def test_the_moved_constraint_left_the_user_model(self):
+        constraint_names = {
+            constraint.name for constraint in get_user_model()._meta.constraints
+        }
+        self.assertNotIn("accounts_active_normalized_email_unique", constraint_names)
+
+    def test_the_dtc_only_columns_stayed(self):
+        # Their disposition belongs to the shared-model adoption, not here.
+        field_names = {field.name for field in get_user_model()._meta.get_fields()}
+        for field_name in (
+            "username",
+            "newsletter_subscribed",
+            "home_dismissals",
+            "newsletter_preference_changed_at",
+            "preferred_timezone",
+        ):
             self.assertIn(field_name, field_names)
 
     def test_moved_identity_models_kept_their_tables(self):
@@ -143,8 +176,47 @@ class SavePathInvariantTestCase(TestCase):
         self.user.save(update_fields=["preferred_timezone"])
         self.assertEqual(self._row().normalized_email, "held@example.com")
 
-    def test_the_extension_row_agrees_with_the_user_column(self):
-        # Both copies are live during the expand window.
-        self.user.refresh_from_db()
-        self.assertEqual(self._row().normalized_email, self.user.normalized_email)
-        self.assertEqual(self._row().identity_state, self.user.identity_state)
+
+class IdentityStateConstraintTestCase(TestCase):
+    """The moved conditional unique constraint, now enforced on IdentityState."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="constraint-user",
+            email="constraint@example.com",
+            password="testpass123",
+        )
+
+    def test_the_constraint_is_declared_on_identity_state(self):
+        constraint_names = {constraint.name for constraint in IdentityState._meta.constraints}
+        self.assertIn("accounts_active_normalized_email_unique", constraint_names)
+
+    def test_two_active_rows_with_one_normalized_email_are_rejected(self):
+        other = get_user_model().objects.create_user(
+            username="constraint-other",
+            email="other@example.com",
+            password="testpass123",
+        )
+        IdentityState.objects.filter(user=other).update(
+            normalized_email="same@example.com",
+            identity_state=IdentityState.States.ACTIVE,
+        )
+        row = IdentityState.objects.get(user=self.user)
+        row.normalized_email = "same@example.com"
+        row.identity_state = IdentityState.States.ACTIVE
+        with self.assertRaises(Exception), transaction.atomic():
+            row.save()
+
+    def test_duplicate_normalized_email_is_allowed_outside_active(self):
+        other = get_user_model().objects.create_user(
+            username="constraint-legacy",
+            email="legacy@example.com",
+            password="testpass123",
+        )
+        row = IdentityState.objects.get(user=self.user)
+        row.normalized_email = "legacy@example.com"
+        row.identity_state = IdentityState.States.LEGACY
+        row.save()
+        other_row = IdentityState.objects.get(user=other)
+        other_row.normalized_email = "legacy@example.com"
+        other_row.save()

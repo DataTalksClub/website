@@ -116,6 +116,21 @@ ACCOUNT_MANY_TO_MANY_RELATIONS = (
 )
 
 
+# The durable account is the user row plus its extension rows. The D3.1 field
+# move took twelve fields off the user model; it did not take them out of the
+# account, and the reviewed merge still decides ten of them
+# (``scripts.prod.account_reconciliation.PROFILE_FIELDS``) while the identity
+# window still turns on the other two. So the inventory enumerates all three
+# models: a report that walked only the user model would quietly stop naming
+# them, which is precisely what an operator reads this report to find out.
+# The join column and each extension row's surrogate key are not account
+# fields and are left out.
+ACCOUNT_EXTENSION_MODELS: tuple[tuple[str, frozenset[str]], ...] = (
+    ("accounts_ext.IdentityState", frozenset({"id", "user"})),
+    ("courses.LearnerProfile", frozenset({"id", "user"})),
+)
+
+
 def _field_classification(name: str) -> str:
     if name in {
         "id",
@@ -149,15 +164,18 @@ def _route(name: str) -> str:
         return "unavailable"
 
 
-def account_inventory() -> dict[str, Any]:
-    User = get_user_model()
-    fields = []
-    for field in User._meta.get_fields():
+def _account_fields(model, *, skip: frozenset[str] = frozenset()) -> list[dict[str, Any]]:
+    collected = []
+    for field in model._meta.get_fields():
         if field.auto_created and not field.concrete:
             continue
-        fields.append(
+        if field.name in skip:
+            continue
+        collected.append(
             {
                 "name": field.name,
+                "model_label": model._meta.label,
+                "table": model._meta.db_table,
                 "column": getattr(field, "column", None),
                 "type": field.get_internal_type(),
                 "null": getattr(field, "null", False),
@@ -165,6 +183,14 @@ def account_inventory() -> dict[str, Any]:
                 "classification": _field_classification(field.name),
             }
         )
+    return collected
+
+
+def account_inventory() -> dict[str, Any]:
+    User = get_user_model()
+    fields = _account_fields(User)
+    for model_label, skip in ACCOUNT_EXTENSION_MODELS:
+        fields.extend(_account_fields(apps.get_model(model_label), skip=skip))
     relations = []
     for spec in ACCOUNT_RELATIONS:
         model = apps.get_model(spec.model_label)
