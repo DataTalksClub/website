@@ -31,6 +31,12 @@ here.
   *projection* (an intermediate JSON tree something else reads later), not a
   synced row. See `_docs/architecture/database-only-content.md` for the
   current violation inventory and removal plan.
+- Legacy concepts belong only at import boundaries. Runtime apps, models,
+  services, routes, templates, and public reads must use the current domain
+  directly; do not add compatibility shims, legacy projections, parallel
+  historical models, or fallback read paths. When legacy runtime code is
+  encountered, remove it and move any still-required translation into the
+  relevant ingest script.
 - `community-base` (`~/git/community-base`) is a shared package consumed by
   this site and by AI Shipping Labs (`~/git/ai-shipping-labs`). If you change
   anything in `community-base`, run the test suite in both consuming projects,
