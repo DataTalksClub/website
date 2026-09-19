@@ -26,7 +26,7 @@ from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount
 from django.conf import settings
 from django.db import IntegrityError
-from django.test import Client, TestCase, TransactionTestCase
+from django.test import Client, SimpleTestCase, TestCase, TransactionTestCase
 from django.utils import timezone
 
 from accounts.identity_resolution import resolve_durable_user_id
@@ -56,6 +56,7 @@ from management_auth.models import APIPrincipal
 from scripts.prod.account_reconciliation import (
     ReconciliationBlocked,
     ReconciliationError,
+    _check_relationship_evidence_unchanged,
     apply_reviewed_mapping,
     dry_run_reconciliation,
     parse_mapping_document,
@@ -87,6 +88,75 @@ def mapping_document(
             }
         ],
     }
+
+
+class RelationshipEvidenceInvariantTests(SimpleTestCase):
+    """D3.3: the apply-time compare-and-swap has two different rules under
+    one dict, now that it covers accounts_ext.IdentityState/
+    courses.LearnerProfile and accounts_ext.AccountIdentityAlias.survivor
+    alongside every reparented relation.
+
+    A reparented relation (``courses.Enrollment`` and the rest of
+    ``ACCOUNT_RELATIONS``) must come back byte-identical: reparenting only
+    changes who owns a row, never how many exist, so any change there is
+    real. The append-only keys (the two extension tables, plus the merge
+    ledger itself) are different -- this very apply is documented to add a
+    row there (a backfilled extension row, or the one new alias row every
+    successful merge creates), so their rule is a subset check: nothing
+    already there may be lost, but a new row is not a regression.
+
+    Found the hard way: an earlier version of this fix only exempted the two
+    extension keys, and every apply in this file failed, because the alias
+    ledger gains a row on every single successful merge, not just the
+    missing-row edge case. That regression is the second test below.
+    """
+
+    def test_extension_table_gaining_a_row_is_not_a_lost_row(self) -> None:
+        before = {"accounts_ext.IdentityState.user": frozenset({("1", 10)})}
+        after = {
+            "accounts_ext.IdentityState.user": frozenset({("1", 10), ("2", 10)}),
+        }
+        _check_relationship_evidence_unchanged(before=before, after=after)
+
+    def test_merge_ledger_gaining_its_new_alias_row_is_not_a_lost_row(self) -> None:
+        before = {"accounts_ext.AccountIdentityAlias.survivor": frozenset()}
+        after = {
+            "accounts_ext.AccountIdentityAlias.survivor": frozenset({("1", 10)}),
+        }
+        _check_relationship_evidence_unchanged(before=before, after=after)
+
+    def test_extension_table_losing_a_row_still_raises(self) -> None:
+        before = {
+            "courses.LearnerProfile.user": frozenset({("1", 10), ("2", 10)}),
+        }
+        after = {"courses.LearnerProfile.user": frozenset({("2", 10)})}
+        with self.assertRaises(IntegrityError):
+            _check_relationship_evidence_unchanged(before=before, after=after)
+
+    def test_merge_ledger_losing_a_row_still_raises(self) -> None:
+        before = {
+            "accounts_ext.AccountIdentityAlias.survivor": frozenset(
+                {("1", 10), ("2", 10)}
+            ),
+        }
+        after = {"accounts_ext.AccountIdentityAlias.survivor": frozenset({("2", 10)})}
+        with self.assertRaises(IntegrityError):
+            _check_relationship_evidence_unchanged(before=before, after=after)
+
+    def test_an_ordinary_reparented_relation_gaining_a_row_still_raises(self) -> None:
+        # Anything that is not one of the three append-only keys keeps the
+        # stricter rule: a new row appearing there is exactly the kind of
+        # unexplained change the guard exists to catch.
+        before = {"courses.Enrollment.student": frozenset({("1", 10)})}
+        after = {"courses.Enrollment.student": frozenset({("1", 10), ("2", 10)})}
+        with self.assertRaises(IntegrityError):
+            _check_relationship_evidence_unchanged(before=before, after=after)
+
+    def test_an_ordinary_reparented_relation_losing_a_row_raises(self) -> None:
+        before = {"courses.Enrollment.student": frozenset({("1", 10), ("2", 10)})}
+        after = {"courses.Enrollment.student": frozenset({("1", 10)})}
+        with self.assertRaises(IntegrityError):
+            _check_relationship_evidence_unchanged(before=before, after=after)
 
 
 class ReconciliationDryRunTests(TestCase):
