@@ -36,6 +36,7 @@ class KernelInstallationTests(SimpleTestCase):
                 "community_base.config",
                 "community_base.api",
                 "community_base.content_sync",
+                "community_base.knowledge_base",
             ],
         )
         self.assertEqual(apps.get_app_config("cb_kernel").name, "community_base.kernel")

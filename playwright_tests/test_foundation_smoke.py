@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
-from content import catalogue
-from content.docs_projection import docs_projection
+from content import catalogue, wiki_reader
+from content.docs_reader import docs_assets
 from content.podcast_content import podcast_seasons
 from content.podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS
 from events.queries import published_event_records
@@ -200,7 +200,7 @@ def test_docs_and_faq_root_trailing_slash_browser_contract(
     )
     assert docs_detail is not None and docs_detail.status == 200
     assert page.locator('a[href="/docs/"]').count() >= 1
-    docs_asset_path = docs_projection()["assets"][0]["public_path"]
+    docs_asset_path = docs_assets()[0]["public_path"]
     docs_asset = page.request.get(f"{origin}{docs_asset_path}")
     assert docs_asset.status == 200
 
@@ -440,7 +440,7 @@ def test_oldest_latest_details_and_media_fallback(page: Page, live_server) -> No
         # The first book carries no preview image, so its detail page is also the
         # media fallback this test is named for.
         catalogue.books()[0]["public_path"],
-        catalogue.wiki_pages()[0]["public_path"],
+        wiki_reader.wiki_pages()[0]["public_path"],
     ):
         response = page.goto(f"{origin}{path}")
         assert response is not None and response.status == 200

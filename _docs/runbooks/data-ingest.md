@@ -81,8 +81,9 @@ that way since the database cutover, so a row in §2 never carries it.
 > `ContentAsset` — is live at both ends: the `scripts/prod/` importers write it and
 > a public request reads it. `content/public_data.py`, the module that used to
 > reassemble those rows into the old projection dictionary, is deleted;
-> `content/catalogue.py`, `content/docs_projection.py`, `content/faq_data.py`,
-> `content/article_faq.py` and `events/queries.py` are the readers now. §9 lists
+> `content/catalogue.py`, `content/docs_reader.py`, `content/wiki_reader.py`,
+> `content/faq_data.py`, `content/article_faq.py` and `events/queries.py` are the
+> readers now. §9 lists
 > every surface.
 >
 > **So an importer is the right tool for every source below**, and the missing piece
@@ -1122,20 +1123,23 @@ of the old arrangement is naming, not behaviour. `content/public_data.py` — th
 compatibility layer that kept returning the dict shape the files had — is deleted;
 `content/catalogue.py` is a query function per kind, `content/public_routes.py`
 holds the route inventory and `content/public_graph.py` the graph safety contract.
-The name still shows on `content/docs_projection.py` and on
-`content/media_store.py`'s `PROJECTION_ROOT`. Describe those as "database-backed,
-still wearing the projection's name", not as unfinished ingest.
+The name still shows on `content/media_store.py`'s `PROJECTION_ROOT`. Describe
+that as "database-backed, still wearing the projection's name", not as unfinished
+ingest. `content/docs_projection.py` is gone: since D7.1 the documentation and
+wiki pages are `community_base.knowledge_base` rows read by
+`content/docs_reader.py` and `content/wiki_reader.py`.
 
 | Area | Serving path | Source |
 | --- | --- | --- |
-| Wiki (hub, detail, search, graph, feed, sitemap) | **Database** | `ContentDocument`, via `content/catalogue.py` |
+| Wiki pages (hub, detail, feed, sitemap) | **Database** | `KnowledgeBasePage`, via `content/wiki_reader.py` |
+| Wiki search and graph | **Database** | `SyncedDocument` singletons, via `content/catalogue.py` |
 | Podcasts (hub, episodes, guests, transcripts, resources) | **Database** | as above |
 | Articles (hub, detail) | **Database** | as above |
 | Article FAQ accordions | **Database** | `content/article_faq.py` over `ContentDocument` |
 | People / authors | **Database** | `ContentDocument` |
 | Books | **Database** | `ContentDocument` |
 | FAQ (`/faq/`) | **Database** | `content/faq_data.py` over `ContentDocument` |
-| Docs (`/docs/`) | **Database** | `content/docs_projection.py` over `ContentDocument` / `ContentAsset` |
+| Docs (`/docs/`) | **Database** | `content/docs_reader.py` over `KnowledgeBasePage`, assets from `content/docs_assets/` |
 | Editorial redirects | **Database** | `ContentDocument` (the route manifest is one document) |
 | Media (`/images/…`) | **Database record + object store** | record from `ContentDocument`, bytes from the store (`content/media_store.py`) |
 | Event listing, descriptions and links | **Database** | `events.EventContent` / `EventLink` |
@@ -1752,7 +1756,7 @@ number can appear twice in this table for two unrelated defects.
 | Was item | Was claimed | Closed by |
 | --- | --- | --- |
 | 1 | "CMP learner data beyond accounts has no importer — that importer does not exist, and it is the largest remaining gap in the migration" | `scripts/prod/import_cmp_learner_history.py` over `courses/services/cmp_learner_history_import.py`, whose `TABLE_ORDER` (`:171-181`) covers all nine remaining learner tables — course registrations, enrollments, submissions, answers, project submissions, peer reviews, criteria responses, project evaluation scores and Wrapped statistics. Rehearsed end to end on 2026-09-05: 20,469 accounts and 414,768 history rows, replay a no-op, SIGKILL-and-resume identical (`production-data-migration.md` §8.3 step 4). §8 source 12 |
-| 2 | "The content database pipeline is dead at both ends — nothing writes them and nothing reads them" | `scripts/prod/import_public_content.py` writes `ContentDocument` rows; `content/catalogue.py`, `content/article_faq.py`, `content/faq_data.py` and `content/docs_projection.py` read them on every public request. §9 |
+| 2 | "The content database pipeline is dead at both ends — nothing writes them and nothing reads them" | `scripts/prod/import_public_content.py` writes `ContentDocument` rows; `content/catalogue.py`, `content/article_faq.py` and `content/faq_data.py` read them on every public request, and `content/docs_reader.py` and `content/wiki_reader.py` read the knowledge base pages. §9 |
 | 7 | "Sponsors have no ingest at all" | `scripts/prod/import_sponsors.py`, reading `temporary/content/sponsor_directory.json` through `core.sponsors`' shared services. `core/sponsor_history.py` and its hardcoded `FEATURED_SUPPORTERS` tuple are deleted |
 | 8 | "Testimonials arrive only through a data migration" | `scripts/prod/import_testimonials.py`, reading `temporary/content/homepage_testimonials.json`. The seeding migration is gone; the two `RunPython` migrations left repo-wide (`courses/0002_simplify_registration_counts.py` and `data/0002_redact_datamailer_audit_pii.py`) seed no content |
 | 10 | "`.local/migration-data/events/luma-aggregate-v1` has drifted off the pin — it holds 174 events against the 166 `_docs/migration-data/event-registration-sources.json` pins, so the default `--luma-source` fails, and somebody has to decide whether the pin moves or the directory is discarded" | The decision was taken and the pin moved: `f100d16d` (2026-09-06) re-pins `luma.event_total` to **174** and `luma.tree_sha256` to `2e18d184…`, the digest of that directory, with the row, registration and status totals moved together. Reviewed per [`event-registration-pull.md`](event-registration-pull.md) §4.3. *Closed on the pin file alone; no import was re-run for this pass* |

@@ -1301,11 +1301,12 @@ applies: there is no snapshot to regenerate.
 `~/prod/dtc-data/content-staging/docs_projection.json` snapshot into
 `ContentDocument`/`ContentAsset`) is deleted. The `dtc-docs` parser
 (`content/sync_parsers/docs.py`) in the live `community_base.content_sync`
-engine reads `DataTalksClub/docs` directly now, writing
-`content.models.SyncedDocument` rows, which
-[`content/docs_projection.py`](../../content/docs_projection.py) reads. The
-"still not built" gap this section used to record no longer applies, for the
-same reason as FAQ above.
+engine reads `DataTalksClub/docs` directly now, and since D7.1 it writes
+`community_base.knowledge_base` pages rather than `SyncedDocument` rows;
+[`content/docs_reader.py`](../../content/docs_reader.py) reads them on every
+`/docs/` request. `content/docs_projection.py`, the read model that stood
+between the two, went with the staged release. The "still not built" gap this
+section used to record no longer applies, for the same reason as FAQ above.
 
 ---
 

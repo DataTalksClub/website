@@ -65,12 +65,16 @@ default anyway). `content_sync/dtc_content/parity.py` itself stays --
 a real, ongoing production check gated to that same frozen commit.
 
 `test_support/reference_data.py` no longer reads this tree either. Articles,
-podcasts, books, people, wiki, media, docs, FAQ, the podcast platform links and
-`/slack` all read `content.models.SyncedDocument` rows now, written by the live
+podcasts, books, people, media, FAQ, the podcast platform links and `/slack`
+all read `content.models.SyncedDocument` rows now, written by the live
 `community_base.content_sync` engine (`manage.py sync_content` against a real
-checkout, or its webhook) -- `content/catalogue.py`, `content/docs_projection.py`
-and `content/faq_data.py` resolve their own synced source rather than a staged
-`ContentDocument` release. `test_support/reference_data.py`'s `load_synced_*`
+checkout, or its webhook) -- `content/catalogue.py` and `content/faq_data.py`
+resolve their own synced source rather than a staged `ContentDocument`
+release. The wiki and documentation pages that same engine syncs land in
+`community_base.knowledge_base` instead of `SyncedDocument`, and
+`content/wiki_reader.py` and `content/docs_reader.py` read them; the wiki
+graph, the wiki search corpus and the declared asset paths are not pages and
+stay `SyncedDocument` singletons the catalogue reads. `test_support/reference_data.py`'s `load_synced_*`
 functions seed the same shape of rows from a small, synthetic, git-tracked
 fixture set at `test_support/fixtures/reference/`, in the parser's own record
 shape, rather than running an importer. The three importers that used to fill
@@ -82,9 +86,10 @@ this exact gap by writing a staged `ContentDocument` release --
 | --- | --- | --- |
 | Articles, podcasts, books, media, graph, search, routes | `content/catalogue.py` -> `SyncedDocument` (`dtc-content`) | `manage.py sync_content` / webhook |
 | People | `content/catalogue.py` -> `SyncedDocument` (`dtc-main-site`) | `manage.py sync_content` / webhook |
-| Wiki, wiki graph, wiki search | `content/catalogue.py` -> `SyncedDocument` (`dtc-podwiki`) | `manage.py sync_content` / webhook |
+| Wiki pages | `content/wiki_reader.py` -> `community_base.knowledge_base.KnowledgeBasePage` | `manage.py sync_content` / webhook |
+| Wiki graph, wiki search | `content/catalogue.py` -> `SyncedDocument` (`dtc-podwiki`) | `manage.py sync_content` / webhook |
 | Courses (catalogue copy) | `content/catalogue.py` -> `SyncedDocument` (per course repository) | `manage.py sync_content` / webhook |
-| Documentation | `content/docs_projection.py` -> `SyncedDocument` (`dtc-docs`) | `manage.py sync_content` / webhook |
+| Documentation | `content/docs_reader.py` -> `community_base.knowledge_base.KnowledgeBasePage` | `manage.py sync_content` / webhook |
 | Course FAQ | `content/faq_data.py` -> `SyncedDocument` (`dtc-faq`) | `manage.py sync_content` / webhook |
 | `/slack` | `content/catalogue.py` -> `SyncedDocument` (`dtc-content`) | `manage.py sync_content` / webhook |
 | Article FAQ sections | `content/article_faq.py` -> the article's own row | with the article |
@@ -309,7 +314,7 @@ re-derivable from a checkout anyone holds), and the two things that do not
 come out even then are `luma_event_descriptions.json` and
 `public_projection_source.py`'s callers -- see above.
 
-The names left over once a projection is not a file anywhere -- `content/docs_projection.py`,
+The names left over once a projection is not a file anywhere --
 `content/media_store.py`'s `PROJECTION_ROOT`/`REVIEWED_PROJECTION_ROOT`, and
 `BRIDGE_PUBLIC_PATH`'s stale literal -- are unchanged by this relocation and
 still wait on the same things the earlier "Stage 4" entry described (now

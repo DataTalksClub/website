@@ -26,6 +26,16 @@ email_app/jobs may receive identifiers from domains, but domains do not import w
 - `accounts`: the email-based user model, private one-to-one member profile, Slack-access
   eligibility, staff authentication, groups, permissions, and future API credentials.
 - `content`: versioned GitHub-owned read models and public content presentation.
+  Since D7.1 the wiki and documentation *pages* are stored by the shared
+  `community_base.knowledge_base` app: the two parsers write
+  `KnowledgeBasePage` rows, the app owns the storage and the documentation
+  hierarchy, and `content` keeps the public routes, the templates, the page
+  records read back by `content.wiki_reader` and `content.docs_reader`, the
+  documentation rendering (`content.docs_rendering`, run at sync time), and the
+  wiki knowledge graph (`content.wiki_content`). No public path changed: each
+  page stores the path it has always served at. The graph, the search corpus and
+  the declared wiki asset paths are not pages and stay `content.SyncedDocument`
+  singletons the catalogue reads.
 - `content_sync`: GitHub adapters and candidate-release orchestration; it may call validated
   application services in `content` and `courses`, but those domain apps never import sync
   adapters.

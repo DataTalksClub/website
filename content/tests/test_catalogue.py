@@ -13,7 +13,7 @@ from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 
-from content import catalogue
+from content import catalogue, wiki_reader
 from content.models import ContentSource, SyncedDocument
 
 
@@ -58,7 +58,7 @@ class CatalogueReadTests(TestCase):
                 "podcasts": len(catalogue.podcasts()),
                 "books": len(catalogue.books()),
                 "people": len(catalogue.people()),
-                "wiki": len(catalogue.wiki_pages()),
+                "wiki": len(wiki_reader.wiki_pages()),
                 "courses": len(catalogue.courses()),
                 "media": len(catalogue.media()),
                 "transcripts": sum(
@@ -117,7 +117,7 @@ class EmptyCatalogueTests(TestCase):
         # published; with nothing published there is nothing to count.
         self.assertEqual(catalogue.people(), ())
         self.assertEqual(catalogue.people_by_slug(), {})
-        self.assertEqual(catalogue.wiki_pages(), ())
+        self.assertEqual(wiki_reader.wiki_pages(), ())
         self.assertIsNone(catalogue.media_at("/images/anything.png"))
 
     def test_the_singleton_records_read_as_the_absence_they_are(self) -> None:

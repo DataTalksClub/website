@@ -1,6 +1,6 @@
 """Presentation helpers for the source-backed public documentation.
 
-The docs projection owns content, URLs, and hierarchy.  This module only derives
+The docs read model owns content, URLs, and hierarchy.  This module only derives
 bounded navigation and visual groups from that source data so the templates do
 not have to render the complete 105-page tree on every route.
 """
@@ -14,13 +14,12 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
 
-from .docs_projection import (
+from .docs_reader import (
     DocsNavigationItem,
     DocsNavigationTree,
     docs_breadcrumbs,
     docs_pages,
     docs_sync_stamp,
-    render_docs_markdown,
 )
 
 _PRIMARY_HEADING = re.compile(
@@ -576,7 +575,7 @@ def _docs_search_corpus(stamp: tuple[int, str]) -> tuple[_DocsSearchDocument, ..
     for page in docs_pages():
         title = str(page["title"])
         description = str(page.get("description") or "")
-        rendered, _headings = render_docs_markdown(page)
+        rendered = str(page.get("body_html") or "")
         body_text = _collapse(html.unescape(_TAGS.sub(" ", rendered)))
         trail = " / ".join(str(level["title"]) for level in docs_breadcrumbs(page)[1:])
         corpus.append(

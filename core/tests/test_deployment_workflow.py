@@ -87,9 +87,10 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # D2.1a moved the pin again, from v0.4.7 to the v0.5.4 release (444538cd):
 # C7.19's namespaced Studio URLconf fix, C7.20's Studio shell extension
 # points, C7.25's public template seam and block contract check, and
-# C7.26/C7.27's settings shapes. Both hashes below are regenerated from
-# pyproject.toml and uv.lock as they stand after that bump.
-STUDIO_COURSES_PYPROJECT_SHA256 = "3790b86252c727d56fe78594e366de38e3c29201d9c36a549a05debea709064c"
+# C7.26/C7.27's settings shapes. D7.1 keeps that tag (C7.4 is in it). Both
+# hashes below are regenerated from pyproject.toml and uv.lock as they stand
+# after the merge.
+STUDIO_COURSES_PYPROJECT_SHA256 = "6ba5aa57b2d3ac9772b5b8a98840e3d872498d0b1634820e542ee3989be88647"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
     "1b207c8d1fc0e0b365c780324425b61fe056a5bc9ab9e8b7c622627734da99ea"
 )

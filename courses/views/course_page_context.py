@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 
-from content.docs_projection import docs_page
+from content.docs_reader import docs_page
 from content.faq_data import faq_course_for_family_slug, faq_questions, render_faq_answer
 from courses.course_page_content import (
     course_modules,

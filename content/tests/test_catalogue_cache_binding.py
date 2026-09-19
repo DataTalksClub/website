@@ -18,11 +18,12 @@ from __future__ import annotations
 from unittest import mock
 
 from community_base.content_sync.models import ContentSource as EngineContentSource
+from community_base.knowledge_base.models import SECTION_WIKI, KnowledgeBasePage
 from django.db import OperationalError, connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 
-from content import catalogue
+from content import catalogue, wiki_reader
 from content.models import ContentSource, SyncedDocument
 from content.tests.factories import activate, make_ready_release, make_source
 
@@ -117,21 +118,21 @@ class AbsentPointerTests(CacheBindingTestBase):
 
 
 class SyncedWikiBindingTests(CacheBindingTestBase):
-    """The same two guarantees for the wiki's synced-row authority (#384).
+    """The same two guarantees for the wiki's knowledge base pages (D7.1).
 
-    The wiki reads ``SyncedDocument`` rows behind a stamp cache key instead of
-    release-keyed ones, so the race the release binding removes cannot happen
+    The wiki reads ``KnowledgeBasePage`` rows behind a stamp cache key instead
+    of release-keyed ones, so the race the release binding removes cannot happen
     there -- but a failed read must still raise rather than cache emptiness,
     and a warmed answer must still follow the rows it was read from.
     """
 
     def setUp(self) -> None:
         super().setUp()
-        catalogue._synced_records.cache_clear()
+        wiki_reader._wiki_state.cache_clear()
 
     def test_a_failed_row_read_raises_and_the_next_read_recovers(self) -> None:
-        stamp = catalogue.synced_stamp(catalogue.WIKI_SOURCE_SLUG)
-        real_filter = SyncedDocument.objects.filter
+        stamp = wiki_reader.wiki_sync_stamp()
+        real_filter = KnowledgeBasePage.objects.filter
         failures = iter([OperationalError("wiki row read lost")])
 
         def flaky_filter(*args, **kwargs):
@@ -141,39 +142,37 @@ class SyncedWikiBindingTests(CacheBindingTestBase):
                 return real_filter(*args, **kwargs)
 
         with (
-            mock.patch.object(catalogue, "synced_stamp", lambda slug: stamp),
-            mock.patch.object(SyncedDocument.objects, "filter", flaky_filter),
+            mock.patch.object(wiki_reader, "wiki_sync_stamp", lambda: stamp),
+            mock.patch.object(KnowledgeBasePage.objects, "filter", flaky_filter),
         ):
             with self.assertRaises(OperationalError):
-                catalogue.wiki_pages()
+                wiki_reader.wiki_pages()
 
         # Nothing that failed entered the cache: the recovering read answers
         # with the published pages, not the empty collection a swallowed
         # failure used to leave.
-        with mock.patch.object(catalogue, "synced_stamp", lambda slug: stamp):
-            pages = catalogue.wiki_pages()
+        with mock.patch.object(wiki_reader, "wiki_sync_stamp", lambda: stamp):
+            pages = wiki_reader.wiki_pages()
 
         self.assertTrue(pages)
 
     def test_a_sync_write_moves_the_stamp_and_the_next_read_sees_it(self) -> None:
-        before = [page["slug"] for page in catalogue.wiki_pages()]
-        row = SyncedDocument.objects.get(
-            source__slug=catalogue.WIKI_SOURCE_SLUG,
-            content_kind=catalogue.WIKI_PAGE_KIND,
-            stable_key=before[0],
-        )
-        row.record = {**row.record, "title": "Renamed wiki page"}
-        row.save()
+        before = [page["slug"] for page in wiki_reader.wiki_pages()]
+        page = KnowledgeBasePage.objects.get(section=SECTION_WIKI, slug=before[0])
+        page.title = "Renamed wiki page"
+        page.save()
 
-        pages = catalogue.wiki_pages()
+        pages = wiki_reader.wiki_pages()
 
         self.assertIn("Renamed wiki page", [page["title"] for page in pages])
 
     def test_an_absent_sync_answers_empty_without_reading_rows(self) -> None:
-        EngineContentSource.objects.filter(slug=catalogue.WIKI_SOURCE_SLUG).update(is_enabled=False)
+        EngineContentSource.objects.filter(slug=wiki_reader.WIKI_SOURCE_SLUG).update(
+            is_enabled=False
+        )
 
         with CaptureQueriesContext(connection) as read:
-            pages = catalogue.wiki_pages()
+            pages = wiki_reader.wiki_pages()
 
         # The stamp aggregate is the only query: an absent source is an empty
         # wiki, not a row read (and not a failure).

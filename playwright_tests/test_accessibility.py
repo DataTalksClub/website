@@ -18,8 +18,8 @@ from playwright.sync_api import Browser, Page, expect
 
 from accounts.studio_sessions import SESSION_REFERENCE_KEY, revoke_staff_session
 from accounts.studio_test_support import make_studio_user
-from content import catalogue, event_content
-from content.docs_projection import docs_pages
+from content import catalogue, event_content, wiki_reader
+from content.docs_reader import docs_pages
 from content.faq_data import faq_course, faq_questions
 from core.accessibility_registry import (
     BEHAVIOR_SCENARIOS,
@@ -145,7 +145,7 @@ def _public_rendered_states(
     article = catalogue.articles()[0]
     book = catalogue.books()[0]
     public_course = catalogue.courses()[0]
-    wiki = catalogue.wiki_pages()[0]
+    wiki = wiki_reader.wiki_pages()[0]
     faq = _faq_anchor_sample()
     speaker = event["speakers"][0]
     # The profile page is headed by the person record's own title.  The event
@@ -312,7 +312,7 @@ def accessibility_environment() -> AccessibilityEnvironment:
             "visible": True,
         },
     )
-    wiki = catalogue.wiki_pages()[0]
+    wiki = wiki_reader.wiki_pages()[0]
     faq = _faq_anchor_sample()
     course_route = {
         "course_slug": course.course.slug,

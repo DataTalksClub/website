@@ -15,7 +15,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_safe
 
 from content import catalogue
-from content.docs_projection import DOCS_ROOT_PATH, docs_page
+from content.docs_reader import DOCS_ROOT_PATH, docs_page
 from content.event_content import event_groups
 from content.person_chip import PersonChip, person_chip
 from content.podcast_content import ordered_podcasts

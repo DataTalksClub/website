@@ -162,21 +162,22 @@ def load_event_content() -> int:
 
 
 def load_synced_docs() -> int:
-    """Publish the synthetic documentation as synced rows, the way the engine does.
+    """Publish the synthetic documentation the way the engine does.
 
-    The docs pages read ``SyncedDocument`` rows written by the ``dtc-docs``
-    parser (issue #384), not the staged release this module also seeds.
-    Production writes these rows by parsing the repository checkout; this seeds
-    the same rows from the synthetic import payload, in the parser's record
-    shape -- the page's hierarchy front matter inside its ``metadata``, the
-    markdown body, and the declared images a page's body references.
+    The documentation pages are ``community_base.knowledge_base`` rows in the
+    ``docs`` section, written by the ``dtc-docs`` parser (D7.1), not the staged
+    release this module also seeds. Production writes them by parsing the
+    repository checkout; this seeds the same rows from the synthetic import
+    payload, through the same package upsert the parser uses -- the stored
+    public path, the site-rendered HTML, and the front matter that has no column
+    in the page's record.
     """
 
-    import json
-
     from community_base.content_sync.models import ContentSource as EngineContentSource
+    from community_base.knowledge_base import sync as knowledge_base_sync
+    from community_base.knowledge_base.models import SECTION_DOCS
 
-    from content.models import SyncedDocument
+    from content.docs_rendering import render_docs_markdown
 
     payload = json.loads(DOCS_PROJECTION.read_text(encoding="utf-8"))
     source = EngineContentSource.objects.get_or_create(
@@ -190,8 +191,14 @@ def load_synced_docs() -> int:
     )[0]
 
     declared_assets = [asset["source_path"] for asset in payload.get("assets", [])]
-    rows = []
-    for page in payload["pages"]:
+    pages = list(payload["pages"])
+    keys_by_public_path = {
+        str(page["public_path"]): _docs_stable_key(str(page["source_path"])) for page in pages
+    }
+    # A parent must already be stored when its child is written, and the file
+    # orders pages by path, so the shallowest public paths go first.
+    pages.sort(key=lambda page: (str(page["public_path"]).count("/"), str(page["public_path"])))
+    for page in pages:
         referenced = [ref for ref in declared_assets if f"/docs/{ref}" in page["body"]]
         if page["public_path"] == "/docs/":
             # The synthetic payload declares an asset no body references; the
@@ -200,52 +207,48 @@ def load_synced_docs() -> int:
             images = referenced + [ref for ref in declared_assets if ref not in referenced]
         else:
             images = referenced
-        parts = [part for part in page["source_path"].removesuffix(".md").split("/") if part]
-        if parts[-1] == "index":
-            parts.pop()
-        stable_key = "/".join(parts) or "index"
-        rows.append(
-            SyncedDocument(
-                source=source,
-                content_kind="docs",
-                stable_key=stable_key,
-                slug=stable_key,
-                title=page["title"],
-                summary=page.get("description") or "",
-                public_path=page["public_path"],
-                source_path=page["source_path"],
-                checksum=page["body_sha256"],
-                record={
-                    "stable_key": stable_key,
-                    "public_path": page["public_path"],
-                    "source_path": page["source_path"],
-                    "body": page["body"],
-                    "images": images,
-                    "metadata": {
-                        "title": page["title"],
-                        "description": page.get("description") or "",
-                        "parent": page.get("parent"),
-                        "parent_path": page.get("parent_path"),
-                        "grand_parent": page.get("grand_parent"),
-                        "grand_parent_path": page.get("grand_parent_path"),
-                        "nav_order": page.get("nav_order"),
-                        "has_children": bool(page.get("has_children")),
-                        "has_toc": bool(page.get("has_toc", True)),
-                        "permalink": page.get("permalink"),
-                        "edit_url": page.get("edit_url") or "",
-                    },
-                    "provenance": {
-                        "repository": "DataTalksClub/docs",
-                        "revision": page.get("source_revision", ""),
-                        "source_path": page["source_path"],
-                        "source_key": stable_key,
-                        "checksum": page["body_sha256"],
-                    },
-                },
-            )
+        stable_key = _docs_stable_key(str(page["source_path"]))
+        parent_path = page.get("parent_path")
+        body = str(page["body"])
+        body_html, headings = render_docs_markdown(body)
+        knowledge_base_sync.upsert_page(
+            source,
+            section=SECTION_DOCS,
+            slug=stable_key,
+            title=page["title"],
+            summary=page.get("description") or "",
+            body=body,
+            body_html=body_html,
+            parent_slug=keys_by_public_path.get(str(parent_path)) if parent_path else None,
+            nav_order=int(page.get("nav_order") or 0),
+            public_path=page["public_path"],
+            record={
+                "images": images,
+                "headings": [dict(heading) for heading in headings],
+                "body_sha256": page["body_sha256"],
+                "parent": page.get("parent"),
+                "grand_parent": page.get("grand_parent"),
+                "grand_parent_path": page.get("grand_parent_path"),
+                "nav_order": page.get("nav_order"),
+                "has_children": bool(page.get("has_children")),
+                "has_toc": bool(page.get("has_toc", True)),
+                "permalink": page.get("permalink"),
+                "edit_url": page.get("edit_url") or "",
+            },
+            commit_sha=page.get("source_revision", ""),
+            source_path=page["source_path"],
+            checksum=page["body_sha256"],
         )
-    SyncedDocument.objects.bulk_create(rows)
-    return len(rows)
+    return len(pages)
+
+
+def _docs_stable_key(source_path: str) -> str:
+    """The docs parser's stable key: the source path without its ``index`` stem."""
+
+    parts = [part for part in source_path.removesuffix(".md").split("/") if part]
+    if parts[-1] == "index":
+        parts.pop()
+    return "/".join(parts) or "index"
 
 
 def load_synced_faq() -> int:
@@ -365,19 +368,21 @@ def _synthetic_catalogue() -> dict[str, Any]:
 
 
 def load_synced_wiki() -> int:
-    """Publish the synthetic wiki as synced rows, the way the package engine does.
+    """Publish the synthetic wiki the way the package engine does.
 
-    The wiki pages read ``SyncedDocument`` rows written by the ``dtc-podwiki``
-    parser (issue #384), not the staged release the rest of the catalogue still
-    reads. Production writes these rows by parsing the repository checkout; this
-    seeds the same rows from the synthetic catalogue's wiki records, so tests
-    read the same content from the authority the pages actually use.
+    The wiki pages are ``community_base.knowledge_base`` rows in the ``wiki``
+    section, written by the ``dtc-podwiki`` parser (D7.1); the graph, the search
+    corpus and the declared asset paths stay ``SyncedDocument`` singletons the
+    catalogue reads. Production writes both by parsing the repository checkout;
+    this seeds them from the synthetic catalogue's wiki records, so tests read
+    the same content from the authority the pages actually use.
     """
 
     import hashlib
-    import json
 
     from community_base.content_sync.models import ContentSource as EngineContentSource
+    from community_base.knowledge_base import sync as knowledge_base_sync
+    from community_base.knowledge_base.models import SECTION_WIKI
 
     from content.models import SyncedDocument
 
@@ -396,21 +401,19 @@ def load_synced_wiki() -> int:
         encoded = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
-    rows = [
-        SyncedDocument(
-            source=source,
-            content_kind="wiki",
-            stable_key=record["slug"],
+    for record in catalogue["wiki"]:
+        knowledge_base_sync.upsert_page(
+            source,
+            section=SECTION_WIKI,
             slug=record["slug"],
             title=record["title"],
             summary=record.get("summary", ""),
             public_path=record["public_path"],
-            source_path=record["provenance"]["source_path"],
-            checksum=record["provenance"]["checksum"],
             record=record,
+            commit_sha=record["provenance"]["revision"],
+            source_path=record["provenance"]["source_path"],
+            checksum=_checksum(record),
         )
-        for record in catalogue["wiki"]
-    ]
     singleton_records = {
         "wiki_graph": catalogue["wiki_graph"],
         "wiki_search": catalogue["wiki_search"],
@@ -418,7 +421,7 @@ def load_synced_wiki() -> int:
         # published: the same mapping, one authority behind.
         "wiki_assets": {"wiki_assets": catalogue["manifest"]["wiki_assets"]},
     }
-    rows.extend(
+    SyncedDocument.objects.bulk_create(
         SyncedDocument(
             source=source,
             content_kind=kind,
@@ -433,8 +436,7 @@ def load_synced_wiki() -> int:
         )
         for kind, record in singleton_records.items()
     )
-    SyncedDocument.objects.bulk_create(rows)
-    return len(rows)
+    return len(catalogue["wiki"]) + len(singleton_records)
 
 
 def _sync_engine_sources() -> tuple[object, object]:

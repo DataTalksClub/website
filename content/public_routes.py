@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from events.queries import published_event_records
 
-from . import catalogue
+from . import catalogue, wiki_reader
 
 #: The routes the site serves regardless of what is published.
 FIXED_PATHS = frozenset(
@@ -53,7 +53,7 @@ def public_paths() -> tuple[str, ...]:
         catalogue.podcasts,
         catalogue.books,
         catalogue.people,
-        catalogue.wiki_pages,
+        wiki_reader.wiki_pages,
         published_event_records,
     ):
         paths.update(record["public_path"] for record in published())

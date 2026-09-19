@@ -1647,24 +1647,9 @@ def _import_criteria_assignments(site: Any, maps: _Maps, report: _Report) -> Non
         report.migrated("criteria_assignments")
 
 
-def _package_carries(model: Any, field_name: str) -> bool:
-    """True when the installed package release has ``field_name`` on ``model``.
-
-    The C5.2f/g fields decision 18 answers landed on community-base after the release this
-    site currently pins, and this one-time import has to read correctly on both sides of that
-    pin bump.  Naming a field the installed release does not have is already harmless to
-    refusal 3 -- it only complains about model fields the mapping does *not* name -- but
-    *writing* one is not, so the one derived value asks first.  The guard goes away with the
-    pin bump that carries C5.2f.
-    """
-
-    return any(field.name == field_name for field in model._meta.concrete_fields)
-
-
 def _import_project_submissions(site: Any, maps: _Maps, report: _Report) -> None:
     from community_base.coursework.models import ProjectSubmission
 
-    derives_review_state = _package_carries(ProjectSubmission, "review_state")
     rows = list(site.ProjectSubmission.objects.select_related("project", "student").order_by("pk"))
     report.family("project_submissions", len(rows))
     for row in rows:
@@ -1688,10 +1673,9 @@ def _import_project_submissions(site: Any, maps: _Maps, report: _Report) -> None
             "passed": row.passed,
             "volunteer_review_only": row.volunteer_review_only,
         }
-        if derives_review_state:
-            values["review_state"] = _PROJECT_STATE_TO_REVIEW_STATE.get(
-                row.project.state, _REVIEW_STATE_AWAITING_ASSIGNMENT
-            )
+        values["review_state"] = _PROJECT_STATE_TO_REVIEW_STATE.get(
+            row.project.state, _REVIEW_STATE_AWAITING_ASSIGNMENT
+        )
         shared, _ = ProjectSubmission.objects.update_or_create(
             project=maps.projects[row.project_id],
             student=row.student,

@@ -7,8 +7,8 @@ from xml.etree import ElementTree
 
 from django.test import TestCase
 
-from content import catalogue
-from content.docs_projection import docs_page, docs_pages
+from content import catalogue, wiki_reader
+from content.docs_reader import docs_page, docs_pages
 from content.public_routes import public_paths
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 from events.queries import published_event_records
@@ -256,7 +256,7 @@ class PublicRouteAndSeoTests(TestCase):
             (catalogue.podcasts()[0]["public_path"], "PodcastEpisode"),
             (catalogue.books()[0]["public_path"], "Book"),
             (catalogue.people()[0]["public_path"], "Person"),
-            (catalogue.wiki_pages()[0]["public_path"], "Article"),
+            (wiki_reader.wiki_pages()[0]["public_path"], "Article"),
         ]
         # Events are covered only when one is published: their content has no
         # importer yet, so an empty catalogue is the expected state rather than
