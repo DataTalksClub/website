@@ -2,7 +2,8 @@
 
 import json
 
-from accounts.models import AccountIdentityAlias, CustomUser
+from accounts.models import CustomUser
+from accounts_ext.models import AccountIdentityAlias
 from courses.models import Cohort, Enrollment
 
 from .enrollment_base import (

@@ -20,7 +20,8 @@ from accounts.identity_resolution import (
     resolve_durable_user,
 )
 from accounts.identity_values import normalize_account_email, sha256_text
-from accounts.models import AccountIdentityQuarantine, Token
+from accounts.models import Token
+from accounts_ext.models import AccountIdentityQuarantine
 from course_management.observability import record_event
 
 User = get_user_model()

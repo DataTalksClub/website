@@ -27,11 +27,8 @@ from django.utils import timezone
 from accounts.auth import ConsolidatingSocialAccountAdapter
 from accounts.identity_inventory import account_inventory
 from accounts.identity_resolution import resolve_durable_user_id
-from accounts.models import (
-    AccountIdentityAlias,
-    AccountIdentityQuarantine,
-    CustomUser,
-)
+from accounts.models import CustomUser
+from accounts_ext.models import AccountIdentityAlias, AccountIdentityQuarantine
 from accounts.navigation import SAFE_ACCOUNT_DESTINATION, safe_next_path
 from accounts.studio_roles import synchronize_studio_roles
 from core.models import AuditEvent

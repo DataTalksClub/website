@@ -209,7 +209,7 @@ class EventRegistrantInterestSignal(models.Model):
 class EventRegistrantImportProgress(models.Model):
     """Per-(provider, event) completion marker for the resumable registrant import.
 
-    Unlike ``accounts.models.CmpLearnerImportProgress`` (one monotonic source
+    Unlike ``accounts_ext.models.CmpLearnerImportProgress`` (one monotonic source
     table, watermarked by row id), a Luma/Eventbrite export is one bounded file
     per event -- the largest event file in the real export is a few thousand
     rows.  So resumability here is at event granularity rather than row

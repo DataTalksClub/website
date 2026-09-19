@@ -125,6 +125,11 @@ INSTALLED_APPS = [
     "core.apps.CoreConfig",
     "website.apps.WebsiteConfig",
     "accounts.apps.AccountsConfig",
+    # D3.1a: the site-owned accounts extension app. It carries the identity
+    # reconciliation state and the identity evidence models that used to be
+    # registered under "accounts", so it survives the later shared-User
+    # adoption when the rest of the local accounts app is deleted.
+    "accounts_ext.apps.AccountsExtConfig",
     "content.apps.ContentConfig",
     "content_sync.apps.ContentSyncConfig",
     "courses.apps.CoursesConfig",

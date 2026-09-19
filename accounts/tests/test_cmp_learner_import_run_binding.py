@@ -18,17 +18,13 @@ from allauth.account.models import EmailAddress
 from django.db import IntegrityError
 from django.test import TestCase
 
-from accounts.models import (
-    CmpLearnerClaim,
-    CmpLearnerImportBinding,
-    CmpLearnerImportProgress,
-    CustomUser,
-)
+from accounts.models import CmpLearnerClaim, CmpLearnerImportBinding, CustomUser
 from accounts.services import cmp_learner_import as service
 from accounts.services.cmp_learner_import import (
     CmpLearnerImportError,
     import_cmp_learners,
 )
+from accounts_ext.models import CmpLearnerImportProgress
 
 _SCHEMA = """
 CREATE TABLE accounts_customuser (

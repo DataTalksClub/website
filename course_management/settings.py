@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "loginas",
     "accounts.apps.AccountsConfig",
+    "accounts_ext.apps.AccountsExtConfig",
     "courses.apps.CoursesConfig",
     "data.apps.DataConfig",
     "api.apps.ApiConfig",

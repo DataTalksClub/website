@@ -27,6 +27,7 @@ from courses.models import (
     Course,
     Homework,
     HomeworkStatistics,
+    LearnerProfile,
     Project,
     ProjectStatistics,
     Question,
@@ -90,8 +91,16 @@ COHORT_TABLE = Cohort._meta.db_table
 # one is not evidence that the target already carries learner work.  Testimonials
 # are site editorial content: they are imported by
 # ``scripts/prod/import_testimonials.py`` and curated in the admin, and this import
-# neither reads nor writes them.
-NON_ACTIVITY_COURSE_TABLES = frozenset({Testimonial._meta.db_table})
+# neither reads nor writes them.  Learner profiles are the account's own
+# course-platform fields, which lived on ``accounts_customuser`` until plan issue
+# D3.1a moved them into this app: one row exists per account on every migrated
+# database, so counting them as course activity would refuse the import on any
+# target that has accounts at all.  They stay outside the allowlist, so
+# ``_protected_target_evidence`` still proves every profile row byte-unchanged
+# across the import.
+NON_ACTIVITY_COURSE_TABLES = frozenset(
+    {Testimonial._meta.db_table, LearnerProfile._meta.db_table}
+)
 EXPECTED_LIST_TEMPLATE_SHA256 = "26e391ffdd2c90b89a668c41118f4a8e43efd2b5dde015097f893aee707984ef"
 EXPECTED_DETAIL_TEMPLATE_SHA256 = "f6bae6c52f318df50a409432cd1b0e04af70ce14db5e173173f75a4c902fa3af"
 DATE_COLUMNS = frozenset({"start_date", "end_date"})
