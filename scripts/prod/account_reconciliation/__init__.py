@@ -99,13 +99,13 @@ from accounts_ext.models import (
     identity_state_row,
     normalized_email_of,
 )
+from course_management.observability import record_event
 from courses.models.learner_profile import (
     LearnerProfile,
     ensure_learner_profile,
     learner_profile_for,
     profile_field_default,
 )
-from course_management.observability import record_event
 
 PROFILE_FIELDS = (
     "first_name",
@@ -143,9 +143,7 @@ _LEARNER_PROFILE_FIELDS = frozenset(
 def _field_value(user, field: str) -> Any:
     if field in _LEARNER_PROFILE_FIELDS:
         profile = learner_profile_for(user)
-        return (
-            getattr(profile, field) if profile is not None else profile_field_default(field)
-        )
+        return getattr(profile, field) if profile is not None else profile_field_default(field)
     return getattr(user, field)
 
 
@@ -861,15 +859,21 @@ def _apply_one_mapping(
 
     if not User.objects.filter(pk=source.pk, **source_user_snapshot).exists():
         raise IntegrityError("source identity changed during apply")
-    if source_identity_snapshot is not None and not IdentityState.objects.filter(
-        user_id=source.pk,
-        **source_identity_snapshot,
-    ).exists():
+    if (
+        source_identity_snapshot is not None
+        and not IdentityState.objects.filter(
+            user_id=source.pk,
+            **source_identity_snapshot,
+        ).exists()
+    ):
         raise IntegrityError("source identity changed during apply")
-    if source_profile_snapshot is not None and not LearnerProfile.objects.filter(
-        user_id=source.pk,
-        **source_profile_snapshot,
-    ).exists():
+    if (
+        source_profile_snapshot is not None
+        and not LearnerProfile.objects.filter(
+            user_id=source.pk,
+            **source_profile_snapshot,
+        ).exists()
+    ):
         raise IntegrityError("source identity changed during apply")
     if source_identity_row is None:
         IdentityState.objects.create(
@@ -883,15 +887,21 @@ def _apply_one_mapping(
 
     if not User.objects.filter(pk=survivor.pk, **survivor_user_snapshot).exists():
         raise IntegrityError("survivor identity changed during apply")
-    if survivor_identity_snapshot is not None and not IdentityState.objects.filter(
-        user_id=survivor.pk,
-        **survivor_identity_snapshot,
-    ).exists():
+    if (
+        survivor_identity_snapshot is not None
+        and not IdentityState.objects.filter(
+            user_id=survivor.pk,
+            **survivor_identity_snapshot,
+        ).exists()
+    ):
         raise IntegrityError("survivor identity changed during apply")
-    if survivor_profile_snapshot is not None and not LearnerProfile.objects.filter(
-        user_id=survivor.pk,
-        **survivor_profile_snapshot,
-    ).exists():
+    if (
+        survivor_profile_snapshot is not None
+        and not LearnerProfile.objects.filter(
+            user_id=survivor.pk,
+            **survivor_profile_snapshot,
+        ).exists()
+    ):
         raise IntegrityError("survivor identity changed during apply")
 
     survivor_user_updates = {

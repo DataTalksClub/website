@@ -31,11 +31,16 @@ from django.utils import timezone
 
 from accounts.identity_resolution import resolve_durable_user_id
 from accounts.models import (
-    User,
     Token,
+    User,
 )
 from accounts.tests.test_single_identity import create_verified_user
-from courses.models.learner_profile import LearnerProfile
+from accounts_ext.models import (
+    AccountIdentityAlias,
+    AccountIdentityQuarantine,
+    AccountReconciliationRun,
+    IdentityState,
+)
 from core.models import AuditEvent, StaffSession
 from courses.models import (
     Cohort,
@@ -46,12 +51,7 @@ from courses.models import (
     ProjectSubmission,
     Submission,
 )
-from accounts_ext.models import (
-    AccountIdentityAlias,
-    AccountIdentityQuarantine,
-    AccountReconciliationRun,
-    IdentityState,
-)
+from courses.models.learner_profile import LearnerProfile
 from management_auth.models import APIPrincipal
 from scripts.prod.account_reconciliation import (
     ReconciliationBlocked,
@@ -135,9 +135,7 @@ class RelationshipEvidenceInvariantTests(SimpleTestCase):
 
     def test_merge_ledger_losing_a_row_still_raises(self) -> None:
         before = {
-            "accounts_ext.AccountIdentityAlias.survivor": frozenset(
-                {("1", 10), ("2", 10)}
-            ),
+            "accounts_ext.AccountIdentityAlias.survivor": frozenset({("1", 10), ("2", 10)}),
         }
         after = {"accounts_ext.AccountIdentityAlias.survivor": frozenset({("2", 10)})}
         with self.assertRaises(IntegrityError):

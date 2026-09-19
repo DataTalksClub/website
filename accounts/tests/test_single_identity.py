@@ -39,13 +39,6 @@ from accounts.models import (
 )
 from accounts.navigation import SAFE_ACCOUNT_DESTINATION, safe_next_path
 from accounts.studio_roles import synchronize_studio_roles
-from core.models import AuditEvent
-from management_api.authentication import authenticate as authenticate_management
-from management_auth.constants import DIGEST_ALGORITHM, DIGEST_VERSION
-from management_auth.models import APICredential, APIPrincipal
-from management_auth.tokens import encode_secret, generate_token
-from review_import.manifest import is_sensitive_table
-from courses.models.learner_profile import LearnerProfile
 from accounts_ext.models import (
     AccountIdentityAlias,
     AccountIdentityQuarantine,
@@ -53,6 +46,13 @@ from accounts_ext.models import (
     identity_state_of,
     set_identity_state,
 )
+from core.models import AuditEvent
+from courses.models.learner_profile import LearnerProfile
+from management_api.authentication import authenticate as authenticate_management
+from management_auth.constants import DIGEST_ALGORITHM, DIGEST_VERSION
+from management_auth.models import APICredential, APIPrincipal
+from management_auth.tokens import encode_secret, generate_token
+from review_import.manifest import is_sensitive_table
 
 TRANSITION_BYPASS_NEXT_VALUES = (
     "/courses/../accounts/continue/",
@@ -101,7 +101,9 @@ def create_verified_user(
 ) -> User:
     identity_state = fields.pop("identity_state", None)
     normalized_email = fields.pop("normalized_email", None)
-    profile_values = {name: fields.pop(name) for name in list(fields) if name in LEARNER_PROFILE_KWARGS}
+    profile_values = {
+        name: fields.pop(name) for name in list(fields) if name in LEARNER_PROFILE_KWARGS
+    }
     user = User.objects.create_user(
         username=username,
         email=email,
@@ -158,9 +160,7 @@ class SingleIdentityModelTests(TestCase):
 
         # The conditional unique index moved onto IdentityState with the
         # contract migration, under its original name (plan D3.1d).
-        IdentityState.objects.filter(user=first).update(
-            identity_state=IdentityState.States.ACTIVE
-        )
+        IdentityState.objects.filter(user=first).update(identity_state=IdentityState.States.ACTIVE)
         with self.assertRaises(IntegrityError), transaction.atomic():
             IdentityState.objects.filter(user=second).update(
                 identity_state=IdentityState.States.ACTIVE
