@@ -18,7 +18,6 @@ from typing import Final
 PROJECT_ROOT: Final = Path(__file__).resolve().parents[1]
 UV: Final = ("uv", "run", "--frozen", "python")
 DEFAULT_DATASET_ROOT: Final = ".tmp/production-prep-dataset"
-DEFAULT_REGISTRATION_INPUT: Final = "_docs/migration-data/local-current-registration-input.json"
 
 
 def _python(script: str, *arguments: str) -> tuple[str, ...]:
@@ -41,7 +40,7 @@ def _local_environment(database: Path) -> dict[str, str]:
     return environment
 
 
-def _dataset_values() -> tuple[Path, Path, Path, Path | None, Path | None]:
+def _dataset_values() -> tuple[Path, Path, Path, Path | None]:
     root = Path(os.environ.get("PRODUCTION_PREP_DATASET_ROOT", DEFAULT_DATASET_ROOT))
     database = Path(
         os.environ.get("PRODUCTION_PREP_DATASET_DATABASE", str(root / "dataset.sqlite3"))
@@ -49,16 +48,12 @@ def _dataset_values() -> tuple[Path, Path, Path, Path | None, Path | None]:
     course_sources = Path(
         os.environ.get("PRODUCTION_PREP_COURSE_SOURCE_DIR", str(root / "course-sources"))
     )
-    registration_value = os.environ.get(
-        "PRODUCTION_PREP_DATASET_REGISTRATION_INPUT", DEFAULT_REGISTRATION_INPUT
-    )
-    registration_input = Path(registration_value) if registration_value else None
     cmp_value = os.environ.get(
         "PRODUCTION_PREP_CMP_SOURCE",
         str(Path.home() / "git/course-management-platform/db/db.sqlite3"),
     )
     cmp_source = Path(cmp_value) if cmp_value else None
-    return root, database, course_sources, registration_input, cmp_source
+    return root, database, course_sources, cmp_source
 
 
 def _rebuild_database(database: Path) -> None:
@@ -97,7 +92,6 @@ def _prepare_course_sources(root: Path, database: Path, course_sources: Path) ->
 def _prepare_local_data(
     database: Path,
     course_sources: Path,
-    registration_input: Path | None,
     cmp_source: Path | None,
 ) -> None:
     command = list(
@@ -109,8 +103,6 @@ def _prepare_local_data(
             str(course_sources),
         )
     )
-    if registration_input is not None:
-        command.extend(("--current-registration-input", str(registration_input)))
     if cmp_source is not None:
         command.extend(("--cmp-source-db", str(cmp_source)))
     if os.environ.get("PRODUCTION_PREP_FRESH"):
@@ -124,15 +116,15 @@ def _verify(database: Path) -> None:
 
 
 def prepare_dataset() -> None:
-    root, database, course_sources, registration_input, cmp_source = _dataset_values()
+    root, database, course_sources, cmp_source = _dataset_values()
     _rebuild_database(database)
     _prepare_course_sources(root, database, course_sources)
-    _prepare_local_data(database, course_sources, registration_input, cmp_source)
+    _prepare_local_data(database, course_sources, cmp_source)
     _verify(database)
 
 
 def prepare_bootstrap() -> None:
-    root, database, course_sources, registration_input, cmp_source = _dataset_values()
+    root, database, course_sources, cmp_source = _dataset_values()
     legacy_source_value = os.environ.get(
         "LEGACY_ZOOMCAMP_SOURCE", str(Path.home() / "git/zoomcamp-scoring")
     )
@@ -153,14 +145,13 @@ def prepare_bootstrap() -> None:
         )
         command.extend(shlex.split(os.environ.get("IMPORT_LEGACY_ZOOMCAMP_ARGS", "")))
         _run(tuple(command))
-    _prepare_local_data(database, course_sources, registration_input, cmp_source)
+    _prepare_local_data(database, course_sources, cmp_source)
     _verify(database)
 
 
 def run_local(
     database: str,
     course_sources: str,
-    current_registration_input: str | None,
     cmp_source_db: str | None,
     fresh: bool,
     extra: list[str],
@@ -174,8 +165,6 @@ def run_local(
             course_sources,
         )
     )
-    if current_registration_input:
-        command.extend(("--current-registration-input", current_registration_input))
     if cmp_source_db:
         command.extend(("--cmp-source-db", cmp_source_db))
     if fresh:
@@ -201,7 +190,6 @@ def build_parser() -> argparse.ArgumentParser:
     local = commands.add_parser("local")
     local.add_argument("--database", required=True)
     local.add_argument("--course-checkout-root", required=True)
-    local.add_argument("--current-registration-input")
     local.add_argument("--cmp-source-db")
     local.add_argument("--fresh", action="store_true")
     local.add_argument("extra", nargs=argparse.REMAINDER)
@@ -226,7 +214,6 @@ def main(argv: list[str] | None = None) -> int:
             run_local(
                 args.database,
                 args.course_checkout_root,
-                args.current_registration_input,
                 args.cmp_source_db,
                 args.fresh,
                 args.extra,
@@ -234,7 +221,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "verify":
             _verify(Path(args.database))
         elif args.command == "run":
-            _root, database, _sources, _registration, _cmp = _dataset_values()
+            _root, database, _sources, _cmp = _dataset_values()
             run_server(Path(args.database or database), args.port)
     except (OSError, RuntimeError, subprocess.CalledProcessError) as error:
         if isinstance(error, subprocess.CalledProcessError):

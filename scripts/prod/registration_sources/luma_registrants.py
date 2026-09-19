@@ -1,9 +1,8 @@
 """Read a Luma export directory's attendee-level registrant rows.
 
-This is the only reader in this package that touches attendee-level values, and
-it is deliberately a separate module from :mod:`luma`, whose contract is "no
-attendee value crosses this module boundary" and stays true.  Both know the same
-file format; only this one opens the columns a person is in.
+This reader opens only the attendee columns needed to populate current
+registration rows. Event discovery uses :mod:`luma_events`; neither module
+creates a runtime projection or fallback.
 
 What leaves here is a provider-neutral :class:`scripts.prod.registrant_import.RegistrantRow`:
 a guest id, a normalized email, a status and a raw timestamp.  The email is the
@@ -12,13 +11,9 @@ company or job title in the export is never read at all, and no value from any
 row is ever logged, printed, or put in an error.  Every refusal is a bounded
 :class:`~scripts.prod.registrant_import.RegistrantImportError` code.
 
-This does not reuse :func:`luma.derive_luma`'s checksum-pinned production-count
-safety net, for the same reason :func:`luma.discover_luma_events` does not:
-``derive_luma`` refuses any tree that disagrees with a reviewed, pinned count,
-because its output *is* a public count.  Minting an identity/fact row carries no
-such risk, so this applies the same structural safety checks -- safe,
+This applies structural safety checks -- safe,
 non-symlink, regular-file paths; CSV/JSON pair shape; required columns; a
-bounded row count -- and no pinned checksum.
+bounded row count -- while importing the database facts the public count reads.
 
 Nothing on a request path imports this: ``scripts/prod/import_event_registrants.py``
 is the one entry point, and it hands the rows to
@@ -36,9 +31,7 @@ title+date match, no fuzzy matching) is passed in, a ``resolved`` entry's
 ``resolve_event`` instead points registrant rows at the existing canonical
 ``Event`` that export id really is -- the same shape
 :mod:`.eventbrite_registrants` already uses its own reviewed identities file
-for. This only changes which ``Event`` attendee rows attach to; it never
-touches an aggregate's activation state (see that module's docstring for why
-those stay separate).
+for. This only changes which ``Event`` attendee rows attach to.
 """
 
 from __future__ import annotations
@@ -52,7 +45,6 @@ from pathlib import Path
 from typing import NoReturn
 
 from accounts.identity_values import normalize_account_email
-from historical_registrations.importers import ProtectedSourceError
 from event_registrants.models import EventRegistration
 from community_base.events.models import Event
 from scripts.prod.registrant_import import (
@@ -64,9 +56,7 @@ from scripts.prod.registrant_import import (
 from .safety import safe_path
 
 PROVIDER = EventRegistration.Provider.LUMA
-# Required for identity-consolidation reads only -- a different set from the
-# aggregate-only reader's REQUIRED_COLUMNS, since this reader also needs
-# `email` and `registered_at`, neither of which that adapter ever touches.
+# Required for identity-consolidation reads.
 REQUIRED_COLUMNS = (
     "event_id",
     "guest_id",
@@ -94,13 +84,7 @@ def _refuse(code: str) -> NoReturn:
 
 
 def _safe_csv_path(path: Path) -> Path:
-    # The shared structural guard the aggregate-only readers use, reported in
-    # this port's failure type so the entry point's one bounded-refusal handler
-    # still catches it.  Both raise the same three condition codes.
-    try:
-        return safe_path(path, expected_kind="file")
-    except ProtectedSourceError as error:
-        raise RegistrantImportError(error.code) from error
+    return safe_path(path, expected_kind="file")
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,7 +100,7 @@ def discover_luma_registrant_files(root: Path) -> tuple[DiscoveredRegistrantFile
     :func:`luma.discover_luma_events`: that one reads only event-level columns
     and returns event-level facts, so reusing it would mean opening every file
     twice. Applies the same non-symlink, regular-file safety check to every path
-    it opens as the aggregate-only reads do.
+    it opens.
     """
 
     try:

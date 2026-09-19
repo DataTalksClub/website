@@ -1,49 +1,9 @@
-"""Read Eventbrite export attendee-level registrant rows.
+"""Read attendee rows from a prepared Eventbrite export.
 
-Eventbrite's real attendee-level export sat unread for a while -- not because
-of any deliberate policy, but because only Luma's export had ever been built
-into a reader (see the note this replaces in
-``scripts/prod/registrant_import.py``'s module docstring history). The data was
-there the whole time: ``.local/migration-data/events/eventbrite/aggregate-v1.zip``
-(the same archive :mod:`scripts.prod.registration_sources.eventbrite` already
-reads for registration *counts*, byte-identical to its ``export.zip`` twin,
-just with the entries flattened to the top level rather than nested under
-``eventbrite/csv/``) carries one CSV per event, ``{eventbrite_id}.csv``, with
-real per-attendee rows -- name, email, order, and an ``Attendee Status`` that
-is uniformly ``Attending`` (24,001 rows across 209 real events, verified).
-
-This is the attendee-level twin of that aggregate-only reader, the same way
-:mod:`scripts.prod.registration_sources.luma_registrants` is Luma's:
-``events.importers``'s aggregate-only contract ("no attendee value crosses
-this module boundary") stays true for the counts-only reader, and this one,
-deliberately separate, is where an attendee value -- an email, read only to
-normalize into the domain's consolidation key -- is allowed to cross at all.
-
-The one real difference from Luma's reader is *identity resolution*, and it is
-why :class:`scripts.prod.registrant_import.PendingEventRegistrants` gained an
-optional ``resolve_event``. A discovered Luma event gets its own
-provider-minted source identity (``scripts.prod.registrant_import.provider_source_identity``,
-repository ``dtc-historical-source/luma``), so Luma's reader resolves through
-the same lookup ``scripts.prod.registrant_import`` already used. Every Eventbrite
-event in this export, by contrast, is one of the 421 events the *reviewed
-legacy manifest* already describes -- Eventbrite was retired well before this
-migration and nothing here has ever run event discovery against it -- so its
-Event rows carry the manifest's ``DataTalksClub/datatalksclub.github.io``
-source identity, not a provider-minted one. Resolution instead goes through
-``~/prod/dtc-data/eventbrite-event-identities.json``: the same reviewed
-mapping (209 numeric Eventbrite ids resolved to a canonical Event's
-``source_repository``/``source_revision``/``source_key`` via ``events.xlsx``
-cross-referenced against the identity manifest, 203 ``resolved``) that
-:mod:`events.eventbrite_content` already uses to land cleaned descriptions.
-Reusing it here, rather than re-deriving a second mapping, is deliberate: it
-is the one place this repository has already reviewed which Eventbrite id is
-which real event.
-
-Nothing here mints an Event, resolves an aggregate count, or activates a
-public registration count -- exactly as for Luma. See
-``_docs/runbooks/event-registration-pull.md`` for when to run this, and
-``_docs/runbooks/ingest-script-inventory.md`` for where it sits in the wider
-inventory.
+The adapter validates the archive, reads only the fields needed for identity
+consolidation and registration status, and resolves provider event ids through
+the reviewed Eventbrite identity input. It never logs attendee values and never
+mints Event rows; unresolved events are reported to the ingest caller.
 """
 
 from __future__ import annotations
@@ -78,9 +38,7 @@ from .safety import (
 )
 
 PROVIDER = EventRegistration.Provider.EVENTBRITE
-# A different set from the aggregate-only reader's REQUIRED_COLUMNS
-# (scripts.prod.registration_sources.eventbrite): this reader also needs
-# "Email", which that one never touches.
+# Only the attendee columns needed by the current registration import.
 REQUIRED_COLUMNS = ("Order #", "Attendee #", "Attendee Status", "Email")
 _ENTRY = re.compile(r"^(?P<event_id>[0-9]{1,20})\.csv$")
 # Generous headroom over the real export's largest single event file (a few
@@ -182,10 +140,7 @@ def discover_eventbrite_registrant_files(
 
     Structural checks only -- bounded size, no symlink, no path escape, no
     hidden entry -- the same shared guards every provider reader in this
-    package uses. No pinned whole-archive checksum: unlike the aggregate-only
-    reader this reads no public count, so there is nothing a silent drift
-    here could corrupt (see ``scripts.prod.registrant_import``'s and
-    ``luma_registrants``'s own docstrings for why that pin is aggregate-only).
+    package uses.
     """
 
     resolved = safe_path(archive_path, expected_kind="file")

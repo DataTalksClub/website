@@ -4,19 +4,14 @@
 This command composes the existing local-only preparation seams.  It writes only to an
 explicit SQLite database below ``.tmp/`` and never connects to a deployed database.
 
-The public event pipeline is `scripts/prod/import_events.py`'s own `run()` -- all
-five legs (reviewed identities, reviewed content, new-event discovery, staged
-descriptions for discovered events, registration-aggregate derivation and
-staging plus the automatic mapping resolution) in their fixed order under its
-one transaction. The course catalog is imported first and the reviewed editorial
+The public event pipeline is `scripts/prod/import_events.py`'s own `run()`:
+reviewed identities, reviewed content, new-event discovery, and staged
+descriptions. The attendee exports are then ingested directly into current
+registration rows by the same readers as `import_event_registrants.py`. The
+course catalog is imported first and the reviewed editorial
 inputs after it, which is the bootstrap order in
 `_docs/runbooks/data-ingest.md` §11; the event stage is §11 step 5 and runs
-last, through the same function the production entry point calls. The protected
-Eventbrite and Luma exports are parsed and reconciled against their recorded safe
-facts. Legacy candidates remain review-required; an optional explicit
-current-event mapping input can stage and activate only those exact provider
-identities so a fresh database can render their aggregate count without a
-title/date guess.
+last, through the same functions the production entry points call.
 """
 
 from __future__ import annotations
@@ -42,7 +37,6 @@ if str(PROJECT_ROOT) not in sys.path:
 # legs, in their fixed order, inside its one transaction -- rather than keeping
 # a second, shorter copy of the same parsing, staging and activation code.
 from scripts.prod.import_events import (  # noqa: E402
-    EVENTBRITE_RELATIVE_SOURCE,
     IDENTITY_MANIFEST_PATH,
     LUMA_RELATIVE_SOURCE,
     EventImportError,
@@ -67,6 +61,13 @@ from scripts.prod.sync_course_repository_sources import (  # noqa: E402
 )
 
 ORCHESTRATOR_SCHEMA_VERSION = 2
+EVENTBRITE_RELATIVE_SOURCE = Path(
+    ".local/migration-data/events/eventbrite/aggregate-v1.zip"
+)
+LUMA_IDENTITIES_PATH = Path.home() / "prod/dtc-data/luma-event-identities.json"
+EVENTBRITE_IDENTITIES_PATH = (
+    Path.home() / "prod/dtc-data/eventbrite-event-identities.json"
+)
 
 
 class LocalPreparationError(RuntimeError):
@@ -194,7 +195,8 @@ def run(
     identity_manifest: Path,
     luma_source: Path,
     eventbrite_source: Path,
-    current_registration_input: Path | None = None,
+    luma_identities: Path | None = LUMA_IDENTITIES_PATH,
+    eventbrite_identities: Path = EVENTBRITE_IDENTITIES_PATH,
     cmp_source_db: Path | None = None,
     fresh: bool,
 ) -> dict[str, Any]:
@@ -283,22 +285,44 @@ def run(
     # is not seeded here -- it requires a live `manage.py sync_content` run
     # against a real checkout, which this offline rehearsal does not attempt.
     editorial_content = _import_sponsor_and_testimonial_content()
-    # Step 5, and the rehearsal's one event stage: `import_events.run()` itself,
-    # all five legs in their fixed order under its one transaction. The
-    # rehearsal used to run only the identity and content legs before the
-    # catalogue and the registration legs after this block, outside any
-    # transaction -- so a new event the discovery leg would have created, or an
-    # aggregate the automatic resolution would have mapped, silently never
-    # appeared, and a refused registration leg left the earlier event writes
-    # committed with their queued wakeups pointing at them.
+    # Step 5: import current Event identities and content, then populate current
+    # attendee rows from both provider exports.
     with _event_import_refusals():
         event_pipeline = run_event_pipeline(
             identity_manifest=identity_manifest,
             luma_source=luma_source,
-            eventbrite_source=eventbrite_source,
-            current_registration_input=current_registration_input,
-            correlation_id="local-production-prep",
         )
+    try:
+        from scripts.prod.registrant_import import RegistrantImportError, import_registrants
+        from scripts.prod.registration_sources.eventbrite_registrants import (
+            PROVIDER as EVENTBRITE_PROVIDER,
+            eventbrite_registrant_sources,
+        )
+        from scripts.prod.registration_sources.luma_registrants import (
+            PROVIDER as LUMA_PROVIDER,
+            luma_registrant_sources,
+        )
+
+        registrations = {
+            "luma": import_registrants(
+                provider=LUMA_PROVIDER,
+                pending=luma_registrant_sources(
+                    luma_source,
+                    identities_path=luma_identities,
+                ),
+                refresh=True,
+            ).as_dict(),
+            "eventbrite": import_registrants(
+                provider=EVENTBRITE_PROVIDER,
+                pending=eventbrite_registrant_sources(
+                    archive_path=eventbrite_source,
+                    identities_path=eventbrite_identities,
+                ),
+                refresh=True,
+            ).as_dict(),
+        }
+    except RegistrantImportError as error:
+        raise LocalPreparationError(f"event_registrants_{error}") from error
     return _orchestrator_report(
         fresh=fresh,
         migrations=migrations,
@@ -308,6 +332,7 @@ def run(
         cmp_content=cmp_content,
         editorial_content=editorial_content,
         event_pipeline=event_pipeline,
+        registrations=registrations,
     )
 
 
@@ -321,16 +346,13 @@ def _orchestrator_report(
     cmp_content: dict[str, Any],
     editorial_content: dict[str, Any],
     event_pipeline: dict[str, Any],
+    registrations: dict[str, Any],
 ) -> dict[str, Any]:
     """The rehearsal report: course/editorial under ``steps``, the event
     stage's own structured result at top level.
 
-    The event keys are carried over key for key from ``import_events.run()``:
-    the reviewed-manifest identities, the automatic Luma discovery, the
-    reviewed content records, the staged descriptions for discovered events,
-    the registration derivation/staging, the narrower automatic mapping
-    resolution and the explicit-input activation coverage each stay under
-    their own name. Merging any two would hide which of them moved.
+    The event keys are carried over from ``import_events.run()`` and the
+    provider registration imports are reported separately.
     """
 
     return {
@@ -348,10 +370,8 @@ def _orchestrator_report(
         "new_event_identities": event_pipeline["new_event_identities"],
         "event_content": event_pipeline["event_content"],
         "new_event_content": event_pipeline["new_event_content"],
-        "registration_sources": event_pipeline["registration_sources"],
-        "registration_import": event_pipeline["registration_import"],
-        "aggregate_auto_resolution": event_pipeline["aggregate_auto_resolution"],
-        "activation_coverage": event_pipeline["activation_coverage"],
+        "eventbrite_descriptions": event_pipeline["eventbrite_descriptions"],
+        "event_registrations": registrations,
     }
 
 
@@ -387,13 +407,14 @@ def _parser() -> argparse.ArgumentParser:
         default=main_root / EVENTBRITE_RELATIVE_SOURCE,
     )
     parser.add_argument(
-        "--current-registration-input",
+        "--luma-identities",
         type=Path,
-        default=None,
-        help=(
-            "JSON file containing exact current provider identities and canonical Event "
-            "source identities; legacy candidates remain review-required."
-        ),
+        default=LUMA_IDENTITIES_PATH,
+    )
+    parser.add_argument(
+        "--eventbrite-identities",
+        type=Path,
+        default=EVENTBRITE_IDENTITIES_PATH,
     )
     parser.add_argument(
         "--fresh",
@@ -422,11 +443,12 @@ def main(argv: list[str] | None = None) -> int:
             identity_manifest=Path(args.identity_manifest).resolve(),
             luma_source=Path(args.luma_source).resolve(),
             eventbrite_source=Path(args.eventbrite_source).resolve(),
-            current_registration_input=(
-                Path(args.current_registration_input).resolve()
-                if args.current_registration_input is not None
+            luma_identities=(
+                Path(args.luma_identities).expanduser().resolve()
+                if args.luma_identities is not None
                 else None
             ),
+            eventbrite_identities=Path(args.eventbrite_identities).expanduser().resolve(),
             cmp_source_db=(
                 Path(args.cmp_source_db).resolve() if args.cmp_source_db is not None else None
             ),

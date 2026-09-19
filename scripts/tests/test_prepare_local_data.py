@@ -34,20 +34,14 @@ class OrchestratorReportTests(SimpleTestCase):
         "new_event_identities": {"luma": {"created": 2}},
         "event_content": {"records": 3},
         "new_event_content": {"descriptions": 4},
-        "registration_sources": {"providers": ["luma"]},
-        "registration_import": {"staged": 5},
-        "aggregate_auto_resolution": {"activated": 6},
-        "activation_coverage": {"activated_share": 0.5},
+        "eventbrite_descriptions": {"applied": 5},
     }
     REPORT_KEYS = {
         "event_identities": "identities",
         "new_event_identities": "new_event_identities",
         "event_content": "event_content",
         "new_event_content": "new_event_content",
-        "registration_sources": "registration_sources",
-        "registration_import": "registration_import",
-        "aggregate_auto_resolution": "aggregate_auto_resolution",
-        "activation_coverage": "activation_coverage",
+        "eventbrite_descriptions": "eventbrite_descriptions",
     }
 
     def _report(self) -> dict:
@@ -60,6 +54,7 @@ class OrchestratorReportTests(SimpleTestCase):
             cmp_content={"imported": False},
             editorial_content={"public_content": {"replayed": True}},
             event_pipeline=dict(self.EVENT_PIPELINE),
+            registrations={"luma": {"rows_written": 6}},
         )
 
     def test_every_event_result_is_exposed_under_its_own_name(self) -> None:
@@ -68,6 +63,7 @@ class OrchestratorReportTests(SimpleTestCase):
         report = self._report()
         for report_key, pipeline_key in self.REPORT_KEYS.items():
             self.assertEqual(report[report_key], self.EVENT_PIPELINE[pipeline_key])
+        self.assertEqual(report["event_registrations"], {"luma": {"rows_written": 6}})
 
     def test_the_course_and_editorial_steps_stay_under_steps(self) -> None:
         report = self._report()
