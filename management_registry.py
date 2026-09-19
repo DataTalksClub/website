@@ -27,7 +27,8 @@ from core.navigation import SITE_NAVIGATION_CAPABILITIES
 from core.operational_settings_service import OPERATIONAL_SETTING_CAPABILITIES
 from core.site_settings import SITE_SETTING_CAPABILITIES
 from core.sponsors import SPONSOR_CAPABILITIES
-from historical_registrations.capabilities import EVENT_CAPABILITIES
+from event_qna.capabilities import QNA_CAPABILITIES
+from events.capabilities import EVENT_IDENTITY_CAPABILITIES
 from management_auth.fixture_capabilities import CREDENTIAL_FIXTURE_CAPABILITIES
 from management_auth.policies import (
     HIGH_RISK_FRESH_CONFIRMATION_POLICY,
@@ -181,7 +182,8 @@ CAPABILITY_REGISTRY = CapabilityRegistry(
         *SITE_NAVIGATION_CAPABILITIES,
         *SPONSOR_CAPABILITIES,
         *CREDENTIAL_RUNTIME_CAPABILITIES,
-        *EVENT_CAPABILITIES,
+        *EVENT_IDENTITY_CAPABILITIES,
+        *QNA_CAPABILITIES,
         *CREDENTIAL_FIXTURE_CAPABILITIES,
     ),
     resolved_high_risk_policies=resolved_high_risk_policy_keys(),

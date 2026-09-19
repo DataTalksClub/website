@@ -600,159 +600,40 @@ Replaying is safe, and measured: 160 records created on the first run, then
 
 ---
 
-# 6. Luma + Eventbrite registration aggregates
+# 6. Event registrations
 
-Three stages: clean the raw protected export, derive aggregates from it,
-resolve and activate each aggregate for public display. The middle stage is
-where "attendee data exists but is deliberately not written to the database"
-— see 9 below for the plan to change that.
+Two import steps populate the current database model. Provider-specific source
+formats exist only in \`scripts/prod/registration_sources/\`; runtime code does
+not read an export or a derived projection.
 
-## 6.1 Prepare
+## 6.1 Import Event identities and content
 
-[`scripts/prepare_event_registration_sources.py`](../../scripts/prepare_event_registration_sources.py)
-(`prepare_luma`, `prepare_eventbrite`)
+[\`scripts/prod/import_events.py\`](../../scripts/prod/import_events.py) imports
+reviewed Event identities and content, then discovers new Luma event identities
+from event-level export metadata. It does not import or calculate registration
+counts.
 
-Source: a raw Luma export (paired CSV + JSON checkpoint per event) and/or a
-raw Eventbrite zip archive, both owner-provided, passed explicitly via
-`--luma-source`/`--eventbrite-source` — no default input location.
-Transform: validates schema (required columns present, checkpoint well-formed),
-repackages into a normalized layout, computes a tree/file checksum. Never
-prints event names, provider identifiers, or attendee fields — enforced by
-the script's own docstring contract.
-Destination: `.local/migration-data/events/{luma-aggregate-v1, <eventbrite
-archive>}` by default — a cleaned, gitignored, still-protected intermediate.
-Attendee-level data survives this stage; it's validated and repackaged, not
-aggregated yet.
+## 6.2 Import attendee rows
 
-## 6.2 Derive aggregates
+[\`scripts/prod/import_event_registrants.py\`](../../scripts/prod/import_event_registrants.py)
+reads the protected Luma and Eventbrite exports and writes
+\`EventRegistrantIdentity\`, \`EventRegistration\`, and
+\`EventRegistrantImportProgress\` rows.
 
-[`scripts/prod/import_events.py`](../../scripts/prod/import_events.py), via
-[`scripts/prod/registration_sources/`](../../scripts/prod/registration_sources/)
-(`luma.derive_luma`, `eventbrite.derive_eventbrite`)
+Raw and prepared inputs live outside the repository under \`~/prod\` (or are
+passed explicitly). The script reports only bounded errors and aggregate
+counts; it never logs attendee values. Identity mapping inputs connect provider
+event ids to existing canonical Events. Unresolved events are skipped and
+reported, never guessed.
 
-Source: the prepared intermediate from 6.1. Default path
-`.local/migration-data/events/luma-aggregate-v1`
-(`LUMA_RELATIVE_SOURCE` in `import_events.py:154`) — gitignored and
-worktree-local by design, so it is normal for it to be absent from any given
-worktree.
+A normal rerun resumes incomplete events. Pass \`--refresh\` for a newer export:
+refresh atomically replaces each event's provider rows so cancellations and
+status changes are reflected. See
+[\`event-registration-pull.md\`](event-registration-pull.md) for the command
+sequence.
 
-**That default path no longer validates.** On 2026-09-05 it held 174 events
-against the 166 `_docs/migration-data/event-registration-sources.json` pins, and a
-full `import_events.py` run against it exits 1 with
-`registration_source_validation_failed`. Its sibling
-`luma-aggregate-v1.backup-20260902` holds the pinned 166 and runs clean, as does
-the durable copy below. Somebody has to decide whether the pin moves to the newer
-export or the newer directory is discarded.
-
-**The durable copy — the one a real migration run should point at — lives
-outside any worktree, at
-`~/prod/dtc-data/luma-eventbrite-export/luma-aggregate-v1/`**
-(`chmod 700` directory, `600` files, the same protected-export handling as
-`/data/tmp/rds-export/` and `~/prod/dtc-data/mailchimp-export/`). It was
-first staged at `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/` — moved
-there from the now-unreliable worktree-scratch copy at
-`.tmp/luma-prepared-20260831/luma-aggregate-v1/` and verified byte-for-byte
-identical first (332 files, sha256 diff clean) — and later copied to the
-stable path above; the `/data/tmp/...` copy still exists but is scratch, not
-the reference location. Point `--luma-source` at it
-directly, or symlink/copy it to `.local/migration-data/events/luma-aggregate-v1`
-if a given worktree should resolve the default path automatically.
-Transform: aggregates to counts only — the module's own docstring states "no
-attendee value crosses this module boundary".
-Destination: `HistoricalRegistrationAggregateRevision`,
-`HistoricalRegistrationSourceRun`. There is no separate mapping model or
-review-state row: each aggregate revision either resolves directly to a
-canonical `Event` (its nullable `event` field, set once, never retargeted) or
-it does not.
-
-## 6.3 Resolve and activate
-
-**Resolution** — does this provider event correspond to a canonical
-`Event` — happens two ways, both applied every run of
-[`scripts/prod/import_events.py`](../../scripts/prod/import_events.py), never
-as a persisted review queue or a Studio page:
-
-- *Explicit*: staging an aggregate resolves it immediately when
-  `--current-registration-input` names its exact provider identity (see
-  [`_docs/migration-data/local-current-registration-input.json`](../migration-data/local-current-registration-input.json)),
-  and re-resolves an already-staged, still-unresolved aggregate on replay once
-  the file has been extended. A human edits this JSON file and re-runs the
-  script; there is no other way to name an exact pair.
-- *Automatic*: `events.services.resolve_unmatched_aggregates` resolves
-  whatever is still unresolved after staging, only when exactly one canonical
-  `Event` shares the provider event's date and that event's
-  case/whitespace-normalized title equals the provider event's normalized
-  title exactly — no fuzzy or ranked match. Eventbrite's export carries no
-  event-level title or date at all, so every unresolved Eventbrite row is
-  reported unmatched under that reason.
-
-Anything neither tier resolves is reported clearly (provider event
-identifier, date, and why it's ambiguous) and stays `event=null` until a
-human adds the right entry to the JSON input file.
-
-**Activation** — whether a *resolved* aggregate's count is actually live for
-public display — is a separate, still-gated step: Studio's
-dry-run/validate/activate flow (`events.services.activate_source`), or the
-narrower `activate_explicit_current_source` the import script calls for
-exactly the aggregates the current-registration-input file names. A resolved
-but not-yet-activated aggregate still renders no public count.
-
-Notes: measured 2026-09-05 by a full `import_events.py` run against the pinned
-exports — 375 provider events stage (166 Luma, 209 Eventbrite), the automatic pass
-resolves 99 Luma aggregates, **276 stay unresolved**, and none of the 375 is
-activated. The rest render no public count.
-
-**Known gap — the Luma export on this machine is stale and only the site
-owner can refresh it.** There is no live Luma API integration anywhere in
-this codebase (confirmed by grep across `*.py` for any Luma API call —
-none exists); registration data only ever arrives as an owner-provided
-export, prepared by 6.1 and durably staged at
-`~/prod/dtc-data/luma-eventbrite-export/luma-aggregate-v1/`. That export's newest
-event is dated 2026-08-25, and the paired CSV/JSON checkpoints on disk cover
-166 events in total, none dated after 2026-08-29. Real Luma events after
-that date are not in this pipeline at all — a known example is several real
-events dated September 8–15, 2026 that Luma already shows but this database
-has never seen. This is expected staleness (a periodic export lagging
-Luma's live state), not a bug, and it is not fixable from this sandbox: it
-needs the site owner to pull a fresh Luma export (paired CSV + JSON
-checkpoint per event, same shape as the existing one) covering events
-through the current date, hand it to whoever runs the import, who then
-reruns 6.1 (`prepare_event_registration_sources.py --luma-source
-<new-export>`) followed by 6.2/6.3 (`scripts/prod/import_events.py`) to
-derive, resolve, and activate the new events. Tracked in
-[issue #310](https://github.com/DataTalksClub/website/issues/310).
-
-**Correction, 2026-09-05: one fresher export is already on this machine.**
-`.local/migration-data/events/luma-aggregate-v1` — the directory 6.2 calls
-drifted — is not junk. It is a later capture of the same account: 174 events
-against the durable copy's 166, with the eight extra dated 2026-08-31 to
-2026-09-15, including exactly the September events named above. Counted
-2026-09-05: 52,467 rows (52,415 approved, 52 declined),
-`tree_sha256 2e18d184…`. So the pin is what is behind, not the export.
-
-## 6.4 The recurring pull
-
-**Luma is not frozen history**, which the `one-time` sync model above
-understates. Comparing the two prepared exports on this machine: 8 events exist
-only in the newer one, and **99 of the 166 they share have different registrant
-rows — 5 grew, 13 shrank**. A refreshed provider export is not append-only, and
-a plain re-run of either leg picks up none of it.
-
-The procedure, the decision points and the failure modes are in
-[`event-registration-pull.md`](event-registration-pull.md). In brief:
-`--discover-new-events-only --dry-run` answers "what is new" without writing it;
-moving the pinned checksum in `event-registration-sources.json` is a reviewed
-commit, not a workaround; and 9.1's `--refresh` is the only correct way to pick
-up sign-ups for events we already hold.
-
-**The last-synchronised point already exists in three places**, and no new model
-or state file was added for it: `event-registration-sources.json`'s
-`capture_completed_at` and `tree_sha256` (what a human accepted), the newest
-`HistoricalRegistrationSourceRun` row per provider (what a database ingested,
-uniquely keyed on the export's own checksum), and each
-`EventRegistrantImportProgress` row's `updated_at` (when that one event's
-registrations were last read).
-
+Public event queries count eligible registration rows directly: approved Luma
+rows and attending Eventbrite rows.
 ---
 
 # 7. Testimonials

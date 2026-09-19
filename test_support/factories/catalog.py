@@ -68,16 +68,6 @@ BUNDLE_LEAVES: dict[str, tuple[str, ...]] = {
         "wrapped_statistics",
         "user_wrapped_statistics",
     ),
-    "historical_event_totals": (
-        "historical_source_run",
-        "historical_aggregate_revision",
-        "historical_aggregate_slot",
-        "historical_pointer_displacement",
-        "historical_total_state",
-        "aggregate_activation",
-        "aggregate_rollback",
-        "aggregate_to_native_boundary",
-    ),
     "operations_jobs": (
         "audit_event",
         "operational_setting",
@@ -211,14 +201,6 @@ def _record(context: FactoryContext, bundle: str, leaf: str, state: str) -> Fact
                 "course_identity": "synthetic-course",
                 "enrollment_identity": "synthetic-enrollment",
                 "registration_identity": "synthetic-registration",
-            }
-        )
-    elif bundle == "historical_event_totals":
-        values.update(
-            {
-                "aggregate_only": True,
-                "eligible_count": 3,
-                "registration_rows": [],
             }
         )
     elif bundle == "provider_neutral_messaging":

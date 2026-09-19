@@ -53,11 +53,6 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
         (re.compile(r"^/studio/$"), 403),
         (re.compile(r"^/studio/audit/$"), 403),
         (re.compile(r"^/studio/access/api-credentials/$"), 403),
-        (re.compile(r"^/studio/events/historical-registration-totals/$"), 403),
-        (
-            re.compile(r"^/studio/events/historical-registration-totals/[0-9a-f-]{36}/activate/$"),
-            409,
-        ),
         (re.compile(r"^/register/synthetic-[a-z0-9-]+/$"), 404),
     ),
     "test_reflow_zoom_spacing_reduced_motion_and_forced_colors": (
@@ -98,22 +93,6 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
     ),
     "test_empty_optional_and_error_states_are_responsive": (
         (re.compile(r"^/events/not-a-real-event$"), 404),
-    ),
-    # The scenario's own name, after the mapping surface was removed from it and
-    # the test renamed with it: an entry keyed to a test that no longer exists
-    # allows nothing, so the safe 403/409 the flow drives became console errors.
-    "test_studio_stage_replay_validate_activate_preview_rollback_and_denial": (
-        (
-            re.compile(
-                r"^/studio/events/historical-registration-totals/[0-9a-f-]{36}/"
-                r"(?:activate|validate)/$"
-            ),
-            409,
-        ),
-        (
-            re.compile(r"^/studio/events/historical-registration-totals/$"),
-            403,
-        ),
     ),
     "test_revocation_prevents_back_cache_and_reload": ((re.compile(r"^/studio/audit/$"), 403),),
     "test_stale_browser_save_is_atomic_and_retryable": (

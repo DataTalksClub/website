@@ -21,7 +21,6 @@ from django.db import connection
 #: matches ``events_event.id``.
 _SATELLITE_KEYS = (
     ("event_qna_eventqnasession", "event_id"),
-    ("historical_registrations_historicalregistrationaggregaterevision", "event_id"),
     ("event_registrants_eventregistrantidentity", "event_id"),
 )
 

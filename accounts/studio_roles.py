@@ -14,12 +14,6 @@ AUDIT_BROWSE = "core.browse_audit"
 AUDIT_EXPORT = "core.export_audit"
 HIGH_RISK_FIXTURE = "core.execute_high_risk_fixture"
 MANAGE_API_CREDENTIALS = "management_auth.manage_api_credentials"
-HISTORICAL_REGISTRATION_IMPORT_MANAGE = (
-    "historical_registrations.historical_registration_import_manage"
-)
-HISTORICAL_REGISTRATION_MAPPING_MANAGE = (
-    "historical_registrations.historical_registration_mapping_manage"
-)
 SITE_SETTINGS_READ = "core.read_operational_settings"
 SITE_SETTINGS_WRITE = "core.change_operational_settings"
 SITE_NAVIGATION_READ = "core.read_site_navigation"
@@ -38,8 +32,6 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
                 AUDIT_BROWSE,
                 AUDIT_EXPORT,
                 MANAGE_API_CREDENTIALS,
-                HISTORICAL_REGISTRATION_IMPORT_MANAGE,
-                HISTORICAL_REGISTRATION_MAPPING_MANAGE,
                 EVENT_QNA_VIEW,
                 EVENT_QNA_MANAGE,
                 SITE_SETTINGS_READ,
@@ -67,8 +59,6 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
         "event_operator": frozenset(
             {
                 STUDIO_ACCESS,
-                HISTORICAL_REGISTRATION_IMPORT_MANAGE,
-                HISTORICAL_REGISTRATION_MAPPING_MANAGE,
                 EVENT_QNA_VIEW,
                 EVENT_QNA_MANAGE,
             }

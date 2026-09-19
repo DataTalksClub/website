@@ -1,162 +1,9 @@
 #!/usr/bin/env python3
-"""Import event identities and the historical registration aggregates.
+"""Import current Event identities and content into the database.
 
-Declared ``one-time``, and that is now only half true.  The reviewed identity
-manifest really is frozen, and Eventbrite really is an archive of a platform we
-no longer publish through.  **Luma is not.**  New events keep appearing there
-and people keep registering for events that already exist, so this script is
-run again every time a fresh export arrives -- see
-``_docs/runbooks/event-registration-pull.md`` for the recurring procedure and
-what an operator must review before anything becomes public.  ``SYNC_MODEL``
-stays ``one-time`` because ``scripts/prod/__init__.py`` ties that word to the
-``import_`` filename prefix and renaming this module would break every runbook,
-inventory entry and Make target that names it; the honest description is here
-instead of in the filename.
-
-This gathers what used to be in two places -- ``manage.py
-import_event_identities`` for identity, and a block buried inside
-``scripts/prepare_local_data.py`` for the aggregates.  The orchestrator now
-calls this module, so there is one implementation rather than two that drift.
-The management command itself is retired: it had no caller left once
-``scripts/prepare_local_data.py`` was repointed at :func:`import_identities`
-directly, the same function this script's own identity import calls.
-
-What lands in the database
---------------------------
-
-**Identity** (``events/event_identity_manifest.json``, 421 events): the uuid,
-public id, slug, title, source pointer and checksum that make an event
-addressable.  Replaying reports ``replayed`` and creates nothing.
-
-**Registration aggregates** (Luma and Eventbrite): *counts only*.  No attendee
-row is read into the database by any path here -- the adapters reduce each
-export to a per-event total, reconcile it against the recorded safe facts in
-``_docs/migration-data/event-registration-sources.json``, and store a
-``HistoricalRegistrationAggregateRevision``.  There is no separate mapping
-model or review-state row: the aggregate revision either resolves directly to
-a canonical ``Event`` (its ``event`` field, set once) or it does not.  A count
-only becomes public once its aggregate is resolved *and* separately activated
-(``dry-run``/``validate``/``activate``, or ``activate_explicit_current_source``
-below) -- resolution and public-display activation are still two different
-gates, exactly as they were before.
-
-**Coverage is the interesting number.**  The adapters work; resolving each
-provider event to a canonical Event is the backlog.  Every run reports
-``activation_coverage`` so an operator sees "3 of 383 provider events
-resolved, 380 still unresolved" rather than a silent success.  An unresolved
-event renders no registration count at all.
-
-**New event identities** (``new_event_identities`` in the report): a genuinely
-new event -- one a fresh Luma export names that neither the reviewed manifest
-nor any prior provider-registration run has ever seen -- gets a real
-``Event`` row here, via ``events.identity.create_event_identity``.  This is
-title and a canonical path only; it never resolves or activates a
-registration count, and it never touches ``events/event_identity_manifest.json``.
-"Genuinely new" is decided against every event we already have: an export event
-whose calendar date and exact case/whitespace-normalized title belong to one
-event already in the database is that event, and creates nothing
-(``existing_event_total``).  See ``discover_new_luma_event_identities`` and
-``discover_new_provider_events``.  Run with ``--discover-new-events-only`` to do
-just this against a fresh export that has not yet been reconciled into
-``event-registration-sources.json``, and add ``--dry-run`` to see what it would
-create without creating it -- that pair is how an operator answers "which events
-are new since the last pull".  The recurring procedure the owner asks this
-question inside is ``_docs/runbooks/event-registration-pull.md``.
-
-**Duplicate reconciliation** (``--report-duplicate-identities``,
-``--remove-duplicate-identities``): before that guard existed this step minted a
-second ``Event``, with its own public id, for every export event the manifest
-already described.  A database that ran it still holds those rows; this names
-them exactly and removes only the ones carrying no dependent data at all.  See
-``reconcile_duplicate_provider_identities``.
-
-**Resolution** happens in two ways, both applied every run, neither a
-persistent review queue:
-
-1. *Explicit*: staging an aggregate (``stage_derived_source``, called below)
-   resolves it immediately when ``--current-registration-input`` names its
-   exact provider identity, and re-resolves an already-staged, still-null
-   aggregate on replay when the file has since been extended.  See
-   ``_docs/migration-data/local-current-registration-input.json``.
-2. *Automatic* (``aggregate_auto_resolution`` in the report): a narrower,
-   additional pass over whatever is still unresolved after staging.  For each
-   Luma provider event still unresolved, it resolves the aggregate -- via
-   ``events.services.resolve_unmatched_aggregates`` -- only when exactly one
-   canonical ``Event`` shares its date and that event's
-   case/whitespace-normalized title exactly equals the provider event's
-   normalized title.  No fuzzy or ranked matching: a date with zero or
-   several plausible canonical events, or a title that is merely similar, is
-   left unresolved and reported under its own reason.  Eventbrite exports
-   carry no event-level title or date at all, so every unresolved Eventbrite
-   row is reported unmatched for that reason.  See
-   ``activate_unambiguous_mappings`` and
-   ``events.services.resolve_unmatched_aggregates``.
-
-Neither tier is a Studio page or a separate model: a human resolves an
-ambiguous case by adding the exact pair to the current-registration-input
-JSON file and re-running this script.
-
-**Event content** (``~/prod/dtc-data/content-staging/public_projection/events.json``,
-421 records): the type, schedule, description, speakers and links one public
-event page prints, as ``EventContent`` rows with their speakers and links.  See
-:func:`import_content` and ``events.content_import``.
-
-That file is a staging artifact whose only purpose is this import.  It was
-built offline from the legacy ``_data/events.yaml`` and then reviewed and
-rewritten -- 159 events carry a description reconciled against its Luma copy
-with the "about the speaker" biography and the platform boilerplate removed and
-every link bound to a reviewed destination
-(``_docs/event-description-bridge.md``).  The reviewed result exists nowhere
-else, which is why it is the source.
-
-**Staged content for discovered events**
-(``~/prod/dtc-data/content-staging/luma_event_descriptions.json``, absent
-until built): the other half of the step above.  The 421-record file cannot grow -- its
-descriptions come through the event description bridge, which matches on the
-legacy ``_data/events.yaml`` tuple that a discovered event does not have -- so
-an event created by ``new_event_identities`` above would otherwise reach the
-database with a title, a path, and no page content at all.  This leg lands the
-type, start and description a person and the export between them decided.  See
-:func:`import_new_content`, ``events.content_import.import_new_event_content``
-and ``scripts/staging/luma_event_descriptions.py``.
-
-Its two gates stay human, and the builder reports both rather than resolving
-either: a description naming a destination nobody has reviewed is stopped and
-its URLs are named (approving one is an edit to
-``scripts/staging/event_description_link_policy.py``), and an event's
-``type`` comes only from ``_docs/migration-data/local-event-type-input.json``,
-which a person maintains.  Nothing here infers either one.
-
-Note that both the identity manifest and the content records *record* the legacy
-repository as provenance (all 421 events carry ``source_repository =
-DataTalksClub/datatalksclub.github.io``).  That is history recorded in a
-reviewed file, not a live dependency on that repository: importing either reads
-no upstream source, only the checked-review staging file at
-``~/prod/dtc-data/content-staging/`` (outside this repository -- see
-``_docs/architecture/database-only-content.md``).  The content import re-checks
-that tuple against the identity row rather than trusting it, so a record can
-only land on the event it was reviewed against.
-
-**Description authoring precedence**
-(``~/prod/dtc-data/eventbrite-content/staging/eventbrite_descriptions.json``,
-outside this repository -- absent until built, and deliberately never
-committed, per explicit owner instruction): a third concern, distinct from
-bootstrapping content above and from the registration-count legs below.  Real,
-freshly-scraped Eventbrite page content exists for 226 of these events, also
-outside this repository, at ``~/prod/dtc-data/eventbrite-content/``, and the
-product owner's ruling is that it wins outright over the Jekyll-sourced
-description for any event whose Eventbrite id resolves to a canonical Event --
-full replacement, not fill-only-if-missing.
-``scripts/build_eventbrite_descriptions.py`` cleans it (strips the "about the
-speaker/guest/host" section and the DataTalks.Club footer, nothing else -- see
-:mod:`events.eventbrite_content`) and stages it there; this runs the staged
-result straight after ``event_content`` above, since it overwrites a row that
-step just created.  See :func:`import_eventbrite_descriptions` and
-:func:`events.eventbrite_content.apply_eventbrite_descriptions`.
-
-    uv run --frozen python scripts/prod/import_events.py \\
-        --database .tmp/local.sqlite3 \\
-        --current-registration-input _docs/migration-data/local-current-registration-input.json
+Provider registrations are owned by ``scripts/prod/import_event_registrants.py``.
+Legacy source translation stays in import scripts; runtime event reads use
+database rows directly.
 """
 
 from __future__ import annotations
@@ -177,9 +24,6 @@ from scripts.prod.target import add_target_arguments, configure_target  # noqa: 
 SYNC_MODEL = "one-time"
 BOOTSTRAPS_EMPTY_DATABASE = False
 
-REGISTRATION_FACTS_PATH = (
-    PROJECT_ROOT / "_docs" / "migration-data" / "event-registration-sources.json"
-)
 # These reviewed staging inputs live outside this repository, at
 # ~/prod/dtc-data/content-staging/ -- the owner's explicit instruction: "let's
 # not have it in our code. move it outside." (issue #253 discussion; see the
@@ -188,7 +32,6 @@ REGISTRATION_FACTS_PATH = (
 _CONTENT_STAGING_ROOT = Path.home() / "prod" / "dtc-data" / "content-staging"
 IDENTITY_MANIFEST_PATH = _CONTENT_STAGING_ROOT / "event_identity_manifest.json"
 LUMA_RELATIVE_SOURCE = Path(".local/migration-data/events/luma-aggregate-v1")
-EVENTBRITE_RELATIVE_SOURCE = Path(".local/migration-data/events/eventbrite/aggregate-v1.zip")
 
 EVENT_CONTENT_PATH = _CONTENT_STAGING_ROOT / "public_projection" / "events.json"
 NEW_EVENT_CONTENT_PATH = _CONTENT_STAGING_ROOT / "luma_event_descriptions.json"
@@ -205,9 +48,6 @@ EVENTBRITE_DESCRIPTIONS_PATH = (
     / "staging"
     / "eventbrite_descriptions.json"
 )
-
-PROVIDERS = ("luma", "eventbrite")
-
 
 class EventImportError(RuntimeError):
     """A safe refusal that carries a condition code, never a source value."""
@@ -395,24 +235,12 @@ def import_eventbrite_descriptions(
 # ``events.models.create_event_identity`` had zero callers anywhere outside
 # tests.  This section is that path.
 #
-# It is deliberately kept separate from ``activation_coverage`` below.  Minting
-# an identity is safe, reviewable plumbing -- title and a canonical path,
-# nothing a visitor's registration count depends on -- so it is fine to
-# automate.  Resolving that event's registration *count* to a canonical Event,
-# and separately activating it for public display, are different,
-# already-gated decisions (see s.6 of the ingest inventory) and stay exactly
-# as gated as they are today: this section never resolves or activates a
-# ``HistoricalRegistrationAggregateRevision``.
+# Minting an identity is safe, reviewable plumbing -- title and a canonical
+# path -- and registration rows attach to that identity in the separate
+# registrant ingest.
 #
-# The aggregate-revision guard below used to be the only thing standing between
-# this step and a duplicate row, and on a database built in production order it
-# is empty when this step runs: identities are imported, then discovery runs,
-# and the aggregates are staged only afterwards.  So an export event the
-# reviewed manifest already describes -- under its legacy ``_data/events.yaml``
-# source key, which discovery has no way to guess -- got a second ``Event`` with
-# a second public id.  ``scripts.prod.registrant_import.ExistingEventIndex`` closes that: an
-# export event whose date and normalized title exactly match one event we
-# already have is recognised as that event and creates nothing.
+# ``scripts.prod.registrant_import.ExistingEventIndex`` prevents provider
+# discovery from creating a second Event for a row already in the database.
 
 
 def discover_new_provider_events(
@@ -430,11 +258,6 @@ def discover_new_provider_events(
 
     - This database already holds an ``Event`` under our own provider source
       identity (idempotent replay -- a second run creates nothing new).
-    - A ``HistoricalRegistrationAggregateRevision`` row already exists for
-      ``(provider, external_event_identifier)`` -- resolved or not.  This is
-      what keeps the step from racing ahead of the existing, separately
-      tracked resolution backlog.  It only ever fires on a database whose
-      aggregates were staged first, so it cannot be the only duplicate guard.
     - Exactly one ``Event`` we already have shares the export event's calendar
       date and, case/whitespace-normalized, its exact title.  Reported under
       ``existing_event_total``: this is the same event, so there is nothing to
@@ -461,9 +284,6 @@ def discover_new_provider_events(
         canonical_detail_path,
         resolve_source_identity,
     )
-    from historical_registrations.models import (
-        HistoricalRegistrationAggregateRevision,
-    )
     from scripts.prod.registrant_import import (
         EXISTING_EVENT_AMBIGUOUS,
         EXISTING_EVENT_DATE_UNUSABLE,
@@ -481,10 +301,6 @@ def discover_new_provider_events(
     undated: list[dict[str, Any]] = []
     already_tracked = 0
     for item in discovered:
-        already_mapped = HistoricalRegistrationAggregateRevision.objects.filter(
-            source_run__provider=provider,
-            external_event_identifier=item.external_event_identifier,
-        ).exists()
         source = provider_source_identity(
             provider=provider, external_event_identifier=item.external_event_identifier
         )
@@ -496,7 +312,7 @@ def discover_new_provider_events(
             )
         except EventIdentityNotFound:
             existing = None
-        if already_mapped or existing is not None:
+        if existing is not None:
             already_tracked += 1
             continue
         if not item.title:
@@ -583,10 +399,9 @@ def discover_new_provider_events(
                 "canonical_path": canonical_detail_path(event.content_id),
                 "reason": (
                     "Auto-created: no reviewed identity-manifest entry, no "
-                    "aggregate revision row, and no event sharing this date "
-                    "and exact title existed at run time -- title and canonical "
-                    "path only, no registration count was resolved or "
-                    "activated."
+                    "provider identity row, and no event sharing this date "
+                    "and exact title existed at run time. Registrations attach "
+                    "later through the registrant ingest."
                 ),
             }
         )
@@ -620,12 +435,12 @@ def discover_new_luma_event_identities(*, luma_source: Path, apply: bool = True)
     decision.
     """
 
-    from historical_registrations.importers import ProtectedSourceError
-    from scripts.prod.registration_sources.luma import discover_luma_events
+    from scripts.prod.registrant_import import RegistrantImportError
+    from scripts.prod.registration_sources.luma_events import discover_luma_events
 
     try:
         discovered = discover_luma_events(luma_source)
-    except ProtectedSourceError as error:
+    except RegistrantImportError as error:
         raise EventImportError("luma_discovery_failed") from error
     return discover_new_provider_events(provider="luma", discovered=discovered, apply=apply)
 
@@ -641,8 +456,8 @@ def discover_new_luma_event_identities(*, luma_source: Path, apply: bool = True)
 # unreviewable after the fact, so this reports by default and removes only when
 # an operator asks *and* the row is provably inert.
 #
-# "Provably inert" is narrow on purpose: no registration aggregate revision, no
-# registration, and either no Q&A session or the untouched draft session
+# "Provably inert" is narrow on purpose: no registration and either no Q&A
+# session or the untouched draft session
 # ``create_event_identity`` provisions -- no question, vote or co-host invite
 # row.  Anything else is reported as retained with the dependent rows named,
 # and a human decides.  There is no force flag: a duplicate carrying real
@@ -650,10 +465,7 @@ def discover_new_luma_event_identities(*, luma_source: Path, apply: bool = True)
 # at.
 
 # One reverse relation per thing that would be destroyed with the Event.
-_DEPENDENT_RELATIONS = (
-    ("historical_registration_aggregate_revisions", "registration_aggregate_revision"),
-    ("registrant_registrations", "registration"),
-)
+_DEPENDENT_RELATIONS = (("registrant_registrations", "registration"),)
 _QNA_RELATIONS = (
     # A vote hangs off a question, so counting questions already covers it.
     ("questions", "qna_question"),
@@ -776,306 +588,16 @@ def reconcile_duplicate_luma_identities(
 ) -> dict[str, Any]:
     """Read a Luma export and reconcile the duplicates a previous run minted."""
 
-    from historical_registrations.importers import ProtectedSourceError
-    from scripts.prod.registration_sources.luma import discover_luma_events
+    from scripts.prod.registrant_import import RegistrantImportError
+    from scripts.prod.registration_sources.luma_events import discover_luma_events
 
     try:
         discovered = discover_luma_events(luma_source)
-    except ProtectedSourceError as error:
+    except RegistrantImportError as error:
         raise EventImportError("luma_discovery_failed") from error
     return reconcile_duplicate_provider_identities(
         provider="luma", discovered=discovered, remove=remove
     )
-
-
-# --------------------------------------------------------------------------
-# Registration aggregates
-# --------------------------------------------------------------------------
-
-
-def load_registration_facts() -> dict[str, dict[str, Any]]:
-    try:
-        payload = json.loads(REGISTRATION_FACTS_PATH.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        raise EventImportError("registration_facts_unavailable") from error
-    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
-        raise EventImportError("registration_facts_invalid")
-    facts = {name: payload.get(name) for name in PROVIDERS}
-    if any(not isinstance(value, dict) for value in facts.values()):
-        raise EventImportError("registration_facts_invalid")
-    return facts  # type: ignore[return-value]
-
-
-def load_current_registration_input(path: Path | None):
-    if path is None:
-        return None
-    from historical_registrations.current_registration import (
-        CurrentRegistrationInputError,
-    )
-    from historical_registrations.current_registration import (
-        load_current_registration_input as _load,
-    )
-
-    try:
-        return _load(path)
-    except CurrentRegistrationInputError as error:
-        raise EventImportError(f"current_registration_input_{error.code}") from error
-
-
-def mapping_bridges(current_input) -> tuple[dict[str, dict[str, dict[str, str]]], dict]:
-    """Resolve input targets by exact Event source identity and build adapter bridges."""
-
-    from events.identity import EventIdentityNotFound, resolve_source_identity
-
-    bridges: dict[str, dict[str, dict[str, str]]] = {name: {} for name in PROVIDERS}
-    target_events: dict[tuple[str, str, str], Any] = {}
-    for mapping in current_input.mappings:
-        try:
-            event = resolve_source_identity(
-                repository=mapping.canonical_repository,
-                revision=mapping.canonical_revision,
-                source_key=mapping.canonical_source_key,
-            )
-        except EventIdentityNotFound as error:
-            raise EventImportError("current_registration_target_unavailable") from error
-        target_key = mapping.canonical_identity
-        if target_key in target_events and target_events[target_key].content_id != event.content_id:
-            raise EventImportError("current_registration_target_ambiguous")
-        target_events[target_key] = event
-        source = event.source_identity
-        bridges[mapping.provider][mapping.provider_event_identity] = {
-            "repository": source.repository,
-            "revision": source.revision,
-            "source_key": source.source_key,
-            "slug": event.slug,
-        }
-    return bridges, target_events
-
-
-def derive_registration_sources(
-    *,
-    luma_source: Path,
-    eventbrite_source: Path,
-    current_input=None,
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Parse both protected exports and reconcile them against the recorded facts."""
-
-    from scripts.prod.registration_sources.eventbrite import derive_eventbrite
-    from scripts.prod.registration_sources.luma import derive_luma
-
-    facts = load_registration_facts()
-    bridges: dict[str, dict[str, dict[str, str]]] = {name: {} for name in PROVIDERS}
-    if current_input is not None:
-        bridges, _target_events = mapping_bridges(current_input)
-    try:
-        luma = derive_luma(
-            luma_source,
-            expected_checksum=facts["luma"]["tree_sha256"],
-            mapping_bridge=bridges["luma"],
-            allow_partial_mapping=current_input is not None,
-        )
-        eventbrite = derive_eventbrite(
-            eventbrite_source,
-            expected_checksum=facts["eventbrite"]["prepared_archive_sha256"],
-            mapping_bridge=bridges["eventbrite"],
-            allow_partial_mapping=current_input is not None,
-        )
-    except Exception as error:
-        # Never echo provider identifiers, paths, or protected parser diagnostics.
-        raise EventImportError("registration_source_validation_failed") from error
-
-    sources = (("luma", luma, facts["luma"]), ("eventbrite", eventbrite, facts["eventbrite"]))
-    report: dict[str, Any] = {}
-    for name, derived, expected in sources:
-        observed = {
-            "events": derived.manifest_event_total,
-            "rows": derived.parsed_row_total,
-            "eligible": derived.eligible_row_total,
-            "excluded": derived.excluded_row_total,
-            "quarantined_events": derived.quarantined_event_total,
-        }
-        expected_values = {
-            "events": expected["event_total"],
-            "rows": expected["row_total"],
-            "eligible": expected["registration_total"],
-            "excluded": expected.get("excluded_registration_total", 0),
-            "quarantined_events": 0,
-        }
-        if observed != expected_values:
-            raise EventImportError(f"{name}_registration_facts_mismatch")
-        report[name] = {
-            **observed,
-            "validated": True,
-            "database_written": True,
-            "activation_state": (
-                "explicit_current_event_pending"
-                if current_input is not None and bridges[name]
-                else "unresolved"
-            ),
-        }
-    return report, {"luma": luma, "eventbrite": eventbrite}
-
-
-def stage_registration_aggregates(
-    *,
-    derived_sources: dict[str, Any],
-    source_report: dict[str, Any],
-    current_input=None,
-    correlation_id: str = "prod-import-events",
-) -> dict[str, Any]:
-    """Stage each derived source and activate only the explicitly mapped events."""
-
-    from core.services import ServiceContext
-    from events.queries import event_public_record
-    from historical_registrations.importers import source_reference_digest
-    from historical_registrations.services import (
-        activate_explicit_current_source,
-        public_registration_total,
-        stage_derived_source,
-    )
-
-    target_events: dict[tuple[str, str, str], Any] = {}
-    if current_input is not None:
-        _, target_events = mapping_bridges(current_input)
-    mapping_set_revision = current_input.mapping_set_revision if current_input else 1
-    context = ServiceContext(
-        correlation_id=correlation_id,
-        actor_ref=f"system:{correlation_id}",
-    )
-    result: dict[str, Any] = {
-        "input_supplied": current_input is not None,
-        "mapping_set_revision": mapping_set_revision,
-        "explicit_mapping_total": len(current_input.mappings) if current_input else 0,
-        "sources": {},
-    }
-    for provider in PROVIDERS:
-        derived = derived_sources[provider]
-        run, created = stage_derived_source(
-            provider=provider,
-            derived=derived,
-            reference_digest=source_reference_digest(f"{correlation_id}-{provider}"),
-            mapping_set_revision=mapping_set_revision,
-            actor=None,
-            context=context,
-        )
-        selected_external_ids = tuple(
-            candidate.external_event_identifier
-            for candidate in derived.candidates
-            if candidate.proposal is not None
-        )
-        activated = False
-        if selected_external_ids:
-            run = activate_explicit_current_source(
-                run.id,
-                external_event_identifiers=selected_external_ids,
-                reason_code="current_event_activation",
-                actor=None,
-                context=context,
-            )
-            activated = True
-        source_report[provider]["activation_state"] = "active" if activated else "unresolved"
-        result["sources"][provider] = {
-            "run_created": created,
-            "run_state": run.state,
-            "explicit_mapping_total": len(selected_external_ids),
-            "unresolved_total": run.aggregate_revisions.filter(event__isnull=True).count(),
-            "activated": activated,
-        }
-    public_counts: list[int] = []
-    for event in target_events.values():
-        total = public_registration_total(event_public_record(event))
-        if total is None:
-            raise EventImportError("current_registration_total_unavailable")
-        public_counts.append(total.count)
-    result["public_event_total"] = len(public_counts)
-    result["public_count_total"] = sum(public_counts)
-    result["activation_state"] = (
-        "active" if current_input is not None and public_counts else "unresolved"
-    )
-    return result
-
-
-def activate_unambiguous_mappings(
-    *, luma_source: Path, correlation_id: str = "prod-import-events"
-) -> dict[str, Any]:
-    """Resolve only the still-unresolved aggregates an exact title+date proves.
-
-    This calls ``events.services.resolve_unmatched_aggregates`` -- a plain
-    resolution pass, not a state-machine transition; there is no separate
-    mapping model or review row to change.  It never touches the reviewed
-    identity manifest or
-    ``_docs/migration-data/local-current-registration-input.json``; both stay
-    exactly as they are.  A still-unresolved aggregate resolves only when
-    exactly one canonical ``Event`` shares its date and that event's
-    case/whitespace-normalized title equals the provider event's normalized
-    title exactly -- no fuzzy or ranked match.  Everything else stays
-    unresolved, reported here under the specific reason it did not qualify,
-    same as it would if this step did not exist.
-
-    Eventbrite's export carries no event-level title or date at all (only order- and
-    attendee-level columns), so every still-unresolved Eventbrite row is reported
-    as unmatched with ``provider_event_metadata_unavailable`` -- there is no evidence
-    to match on, not an unexamined gap.
-    """
-
-    from core.services import ServiceContext
-    from historical_registrations.importers import ProtectedSourceError
-    from historical_registrations.services import (
-        ProviderEventMetadata,
-        resolve_unmatched_aggregates,
-    )
-    from scripts.prod.registration_sources.luma import discover_luma_events
-
-    try:
-        discovered = discover_luma_events(luma_source)
-    except ProtectedSourceError as error:
-        raise EventImportError("luma_discovery_failed") from error
-    luma_metadata = {
-        item.external_event_identifier: ProviderEventMetadata(
-            external_event_identifier=item.external_event_identifier,
-            title=item.title,
-            start_at=item.start_at,
-        )
-        for item in discovered
-    }
-    context = ServiceContext(
-        correlation_id=correlation_id,
-        actor_ref=f"system:{correlation_id}",
-    )
-    return {
-        provider: resolve_unmatched_aggregates(
-            provider=provider,
-            provider_metadata=luma_metadata if provider == "luma" else {},
-            actor=None,
-            context=context,
-        )
-        for provider in PROVIDERS
-    }
-
-
-def activation_coverage(*, source_report: dict[str, Any], staged: dict[str, Any]) -> dict[str, Any]:
-    """Say plainly how much of the registration history is actually public.
-
-    The adapters are not the gap -- resolving each provider event to a
-    canonical Event is.  An operator reading a run should see the ratio, not a
-    bare success.
-    """
-
-    from community_base.events.models import Event
-
-    provider_events = sum(source_report[provider]["events"] for provider in PROVIDERS)
-    resolved = sum(staged["sources"][provider]["explicit_mapping_total"] for provider in PROVIDERS)
-    unresolved = sum(staged["sources"][provider]["unresolved_total"] for provider in PROVIDERS)
-    return {
-        "canonical_events": Event.objects.count(),
-        "provider_events": provider_events,
-        "resolved": resolved,
-        "unresolved": unresolved,
-        "summary": (
-            f"{resolved} of {provider_events} provider events resolved to a canonical event; "
-            f"{unresolved} remain unresolved and render no registration count"
-        ),
-    }
 
 
 def run(
@@ -1085,45 +607,10 @@ def run(
     new_event_content_source: Path | None = None,
     eventbrite_descriptions_source: Path | None = None,
     luma_source: Path,
-    eventbrite_source: Path,
-    current_registration_input: Path | None = None,
-    correlation_id: str = "prod-import-events",
 ) -> dict[str, Any]:
-    """Run every ingest leg, or leave the database exactly as it was found.
+    """Import current Event rows and content in one transaction."""
 
-    **One transaction around all five legs, deliberately.**  The registration
-    leg validates its exports last and the four legs before it used to have
-    committed already, so a refused run failed loudly and left state quietly:
-    a "fresh" database that had just exited 1 with
-    ``registration_source_validation_failed`` still held 448 events, 421 content
-    rows and 448 queued Q2 wakeups, and the retry then started from a
-    half-populated database that looked populated.
-
-    Validating every source up front instead was the other candidate and is
-    not sufficient here.  It would catch the checksum and aggregate drift --
-    the failure we actually hit -- but not
-    ``current_registration_target_unavailable``,
-    ``current_registration_total_unavailable``, a content record naming an
-    identity the database does not hold, or any integrity error raised part
-    way through a leg, all of which land after the first write.  It also
-    cannot be complete by construction: :func:`mapping_bridges` resolves the
-    current-registration input against the very ``Event`` rows the identity
-    leg writes, so that check has nothing to resolve against until the first
-    leg has run.
-
-    A transaction also gets the queued work right for free.
-    ``jobs.dispatch.dispatch_after_commit`` writes its ``DurableJob`` row in
-    the caller's transaction and defers the Q2 enqueue to
-    ``transaction.on_commit``, which fires only when the *outermost* block
-    commits.  Under this one, a failed run enqueues nothing at all rather
-    than leaving hundreds of wakeups pointing at rows that no longer exist.
-
-    The identity import is atomic on its own and stays that way; nesting it
-    here makes it a savepoint inside the wider guarantee rather than
-    weakening it.
-    """
-
-    if not luma_source.is_dir() or not eventbrite_source.is_file():
+    if not luma_source.is_dir():
         raise EventImportError("registration_source_unavailable")
 
     from django.db import transaction
@@ -1135,9 +622,6 @@ def run(
             new_event_content_source=new_event_content_source,
             eventbrite_descriptions_source=eventbrite_descriptions_source,
             luma_source=luma_source,
-            eventbrite_source=eventbrite_source,
-            current_registration_input=current_registration_input,
-            correlation_id=correlation_id,
         )
 
 
@@ -1148,11 +632,8 @@ def _run_legs(
     new_event_content_source: Path | None,
     eventbrite_descriptions_source: Path | None,
     luma_source: Path,
-    eventbrite_source: Path,
-    current_registration_input: Path | None,
-    correlation_id: str,
 ) -> dict[str, Any]:
-    """The six legs in their fixed order. Only :func:`run` may call this.
+    """The event legs in their fixed order. Only :func:`run` may call this.
 
     Split out purely so the transaction boundary is one unmissable line in
     :func:`run` rather than an indent level wrapped around a hundred of them.
@@ -1167,9 +648,8 @@ def _run_legs(
         source=eventbrite_descriptions_source, apply=True
     )
     # Distinct top-level key, deliberately never merged into `identities` (the
-    # reviewed-manifest replay) or `activation_coverage` (the registration-count
-    # gate) -- an operator reading the report must not mistake an automatic
-    # creation for either the reviewed manifest changing or a count activating.
+    # reviewed-manifest replay) -- an operator reading the report must not
+    # mistake an automatic creation for the reviewed manifest changing.
     new_event_identities = {
         "luma": discover_new_luma_event_identities(luma_source=luma_source, apply=True),
     }
@@ -1178,33 +658,9 @@ def _run_legs(
     # different artifacts with different provenance, and merging their counts
     # would hide which of the two moved.
     new_event_content = import_new_content(source=new_event_content_source, apply=True)
-    current_input = load_current_registration_input(current_registration_input)
-    source_report, derived_sources = derive_registration_sources(
-        luma_source=luma_source,
-        eventbrite_source=eventbrite_source,
-        current_input=current_input,
-    )
-    staged = stage_registration_aggregates(
-        derived_sources=derived_sources,
-        source_report=source_report,
-        current_input=current_input,
-        correlation_id=correlation_id,
-    )
-    # A distinct top-level key, deliberately never merged into `registration_import`
-    # (what the explicit current-registration-input path resolved) or
-    # `activation_coverage` (which reports that same explicit-only ratio) -- an
-    # operator must be able to see exactly which additional aggregates this narrower,
-    # automatic pass resolved, and why every other one is still unresolved.
-    aggregate_auto_resolution = activate_unambiguous_mappings(
-        luma_source=luma_source, correlation_id=correlation_id
-    )
     return {
         "identities": identities,
         "new_event_identities": new_event_identities,
-        "registration_sources": source_report,
-        "registration_import": staged,
-        "aggregate_auto_resolution": aggregate_auto_resolution,
-        "activation_coverage": activation_coverage(source_report=source_report, staged=staged),
         "event_content": content,
         "new_event_content": new_event_content,
         "eventbrite_descriptions": eventbrite_descriptions,
@@ -1242,29 +698,12 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--luma-source", type=Path, default=main_root / LUMA_RELATIVE_SOURCE)
     parser.add_argument(
-        "--eventbrite-source", type=Path, default=main_root / EVENTBRITE_RELATIVE_SOURCE
-    )
-    parser.add_argument(
-        "--current-registration-input",
-        type=Path,
-        default=None,
-        help=(
-            "JSON file naming exact current provider identities and their canonical "
-            "Event source identities. Everything it does not name stays "
-            "review-required and renders no count."
-        ),
-    )
-    parser.add_argument(
         "--discover-new-events-only",
         action="store_true",
         help=(
             "Import identities, then discover and create identities for new Luma "
-            "events only. Skips the content import and registration-aggregate "
-            "derivation entirely, so it "
-            "does not require --eventbrite-source and does not require "
-            "--luma-source to match the pinned checksum in "
-            "event-registration-sources.json -- use this to land a fresh export "
-            "the registration pipeline has not been reconciled against yet."
+            "events only. Skips the content import; registrations are always "
+            "handled separately by import_event_registrants.py."
         ),
     )
     parser.add_argument(
@@ -1294,7 +733,7 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help=(
             "Report the same duplicates and delete only those carrying no "
-            "registration, aggregate revision, Q&A question or co-host invite. "
+            "registration, Q&A question or co-host invite. "
             "Any duplicate with dependent rows is reported and kept."
         ),
     )
@@ -1306,17 +745,10 @@ def main(argv: list[str] | None = None) -> int:
         parser = _parser()
         args = parser.parse_args(argv)
         if args.dry_run and not args.discover_new_events_only:
-            # The full run stages aggregates and activates counts; there is no
-            # halfway version of that, and pretending otherwise would be worse
-            # than refusing. --report-duplicate-identities is already read-only.
+            # The complete content import is transactional; discovery is the
+            # only mode with a useful read-only plan.
             parser.error("--dry-run applies to --discover-new-events-only")
         configure_target(parser, args)
-        # The events app owns no provider file format, so the readers it
-        # dispatches to are supplied here, by the ingestion layer that has the
-        # exports.
-        from scripts.prod.registration_sources import register_source_readers
-
-        register_source_readers()
         if args.report_duplicate_identities or args.remove_duplicate_identities:
             if not args.luma_source.resolve().is_dir():
                 raise EventImportError("registration_source_unavailable")
@@ -1360,12 +792,6 @@ def main(argv: list[str] | None = None) -> int:
                 new_event_content_source=args.new_event_content.resolve(),
                 eventbrite_descriptions_source=args.eventbrite_descriptions.resolve(),
                 luma_source=args.luma_source.resolve(),
-                eventbrite_source=args.eventbrite_source.resolve(),
-                current_registration_input=(
-                    args.current_registration_input.resolve()
-                    if args.current_registration_input is not None
-                    else None
-                ),
             )
     except EventImportError as error:
         # The error carries a condition code, never a source value.

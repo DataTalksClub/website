@@ -34,13 +34,6 @@ from course_management.datamailer_templates.accessibility import (
 from courses.models import Cohort, HomeworkState, ProjectState, RegistrationCampaign
 from events.identity import canonical_detail_path
 from events.queries import published_event_records
-from historical_registrations.models import (
-    HistoricalRegistrationAggregateRevision,
-    HistoricalRegistrationAggregateSlot,
-    HistoricalRegistrationPointerDisplacement,
-    HistoricalRegistrationSourceRun,
-    HistoricalRegistrationTotalState,
-)
 from management_auth.models import APIPrincipal
 from management_auth.services import create_principal
 from playwright_tests.accessibility_support import (
@@ -56,10 +49,6 @@ from playwright_tests.accessibility_support import (
     structure_issues,
     target_size_issues,
     text_spacing_issues,
-)
-from playwright_tests.test_historical_registration_totals import (
-    seed_total,
-    seed_validated_overlap,
 )
 from test_support.factories import FactoryContext, create_current_scenario
 from test_support.runtime import DEFAULT_FROZEN_AT, current_worker_id
@@ -370,10 +359,6 @@ def accessibility_environment() -> AccessibilityEnvironment:
         ),
         "audit-list": Surface("/studio/audit/", actor="site-admin"),
         "audit-detail": Surface(f"/studio/audit/{audit_id}/", actor="site-admin"),
-        "historical-list": Surface(
-            "/studio/events/historical-registration-totals/",
-            actor="site-admin",
-        ),
         "registration": Surface(
             reverse("registration_campaign", kwargs={"campaign_slug": campaign.slug})
         ),
@@ -1137,112 +1122,6 @@ def _management_scenario(recorder: ScenarioRecorder) -> set[str]:
     return recorder.checked
 
 
-def _historical_scenario(recorder: ScenarioRecorder) -> set[str]:
-    HistoricalRegistrationPointerDisplacement.objects.all().delete()
-    HistoricalRegistrationAggregateSlot.objects.all().delete()
-    HistoricalRegistrationTotalState.objects.all().delete()
-    HistoricalRegistrationAggregateRevision.objects.all().delete()
-    HistoricalRegistrationSourceRun.objects.all().delete()
-    recorder.scan("historical.empty", "historical-list", text="No source runs")
-    event = recorder.environment.objects["event"]
-    assert isinstance(event, dict)
-    seed_total(event, count=3, complete=True)
-    namespace = f"issue-65-historical-{recorder.page.viewport_size['width']}"
-    historical = create_current_scenario(
-        FactoryContext("issue-65-historical", namespace, DEFAULT_FROZEN_AT),
-        bundle="historical_event_totals",
-        state="minimal_valid",
-    ).by_factory()
-    _restore_audit_event_id_default()
-    run = historical["historical_event_totals.historical_source_run"].value
-    recorder.environment.surfaces["historical-detail"] = Surface(
-        f"/studio/events/historical-registration-totals/{run.id}/",
-        actor="site-admin",
-    )
-    recorder.scan("historical.list", "historical-list", text="Source runs")
-    recorder.scan("historical.detail", "historical-detail", text="active")
-
-    HistoricalRegistrationSourceRun.objects.filter(pk=run.pk).update(
-        state=HistoricalRegistrationSourceRun.State.VALIDATED,
-    )
-    HistoricalRegistrationAggregateRevision.objects.filter(source_run=run).update(
-        state=HistoricalRegistrationAggregateRevision.State.VALIDATED,
-    )
-    recorder.scan("historical.validation-success", "historical-detail", text="validated")
-    HistoricalRegistrationSourceRun.objects.filter(pk=run.pk).update(
-        state=HistoricalRegistrationSourceRun.State.QUARANTINED,
-        reason_codes=["unsupported_schema"],
-    )
-    HistoricalRegistrationAggregateRevision.objects.filter(source_run=run).update(
-        state=HistoricalRegistrationAggregateRevision.State.QUARANTINED,
-    )
-    recorder.scan(
-        "historical.unsupported-quarantined",
-        "historical-detail",
-        text="quarantined",
-    )
-
-    preview_path = f"/studio/events/{event['identity_id']}/registration-total/"
-    recorder.environment.surfaces["historical-preview"] = Surface(
-        preview_path,
-        actor="site-admin",
-    )
-    recorder.scan(
-        "historical.activation-preview",
-        "historical-preview",
-        text="Registration total preview",
-    )
-
-    overlap_run = seed_validated_overlap(event, suffix=namespace)
-    recorder.environment.surfaces["historical-overlap"] = Surface(
-        f"/studio/events/historical-registration-totals/{overlap_run.id}/",
-        actor="site-admin",
-    )
-    _visit_surface(recorder.page, recorder.live_server, recorder.environment, "historical-overlap")
-    recorder.page.get_by_label("Confirm activate").check()
-    with recorder.page.expect_response(
-        lambda candidate: candidate.url.endswith(f"/{overlap_run.id}/activate/")
-    ) as overlap_response:
-        recorder.page.get_by_role("button", name="Activate").click()
-    assert overlap_response.value.status == 409
-    expect(recorder.page.get_by_role("alert")).to_be_visible()
-    recorder.scan_current("historical.overlap-conflict")
-
-    active_run = (
-        HistoricalRegistrationSourceRun.objects.filter(
-            # The mapping row is gone: a revision names its own canonical event
-            # (events.models.HistoricalRegistrationAggregateRevision.event).
-            aggregate_revisions__event_id=event["identity_id"],
-            state=HistoricalRegistrationSourceRun.State.ACTIVE,
-        )
-        .distinct()
-        .first()
-    )
-    assert active_run is not None
-    recorder.environment.surfaces["historical-active"] = Surface(
-        f"/studio/events/historical-registration-totals/{active_run.id}/",
-        actor="site-admin",
-    )
-    _visit_surface(recorder.page, recorder.live_server, recorder.environment, "historical-active")
-    recorder.page.get_by_label("Confirm rollback").check()
-    recorder.page.get_by_role("button", name="Rollback").click()
-    expect(recorder.page.get_by_text("rolled_back", exact=True).first).to_be_visible()
-    recorder.scan_current("historical.rollback")
-
-    _cookie(
-        recorder.page,
-        recorder.live_server,
-        recorder.environment.users["denied"],
-    )
-    denied = recorder.page.goto(
-        f"{recorder.live_server.url}/studio/events/historical-registration-totals/"
-    )
-    assert denied is not None and denied.status == 403
-    assert "Studio access denied" in recorder.page.content()
-    recorder.checked.add("historical.denied")
-    return recorder.checked
-
-
 def _learner_scenario(recorder: ScenarioRecorder) -> set[str]:
     simple_states = (
         (
@@ -1348,7 +1227,6 @@ STATE_SCENARIO_EXECUTORS: dict[str, ScenarioExecutor] = {
     "management-current-states": _management_scenario,
     "public-current-states": _public_scenario,
     "account-current-states": _account_scenario,
-    "historical-current-states": _historical_scenario,
     "learner-current-states": _learner_scenario,
     "studio-courses-current-states": _studio_courses_scenario,
 }
@@ -1510,18 +1388,6 @@ def test_reflow_zoom_spacing_reduced_motion_and_forced_colors(
     live_server,
     accessibility_environment: AccessibilityEnvironment,
 ) -> None:
-    namespace = f"issue-65-reflow-{current_worker_id()}"
-    historical = create_current_scenario(
-        FactoryContext("issue-65-reflow", namespace, DEFAULT_FROZEN_AT),
-        bundle="historical_event_totals",
-        state="minimal_valid",
-    ).by_factory()
-    _restore_audit_event_id_default()
-    run = historical["historical_event_totals.historical_source_run"].value
-    accessibility_environment.surfaces["historical-detail"] = Surface(
-        f"/studio/events/historical-registration-totals/{run.id}/",
-        actor="site-admin",
-    )
     cdp = page.context.new_cdp_session(page)
     for surface in (
         "article",
@@ -1532,7 +1398,6 @@ def test_reflow_zoom_spacing_reduced_motion_and_forced_colors(
         "identity-conflict",
         "credential-copy",
         "homework",
-        "historical-detail",
         "studio-course-table",
     ):
         page.set_viewport_size({"width": 320, "height": 800})

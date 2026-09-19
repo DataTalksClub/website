@@ -30,7 +30,13 @@ def _entry_point_names() -> list[str]:
 
 
 class EventImportTests(TestCase):
-    """The identity replay, the coverage report, and the named content gap."""
+    """Identity and content replay against the current Event tables."""
+
+    def setUp(self) -> None:
+        from scripts.prod.import_events import import_content, import_identities
+
+        import_identities(manifest=EVENT_IDENTITY_MANIFEST, apply=True)
+        import_content(source=EVENT_CONTENT, apply=True)
 
     def test_the_identity_manifest_replays_without_creating_a_row(self) -> None:
         """The test database already holds the reviewed set, so importing is a reconcile.
@@ -60,30 +66,6 @@ class EventImportTests(TestCase):
         report = import_identities(manifest=EVENT_IDENTITY_MANIFEST, apply=False)
 
         self.assertFalse(report["applied"])
-
-    def test_the_coverage_report_states_the_activated_ratio(self) -> None:
-        """An operator must see 3 of 383, not a bare success."""
-
-        from scripts.prod.import_events import activation_coverage
-
-        coverage = activation_coverage(
-            source_report={"luma": {"events": 174}, "eventbrite": {"events": 209}},
-            staged={
-                "sources": {
-                    "luma": {"explicit_mapping_total": 3, "unresolved_total": 171},
-                    "eventbrite": {
-                        "explicit_mapping_total": 0,
-                        "unresolved_total": 209,
-                    },
-                }
-            },
-        )
-
-        self.assertEqual(coverage["provider_events"], 383)
-        self.assertEqual(coverage["resolved"], 3)
-        self.assertEqual(coverage["unresolved"], 380)
-        self.assertIn("3 of 383", coverage["summary"])
-        self.assertIn("380 remain unresolved", coverage["summary"])
 
     def test_the_content_records_replay_onto_the_identities_they_describe(self) -> None:
         """The test database already holds them, so importing is a reconcile."""
@@ -482,79 +464,6 @@ class NewEventIdentityDiscoveryTests(TestCase):
         self.assertEqual(second["already_tracked_total"], 1)
         self.assertEqual(Event.objects.count(), after_first)
 
-    def test_an_event_already_staged_for_mapping_review_is_left_alone(self) -> None:
-        """The 380-of-421 mapping-review backlog is a different, already-tracked gap.
-
-        There is no separate mapping-review row any more (``HistoricalEventMapping``
-        was removed -- see commit 2263e4f "Remove HistoricalEventMapping and its
-        review-state machine").  A provider event now counts as already tracked
-        once a ``HistoricalRegistrationAggregateRevision`` row exists for its
-        ``(provider, external_event_identifier)`` pair, resolved or not -- exactly
-        the check ``discover_new_provider_events`` makes.  This constructs an
-        unresolved (``event=None``) aggregate revision to stand in for what used to
-        be a ``review_required`` mapping row.
-        """
-
-        import hashlib
-
-        from community_base.events.models import Event
-        from historical_registrations.models import (
-            HistoricalRegistrationAggregateRevision,
-            HistoricalRegistrationSourceRun,
-        )
-        from scripts.prod.import_events import discover_new_luma_event_identities
-
-        run = HistoricalRegistrationSourceRun.objects.create(
-            provider="luma",
-            adapter_version="synthetic-v1",
-            schema_version="synthetic-v1",
-            whole_source_checksum=hashlib.sha256(b"source-already-staged").hexdigest(),
-            source_reference_digest=hashlib.sha256(b"reference-already-staged").hexdigest(),
-            manifest_entry_total=1,
-            manifest_event_total=1,
-            parsed_row_total=1,
-            eligible_row_total=1,
-            excluded_row_total=0,
-            quarantined_event_total=0,
-            status_totals={"eligible": 1},
-            state_totals={"staged": 1},
-            reason_codes=[],
-            mapping_set_revision=1,
-            policy_version="historical-registration-v1",
-            state=HistoricalRegistrationSourceRun.State.STAGED,
-            actor_ref="system:test-already-staged",
-        )
-        HistoricalRegistrationAggregateRevision.objects.create(
-            source_run=run,
-            external_event_identifier="evt-AlreadyStaged",
-            event=None,
-            eligible_count=1,
-            excluded_count=0,
-            quarantined_count=0,
-            coverage_boundary="historical",
-            status_policy_version="historical-status-v1",
-            combination_policy=(
-                HistoricalRegistrationAggregateRevision.CombinationPolicy.ADDITIVE_DISJOINT
-            ),
-            aggregate_checksum=hashlib.sha256(b"aggregate-already-staged").hexdigest(),
-            state=HistoricalRegistrationAggregateRevision.State.STAGED,
-        )
-        self._write_luma_event(
-            "2026-09-08_an-already-staged-event_evt-alreadystaged",
-            event_id="evt-AlreadyStaged",
-            event_url="https://luma.com/already-staged",
-            title="An Already Staged Event",
-            start_at="2026-09-08T10:00:00.000Z",
-            statuses=("approved",),
-        )
-
-        before = Event.objects.count()
-        report = discover_new_luma_event_identities(luma_source=self.root)
-
-        self.assertEqual(report["created_total"], 0)
-        self.assertEqual(report["already_tracked_total"], 1)
-        self.assertEqual(Event.objects.count(), before)
-
     def test_dry_run_creates_nothing(self) -> None:
         from community_base.events.models import Event
         from scripts.prod.import_events import discover_new_luma_event_identities
@@ -780,121 +689,3 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
         self.assertEqual(report["duplicate_total"], 0)
         self.assertEqual(report["removed_total"], 0)
         self.assertTrue(Event.objects.filter(pk=created.id).exists())
-
-
-class RunAtomicityTests(TestCase):
-    """A refused run leaves the database exactly as it found it.
-
-    The registration leg validates its exports last, so before `run()` took a
-    transaction a checksum refusal still left every earlier leg committed: a
-    "fresh" database that had just exited 1 held 448 events, 421 content
-    rows and 448 queued Q2 wakeups, and the retry started from a
-    half-populated database that looked populated.
-    """
-
-    def setUp(self) -> None:
-        scratch = Path(settings.BASE_DIR) / ".tmp"
-        scratch.mkdir(exist_ok=True)
-        self.temporary = tempfile.TemporaryDirectory(dir=scratch)
-        self.root = Path(self.temporary.name)
-        self.luma_source = self.root / "luma"
-        self.luma_source.mkdir()
-        _write_luma_pair(
-            self.luma_source,
-            "2026-09-08_a-brand-new-event_evt-atomicity",
-            event_id="evt-Atomicity",
-            event_url="https://luma.com/atomicity",
-            title="An Event Only This Export Knows About",
-            start_at="2026-09-08T10:00:00.000Z",
-            statuses=("approved", "approved", "declined"),
-        )
-        # The eventbrite leg is never reached: the luma checksum refuses first.
-        # It only has to exist, because `run()` refuses a missing source before
-        # it opens the transaction at all.
-        self.eventbrite_source = self.root / "eventbrite.zip"
-        self.eventbrite_source.write_bytes(b"not a real archive")
-        self.new_event_content = self.root / "absent-new-event-content.json"
-
-    def tearDown(self) -> None:
-        self.temporary.cleanup()
-
-    def _run(self):
-        from scripts.prod.import_events import run
-
-        return run(
-            # The identity leg would otherwise reconcile against its own
-            # default (the real external tree at ~/prod/dtc-data), which
-            # disagrees with the small synthetic set reference_data.py already
-            # seeded this test database with. Pointing both explicitly at that
-            # same synthetic set keeps the identity/content legs a clean
-            # no-op replay, so this test still exercises what it means to --
-            # a *later* leg (registration) is what refuses the run.
-            identity_manifest=EVENT_IDENTITY_MANIFEST,
-            event_content_source=EVENT_CONTENT,
-            luma_source=self.luma_source,
-            eventbrite_source=self.eventbrite_source,
-            new_event_content_source=self.new_event_content,
-        )
-
-    def test_the_leg_that_rolls_back_really_does_write(self) -> None:
-        """Without this, the rollback assertion below would pass vacuously."""
-
-        from community_base.events.models import Event
-        from scripts.prod.import_events import discover_new_luma_event_identities
-
-        before = Event.objects.count()
-
-        report = discover_new_luma_event_identities(luma_source=self.luma_source, apply=True)
-
-        self.assertEqual(report["created_total"], 1)
-        self.assertEqual(Event.objects.count(), before + 1)
-
-    def test_a_refused_run_leaves_no_partial_row_behind(self) -> None:
-        from community_base.jobs.models import JobIntent
-
-        from community_base.events.models import Event
-        from historical_registrations.models import (
-            HistoricalRegistrationAggregateRevision,
-            HistoricalRegistrationSourceRun,
-        )
-        from scripts.prod.import_events import EventImportError
-
-        def counts() -> tuple[int, ...]:
-            return (
-                Event.objects.count(),
-                Event.objects.exclude(description_html="").count(),
-                HistoricalRegistrationSourceRun.objects.count(),
-                HistoricalRegistrationAggregateRevision.objects.count(),
-                JobIntent.objects.count(),
-            )
-
-        before = counts()
-
-        with self.assertRaises(EventImportError) as refusal:
-            self._run()
-
-        self.assertEqual(str(refusal.exception), "registration_source_validation_failed")
-        self.assertEqual(counts(), before)
-
-    def test_a_refused_run_queues_no_background_work(self) -> None:
-        """The Q2 enqueue is an on-commit side effect, so it must not survive either."""
-
-        from scripts.prod.import_events import EventImportError
-
-        with self.captureOnCommitCallbacks(execute=False) as callbacks:
-            with self.assertRaises(EventImportError):
-                self._run()
-
-        self.assertEqual(callbacks, [])
-
-    def test_the_refusal_names_no_source_value(self) -> None:
-        """The opaque code is deliberate: this data is protected."""
-
-        from scripts.prod.import_events import EventImportError
-
-        with self.assertRaises(EventImportError) as refusal:
-            self._run()
-
-        message = str(refusal.exception)
-        self.assertNotIn(str(self.luma_source), message)
-        self.assertNotIn("evt-Atomicity", message)
