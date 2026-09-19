@@ -84,9 +84,14 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # ignore_missing_imports override for `events.models` -- the Django plugin
 # resolves the `events` label to that module name, which community_base.events
 # owns since D4.1 -- and a run of quality-gate opt-ins, both configuration only.
-STUDIO_COURSES_PYPROJECT_SHA256 = "766129bfc5250290b8750ea85350e3d678557fbac41b17033b9bd9499cb8880f"
+# D2.1a moved the pin again, from v0.4.7 to the v0.5.4 release (444538cd):
+# C7.19's namespaced Studio URLconf fix, C7.20's Studio shell extension
+# points, C7.25's public template seam and block contract check, and
+# C7.26/C7.27's settings shapes. Both hashes below are regenerated from
+# pyproject.toml and uv.lock as they stand after that bump.
+STUDIO_COURSES_PYPROJECT_SHA256 = "3790b86252c727d56fe78594e366de38e3c29201d9c36a549a05debea709064c"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "eaa1574e661b6d84a8bc406cba443a5e242cbafdcf58d2a5fdd5394385408f9c"
+    "1b207c8d1fc0e0b365c780324425b61fe056a5bc9ab9e8b7c622627734da99ea"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"

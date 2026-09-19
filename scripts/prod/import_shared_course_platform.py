@@ -592,6 +592,15 @@ def _mapping() -> dict[
                 "required_level",
                 "available_after_days",
                 "content_hash",
+                # C7.8 (v0.5.0): distinguishes rendered-from-markdown body_html
+                # from parser-supplied HTML. Every migrated unit is written
+                # through save(), which renders body_html from body under the
+                # default "markdown" source, and the import then force-sets
+                # body_html to the site's own rendered_html byte-for-byte with
+                # a direct queryset .update() right after -- so the field's
+                # value never governs what lands in body_html here. Left at
+                # its package default.
+                "body_html_source",
             }
         ),
     )
@@ -688,7 +697,13 @@ def _mapping() -> dict[
             **prov,
         },
         written(site.Homework, {"course"}) | {"cohort"},
-        frozenset(),
+        # C7.11 (v0.5.x): a package Homework can bind to the cohort module it
+        # belongs to and the kind:homework unit whose page shows its
+        # submission form. Site homeworks are cohort-owned, not
+        # module/lesson-owned (site Module/Unit stay site-side, decision 4),
+        # so the import has no site column to read either from; both stay at
+        # their package default (null) for every migrated row.
+        frozenset({"module", "unit"}),
     )
 
     mapping[("courses.Question", "cb_coursework.Question", False)] = (
