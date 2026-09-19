@@ -146,7 +146,6 @@ INSTALLED_APPS = [
     "community_base.curriculum",
     "community_base.coursework",
     "event_qna",
-    "historical_registrations",
     "event_registrants",
     "studio.apps.StudioConfig",
     "management_api.apps.ManagementAPIConfig",

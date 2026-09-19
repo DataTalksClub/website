@@ -21,23 +21,6 @@ credential_collection.management_capability_views = {  # type: ignore[attr-defin
 }
 
 
-@csrf_exempt
-def historical_import_collection(request, *args, **kwargs):
-    if request.method in {"GET", "HEAD"}:
-        return views.historical_import_list(request, *args, **kwargs)
-    return views.historical_import_create(request, *args, **kwargs)
-
-
-historical_import_collection.management_capability_keys = (  # type: ignore[attr-defined]
-    "events.historical_registration_import.manage",
-    "events.historical_registration_import.create",
-)
-historical_import_collection.management_capability_views = {  # type: ignore[attr-defined]
-    "GET": views.historical_import_list,
-    "POST": views.historical_import_create,
-}
-
-
 event_identity_collection = csrf_exempt(views.event_identity_list)
 event_identity_collection.management_capability_keys = (  # type: ignore[attr-defined]
     "events.identity.read",
@@ -200,51 +183,6 @@ urlpatterns = [
         name="admin-sponsor-export",
     ),
     path("credentials", credential_collection, name="admin-credential-list"),
-    path(
-        "historical-registration-imports",
-        historical_import_collection,
-        name="historical-registration-import-list",
-    ),
-    path(
-        "historical-registration-imports/<uuid:run_id>",
-        views.historical_import_detail,
-        name="historical-registration-import-detail",
-    ),
-    path(
-        "historical-registration-imports/<uuid:run_id>/dry-run",
-        views.historical_import_dry_run,
-        name="historical-registration-import-dry-run",
-    ),
-    path(
-        "historical-registration-imports/<uuid:run_id>/validate",
-        views.historical_import_validate,
-        name="historical-registration-import-validate",
-    ),
-    path(
-        "historical-registration-imports/<uuid:run_id>/activate",
-        views.historical_import_activate,
-        name="historical-registration-import-activate",
-    ),
-    path(
-        "historical-registration-imports/<uuid:run_id>/cancel",
-        views.historical_import_cancel,
-        name="historical-registration-import-cancel",
-    ),
-    path(
-        "historical-registration-imports/<uuid:run_id>/rollback",
-        views.historical_import_rollback,
-        name="historical-registration-import-rollback",
-    ),
-    path(
-        "events/<uuid:event_id>/registration-total",
-        views.historical_registration_total,
-        name="historical-registration-total",
-    ),
-    path(
-        "events/<int:event_id>/registration-total",
-        views.historical_registration_total,
-        name="historical-registration-total-int",
-    ),
     path(
         "events/identities",
         event_identity_collection,

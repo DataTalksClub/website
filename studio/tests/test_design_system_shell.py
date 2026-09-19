@@ -141,7 +141,6 @@ class StudioDesignFiveAShellTests(TestCase):
                 "studio:event-identity-detail",
                 kwargs={"event_id": self.event.content_id},
             ),
-            "historical registration totals": reverse("studio:historical-registration-list"),
         }
 
     def studio_courses_paths(self) -> dict[str, str]:

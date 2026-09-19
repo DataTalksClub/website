@@ -28,20 +28,18 @@ closures are:
 | Changed owner | Django labels |
 | --- | --- |
 | `api` | `api` |
-| `content` | `accounts api content.tests content_sync core courses event_qna event_registrants events historical_registrations` |
+| `content` | `accounts api content.tests content_sync core courses event_qna event_registrants events` |
 | `courses` | `accounts api content.tests content_sync core courses data management_api studio studio_courses` |
 | `data` | `api courses data studio_courses` |
 | `management_api` | `api management_api studio` |
 | `management_auth` | `accounts api core management_api management_auth studio` |
 | `review_import` | `accounts courses review_import` |
-| `studio` | `accounts core event_qna event_registrants events historical_registrations studio` |
+| `studio` | `accounts core event_qna event_registrants events studio` |
 | `studio_courses` | `studio_courses` |
 
-The events subsystem is one owner and one label across four top-level packages:
-`shared.events` owns `events/`, `event_qna/`, `event_registrants/` and
-`historical_registrations/`, and the `events` verification node runs all four labels. The
-Q&A, registrant and historical-registration models were extracted out of `events/` when the
-`events` label was handed to `community_base.events`; keeping them under the one owner keeps
+The events subsystem is one owner and one label across three top-level packages:
+`shared.events` owns `events/`, `event_qna/`, and `event_registrants/`, and the
+`events` verification node runs all three labels. Keeping them under one owner keeps
 the classification and the reverse-import closure they had before the extraction.
 
 After migration, render, and root-configuration guards run, the selector derives non-application

@@ -44,26 +44,6 @@ urlpatterns = [
         name="event-identity-detail",
     ),
     path(
-        "events/historical-registration-totals/",
-        views.historical_registration_list,
-        name="historical-registration-list",
-    ),
-    path(
-        "events/historical-registration-totals/<uuid:run_id>/",
-        views.historical_registration_detail,
-        name="historical-registration-detail",
-    ),
-    path(
-        "events/historical-registration-totals/<uuid:run_id>/<str:action>/",
-        views.historical_registration_action,
-        name="historical-registration-action",
-    ),
-    path(
-        "events/<int:event_id>/registration-total/",
-        views.historical_registration_total,
-        name="historical-registration-total",
-    ),
-    path(
         "events/<int:event_id>/qna/",
         qna_views.event_qna_detail,
         name="event-qna-detail",

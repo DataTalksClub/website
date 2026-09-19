@@ -59,7 +59,7 @@ and name-based UUID methods; never use process-global random state, UUID4, impli
 filesystem order, or database sequence order.
 
 The shared catalog defines the accepted accounts/management, editorial content, adopted courses,
-historical event totals, operations/jobs, and provider-neutral messaging bundles. Each leaf appears
+operations/jobs, and provider-neutral messaging bundles. Each leaf appears
 in minimal, complete, boundary, rejected, stale/conflict, and privacy/redaction scenarios. Logical
 payloads must remain byte-identical across worker namespaces; only physical identifiers may differ.
 Calling a leaf normally returns its canonical logical specification. Call `leaf.create(context)` for

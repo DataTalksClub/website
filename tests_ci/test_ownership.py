@@ -105,9 +105,8 @@ def _reverse_imports(
     for importer in sorted(verification_nodes):
         # Read every package the node's labels actually run, not just the package
         # its id is named after. One verification label can cover several top-level
-        # packages -- `django.events` runs the event subsystem's four apps since the
-        # Q&A, registrant and historical-registration models were extracted out of
-        # `events/` -- and an import written in one of them binds the label the same
+        # packages -- `django.events` runs the event subsystem's apps -- and an
+        # import written in one of them binds the label the same
         # way an import written in `events/` does.
         for package in sorted(_label_packages(verification_nodes[importer])):
             for path in _source_files(package):
@@ -136,7 +135,6 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
             "event_qna",
             "event_registrants",
             "events",
-            "historical_registrations",
         ),
         "courses": (
             "accounts",
@@ -165,7 +163,6 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
             "event_qna",
             "event_registrants",
             "events",
-            "historical_registrations",
             "studio",
         ),
     }

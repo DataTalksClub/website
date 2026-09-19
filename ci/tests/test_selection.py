@@ -275,7 +275,6 @@ def test_focused_runner_uses_parallel_noninteractive_command_and_only_validated_
             "event_qna",
             "event_registrants",
             "events",
-            "historical_registrations",
         ],
         check=True,
     )

@@ -28,13 +28,6 @@ from event_qna.services import (
     update_session,
 )
 from events.identity import EventIdentityNotFound
-from historical_registrations.importers import ProtectedSourceError
-from historical_registrations.models import HistoricalRegistrationSourceRun
-from historical_registrations.services import (
-    HistoricalRegistrationConflict,
-    HistoricalRegistrationInvalid,
-    serialize_run,
-)
 from management_auth.idempotency import (
     ManagementIdempotencyConflict,
     OneTimeCommandResult,
@@ -149,24 +142,6 @@ def _credential_error(error: Exception) -> APIError:
     if isinstance(error, PermissionError):
         return APIError(403, "permission_denied", "Permission is denied.")
     return APIError(400, "invalid_request", "The credential request is invalid.")
-
-
-def _historical_error(error: Exception) -> APIError:
-    if isinstance(error, APIError):
-        return error
-    if isinstance(error, (IdempotencyConflict, IdempotencyInProgress)):
-        return APIError(409, "idempotency_conflict", "The idempotency request conflicts.")
-    if isinstance(error, RevisionConflict):
-        return APIError(409, "revision_conflict", "The mapping revision changed.")
-    if isinstance(error, HistoricalRegistrationConflict):
-        return APIError(409, str(error), "The historical aggregate state conflicts.")
-    if isinstance(error, ProtectedSourceError):
-        return APIError(400, error.code, "The registered protected source was rejected.")
-    if isinstance(error, (HistoricalRegistrationInvalid, ValueError, TypeError)):
-        return APIError(400, "invalid_request", "The historical aggregate request is invalid.")
-    if isinstance(error, HistoricalRegistrationSourceRun.DoesNotExist):
-        return APIError(404, "not_found", "The historical aggregate resource was not found.")
-    return APIError(500, "internal_error", "The historical aggregate request failed safely.")
 
 
 def _identity_error(error: Exception) -> APIError:
@@ -316,7 +291,7 @@ def _oauth_provider_error(error: Exception) -> APIError:
     return APIError(500, "internal_error", "The OAuth provider request failed safely.")
 
 
-def _historical_context(
+def _service_context(
     request: HttpRequest,
     *,
     idempotency_key: str | None = None,
@@ -355,7 +330,7 @@ def admin_health(request: HttpRequest) -> JsonResponse:
 def site_navigation_read(request: HttpRequest) -> JsonResponse:
     capability = request.management_capability  # type: ignore[attr-defined]
     try:
-        result = capability.service(context=_historical_context(request))
+        result = capability.service(context=_service_context(request))
     except Exception as error:
         raise _site_navigation_error(error) from error
     response = JsonResponse(result)
@@ -382,7 +357,7 @@ def site_navigation_write(request: HttpRequest) -> JsonResponse:
             actor_ref=f"api_principal:{identity.principal.id}",
             actor_id=identity.principal.user_id,
             api_principal_id=identity.principal.id,
-            context=_historical_context(request),
+            context=_service_context(request),
         )
     except Exception as error:
         raise _site_navigation_error(error) from error
@@ -393,7 +368,7 @@ def site_navigation_write(request: HttpRequest) -> JsonResponse:
 def site_settings_read(request: HttpRequest) -> JsonResponse:
     capability = request.management_capability  # type: ignore[attr-defined]
     try:
-        result = capability.service(context=_historical_context(request))
+        result = capability.service(context=_service_context(request))
     except Exception as error:
         raise _site_settings_error(error) from error
     return JsonResponse(result)
@@ -416,7 +391,7 @@ def site_settings_write(request: HttpRequest) -> JsonResponse:
             actor_ref=f"api_principal:{identity.principal.id}",
             actor_id=identity.principal.user_id,
             api_principal_id=identity.principal.id,
-            context=_historical_context(request),
+            context=_service_context(request),
         )
     except Exception as error:
         raise _site_settings_error(error) from error
@@ -427,7 +402,7 @@ def site_settings_write(request: HttpRequest) -> JsonResponse:
 def operational_settings_read(request: HttpRequest) -> JsonResponse:
     capability = request.management_capability  # type: ignore[attr-defined]
     try:
-        result = capability.service(context=_historical_context(request))
+        result = capability.service(context=_service_context(request))
     except Exception as error:
         raise _site_settings_error(error) from error
     return JsonResponse(result)
@@ -450,7 +425,7 @@ def operational_settings_write(request: HttpRequest) -> JsonResponse:
             actor_ref=f"api_principal:{identity.principal.id}",
             actor_id=identity.principal.user_id,
             api_principal_id=identity.principal.id,
-            context=_historical_context(request),
+            context=_service_context(request),
         )
     except Exception as error:
         raise _site_settings_error(error) from error
@@ -461,7 +436,7 @@ def operational_settings_write(request: HttpRequest) -> JsonResponse:
 def oauth_provider_list(request: HttpRequest) -> JsonResponse:
     capability = request.management_capability  # type: ignore[attr-defined]
     try:
-        result = capability.service(context=_historical_context(request))
+        result = capability.service(context=_service_context(request))
     except Exception as error:
         raise _oauth_provider_error(error) from error
     return JsonResponse(result)
@@ -488,7 +463,7 @@ def oauth_provider_update(request: HttpRequest, provider: str) -> JsonResponse:
             actor_ref=f"api_principal:{identity.principal.id}",
             actor_id=identity.principal.user_id,
             api_principal_id=identity.principal.id,
-            context=_historical_context(request),
+            context=_service_context(request),
         )
     except Exception as error:
         raise _oauth_provider_error(error) from error
@@ -504,7 +479,7 @@ def sponsor_list(request: HttpRequest) -> JsonResponse:
             filter_fields=capability.admin_api.filter_fields,
             sort_fields=capability.admin_api.sort_fields,
         )
-        result = capability.service(query, context=_historical_context(request))
+        result = capability.service(query, context=_service_context(request))
     except Exception as error:
         raise _sponsor_error(error) from error
     return JsonResponse(result)
@@ -532,7 +507,7 @@ def sponsor_create(request: HttpRequest) -> JsonResponse:
             actor_ref=f"api_principal:{identity.principal.id}",
             actor_id=identity.principal.user_id,
             api_principal_id=identity.principal.id,
-            context=_historical_context(request),
+            context=_service_context(request),
         )
     except Exception as error:
         raise _sponsor_error(error) from error
@@ -543,7 +518,7 @@ def sponsor_create(request: HttpRequest) -> JsonResponse:
 def sponsor_detail(request: HttpRequest, sponsor_id: uuid.UUID) -> JsonResponse:
     capability = request.management_capability  # type: ignore[attr-defined]
     try:
-        result = capability.service(sponsor_id, context=_historical_context(request))
+        result = capability.service(sponsor_id, context=_service_context(request))
     except Exception as error:
         raise _sponsor_error(error) from error
     if result is None:
@@ -583,7 +558,7 @@ def sponsor_update(request: HttpRequest, sponsor_id: uuid.UUID) -> JsonResponse:
             actor_ref=f"api_principal:{identity.principal.id}",
             actor_id=identity.principal.user_id,
             api_principal_id=identity.principal.id,
-            context=_historical_context(request),
+            context=_service_context(request),
         )
     except Exception as error:
         raise _sponsor_error(error) from error
@@ -618,7 +593,7 @@ def _sponsor_lifecycle_view(request: HttpRequest, sponsor_id: uuid.UUID) -> Json
             actor_ref=f"api_principal:{identity.principal.id}",
             actor_id=identity.principal.user_id,
             api_principal_id=identity.principal.id,
-            context=_historical_context(request),
+            context=_service_context(request),
         )
     except Exception as error:
         raise _sponsor_error(error) from error
@@ -662,7 +637,7 @@ def sponsor_export(request: HttpRequest) -> JsonResponse:
             actor_ref=f"api_principal:{identity.principal.id}",
             actor_id=identity.principal.user_id,
             api_principal_id=identity.principal.id,
-            context=_historical_context(request),
+            context=_service_context(request),
         )
     except Exception as error:
         raise _sponsor_error(error) from error
@@ -799,132 +774,6 @@ def credential_revoke(request: HttpRequest, credential_id: str) -> JsonResponse:
     except Exception as error:
         raise _credential_error(error) from error
     return JsonResponse(result.response)
-
-
-@admin_capability("events.historical_registration_import.manage")
-def historical_import_list(request: HttpRequest) -> JsonResponse:
-    capability = request.management_capability  # type: ignore[attr-defined]
-    try:
-        query = parse_page_query(request.GET, filter_fields=(), sort_fields=())
-        result = capability.service(page=query.page, page_size=query.page_size)
-    except Exception as error:
-        raise _historical_error(error) from error
-    return JsonResponse(result)
-
-
-@admin_capability("events.historical_registration_import.create")
-def historical_import_create(request: HttpRequest) -> JsonResponse:
-    payload = parse_json_object(request)
-    _enforce_fields(
-        request,
-        payload,
-        required=frozenset({"provider", "source_reference", "mapping_set_revision"}),
-    )
-    identity = request.api_identity  # type: ignore[attr-defined]
-    capability = request.management_capability  # type: ignore[attr-defined]
-    try:
-        result = execute_idempotent(
-            scope=_idempotency_scope(request, capability),
-            key=_idempotency_key(request),
-            request=payload,
-            command=lambda: _stage_historical_api(payload, request),
-        )
-    except Exception as error:
-        raise _historical_error(error) from error
-    response = dict(result.value)
-    response["replayed"] = result.replayed
-    del identity
-    return JsonResponse(response, status=201)
-
-
-def _stage_historical_api(payload: dict, request: HttpRequest) -> dict:
-    identity = request.api_identity  # type: ignore[attr-defined]
-    capability = request.management_capability  # type: ignore[attr-defined]
-    run, created = capability.service(
-        provider=payload["provider"],
-        source_reference=payload["source_reference"],
-        mapping_set_revision=payload["mapping_set_revision"],
-        actor=identity.principal.user,
-        context=_historical_context(request),
-    )
-    return {**serialize_run(run), "created": created}
-
-
-@admin_capability("events.historical_registration_import.detail")
-def historical_import_detail(request: HttpRequest, run_id: str) -> JsonResponse:
-    capability = request.management_capability  # type: ignore[attr-defined]
-    try:
-        return JsonResponse(capability.service(uuid.UUID(str(run_id))))
-    except Exception as error:
-        raise _historical_error(error) from error
-
-
-def _historical_action(
-    request: HttpRequest,
-    run_id: str,
-    *,
-    dry_run: bool = False,
-) -> JsonResponse:
-    payload = _confirmed_action_payload(request)
-    identity = request.api_identity  # type: ignore[attr-defined]
-    capability = request.management_capability  # type: ignore[attr-defined]
-
-    def command() -> dict:
-        kwargs = {
-            "actor": identity.principal.user,
-            "context": _historical_context(request),
-        }
-        if not dry_run:
-            kwargs["reason_code"] = payload["reason_code"]
-        value = capability.service(uuid.UUID(str(run_id)), **kwargs)
-        return (
-            value if isinstance(value, dict) else {**serialize_run(value), "run_id": str(value.id)}
-        )
-
-    try:
-        result = execute_idempotent(
-            scope=_idempotency_scope(request, capability),
-            key=_idempotency_key(request),
-            request={"run_id": str(run_id), **payload},
-            command=command,
-        )
-    except Exception as error:
-        raise _historical_error(error) from error
-    return JsonResponse({**result.value, "replayed": result.replayed})
-
-
-@admin_capability("events.historical_registration_import.dry-run")
-def historical_import_dry_run(request: HttpRequest, run_id: str) -> JsonResponse:
-    return _historical_action(request, run_id, dry_run=True)
-
-
-@admin_capability("events.historical_registration_import.validate")
-def historical_import_validate(request: HttpRequest, run_id: str) -> JsonResponse:
-    return _historical_action(request, run_id)
-
-
-@admin_capability("events.historical_registration_import.activate")
-def historical_import_activate(request: HttpRequest, run_id: str) -> JsonResponse:
-    return _historical_action(request, run_id)
-
-
-@admin_capability("events.historical_registration_import.cancel")
-def historical_import_cancel(request: HttpRequest, run_id: str) -> JsonResponse:
-    return _historical_action(request, run_id)
-
-
-@admin_capability("events.historical_registration_import.rollback")
-def historical_import_rollback(request: HttpRequest, run_id: str) -> JsonResponse:
-    return _historical_action(request, run_id)
-
-
-@admin_capability("events.historical_registration_total.read")
-def historical_registration_total(request: HttpRequest, event_id: str) -> JsonResponse:
-    capability = request.management_capability  # type: ignore[attr-defined]
-    try:
-        return JsonResponse(capability.service(event_id))
-    except Exception as error:
-        raise _historical_error(error) from error
 
 
 @admin_capability("events.identity.read")

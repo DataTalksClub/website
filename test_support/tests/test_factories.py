@@ -59,7 +59,6 @@ def test_catalog_covers_every_current_contract_and_state_without_false_equivalen
         "accounts_management",
         "adopted_courses",
         "editorial_content",
-        "historical_event_totals",
         "operations_jobs",
         "provider_neutral_messaging",
     }
@@ -74,12 +73,6 @@ def test_catalog_covers_every_current_contract_and_state_without_false_equivalen
         if bundle.name == "adopted_courses"
     )
     assert all(not record.values["campaign_is_cohort"] for record in courses.records)
-    totals = next(
-        bundle
-        for bundle in build_all_bundles(FactoryContext("catalog", "main", FROZEN_AT))
-        if bundle.name == "historical_event_totals"
-    )
-    assert all(record.values["registration_rows"] == [] for record in totals.records)
     messaging = next(
         bundle
         for bundle in build_all_bundles(FactoryContext("catalog", "main", FROZEN_AT))
@@ -140,9 +133,6 @@ def test_current_domain_scenarios_create_every_named_leaf_as_real_orm_or_simulat
         "accounts_management.custom_user": "accounts.user",
         "editorial_content.content_source": "content.contentsource",
         "adopted_courses.course": "courses.cohort",
-        "historical_event_totals.historical_source_run": (
-            "historical_registrations.historicalregistrationsourcerun"
-        ),
         "operations_jobs.operation": "core.operation",
         "provider_neutral_messaging.captured_message": "messaging.captured_message",
     }
@@ -168,7 +158,6 @@ def test_named_leaf_create_entry_points_return_the_requested_current_domain_valu
         "accounts_management.custom_user",
         "editorial_content.content_source",
         "adopted_courses.course",
-        "historical_event_totals.historical_source_run",
         "operations_jobs.operation",
         "provider_neutral_messaging.captured_message",
     )
