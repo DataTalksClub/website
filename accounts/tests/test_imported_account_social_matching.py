@@ -49,7 +49,7 @@ from accounts_ext.models import (
     IdentityState,
 )
 from accounts.models import (
-    CustomUser,
+    User,
 )
 from courses.models import (
     Answer,
@@ -145,7 +145,7 @@ class ImportedAccountSignInTestCase(TestCase):
         email_address: str | None | bool = True,
         email_address_verified: bool = True,
         normalized_email: str | None = None,
-    ) -> CustomUser:
+    ) -> User:
         """Create a user shaped the way a bulk import leaves it.
 
         No usable password, no ``SocialAccount``, ``identity_state`` at its
@@ -154,11 +154,11 @@ class ImportedAccountSignInTestCase(TestCase):
         carries for 20,004 accounts, ``False`` for the four that carry none,
         or an explicit string for the eleven whose row differs from the
         account email by case.  ``normalized_email`` writes the column
-        directly, so a raw bulk insert that bypassed ``CustomUser.save()`` can
+        directly, so a raw bulk insert that bypassed ``User.save()`` can
         be reproduced by passing ``""``.
         """
 
-        user = CustomUser.objects.create(
+        user = User.objects.create(
             username=username or email.split("@")[0],
             email=email,
             first_name="Imported",
@@ -181,7 +181,7 @@ class ImportedAccountSignInTestCase(TestCase):
             )
         return user
 
-    def imported_history(self, user: CustomUser) -> dict[str, object]:
+    def imported_history(self, user: User) -> dict[str, object]:
         """Give the member the history the owner wants to see survive."""
 
         cohort = Cohort.objects.create(
@@ -338,7 +338,7 @@ class ImportedAccountSignInTestCase(TestCase):
 
     # -- assertions --------------------------------------------------------
 
-    def assert_signed_in_as(self, client: Client, user: CustomUser) -> None:
+    def assert_signed_in_as(self, client: Client, user: User) -> None:
         session_user_id = client.session.get("_auth_user_id")
         self.assertIsNotNone(session_user_id, "no session was established")
         self.assertEqual(int(session_user_id), user.pk)
@@ -392,7 +392,7 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
     def test_google_reunites_the_imported_account_with_its_history(self) -> None:
         user = self.imported_user(email="returning.member@example.invalid")
         history = self.imported_history(user)
-        before = CustomUser.objects.count()
+        before = User.objects.count()
 
         client, response = self.sign_in(
             provider="google",
@@ -404,7 +404,7 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assert_signed_in_as(client, user)
-        self.assertEqual(CustomUser.objects.count(), before)
+        self.assertEqual(User.objects.count(), before)
         self.assertEqual(
             SocialAccount.objects.get(provider="google").user_id,
             user.pk,
@@ -416,7 +416,7 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
     def test_github_reunites_the_imported_account_with_its_history(self) -> None:
         user = self.imported_user(email="returning.dev@example.invalid")
         history = self.imported_history(user)
-        before = CustomUser.objects.count()
+        before = User.objects.count()
 
         client, response = self.sign_in(
             provider="github",
@@ -429,7 +429,7 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assert_signed_in_as(client, user)
-        self.assertEqual(CustomUser.objects.count(), before)
+        self.assertEqual(User.objects.count(), before)
         self.assert_history_is_visible(client, history)
 
     def test_account_without_any_email_address_row_still_matches(self) -> None:
@@ -451,7 +451,7 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assert_signed_in_as(client, user)
-        self.assertEqual(CustomUser.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
         self.assert_history_is_visible(client, history)
 
     def test_account_with_an_unverified_email_address_row_still_matches(self) -> None:
@@ -478,7 +478,7 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assert_signed_in_as(client, user)
-        self.assertEqual(CustomUser.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
         self.assert_history_is_visible(client, history)
 
     def test_a_row_less_account_also_matches_a_second_provider_later(self) -> None:
@@ -512,12 +512,12 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
 
         self.assertEqual(github_response.status_code, 200)
         self.assert_signed_in_as(client, user)
-        self.assertEqual(CustomUser.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
         self.assertEqual(SocialAccount.objects.filter(user=user).count(), 2)
         self.assert_history_is_visible(client, history)
 
     def test_bulk_insert_that_left_normalized_email_empty_still_matches(self) -> None:
-        """A raw ``COPY``/``bulk_create`` never runs ``CustomUser.save()``."""
+        """A raw ``COPY``/``bulk_create`` never runs ``User.save()``."""
 
         user = self.imported_user(
             email="raw.insert@example.invalid",
@@ -557,7 +557,7 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assert_signed_in_as(client, user)
-        self.assertEqual(CustomUser.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
         self.assert_history_is_visible(client, history)
 
     def test_plus_tagged_address_matches_only_its_own_account(self) -> None:
@@ -602,7 +602,7 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assert_signed_in_as(client, user)
-        self.assertEqual(CustomUser.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
         self.assert_history_is_visible(client, history)
 
     def test_second_provider_links_to_the_same_imported_account(self) -> None:
@@ -630,7 +630,7 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
 
         self.assertEqual(github_response.status_code, 200)
         self.assert_signed_in_as(github_client, user)
-        self.assertEqual(CustomUser.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
         self.assertEqual(
             sorted(
                 SocialAccount.objects.filter(user=user).values_list(
@@ -655,7 +655,7 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assert_signed_in_as(client, user)
-        self.assertEqual(CustomUser.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
         self.assertEqual(SocialAccount.objects.count(), 1)
         self.assert_history_is_visible(client, history)
 
@@ -683,7 +683,7 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assert_signed_in_as(client, user)
-        self.assertEqual(CustomUser.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
         self.assert_history_is_visible(client, history)
 
     def test_the_matched_address_is_the_one_written_onto_the_account(self) -> None:
@@ -716,7 +716,7 @@ class ImportedAccountMatchingCostTests(ImportedAccountSignInTestCase):
     """Launch day is ~20,000 first-time links, all in the same few hours."""
 
     class _AccountRowCounter:
-        """Count the ``CustomUser`` rows a block actually reads."""
+        """Count the ``User`` rows a block actually reads."""
 
         def __init__(self) -> None:
             self.rows = 0
@@ -725,11 +725,11 @@ class ImportedAccountMatchingCostTests(ImportedAccountSignInTestCase):
             self.rows += 1
 
         def __enter__(self) -> ImportedAccountMatchingCostTests._AccountRowCounter:
-            post_init.connect(self._observe, sender=CustomUser)
+            post_init.connect(self._observe, sender=User)
             return self
 
         def __exit__(self, *exc_info: object) -> bool:
-            post_init.disconnect(self._observe, sender=CustomUser)
+            post_init.disconnect(self._observe, sender=User)
             return False
 
     def test_the_collision_check_does_not_read_every_account(self) -> None:
@@ -803,7 +803,7 @@ class ImportedAccountMatchingFailsClosedTests(ImportedAccountSignInTestCase):
         )
 
         self.assert_denied(client, response)
-        self.assertEqual(CustomUser.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
         self.assertEqual(Enrollment.objects.get(pk=history["enrollment"].pk).student_id, victim.pk)
         self.assertEqual(
             AccountIdentityQuarantine.objects.get().reason_codes,
@@ -825,7 +825,7 @@ class ImportedAccountMatchingFailsClosedTests(ImportedAccountSignInTestCase):
         )
 
         self.assert_denied(client, response)
-        self.assertEqual(CustomUser.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
 
     def test_provider_that_returns_no_email_is_denied_without_creating_an_account(
         self,
@@ -840,7 +840,7 @@ class ImportedAccountMatchingFailsClosedTests(ImportedAccountSignInTestCase):
         )
 
         self.assert_denied(client, response)
-        self.assertEqual(CustomUser.objects.count(), 0)
+        self.assertEqual(User.objects.count(), 0)
         self.assertEqual(
             AccountIdentityQuarantine.objects.get().reason_codes,
             ["verified_email_required"],
@@ -859,7 +859,7 @@ class ImportedAccountMatchingFailsClosedTests(ImportedAccountSignInTestCase):
         )
 
         self.assert_denied(client, response)
-        self.assertEqual(CustomUser.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
 
     def test_slack_without_email_verified_is_denied(self) -> None:
         """Slack's OIDC ``email_verified`` is the whole signal for 1,046 accounts.
@@ -880,7 +880,7 @@ class ImportedAccountMatchingFailsClosedTests(ImportedAccountSignInTestCase):
         )
 
         self.assert_denied(client, response)
-        self.assertEqual(CustomUser.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
 
     def test_unknown_verified_address_is_denied_rather_than_given_a_new_account(
         self,
@@ -896,7 +896,7 @@ class ImportedAccountMatchingFailsClosedTests(ImportedAccountSignInTestCase):
         )
 
         self.assert_denied(client, response)
-        self.assertEqual(CustomUser.objects.count(), 0)
+        self.assertEqual(User.objects.count(), 0)
         self.assertEqual(
             AccountIdentityQuarantine.objects.get().reason_codes,
             ["verified_owner_missing"],
@@ -1002,7 +1002,7 @@ class ImportedAccountMatchingFailsClosedTests(ImportedAccountSignInTestCase):
 
     def test_deactivated_imported_account_is_not_handed_to_the_provider(self) -> None:
         user = self.imported_user(email="deactivated@example.invalid")
-        CustomUser.objects.filter(pk=user.pk).update(is_active=False)
+        User.objects.filter(pk=user.pk).update(is_active=False)
 
         client, response = self.sign_in(
             provider="google",

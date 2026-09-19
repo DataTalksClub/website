@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.core.management import call_command
 from django.test import override_settings
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.tests.datamailer_contact_base import (
     DATAMAILER_SETTINGS,
     DatamailerContactBase,
@@ -42,7 +42,7 @@ class DatamailerContactBackfillTest(DatamailerContactBase):
         self,
         bulk_import,
     ):
-        CustomUser.objects.create_user(
+        User.objects.create_user(
             username="student",
             email="student@example.com",
         )
@@ -64,11 +64,11 @@ class DatamailerContactBackfillTest(DatamailerContactBase):
         bulk_import,
     ):
         bulk_import.return_value = {"counts": {"created": 1}}
-        CustomUser.objects.create_user(
+        User.objects.create_user(
             username="active",
             email="active@example.com",
         )
-        CustomUser.objects.create_user(
+        User.objects.create_user(
             username="inactive",
             email="inactive@example.com",
             is_active=False,

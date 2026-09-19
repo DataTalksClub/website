@@ -4,13 +4,13 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.models import CustomUser, Token
+from accounts.models import User, Token
 from courses.models import Cohort, Homework, Project, Enrollment
 
 
 class DataEndpointMethodRestrictionTest(TestCase):
     def setUp(self):
-        self.user = CustomUser.objects.create_user(
+        self.user = User.objects.create_user(
             username="testuser",
             email="testuser@example.com",
             password="password",

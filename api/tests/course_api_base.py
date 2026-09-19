@@ -3,7 +3,7 @@ import json
 from django.test import Client, TestCase
 from django.utils import timezone
 
-from accounts.models import CustomUser, Token
+from accounts.models import User, Token
 from api.tests.staff_credentials import issue_staff_bearer
 from courses.models import Cohort, Homework, Project
 from courses.models.homework import HomeworkState
@@ -12,7 +12,7 @@ from courses.models.project import ProjectState
 
 class CourseAPITestBase(TestCase):
     def setUp(self):
-        self.user = CustomUser.objects.create(
+        self.user = User.objects.create(
             username="testuser",
             email="test@example.com",
             password="password",
@@ -139,7 +139,7 @@ class CourseAPITestBase(TestCase):
         self.assertEqual(start_date, "2026-01-20")
 
     def non_staff_client(self):
-        non_staff = CustomUser.objects.create(
+        non_staff = User.objects.create(
             username="nonstaff",
             email="nonstaff@example.com",
             password="password",

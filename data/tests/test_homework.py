@@ -10,7 +10,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.models import CustomUser
+from accounts.models import User
 from api.tests.staff_credentials import issue_staff_bearer
 from courses.models import Answer
 from courses.models import (
@@ -29,14 +29,14 @@ class HomeworkDataAPITestCase(TestCase):
     """Tests for homework_data_view endpoint."""
 
     def setUp(self):
-        self.user = CustomUser.objects.create(
+        self.user = User.objects.create(
             username="testuser",
             email="testuser@example.com",
             password="password",
         )
         # The caller is an operator, not the learner below: these exports and
         # the certificate update are staff-token endpoints.
-        self.api_operator = CustomUser.objects.create(
+        self.api_operator = User.objects.create(
             username="api-operator",
             email="api-operator@example.com",
             password="password",

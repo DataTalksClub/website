@@ -32,13 +32,13 @@ PROFILE_FIELDS = (
 
 def copy_learner_profiles(apps, schema_editor):
     LearnerProfile = apps.get_model("courses", "LearnerProfile")
-    CustomUser = apps.get_model("accounts", "CustomUser")
+    User = apps.get_model("accounts", "User")
 
     existing_user_ids = set(
         LearnerProfile.objects.values_list("user_id", flat=True).iterator()
     )
     profiles = []
-    for user in CustomUser.objects.iterator():
+    for user in User.objects.iterator():
         if user.pk in existing_user_ids:
             continue
         profiles.append(
@@ -56,22 +56,22 @@ def copy_learner_profiles(apps, schema_editor):
 
 def restore_user_profile_columns(apps, schema_editor):
     LearnerProfile = apps.get_model("courses", "LearnerProfile")
-    CustomUser = apps.get_model("accounts", "CustomUser")
+    User = apps.get_model("accounts", "User")
 
     profiles_by_user_id = {
         profile.user_id: profile for profile in LearnerProfile.objects.iterator()
     }
     restored = []
-    for user in CustomUser.objects.filter(pk__in=profiles_by_user_id).iterator():
+    for user in User.objects.filter(pk__in=profiles_by_user_id).iterator():
         profile = profiles_by_user_id[user.pk]
         for field in PROFILE_FIELDS:
             setattr(user, field, getattr(profile, field))
         restored.append(user)
         if len(restored) >= BATCH_SIZE:
-            CustomUser.objects.bulk_update(restored, PROFILE_FIELDS, batch_size=BATCH_SIZE)
+            User.objects.bulk_update(restored, PROFILE_FIELDS, batch_size=BATCH_SIZE)
             restored = []
     if restored:
-        CustomUser.objects.bulk_update(restored, PROFILE_FIELDS, batch_size=BATCH_SIZE)
+        User.objects.bulk_update(restored, PROFILE_FIELDS, batch_size=BATCH_SIZE)
 
 
 class Migration(migrations.Migration):

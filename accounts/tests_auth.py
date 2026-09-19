@@ -5,7 +5,7 @@ from allauth.core.exceptions import ImmediateHttpResponse
 from django.test import TestCase
 
 from accounts.auth import ConsolidatingSocialAccountAdapter, extract_email
-from accounts.models import CustomUser
+from accounts.models import User
 from accounts_ext.models import AccountIdentityQuarantine
 
 
@@ -71,7 +71,7 @@ class ExtractEmailTestCase(TestCase):
 class ConsolidatingSocialAccountAdapterTestCase(TestCase):
     def test_social_login_rejects_unverified_legacy_username_match(self):
         email = "legacy-owner@example.invalid"
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username=email,
             email="",
         )

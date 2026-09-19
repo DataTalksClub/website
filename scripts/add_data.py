@@ -20,7 +20,7 @@ from django.contrib.auth import get_user_model  # noqa: E402
 from django.contrib.sites.models import Site  # noqa: E402
 from django.core.cache import cache  # noqa: E402
 
-# This will retrieve your 'CustomUser' model
+# This will retrieve your 'User' model
 from courses.models import (  # noqa: E402
     Cohort,
     Enrollment,

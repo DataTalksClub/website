@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models.learner_profile import LearnerProfile
 from courses.models import Cohort, Enrollment
 from courses.views.forms import EnrollmentForm
@@ -8,7 +8,7 @@ from courses.views.forms import EnrollmentForm
 
 class CertificateNameTests(TestCase):
     def setUp(self):
-        self.user = CustomUser.objects.create_user(
+        self.user = User.objects.create_user(
             username="test@test.com",
             email="test@test.com",
             password="12345"

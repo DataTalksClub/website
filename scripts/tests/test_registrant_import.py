@@ -13,7 +13,7 @@ from community_base.events.models import Event
 from django.db import IntegrityError
 from django.test import TestCase
 
-from accounts.models import CustomUser
+from accounts.models import User
 from content.models import EventSource
 from event_registrants.models import (
     EventRegistrantIdentity,
@@ -111,9 +111,7 @@ class ConsolidationTests(RegistrantImportTestCase):
     def test_registrant_matching_an_existing_account_attaches_to_it_not_a_new_identity(
         self,
     ) -> None:
-        account = CustomUser.objects.create(
-            username="existing-learner", email="learner@example.invalid"
-        )
+        account = User.objects.create(username="existing-learner", email="learner@example.invalid")
         self._mint_event(event_id="evt-1", title="Event One")
         self._add_event(
             event_id="evt-1",
@@ -501,7 +499,7 @@ class RefreshTests(RegistrantImportTestCase):
 
 class ModelConstraintTests(TestCase):
     def test_an_identity_cannot_have_both_an_account_and_a_normalized_email(self) -> None:
-        account = CustomUser.objects.create(username="both", email="both@example.invalid")
+        account = User.objects.create(username="both", email="both@example.invalid")
         with self.assertRaises(IntegrityError):
             EventRegistrantIdentity.objects.create(
                 account=account, normalized_email="both@example.invalid"
@@ -549,7 +547,7 @@ class PlanRegistrantsTests(RegistrantImportTestCase):
 
     def test_plan_counts_match_what_apply_then_reports(self) -> None:
         self._mint_event(event_id="evt-1", title="Predicted")
-        account = CustomUser.objects.create_user(
+        account = User.objects.create_user(
             username="known",
             email="known@example.invalid",
         )

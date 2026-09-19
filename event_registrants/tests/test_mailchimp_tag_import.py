@@ -15,7 +15,7 @@ from pathlib import Path
 
 from django.test import TestCase
 
-from accounts.models import CustomUser
+from accounts.models import User
 from event_registrants.mailchimp_event_tag_categories import MAILCHIMP_EVENT_TAG_CATEGORIES
 from event_registrants.mailchimp_tag_import import (
     EMAIL_COLUMN,
@@ -94,9 +94,7 @@ class MailchimpEventTagImportTests(TestCase):
         self.assertEqual(result.rows_with_event_tag, 0)
 
     def test_event_tag_matching_existing_account_attaches_to_it(self) -> None:
-        account = CustomUser.objects.create(
-            username="existing-learner", email="learner@example.invalid"
-        )
+        account = User.objects.create(username="existing-learner", email="learner@example.invalid")
         result = self._run(
             [{EMAIL_COLUMN: "learner@example.invalid", TAGS_COLUMN: _tags("event-podcast")}]
         )

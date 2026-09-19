@@ -30,7 +30,7 @@ from courses.random_names import generate_random_name
 if TYPE_CHECKING:
     # ``courses.models.User`` is ``get_user_model()`` -- a value, so it cannot
     # annotate.  The configured model is what it resolves to at runtime.
-    from accounts.models import CustomUser as UserType
+    from accounts.models import User as UserType
 else:
     UserType = User
 

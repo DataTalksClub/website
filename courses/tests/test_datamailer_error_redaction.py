@@ -22,7 +22,7 @@ import requests
 
 from django.test import SimpleTestCase, TestCase, override_settings
 
-from accounts.models import CustomUser
+from accounts.models import User
 from course_management.datamailer.preferences import get_email_preferences_for_user
 from course_management.datamailer.redacted_errors import (
     DatamailerContactError,
@@ -131,7 +131,7 @@ class ContactStatusLoggingTests(TestCase):
 @override_settings(**DATAMAILER_SETTINGS)
 class ContactPreferencesLoggingTests(TestCase):
     def test_the_member_is_named_by_id_and_only_by_id(self) -> None:
-        member = CustomUser.objects.create_user(
+        member = User.objects.create_user(
             username=MEMBER_EMAIL, email=MEMBER_EMAIL, password="test"
         )
         error = _leaky_http_error()

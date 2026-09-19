@@ -28,7 +28,7 @@ from accounts.auth import ConsolidatingSocialAccountAdapter
 from accounts.identity_inventory import account_inventory
 from accounts.identity_resolution import resolve_durable_user_id
 from accounts.models import (
-    CustomUser,
+    User,
 )
 from accounts.navigation import SAFE_ACCOUNT_DESTINATION, safe_next_path
 from accounts.studio_roles import synchronize_studio_roles
@@ -91,11 +91,11 @@ def create_verified_user(
     verified_email: str | None = None,
     password: str = "synthetic-password",
     **fields,
-) -> CustomUser:
+) -> User:
     identity_state = fields.pop("identity_state", None)
     normalized_email = fields.pop("normalized_email", None)
     profile_values = {name: fields.pop(name) for name in list(fields) if name in LEARNER_PROFILE_KWARGS}
-    user = CustomUser.objects.create_user(
+    user = User.objects.create_user(
         username=username,
         email=email,
         password=password,
@@ -121,18 +121,18 @@ def create_verified_user(
 
 class SingleIdentityModelTests(TestCase):
     def test_adopted_user_and_table_identity_remain_authoritative(self) -> None:
-        self.assertEqual(settings.AUTH_USER_MODEL, "accounts.CustomUser")
-        self.assertEqual(CustomUser._meta.db_table, "accounts_customuser")
+        self.assertEqual(settings.AUTH_USER_MODEL, "accounts.User")
+        self.assertEqual(User._meta.db_table, "accounts_user")
         self.assertEqual(
             settings.AUTHENTICATION_BACKENDS, ["accounts.backends.DurableAccountBackend"]
         )
 
     def test_email_normalization_is_expand_only_and_active_identity_is_unique(self) -> None:
-        first = CustomUser.objects.create_user(
+        first = User.objects.create_user(
             username="first",
             email="  Learner@Example.Invalid ",
         )
-        second = CustomUser.objects.create_user(
+        second = User.objects.create_user(
             username="second",
             email="learner@example.invalid",
         )
@@ -160,8 +160,8 @@ class SingleIdentityModelTests(TestCase):
             )
 
     def test_alias_resolves_old_id_without_replacing_source_row(self) -> None:
-        source = CustomUser.objects.create_user(username="source")
-        survivor = CustomUser.objects.create_user(username="survivor")
+        source = User.objects.create_user(username="source")
+        survivor = User.objects.create_user(username="survivor")
         AccountIdentityAlias.objects.create(
             source_user_id=source.pk,
             survivor=survivor,
@@ -171,7 +171,7 @@ class SingleIdentityModelTests(TestCase):
         )
 
         self.assertEqual(resolve_durable_user_id(source.pk), survivor.pk)
-        self.assertTrue(CustomUser.objects.filter(pk=source.pk).exists())
+        self.assertTrue(User.objects.filter(pk=source.pk).exists())
 
 
 class SafeNextCanonicalizationTests(SimpleTestCase):
@@ -238,7 +238,7 @@ class SafeNextCanonicalizationTests(SimpleTestCase):
 
 class DurableAuthenticationTests(TestCase):
     def test_legacy_username_login_remains_compatible(self) -> None:
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username="legacy-login",
             email="legacy@example.invalid",
             password="synthetic-password",
@@ -252,12 +252,12 @@ class DurableAuthenticationTests(TestCase):
         self.assertEqual(authenticated.pk, user.pk)
 
     def test_duplicate_normalized_email_fails_closed_even_when_one_password_matches(self) -> None:
-        CustomUser.objects.create_user(
+        User.objects.create_user(
             username="first",
             email="Duplicate@Example.Invalid",
             password="matching-password",
         )
-        CustomUser.objects.create_user(
+        User.objects.create_user(
             username="second",
             email="duplicate@example.invalid",
             password="different-password",
@@ -271,12 +271,12 @@ class DurableAuthenticationTests(TestCase):
         self.assertIsNone(authenticated)
 
     def test_email_collision_cannot_fall_through_to_matching_username(self) -> None:
-        CustomUser.objects.create_user(
+        User.objects.create_user(
             username="collision@example.invalid",
             email="first@example.invalid",
             password="known-pass",
         )
-        CustomUser.objects.create_user(
+        User.objects.create_user(
             username="other",
             email="collision@example.invalid",
             password="other-pass",
@@ -290,7 +290,7 @@ class DurableAuthenticationTests(TestCase):
         )
 
     def test_quarantined_account_cannot_authenticate(self) -> None:
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username="quarantined",
             email="quarantined@example.invalid",
             password="synthetic-password",
@@ -344,7 +344,7 @@ class SocialLinkingTests(TestCase):
             verified=True,
             extra_data={"access_token": "not-logged"},
         )
-        before_users = CustomUser.objects.count()
+        before_users = User.objects.count()
 
         ConsolidatingSocialAccountAdapter().pre_social_login(
             self.anonymous_request("/accounts/github/login/callback/"),
@@ -354,7 +354,7 @@ class SocialLinkingTests(TestCase):
         sociallogin.connect.assert_called_once()
         connected_user = sociallogin.connect.call_args.args[1]
         self.assertEqual(connected_user.pk, user.pk)
-        self.assertEqual(CustomUser.objects.count(), before_users)
+        self.assertEqual(User.objects.count(), before_users)
         self.assertFalse(AccountIdentityQuarantine.objects.exists())
         audit = AuditEvent.objects.get(action="accounts.identity.link_succeeded")
         rendered = json.dumps(audit.metadata, sort_keys=True)
@@ -433,7 +433,7 @@ class SocialLinkingTests(TestCase):
             )
 
         self.assertEqual(raised.exception.response.status_code, 409)
-        self.assertEqual(CustomUser.objects.count(), 0)
+        self.assertEqual(User.objects.count(), 0)
         sociallogin.connect.assert_not_called()
         quarantine = AccountIdentityQuarantine.objects.get()
         rendered = json.dumps(
@@ -496,7 +496,7 @@ class SharedAccountSurfaceTests(TestCase):
 
     def test_signed_out_shell_uses_one_same_host_login_and_no_account_rows(self) -> None:
         identity_counts = {
-            "users": CustomUser.objects.count(),
+            "users": User.objects.count(),
             "emails": EmailAddress.objects.count(),
             "social": SocialAccount.objects.count(),
             "sessions": Session.objects.count(),
@@ -510,7 +510,7 @@ class SharedAccountSurfaceTests(TestCase):
         self.assertEqual(
             identity_counts,
             {
-                "users": CustomUser.objects.count(),
+                "users": User.objects.count(),
                 "emails": EmailAddress.objects.count(),
                 "social": SocialAccount.objects.count(),
                 "sessions": Session.objects.count(),
@@ -538,7 +538,7 @@ class SharedAccountSurfaceTests(TestCase):
                 self.assertIn("no-store", response["Cache-Control"])
         identity = self.client.get("/api/v1/account/identity/")
         self.assertEqual(identity.json()["account_id"], user.pk)
-        self.assertEqual(identity.json()["auth_user_model"], "accounts.CustomUser")
+        self.assertEqual(identity.json()["auth_user_model"], "accounts.User")
 
     def test_identity_apis_deny_generically_without_cross_account_data(self) -> None:
         session_response = self.client.get("/api/v1/account/identity/")
@@ -673,8 +673,8 @@ class SharedAccountSurfaceTests(TestCase):
     def test_inventory_covers_fields_relations_routes_and_session_boundary(self) -> None:
         inventory = account_inventory()
 
-        self.assertEqual(inventory["auth_user_model"], "accounts.CustomUser")
-        self.assertEqual(inventory["user_table"], "accounts_customuser")
+        self.assertEqual(inventory["auth_user_model"], "accounts.User")
+        self.assertEqual(inventory["user_table"], "accounts_user")
         self.assertEqual(len(inventory["dependent_relations"]), 20)
         self.assertEqual(len(inventory["many_to_many_relations"]), 3)
         relation_keys = {
@@ -723,8 +723,8 @@ class SharedAccountSurfaceTests(TestCase):
             "dark_mode": ("courses.LearnerProfile", "preference"),
             "normalized_email": ("accounts_ext.IdentityState", "identity"),
             "identity_state": ("accounts_ext.IdentityState", "identity"),
-            "email": ("accounts.CustomUser", "identity"),
-            "preferred_timezone": ("accounts.CustomUser", "preference"),
+            "email": ("accounts.User", "identity"),
+            "preferred_timezone": ("accounts.User", "preference"),
         }
         for name, (model_label, classification) in expected_home.items():
             with self.subTest(field=name):
@@ -755,7 +755,7 @@ class SessionLifecycleTests(TestCase):
         self.assertEqual(self.client.session.session_key, original_session_key)
 
     def test_login_cycles_anonymous_session_key_and_logout_is_scoped(self) -> None:
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username="fixation-check",
             email="fixation-check@example.invalid",
             password="synthetic-password",
@@ -783,7 +783,7 @@ class SessionLifecycleTests(TestCase):
         self.assertTrue(Session.objects.filter(session_key=other_session_key).exists())
 
     def test_password_change_disablement_and_expiry_fail_closed(self) -> None:
-        password_user = CustomUser.objects.create_user(
+        password_user = User.objects.create_user(
             username="password-session",
             email="password-session@example.invalid",
             password="before-change",

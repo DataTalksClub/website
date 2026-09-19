@@ -2,7 +2,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models.learner_profile import LearnerProfile
 from courses.models import (
     Cohort,
@@ -62,7 +62,7 @@ class RegistrationCampaignBase(TestCase):
         )
 
     def create_signed_user(self):
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username="signed",
             email="signed@example.com",
             password="test",
@@ -79,7 +79,7 @@ class RegistrationCampaignBase(TestCase):
         return user
 
     def create_signed_blank_user(self):
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username="signed-blank",
             email="signed-blank@example.com",
             password="test",
@@ -152,7 +152,7 @@ class RegistrationCampaignBase(TestCase):
         )
 
     def create_registered_course_user(self):
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username="registered",
             email="registered@example.com",
             password="test",

@@ -15,7 +15,7 @@ from typing import Any
 
 from django.db import IntegrityError
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import (
     CmpHistoryClaim,
     CmpHistoryImportBinding,
@@ -42,7 +42,7 @@ def _user_claims_for(learners) -> dict[int, int]:
 class HistoryRunBindingTests(HistoryImportFixture):
     def _second_learner(self):
         if not hasattr(self, "_extra_learner"):
-            self._extra_learner = CustomUser.objects.create_user(
+            self._extra_learner = User.objects.create_user(
                 username="learner-two",
                 email="two@example.invalid",
             )
@@ -124,7 +124,7 @@ class HistoryKilledBatchAtomicityTests(HistoryImportFixture):
     def _learners(self, count: int) -> dict[int, int]:
         learners = [self.learner]
         while len(learners) < count:
-            learner = CustomUser.objects.create_user(
+            learner = User.objects.create_user(
                 username=f"learner-extra-{len(learners)}",
                 email=f"extra-{len(learners)}@example.invalid",
             )

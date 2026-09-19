@@ -1,6 +1,6 @@
 """The course-platform person fields move off the user model (plan D3.1).
 
-``courses.LearnerProfile`` mirrors the ``CustomUser`` definitions verbatim
+``courses.LearnerProfile`` mirrors the user model definitions verbatim
 (same max lengths, null/blank, choices, help texts): this is a data-preserving
 expand, with no field-contract change. The user-model columns are removed by
 a later ``accounts`` contract migration, after this app's data-copy migration

@@ -5,7 +5,7 @@ from unittest.mock import Mock
 from django.test import TestCase
 from django.utils import timezone
 
-from accounts.models import CustomUser
+from accounts.models import User
 from data.models import (
     DatamailerOutboxEvent,
     DatamailerOutboxStatus,
@@ -59,7 +59,7 @@ class DatamailerHomeworkScoreTestBase(TestCase):
         )
 
     def create_user(self, email):
-        return CustomUser.objects.create_user(
+        return User.objects.create_user(
             username=email,
             email=email,
             password="test",

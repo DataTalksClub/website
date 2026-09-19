@@ -27,10 +27,10 @@ OVERLONG_ERROR = "Ensure this value has at most 255 characters"
 
 
 def _member(suffix: str):
-    from accounts.models import CustomUser
+    from accounts.models import User
 
     email = f"enroll-error-{suffix}@example.invalid"
-    return CustomUser.objects.create_user(username=email, email=email)
+    return User.objects.create_user(username=email, email=email)
 
 
 @pytest.fixture

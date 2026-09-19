@@ -6,7 +6,7 @@ from django.contrib.auth.signals import (
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from accounts.models import CustomUser
+from accounts.models import User
 from course_management.observability import record_event
 
 
@@ -52,7 +52,7 @@ def record_user_login_failed(sender, credentials, request, **kwargs):
     )
 
 
-@receiver(post_save, sender=CustomUser)
+@receiver(post_save, sender=User)
 def record_user_created(sender, instance, created, **kwargs):
     if not created:
         return

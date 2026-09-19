@@ -9,7 +9,7 @@ from django.test import Client
 from django.urls import reverse
 from playwright.sync_api import Page, expect
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import (
     Cohort,
     CourseRegistration,
@@ -581,7 +581,7 @@ def test_registration_hero_fits_success_state_without_javascript(
     live_server,
     cmp_registration_campaign: RegistrationCampaign,
 ) -> None:
-    user = CustomUser.objects.create_user(
+    user = User.objects.create_user(
         username="cmp-registration-success",
         email="synthetic-success@example.invalid",
         password="test-password",

@@ -14,7 +14,7 @@ import unittest.mock
 
 from django.test import TestCase
 
-from accounts.models import CustomUser
+from accounts.models import User
 from accounts.services.cmp_learner_import import (
     _MAX_USERNAME_COLLISIONS,
     _MAX_USERNAME_LENGTH,
@@ -30,8 +30,8 @@ def truncated(base: str, suffix: str) -> str:
     return f"{base[: _MAX_USERNAME_LENGTH - len(suffix)]}{suffix}"
 
 
-def make_user(username: str) -> CustomUser:
-    return CustomUser.objects.create_user(
+def make_user(username: str) -> User:
+    return User.objects.create_user(
         username=username,
         email=f"{username[:12]}@example.invalid",
     )
@@ -67,7 +67,7 @@ class UniqueUsernameTests(TestCase):
 
         self.assertEqual(allocated, truncated(FULL, "-10"))
         self.assertEqual(len(allocated), _MAX_USERNAME_LENGTH)
-        self.assertFalse(CustomUser.objects.filter(username=allocated).exists())
+        self.assertFalse(User.objects.filter(username=allocated).exists())
 
     def test_sequential_collisions_terminate_at_the_documented_bound(self) -> None:
         take_sequential_candidates(FULL)
@@ -87,8 +87,8 @@ class UniqueUsernameTests(TestCase):
         self.assertEqual(str(error.exception), "username-unallocatable")
 
     def test_a_free_first_candidate_ends_the_probe_immediately(self) -> None:
-        with unittest.mock.patch("accounts.services.cmp_learner_import.CustomUser") as objects:
-            # The allocator reads CustomUser.objects.filter(...), so the
+        with unittest.mock.patch("accounts.services.cmp_learner_import.User") as objects:
+            # The allocator reads User.objects.filter(...), so the
             # manager is the mock's own ``objects`` child.
             objects.objects.filter.return_value.exists.return_value = False
 
@@ -102,7 +102,7 @@ class UsernameRaceRetryTests(TestCase):
     def test_a_concurrent_insert_of_the_checked_name_is_retried(self) -> None:
         loser = make_user("race-name")
         loser_email = loser.email
-        account = CustomUser(username="race-name", email="winner@example.invalid")
+        account = User(username="race-name", email="winner@example.invalid")
         account.set_unusable_password()
 
         _save_new_account(account, source_id=99)
@@ -119,7 +119,7 @@ class UsernameRaceRetryTests(TestCase):
     def test_the_retry_walks_the_same_bounded_ladder(self) -> None:
         make_user("race-name")
         make_user(truncated("race-name", "-1"))
-        account = CustomUser(username="race-name", email="winner@example.invalid")
+        account = User(username="race-name", email="winner@example.invalid")
         account.set_unusable_password()
 
         _save_new_account(account, source_id=7)

@@ -25,7 +25,7 @@ from django.test import Client
 from django.urls import reverse
 from playwright.sync_api import Browser, Page, expect
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models.learner_profile import LearnerProfile
 
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
@@ -58,16 +58,16 @@ def _available_email_preferences():
         yield
 
 
-def _member(*, suffix: str, dark_mode: bool = False) -> CustomUser:
+def _member(*, suffix: str, dark_mode: bool = False) -> User:
     email = f"preferences-{suffix}@example.invalid"
-    return CustomUser.objects.create_user(
+    return User.objects.create_user(
         username=email,
         email=email,
         dark_mode=dark_mode,
     )
 
 
-def _sign_in(page: Page, live_server, user: CustomUser) -> None:
+def _sign_in(page: Page, live_server, user: User) -> None:
     client = Client()
     client.force_login(user)
     page.context.add_cookies(

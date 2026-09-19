@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import requests
 from django.core.management.base import BaseCommand, CommandError
 
-from accounts.models import CustomUser
+from accounts.models import User
 from course_management.datamailer.client import (
     DatamailerClient,
     DatamailerConfig,
@@ -23,7 +23,7 @@ class ContactBatchSyncData:
 
 def contact_queryset(*, active_only=False):
     queryset = (
-        CustomUser.objects.exclude(email__isnull=True)
+        User.objects.exclude(email__isnull=True)
         .exclude(email="")
         .order_by("pk")
     )

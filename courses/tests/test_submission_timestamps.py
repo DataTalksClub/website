@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import (
     Answer,
     Cohort,
@@ -42,7 +42,7 @@ class SubmissionTimestampTest(TestCase):
         )
 
     def create_submission_fixture(self, submitted_at):
-        user = CustomUser.objects.create(email="student@example.com")
+        user = User.objects.create(email="student@example.com")
         course = self.create_course()
         enrollment = Enrollment.objects.create(
             student=user,

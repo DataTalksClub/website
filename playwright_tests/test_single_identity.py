@@ -11,7 +11,7 @@ from django.test import Client, override_settings
 from django.utils import timezone
 from playwright.sync_api import Page, expect
 
-from accounts.models import CustomUser
+from accounts.models import User
 from accounts.studio_roles import synchronize_studio_roles
 from accounts_ext.models import IdentityState
 from courses.models import Cohort, Enrollment, RegistrationCampaign
@@ -60,9 +60,9 @@ def _screenshot_path(
     return directory / f"{name}-{device}.png"
 
 
-def _active_user(*, suffix: str, is_staff: bool = False) -> CustomUser:
+def _active_user(*, suffix: str, is_staff: bool = False) -> User:
     email = f"synthetic-{suffix}@example.invalid"
-    user = CustomUser.objects.create_user(
+    user = User.objects.create_user(
         username=f"synthetic-{suffix}",
         email=email,
         is_staff=is_staff,
@@ -77,7 +77,7 @@ def _active_user(*, suffix: str, is_staff: bool = False) -> CustomUser:
     return user
 
 
-def _add_authenticated_cookie(page: Page, live_server, user: CustomUser) -> None:
+def _add_authenticated_cookie(page: Page, live_server, user: User) -> None:
     client = Client()
     client.force_login(user)
     page.context.add_cookies(

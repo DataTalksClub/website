@@ -13,7 +13,7 @@ from django.core.cache import cache
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import resolve, reverse
 
-from accounts.models import CustomUser
+from accounts.models import User
 from accounts.services.local_provider_seed import PLACEHOLDER_PROVIDERS, seed_local_social_providers
 from website.settings.base import BASE_DIR
 
@@ -236,7 +236,7 @@ class AdminEntryPointTests(TestCase):
         match = resolve("/admin/login/")
         self.assertIs(match.func.__self__, admin.site)
 
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username="admin",
             email="admin@example.invalid",
             password="local-admin-password-107",

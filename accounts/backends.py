@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db.models import Q
 
 from accounts.identity_values import normalize_account_email
-from accounts.models import CustomUser
+from accounts.models import User
 from accounts_ext.models import IdentityState
 
 
@@ -27,7 +27,7 @@ class DurableAccountBackend(AuthenticationBackend):
     def _eligible(self):
         # A missing identity row (bulk-created accounts) reads as the old
         # column default: state ``legacy``, which may hold or acquire access.
-        return CustomUser.objects.filter(
+        return User.objects.filter(
             is_active=True,
         ).filter(
             Q(

@@ -26,7 +26,7 @@ anything beyond the membership check -- see that module's docstring for the
 full tag table and its provenance
 (``_docs/runbooks/ingest-script-inventory.md``, course tags section). A row
 whose email does not match an existing account is skipped and counted:
-this importer never creates a ``CustomUser``.
+this importer never creates a ``User``.
 
 Replaying is safe: ``Enrollment`` carries a ``(student, course)`` unique
 constraint, and writes go through ``get_or_create``, so a second run against
@@ -57,7 +57,7 @@ from scripts.prod.target import add_target_arguments, configure_target  # noqa: 
 SYNC_MODEL = "one-time"
 # Reconciles tagged rows against cohorts other importers already wrote
 # (import_legacy_zoomcamp, import_cmp_content) and accounts other importers
-# already created; never creates a CustomUser, a Cohort, or a
+# already created; never creates a User, a Cohort, or a
 # CourseRegistration. Never bootstraps an empty database -- see the module
 # docstring.
 BOOTSTRAPS_EMPTY_DATABASE = False

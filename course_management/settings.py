@@ -266,7 +266,7 @@ ACCOUNT_EMAIL_REQUIRED = True
 LOGIN_REDIRECT_URL = "/"
 LOGIN_URL = "/accounts/login/"
 
-AUTH_USER_MODEL = "accounts.CustomUser"
+AUTH_USER_MODEL = "accounts.User"
 
 
 LOGGING = {

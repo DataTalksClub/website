@@ -2,14 +2,14 @@ import json
 
 from django.test import Client, TestCase
 
-from accounts.models import CustomUser
+from accounts.models import User
 from api.tests.staff_credentials import issue_staff_bearer
 from courses.models import Cohort, CourseRegistration, RegistrationCampaign
 
 
 class RegistrationCampaignAPITestBase(TestCase):
     def setUp(self):
-        self.user = CustomUser.objects.create(
+        self.user = User.objects.create(
             username="testuser",
             email="test@example.com",
             is_staff=True,

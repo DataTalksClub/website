@@ -18,7 +18,7 @@ from django.test import Client
 from django.utils import timezone
 from playwright.sync_api import Page, expect
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import Cohort, Course, CurriculumFormat, Homework, Module, Unit
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
@@ -177,7 +177,7 @@ def test_a_signed_in_reader_gets_one_read_control_and_returns_to_the_lesson(
     module_with_lessons: tuple[Module, list[Unit]],
 ) -> None:
     module, units = module_with_lessons
-    reader = CustomUser.objects.create_user(username="unit-design-reader")
+    reader = User.objects.create_user(username="unit-design-reader")
     client = Client()
     client.force_login(reader)
     page.set_viewport_size({"width": 1440, "height": 900})

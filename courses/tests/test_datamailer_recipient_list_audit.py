@@ -7,7 +7,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 
-from accounts.models import CustomUser
+from accounts.models import User
 from course_management.datamailer.payloads.base import (
     RecipientListMemberPayload,
     enrollment_recipient_list_payload,
@@ -46,7 +46,7 @@ def create_ml_course():
 
 
 def create_user(email):
-    return CustomUser.objects.create_user(
+    return User.objects.create_user(
         username=email,
         email=email,
         password="test",

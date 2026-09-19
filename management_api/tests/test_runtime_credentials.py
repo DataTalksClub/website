@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.development_owner import bootstrap_development_owner
-from accounts.models import CustomUser
+from accounts.models import User
 from accounts.studio_roles import MANAGE_API_CREDENTIALS
 from core.bootstrap import RuntimeEnvironment
 from core.models import AuditEvent
@@ -397,7 +397,7 @@ class RuntimeCredentialStudioTests(TestCase):
             allow_test=True,
         )
         self.user = cast(
-            CustomUser,
+            User,
             APIPrincipal.objects.get(kind=APIPrincipal.Kind.HUMAN).user,
         )
         self.service = APIPrincipal.objects.get(kind=APIPrincipal.Kind.SERVICE)

@@ -1,7 +1,7 @@
 """Import Mailchimp newsletter subscription status onto existing accounts.
 
 Reads a Mailchimp audience export's **subscribed** CSV only and writes a
-single fact onto matching accounts: ``CustomUser.newsletter_subscribed``. See
+single fact onto matching accounts: ``User.newsletter_subscribed``. See
 the field's own docstring in ``accounts/models.py`` for the default (``True``,
 unconditional, applied regardless of how the account was created).
 
@@ -88,7 +88,7 @@ from collections.abc import Iterator
 from typing import Any
 
 from accounts.identity_values import normalize_account_email
-from accounts.models import MailchimpSubscriptionImportRun, CustomUser
+from accounts.models import MailchimpSubscriptionImportRun, User
 from accounts_ext.models import IdentityState
 
 __all__ = [
@@ -198,7 +198,7 @@ def _process_subscribed_file(path: Path, *, batch_size: int, apply: bool) -> Mai
         wanted = {value for value in normalized_by_row if value}
         accounts = (
             list(
-                CustomUser.objects.select_related("identity")
+                User.objects.select_related("identity")
                 .filter(identity__normalized_email__in=wanted)
                 .only(
                     "pk",
@@ -210,11 +210,11 @@ def _process_subscribed_file(path: Path, *, batch_size: int, apply: bool) -> Mai
             if wanted
             else []
         )
-        by_email: dict[str, list[CustomUser]] = {}
+        by_email: dict[str, list[User]] = {}
         for account in accounts:
             by_email.setdefault(account.identity.normalized_email, []).append(account)
 
-        to_update: dict[int, CustomUser] = {}
+        to_update: dict[int, User] = {}
         for normalized in normalized_by_row:
             source_rows += 1
             matches = by_email.get(normalized) if normalized else None
@@ -237,7 +237,7 @@ def _process_subscribed_file(path: Path, *, batch_size: int, apply: bool) -> Mai
         if to_update:
             accounts_changed += len(to_update)
             if apply:
-                CustomUser.objects.bulk_update(
+                User.objects.bulk_update(
                     to_update.values(), ["newsletter_subscribed"], batch_size=batch_size
                 )
 

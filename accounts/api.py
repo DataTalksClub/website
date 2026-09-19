@@ -11,7 +11,7 @@ def _identity_payload(user):
     return {
         "account_id": user.pk,
         "identity_state": identity_state_of(user),
-        "auth_user_model": "accounts.CustomUser",
+        "auth_user_model": "accounts.User",
     }
 
 

@@ -44,7 +44,7 @@ else, and every number this module reports is an aggregate.
 
 The core principle, stated by the product owner: someone who both took a
 course and registered for an event must resolve to one account, never two.
-So every registrant row is consolidated against ``accounts_customuser`` by
+So every registrant row is consolidated against ``accounts_user`` by
 ``normalized_email`` first, exactly the way
 ``accounts.services.cmp_learner_import`` consolidates a second importer's rows
 against a first importer's accounts (see its ``_find_cross_source_match``).
@@ -102,7 +102,7 @@ from typing import Any
 from django.db import IntegrityError, transaction
 from django.utils.dateparse import parse_datetime
 
-from accounts.models import CustomUser
+from accounts.models import User
 from accounts_ext.models import normalized_email_of
 from event_registrants.models import (
     EventRegistrantIdentity,
@@ -380,7 +380,7 @@ def resolve_registrant_identity(normalized_email: str) -> tuple[EventRegistrantI
     """
 
     account = (
-        CustomUser.objects.filter(identity__normalized_email=normalized_email)
+        User.objects.filter(identity__normalized_email=normalized_email)
         .order_by("pk")
         .first()
     )
@@ -723,7 +723,7 @@ def _plan_one_event(
             continue
         writable += 1
         account = (
-            CustomUser.objects.filter(identity__normalized_email=email).order_by("pk").first()
+            User.objects.filter(identity__normalized_email=email).order_by("pk").first()
         )
         if account is not None:
             matched_account += 1

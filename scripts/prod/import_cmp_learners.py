@@ -17,7 +17,7 @@ Resumable.  Progress is tracked per table in ``CmpLearnerImportProgress``, in
 batches whose writes, watermark advance and claims all share one transaction,
 so a process killed mid-run can be re-run and picks up where it left off -- see
 ``--status`` to check how far a run got without touching the source export.
-Which ``CustomUser`` this importer already created or attached for a given CMP
+Which ``User`` this importer already created or attached for a given CMP
 source id is script-owned state in the same database
 (``accounts.models.CmpLearnerClaim``), never a column on the live model -- so
 claims, watermark and rows commit or roll back as one.

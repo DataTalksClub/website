@@ -19,7 +19,7 @@ from pathlib import Path
 
 from django.test import TestCase
 
-from accounts.models import CustomUser, MailchimpSubscriptionImportRun
+from accounts.models import User, MailchimpSubscriptionImportRun
 from accounts.services.mailchimp_subscription_import import (
     EMAIL_COLUMN,
     import_mailchimp_subscriptions,
@@ -56,11 +56,11 @@ class MailchimpSubscriptionImportTests(TestCase):
         )
 
     def test_new_account_defaults_to_subscribed(self):
-        user = CustomUser.objects.create(username="fresh", email="fresh@example.invalid")
+        user = User.objects.create(username="fresh", email="fresh@example.invalid")
         self.assertTrue(user.newsletter_subscribed)
 
     def test_subscribed_match_sets_true_explicitly(self):
-        user = CustomUser.objects.create(
+        user = User.objects.create(
             username="subbed", email="subbed@example.invalid", newsletter_subscribed=False
         )
         result = self._run(subscribed=[{EMAIL_COLUMN: "subbed@example.invalid"}])
@@ -71,7 +71,7 @@ class MailchimpSubscriptionImportTests(TestCase):
         self.assertEqual(result.subscribed.unmatched_rows, 0)
 
     def test_subscribed_match_against_default_true_is_a_reported_no_op(self):
-        user = CustomUser.objects.create(username="already", email="already@example.invalid")
+        user = User.objects.create(username="already", email="already@example.invalid")
         self.assertTrue(user.newsletter_subscribed)
         result = self._run(subscribed=[{EMAIL_COLUMN: "already@example.invalid"}])
         user.refresh_from_db()
@@ -82,7 +82,7 @@ class MailchimpSubscriptionImportTests(TestCase):
         self.assertEqual(result.subscribed.accounts_changed, 0)
 
     def test_no_match_anywhere_leaves_account_untouched_at_default(self):
-        user = CustomUser.objects.create(username="untouched", email="untouched@example.invalid")
+        user = User.objects.create(username="untouched", email="untouched@example.invalid")
         result = self._run(subscribed=[{EMAIL_COLUMN: "someone-else@example.invalid"}])
         user.refresh_from_db()
         self.assertTrue(user.newsletter_subscribed)
@@ -90,15 +90,15 @@ class MailchimpSubscriptionImportTests(TestCase):
         self.assertEqual(result.subscribed.matched_rows, 0)
 
     def test_mailchimp_row_with_no_account_creates_nothing(self):
-        before = CustomUser.objects.count()
+        before = User.objects.count()
         result = self._run(
             subscribed=[{EMAIL_COLUMN: "ghost-subscribed@example.invalid"}],
         )
-        self.assertEqual(CustomUser.objects.count(), before)
+        self.assertEqual(User.objects.count(), before)
         self.assertEqual(result.subscribed.unmatched_rows, 1)
 
     def test_matching_is_case_insensitive(self):
-        user = CustomUser.objects.create(
+        user = User.objects.create(
             username="mixedcase",
             email="MixedCase@Example.Invalid",
             newsletter_subscribed=False,
@@ -109,10 +109,10 @@ class MailchimpSubscriptionImportTests(TestCase):
         self.assertEqual(result.subscribed.matched_rows, 1)
 
     def test_duplicate_accounts_sharing_an_email_are_all_updated(self):
-        first = CustomUser.objects.create(
+        first = User.objects.create(
             username="dupe1", email="dupe@example.invalid", newsletter_subscribed=False
         )
-        second = CustomUser.objects.create(
+        second = User.objects.create(
             username="dupe2", email="dupe@example.invalid", newsletter_subscribed=False
         )
         result = self._run(subscribed=[{EMAIL_COLUMN: "dupe@example.invalid"}])
@@ -123,7 +123,7 @@ class MailchimpSubscriptionImportTests(TestCase):
         self.assertEqual(result.subscribed.accounts_changed, 2)
 
     def test_rerun_is_idempotent(self):
-        subscribed_user = CustomUser.objects.create(
+        subscribed_user = User.objects.create(
             username="subbed2", email="subbed2@example.invalid", newsletter_subscribed=False
         )
         first = self._run(subscribed=[{EMAIL_COLUMN: "subbed2@example.invalid"}])
@@ -137,7 +137,7 @@ class MailchimpSubscriptionImportTests(TestCase):
         self.assertTrue(subscribed_user.newsletter_subscribed)
 
     def test_dry_run_reports_without_writing(self):
-        user = CustomUser.objects.create(
+        user = User.objects.create(
             username="dryrun", email="dryrun@example.invalid", newsletter_subscribed=False
         )
         result = self._run(subscribed=[{EMAIL_COLUMN: "dryrun@example.invalid"}], apply=False)
@@ -171,7 +171,7 @@ class LocalDecisionCutoffTests(TestCase):
         user.refresh_from_db()
 
     def test_an_in_app_preference_change_sets_the_decision_stamp(self) -> None:
-        user = CustomUser.objects.create(username="decided", email="decided@example.invalid")
+        user = User.objects.create(username="decided", email="decided@example.invalid")
         self.assertIsNone(user.newsletter_preference_changed_at)
 
         self._decide_locally(user, subscribed=False)
@@ -180,7 +180,7 @@ class LocalDecisionCutoffTests(TestCase):
         self.assertFalse(user.newsletter_subscribed)
 
     def test_creation_is_not_a_local_decision(self) -> None:
-        user = CustomUser.objects.create(
+        user = User.objects.create(
             username="created-false",
             email="created-false@example.invalid",
             newsletter_subscribed=False,
@@ -189,7 +189,7 @@ class LocalDecisionCutoffTests(TestCase):
         self.assertIsNone(user.newsletter_preference_changed_at)
 
     def test_the_stamp_survives_an_update_fields_save(self) -> None:
-        user = CustomUser.objects.create(
+        user = User.objects.create(
             username="update-fields", email="update-fields@example.invalid"
         )
         self._decide_locally(user, subscribed=False)
@@ -203,7 +203,7 @@ class LocalDecisionCutoffTests(TestCase):
         self.assertNotEqual(user.newsletter_preference_changed_at, first_stamp)
 
     def test_a_local_opt_out_survives_a_stale_replay(self) -> None:
-        user = CustomUser.objects.create(username="opted-out", email="opted-out@example.invalid")
+        user = User.objects.create(username="opted-out", email="opted-out@example.invalid")
         self._decide_locally(user, subscribed=False)
 
         result = self._import_rows([{EMAIL_COLUMN: "opted-out@example.invalid"}])
@@ -216,7 +216,7 @@ class LocalDecisionCutoffTests(TestCase):
         self.assertFalse(user.newsletter_subscribed)
 
     def test_the_imports_own_writes_are_not_local_decisions(self) -> None:
-        user = CustomUser.objects.create(
+        user = User.objects.create(
             username="migrated",
             email="migrated@example.invalid",
             newsletter_subscribed=False,
@@ -238,7 +238,7 @@ class LocalDecisionCutoffTests(TestCase):
         # the stamp real (a no-op save is not a decision), and the import
         # must still defer to it even though the value now agrees with the
         # snapshot.
-        user = CustomUser.objects.create(
+        user = User.objects.create(
             username="locally-subscribed",
             email="locally-subscribed@example.invalid",
             newsletter_subscribed=False,
@@ -259,7 +259,7 @@ class ImportProvenanceTests(TestCase):
     def test_an_applied_run_records_digest_as_of_and_counts(self) -> None:
         self.subscribed_path = _write_csv([{EMAIL_COLUMN: "provenance@example.invalid"}])
         self.addCleanup(self.subscribed_path.unlink, missing_ok=True)
-        user = CustomUser.objects.create(
+        user = User.objects.create(
             username="provenance",
             email="provenance@example.invalid",
             newsletter_subscribed=False,
@@ -286,7 +286,7 @@ class ImportProvenanceTests(TestCase):
     def test_a_dry_run_is_recorded_as_unapplied(self) -> None:
         self.subscribed_path = _write_csv([{EMAIL_COLUMN: "dryrun2@example.invalid"}])
         self.addCleanup(self.subscribed_path.unlink, missing_ok=True)
-        CustomUser.objects.create(
+        User.objects.create(
             username="dryrun2",
             email="dryrun2@example.invalid",
             newsletter_subscribed=False,
@@ -306,7 +306,7 @@ class ImportProvenanceTests(TestCase):
     def test_repeated_same_snapshot_runs_converge(self) -> None:
         self.subscribed_path = _write_csv([{EMAIL_COLUMN: "converge@example.invalid"}])
         self.addCleanup(self.subscribed_path.unlink, missing_ok=True)
-        CustomUser.objects.create(
+        User.objects.create(
             username="converge",
             email="converge@example.invalid",
             newsletter_subscribed=False,

@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from accounts.models import CustomUser
+from accounts.models import User
 from data.models import (
     DatamailerSendAudit,
     DatamailerSendAuditStatus,
@@ -19,7 +19,7 @@ DATAMAILER_SETTINGS = {
 
 class DatamailerContactBase(TestCase):
     def create_contact_payload_fixture(self):
-        user = CustomUser.objects.create(
+        user = User.objects.create(
             email="Student@Example.com",
             username="student",
         )
@@ -116,11 +116,11 @@ class DatamailerContactBase(TestCase):
         bulk_import.return_value = {"counts": counts}
 
     def create_contact_backfill_users(self):
-        CustomUser.objects.create_user(
+        User.objects.create_user(
             username="student-1",
             email="Student1@Example.com",
         )
-        CustomUser.objects.create_user(
+        User.objects.create_user(
             username="student-2",
             email="student2@example.com",
         )

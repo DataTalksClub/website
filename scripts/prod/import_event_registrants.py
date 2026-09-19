@@ -8,11 +8,11 @@ reads the attendee-level rows themselves -- something no other importer does,
 by design: ``events.importers`` is aggregate-only and never lets an attendee
 value cross its own module boundary.
 
-Every registrant row is consolidated against ``accounts_customuser`` by
+Every registrant row is consolidated against ``accounts_user`` by
 ``normalized_email`` first, so a person who both took a course and registered
 for an event resolves to one account, never two.  An unmatched row becomes a
 new, login-incapable registrant-only identity in the same email-keyed space --
-never a second ``CustomUser`` row.  See ``scripts.prod.registrant_import`` for the
+never a second ``User`` row.  See ``scripts.prod.registrant_import`` for the
 full matching contract and ``events.models.EventRegistrantIdentity`` /
 ``EventRegistration`` for the two tables this writes.
 
@@ -94,7 +94,7 @@ from scripts.prod.target import add_target_arguments, configure_target  # noqa: 
 
 SYNC_MODEL = "one-time"
 # Requires events.Event rows (from import_events.py) and, for the interesting
-# "matched to an existing account" path, accounts_customuser rows (from
+# "matched to an existing account" path, accounts_user rows (from
 # import_cmp_learners.py) to already be present. It reconciles; it does not
 # bootstrap.
 BOOTSTRAPS_EMPTY_DATABASE = False

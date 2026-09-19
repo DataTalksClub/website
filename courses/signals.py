@@ -4,7 +4,7 @@ from django.db import transaction
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from accounts.models import CustomUser
+from accounts.models import User
 from core.runtime_config import get_bool_setting
 from course_management.datamailer.sync.contacts import (
     erase_contact_from_datamailer,
@@ -14,7 +14,7 @@ from course_management.package_mail import send_enrollment_confirmation_mail
 from courses.models.cohort import Enrollment
 
 
-@receiver(post_save, sender=CustomUser)
+@receiver(post_save, sender=User)
 def sync_user_to_datamailer(sender, instance, created, **kwargs):
     if not created:
         return
@@ -26,7 +26,7 @@ def sync_user_to_datamailer(sender, instance, created, **kwargs):
     transaction.on_commit(callback)
 
 
-@receiver(post_delete, sender=CustomUser)
+@receiver(post_delete, sender=User)
 def erase_user_from_datamailer(sender, instance, **kwargs):
     user_id = instance.pk
     email = instance.email

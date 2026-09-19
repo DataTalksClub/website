@@ -3,7 +3,7 @@ import json
 from django.test import TestCase
 from django.urls import reverse
 
-from accounts.models import CustomUser
+from accounts.models import User
 
 
 class DatamailerWebhookTestBase(TestCase):
@@ -18,7 +18,7 @@ class DatamailerWebhookTestBase(TestCase):
         )
 
     def create_student_user(self):
-        return CustomUser.objects.create_user(
+        return User.objects.create_user(
             username="student",
             email="student@example.com",
             password="password",

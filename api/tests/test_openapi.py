@@ -1,6 +1,6 @@
 from django.test import Client, TestCase
 
-from accounts.models import CustomUser, Token
+from accounts.models import User, Token
 from api.openapi.spec import (
     build_openapi_spec,
     route_coverage,
@@ -11,7 +11,7 @@ from api.openapi.spec import (
 
 class OpenAPITestCase(TestCase):
     def setUp(self):
-        self.user = CustomUser.objects.create(
+        self.user = User.objects.create(
             username="testuser",
             email="test@example.com",
             password="password",

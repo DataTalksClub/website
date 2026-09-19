@@ -21,7 +21,7 @@ from django.utils import timezone
 
 from accounts.auth import token_required
 from accounts.identity_resolution import resolve_durable_user
-from accounts.models import CustomUser, Token
+from accounts.models import Token, User
 from accounts.studio_authorization import (
     StudioAuthorizationDenied,
     authorize_studio_request,
@@ -38,7 +38,7 @@ from management_auth.tokens import encode_secret, generate_token
 QUARANTINED = IdentityState.States.QUARANTINED
 
 
-def quarantine(user: CustomUser) -> None:
+def quarantine(user: User) -> None:
     IdentityState.objects.filter(user=user).update(identity_state=QUARANTINED)
     user.refresh_from_db()
 
@@ -46,7 +46,7 @@ def quarantine(user: CustomUser) -> None:
 class BrowserSessionRevocationTests(TestCase):
     def setUp(self) -> None:
         self.client = Client()
-        self.user = CustomUser.objects.create_user(
+        self.user = User.objects.create_user(
             username="session-owner",
             email="session-owner@example.invalid",
             password="tested-password-1",
@@ -84,22 +84,22 @@ class BrowserSessionRevocationTests(TestCase):
 
 
 class AliasContinuityTests(TestCase):
-    def make_pair(self, *, survivor_state: str) -> tuple[CustomUser, CustomUser]:
-        source = CustomUser.objects.create_user(
+    def make_pair(self, *, survivor_state: str) -> tuple[User, User]:
+        source = User.objects.create_user(
             username="absorbed-source",
             email="source@example.invalid",
         )
         IdentityState.objects.filter(user=source).update(
             identity_state=IdentityState.States.ABSORBED
         )
-        survivor = CustomUser.objects.create_user(
+        survivor = User.objects.create_user(
             username="alias-survivor",
             email="survivor@example.invalid",
         )
         IdentityState.objects.filter(user=survivor).update(identity_state=survivor_state)
         AccountIdentityAlias.objects.create(source_user_id=source.pk, survivor=survivor)
         # Re-fetch: the creation-time instance caches its identity relation.
-        return CustomUser.objects.get(pk=source.pk), CustomUser.objects.get(pk=survivor.pk)
+        return User.objects.get(pk=source.pk), User.objects.get(pk=survivor.pk)
 
     def test_an_absorbed_identity_still_resolves_to_an_active_survivor(self) -> None:
         source, survivor = self.make_pair(survivor_state=IdentityState.States.ACTIVE)
@@ -116,7 +116,7 @@ class AliasContinuityTests(TestCase):
 
 class LegacyTokenRevocationTests(TestCase):
     def setUp(self) -> None:
-        self.user = CustomUser.objects.create_user(
+        self.user = User.objects.create_user(
             username="token-owner",
             email="token-owner@example.invalid",
         )
@@ -149,7 +149,7 @@ class LegacyTokenRevocationTests(TestCase):
 
 class ManagementCredentialRevocationTests(TestCase):
     def setUp(self) -> None:
-        self.user = CustomUser.objects.create_user(
+        self.user = User.objects.create_user(
             username="credential-owner",
             email="credential-owner@example.invalid",
         )

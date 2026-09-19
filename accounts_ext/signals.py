@@ -1,6 +1,6 @@
 """The save-path invariant for the moved identity reconciliation columns.
 
-``CustomUser.save`` used to write
+``User.save`` used to write
 ``normalized_email == normalize_account_email(user.email)`` on the user row.
 The column now lives on ``accounts_ext.IdentityState``, so the same invariant
 is kept here, on every path that persists a user email write:
@@ -47,7 +47,7 @@ def sync_identity_state(sender, instance, created, **kwargs):
         return
     update_fields = kwargs.get("update_fields")
     if not created and update_fields is not None and "email" not in update_fields:
-        # Mirror of the old ``CustomUser.save`` persistence rule: a partial
+        # Mirror of the old ``User.save`` persistence rule: a partial
         # save that does not carry the email never persisted the normalized
         # column either.
         return

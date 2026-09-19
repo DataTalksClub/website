@@ -24,7 +24,7 @@ hits an unresolved identity collision.  Those stay exactly where they are.
 ``accounts_ext.models.AccountReconciliationRun`` is different from those in that
 nothing at request time ever reads it -- but it still has to be a real Django
 model living in an installed app, because that is the only way for it to get
-a migration and cheap FK-free lookups against ``CustomUser``.  ``scripts/prod``
+a migration and cheap FK-free lookups against ``User``.  ``scripts/prod``
 is plain scripts, not a Django app, so it cannot host a model at all.  Moving
 the *table* out of ``accounts`` is not possible without inventing a second
 app for one table; what *does* move, and does here, is every line of
@@ -84,7 +84,7 @@ from accounts.identity_values import (
     validate_safe_reference,
     validate_snapshot_id,
 )
-from accounts.models import CustomUser
+from accounts.models import User
 from accounts_ext.models import (
     AccountIdentityAlias,
     AccountIdentityQuarantine,
@@ -247,7 +247,7 @@ def _candidate_tokens() -> tuple[dict[int, set[str]], dict[str, set[int]]]:
     users_by_token: dict[str, set[int]] = defaultdict(set)
 
     users = (
-        CustomUser.objects.select_related("identity")
+        User.objects.select_related("identity")
         .order_by("pk")
         .only(
             "pk",
@@ -297,7 +297,7 @@ def _candidate_tokens() -> tuple[dict[int, set[str]], dict[str, set[int]]]:
     return tokens_by_user, users_by_token
 
 
-def _authority_signature(user: CustomUser) -> tuple[Any, ...]:
+def _authority_signature(user: User) -> tuple[Any, ...]:
     return (
         user.is_active,
         user.is_staff,
@@ -354,7 +354,7 @@ def _relationship_collision_codes(user_ids: tuple[int, ...]) -> list[str]:
 
 def dry_run_reconciliation(*, snapshot_id: str) -> dict[str, Any]:
     snapshot = validate_snapshot_id(snapshot_id)
-    users = tuple(CustomUser.objects.order_by("pk"))
+    users = tuple(User.objects.order_by("pk"))
     user_ids = [user.pk for user in users]
     users_by_id = {user.pk: user for user in users}
     tokens_by_user, users_by_token = _candidate_tokens()
@@ -525,7 +525,7 @@ def _verified_email_set(user_id: int) -> set[str]:
 def _mapping_conflicts(
     mapping: ReviewedMapping,
     *,
-    users_by_id: dict[int, CustomUser],
+    users_by_id: dict[int, User],
 ) -> list[str]:
     source = users_by_id.get(mapping.source_user_id)
     survivor = users_by_id.get(mapping.survivor_user_id)
@@ -585,7 +585,7 @@ def _quarantine_mapping_conflicts(
     }
     try:
         with transaction.atomic():
-            users_by_id = {user.pk: user for user in CustomUser.objects.filter(pk__in=user_ids)}
+            users_by_id = {user.pk: user for user in User.objects.filter(pk__in=user_ids)}
             audit_contexts = tuple(
                 _denied_merge_audit_context(
                     source=users_by_id.get(conflict["source_user_id"]),
@@ -649,7 +649,7 @@ def _quarantine_mapping_conflicts(
         )
 
 
-def _is_valid_audit_authority(user: CustomUser | None) -> bool:
+def _is_valid_audit_authority(user: User | None) -> bool:
     return bool(
         user is not None
         and user.is_active
@@ -663,8 +663,8 @@ def _is_valid_audit_authority(user: CustomUser | None) -> bool:
 
 def _denied_merge_audit_context(
     *,
-    source: CustomUser | None,
-    survivor: CustomUser | None,
+    source: User | None,
+    survivor: User | None,
 ):
     from core.audit import AuditWriteContext
 
@@ -684,7 +684,7 @@ def _denied_merge_audit_context(
     return context.validated()
 
 
-def _successful_merge_audit_context(*, survivor: CustomUser):
+def _successful_merge_audit_context(*, survivor: User):
     from core.audit import AuditWriteContext
 
     if not _is_valid_audit_authority(survivor):
@@ -697,8 +697,8 @@ def _successful_merge_audit_context(*, survivor: CustomUser):
 
 def _profile_changes(
     *,
-    source: CustomUser,
-    survivor: CustomUser,
+    source: User,
+    survivor: User,
     mapping: ReviewedMapping,
 ) -> tuple[LearnerProfile, list[str]]:
     # Applies every "source" decision onto the survivor in memory: user-row
@@ -798,8 +798,8 @@ def _apply_one_mapping(
             return
         raise ReconciliationError("source alias changed across reconciliation runs")
 
-    source = CustomUser.objects.select_related("identity").get(pk=mapping.source_user_id)
-    survivor = CustomUser.objects.select_related("identity").get(pk=mapping.survivor_user_id)
+    source = User.objects.select_related("identity").get(pk=mapping.source_user_id)
+    survivor = User.objects.select_related("identity").get(pk=mapping.survivor_user_id)
     source_identity_row = identity_state_row(source)
     survivor_identity_row = identity_state_row(survivor)
     source_profile_row = learner_profile_for(source)
@@ -822,7 +822,7 @@ def _apply_one_mapping(
     if survivor_email is None or survivor_email not in _verified_email_set(survivor.pk):
         raise IntegrityError("survivor verified email changed during apply")
 
-    if not CustomUser.objects.filter(pk=source.pk, **source_user_snapshot).exists():
+    if not User.objects.filter(pk=source.pk, **source_user_snapshot).exists():
         raise IntegrityError("source identity changed during apply")
     if source_identity_snapshot is not None and not IdentityState.objects.filter(
         user_id=source.pk,
@@ -844,7 +844,7 @@ def _apply_one_mapping(
             identity_state=IdentityState.States.ABSORBED,
         )
 
-    if not CustomUser.objects.filter(pk=survivor.pk, **survivor_user_snapshot).exists():
+    if not User.objects.filter(pk=survivor.pk, **survivor_user_snapshot).exists():
         raise IntegrityError("survivor identity changed during apply")
     if survivor_identity_snapshot is not None and not IdentityState.objects.filter(
         user_id=survivor.pk,
@@ -863,7 +863,7 @@ def _apply_one_mapping(
         if field not in _LEARNER_PROFILE_FIELDS
     }
     if survivor_user_updates:
-        CustomUser.objects.filter(pk=survivor.pk, **survivor_user_snapshot).update(
+        User.objects.filter(pk=survivor.pk, **survivor_user_snapshot).update(
             **survivor_user_updates
         )
     if survivor_identity_row is None:
@@ -931,7 +931,7 @@ def apply_reviewed_mapping(plan: MappingPlan) -> dict[str, Any]:
 
     users_by_id = {
         user.pk: user
-        for user in CustomUser.objects.filter(
+        for user in User.objects.filter(
             pk__in={
                 user_id
                 for mapping in plan.mappings
@@ -964,13 +964,13 @@ def apply_reviewed_mapping(plan: MappingPlan) -> dict[str, Any]:
         mapping.source_user_id: mapping.survivor_user_id for mapping in plan.mappings
     }
     before_counts, before_checksums = relationship_evidence(alias_overrides=prospective_aliases)
-    source_account_count = CustomUser.objects.count()
+    source_account_count = User.objects.count()
 
     try:
         with transaction.atomic():
             current_users_by_id = {
                 user.pk: user
-                for user in CustomUser.objects.filter(
+                for user in User.objects.filter(
                     pk__in={
                         user_id
                         for mapping in plan.mappings
@@ -1128,8 +1128,8 @@ def _validated_aliases(plan: MappingPlan) -> tuple[AccountIdentityAlias, ...]:
     if actual != expected:
         raise ReconciliationError("rollback alias evidence is incomplete")
     for source_user_id, survivor_user_id in expected.items():
-        source = CustomUser.objects.filter(pk=source_user_id).first()
-        survivor = CustomUser.objects.filter(pk=survivor_user_id).first()
+        source = User.objects.filter(pk=source_user_id).first()
+        survivor = User.objects.filter(pk=survivor_user_id).first()
         if (
             source is None
             or identity_state_of(source) != IdentityState.States.ABSORBED
@@ -1162,8 +1162,8 @@ def validate_rollback_window(plan: MappingPlan) -> dict[str, Any]:
         mapping_checksum=plan.checksum,
         mode=AccountReconciliationRun.Mode.ROLLBACK_CHECK,
         defaults={
-            "source_account_count": CustomUser.objects.count(),
-            "survivor_account_count": (CustomUser.objects.count() - len(plan.mappings)),
+            "source_account_count": User.objects.count(),
+            "survivor_account_count": (User.objects.count() - len(plan.mappings)),
             "alias_count": len(aliases),
             "quarantine_count": AccountIdentityQuarantine.objects.filter(
                 status=AccountIdentityQuarantine.Status.OPEN

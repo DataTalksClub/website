@@ -3,7 +3,7 @@ from unittest.mock import patch
 from django.test import override_settings
 from django.urls import reverse
 
-from accounts.models import CustomUser
+from accounts.models import User
 from accounts.tests_base import (
     DATAMAILER_DISABLED_SETTINGS,
     AccountCourseTestCase,
@@ -84,7 +84,7 @@ class AccountEmailPreferencesTestCase(AccountCourseTestCase):
 
     def test_custom_user_does_not_store_email_preference_fields(self):
         field_names = set()
-        for field in CustomUser._meta.get_fields():
+        for field in User._meta.get_fields():
             field_names.add(field.name)
 
         self.assertNotIn("email_submission_confirmations", field_names)

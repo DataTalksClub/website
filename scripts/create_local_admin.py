@@ -19,7 +19,7 @@ from django.contrib.auth import get_user_model  # noqa: E402
 from django.db import transaction  # noqa: E402
 
 from accounts.identity_values import normalize_account_email  # noqa: E402
-from accounts.models import CustomUser  # noqa: E402
+from accounts.models import User  # noqa: E402
 from accounts.services.local_provider_seed import (  # noqa: E402
     seed_local_social_providers,
 )
@@ -41,7 +41,7 @@ def assert_local_sqlite() -> None:
 
 
 @transaction.atomic
-def create_or_reset_local_admin() -> tuple[CustomUser, bool]:
+def create_or_reset_local_admin() -> tuple[User, bool]:
     """Create the local admin or restore its documented login and privileges."""
 
     normalized_email = normalize_account_email(EMAIL)

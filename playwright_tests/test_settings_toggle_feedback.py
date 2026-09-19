@@ -27,10 +27,10 @@ pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
 
 
 def _member(suffix: str):
-    from accounts.models import CustomUser
+    from accounts.models import User
 
     email = f"toggle-feedback-{suffix}@example.invalid"
-    return CustomUser.objects.create_user(username=email, email=email)
+    return User.objects.create_user(username=email, email=email)
 
 
 def _enrollment_page(user, *, slug: str) -> tuple[Cohort, str]:

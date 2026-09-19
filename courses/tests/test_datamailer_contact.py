@@ -3,7 +3,7 @@ from unittest.mock import patch
 import requests
 from django.test import override_settings
 
-from accounts.models import CustomUser
+from accounts.models import User
 from course_management.datamailer.keys import contact_tags_for_course
 from course_management.datamailer.payloads.base import (
     contact_payload_for_user,
@@ -46,7 +46,7 @@ class DatamailerContactTest(DatamailerContactBase):
         self, upsert
     ):
         upsert.side_effect = requests.RequestException("network error")
-        user = CustomUser.objects.create(email="student@example.com")
+        user = User.objects.create(email="student@example.com")
 
         sync_contact(user)
 
@@ -58,7 +58,7 @@ class DatamailerContactTest(DatamailerContactBase):
     )
     def test_sync_contact_can_be_strict(self, upsert):
         upsert.side_effect = requests.RequestException("network error")
-        user = CustomUser.objects.create(email="student@example.com")
+        user = User.objects.create(email="student@example.com")
 
         with self.assertRaises(requests.RequestException):
             sync_contact(user)

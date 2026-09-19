@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from django.test import TestCase, override_settings
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models.cohort import CourseRegistration, RegistrationCampaign
 from courses.models.learner_profile import LearnerProfile
 from courses.services.registration_campaigns import (
@@ -285,7 +285,7 @@ class NewsletterConsentDefaultTests(TestCase):
         # consent is never carried over from the profile or a previous
         # registration.
         self._campaign()
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username="consent-default",
             email="consent-default@example.com",
             password="test",

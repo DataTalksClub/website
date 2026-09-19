@@ -25,13 +25,13 @@ class AccountRelationSpec:
 
 ACCOUNT_RELATIONS = (
     AccountRelationSpec(
-        "accounts.CustomUser_groups",
-        "customuser",
+        "accounts.User_groups",
+        "user",
         "source_authority_only",
     ),
     AccountRelationSpec(
-        "accounts.CustomUser_user_permissions",
-        "customuser",
+        "accounts.User_user_permissions",
+        "user",
         "source_authority_only",
     ),
     AccountRelationSpec("admin.LogEntry", "user", "provenance_alias"),
@@ -93,17 +93,17 @@ ACCOUNT_AUTHENTICATION_ROUTES = (
 
 ACCOUNT_MANY_TO_MANY_RELATIONS = (
     {
-        "owner_model": "accounts.CustomUser",
+        "owner_model": "accounts.User",
         "field_name": "groups",
-        "through_table": "accounts_customuser_groups",
-        "user_field": "customuser",
+        "through_table": "accounts_user_groups",
+        "user_field": "user",
         "handling": "source_authority_only",
     },
     {
-        "owner_model": "accounts.CustomUser",
+        "owner_model": "accounts.User",
         "field_name": "user_permissions",
-        "through_table": "accounts_customuser_user_permissions",
-        "user_field": "customuser",
+        "through_table": "accounts_user_user_permissions",
+        "user_field": "user",
         "handling": "source_authority_only",
     },
     {
@@ -249,9 +249,9 @@ def account_inventory() -> dict[str, Any]:
         "authentication_routes": authentication_routes,
         "navigation": navigation,
         "compatibility_identifiers": [
-            "accounts.CustomUser.id",
-            "accounts.CustomUser.username",
-            "accounts.CustomUser.email",
+            "accounts.User.id",
+            "accounts.User.username",
+            "accounts.User.email",
             "accounts.Token.key (never emitted)",
             "accounts_ext.AccountIdentityAlias.source_user_id",
         ],

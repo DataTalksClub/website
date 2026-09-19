@@ -1,14 +1,14 @@
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models.learner_profile import LearnerProfile
 
 
 class DarkModeToggleTestCase(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = CustomUser.objects.create_user(
+        self.user = User.objects.create_user(
             username="testuser",
             email="test@example.com",
             password="testpass123",
@@ -86,7 +86,7 @@ class DarkModeToggleTestCase(TestCase):
 
     def test_dark_mode_default_value(self):
         """Test that dark_mode defaults to False"""
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username="newuser",
             email="new@example.com",
             password="testpass123",

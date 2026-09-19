@@ -86,22 +86,22 @@ matches -- see the runbook entry this module implements,
 settled tag table this module's :data:`TAG_COHORT_MAP` transcribes.
 
 **Identity resolution, and why it is narrower than the event-tag importer's.**
-``events.mailchimp_tag_import`` resolves a row against ``accounts_customuser``
+``events.mailchimp_tag_import`` resolves a row against ``accounts_user``
 first, then a prior ``EventRegistrantIdentity``, and only then creates a new,
 login-incapable registrant-only identity -- because ``EventRegistration`` and
 ``EventRegistrantInterestSignal`` both point at that identity type, which can
 represent a real person with no account at all. ``courses`` has no equivalent
 registrant-only identity model, and ``Enrollment.student`` is a required,
-non-nullable foreign key to a real ``CustomUser`` -- there is no schema slot
+non-nullable foreign key to a real ``User`` -- there is no schema slot
 for a login-incapable course identity to land in. Rather than invent one, or
-mint a new ``CustomUser`` account from a self-selected marketing tag (a much
+mint a new ``User`` account from a self-selected marketing tag (a much
 lower-confidence signal than CMP's verified learner export), this module
 matches *only* against an existing account by ``normalized_email`` --
 the exact same restraint ``accounts.services.mailchimp_subscription_import``
 already applies to its own, adjacent problem ("this importer only ever
 updates an existing row"). A tag row with no matching account is counted
 under :attr:`MailchimpCourseTagImportReport.no_account_match_total` and
-skipped -- nothing is created for it, and no ``CustomUser`` is ever created by
+skipped -- nothing is created for it, and no ``User`` is ever created by
 this module, full stop.
 
 **Idempotency.** ``Enrollment`` carries a ``(student, course)`` unique
@@ -125,7 +125,7 @@ from pathlib import Path
 from typing import Any
 
 from accounts.identity_values import normalize_account_email
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import Cohort, Enrollment
 
 __all__ = [
@@ -257,7 +257,7 @@ def import_mailchimp_course_tags(
     at beyond the tag check itself. A tag whose cohort does not exist in this
     database is skipped and counted, never guessed at. A row whose email does
     not match an existing account is skipped and counted -- this module never
-    creates a ``CustomUser``. See the module docstring for the full reasoning.
+    creates a ``User``. See the module docstring for the full reasoning.
     """
 
     source_rows = 0
@@ -305,9 +305,7 @@ def import_mailchimp_course_tags(
             continue
 
         account = (
-            CustomUser.objects.filter(identity__normalized_email=normalized_email)
-            .order_by("pk")
-            .first()
+            User.objects.filter(identity__normalized_email=normalized_email).order_by("pk").first()
         )
         if account is None:
             no_account_match += 1

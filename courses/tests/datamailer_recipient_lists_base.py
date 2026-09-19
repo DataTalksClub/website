@@ -4,7 +4,7 @@ import json
 
 from django.test import TestCase
 
-from accounts.models import CustomUser
+from accounts.models import User
 from course_management.datamailer.keys import (
     course_enrolled_list_key,
 )
@@ -52,7 +52,7 @@ class DatamailerRecipientListCommandTestBase(TestCase):
         )
 
     def create_user(self, email):
-        return CustomUser.objects.create_user(
+        return User.objects.create_user(
             username=email,
             email=email,
             password="test",

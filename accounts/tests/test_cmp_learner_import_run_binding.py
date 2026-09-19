@@ -18,7 +18,7 @@ from allauth.account.models import EmailAddress
 from django.db import IntegrityError
 from django.test import TestCase
 
-from accounts.models import CmpLearnerClaim, CmpLearnerImportBinding, CustomUser
+from accounts.models import CmpLearnerClaim, CmpLearnerImportBinding, User
 from accounts.services import cmp_learner_import as service
 from accounts.services.cmp_learner_import import (
     CmpLearnerImportError,
@@ -129,14 +129,14 @@ class RunBindingTests(_SourceFixtureMixin, TestCase):
         # binding check passes, nothing is re-read or rewritten.
         result = import_cmp_learners(source)
 
-        self.assertEqual(CustomUser.objects.count(), 3)
+        self.assertEqual(User.objects.count(), 3)
         self.assertEqual(result.accounts.written, 3)
         self.assertEqual(CmpLearnerClaim.objects.count(), 3)
 
     def test_a_changed_export_is_refused_before_any_write(self) -> None:
         first = self.source(2)
         import_cmp_learners(first)
-        accounts_before = CustomUser.objects.count()
+        accounts_before = User.objects.count()
         claims_before = CmpLearnerClaim.objects.count()
 
         # Same logical shape, different bytes: a different snapshot.
@@ -146,7 +146,7 @@ class RunBindingTests(_SourceFixtureMixin, TestCase):
             import_cmp_learners(second)
 
         self.assertEqual(str(error.exception), "run-bound-to-different-source")
-        self.assertEqual(CustomUser.objects.count(), accounts_before)
+        self.assertEqual(User.objects.count(), accounts_before)
         self.assertEqual(CmpLearnerClaim.objects.count(), claims_before)
 
     def test_a_changed_importer_version_is_refused(self) -> None:
@@ -169,13 +169,13 @@ class RunBindingTests(_SourceFixtureMixin, TestCase):
         CmpLearnerImportBinding.objects.all().delete()
         CmpLearnerClaim.objects.all().delete()
         CmpLearnerImportProgress.objects.all().delete()
-        CustomUser.objects.all().delete()
+        User.objects.all().delete()
 
         import_cmp_learners(source)
         second_binding = CmpLearnerImportBinding.objects.get(kind=service.BINDING_KIND)
 
         self.assertNotEqual(second_binding.target_uuid, first_uuid)
-        self.assertEqual(CustomUser.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
 
 
 class KilledBatchAtomicityTests(_SourceFixtureMixin, TestCase):
@@ -226,7 +226,7 @@ class KilledBatchAtomicityTests(_SourceFixtureMixin, TestCase):
 
         # Nothing from the killed batch survived -- not the rows before the
         # trap, not their claims, not the watermark.
-        self.assertEqual(CustomUser.objects.count(), 0)
+        self.assertEqual(User.objects.count(), 0)
         self.assertEqual(CmpLearnerClaim.objects.count(), 0)
         progress = CmpLearnerImportProgress.objects.get(table="accounts_customuser")
         self.assertEqual(progress.last_source_id, 0)
@@ -234,7 +234,7 @@ class KilledBatchAtomicityTests(_SourceFixtureMixin, TestCase):
         # An ordinary, unmodified re-run (no manual progress repair) completes.
         result = import_cmp_learners(source, batch_size=10)
 
-        self.assertEqual(CustomUser.objects.count(), 4)
+        self.assertEqual(User.objects.count(), 4)
         self.assertEqual(CmpLearnerClaim.objects.count(), 4)
         self.assertEqual(EmailAddress.objects.count(), 4)
         progress.refresh_from_db()

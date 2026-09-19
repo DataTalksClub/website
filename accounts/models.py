@@ -1,12 +1,13 @@
 import secrets
 import uuid
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 
 
-class CustomUser(AbstractUser):
+class User(AbstractUser):
     preferred_timezone = models.CharField(
         verbose_name="Preferred timezone",
         max_length=100,
@@ -28,7 +29,7 @@ class CustomUser(AbstractUser):
         help_text="Whether this account receives newsletter email.",
     )
     # When the member last changed ``newsletter_subscribed`` through an
-    # in-app save (see ``CustomUser.save``), or null if no local decision
+    # in-app save (see ``User.save``), or null if no local decision
     # exists.  The Mailchimp subscription import refuses to touch any
     # account carrying a non-null value here: a recorded local decision
     # always wins over an audience-export snapshot, however fresh, so
@@ -60,6 +61,11 @@ class CustomUser(AbstractUser):
     # The course-platform person fields live on ``courses.LearnerProfile`` and
     # the identity reconciliation state, with its conditional unique
     # constraint, on ``accounts_ext.IdentityState`` (plan issue D3.1).
+
+    class Meta(AbstractUser.Meta):
+        # The shared physical name (playbook P7). accounts.0009 moves the
+        # table, and the two auto-created M2M through tables, onto it.
+        db_table = "accounts_user"
 
     @classmethod
     def from_db(cls, db, field_names, values):
@@ -109,7 +115,7 @@ class CustomUser(AbstractUser):
 
 class Token(models.Model):
     key = models.CharField(max_length=40, primary_key=True)
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
         if not self.key:
@@ -151,7 +157,7 @@ class CmpLearnerImportBinding(models.Model):
 
 
 class CmpLearnerClaim(models.Model):
-    """One "CMP source account id -> CustomUser pk" mapping, per imported row.
+    """One "CMP source account id -> User pk" mapping, per imported row.
 
     This is the durable claims store the learner-account importer reads and
     writes; it replaced the earlier JSON file so that a claim commits inside
@@ -177,7 +183,7 @@ class MailchimpSubscriptionImportRun(models.Model):
     The import is a snapshot migration, not a live sync: what a run knew is
     exactly the subscribed CSV's digest and the operator-declared snapshot
     date recorded here.  Anything that changed locally after that snapshot
-    is protected by ``CustomUser.newsletter_preference_changed_at``; this
+    is protected by ``User.newsletter_preference_changed_at``; this
     row is the evidence of which snapshot was applied (or rehearsed), when,
     and with what effect (audit BE-15).
     """

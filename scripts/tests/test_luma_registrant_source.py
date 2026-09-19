@@ -18,7 +18,7 @@ from pathlib import Path
 from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 
-from accounts.models import CustomUser
+from accounts.models import User
 from event_registrants.models import EventRegistrantIdentity, EventRegistration
 from community_base.events.models import Event
 from content.models import EventSource
@@ -259,7 +259,7 @@ class LumaRegistrantSourceTests(LumaRegistrantExportMixin, TestCase):
         self.assertEqual(EventRegistration.objects.count(), 0)
 
     def test_an_export_is_imported_and_consolidated_end_to_end(self) -> None:
-        account = CustomUser.objects.create(
+        account = User.objects.create(
             username="existing-learner", email="learner@example.invalid"
         )
         create_provider_event_identity(

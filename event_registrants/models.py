@@ -19,7 +19,7 @@ class EventRegistrantIdentity(models.Model):
     """The consolidated real person behind one or more provider event registrations.
 
     Matching happens in :mod:`scripts.prod.registrant_import`, by ``normalized_email``,
-    against ``accounts_customuser`` first -- the same table and field
+    against ``accounts_user`` first -- the same table and field
     ``accounts.services.cmp_learner_import`` already uses for its own
     cross-source deduplication (see ``_find_cross_source_match`` there). When
     that lookup finds an account, ``account`` is set here and this row is a
@@ -29,8 +29,8 @@ class EventRegistrantIdentity(models.Model):
     and no prior registrant-only identity already claims the address, a new
     row is created with ``normalized_email`` set and ``account`` left null --
     a real identity in the same email-keyed space, but deliberately never a
-    login-capable ``CustomUser`` row (self-registration is closed, see
-    ``accounts.models.CustomUser`` / commit ``c237ef2``). A future import that
+    login-capable ``User`` row (self-registration is closed, see
+    ``accounts.models.User`` / commit ``c237ef2``). A future import that
     matches this address onto a real account attaches through the same
     account-first lookup on its next run -- a plain merge, nothing special
     needs to be built for that later.

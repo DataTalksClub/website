@@ -26,7 +26,7 @@ class IdentityState(models.Model):
     The columns moved off the auth user model verbatim (plan issue D3.1). The
     save-path invariant ``normalized_email == normalize_account_email(
     user.email)`` is kept by ``accounts_ext.signals`` on every path that
-    persists an email write, exactly as the old ``CustomUser.save`` override
+    persists an email write, exactly as the old ``User.save`` override
     did; ``normalized_email`` stays ``None`` for a row whose user has never
     been saved through the ORM (bulk-created accounts), which is how an empty
     column behaved.
@@ -273,7 +273,7 @@ class CmpLearnerImportProgress(models.Model):
     row for). Either way it is one countable, resumable unit of this import.
 
     Import-provenance state that once lived on a *live* model
-    (``CustomUser.cmp_source_user_id``, a column every future query against
+    (``User.cmp_source_user_id``, a column every future query against
     the permanent account table would have carried) moved to this importer's
     own script-owned claims file
     (``accounts.services.cmp_learner_import.CmpClaimsStore``) rather than a

@@ -23,7 +23,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.models import CustomUser
+from accounts.models import User
 from accounts.studio_test_support import make_studio_user
 from core.models import AuditEvent
 from courses.models import (
@@ -34,7 +34,6 @@ from courses.models import (
     ProjectState,
     ProjectSubmission,
     Submission,
-    User,
 )
 from courses.models.cohort import Cohort
 from events.identity import create_event_identity
@@ -59,7 +58,7 @@ class StudioDesignFiveAShellTests(TestCase):
     course: Cohort
     audit_event: AuditEvent
     event: Event
-    student: CustomUser
+    student: User
     enrollment: Enrollment
     homework: Homework
     homework_submission: Submission

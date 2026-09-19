@@ -6,7 +6,7 @@ from django.core.validators import URLValidator
 from django.db import models
 from django.db.models import Q
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.curriculum_source_validators import validate_course_progression
 from courses.random_names import generate_random_name
 
@@ -16,8 +16,6 @@ from .curriculum_import import (
     source_provenance_constraint,
     source_stable_id_validator,
 )
-
-User = CustomUser
 
 
 class CurriculumFormat(models.TextChoices):

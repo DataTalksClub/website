@@ -6,7 +6,7 @@ from django.db import connection
 from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 
-from accounts.models import CustomUser
+from accounts.models import User
 from data.models import (
     DatamailerSendAudit,
     DatamailerSendAuditStatus,
@@ -58,7 +58,7 @@ def create_project(course=None, **overrides):
 
 
 def create_user(email):
-    return CustomUser.objects.create_user(
+    return User.objects.create_user(
         username=email,
         email=email,
         password="test",

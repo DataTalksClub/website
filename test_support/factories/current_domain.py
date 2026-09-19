@@ -290,7 +290,7 @@ def _rejected(model_label: str, reason: str) -> RejectedDomainValue:
 
 
 def _accounts(context: FactoryContext, state: str) -> dict[str, object]:
-    User = _model("accounts.CustomUser")
+    User = _model("accounts.User")
     Alias = _model("accounts_ext.AccountIdentityAlias")
     Quarantine = _model("accounts_ext.AccountIdentityQuarantine")
     Reconciliation = _model("accounts_ext.AccountReconciliationRun")
@@ -406,7 +406,7 @@ def _accounts(context: FactoryContext, state: str) -> dict[str, object]:
         try:
             invalid.full_clean()
         except ValidationError:
-            custom_user_value = _rejected("accounts.customuser", "required_username")
+            custom_user_value = _rejected("accounts.user", "required_username")
         else:
             raise RuntimeError("invalid account factory state was not rejected")
     return {
@@ -599,7 +599,7 @@ def _content(context: FactoryContext, state: str) -> dict[str, object]:
 
 
 def _courses(context: FactoryContext, state: str) -> dict[str, object]:
-    User = _model("accounts.CustomUser")
+    User = _model("accounts.User")
     Cohort = _model("courses.Cohort")
     Campaign = _model("courses.RegistrationCampaign")
     Registration = _model("courses.CourseRegistration")

@@ -122,7 +122,7 @@ from typing import Any, NoReturn
 from django.db import models, transaction
 from django.utils.dateparse import parse_datetime
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import (
     Answer,
     CmpHistoryClaim,
@@ -1286,13 +1286,13 @@ def _existing_user_claims(user_claims: Mapping[int, int]) -> dict[int, int]:
 
     A user-claims mapping is trusted for the account rows the learner-account
     importer actually wrote here and nowhere else: a claimed pk with no
-    ``CustomUser`` row -- a mapping carried from another database, or a
+    ``User`` row -- a mapping carried from another database, or a
     forged one -- resolves as an ordinary unresolved parent instead of
     inventing a foreign key (audit REL-03).
     """
 
     target_ids = set(user_claims.values())
-    existing = set(CustomUser.objects.filter(pk__in=target_ids).values_list("pk", flat=True))
+    existing = set(User.objects.filter(pk__in=target_ids).values_list("pk", flat=True))
     return {
         source_id: target_id
         for source_id, target_id in user_claims.items()
@@ -1313,7 +1313,7 @@ def import_cmp_learner_history(
     The run is bound to this exact export before the first write; a source
     file that differs from the one the recorded claims and watermarks were
     built from is refused (``run-bound-to-different-source``).  ``user_claims``
-    maps a CMP account id to the ``CustomUser`` pk the learner-account
+    maps a CMP account id to the ``User`` pk the learner-account
     importer recorded for it in this same database.  ``family_slug_overrides``
     is the same reviewed correction ``import_cmp_content`` takes, for a cohort
     whose CMP edition slug names a family that was since renamed locally --

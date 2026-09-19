@@ -13,14 +13,14 @@ from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 
 from accounts.backends import DurableAccountBackend
-from accounts.models import CustomUser
+from accounts.models import User
 from accounts_ext.models import IdentityState
 
 QUARANTINED = IdentityState.States.QUARANTINED
 
 
-def make_user(email: str, *, username: str | None = None, **fields) -> CustomUser:
-    return CustomUser.objects.create_user(
+def make_user(email: str, *, username: str | None = None, **fields) -> User:
+    return User.objects.create_user(
         username=username or email.split("@", 1)[0].replace(".", "-").replace("@", "-"),
         email=email,
         **fields,
