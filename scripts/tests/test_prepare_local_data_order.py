@@ -82,11 +82,7 @@ class LocalPreparationOrderTests(TestCase):
     def test_the_event_stage_is_one_composed_pipeline_after_editorial(self) -> None:
         """§11 step 5 runs whole, last, through the production entry point.
 
-        The rehearsal used to run two of the five event legs before the
-        catalogue and the registration legs after the editorial block, outside
-        any transaction -- a shape the production importer had specifically
-        fixed: new events never appeared, and a refused registration leg left
-        the earlier event writes committed.
+        Event identities and content land before attendee rows are imported.
         """
 
         editorial = self.source.index(

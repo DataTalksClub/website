@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 """Import attendee-level event registrants, consolidated against real accounts.
 
-One-time import.  Reads the same prepared Luma export directory that
-``scripts/prod/import_events.py`` derives registration *counts* from (see
-``_docs/runbooks/ingest-script-inventory.md`` section 6), but this script
-reads the attendee-level rows themselves -- something no other importer does,
-by design: ``events.importers`` is aggregate-only and never lets an attendee
-value cross its own module boundary.
+Reads prepared provider exports and writes the attendee-level database rows
+that public Event queries count. Provider formats and source translation stay
+inside this import boundary.
 
 Every registrant row is consolidated against ``accounts_user`` by
 ``normalized_email`` first, so a person who both took a course and registered
@@ -37,7 +34,7 @@ id's registrant rows to the existing canonical Event it really is, instead of
 minting/looking up a separate provider-only Event for it. Omit it to keep
 every Luma event on its provider-minted identity, exactly as before this
 option existed. Either way this changes only which ``Event`` attendee rows
-attach to -- it never activates a registration count for public display.
+attach to; the public count reads those rows directly.
 
 Resumable at event granularity: one event's registrant rows are read and
 written inside a single transaction, and only marked complete once that
@@ -196,7 +193,7 @@ def _run_provider(
         # same reader and the same resolution gates apply uses, so a bad
         # header, a mismatched event id, an oversized file, or an
         # unresolved target is refused here with the identical refusal --
-        # and a valid refresh plan predicts the aggregate diff -- all
+        # and a valid refresh plan predicts the row diff -- all
         # without a single write (audit REL-11).
         return {
             **plan_registrants(provider=provider, pending=pending, refresh=refresh).as_dict(),
