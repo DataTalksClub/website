@@ -11,6 +11,7 @@ from django.test import TestCase, override_settings
 
 from accounts.models import CustomUser
 from courses.models.cohort import CourseRegistration, RegistrationCampaign
+from courses.models.learner_profile import LearnerProfile
 from courses.services.registration_campaigns import (
     active_campaign_for_cohort,
     campaign_slug_in_registration_url,
@@ -288,10 +289,15 @@ class NewsletterConsentDefaultTests(TestCase):
             username="consent-default",
             email="consent-default@example.com",
             password="test",
-            certificate_name="Consent Default",
-            country="Germany",
-            region="Europe",
-            registration_role=CourseRegistration.Role.DATA_ENGINEER,
+        )
+        LearnerProfile.objects.update_or_create(
+            user=user,
+            defaults={
+                "certificate_name": "Consent Default",
+                "country": "Germany",
+                "region": "Europe",
+                "registration_role": CourseRegistration.Role.DATA_ENGINEER,
+            },
         )
         self.client.force_login(user)
 

@@ -78,8 +78,16 @@ def project_context_certificate_name(
     user: User,
     enrollment: Enrollment,
 ) -> str | None:
-    if user.certificate_name:
-        return user.certificate_name
+    from courses.models.learner_profile import learner_profile_for, profile_field_default
+
+    profile = learner_profile_for(user)
+    certificate_name = (
+        profile.certificate_name
+        if profile is not None
+        else profile_field_default("certificate_name")
+    )
+    if certificate_name:
+        return certificate_name
     return enrollment.display_name
 
 

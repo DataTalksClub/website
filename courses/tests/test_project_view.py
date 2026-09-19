@@ -1,3 +1,4 @@
+from courses.models.learner_profile import LearnerProfile
 from courses.models import (
     ProjectSubmission,
     ProjectState,
@@ -56,7 +57,9 @@ class ProjectViewTestCase(ProjectViewTestBase):
     ):
         self.enrollment.display_name = "Display Name"
         self.enrollment.save()
-        self.user.certificate_name = "Certificate Name"
+        LearnerProfile.objects.update_or_create(
+            user=self.user, defaults={"certificate_name": "Certificate Name"}
+        )
         self.user.save()
 
         response = self.authenticated_project_response()

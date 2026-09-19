@@ -2,6 +2,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from accounts.models import CustomUser
+from courses.models.learner_profile import LearnerProfile
 
 
 class DarkModeToggleTestCase(TestCase):
@@ -26,19 +27,19 @@ class DarkModeToggleTestCase(TestCase):
         self.client.force_login(self.user)
         url = reverse("toggle_dark_mode")
 
-        self.assertFalse(self.user.dark_mode)
+        first_profile = LearnerProfile.objects.filter(user=self.user).first()
+        self.assertFalse(first_profile is not None and first_profile.dark_mode)
 
         response = self.client.post(url)
         self.assertEqual(response.status_code, 200)
 
-        self.user.refresh_from_db()
-        self.assertTrue(self.user.dark_mode)
+        self.assertTrue(LearnerProfile.objects.get(user=self.user).dark_mode)
 
         response = self.client.post(url)
         self.assertEqual(response.status_code, 200)
 
-        self.user.refresh_from_db()
-        self.assertFalse(self.user.dark_mode)
+        first_profile = LearnerProfile.objects.filter(user=self.user).first()
+        self.assertFalse(first_profile is not None and first_profile.dark_mode)
 
     def test_toggle_dark_mode_get_not_allowed(self):
         """Test that GET requests are not allowed"""
@@ -66,15 +67,13 @@ class DarkModeToggleTestCase(TestCase):
                 "dark_mode": True,
             },
         )
-        self.user.refresh_from_db()
-        self.assertTrue(self.user.dark_mode)
+        self.assertTrue(LearnerProfile.objects.get(user=self.user).dark_mode)
 
         disable_payload = {"field": "dark_mode", "value": "false"}
         response = self.client.post(url, disable_payload)
 
         self.assertEqual(response.status_code, 200)
-        self.user.refresh_from_db()
-        self.assertFalse(self.user.dark_mode)
+        self.assertFalse(LearnerProfile.objects.get(user=self.user).dark_mode)
 
     def test_update_account_toggle_rejects_unknown_field(self):
         self.client.force_login(self.user)
@@ -92,4 +91,5 @@ class DarkModeToggleTestCase(TestCase):
             email="new@example.com",
             password="testpass123",
         )
-        self.assertFalse(user.dark_mode)
+        self.assertFalse(LearnerProfile.objects.filter(user=user).exists())
+        self.assertFalse(LearnerProfile.objects.create(user=user).dark_mode)

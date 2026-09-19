@@ -1,6 +1,7 @@
 from django.test import override_settings
 from django.urls import reverse
 
+from courses.models.learner_profile import LearnerProfile
 from accounts.tests_base import (
     DATAMAILER_DISABLED_SETTINGS,
     AccountCourseTestCase,
@@ -70,7 +71,7 @@ class EnrollmentProfileTestCase(AccountCourseTestCase):
         self.user.refresh_from_db()
         self.enrollment.refresh_from_db()
         self.assertEqual(
-            self.user.certificate_name,
+            LearnerProfile.objects.get(user=self.user).certificate_name,
             "Enrollment Certificate",
         )
         self.assertIsNone(self.enrollment.certificate_name)
@@ -136,11 +137,15 @@ class EnrollmentProfileTestCase(AccountCourseTestCase):
         self.assertFalse(self.enrollment.display_public_profile)
 
     def test_leaderboard_profile_data_requires_enrollment_opt_in(self):
-        self.user.github_url = "https://github.com/student"
-        self.user.linkedin_url = "https://linkedin.com/in/student"
-        self.user.personal_website_url = "https://student.example.com"
-        self.user.about_me = "Learning data."
-        self.user.save()
+        LearnerProfile.objects.update_or_create(
+            user=self.user,
+            defaults={
+                "github_url": "https://github.com/student",
+                "linkedin_url": "https://linkedin.com/in/student",
+                "personal_website_url": "https://student.example.com",
+                "about_me": "Learning data.",
+            },
+        )
         leaderboard_url = reverse(
             "cohort_leaderboard_score_breakdown",
             args=[self.course.course.slug, self.course.identifier, self.enrollment.id],

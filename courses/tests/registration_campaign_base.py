@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import CustomUser
+from courses.models.learner_profile import LearnerProfile
 from courses.models import (
     Cohort,
     CourseRegistration,
@@ -61,26 +62,38 @@ class RegistrationCampaignBase(TestCase):
         )
 
     def create_signed_user(self):
-        return CustomUser.objects.create_user(
+        user = CustomUser.objects.create_user(
             username="signed",
             email="signed@example.com",
             password="test",
-            certificate_name="Signed Student",
-            country="Canada",
-            region="North America",
-            registration_role=CourseRegistration.Role.DATA_SCIENTIST,
         )
+        LearnerProfile.objects.update_or_create(
+            user=user,
+            defaults={
+                "certificate_name": "Signed Student",
+                "country": "Canada",
+                "region": "North America",
+                "registration_role": CourseRegistration.Role.DATA_SCIENTIST,
+            },
+        )
+        return user
 
     def create_signed_blank_user(self):
-        return CustomUser.objects.create_user(
+        user = CustomUser.objects.create_user(
             username="signed-blank",
             email="signed-blank@example.com",
             password="test",
-            certificate_name="Existing Name",
-            country="Canada",
-            region="North America",
-            registration_role=CourseRegistration.Role.DATA_SCIENTIST,
         )
+        LearnerProfile.objects.update_or_create(
+            user=user,
+            defaults={
+                "certificate_name": "Existing Name",
+                "country": "Canada",
+                "region": "North America",
+                "registration_role": CourseRegistration.Role.DATA_SCIENTIST,
+            },
+        )
+        return user
 
     def updated_account_payload(self):
         payload = self.registration_payload(email="other@example.com")
@@ -109,12 +122,12 @@ class RegistrationCampaignBase(TestCase):
         self.assertEqual(registration.user, user)
 
     def assert_signed_profile_updated(self, user):
-        user.refresh_from_db()
-        self.assertEqual(user.certificate_name, "Updated Certificate Name")
-        self.assertEqual(user.country, "Germany")
-        self.assertEqual(user.region, "Europe")
+        profile = LearnerProfile.objects.get(user=user)
+        self.assertEqual(profile.certificate_name, "Updated Certificate Name")
+        self.assertEqual(profile.country, "Germany")
+        self.assertEqual(profile.region, "Europe")
         self.assertEqual(
-            user.registration_role,
+            profile.registration_role,
             CourseRegistration.Role.DATA_ENGINEER,
         )
 
@@ -129,12 +142,12 @@ class RegistrationCampaignBase(TestCase):
         self.assertEqual(registration.user, user)
 
     def assert_signed_blank_profile_unchanged(self, user):
-        user.refresh_from_db()
-        self.assertEqual(user.certificate_name, "Existing Name")
-        self.assertEqual(user.country, "Canada")
-        self.assertEqual(user.region, "North America")
+        profile = LearnerProfile.objects.get(user=user)
+        self.assertEqual(profile.certificate_name, "Existing Name")
+        self.assertEqual(profile.country, "Canada")
+        self.assertEqual(profile.region, "North America")
         self.assertEqual(
-            user.registration_role,
+            profile.registration_role,
             CourseRegistration.Role.DATA_SCIENTIST,
         )
 

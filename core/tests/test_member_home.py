@@ -18,6 +18,7 @@ from django.utils import timezone
 from courses.models.cohort import Cohort, Enrollment
 from courses.models.curriculum import Unit, UnitReadState
 from courses.models.homework import Homework, HomeworkState
+from courses.models.learner_profile import LearnerProfile
 from test_support.course_catalog import make_cohort, make_family
 
 MARKETING_HEADING = "Learn the fundamentals. Build real projects. Share your work."
@@ -46,6 +47,12 @@ def _module_cohort(*, slug: str, year: int, title: str) -> Cohort:
             title=f"Unit {index + 1}",
         )
     return cohort
+
+
+def _profile_of(member):
+    """The member's profile row, or ``None`` when no write created one."""
+
+    return LearnerProfile.objects.filter(user=member).first()
 
 
 class HomeBranchTests(TestCase):
@@ -359,8 +366,9 @@ class AboutYouPageTests(TestCase):
     def test_country_and_role_use_the_widgets_registration_uses(self):
         """§7.3 names both: a plain text pair would store what registration rejects."""
 
-        self.member.registration_role = "data_engineer"
-        self.member.save(update_fields=["registration_role"])
+        LearnerProfile.objects.update_or_create(
+            user=self.member, defaults={"registration_role": "data_engineer"}
+        )
 
         body = self.client.get(self.url).content.decode()
 
@@ -383,14 +391,14 @@ class AboutYouPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Select a valid country.")
         self.member.refresh_from_db()
-        self.assertEqual(self.member.country, "")
+        self.assertEqual(_profile_of(self.member).country, "")
 
     def test_saving_a_country_derives_the_region_registration_would_derive(self):
         self.client.post(self.url, {"country": "Germany"})
 
         self.member.refresh_from_db()
-        self.assertEqual(self.member.country, "Germany")
-        self.assertEqual(self.member.region, "Europe")
+        self.assertEqual(_profile_of(self.member).country, "Germany")
+        self.assertEqual(_profile_of(self.member).region, "Europe")
 
     def test_saving_the_three_core_fields_completes_the_checklist_item(self):
         response = self.client.post(
@@ -404,9 +412,9 @@ class AboutYouPageTests(TestCase):
 
         self.assertRedirects(response, reverse("home"))
         self.member.refresh_from_db()
-        self.assertEqual(self.member.certificate_name, "Ada Lovelace")
-        self.assertEqual(self.member.country, "United Kingdom")
-        self.assertEqual(self.member.registration_role, "data_engineer")
+        self.assertEqual(_profile_of(self.member).certificate_name, "Ada Lovelace")
+        self.assertEqual(_profile_of(self.member).country, "United Kingdom")
+        self.assertEqual(_profile_of(self.member).registration_role, "data_engineer")
 
         body = self.client.get(reverse("home")).content.decode()
         # The row stays on the checklist; it is marked done and offers no action.
@@ -418,7 +426,10 @@ class AboutYouPageTests(TestCase):
 
         self.assertRedirects(response, reverse("home"))
         self.member.refresh_from_db()
-        self.assertEqual(self.member.certificate_name or "", "")
+        # An empty submission may create the (empty) profile row; what it must
+        # not do is write a value into it.
+        profile = _profile_of(self.member)
+        self.assertEqual((profile.certificate_name if profile else None) or "", "")
 
     def test_account_settings_keeps_what_onboarding_collected(self):
         """The two surfaces share one model; saving one must not blank the other."""
@@ -437,12 +448,13 @@ class AboutYouPageTests(TestCase):
         self.assertIn('id="id_country"', settings_page)
         self.assertIn('id="id_registration_role"', settings_page)
 
+        profile = _profile_of(self.member)
         self.client.post(
             reverse("account_settings"),
             {
-                "certificate_name": self.member.certificate_name,
-                "country": self.member.country,
-                "registration_role": self.member.registration_role,
+                "certificate_name": profile.certificate_name,
+                "country": profile.country,
+                "registration_role": profile.registration_role,
                 "github_url": "",
                 "linkedin_url": "",
                 "personal_website_url": "",
@@ -452,5 +464,5 @@ class AboutYouPageTests(TestCase):
         )
 
         self.member.refresh_from_db()
-        self.assertEqual(self.member.country, "United Kingdom")
-        self.assertEqual(self.member.registration_role, "data_engineer")
+        self.assertEqual(_profile_of(self.member).country, "United Kingdom")
+        self.assertEqual(_profile_of(self.member).registration_role, "data_engineer")

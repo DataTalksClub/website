@@ -3,6 +3,11 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from course_management.observability import record_event
+from courses.models.learner_profile import (
+    ensure_learner_profile,
+    learner_profile_for,
+    profile_field_default,
+)
 
 
 LOCAL_ACCOUNT_TOGGLE_FIELDS = {
@@ -10,21 +15,28 @@ LOCAL_ACCOUNT_TOGGLE_FIELDS = {
 }
 
 
+def _toggle_value(user, field: str) -> bool:
+    profile = learner_profile_for(user)
+    value = getattr(profile, field) if profile is not None else profile_field_default(field)
+    return bool(value)
+
+
 @login_required
 @require_POST
 def toggle_dark_mode(request):
     user = request.user
-    user.dark_mode = not user.dark_mode
-    user.save(update_fields=["dark_mode"])
+    profile = ensure_learner_profile(user)
+    profile.dark_mode = not profile.dark_mode
+    profile.save(update_fields=["dark_mode"])
     record_event(
         "account.toggle_updated",
         request=request,
         properties={
             "field": "dark_mode",
-            "enabled": user.dark_mode,
+            "enabled": profile.dark_mode,
         },
     )
-    payload = {"dark_mode": user.dark_mode}
+    payload = {"dark_mode": profile.dark_mode}
     response = JsonResponse(payload)
     return response
 
@@ -43,8 +55,9 @@ def update_account_toggle(request):
         return response
 
     enabled = value.lower() in {"1", "true", "yes", "on"}
-    setattr(request.user, field, enabled)
-    request.user.save(update_fields=[field])
+    profile = ensure_learner_profile(request.user)
+    setattr(profile, field, enabled)
+    profile.save(update_fields=[field])
     record_event(
         "account.toggle_updated",
         request=request,

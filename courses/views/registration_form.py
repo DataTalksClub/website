@@ -57,18 +57,29 @@ def has_authenticated_registration_user(user):
 
 
 def authenticated_registration_initial_values(user):
-    name = user.certificate_name or user.get_full_name() or ""
+    from courses.models.learner_profile import learner_profile_for, profile_field_default
+
+    profile = learner_profile_for(user)
+    if profile is None:
+        certificate_name = profile_field_default("certificate_name")
+        country = profile_field_default("country")
+        registration_role = profile_field_default("registration_role")
+    else:
+        certificate_name = profile.certificate_name
+        country = profile.country
+        registration_role = profile.registration_role
+    name = certificate_name or user.get_full_name() or ""
     return {
         "name": name,
-        "country": user.country,
-        "role": user.registration_role,
+        "country": country,
+        "role": registration_role,
     }
 
 
 def registration_role_label(role_value):
     """The human label behind a stored ``registration_role`` value.
 
-    ``CustomUser.registration_role`` is a plain ``CharField`` compatibility
+    ``LearnerProfile.registration_role`` is a plain ``CharField`` compatibility
     projection, so it has no ``get_..._display``; a profile written before a
     choice was renamed (or by an import) can hold a value the enum no longer
     knows, and that is shown verbatim rather than hidden.
@@ -150,12 +161,12 @@ def save_registration_user_profile(user, registration):
     if not has_authenticated_registration_user(user):
         return
 
-    update_fields = update_user_profile_from_registration(
+    profile, update_fields = update_user_profile_from_registration(
         user,
         registration,
     )
     if update_fields:
-        user.save(update_fields=update_fields)
+        profile.save(update_fields=update_fields)
 
 
 class CourseRegistrationForm(forms.ModelForm):

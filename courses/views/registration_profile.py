@@ -1,14 +1,25 @@
+PROFILE_FIELD_NAMES = (
+    "certificate_name",
+    "country",
+    "region",
+    "registration_role",
+)
+
+
 def update_user_profile_from_registration(user, registration):
+    from courses.models.learner_profile import ensure_learner_profile
+
+    profile = ensure_learner_profile(user)
     update_fields = []
     profile_values = registration_profile_values(registration)
     for field_name, value in profile_values:
         update_user_profile_field(
-            user,
+            profile,
             update_fields,
             field_name,
             value,
         )
-    return update_fields
+    return profile, update_fields
 
 
 def registration_profile_values(registration):
@@ -31,9 +42,9 @@ def registration_profile_values(registration):
     return profile_values
 
 
-def update_user_profile_field(user, update_fields, field_name, value):
-    if not value or getattr(user, field_name) == value:
+def update_user_profile_field(profile, update_fields, field_name, value):
+    if not value or getattr(profile, field_name) == value:
         return
 
-    setattr(user, field_name, value)
+    setattr(profile, field_name, value)
     update_fields.append(field_name)

@@ -28,6 +28,7 @@ from django.urls import reverse
 from accounts.navigation import login_url_for_path
 from content import catalogue
 from courses.models.cohort import Cohort
+from courses.models.learner_profile import LearnerProfile
 from events.queries import published_event_records
 
 # Every public page in the design system, and the navigation entry each one is.
@@ -287,7 +288,7 @@ class DesignFiveAShellTests(TestCase):
 
         The pill writes ``localStorage['darkMode']``, which is the only place a
         visitor without an account can keep a theme, so it stays for them.  A
-        signed-in member's theme is ``CustomUser.dark_mode``, rendered into the
+        signed-in member's theme is ``LearnerProfile.dark_mode``, rendered into the
         body server-side and changed in Account settings, so the pill would be a
         second control over the same preference and a second place to store it.
         """
@@ -320,8 +321,10 @@ class DesignFiveAShellTests(TestCase):
         user = get_user_model().objects.create_user(
             username="dark-reader@example.invalid",
             email="dark-reader@example.invalid",
-            dark_mode=True,
         )
+        # The preference lives on the learner profile row since D3.1a; the
+        # shell reads it from there.
+        LearnerProfile.objects.create(user=user, dark_mode=True)
         self.client.force_login(user)
 
         for name, body in self.rendered_pages().items():

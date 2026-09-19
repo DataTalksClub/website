@@ -1,6 +1,7 @@
 from unittest import mock
 
 from courses.models import Enrollment
+from courses.models.learner_profile import LearnerProfile
 from courses.tests.project_submission_view_base import (
     ProjectSubmissionViewTestBase,
 )
@@ -106,7 +107,9 @@ class ProjectSubmissionCertificateNameTestCase(
         self, mock_get, mock_head
     ):
         self.mock_url_check_status(mock_get, mock_head, 200)
-        self.user.certificate_name = None
+        LearnerProfile.objects.update_or_create(
+            user=self.user, defaults={"certificate_name": None}
+        )
         self.user.save()
 
         data = {
@@ -118,4 +121,7 @@ class ProjectSubmissionCertificateNameTestCase(
 
         self.assertEqual(response.status_code, 302)
         self.user.refresh_from_db()
-        self.assertEqual(self.user.certificate_name, "John Doe")
+        self.assertEqual(
+            LearnerProfile.objects.get(user=self.user).certificate_name,
+            "John Doe",
+        )

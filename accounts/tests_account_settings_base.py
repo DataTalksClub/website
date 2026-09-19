@@ -1,5 +1,7 @@
 from django.test import override_settings
 
+from courses.models.learner_profile import LearnerProfile
+
 from accounts.tests_base import (
     DATAMAILER_DISABLED_SETTINGS,
     AccountCourseTestCase,
@@ -22,16 +24,17 @@ class AccountSettingsViewTestBase(AccountCourseTestCase):
 
     def assert_profile_update_saved(self):
         self.user.refresh_from_db()
-        self.assertEqual(self.user.certificate_name, "Student Certificate")
+        profile = LearnerProfile.objects.get(user=self.user)
+        self.assertEqual(profile.certificate_name, "Student Certificate")
         self.assertEqual(self.user.preferred_timezone, "Europe/Berlin")
-        self.assertEqual(self.user.github_url, "https://github.com/student")
+        self.assertEqual(profile.github_url, "https://github.com/student")
         self.assertEqual(
-            self.user.linkedin_url,
+            profile.linkedin_url,
             "https://linkedin.com/in/student",
         )
         self.assertEqual(
-            self.user.personal_website_url,
+            profile.personal_website_url,
             "https://student.example.com",
         )
-        self.assertEqual(self.user.about_me, "Learning data.")
-        self.assertFalse(self.user.dark_mode)
+        self.assertEqual(profile.about_me, "Learning data.")
+        self.assertFalse(profile.dark_mode)
