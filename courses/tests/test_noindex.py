@@ -139,9 +139,22 @@ class NoIndexMetaTagTestCase(TestCase):
         self.assertContains(response, '<meta name="robots" content="noindex">')
 
     def test_projects_list_all_has_noindex(self):
-        """Test that all projects submissions page has noindex meta tag."""
+        """The cohort gallery path 301s and its destination keeps noindex.
+
+        Issue #421 made `/courses/<family>/<identifier>/projects` a one-hop
+        permanent redirect to the single rendered gallery URL
+        (`_docs/specs/02-url-link-seo-compatibility.md`), so the thin-page
+        noindex claim now belongs to the destination, not to the old path.
+        """
         url = f"/courses/{self.course.course.slug}/{self.course.year}/projects"
-        response = self.client.get(url)
+        redirect = self.client.get(url)
+        self.assertEqual(redirect.status_code, 301)
+        self.assertEqual(
+            redirect.headers["Location"],
+            f"/courses/projects?course={self.course.course.slug}"
+            f"&cohort={self.course.identifier}",
+        )
+        response = self.client.get(redirect.headers["Location"])
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<meta name="robots" content="noindex">')
 
