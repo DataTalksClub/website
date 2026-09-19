@@ -17,7 +17,7 @@ from community_base.events.models import Event, EventHost, Host
 from django.test import TestCase
 
 from event_registrants.models import EventRegistrantIdentity, EventRegistration
-from events.queries import published_event_record, published_event_records
+from events.queries import event_public_record, published_event_record, published_event_records
 
 STARTS_AT = datetime(2026, 6, 1, 17, 0, tzinfo=UTC)
 
@@ -125,6 +125,7 @@ class PublishedEventRecordTests(TestCase):
 
         assert record is not None
         self.assertEqual(record["registration_count"], 2)
+        self.assertEqual(event_public_record(self.event)["registration_count"], 2)
 
     def test_an_undescribed_row_still_publishes_its_schedule(self) -> None:
         """A manifest-only row has a time but no description yet; the hub lists it.

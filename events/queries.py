@@ -137,7 +137,10 @@ def event_public_record(event: Event) -> dict[str, Any]:
 
     if event.status not in PUBLIC_STATUSES:
         raise EventIdentityNotFound("event_content_unavailable")
-    return _record(event)
+    record = published_event_record(event.content_id)
+    if record is None:
+        raise EventIdentityNotFound("event_content_unavailable")
+    return record
 
 
 def published_event_records_by_path(paths: Iterable[str]) -> dict[str, dict[str, Any]]:
