@@ -11,11 +11,12 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 from allauth.account.models import EmailAddress
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.models import SocialAccount
+from django.apps import apps as global_apps
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.models import Session
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, models, transaction
 from django.test import (
     Client,
     RequestFactory,
@@ -25,7 +26,13 @@ from django.test import (
 from django.utils import timezone
 
 from accounts.auth import ConsolidatingSocialAccountAdapter
-from accounts.identity_inventory import account_inventory
+from accounts.identity_inventory import (
+    ACCOUNT_RELATIONS,
+    account_inventory,
+    relationship_evidence,
+    stale_account_relations,
+    unclassified_account_relations,
+)
 from accounts.identity_resolution import resolve_durable_user_id
 from accounts.models import (
     User,
@@ -675,7 +682,10 @@ class SharedAccountSurfaceTests(TestCase):
 
         self.assertEqual(inventory["auth_user_model"], "accounts.User")
         self.assertEqual(inventory["user_table"], "accounts_user")
-        self.assertEqual(len(inventory["dependent_relations"]), 20)
+        # D3.3: not a hand-written count. See AccountRelationGuardTests below
+        # for the actual ratchet -- this only checks the report reflects
+        # whatever ACCOUNT_RELATIONS currently classifies.
+        self.assertEqual(len(inventory["dependent_relations"]), len(ACCOUNT_RELATIONS))
         self.assertEqual(len(inventory["many_to_many_relations"]), 3)
         relation_keys = {
             f"{item['model_label']}.{item['field_name']}"
@@ -735,6 +745,72 @@ class SharedAccountSurfaceTests(TestCase):
         names = [item["name"] for item in inventory["account_fields"]]
         self.assertEqual(sorted(names), sorted(set(names)))
         self.assertNotIn("user", names)
+
+    def test_relationship_evidence_covers_the_extension_tables(self) -> None:
+        # D3.3: relationship_evidence() proves the reviewed merge lost no
+        # rows. It has to reach accounts_ext_identitystate and
+        # courses_learnerprofile too -- the two tables the merge now writes
+        # (D3.1) -- not just the relations ACCOUNT_RELATIONS already named.
+        counts, checksums = relationship_evidence()
+
+        self.assertIn("accounts_ext.IdentityState.user", counts)
+        self.assertIn("courses.LearnerProfile.user", counts)
+        self.assertIn("accounts_ext.IdentityState.user", checksums)
+        self.assertIn("courses.LearnerProfile.user", checksums)
+        self.assertEqual(len(checksums["accounts_ext.IdentityState.user"]), 64)
+        self.assertEqual(len(checksums["courses.LearnerProfile.user"]), 64)
+
+
+class AccountRelationGuardTests(SimpleTestCase):
+    """D3.3: the guard is derived from the model graph, not from a list of
+    what the code already knows about.
+
+    ``ACCOUNT_RELATIONS`` used to be checked only by counting it against
+    itself (``assertEqual(len(inventory["dependent_relations"]), 20)``),
+    which can never notice a relation nobody added -- exactly how the D3.1
+    stack shipped two new relations onto ``User`` without either of them
+    appearing here. These tests instead walk ``User._meta.related_objects``
+    (``unclassified_account_relations``) and the reverse direction
+    (``stale_account_relations``), per playbook P7's "enumerate from both
+    directions".
+    """
+
+    def test_every_relation_onto_the_account_is_classified(self) -> None:
+        self.assertEqual(unclassified_account_relations(), [])
+
+    def test_every_named_relation_still_exists_in_the_model_graph(self) -> None:
+        # The other half of the same guard: a spec whose field was renamed
+        # or removed without updating ACCOUNT_RELATIONS would otherwise keep
+        # silently reporting a relation that no longer exists.
+        self.assertEqual(stale_account_relations(), [])
+
+    def test_an_unclassified_relation_fails_the_guard(self) -> None:
+        # Prove the guard actually rejects something, not just that it is
+        # quiet today: add a real, throwaway reverse relation onto the live
+        # User model, watch unclassified_account_relations() name it, then
+        # remove it. A guard never seen to fail is not a guard.
+        from accounts.models import User
+
+        class _ThrowawayAccountRelation(models.Model):
+            user = models.ForeignKey(
+                User,
+                on_delete=models.CASCADE,
+                related_name="throwaway_account_relation_d33",
+            )
+
+            class Meta:
+                app_label = "accounts"
+
+        try:
+            unclassified = unclassified_account_relations()
+        finally:
+            del global_apps.all_models["accounts"]["_throwawayaccountrelation"]
+            global_apps.clear_cache()
+
+        self.assertIn("accounts._ThrowawayAccountRelation.user", unclassified)
+        # And the cleanup actually took: the live model graph no longer
+        # shows it once the test is done making its point.
+        self.assertEqual(unclassified_account_relations(), [])
 
 
 class SessionLifecycleTests(TestCase):

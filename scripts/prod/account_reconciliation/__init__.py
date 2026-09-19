@@ -76,7 +76,12 @@ from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 
-from accounts.identity_inventory import ACCOUNT_RELATIONS, relationship_evidence
+from accounts.identity_inventory import (
+    ACCOUNT_RELATIONS,
+    append_only_relation_keys,
+    relationship_evidence,
+    relationship_row_identities,
+)
 from accounts.identity_values import (
     canonical_json,
     normalize_account_email,
@@ -719,6 +724,38 @@ def _profile_changes(
     return survivor_profile, update_fields
 
 
+def _check_relationship_evidence_unchanged(
+    *,
+    before: dict[str, frozenset[tuple[str, int]]],
+    after: dict[str, frozenset[tuple[str, int]]],
+) -> None:
+    """The compare-and-swap over every relation ``relationship_evidence`` tracks.
+
+    A plain reparented relation's row set must come out byte-identical
+    (aliased): reparenting only changes who owns a row, never how many rows
+    exist, so any change there is a real one. ``append_only_relation_keys()``
+    -- the two extension tables plus ``accounts_ext.AccountIdentityAlias
+    .survivor`` -- are different: this apply itself is documented to add a
+    row there (a backfilled ``IdentityState``/``LearnerProfile`` where a user
+    had none, or the one new alias row every successful merge creates), so
+    those three keys only require a subset: nothing already present may be
+    lost, but a new row is not a regression. D3.3 (see its evidence audit)
+    found the equality check was only ever true by omission -- it held
+    because the two things this function is documented to create were
+    outside what ``relationship_evidence()`` used to measure. Do not widen
+    the subset rule beyond these three keys; every other relation keeps the
+    strict check.
+    """
+    append_only_keys = append_only_relation_keys()
+    for key, before_rows in before.items():
+        after_rows = after.get(key, frozenset())
+        if key in append_only_keys:
+            if not before_rows <= after_rows:
+                raise IntegrityError(f"account relationship reconciliation lost rows from {key}")
+        elif before_rows != after_rows:
+            raise IntegrityError("account relationship reconciliation changed logical evidence")
+
+
 def _reparent_relations(*, source_id: int, survivor_id: int) -> None:
     for spec in ACCOUNT_RELATIONS:
         if spec.handling != "reparent":
@@ -963,7 +1000,7 @@ def apply_reviewed_mapping(plan: MappingPlan) -> dict[str, Any]:
     prospective_aliases = {
         mapping.source_user_id: mapping.survivor_user_id for mapping in plan.mappings
     }
-    before_counts, before_checksums = relationship_evidence(alias_overrides=prospective_aliases)
+    before_row_identities = relationship_row_identities(alias_overrides=prospective_aliases)
     source_account_count = User.objects.count()
 
     try:
@@ -1007,9 +1044,11 @@ def apply_reviewed_mapping(plan: MappingPlan) -> dict[str, Any]:
 
             for mapping in plan.mappings:
                 _apply_one_mapping(mapping=mapping, plan=plan)
-            reconciled_counts, reconciled_checksums = relationship_evidence()
-            if before_counts != reconciled_counts or before_checksums != reconciled_checksums:
-                raise IntegrityError("account relationship reconciliation changed logical evidence")
+            reconciled_row_identities = relationship_row_identities()
+            _check_relationship_evidence_unchanged(
+                before=before_row_identities,
+                after=reconciled_row_identities,
+            )
 
             for mapping in plan.mappings:
                 _record_merge_audit(
