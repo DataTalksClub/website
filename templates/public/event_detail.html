@@ -268,12 +268,9 @@
                   {{ event.display_clock }}
                 </span>
               </time>
-              {% if registration_total is not None %}
-                <p
-                  class="mono-note event-registered"
-                  data-registration-total-revision="{{ registration_total.revision }}"
-                >
-                  {{ registration_total.count }} {{ registration_total_label }}
+              {% if event.registration_count %}
+                <p class="mono-note event-registered">
+                  {{ event.registration_count }} registered
                 </p>
               {% endif %}
               {% if event.links %}

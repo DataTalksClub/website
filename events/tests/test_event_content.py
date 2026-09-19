@@ -16,6 +16,7 @@ from datetime import UTC, datetime, timedelta
 from community_base.events.models import Event, EventHost, Host
 from django.test import TestCase
 
+from event_registrants.models import EventRegistrantIdentity, EventRegistration
 from events.queries import published_event_record, published_event_records
 
 STARTS_AT = datetime(2026, 6, 1, 17, 0, tzinfo=UTC)
@@ -102,6 +103,28 @@ class PublishedEventRecordTests(TestCase):
         # time; a speaker with no profile page still appears, their link absent.
         self.assertEqual(record["speakers"][1]["public_path"], "")
         self.assertEqual([link["label"] for link in record["links"]], ["Watch", "Slides"])
+
+    def test_registration_count_comes_from_eligible_database_rows(self) -> None:
+        statuses = (
+            ("luma", "approved"),
+            ("eventbrite", "attending"),
+            ("luma", "declined"),
+        )
+        for index, (provider, status) in enumerate(statuses):
+            identity = EventRegistrantIdentity.objects.create(
+                normalized_email=f"registrant-{index}@example.test"
+            )
+            EventRegistration.objects.create(
+                event=self.event,
+                identity=identity,
+                provider=provider,
+                status=status,
+            )
+
+        record = published_event_record(self.event.content_id)
+
+        assert record is not None
+        self.assertEqual(record["registration_count"], 2)
 
     def test_an_undescribed_row_still_publishes_its_schedule(self) -> None:
         """A manifest-only row has a time but no description yet; the hub lists it.

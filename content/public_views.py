@@ -39,7 +39,6 @@ from events.identity import (
     resolve_public_id,
 )
 from events.queries import event_public_record, published_event_records
-from historical_registrations.services import public_registration_total
 
 from . import catalogue, wiki_content, wiki_reader
 from .article_content import article_view, render_body_markdown
@@ -415,7 +414,6 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
         entity["image"] = _canonical(event["banner_url"])
     if event["ends_at"]:
         entity["endDate"] = event["ends_at"]
-    registration_total = public_registration_total(event)
     qna_url = ""
     qna_session = EventQnaSession.objects.filter(event_id=identity.pk).first()
     if qna_session is not None and qna_session.state in {
@@ -437,8 +435,6 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
                 else "event-hero-grid event-hero-grid-plain"
             ),
             "event_state": event_state,
-            "registration_total": registration_total,
-            "registration_total_label": "registered",
             "qna_url": qna_url,
             "og_type": "event",
             "og_image_url": (_canonical(event["banner_url"]) if event["banner_url"] else ""),
@@ -448,9 +444,8 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             ),
         },
     )
-    if registration_total is not None:
+    if event["registration_count"]:
         response["Cache-Control"] = "no-store, max-age=0, s-maxage=0"
-        response["X-Event-Registration-Total-Revision"] = str(registration_total.revision)
     return response
 
 
