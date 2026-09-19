@@ -130,6 +130,13 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "content.public_views.permanent_public_redirect": PERMANENT_REDIRECT,
     "core.views.management_slash_redirect": PERMANENT_REDIRECT,
     "courses.views.course_aliases.legacy_course_redirect": PERMANENT_REDIRECT,
+    # The former family/cohort gallery paths. Spec 02 keeps them as GET/HEAD
+    # one-hop 301s to the single rendered gallery URL; they resolve only
+    # visible route objects and emit stable slug/identifier query values, so
+    # the Location carries no viewer state and the class's redirect query
+    # contract applies exactly as it does to the course aliases above.
+    "courses.views.site_project_gallery.cohort_projects_redirect": PERMANENT_REDIRECT,
+    "courses.views.site_project_gallery.family_projects_redirect": PERMANENT_REDIRECT,
     "django.views.generic.base.RedirectView": PERMANENT_REDIRECT,
     # -- Operational: health, webhooks, jobs/mail ingress, token trackers.
     "api.openapi.spec.openapi_json_view": OPERATIONAL,
