@@ -105,11 +105,9 @@ class EventRegistration(models.Model):
     so an ``id`` and a ``created_at`` here are stable only until the next
     refresh of that event.  Nothing reads either.
 
-    Public event pages are unaffected by this table.  They keep showing
-    ``HistoricalRegistrationAggregateRevision``-derived counts through the
-    existing ``mapping_review_required``/activation flow; a later pass may
-    derive that aggregate from these rows instead, but this model does not
-    change how a public page gets its count.
+    Public event pages count eligible rows from this table directly. Provider
+    exports are translated only by the ingest scripts; runtime reads never
+    consult a legacy aggregate, mapping, or fallback projection.
     """
 
     class Provider(models.TextChoices):

@@ -270,6 +270,9 @@
                       {% if event.description_text %}
                         <p class="event-summary">{{ event.description_text|truncatewords:30 }}</p>
                       {% endif %}
+                      {% if event.registration_count %}
+                        <p class="mono-note event-registered">{{ event.registration_count }} registered</p>
+                      {% endif %}
                       {% if event.speakers %}
                         <p class="event-speakers person-chips card-credit">
                           {% for speaker in event.speakers %}

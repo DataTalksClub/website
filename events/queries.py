@@ -21,7 +21,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from community_base.events.models import Event, EventHost
-from django.db.models import Prefetch, Q
+from django.db.models import Count, Prefetch, Q
 
 from content.models import EventSource
 
@@ -50,6 +50,7 @@ def _record(event: Event) -> dict[str, Any]:
         "episode": episode,
         "description_html": event.description_html,
         "description_text": event.description,
+        "registration_count": event.registration_count,
         "speakers": [
             {
                 "key": link.host.external_ref,
@@ -87,6 +88,21 @@ def _provenance(event: Event) -> dict[str, Any]:
 def _published() -> Any:
     return (
         Event.objects.filter(status__in=PUBLIC_STATUSES)
+        .annotate(
+            registration_count=Count(
+                "registrant_registrations",
+                filter=(
+                    Q(
+                        registrant_registrations__provider="luma",
+                        registrant_registrations__status="approved",
+                    )
+                    | Q(
+                        registrant_registrations__provider="eventbrite",
+                        registrant_registrations__status="attending",
+                    )
+                ),
+            )
+        )
         .select_related("source_identity")
         .prefetch_related(
             Prefetch(
