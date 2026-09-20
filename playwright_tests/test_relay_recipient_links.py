@@ -18,10 +18,9 @@ from __future__ import annotations
 from unittest import mock
 
 import pytest
+from community_base.mail import relay_links
+from community_base.testing import FakeRelay, unreachable_relay
 from playwright.sync_api import Page, expect
-
-from email_app import relay_links
-from email_app.tests.support import FakeRelay, unreachable_relay
 
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
 
@@ -40,7 +39,9 @@ ANONYMOUS_COOKIE_NAMES = {"browser_timezone"}
 
 @pytest.fixture
 def relay_bridge(settings):  # type: ignore[no-untyped-def]
-    settings.RELAY_LINK_BRIDGE_BASE_URL = RELAY
+    # Since D1.2cb the package bridge resolves the relay from the package key;
+    # the retired relay.link_bridge.base_url runtime setting is gone.
+    settings.COMMUNITY_BASE = {**settings.COMMUNITY_BASE, "RELAY_BASE_URL": RELAY}
 
     def _install(relay: FakeRelay):  # type: ignore[no-untyped-def]
         patcher = mock.patch.object(relay_links, "_pool", return_value=relay)
@@ -112,7 +113,7 @@ def test_an_opt_out_is_still_accepted_when_relay_is_unreachable(
     live_server,  # type: ignore[no-untyped-def]
     relay_bridge,  # type: ignore[no-untyped-def]
 ) -> None:
-    from email_app.models import PendingUnsubscribe
+    from community_base.mail.models import PendingUnsubscribe
 
     relay_bridge(unreachable_relay())
 

@@ -8,7 +8,6 @@ from courses.tests.registration_campaign_base import RegistrationCampaignBase
 
 class RegistrationCampaignNotificationTests(RegistrationCampaignBase):
     @override_settings(
-        DATAMAILER_URL="https://datamailer.example.com",
         DATAMAILER_API_KEY="secret-token",
         DATAMAILER_CLIENT="dtc-courses",
         DATAMAILER_AUDIENCE="dtc-courses",

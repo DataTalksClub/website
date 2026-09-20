@@ -4,7 +4,6 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from community_base.mail.service import MailError
-from course_management.datamailer.client import DatamailerConfig
 from course_management.package_mail import send_deadline_reminder_mail
 from courses.deadline_reminder_events import (
     build_reminder_events,
@@ -87,10 +86,8 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        config = DatamailerConfig.from_settings()
         now = aware_now(options["now"])
         events = build_reminder_events(
-            config,
             now,
             course_slug=options["course_slug"],
         )

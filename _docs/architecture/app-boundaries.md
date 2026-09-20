@@ -10,13 +10,13 @@ public views   studio   api   jobs
        \         |      |     /
         application services
                   |
- accounts  content  courses  events  email_app
+ accounts  content  courses  events  community_base.mail
                   |
                  core
 
 content_sync -> content + courses + core
-domains -> email_app intent service -> jobs -> Relay (leased call after commit only)
-email_app/jobs may receive identifiers from domains, but domains do not import worker tasks
+domains -> package mail send -> jobs -> Relay (leased call after commit only)
+mail/jobs may receive identifiers from domains, but domains do not import worker tasks
 ```
 
 - `core`: bootstrap configuration, health, request IDs, shared redaction, non-identity browser and
@@ -48,14 +48,15 @@ email_app/jobs may receive identifiers from domains, but domains do not import w
   reader (`events.queries`), the reviewed description/content imports
   (`events.content_import`, `events.eventbrite_content`), and the slug policy.
   Registration, reminders, and package studio CRUD stay package-owned.
-- `email_app`: logical `EmailDelivery` intents, Relay idempotency/correlation metadata, redacted
-  transport projections, and callback/reconciliation commands. It owns no canonical template body,
-  renderer, provider adapter, provider attempt/event stack, suppression engine, or sender worker.
-  It additionally owns the Relay recipient-link ingress described below. D1.2a installs the
-  package mail app (`community_base.mail`) alongside it: the package callback ingress and studio
-  routes are mounted, `email_templates/` is the template source of truth mirrored into Relay by
-  the deploy's `import_mail_templates` step, and the send paths still run through `email_app`
-  until D1.2b switches them.
+- `community_base.mail` (package app, no site app since D1.2cb): logical `EmailDelivery`
+  intents, Relay idempotency/correlation metadata, redacted transport projections, the callback
+  ingress and studio routes, and the Relay recipient-link ingress described below. It owns no
+  canonical template body, renderer, provider adapter, provider attempt/event stack, suppression
+  engine, or sender worker. `email_templates/` is the template source of truth, mirrored into
+  Relay by the deploy's `import_mail_templates` step. The site side is a thin adapter:
+  `course_management.package_mail` composes the purposes and keys, and
+  `course_management.mail_preferences` answers the package's `MAIL_PREFERENCE_RESOLVER` from the
+  category fields on the site user. The retired `email_app` and `data` apps are gone.
 - `studio`: staff HTML presentation only; mutations call owning application services.
 - `api`: versioned admin JSON presentation only; mutations call the same services as Studio.
 - `jobs`: queue wrappers, scheduling, leases/fences, heartbeat, and operator diagnostics. A leased
@@ -77,7 +78,8 @@ swap, `datatalks.club` still ALIASes the legacy static site and cannot serve a D
 `https://datatalks.club`. The application therefore never derives one of these URLs from a request
 host, and holds neither value: a mail client fetching a pixel presents no host worth trusting.
 
-This is a second, deliberately narrow Relay boundary, owned by `email_app`, and it is bounded by
+This is a second, deliberately narrow Relay boundary, owned by the package mail app, and it is
+bounded by
 these rules:
 
 - It is inbound-caused. Relay's own link brings the request; the website starts nothing.
@@ -113,9 +115,10 @@ confirmed values and writes a deliberately minimized immutable shared-profile sn
 `courses`; it does not take ownership of the profile. Outside that snapshot, the registration owns
 its normalized verified-email snapshot, target campaign/cohort snapshot, course-specific comment,
 privacy-notice evidence, and optional marketing-consent evidence. Profile completion coordinates a
-`SlackAccessGrant`, one `email_app.EmailDelivery` intent, and its durable job in the same database
+`SlackAccessGrant`, one package `EmailDelivery` intent, and its durable job in the same database
 transaction. Workers receive only scalar identifiers, resolve the current Slack secret after
 commit, and submit allowed context to Relay; Relay owns validation/rendering and transport. Thus
 `accounts` never imports a worker task or stores a secret-bearing rendered message. Provider
 acceptance is distinct from delivery, and an ambiguous acknowledgement is never automatically
-resent. Datamailer remains read-only migration/history/reconciliation input, never a sender.
+resent. Datamailer is history: D1.2ca deleted the client and D1.2cb dropped its storage, so no
+website code path reaches it and it cannot become a sender or a rollback target.

@@ -5,8 +5,9 @@ Status: draft
 The existing course-management platform is adopted, not reimplemented. Its Django applications,
 migrations, business logic, views/forms, API compatibility code, communication behavior, and tests
 are copied into this repository at a recorded source commit and evolved in place. Copied
-Datamailer behavior is preserved for characterization and read-only migration/history only; every
-dispatch, requeue, immediate-send, and callback path is disabled for new work.
+Copied Datamailer behavior was preserved for characterization only; D1.2ca and D1.2cb removed
+the client, its surfaces and its storage, so no dispatch, requeue, immediate-send or callback
+path exists any more.
 
 The current `Course` model is a dated delivery. The minimal structural change is to introduce a reusable parent `Course` and rename/evolve the existing edition record into `Cohort`. Homework, projects, rubrics, submissions, grading, and related operational behavior remain cohort-owned, matching today's semantics.
 
@@ -32,8 +33,8 @@ Reuse and refactor in place:
 - projects, criteria, peer assignment/review, voting, scoring, results, and statistics;
 - leaderboards, score breakdown, complaints, graduates, certificates, calendars, dashboards, and historical Wrapped data;
 - registration campaigns and communication context;
-- Datamailer outbox/audit data and behavior as send-disabled, read-only
-  migration/history/reconciliation input to the Relay-backed email boundary;
+- the Relay-backed email boundary, which the copied Datamailer outbox/audit data fed into until
+  D1.2cb dropped it;
 - current public/data API serializers and paths as compatibility adapters;
 - `cadmin` workflows as the complete operational requirement set;
 - existing migrations and fixtures.
@@ -43,8 +44,8 @@ Change deliberately:
 - `Course`-as-edition becomes `Cohort` belonging to reusable `Course`;
 - global `is_staff` becomes explicit site/course/cohort capabilities;
 - plaintext unscoped API tokens become hashed/scoped/expiring principals;
-- `cadmin` operations move behind shared services exposed by Studio and admin API; copied
-  Datamailer surfaces remain read-only migration/history adapters and cannot dispatch or requeue;
+- `cadmin` operations move behind shared services exposed by Studio and admin API; the copied
+  Datamailer surfaces are removed rather than adapted;
 - long scoring, exports, communications, and repairs become durable operations/jobs where needed;
 - synchronous arbitrary URL validation is removed from request paths;
 - ordinary destructive deletion becomes archive/cancel/protect;

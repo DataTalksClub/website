@@ -141,8 +141,6 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
         "content",
         "core",
         "courses",
-        "data",
-        "email_app",
         "events",
         "jobs",
         "management_auth",

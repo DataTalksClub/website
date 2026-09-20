@@ -84,13 +84,10 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # ignore_missing_imports override for `events.models` -- the Django plugin
 # resolves the `events` label to that module name, which community_base.events
 # owns since D4.1 -- and a run of quality-gate opt-ins, both configuration only.
-# D2.1a moved the pin again, from v0.4.7 to the v0.5.4 release (444538cd):
-# C7.19's namespaced Studio URLconf fix, C7.20's Studio shell extension
-# points, C7.25's public template seam and block contract check, and
-# C7.26/C7.27's settings shapes. D7.1 keeps that tag (C7.4 is in it). Both
-# hashes below are regenerated from pyproject.toml and uv.lock as they stand
-# after the merge.
-STUDIO_COURSES_PYPROJECT_SHA256 = "6ba5aa57b2d3ac9772b5b8a98840e3d872498d0b1634820e542ee3989be88647"
+# D2.1a moved the pin again, from v0.4.7 to the v0.5.4 release (444538cd).
+# D1.2ca/D1.2cb then edit pyproject config-only (mypy overrides, ruff exclude
+# of the retired data app). Hashes regenerated after the merge.
+STUDIO_COURSES_PYPROJECT_SHA256 = "0f3151e6a0e717c8a492baeade09695ce191815d664822013fd41e878bf59dbe"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
     "1b207c8d1fc0e0b365c780324425b61fe056a5bc9ab9e8b7c622627734da99ea"
 )

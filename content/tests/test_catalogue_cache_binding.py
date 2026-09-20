@@ -47,6 +47,12 @@ class FailedReadRecoveryTests(CacheBindingTestBase):
     def setUp(self) -> None:
         super().setUp()
         catalogue._synced_courses.cache_clear()
+        # `_synced_courses` is only the merge; the row read this test makes
+        # fail happens one level down, in `_synced_records`, which every other
+        # class in this file clears for the same reason. Left warm by a sibling
+        # in the same parallel worker, the read below never reaches the patched
+        # manager and no `OperationalError` is raised.
+        catalogue._synced_records.cache_clear()
 
     def test_a_failed_row_read_raises_and_the_next_read_recovers(self) -> None:
         stamps = {slug: catalogue.synced_stamp(slug) for slug in catalogue.COURSE_SOURCE_SLUGS}

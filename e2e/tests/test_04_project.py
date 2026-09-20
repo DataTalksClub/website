@@ -1,9 +1,6 @@
 """Scenario 5 (issue #194): Project flow.
 
 * Submit a project through the UI (as impersonated student).
-* Submission-confirmation email verified via CMP's own Datamailer send audit
-  (the real prod send path runs with dry_run, so nothing is delivered but the
-  rendered email is recorded and read back over HTTP).
 * Assign peer reviews (API).
 * Score the project; verify score components.
 * Leaderboard + project statistics update.
@@ -15,7 +12,6 @@ succeed and return sane counts, rather than requiring assigned reviews.
 
 import pytest
 
-from e2e.api_client import SendAuditTimeout, send_audit_body_contains
 from e2e.browser import ProjectSubmissionData
 
 pytestmark = pytest.mark.project
@@ -61,44 +57,6 @@ def _has_project_submission(submissions, student_email):
         if student_email in str(submission):
             return True
     return False
-
-
-# Confirmation-email contract (from courses/views/project.py, read-only):
-#   template_key = "project-submission-confirmation"
-#   subject      = "Project submission saved: <project title>"
-#   context      = {update_url, profile_url, course_slug, project_slug, ...}
-PROJECT_CONFIRMATION_TEMPLATE = "project-submission-confirmation"
-
-
-@pytest.mark.email
-def test_project_confirmation_email(send_audits, run_state):
-    """The project confirmation email is rendered on the real send path.
-
-    Verification reads CMP's own ``DatamailerSendAudit`` over HTTP: the prod
-    path runs (outbox -> dispatch -> /api/transactional/send -> audit) with
-    ``DATAMAILER_TRANSACTIONAL_DRY_RUN=1``, so the render is returned inline and
-    nothing is delivered. xfails cleanly when no audit appears.
-    """
-    require_project(run_state)
-    try:
-        audit = send_audits.wait_for_send_audit(
-            run_state.student_email,
-            PROJECT_CONFIRMATION_TEMPLATE,
-            body_contains="/project/",
-            timeout=60,
-        )
-    except SendAuditTimeout as exc:
-        pytest.xfail(
-            "No project-confirmation send audit found; ensure Datamailer is "
-            "configured on the target with DATAMAILER_TRANSACTIONAL_DRY_RUN=1. "
-            f"({exc})"
-        )
-    assert audit["template_key"] == PROJECT_CONFIRMATION_TEMPLATE
-    assert audit["message"].get("email") == run_state.student_email
-    assert send_audit_body_contains(audit, "/project/"), (
-        "Project confirmation email missing update link "
-        f"(rendered={audit.get('rendered')!r})."
-    )
 
 
 def test_assign_peer_reviews(api, run_state):

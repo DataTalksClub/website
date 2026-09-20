@@ -18,10 +18,8 @@ pytestmark = pytest.mark.enrollment
 def _student_email(settings, run_state) -> str:
     if settings.student_email:
         return settings.student_email
-    # Per-run, recognizable, unique address. With Datamailer's dry_run flag
-    # nothing is delivered, so a plain namespaced address works; the
-    # confirmation email is verified by reading CMP's own send audit keyed on
-    # this address (see test_03/test_04).
+    # Per-run, recognizable, unique address. Nothing is delivered to it on
+    # the development target, so a plain namespaced address works.
     return settings.student_address(run_state.namespace)
 
 

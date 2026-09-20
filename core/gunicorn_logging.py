@@ -22,7 +22,8 @@ import re
 from gunicorn.glogging import Logger  # type: ignore[import-untyped]
 
 REDACTED_SEGMENT = "[token]"
-# Kept in step with email_app/urls.py. Written as literal route shapes rather
+# Kept in step with community_base/mail/urls.py, the only owner of these three
+# recipient-link routes since D1.2cb. Written as literal route shapes rather
 # than a generic "redact the last segment of every path" rule, so a path is
 # redacted because someone decided it should be, not by accident.
 #

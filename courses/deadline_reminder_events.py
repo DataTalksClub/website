@@ -31,7 +31,7 @@ from courses.deadline_reminder_specs import (
 from courses.deadline_reminder_types import ReminderEventData
 
 
-def homework_reminder_event(config, spec, homework):
+def homework_reminder_event(spec, homework):
     item = homework_reminder_item(homework)
     metadata = reminder_metadata(spec, item)
     pending_enrollments = pending_homework_enrollments(homework)
@@ -43,7 +43,6 @@ def homework_reminder_event(config, spec, homework):
     if not members:
         return None
     event_data = ReminderEventData(
-        config=config,
         spec=spec,
         item=item,
         members=members,
@@ -52,7 +51,7 @@ def homework_reminder_event(config, spec, homework):
     return build_reminder_event(event_data)
 
 
-def project_submission_reminder_event(config, spec, project, reminder_key):
+def project_submission_reminder_event(spec, project, reminder_key):
     item = project_submission_reminder_item(project, reminder_key)
     metadata = reminder_metadata(spec, item)
     pending_enrollments = pending_project_submission_enrollments(project)
@@ -64,7 +63,6 @@ def project_submission_reminder_event(config, spec, project, reminder_key):
     if not members:
         return None
     event_data = ReminderEventData(
-        config=config,
         spec=spec,
         item=item,
         members=members,
@@ -73,7 +71,7 @@ def project_submission_reminder_event(config, spec, project, reminder_key):
     return build_reminder_event(event_data)
 
 
-def peer_review_reminder_event(config, spec, project):
+def peer_review_reminder_event(spec, project):
     item = peer_review_reminder_item(project)
     metadata = reminder_metadata(spec, item)
     pending_submissions = pending_peer_review_submissions(project)
@@ -85,7 +83,6 @@ def peer_review_reminder_event(config, spec, project):
     if not members:
         return None
     event_data = ReminderEventData(
-        config=config,
         spec=spec,
         item=item,
         members=members,
@@ -94,18 +91,18 @@ def peer_review_reminder_event(config, spec, project):
     return build_reminder_event(event_data)
 
 
-def homework_events(config, now, course_slug):
+def homework_events(now, course_slug):
     spec = HOMEWORK_REMINDER_SPEC
     events = []
     homeworks = homework_reminder_queryset(now, course_slug)
     for homework in homeworks:
-        event = homework_reminder_event(config, spec, homework)
+        event = homework_reminder_event(spec, homework)
         if event is not None:
             events.append(event)
     return events
 
 
-def project_submission_events(config, now, course_slug):
+def project_submission_events(now, course_slug):
     events = []
     spec = PROJECT_SUBMISSION_REMINDER_SPEC
     windows = project_submission_reminder_windows(now)
@@ -119,39 +116,37 @@ def project_submission_events(config, now, course_slug):
             windows,
         )
         event = project_submission_reminder_event(
-            config, spec, project, reminder_key
+            spec, project, reminder_key
         )
         if event is not None:
             events.append(event)
     return events
 
 
-def peer_review_events(config, now, course_slug):
+def peer_review_events(now, course_slug):
     events = []
     spec = PEER_REVIEW_REMINDER_SPEC
     projects = peer_review_reminder_queryset(now, course_slug)
     for project in projects:
-        event = peer_review_reminder_event(config, spec, project)
+        event = peer_review_reminder_event(spec, project)
         if event is not None:
             events.append(event)
     return events
 
 
-def build_reminder_events(config, now, course_slug=""):
+def build_reminder_events(now, course_slug=""):
     events = OrderedDict()
     reminder_events = []
-    homework_reminder_events = homework_events(config, now, course_slug)
+    homework_reminder_events = homework_events(now, course_slug)
     for event in homework_reminder_events:
         reminder_events.append(event)
     project_reminder_events = project_submission_events(
-        config,
         now,
         course_slug,
     )
     for event in project_reminder_events:
         reminder_events.append(event)
     peer_review_reminder_events = peer_review_events(
-        config,
         now,
         course_slug,
     )

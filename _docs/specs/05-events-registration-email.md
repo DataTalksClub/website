@@ -131,9 +131,11 @@ approved Relay routing, immutable template version, idempotency inputs, and reci
 check before submission. Unknown purposes, senders, broad recipients, and incomplete routing fail
 closed.
 
-Existing Datamailer audits and external identifiers are imported only as send-disabled, read-only
-migration/history/reconciliation evidence. Datamailer receives no new website send, and its
-compatibility surfaces cannot dispatch, requeue, or become a rollback sender.
+Datamailer is retired. D1.2ca deleted the client, its templates registry and its operator
+surfaces; D1.2cb dropped the outbox, send-audit, dispatch-run and contact-event storage. No
+website code path reaches it, it receives no send, and it cannot become a rollback sender.
+External identifiers carried over from it survive only inside the records that already hold
+them.
 
 Marketing/newsletter delivery is in MVP scope as a distinct optional purpose. New member/account
 signup defaults the marketing preference on, but unverified new accounts are not newsletter

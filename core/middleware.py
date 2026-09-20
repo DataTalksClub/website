@@ -23,7 +23,7 @@ from core.context import (
     is_safe_external_context_id,
     reset_context,
 )
-from core.security import MAX_REQUEST_BODY_BYTES, MAX_WEBHOOK_BODY_BYTES
+from core.security import MAX_REQUEST_BODY_BYTES
 from core.sensitive_query import has_sensitive_query_key
 
 REQUEST_ID_PATTERN = CONTEXT_ID_PATTERN
@@ -162,12 +162,6 @@ class RequestBoundaryMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
-        webhook_path = request.path_info.rstrip("/") == "/api/datamailer/events"
-        # Let Django's existing @require_POST guard unsupported methods first.
-        # This preserves the explicit 405/Allow contract without allowing an
-        # unsupported request to reach webhook authentication or JSON parsing.
-        if webhook_path and request.method != "POST":
-            return self.get_response(request)
 
         if request.method in _BODY_METHODS:
             raw_length: str | bytes | int | None = request.META.get("CONTENT_LENGTH")
@@ -183,7 +177,7 @@ class RequestBoundaryMiddleware:
             if content_length is not None and content_length < 0:
                 content_length = None
                 length_missing = False
-            limit = MAX_WEBHOOK_BODY_BYTES if webhook_path else MAX_REQUEST_BODY_BYTES
+            limit = MAX_REQUEST_BODY_BYTES
             if content_length is not None and content_length > limit:
                 return self._too_large()
             stream_seekable, stream_size = self._seekable_stream_size(request)
@@ -208,22 +202,6 @@ class RequestBoundaryMiddleware:
                 ):
                     return self._too_large()
 
-        if webhook_path:
-            authorization = request.headers.get("Authorization", "")
-            legacy_token = request.headers.get("X-Datamailer-Webhook-Token", "")
-            if authorization and legacy_token:
-                return self._webhook_rejected()
-            if authorization:
-                scheme, separator, token = authorization.partition(" ")
-                if (
-                    scheme.casefold() != "bearer"
-                    or not separator
-                    or not token
-                    or token != token.strip()
-                ):
-                    return self._webhook_rejected()
-            if request.content_type != "application/json":
-                return self._webhook_rejected(status=415)
         return self.get_response(request)
 
     @staticmethod
@@ -260,14 +238,6 @@ class RequestBoundaryMiddleware:
             status=413,
         )
         response["Cache-Control"] = "private, no-store, max-age=0"
-        return response
-
-    @staticmethod
-    def _webhook_rejected(*, status: int = 401) -> JsonResponse:
-        response = JsonResponse({"error": "Webhook request rejected."}, status=status)
-        response["Cache-Control"] = "private, no-store, max-age=0"
-        if status == 401:
-            response["WWW-Authenticate"] = "Bearer"
         return response
 
 
@@ -445,21 +415,6 @@ class ResponsePolicyMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         response = self.get_response(request)
-        if (
-            request.path_info.rstrip("/") == "/api/datamailer/events"
-            and response.status_code >= 400
-        ):
-            preserved_headers = {
-                name: response.headers[name]
-                for name in ("Allow", "WWW-Authenticate", "X-Request-ID", "X-Correlation-ID")
-                if name in response.headers
-            }
-            response = JsonResponse(
-                {"error": "Webhook request rejected."},
-                status=response.status_code,
-            )
-            for name, value in preserved_headers.items():
-                response[name] = value
         response = _sanitize_mutation_error(request, response)
         apply_security_headers(response)
         private_surface = _is_private_surface(request)

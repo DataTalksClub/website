@@ -137,7 +137,6 @@ def test_issue_237_interactions_reach_only_bounded_validation_and_toggle_views()
         ).status_code
         == 403
     )
-    assert anonymous.post("/studio/courses/datamailer/", {}).status_code == 403
     assert anonymous.get("/accounts/github/login/").status_code == 403
 
     missing = anonymous.get("/__issue_237_missing__")
