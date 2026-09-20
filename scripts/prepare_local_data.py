@@ -72,6 +72,7 @@ GALLERY_ENRICHMENT_PATH = (
 GALLERY_STRUCTURED_PATH = (
     Path.home() / "prod/dtc-data/content-staging/project_gallery_structured.jsonl"
 )
+TOUR_TESTIMONIALS_PATH = Path.home() / "prod/dtc-data/content-staging/tour_testimonials.json"
 
 
 class LocalPreparationError(RuntimeError):
@@ -171,17 +172,27 @@ def _import_sponsor_and_testimonial_content() -> dict[str, Any]:
     Sponsors and testimonials are unaffected: they still write ``core.Sponsor`` and
     ``courses.Testimonial`` from their own reviewed one-time inputs, key each row on
     its natural key, and report ``replayed`` on a rerun -- these are the production
-    importers themselves, not a second copy of what they do.
+    importers themselves, not a second copy of what they do.  The tour page's two
+    legs ride here too: its member stories are ``placement: "tour"`` testimonial
+    rows from their own staging file, and its editorial copy is one
+    ``ContentDocument`` imported by ``import_tour.py`` (§23).
     """
 
     from scripts.prod.import_sponsors import SponsorDirectoryImportFailure
     from scripts.prod.import_sponsors import run as import_sponsors
     from scripts.prod.import_testimonials import TestimonialImportFailure
     from scripts.prod.import_testimonials import run as import_testimonials
+    from scripts.prod.import_tour import run as import_tour
 
-    steps: tuple[tuple[str, Any, type[RuntimeError]], ...] = (
+    steps: tuple[tuple[str, Any, type[Exception]], ...] = (
         ("sponsors", import_sponsors, SponsorDirectoryImportFailure),
         ("testimonials", import_testimonials, TestimonialImportFailure),
+        (
+            "tour_testimonials",
+            lambda: import_testimonials(path=TOUR_TESTIMONIALS_PATH),
+            TestimonialImportFailure,
+        ),
+        ("tour_page", import_tour, ValueError),
     )
     reports: dict[str, Any] = {}
     for name, importer, failure in steps:

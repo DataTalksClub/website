@@ -1793,6 +1793,7 @@ number can appear twice in this table for two unrelated defects.
 | Import CMP learner history | `uv run --frozen python scripts/prod/import_cmp_learner_history.py --database … --source …` (the other nine tables; run it after the two above, against the same database — §8) |
 | Sync the editorial catalogue, FAQ and docs (articles/podcasts/books/people/wiki/faq/docs) | `manage.py sync_content` against a real checkout, or its webhook — there is no offline importer for these any more (§4 item 5) |
 | Import sponsors and testimonials | `uv run --frozen python scripts/prod/import_sponsors.py --database …`, then `import_testimonials.py` |
+| Import the tour page and its stories | `import_testimonials.py --reviewed-file ~/prod/dtc-data/content-staging/tour_testimonials.json --database …`, then `import_tour.py --database …` (§23) |
 | Import event identities and content | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --eventbrite-source …` (identity import is always the first step; content follows it in the same run) |
 | Create identities for new events in a fresh Luma export (§14.3) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --discover-new-events-only` |
 | See what a description export still needs from a person (§14.4) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --discover-new-events-only`, then `uv run --frozen python scripts/build_luma_event_descriptions.py --database … --source-root …` |
