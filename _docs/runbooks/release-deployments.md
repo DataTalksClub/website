@@ -110,10 +110,12 @@ target (`DTC_DEPLOYMENT_TARGET` is derived from the CLI argument):
    the long-running services — and rewrites only the release identity. A
    refused source stops the deployment before its registration (the gate is
    enforced explicitly because `set -e` does not apply inside `$( )`).
-5. **Migrate** — one Fargate task on the new migration definition runs
-   `prepare_deployment` (Django migrations, including the data migrations
-   that carry code-owned content). Non-zero exit stops the deployment with
-   services untouched.
+5. **Migrate** — one Fargate task on the new migration definition runs the
+   reviewed compound command: `migrate --noinput`, then
+   `sync_relay_schedules`, then `import_mail_templates`. Its `/bin/sh -lc`
+   entrypoint receives that complete command as one ECS override argument, so
+   each `&&`-chained step must succeed. Non-zero exit stops the deployment
+   with services untouched.
 6. **Mutate** — both services move to the new definitions with the target's
    desired counts, then `wait services-stable`. This is the first mutation;
    from here any failure triggers the EXIT trap's bounded automatic recovery
@@ -167,7 +169,7 @@ Every supported entry point, its owner and the tests that pin it:
 | `deploy/ci_verdict.py` | CI verdict decision (REL-01) | `ci/tests/test_deploy_ci_gate.py` |
 | `deploy/recovery_receipt.py` | receipt capture / bounded recovery (REL-02) | `ci/tests/test_deploy_recovery_receipt.py` |
 | `deploy/update_task_definition_image.py` | promotion gate (REL-08) | `core/tests/test_cmp_style_deployment.py::TaskDefinitionImageUpdateTests` |
-| `core/management/commands/prepare_deployment.py` | migration task command | `tests_ci/test_management_commands.py` |
+| `core/management/commands/prepare_deployment.py` | migration-only convenience command (not the deployed compound task) | `core/tests/test_prepare_deployment.py` |
 | `scripts/prepare_local_data.py`, `scripts/verify_local_dataset.py` | local dataset build/verify (not a deployment step) | `scripts/tests/` |
 | `scripts/production_data.py dataset` / `bootstrap` | local dataset rebuild via the removal gate | `scripts/tests/test_rebuild_gate.py` |
 

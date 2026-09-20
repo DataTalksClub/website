@@ -190,7 +190,7 @@ aws ecs run-task --region "$AWS_REGION" \
   --task-definition "$MIGRATION_TASK_DEFINITION" \
   --launch-type FARGATE \
   --network-configuration "$NETWORK_CONFIGURATION" \
-  --overrides '{"containerOverrides":[{"name":"migration","command":["prepare_deployment"]}]}' \
+  --overrides '{"containerOverrides":[{"name":"migration","command":["uv run --no-sync python manage.py migrate --noinput && uv run --no-sync python manage.py sync_relay_schedules && uv run --no-sync python manage.py import_mail_templates"]}]}' \
   > "$WORKDIR/migration.json"
 jq -e '(.failures | length) == 0 and (.tasks | length) == 1' \
   "$WORKDIR/migration.json" > /dev/null
