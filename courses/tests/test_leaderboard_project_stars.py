@@ -101,7 +101,7 @@ class LeaderboardProjectStarColorTests(TestCase):
         # full suite ran (`KeyError: 'Alice'`). Every other leaderboard suite
         # clears the cache the same way.
         cache.clear()
-
+        self.addCleanup(cache.clear)
         self.course = Cohort.objects.create(slug="star-colors-course", title="Star Colors Course")
         self.project1 = self.create_project("project-1", "Project One")
         self.project2 = self.create_project("project-2", "Project Two")

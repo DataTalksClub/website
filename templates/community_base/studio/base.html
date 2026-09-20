@@ -1,1 +1,4 @@
-{% extends "studio/base.html" %}{# Site override: the package content-sync studio pages (D2.2a) render inside the site Studio shell; D2.1 mounts the package shell and deletes this file. #}
+{% extends "studio/base.html" %}{# Site override: package Studio pages (D2.2a, D2.1b) render inside the site Studio shell. #}
+{% block content %}
+{% block studio_content %}{% endblock %}
+{% endblock %}

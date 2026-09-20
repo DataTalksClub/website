@@ -298,13 +298,18 @@ def test_empty_optional_and_error_states_are_responsive(
         for item in (*event_groups().upcoming, *event_groups().recent)
         if item["public_path"] == _featured_event_path()
     )
-    optional_event = {**event, "speakers": (), "links": (), "ends_at": ""}
+    optional_event = {
+        **event,
+        "speakers": (),
+        "links": (),
+        "ends_at": "",
+        "registration_count": 0,
+    }
     monkeypatch.setattr(
         public_views,
         "event_groups",
         lambda: EventGroups((optional_event,), ()),
     )
-    monkeypatch.setattr(public_views, "public_registration_total", lambda _event: None)
     optional = page.goto(f"{live_server.url}{_featured_event_path()}")
     assert optional is not None and optional.status == 200
     expect(page.get_by_role("heading", name=FEATURED_EVENT_TITLE, exact=True)).to_be_visible()

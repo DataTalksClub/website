@@ -14,7 +14,7 @@ class ProjectSubmissionConfirmationTestCase(ProjectSubmissionViewTestBase):
             mock.patch("requests.get") as mock_get,
             mock.patch("requests.head") as mock_head,
             mock.patch(
-                "courses.views.project_confirmation.send_transactional_email"
+                "courses.views.project_confirmation.send_package_mail"
             ) as send_email,
         ):
             response = self.post_project_confirmation_with_email(
@@ -27,12 +27,12 @@ class ProjectSubmissionConfirmationTestCase(ProjectSubmissionViewTestBase):
             send_email,
         )
 
-    def test_project_submission_uses_datamailer_without_local_preference(self):
+    def test_project_submission_sends_without_a_stored_preference(self):
         with (
             mock.patch("requests.get") as mock_get,
             mock.patch("requests.head") as mock_head,
             mock.patch(
-                "courses.views.project_confirmation.send_transactional_email"
+                "courses.views.project_confirmation.send_package_mail"
             ) as send_email,
         ):
             self.mock_url_check_status(mock_get, mock_head, 200)
@@ -42,6 +42,6 @@ class ProjectSubmissionConfirmationTestCase(ProjectSubmissionViewTestBase):
 
         self.assertEqual(response.status_code, 302)
         send_email.assert_called_once()
-        payload = send_email.call_args.args[0]
-        self.assertEqual(payload["email"], "test@test.com")
-        self.assertEqual(payload["category_tag"], "submission-results")
+        kwargs = send_email.call_args.kwargs
+        self.assertEqual(kwargs["to"], "test@test.com")
+        self.assertEqual(kwargs["category"], "submission-results")

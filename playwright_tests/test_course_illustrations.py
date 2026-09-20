@@ -6,6 +6,7 @@ from django.urls import reverse
 from playwright.sync_api import Page, expect
 
 from courses.models import Cohort, Course, RegistrationCampaign
+from playwright_tests.accessibility_support import axe_issues
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
@@ -52,12 +53,9 @@ def test_course_art_preserves_theme_geometry_and_course_actions(
         if theme == "dark":
             page.locator("#dark-mode-toggle").click()
             expect(page.locator("body.dark-mode")).to_have_count(1)
-        if width >= 768:
-            expect(art.locator("img:visible")).to_have_count(1)
-            expect(art.locator(f".doodle-{theme}")).to_be_visible()
-            assert art.bounding_box() == slot_before
-        else:
-            expect(art).to_be_hidden()
+        expect(art.locator("img:visible")).to_have_count(1)
+        expect(art.locator(f".doodle-{theme}")).to_be_visible()
+        assert art.bounding_box() == slot_before
         assert page.locator("main h1").bounding_box() == heading_before
         assert page.evaluate(
             "document.documentElement.scrollWidth <= document.documentElement.clientWidth"
@@ -89,19 +87,50 @@ def test_course_index_collage_matches_family_artwork(page: Page, live_server, wi
     expect(page.get_by_text("mascot needed", exact=True)).to_have_count(0)
     card = page.locator(".hero-collage-card").filter(has_text=family.title)
     expect(card).to_have_count(1)
-    listing = page.locator(".active-card").filter(has_text=family.title)
+    listing = page.locator(".catalog-card").filter(has_text=family.title)
     expect(listing).to_have_count(1)
-    for slot in (card, listing.locator(".active-card-media")):
+    listing_link = listing.get_by_role("link", name=family.title, exact=True)
+    expect(listing_link).to_have_count(1)
+    expect(listing_link).to_have_attribute("href", reverse("course_family", args=[family.slug]))
+    expect(listing).to_have_class(
+        "card catalog-card interactive-card interactive-lift stretched-card-link"
+    )
+    expect(listing).not_to_have_attribute("role", "link")
+    expect(listing).not_to_have_attribute("tabindex", "0")
+    assert listing_link.evaluate(
+        """node => {
+            const overlay = getComputedStyle(node, '::after');
+            return overlay.position === 'absolute'
+                && overlay.top === '0px'
+                && overlay.right === '0px'
+                && overlay.bottom === '0px'
+                && overlay.left === '0px';
+        }"""
+    )
+    if width in (1440, 390):
+        target_size_issues = [
+            issue
+            for issue in axe_issues(page, f"course-catalog-{width}")
+            if "axe target-size" in issue
+        ]
+        assert target_size_issues == []
+    for slot in (card, listing.locator(".catalog-card-media")):
         slot.locator("img").evaluate_all("imgs => Promise.all(imgs.map(img => img.decode()))")
         light = slot.locator(".doodle-light")
         expect(light).to_have_attribute("src", static("core/illustrations/course-ml-zoomcamp.webp"))
         assert light.evaluate("img => img.complete && img.naturalWidth === 1254")
         expect(light).to_have_attribute("alt", "")
+        dark = slot.locator(".doodle-dark")
+        expect(dark).to_have_attribute(
+            "src", static("core/illustrations/course-ml-zoomcamp-dark.webp")
+        )
+        assert dark.evaluate("img => img.complete && img.naturalWidth === 1254")
+        expect(dark).to_have_attribute("alt", "")
     slot_before = card.bounding_box()
     for theme in ("light", "dark"):
         if theme == "dark":
             page.locator("#dark-mode-toggle").click()
-        for slot in (card, listing.locator(".active-card-media")):
+        for slot in (card, listing.locator(".catalog-card-media")):
             expect(slot.locator("img:visible")).to_have_count(1)
             expect(slot.locator(f".doodle-{theme}")).to_be_visible()
         assert card.bounding_box() == slot_before
@@ -109,3 +138,5 @@ def test_course_index_collage_matches_family_artwork(page: Page, live_server, wi
     assert page.evaluate(
         "document.documentElement.scrollWidth <= document.documentElement.clientWidth"
     )
+    listing_link.focus()
+    expect(listing_link).to_be_focused()

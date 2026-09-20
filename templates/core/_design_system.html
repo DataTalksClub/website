@@ -687,6 +687,139 @@ Rules for editing:
         white-space: nowrap;
       }
 
+      /* Package public pages (D7.6): structural cb- hooks from
+         community_base/public/base.html. Primary action and field first so
+         an unstyled unsubscribe submit is a real button, not inline text. */
+      .cb-button-primary {
+        align-items: center;
+        background: var(--green);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        box-shadow: 0 3px 0 var(--shadow);
+        color: var(--on-green);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-weight: 700;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: 0.3rem 1.15rem;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .cb-field {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.5rem;
+        color: var(--ink);
+        display: block;
+        font: inherit;
+        min-height: 2.75rem;
+        padding: 0.4rem 0.75rem;
+        width: 100%;
+      }
+
+      .cb-button {
+        align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-weight: 700;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: 0.3rem 1rem;
+        text-decoration: none;
+      }
+
+      .cb-page {
+        display: block;
+        margin-inline: auto;
+        max-width: var(--content-width);
+        padding: 2rem 1.25rem 3rem;
+      }
+
+      .cb-page-header {
+        margin-bottom: 1.5rem;
+      }
+
+      .cb-page-title {
+        color: var(--ink);
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        margin: 0 0 0.5rem;
+      }
+
+      .cb-list {
+        display: grid;
+        gap: 1rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .cb-card {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 1.25rem;
+        box-shadow: 6px 6px 0 var(--shadow);
+        padding: 1.1rem 1.2rem;
+      }
+
+      .cb-card-title {
+        color: var(--ink);
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin: 0 0 0.35rem;
+      }
+
+      .cb-card-meta {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .cb-badge {
+        background: var(--mint);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        display: inline-flex;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 0.15rem 0.6rem;
+      }
+
+      .cb-form {
+        display: grid;
+        gap: 0.85rem;
+        margin: 0;
+      }
+
+      .cb-alert {
+        background: var(--lavender);
+        border: 2px solid var(--line);
+        border-radius: 0.75rem;
+        color: var(--ink);
+        padding: 0.85rem 1rem;
+      }
+
+      .cb-empty {
+        color: var(--muted);
+        margin: 0;
+      }
+
+      .cb-pager {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+      }
+
       /* The site-wide navigation contract: a toggle plus #site-navigation-links, opened
          by core/site_navigation.js and always visible without JavaScript. */
       .site-navigation {
@@ -1276,15 +1409,6 @@ Rules for editing:
         flex-direction: column;
         gap: 0.85rem;
         padding: 1.25rem;
-      }
-
-      .catalog-card[role="link"] {
-        cursor: pointer;
-      }
-
-      .catalog-card[role="link"]:focus-visible {
-        outline: 3px solid var(--ink);
-        outline-offset: 4px;
       }
 
       /* The doodles are small scenes -- two or three figures with props on a

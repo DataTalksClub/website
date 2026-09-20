@@ -52,12 +52,15 @@ def test_course_value_precedes_route_choice_and_anchors_work(
     for position, title in enumerate(
         ["Prepare the data", "Train a model", "Evaluate predictions", "Deploy the service"]
     ):
+        summary = f"Practice how to {title.lower()} in the course project."
+        if position == 0:
+            summary = "https://example.com/" + "unbroken-syllabus-summary-url" * 12
         SharedModule.objects.create(
             curriculum=curriculum,
             position=position,
             slug=f"skill-{position}",
             title=title,
-            summary=f"Practice how to {title.lower()} in the course project.",
+            summary=summary,
         )
     learner = User.objects.create_user(username="landing-learner")
     enrollment = Enrollment.objects.create(student=learner, course=cohort)
@@ -163,7 +166,8 @@ def test_course_value_precedes_route_choice_and_anchors_work(
         syllabus_action.click()
         expect(page.locator("#syllabus-heading")).to_be_in_viewport()
         proof = page.locator(".family-proof a").first
-        expect(proof).to_have_attribute("href", reverse("family_projects", args=[family.slug]))
+        family_gallery_url = f"{reverse('all_projects')}?course={family.slug}"
+        expect(proof).to_have_attribute("href", family_gallery_url)
         # "cards like the rest of the cards - entire card clickable" (owner
         # feedback): the repository link's ::after is the whole-card overlay
         # (the same stretched-card-link mechanism the editions cards above
@@ -196,4 +200,4 @@ def test_course_value_precedes_route_choice_and_anchors_work(
             "href", submission.github_link
         )
     proof.click()
-    expect(page).to_have_url(f"{live_server.url}{reverse('family_projects', args=[family.slug])}")
+    expect(page).to_have_url(f"{live_server.url}{family_gallery_url}")

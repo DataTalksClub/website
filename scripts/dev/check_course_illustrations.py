@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_VIEWPORTS = ((1440, 900), (768, 1024), (390, 844), (320, 740))
 COURSE_ROUTE = re.compile(r"/courses(?:/[a-z0-9]+(?:-[a-z0-9]+)*)?\Z")
 NON_FAMILY_ROUTES = {"/courses/register", "/courses/projects"}
-CATALOGUE_MEDIA = ".open-card-media, .active-card-media, .selfpaced-card-media"
+CATALOGUE_MEDIA = ".catalog-card-media"
 
 
 def base_url(value: str) -> str:
@@ -128,7 +128,7 @@ def inspect_page(page: Page, *, route: str, theme: str, width: int) -> dict:
     for index, slot in enumerate(slots.all()):
         slot_images = slot.locator("img")
         visible = slot.locator("img:visible")
-        expected_visible = catalogue or width >= 768
+        expected_visible = True
         themed = slot.locator(".doodle-light, .doodle-dark").count() > 0
         if slot_images.count() == 0:
             failures.append(f"Slot {index}: missing illustration; placeholder or empty slot.")

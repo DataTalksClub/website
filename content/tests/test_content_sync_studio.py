@@ -5,6 +5,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from accounts.studio_test_support import make_studio_user
+
 
 class ContentSyncStudioViewTests(TestCase):
     """The D2.2a package studio surfaces render inside the site Studio shell.
@@ -40,7 +42,10 @@ class ContentSyncStudioViewTests(TestCase):
         )
 
     def _staff_client(self):
-        user = get_user_model().objects.create_user(username="studio-staff", is_staff=True)
+        user = make_studio_user(
+            username="studio-staff",
+            roles=("content_operator",),
+        )
         self.client.force_login(user)
         return user
 

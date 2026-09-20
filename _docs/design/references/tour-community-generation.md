@@ -1,5 +1,10 @@
 # Tour community hero illustration
 
+> The dark output in this record was superseded on 2026-09-17 by
+> [`dark-counterpart-audit-20260917.md`](dark-counterpart-audit-20260917.md)
+> because its blue wash read as a separate plate on the real dark surface. The
+> light output remains the composition anchor.
+
 Date: 2026-09-16. Generated with the built-in `image_gen.imagegen` tool; no
 API key or CLI. The current official model pages were checked before generation,
 but the built-in tool exposed no model selector or backend version, so its actual

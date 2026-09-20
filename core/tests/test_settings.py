@@ -393,13 +393,13 @@ class CollectstaticSettingsTests(SimpleTestCase):
         environment.update(
             {
                 "DJANGO_SETTINGS_MODULE": "website.settings.collectstatic",
+                "DTC_STATIC_ROOT": str(static_root),
                 "PATH": str(empty_path),
             }
         )
         command = (
-            "import json, sys; from pathlib import Path; "
+            "import json, sys; "
             "import website.settings.collectstatic as build_settings; "
-            "build_settings.STATIC_ROOT = Path(sys.argv[1]); "
             "import django; django.setup(); "
             "from django.core.management import call_command; "
             "call_command('collectstatic', interactive=False, verbosity=0); "
@@ -410,7 +410,7 @@ class CollectstaticSettingsTests(SimpleTestCase):
         )
         try:
             result = subprocess.run(
-                [sys.executable, "-c", command, str(static_root)],
+                [sys.executable, "-c", command],
                 cwd=BASE_DIR,
                 env=environment,
                 capture_output=True,

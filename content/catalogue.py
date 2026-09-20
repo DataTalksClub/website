@@ -1,9 +1,12 @@
 """Read the published editorial catalogue from the database.
 
 The public pages -- the blog, the podcast, the book archive, the profiles, the
-wiki -- read their records from database rows, and this module is the one place
-that turns those rows into the records the views and templates read, with a
-function per kind rather than one dictionary holding every kind at once.
+wiki's graph -- read their records from database rows, and this module is the
+one place that turns those rows into the records the views and templates read,
+with a function per kind rather than one dictionary holding every kind at once.
+The wiki *pages* left for the shared knowledge base app in D7.1; what stays here
+is the graph, the search index and the declared asset paths that go with them,
+and :mod:`content.wiki_reader` reads the pages.
 
 They share a module because they share everything that makes the read work:
 the same publishing authority per kind, the same stored editorial order, and
@@ -33,6 +36,7 @@ from uuid import UUID
 
 from django.db.models import Count, Max
 
+from . import wiki_reader
 from .models import ContentDocument, ContentSource, SyncedDocument
 from .public_graph import validate_wiki_graph
 from .public_text import strip_leaked_target_attributes
@@ -67,16 +71,21 @@ COLLECTION_KINDS = {name: name.rstrip("s") or name for name in COLLECTION_NAMES}
 #: beside them.
 COUNT_KEYS = (*COLLECTION_NAMES, "transcripts")
 
-#: The community_base sync source whose synced rows publish the wiki, and the
-#: kinds it owns: the pages the hub lists and the three singletons -- the
-#: knowledge graph, the search index and the declared asset paths -- that a
-#: database publishes one document apiece. These kinds read
-#: :class:`~content.models.SyncedDocument` rows (issue #384); the staged
-#: release remains the authority for every other kind until it is retired.
+#: The community_base sync source whose synced rows publish what goes with the
+#: wiki: the three singletons -- the knowledge graph, the search index and the
+#: declared asset paths -- that a database publishes one document apiece. These
+#: kinds read :class:`~content.models.SyncedDocument` rows (issue #384); the
+#: staged release remains the authority for every other kind until it is
+#: retired. The wiki pages themselves are not here: they are knowledge base
+#: pages, read by :mod:`content.wiki_reader` (D7.1).
 WIKI_SOURCE_SLUG = "dtc-podwiki"
-WIKI_PAGE_KIND = "wiki"
 WIKI_SINGLETON_KINDS = ("wiki_graph", "wiki_search", "wiki_assets")
-WIKI_SYNCED_KINDS = (WIKI_PAGE_KIND, *WIKI_SINGLETON_KINDS)
+WIKI_SYNCED_KINDS = WIKI_SINGLETON_KINDS
+
+#: Kinds this module published before their storage moved elsewhere. They are
+#: named so a read cannot quietly fall through to the staged release and serve a
+#: second authority for a collection that has already cut over.
+MOVED_KINDS = frozenset({"wiki"})
 
 #: The sync source whose synced rows publish the editorial collections that
 #: have cut over, and the kinds it owns: articles, podcasts and books.
@@ -152,6 +161,8 @@ def records(kind: str) -> tuple[Record, ...]:
     serve from cache.
     """
 
+    if kind in MOVED_KINDS:
+        return ()
     source_slug = SYNCED_KIND_SOURCES.get(kind)
     if source_slug is None:
         if kind == MEDIA_KIND:
@@ -214,9 +225,8 @@ def _synced_records(stamp: tuple[int, str], source_slug: str, kind: str) -> tupl
 
     The row table carries no order column: the order is a catalogue fact, so
     the reader derives it from the records themselves. The editorial kinds come
-    back newest first, the rule the reviewed build ordered them by; the wiki
-    pages come back in the A-Z order the hub pages through; the profiles come
-    back in the A-Z-by-title order the reviewed build listed them in.
+    back newest first, the rule the reviewed build ordered them by; the profiles
+    come back in the A-Z-by-title order the reviewed build listed them in.
     """
 
     if not stamp[0]:
@@ -242,13 +252,6 @@ def _synced_records(stamp: tuple[int, str], source_slug: str, kind: str) -> tupl
             held = [_cleaned_body(record) for record in held]
     elif kind == PEOPLE_KIND:
         held = [_cleaned_body(record) for record in held]
-        held.sort(
-            key=lambda record: (
-                str(record.get("title", "")).casefold(),
-                str(record.get("slug", "")),
-            )
-        )
-    elif kind == WIKI_PAGE_KIND:
         held.sort(
             key=lambda record: (
                 str(record.get("title", "")).casefold(),
@@ -545,18 +548,6 @@ def book(slug: str) -> Record | None:
     return _by_slug(books(), slug)
 
 
-def wiki_pages() -> tuple[Record, ...]:
-    """The wiki catalogue, in the A-Z order the hub pages through."""
-
-    return records(WIKI_PAGE_KIND)
-
-
-def wiki_page(slug: str) -> Record | None:
-    """One wiki page, or ``None`` when the catalogue does not publish it."""
-
-    return _by_slug(wiki_pages(), slug)
-
-
 def wiki_graph() -> Record:
     """The wiki knowledge graph, checked before it can reach a page.
 
@@ -620,7 +611,7 @@ def collection_counts() -> dict[str, int]:
         "podcasts": len(podcasts()),
         "books": len(books()),
         "people": len(people()),
-        "wiki": len(wiki_pages()),
+        "wiki": len(wiki_reader.wiki_pages()),
         "courses": len(courses()),
         "media": len(media()),
         "transcripts": sum(1 for record in podcasts() if record.get("transcript")),

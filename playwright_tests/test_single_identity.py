@@ -66,7 +66,10 @@ def _active_user(*, suffix: str, is_staff: bool = False) -> User:
         username=f"synthetic-{suffix}",
         email=email,
         is_staff=is_staff,
-        identity_state=IdentityState.States.ACTIVE,
+    )
+    IdentityState.objects.update_or_create(
+        user=user,
+        defaults={"identity_state": IdentityState.States.ACTIVE},
     )
     EmailAddress.objects.create(
         user=user,

@@ -40,10 +40,10 @@ from events.identity import (
 )
 from events.queries import event_public_record, published_event_records
 
-from . import catalogue, wiki_content
+from . import catalogue, wiki_content, wiki_reader
 from .article_content import article_view, render_body_markdown
 from .article_faq import ArticleFaq, article_faq
-from .docs_projection import docs_pages
+from .docs_reader import docs_pages
 from .event_banners import event_banner_url
 from .event_content import event_date_groups, event_groups
 from .event_speakers import event_speaker_records
@@ -71,7 +71,7 @@ from .podcast_content import (
     podcast_seasons,
     season_episodes,
 )
-from .podcast_routes import podcast_public_id
+from .podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_public_id
 from .public_query import selector_query
 from .review_views import SLACK_PUBLIC_PATH
 from .sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
@@ -163,6 +163,38 @@ def permanent_public_redirect(
     response = HttpResponsePermanentRedirect(f"{target}?{query}" if query else target)
     response["Cache-Control"] = "public, max-age=300"
     return response
+
+
+@csrf_exempt
+def editorial_detail_alias_redirect(
+    request: HttpRequest,
+    *,
+    collection: str,
+    slug: str,
+) -> HttpResponse:
+    """Redirect one existing clean/slash editorial alias to its recorded canonical."""
+
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    resolver = {
+        "article": catalogue.article,
+        "book": catalogue.book,
+        "person": catalogue.person,
+        "podcast": catalogue.podcast,
+    }[collection]
+    source_slug = slug.removesuffix("/")
+    if collection == "podcast" and source_slug in PODCAST_HIERARCHICAL_ONLY_SLUGS:
+        raise Http404
+    record = resolver(source_slug)
+    if record is None:
+        raise Http404
+    target = record["public_path"]
+    clean_alias = (
+        f"/podcast/{source_slug}" if collection == "podcast" else target.removesuffix(".html")
+    )
+    if request.path_info not in {clean_alias, f"{clean_alias}/"}:
+        raise Http404
+    return permanent_public_redirect(request, target=target)
 
 
 @require_safe
@@ -914,7 +946,7 @@ def wiki_hub(request: HttpRequest) -> HttpResponse:
         return wiki_search(request)
     pagination = paginate_public_request(
         request,
-        catalogue.wiki_pages(),
+        wiki_reader.wiki_pages(),
         clean_base_path="/wiki",
         catalogue_label="Wiki catalogue pages",
     )
@@ -936,7 +968,7 @@ def wiki_hub(request: HttpRequest) -> HttpResponse:
 
 @require_safe
 def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    page = catalogue.wiki_page(slug)
+    page = wiki_reader.wiki_page(slug)
     if page is None:
         raise Http404
     wiki_trail = trail(("Wiki", "/wiki"), (page["title"], page["public_path"]))
@@ -1038,7 +1070,7 @@ def wiki_search_json(request: HttpRequest) -> JsonResponse:
 
 @require_safe
 def wiki_special(request: HttpRequest, category: str = "all") -> HttpResponse:
-    pages = catalogue.wiki_pages()
+    pages = wiki_reader.wiki_pages()
     special_tags = set(WIKI_SPECIAL_CATEGORIES.values())
     if category == "all":
         pages = tuple(page for page in pages if special_tags.intersection(page["tags"]))
@@ -1075,7 +1107,7 @@ def wiki_feed(request: HttpRequest) -> HttpResponse:
             xml_escape(_canonical(page["public_path"])),
             xml_escape(page["summary"]),
         )
-        for page in catalogue.wiki_pages()[-30:]
+        for page in wiki_reader.wiki_pages()[-30:]
     )
     return _xml_response(
         '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>'
@@ -1263,7 +1295,7 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
             ("/wiki/special-pages", ""),
             *((f"/wiki/special-pages/{category}", "") for category in WIKI_SPECIAL_CATEGORIES),
         )
-        return discovery + tuple((record["public_path"], "") for record in catalogue.wiki_pages())
+        return discovery + tuple((record["public_path"], "") for record in wiki_reader.wiki_pages())
     raise Http404
 
 

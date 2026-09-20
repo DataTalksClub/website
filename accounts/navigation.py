@@ -22,6 +22,13 @@ _ACCOUNT_TRANSITION_PATHS = frozenset(
         "/auth/logout/",
     }
 )
+_RECIPIENT_PRIVATE_ROUTE_NAMES = frozenset(
+    {
+        "relay-public-unsubscribe",
+        "relay-tracking-click",
+        "relay-tracking-open",
+    }
+)
 _PERCENT_ESCAPE = re.compile(r"%[0-9a-fA-F]{2}")
 _MALFORMED_PERCENT = re.compile(r"%(?![0-9a-fA-F]{2})")
 _URI_SCHEME = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
@@ -149,7 +156,12 @@ def safe_next_path(request) -> str:
     # carry the opaque token that identifies them (Relay's unsubscribe and
     # tracking links do).  Echoing that URL back as a sign-in return target would
     # put the token into the page, the referrer, and the login flow.
-    if getattr(request, "private_response_required", False):
+    resolver_match = getattr(request, "resolver_match", None)
+    route_name = getattr(resolver_match, "url_name", None)
+    if (
+        getattr(request, "private_response_required", False)
+        or route_name in _RECIPIENT_PRIVATE_ROUTE_NAMES
+    ):
         return SAFE_ACCOUNT_DESTINATION
     candidate = request.GET.get("next", "")
     if not candidate:

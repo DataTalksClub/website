@@ -18,8 +18,8 @@ from playwright.sync_api import Browser, Page, expect
 
 from accounts.studio_sessions import SESSION_REFERENCE_KEY, revoke_staff_session
 from accounts.studio_test_support import make_studio_user
-from content import catalogue, event_content
-from content.docs_projection import docs_pages
+from content import catalogue, event_content, wiki_reader
+from content.docs_reader import docs_pages
 from content.faq_data import faq_course, faq_questions
 from core.accessibility_registry import (
     BEHAVIOR_SCENARIOS,
@@ -27,11 +27,10 @@ from core.accessibility_registry import (
     NO_JAVASCRIPT_PUBLIC_STATE_IDS,
     PUBLIC_TEST,
 )
+from core.mail_render_fixtures import render_package_template
 from core.models import AuditEvent
-from course_management.datamailer_templates.accessibility import (
-    render_current_transactional_email,
-)
 from courses.models import Cohort, HomeworkState, ProjectState, RegistrationCampaign
+from event_registrants.models import EventRegistrantIdentity, EventRegistration
 from events.identity import canonical_detail_path
 from events.queries import published_event_records
 from management_auth.models import APIPrincipal
@@ -66,6 +65,22 @@ SCREENSHOTS = Path(".tmp/screenshots/issue-65")
 # The one value the invalid-registration state types, so the same string is
 # submitted and then asserted to have survived the error.
 INVALID_FORM_COMPANY = "Synthetic Valid Company"
+
+
+def _seed_registration_count(event: dict[str, object], *, count: int) -> None:
+    """Create eligible current-domain registrations for a public event fixture."""
+
+    database_event = Event.objects.get(content_id=event["identity_id"])
+    for index in range(count):
+        identity, _ = EventRegistrantIdentity.objects.get_or_create(
+            normalized_email=(f"accessibility-{event['identity_id']}-{index}@example.invalid")
+        )
+        EventRegistration.objects.get_or_create(
+            event=database_event,
+            identity=identity,
+            provider=EventRegistration.Provider.LUMA,
+            status="approved",
+        )
 
 
 @pytest.fixture
@@ -134,7 +149,7 @@ def _public_rendered_states(
     article = catalogue.articles()[0]
     book = catalogue.books()[0]
     public_course = catalogue.courses()[0]
-    wiki = catalogue.wiki_pages()[0]
+    wiki = wiki_reader.wiki_pages()[0]
     faq = _faq_anchor_sample()
     speaker = event["speakers"][0]
     # The profile page is headed by the person record's own title.  The event
@@ -301,7 +316,7 @@ def accessibility_environment() -> AccessibilityEnvironment:
             "visible": True,
         },
     )
-    wiki = catalogue.wiki_pages()[0]
+    wiki = wiki_reader.wiki_pages()[0]
     faq = _faq_anchor_sample()
     course_route = {
         "course_slug": course.course.slug,
@@ -691,14 +706,14 @@ def test_accessibility_visual_evidence(
         SCREENSHOTS / f"credential-fixture-empty-{suffix}.png",
     )
 
-    rendered_email = render_current_transactional_email("registration-confirmation")
+    rendered_email = render_package_template("course-registration-confirmation")
     page.set_content(rendered_email.html, wait_until="domcontentloaded")
     assert axe_issues(page, "transactional-email.registration-confirmation") == []
     _capture_deterministic_screenshot(
         page,
         SCREENSHOTS / f"transactional-email-registration-html-images-disabled-{suffix}.png",
     )
-    score_email = render_current_transactional_email("homework-score-notification")
+    score_email = render_package_template("homework-score-notification")
     page.set_content(score_email.html, wait_until="domcontentloaded")
     assert axe_issues(page, "transactional-email.homework-score-notification") == []
     _capture_deterministic_screenshot(
@@ -714,7 +729,7 @@ def test_accessibility_visual_evidence(
     )
     page.locator("#message").evaluate(
         "(node, message) => { node.textContent = message; }",
-        rendered_email.text,
+        rendered_email.plain_text,
     )
     _capture_deterministic_screenshot(
         page,
@@ -781,7 +796,7 @@ class ScenarioRecorder:
 def _public_scenario(recorder: ScenarioRecorder) -> set[str]:
     event = recorder.environment.objects["event"]
     assert isinstance(event, dict)
-    seed_total(event, count=3, complete=True)
+    _seed_registration_count(event, count=3)
     for state in _public_rendered_states(recorder.environment):
         recorder.scan(state.identifier, state.surface, text=state.marker)
 
@@ -1639,7 +1654,7 @@ def test_javascript_off_public_reads_remain_semantic(
     assert not policy_issues, "; ".join(policy_issues)
     event = accessibility_environment.objects["event"]
     assert isinstance(event, dict)
-    seed_total(event, count=3, complete=True)
+    _seed_registration_count(event, count=3)
     rendered_states = _public_rendered_states(accessibility_environment)
 
     for viewport, viewport_name in VIEWPORTS:

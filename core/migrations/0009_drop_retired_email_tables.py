@@ -1,0 +1,66 @@
+"""Drop the tables of the two retired email apps (D1.2cb).
+
+D1.2cb deletes ``email_app`` (the donor ``PendingUnsubscribe`` and the relay
+link bridge) and the ``data`` app (the datamailer outbox, send audit, dispatch
+run and contact event storage). Both apps are gone from the codebase in the
+same change, so this migration speaks raw SQL against the tables they left
+behind; their migration records stay in ``django_migrations`` untouched.
+
+Every drop is guarded on the table existing:
+
+- Deployed databases have the tables; the D1.2a copy already moved every
+  ``PendingUnsubscribe`` row into the package's ``cb_mail_pendingunsubscribe``
+  (the durable unsubscribe keeps working there), and the rollback window for
+  the donor table and the read-only datamailer storage closed with the green
+  D1.2a/D1.2b development deploys.
+- Fresh installs never had these tables and skip everything.
+
+Ordering needs no dependency on the deleted apps: on any database where their
+migrations are recorded, they applied long before this one, and the guard makes
+every other starting state a no-op.
+
+This migration is irreversible in the data sense and its reverse is a
+deliberate no-op: the models that described these tables are deleted in the
+same change, so nothing here could recreate their schema, and recreating empty
+tables would only hide the drop. The rows are not lost work -- the durable
+unsubscribes already live in ``cb_mail_pendingunsubscribe`` and the datamailer
+storage has been read-only history since D1.2b -- so the reverse leaves the
+database exactly as the forward migration left it and unapplies cleanly.
+"""
+
+from django.db import migrations
+
+TABLES = (
+    "data_datamailercontactevent",
+    "data_datamailersendaudit",
+    "data_datamaileroutboxdispatchrun",
+    "data_datamaileroutboxevent",
+    "email_app_pendingunsubscribe",
+)
+
+
+def drop_retired_tables(apps, schema_editor):
+    names = set(
+        schema_editor.connection.introspection.table_names(
+            schema_editor.connection.cursor()
+        )
+    )
+    for table in TABLES:
+        if table in names:
+            schema_editor.execute(f"DROP TABLE {table}")
+
+
+def noop(apps, schema_editor):
+    return None
+
+
+class Migration(migrations.Migration):
+    dependencies = [
+        # 0008 is the current tip of core's chain; hanging off it keeps the
+        # graph linear and gives this drop a single leaf.
+        ("core", "0008_sponsor_featured_on_home"),
+    ]
+
+    operations = [
+        migrations.RunPython(drop_retired_tables, noop),
+    ]

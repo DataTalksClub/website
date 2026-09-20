@@ -1,5 +1,11 @@
 # Course illustration dark companions
 
+> Superseded on 2026-09-17 by
+> [`dark-counterpart-audit-20260917.md`](dark-counterpart-audit-20260917.md).
+> The assets recorded below were technically transparent but their saturated
+> blue washes read as pasted plates on the real dark page. Keep this document as
+> historical prompt evidence only; do not use its outputs as dark-style anchors.
+
 Generated 2026-09-16 with the built-in `image_gen.imagegen` tool, using each
 installed light course illustration as the sole composition reference. The tool
 exposed no model selector or reliable backend identifier, so the backend version

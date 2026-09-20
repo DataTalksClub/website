@@ -151,6 +151,13 @@ their foregrounds and interior texture; only the outer border may change.
   light anchor's cloud shape and form, but make the cloud subdued and blended
   into the dark page like the approved dark hero. It must not look like a
   light-background image placed on navy.
+- **Homepage pattern is authoritative:** use the accepted dark homepage assets
+  for wash density, hue and edge behaviour. Their background is a compact,
+  low-saturation charcoal/slate-indigo atmosphere close to the page, not a
+  saturated cobalt or royal-blue cloud. The outer third must both darken and
+  lose opacity into the exact surface. A technically transparent asset still
+  fails if it reads as a closed scalloped/oval plate, a blue island, a pale
+  feathered rim, or a large area of empty painted geometry.
 - **Cloud-to-page connection:** use the same soft watercolor blur/blending
   treatment as the approved dark hero for all four dark assets. The cloud edge
   should dissolve irregularly into the navy with no hard cutout or bright rim

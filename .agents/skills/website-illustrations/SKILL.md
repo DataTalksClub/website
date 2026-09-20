@@ -108,6 +108,14 @@ dark asset, request the approved dark watercolor palette and a clean edge on its
 actual dark page/card background. The chroma-to-transparency process is the same
 in both themes; a dark final asset does not retain an opaque dark backdrop.
 
+The accepted homepage dark assets are the primary visual authority for dark
+companions. Their wash is a low-saturation charcoal/slate-indigo atmosphere,
+not a saturated blue version of the light cloud. Keep the wash compact behind
+the foreground and let its outer third darken and lose opacity until the exact
+navy surface is visually continuous. Reject cobalt/royal-blue islands, closed
+scalloped or oval plates, pale feathered rims, and large empty wash geometry even
+when the file technically has alpha and a soft edge.
+
 ## Preserve everything outside a border repair
 
 An image-generation prompt alone cannot guarantee unchanged pixels. Before

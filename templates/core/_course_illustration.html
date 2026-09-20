@@ -27,22 +27,13 @@ course scene has a true dark companion; unknown families keep the generic pair.
   {% static 'core/illustrations/course-learning.webp' as course_light %}
   {% static 'core/illustrations/course-learning-dark.webp' as course_dark %}
 {% endif %}
-{% if dark_variant == "reading" %}
-  {% static 'core/illustrations/course-learning-dark.webp' as course_dark %}
-{% elif dark_variant == "pipeline" %}
-  {% static 'core/illustrations/home-step-2-dark.webp' as course_dark %}
-{% elif dark_variant == "shipping" %}
-  {% static 'core/illustrations/home-step-3-dark.webp' as course_dark %}
-{% elif dark_variant == "learner" %}
-  {% static 'core/illustrations/home-hero-dark.webp' as course_dark %}
-{% endif %}
 <span class="doodle-variants">
   <img class="doodle doodle-light" src="{{ course_light }}"
        alt="" width="{% if course_light == generic_light %}1024{% else %}1254{% endif %}"
        height="{% if course_light == generic_light %}1024{% else %}1254{% endif %}"
        decoding="async" loading="{{ loading|default:'eager' }}">
   <img class="doodle doodle-dark" src="{{ course_dark }}" alt=""
-       width="{% if dark_variant == 'pipeline' or dark_variant == 'shipping' %}957{% elif dark_variant == 'learner' %}1470{% elif course_dark == generic_dark %}1024{% else %}1254{% endif %}"
-       height="{% if dark_variant == 'pipeline' or dark_variant == 'shipping' %}532{% elif dark_variant == 'learner' %}834{% elif course_dark == generic_dark %}1024{% else %}1254{% endif %}"
+       width="{% if course_dark == generic_dark %}1024{% else %}1254{% endif %}"
+       height="{% if course_dark == generic_dark %}1024{% else %}1254{% endif %}"
        decoding="async" loading="{{ loading|default:'eager' }}">
 </span>

@@ -31,49 +31,22 @@ talks to the remote server over HTTP and a browser.
 | 3. Enrollment & identity (create/find student, impersonate, profile) | `tests/test_02_enrollment.py` | browser (loginas) |
 | 4. Homework flow (submit via UI, confirmation, score, leaderboard) | `tests/test_03_homework.py` | browser + API |
 | 5. Project flow (submit via UI, assign reviews, score, stats) | `tests/test_04_project.py` | browser + API |
-| 6. Email verification (homework + project confirmation emails) | `tests/test_03/04` (`@pytest.mark.email`) + `tests/test_06` (client unit tests) | CMP send audit (Datamailer dry-run render) |
-| 7. Dashboards & stats render | `tests/test_05_dashboards.py` | browser |
-| 8. Teardown + pre-run sweep + clean assert | `tests/test_99_teardown.py` | browser + API |
+| 6. Dashboards & stats render | `tests/test_05_dashboards.py` | browser |
+| 7. Teardown + pre-run sweep + clean assert | `tests/test_99_teardown.py` | browser + API |
 
-### Email verification: CMP's own send audit (dry-run render)
+### Email verification is not part of this suite
 
-Email checks mimic the production path but deliver nothing. CMP's real
-outbox → dispatch → `POST /api/transactional/send` → `DatamailerSendAudit`
-pipeline runs exactly as in prod, except the target deployment sets
-`DATAMAILER_TRANSACTIONAL_DRY_RUN=1`. CMP then adds Datamailer's `dry_run` flag
-to every transactional send: Datamailer runs the identical validate/render
-pipeline and returns the rendered email inline **without** sending, queuing, or
-persisting anything.
+D1.2ca retired the Datamailer client and with it the `/api/datamailer/send-audits`
+endpoint this suite used to read a rendered confirmation back over HTTP. Every
+send now records a durable `EmailDelivery` through the package mail app, whose
+evidence surface is Studio, not a remote API, so the confirmation-email
+assertions were removed from `test_03`/`test_04` rather than pointed at an
+endpoint that does not exist. Mail rendering itself is covered locally by
+`core/tests/test_mail_templates.py` against the committed `email_templates/`.
 
-The suite then verifies the email by reading CMP's **own** audit over HTTP —
-there is no inbox client:
-
-- `GET /api/datamailer/send-audits?email=<addr>&template_key=<key>` → newest-first
-  audit rows. Each row exposes `send_type`, `status`, `template_key`,
-  `idempotency_key`, `occurred_at`, `would_deliver`, `rendered`
-  (`subject`/`html_body`/`text_body`), `message`, and the raw `response_payload`.
-- Auth is the same scoped staff credential as the rest of the API
-  (`Authorization: Bearer <dtca_v1_...>`).
-
-`CmpApiClient` (`e2e/api_client.py`) exposes `datamailer_send_audits(...)` and a
-short poll helper `wait_for_send_audit(email, template_key, body_contains=...)`.
-The email tests (`test_03/04`) poll for the student's address + the expected
-`template_key` (`homework-submission-confirmation` /
-`project-submission-confirmation`) and assert the rendered body (or render
-context) contains `/homework/` / `/project/`.
-
-**What runs now vs. what's gated.** The client logic is covered by
-`tests/test_06_send_audit_client.py` (no-network unit tests — path, query
-params, response shape, poll/timeout, body matching). The **live** email
-assertions in `test_03/04` need the target deployment to have Datamailer
-configured **and** `DATAMAILER_TRANSACTIONAL_DRY_RUN=1`; when no matching audit
-appears, they **xfail** (a fast pre-check avoids burning the poll timeout) so
-the suite stays green until dry-run is switched on.
-
-The student email is a unique per-run address
-(`settings.student_address(namespace)` → `<namespace>@example.com`). Nothing is
-delivered and nothing needs clearing — the audit is CMP-side data purged with
-the rest of the run at teardown.
+The student email is still a unique per-run address
+(`settings.student_address(namespace)` -> `<namespace>@example.com`); the
+development target sends nothing to it.
 
 ### Teardown deletes the course via the Django admin UI
 

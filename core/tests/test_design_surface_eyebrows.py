@@ -16,9 +16,6 @@ REMOVED_PAGE_EYEBROWS = {
     "studio_courses/templates/studio_courses/course_admin.html": (
         '<p class="mono-label mono-label-indigo">Studio · Courses</p>'
     ),
-    "studio_courses/templates/studio_courses/datamailer_operations.html": (
-        '<p class="mono-label mono-label-indigo">Studio · Operations</p>'
-    ),
     "studio_courses/templates/studio_courses/campaign_form.html": (
         '<p class="mono-label mono-label-indigo">Registration campaign</p>'
     ),

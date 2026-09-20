@@ -26,9 +26,7 @@ CMP_SOURCE_COMMIT = "98a235283904b4ef9ad29e196298540756cf1bcc"
 # and asserted by core/tests/test_course_platform_adoption.py.
 REPO_ROOT = Path(__file__).resolve().parents[1]
 COURSE_LIST_TEMPLATE = REPO_ROOT / "courses/templates/courses/course_list.html"
-ACTIVE_HEADING = "Running now — you can still join"
-OPEN_HEADING = "Registration open"
-FINISHED_HEADING = "Self-paced anytime"
+CATALOG_HEADING = "Course catalogue"
 SCREENSHOTS = Path(".tmp/screenshots/issue-128-owner-remediation")
 VIEWPORTS = (
     ({"width": 1440, "height": 900}, "desktop"),
@@ -274,21 +272,13 @@ def test_database_course_catalog_renders_the_design_system_index(
     expect(page.locator("main #courses")).to_have_count(1)
     expect(page.locator("head style")).to_have_count(1)
     assert page.locator('link[rel="stylesheet"]').count() == 0
-    expect(page.get_by_role("heading", name=ACTIVE_HEADING, exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name=OPEN_HEADING, exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name=FINISHED_HEADING, exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name=CATALOG_HEADING, exact=True)).to_be_visible()
     expect(page.locator("#course-families-heading")).to_have_count(0)
     expect(page.get_by_text("No active cohort coursework right now.", exact=True)).to_have_count(0)
     course_links = {
         role: assert_copied_course_catalog_link(
             page,
-            path=reverse(
-                "cohort",
-                kwargs={
-                    "course_slug": course.course.slug,
-                    "cohort_identifier": course.identifier,
-                },
-            ),
+            path=reverse("course_family", kwargs={"course_slug": course.course.slug}),
             title=course.course.title,
         )
         for role, course in cmp_course_catalog.items()
@@ -299,22 +289,25 @@ def test_database_course_catalog_renders_the_design_system_index(
         page.get_by_role("link", name=cmp_course_catalog["archived"].course.title, exact=True)
     ).to_have_count(1)
     expect(archived_link.locator("xpath=ancestor::article[@role='link']")).to_have_count(0)
-    # The archive years became one self-paced band (the owner's mockup); the finished
-    # family card lives there, not under a year rule.
+    # Every state is one consistent family card in the unified catalogue.
     expect(
-        page.locator("#selfpaced").get_by_role(
+        page.locator("#courses").get_by_role(
             "link", name=cmp_course_catalog["archived"].course.title, exact=True
         )
     ).to_have_count(1)
-    expect(page.get_by_text("registration open", exact=True)).to_be_visible()
-    # Active and registration cards are keyboard-accessible whole-card destinations;
-    # their real title/action links remain the semantic targets.
-    assert page.locator("#courses article[role='link']").count() == 2
-    assert page.locator("#courses article.card").count() == 2
-    section_order = [text.strip() for text in page.locator("#courses h2").all_text_contents()]
-    # The mockup opens the catalogue with the cohort you can register for, then the
-    # ones already running, then the self-paced archive.
-    assert section_order == [OPEN_HEADING, ACTIVE_HEADING, FINISHED_HEADING]
+    # All cards are keyboard-accessible whole-card destinations.
+    # Their title anchors are the only semantic targets and stretch over each card.
+    course_cards = page.locator("#courses article.card")
+    assert course_cards.count() == 3
+    assert page.locator("#courses article.card.stretched-card-link").count() == 3
+    assert page.locator("#courses article[role='link']").count() == 0
+    card_order = [text.strip() for text in page.locator("#courses h3").all_text_contents()]
+    # Registration-ready families lead, then active and archived families follow.
+    assert card_order == [
+        cmp_course_catalog["registration"].course.title,
+        cmp_course_catalog["active"].course.title,
+        cmp_course_catalog["archived"].course.title,
+    ]
     expect(
         page.locator("nav[aria-label='Primary navigation'] a[aria-current='page']")
     ).to_have_text("Courses")
@@ -348,14 +341,10 @@ def test_database_course_catalog_renders_the_design_system_index(
     page.keyboard.press("Enter")
     expect(page.locator("#main-content")).to_be_focused()
     detail_path = reverse(
-        "cohort",
-        kwargs={
-            "course_slug": cmp_course_catalog["active"].course.slug,
-            "cohort_identifier": cmp_course_catalog["active"].identifier,
-        },
+        "course_family",
+        kwargs={"course_slug": cmp_course_catalog["active"].course.slug},
     )
-    # The active card now offers its title and its CTA as two real links to the
-    # same course, so the keyboard pass takes the first (the title).
+    # The title is the card's one native destination.
     active_link = page.locator(f'#courses a[href="{detail_path}"]').first
     active_link.focus()
     expect(active_link).to_be_focused()
@@ -365,13 +354,20 @@ def test_database_course_catalog_renders_the_design_system_index(
     )
     page.keyboard.press("Enter")
     expect(page).to_have_url(f"{live_server.url}{detail_path}")
-    expect(page.get_by_role("heading", name=ACTIVE_COURSE["title"], exact=True)).to_be_visible()
     expect(
-        page.get_by_text(
-            "There are no homeworks or projects available for this course yet. Come back later.",
-            exact=True,
-        )
+        page.get_by_role("heading", level=1, name=ACTIVE_COURSE["title"], exact=True)
     ).to_be_visible()
+    expect(page.get_by_role("heading", name="Cohort editions", exact=True)).to_be_visible()
+    cohort_path = reverse(
+        "cohort",
+        kwargs={
+            "course_slug": cmp_course_catalog["active"].course.slug,
+            "cohort_identifier": cmp_course_catalog["active"].identifier,
+        },
+    )
+    expect(page.get_by_role("link", name=ACTIVE_COURSE["title"], exact=True)).to_have_attribute(
+        "href", cohort_path
+    )
     _assert_no_horizontal_overflow(page)
     page.screenshot(path=SCREENSHOTS / f"course-detail-cmp-{suffix}.png", full_page=True)
 
@@ -640,9 +636,7 @@ def test_no_database_course_catalog_uses_the_design_system_empty_state(
     assert catalog is not None and catalog.status == 200
     expect(page.locator("main .courses-hero")).to_have_count(1)
     expect(page.locator("main #courses")).to_have_count(1)
-    expect(page.get_by_role("heading", name=ACTIVE_HEADING, exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name=FINISHED_HEADING, exact=True)).to_have_count(0)
-    expect(page.get_by_role("heading", name=OPEN_HEADING, exact=True)).to_have_count(0)
+    expect(page.get_by_role("heading", name=CATALOG_HEADING, exact=True)).to_be_visible()
     expect(page.get_by_text("No active courses right now.", exact=True)).to_be_visible()
     expect(page.get_by_text("Data Engineering Zoomcamp 2026", exact=True)).to_have_count(0)
     expect(page.locator("#course-families-heading")).to_have_count(0)

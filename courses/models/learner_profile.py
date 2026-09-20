@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.conf import settings
 from django.db import models
 
@@ -27,7 +29,7 @@ class LearnerProfile(models.Model):
         related_name="learner_profile",
     )
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="student")
-    certificate_name = models.CharField(
+    certificate_name = models.CharField(  # noqa: DJ001 - mirrors the nullable moved column
         verbose_name="Certificate name",
         max_length=255,
         blank=True,
@@ -50,22 +52,22 @@ class LearnerProfile(models.Model):
         blank=True,
         help_text="Role last used on a course registration form",
     )
-    github_url = models.URLField(
+    github_url = models.URLField(  # noqa: DJ001 - mirrors the nullable moved column
         verbose_name="GitHub URL",
         blank=True,
         null=True,
     )
-    linkedin_url = models.URLField(
+    linkedin_url = models.URLField(  # noqa: DJ001 - mirrors the nullable moved column
         verbose_name="LinkedIn URL",
         blank=True,
         null=True,
     )
-    personal_website_url = models.URLField(
+    personal_website_url = models.URLField(  # noqa: DJ001 - mirrors the nullable moved column
         verbose_name="Personal website URL",
         blank=True,
         null=True,
     )
-    about_me = models.TextField(
+    about_me = models.TextField(  # noqa: DJ001 - mirrors the nullable moved column
         verbose_name="About me",
         blank=True,
         null=True,
@@ -100,7 +102,8 @@ def learner_profile_for(user) -> LearnerProfile | None:
 def profile_field_default(field_name: str):
     """The moved field's declared default, for readers without a row."""
 
-    return LearnerProfile._meta.get_field(field_name).get_default()
+    field = cast(models.Field, LearnerProfile._meta.get_field(field_name))
+    return field.get_default()
 
 
 def ensure_learner_profile(user) -> LearnerProfile:

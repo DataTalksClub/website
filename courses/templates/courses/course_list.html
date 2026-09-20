@@ -178,23 +178,26 @@
          page's own hero (`.family-hero-inner`) and the homepage hero
          (`.hero-grid`) for the reusable shape.  It still sits on the page's
          own lavender ground, never a dark band -- .band-link's indigo
-         underline needs the ordinary body background to read -- so like the
-         old link it widens to the full shell rather than breaking out to the
-         viewport edge.  No margin of its own: `.zoomcamp-steps` already pads
-         its own foot and `.courses-faq` already pads its own head, the same
-         zero-margin adjacency the old link relied on between those two. */
-      .courses-projects {
-        margin-block: 0;
-        max-width: var(--shell);
-        margin-inline: auto;
-        padding-inline: 1rem;
+         underline needs the ordinary body background to read.  The chapter
+         therefore widens to the full shell rather than the viewport edge and
+         carries one framed feature panel: enough visual boundary to keep the
+         project story from floating between the process and FAQ, without
+         competing with the catalogue as another full-bleed hero. */
+      .courses-projects.shell-breakout {
+        margin-block: clamp(2.75rem, 5vw, 4.5rem);
+        padding-inline: 0;
       }
 
       .courses-projects-grid {
         align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 1rem;
+        box-shadow: 0.35rem 0.35rem 0 var(--shadow-soft);
         display: grid;
         gap: 2rem;
         grid-template-columns: minmax(0, 1fr);
+        padding: clamp(1.35rem, 3.5vw, 3rem);
       }
 
       @media (min-width: 62rem) {
@@ -210,7 +213,7 @@
          stack their doodle above the title. */
       .courses-projects-art {
         justify-self: center;
-        max-width: 20rem;
+        max-width: 26rem;
         width: 100%;
       }
 
@@ -220,7 +223,7 @@
       }
 
       .courses-projects-copy h2 {
-        font-size: clamp(1.75rem, 3.2vw, 2.4rem);
+        font-size: clamp(1.75rem, 3.4vw, 3rem);
         letter-spacing: -0.02em;
       }
 
@@ -231,8 +234,10 @@
       }
 
       .courses-projects-copy .band-link {
-        display: inline-block;
+        align-items: center;
+        display: inline-flex;
         margin-top: 1.25rem;
+        min-height: 2.75rem;
       }
 
       /* --- catalogue sections ------------------------------------------------ */
@@ -252,11 +257,6 @@
          like the mockup's two lavender bands sandwiching it. */
       #courses + .zoomcamp-steps {
         margin-top: clamp(3rem, 5.3vw, 4.75rem);
-      }
-
-      .zoomcamp-steps + .courses-projects,
-      .courses-projects + .courses-faq {
-        margin-top: 0;
       }
 
       /* The mono note reads as an eyebrow under the heading, not a baseline
@@ -308,6 +308,18 @@
 
       /* --- wrapped entry point ------------------------------------------ */
 
+      /* The title is the card's real semantic link.  The surrounding card
+         also supports pointer/keyboard activation, but accessibility tooling
+         and touch readers still encounter this anchor as its own target.  A
+         one-line title otherwise shrinks below the 24px WCAG target floor on
+         narrow screens, so keep every title link comfortably tappable without
+         changing the card's visual treatment. */
+      .courses-catalog-list .catalog-card-body h3 a {
+        align-items: center;
+        display: inline-flex;
+        min-height: 2.75rem;
+      }
+
       /* This band holds nothing but its head, so the head keeps the band's own
          padding instead of adding its usual gap to the section below it. */
       .courses-wrapped .band-head {
@@ -357,6 +369,16 @@
         margin-top: 2rem;
       }
 
+      /* Four steps must compose as a complete set.  Auto-fit can squeeze
+         three 13rem columns into a tablet shell and strand step 04 on a row
+         by itself; between phone and desktop, make the intended 2 × 2 rhythm
+         explicit. */
+      @media (min-width: 36rem) and (max-width: 61.99rem) {
+        .step-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
       /* `.step-grid`'s own row stretches every `.step` to match the tallest
          column (grid's default `align-items: stretch`), and a grid
          container's default `align-content` computes to `stretch` too -- so
@@ -403,6 +425,7 @@
       .courses-faq.shell-breakout {
         --breakout-width: 100vw;
         background: var(--lavender);
+        border-top: 2px dashed var(--line-soft);
         padding-inline: 1rem;
         padding-block: clamp(3.5rem, 5.4vw, 4.75rem) 3rem;
       }
@@ -488,7 +511,7 @@
             <div class="hero-collage" aria-hidden="true">
               {% for mascot in hero_collage %}
                 <div class="hero-collage-card">
-                  {% include "core/_course_illustration.html" with family_slug=mascot.family_slug dark_variant=mascot.dark_illustration only %}
+                  {% include "core/_course_illustration.html" with family_slug=mascot.family_slug only %}
                   <p class="hero-collage-caption">{{ mascot.title }}</p>
                 </div>
               {% endfor %}
@@ -567,11 +590,7 @@
             <div class="card-grid card-grid-3 courses-catalog-list">
               {% for entry in catalog_cards %}
                   {% url 'course_family' entry.family.slug as family_url %}
-                  <article class="card catalog-card interactive-card interactive-lift"
-                           role="link"
-                           tabindex="0"
-                           onclick="if (!event.target.closest('a, button')) window.location.href='{{ family_url }}'"
-                           onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ family_url }}'; }">
+                  <article class="card catalog-card interactive-card interactive-lift stretched-card-link">
                     <div class="catalog-card-media">
                       {% comment %}
                         Always the generic per-family illustration, never a
@@ -583,7 +602,7 @@
                     </div>
                     <div class="catalog-card-body">
                       <h3>
-                        <a href="{{ family_url }}">{{ entry.title }}</a>
+                        <a class="course-link" href="{{ family_url }}">{{ entry.title }}</a>
                       </h3>
                       {% if entry.outcome %}
                         <p>{{ entry.outcome }}</p>
@@ -627,7 +646,7 @@
         </div>
       </section>
       {% if all_projects_url %}
-        <section class="courses-projects" aria-labelledby="courses-projects-heading">
+        <section class="courses-projects shell-breakout" aria-labelledby="courses-projects-heading">
           <div class="courses-projects-grid">
             <div class="courses-projects-art" aria-hidden="true">
               {% include "core/_home_illustration.html" with variant="shipping" only %}

@@ -9,10 +9,12 @@ dependencies = [
     "boto3>=1.43.33,<2",
 # Shared DataTalks.Club package (kernel); pinned release, see
 # `uv run python scripts/community_base_link.py link` for a local development link.
-    # Pinned to the v0.4.7 release: installing the shared events app must
-    # not require the shared accounts app (#411 adopts it later) - v0.4.6
-    # plus the lazy email-resolution imports, released as a tag.
-    "community-base @ git+https://github.com/DataTalksClub/community-base@v0.4.7",
+    # Pinned to the v0.5.4 release (D2.1a): carries C7.19's namespaced Studio
+    # URLconf fix, C7.20's Studio shell extension points, C7.25's public
+    # template seam and block contract check, and C7.26/C7.27's settings
+    # shapes. v0.5.1 was never cut; v0.4.7 was the prior pin. D7.1 needs C7.4,
+    # which is in this tag.
+    "community-base @ git+https://github.com/DataTalksClub/community-base@v0.5.4",
     "cryptography>=50,<51",
     "django>=6.0,<6.1",
     "django-allauth>=65.10,<66",
@@ -59,7 +61,6 @@ exclude = [
     "studio_courses/**",
     "course_management/**",
     "courses/**",
-    "data/**",
     "e2e/**",
     "scripts/**",
 ]
@@ -84,7 +85,6 @@ module = [
     "studio_courses.*",
     "course_management.*",
     "courses.*",
-    "data.*",
     "e2e.*",
 ]
 ignore_errors = true
@@ -154,9 +154,16 @@ module = [
     "scripts.tests.test_verify_local_dataset",
     "scripts.rebuild_gate",
     "scripts.tests.test_rebuild_gate",
+    "accounts.email_preferences",
+    "course_management.audit_redaction",
+    "course_management.mail_payloads",
     "course_management.mail_preferences",
     "course_management.package_mail",
+    "course_management.public_urls",
+    "courses.management.commands.import_mail_category_optouts",
+    "courses.package_notifications",
     "courses.tests.test_package_mail_flows",
+    "courses.tests.test_package_notifications",
     "ci.tests.test_deploy_release_verification",
     "scripts.prod.reviewed_release",
     "scripts.prod.legacy_zoomcamp.identity",
@@ -201,7 +208,14 @@ module = [
     "courses.tests.test_leaderboard_project_stars",
     "courses.tests.test_course_family_docs_cross_link",
     "courses.tests.test_course_family_seo",
+    "accounts.tests.test_d31_extension_models",
+    "accounts.tests.test_identity_state_refresh_migration",
+    "courses.models.learner_profile",
+    "courses.templatetags.project_gallery",
+    "courses.tests.test_learner_profile_refresh_migration",
+    "courses.tests.test_moved_profile_field_readers",
     "scripts.prod.import_shared_course_platform",
+    "scripts.prod.registration_sources.luma_events",
     "scripts.tests.test_import_shared_course_platform",
 ]
 ignore_errors = false
@@ -229,5 +243,4 @@ markers = [
     "project: project submission + peer review + scoring flow",
     "dashboards: dashboards and statistics pages",
     "teardown: cleanup and clean-state assertions",
-    "email: Datamailer email verification via CMP's own send audit (dry-run render; xfails if Datamailer is not configured / dry-run is off on the deployment)",
 ]

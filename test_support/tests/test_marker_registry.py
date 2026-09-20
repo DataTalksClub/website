@@ -23,7 +23,6 @@ COPIED_CONFIG = ROOT / "e2e" / "pytest.ini"
 COPIED_SCENARIO_MARKERS = frozenset(
     {
         "dashboards",
-        "email",
         "enrollment",
         "homework",
         "project",
@@ -248,7 +247,9 @@ def test_copied_marker_registry_has_exact_unified_parity() -> None:
     assert {name: root[name] for name in COPIED_SCENARIO_MARKERS} == copied
     assert {name: root[name] for name in EXISTING_ROOT_MARKERS} == EXISTING_ROOT_MARKERS
     assert COPIED_SCENARIO_MARKERS.isdisjoint(SAFETY_MARKERS)
-    assert "email" in COPIED_SCENARIO_MARKERS
+    # D1.2ca retired the Datamailer send-audit reader the "email" scenario
+    # drove, so that marker is gone from both registries.
+    assert "email" not in COPIED_SCENARIO_MARKERS
     assert "live_email" not in COPIED_SCENARIO_MARKERS
 
 
@@ -635,8 +636,11 @@ def test_standalone_copied_e2e_configuration_still_collects_all_nodes() -> None:
     )
 
     assert result.returncode == pytest.ExitCode.OK, result.stdout + result.stderr
-    assert result.stdout.count("<Function ") == 48
-    assert "48 tests collected" in result.stdout
+    # D1.2ca retired the Datamailer send-audit client: its unit-test module
+    # (test_06_send_audit_client.py) and the two confirmation-email
+    # assertions in test_03/test_04 went with the endpoint they read.
+    assert result.stdout.count("<Function ") == 34
+    assert "34 tests collected" in result.stdout
 
 
 @pytest.mark.parametrize("marker", sorted(SAFETY_MARKERS - {"remote_readonly"}))

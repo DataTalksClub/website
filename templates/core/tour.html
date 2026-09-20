@@ -309,11 +309,9 @@
         {% comment %}
           The catalogue's own .catalog-card component (design-system.md),
           not the invented card this section drew before.  It keeps the
-          stretched-card-link technique rather than the catalogue's own
-          role="link"/onclick pattern: that pattern's outer role="link" wraps
-          a real inner anchor, which is two focusable targets for one
-          destination, where stretched-card-link keeps the single real
-          anchor (.course-link) as the one correct tab stop.
+          catalogue's stretched-card-link technique: the single real anchor
+          (.course-link) is the one correct tab stop and its overlay owns the
+          rest of the card surface.
         {% endcomment %}
         {% for course in catalog_courses|slice:":3" %}
           <article class="card catalog-card interactive-card interactive-lift stretched-card-link">

@@ -43,12 +43,20 @@ class CourseListProjectsSectionTest(CourseListViewTestBase):
         response = self.course_list_response()
         content = response.content.decode()
 
-        projects_index = content.index('class="courses-projects"')
+        projects_index = content.index('class="courses-projects shell-breakout"')
         faq_index = content.index('<section class="courses-faq', projects_index)
         section_html = content[projects_index:faq_index]
 
         self.assertIn('class="courses-projects-art"', section_html)
         self.assertIn("doodle", section_html)
+
+    def test_projects_section_uses_the_full_page_shell(self):
+        response = self.course_list_response()
+
+        self.assertContains(
+            response,
+            'class="courses-projects shell-breakout"',
+        )
 
     def test_projects_section_hidden_without_a_resolvable_gallery_url(self):
         # Same gating as the old link: courses/views/course_list.py always
@@ -63,11 +71,7 @@ class CourseListProjectsSectionTest(CourseListViewTestBase):
 
 
 class CourseListCatalogCardLinkTest(CourseListViewTestBase):
-    """The catalogue card dropped its own "View course" line -- the whole
-
-    card is already `role="link"` and the click target, so the line was a
-    redundant second affordance.
-    """
+    """The catalogue card has one title link stretched over its surface."""
 
     def test_catalog_card_has_no_redundant_view_course_link(self):
         response = self.course_list_response()
@@ -75,7 +79,10 @@ class CourseListCatalogCardLinkTest(CourseListViewTestBase):
         course_card = self.course_card_html(content, self.course)
 
         self.assertNotIn("View course", course_card)
-        self.assertIn('role="link"', course_card)
+        self.assertIn("stretched-card-link", course_card)
+        self.assertIn('class="course-link"', course_card)
+        self.assertNotIn('role="link"', course_card)
+        self.assertEqual(course_card.count("<a "), 1)
 
 
 class CourseListStatsLabelTest(CourseListViewTestBase):

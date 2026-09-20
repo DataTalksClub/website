@@ -87,6 +87,33 @@ class RouteRegistryCompletenessTests(SimpleTestCase):
         stale = ROUTE_CACHE_CLASSES.keys() - _resolver_view_paths()
         self.assertEqual(stale, set() | TEST_SURFACE_VIEWS)
 
+    def test_package_studio_routes_are_private_dynamic(self) -> None:
+        package_studio_routes = {
+            view_path
+            for view_path in _resolver_view_paths()
+            if view_path.startswith("community_base.studio.")
+        }
+        self.assertEqual(
+            package_studio_routes,
+            {
+                "community_base.studio.impersonation.start",
+                "community_base.studio.impersonation.stop",
+                "community_base.studio.user_views.note_create",
+                "community_base.studio.user_views.note_delete",
+                "community_base.studio.user_views.note_edit",
+                "community_base.studio.user_views.user_detail",
+                "community_base.studio.user_views.user_export",
+                "community_base.studio.user_views.user_list",
+                "community_base.studio.user_views.user_tag_add",
+                "community_base.studio.user_views.user_tag_remove",
+                "community_base.studio.views.dashboard",
+                "community_base.studio.views.global_search",
+            },
+        )
+        for view_path in package_studio_routes:
+            with self.subTest(view_path=view_path):
+                self.assertEqual(ROUTE_CACHE_CLASSES[view_path], PRIVATE_DYNAMIC)
+
     def test_class_and_grammar_entries_are_valid(self) -> None:
         allowed_classes = SHAREABLE_CACHE_CLASSES | {PRIVATE_DYNAMIC, OPERATIONAL}
         for view_path, cache_class in ROUTE_CACHE_CLASSES.items():

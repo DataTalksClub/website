@@ -13,6 +13,7 @@ import argparse
 import os
 import secrets
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -21,7 +22,12 @@ from typing import Final
 PROJECT_ROOT: Final = Path(__file__).resolve().parents[1]
 UV: Final = ("uv", "run", "--frozen")
 TEST_MEDIA_STORE: Final = "memory"
-TEST_MEDIA_ENVIRONMENT_UNSET: Final = (
+TEST_ENVIRONMENT_UNSET: Final = (
+    # A developer shell may point the local server at its own SQLite file.
+    # Maintained test commands own isolated worker databases and must never
+    # inherit that override (website.settings.test rejects it fail-closed).
+    "DTC_SQLITE_PATH",
+    "DTC_STATIC_ROOT",
     "PUBLIC_MEDIA_LOCAL_ROOT",
     "PUBLIC_MEDIA_MAX_OBJECT_BYTES",
     "PUBLIC_MEDIA_S3_BUCKET",
@@ -101,6 +107,14 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "course_management/mail_preferences.py",
     "course_management/package_mail.py",
     "courses/tests/test_package_mail_flows.py",
+    # D1.2ca: the modules that replaced the retired Datamailer client.
+    "accounts/email_preferences.py",
+    "course_management/audit_redaction.py",
+    "course_management/mail_payloads.py",
+    "course_management/public_urls.py",
+    "courses/management/commands/import_mail_category_optouts.py",
+    "courses/package_notifications.py",
+    "courses/tests/test_package_notifications.py",
     "accounts/tests/test_username_allocation.py",
     "accounts/services/email_verification.py",
     "courses/services/mailchimp_course_tag_import.py",
@@ -132,6 +146,12 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/tests/test_leaderboard_project_stars.py",
     "courses/tests/test_course_family_docs_cross_link.py",
     "courses/tests/test_course_family_seo.py",
+    "accounts/tests/test_d31_extension_models.py",
+    "accounts/tests/test_identity_state_refresh_migration.py",
+    "courses/models/learner_profile.py",
+    "courses/templatetags/project_gallery.py",
+    "courses/tests/test_learner_profile_refresh_migration.py",
+    "courses/tests/test_moved_profile_field_readers.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",
@@ -143,6 +163,7 @@ PRODUCTION_IMPORT_PYTHON: Final = (
     # for mypy (the directory walk already covers it) while the adoption-gate
     # coverage test still sees the opt-in by path.
     "scripts/prod/import_shared_course_platform.py",
+    "scripts/prod/registration_sources/luma_events.py",
     "scripts/tests/test_import_shared_course_platform.py",
 )
 TYPECHECK_PATHS: Final = (
@@ -152,7 +173,6 @@ TYPECHECK_PATHS: Final = (
     "content",
     "content_sync",
     "events",
-    "email_app",
     "studio",
     "deploy",
     "ci",
@@ -283,7 +303,17 @@ def _test_environment(*, async_unsafe: bool = False) -> dict[str, str]:
     if async_unsafe:
         updates["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
     environment = _environment(**updates)
-    for name in TEST_MEDIA_ENVIRONMENT_UNSET:
+    for name in TEST_ENVIRONMENT_UNSET:
+        environment.pop(name, None)
+    return environment
+
+
+def _typecheck_environment() -> dict[str, str]:
+    """Return a clean Django-plugin environment without claiming a test run."""
+
+    environment = _environment(PUBLIC_MEDIA_STORE_BACKEND=TEST_MEDIA_STORE)
+    environment.pop("DTC_TEST_RUN_ID", None)
+    for name in TEST_ENVIRONMENT_UNSET:
         environment.pop(name, None)
     return environment
 
@@ -372,7 +402,10 @@ def _run_quality_task(task: str) -> None:
     elif task == "format-check":
         _run(_run_ruff("format", "--check"))
     elif task == "typecheck":
-        _run((*UV, "mypy", *_dedupe_typecheck_paths(TYPECHECK_PATHS)))
+        _run(
+            (*UV, "mypy", *_dedupe_typecheck_paths(TYPECHECK_PATHS)),
+            environment=_typecheck_environment(),
+        )
     elif task == "migrations-check":
         _run(
             _python("manage.py", "makemigrations", "--check", "--dry-run"),
@@ -383,8 +416,24 @@ def _run_quality_task(task: str) -> None:
         _run_task("check-management-parity")
         _run(_python("manage.py", "check"), environment=_test_environment())
     elif task == "deployment-check":
+        static_root = PROJECT_ROOT / ".tmp" / "deployment-check-staticfiles" / secrets.token_hex(8)
+        collectstatic_environment = _environment(
+            DJANGO_SETTINGS_MODULE="website.settings.collectstatic",
+            DTC_STATIC_ROOT=str(static_root),
+        )
+        for name in (
+            "DATABASE_URL",
+            "DJANGO_ALLOWED_HOSTS",
+            "DJANGO_CSRF_TRUSTED_ORIGINS",
+            "DJANGO_SECRET_KEY",
+            "DTC_ENVIRONMENT",
+            "DTC_SQLITE_PATH",
+            "DTC_TEST_RUN_ID",
+        ):
+            collectstatic_environment.pop(name, None)
         environment = _environment(
             DTC_ENVIRONMENT="production",
+            DTC_STATIC_ROOT=str(static_root),
             VERSION="20260809-143205-aaaaaaa",
             SOURCE_SHA="a" * 40,
             IMAGE_DIGEST="sha256:" + "b" * 64,
@@ -396,10 +445,17 @@ def _run_quality_task(task: str) -> None:
             PUBLIC_MEDIA_STORE_BACKEND="s3",
             PUBLIC_MEDIA_S3_BUCKET="deployment-check-placeholder",
         )
-        _run(
-            _python("manage.py", "check", "--deploy", "--fail-level", "ERROR"),
-            environment=environment,
-        )
+        try:
+            _run(
+                _python("manage.py", "collectstatic", "--noinput"),
+                environment=collectstatic_environment,
+            )
+            _run(
+                _python("manage.py", "check", "--deploy", "--fail-level", "ERROR"),
+                environment=environment,
+            )
+        finally:
+            shutil.rmtree(static_root, ignore_errors=True)
     elif task == "test-ci":
         _run_test_task("test-ci")
     elif task == "verify-dtc-content":

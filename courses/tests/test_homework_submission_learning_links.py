@@ -15,7 +15,7 @@ from courses.views.homework_learning_links import (
 
 
 class HomeworkSubmissionLearningLinksTest(HomeworkSubmissionIntegrationBase):
-    @patch("courses.views.homework_confirmation.send_transactional_email")
+    @patch("courses.views.homework_confirmation.send_package_mail")
     def test_reused_learning_in_public_link_is_rejected(
         self,
         send_email,

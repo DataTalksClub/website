@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.contrib.staticfiles import finders
 from django.test import TestCase
 
-from content import catalogue
+from content import catalogue, wiki_reader
 from content.public_graph import safe_public_graph_url
 from scripts import build_public_projection as builder
 
@@ -31,7 +31,7 @@ class SponsorArticleChartTests(TestCase):
                     if builder._localize_editorial_links(str(text)) != str(text)
                 )
 
-        for page in catalogue.wiki_pages():
+        for page in wiki_reader.wiki_pages():
             occurrences.extend(
                 (page["slug"], index, "wiki")
                 for index, block in enumerate(page.get("blocks", ()))

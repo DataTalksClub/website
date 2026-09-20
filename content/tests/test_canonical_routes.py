@@ -1,11 +1,67 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from django.test import TestCase
 
 from content.public_routes import public_paths
 
 
 class CanonicalRouteTests(TestCase):
+    def test_editorial_detail_aliases_redirect_once_with_the_raw_query(self) -> None:
+        query = "utm_source=route%2Btest&x=a%2Fb&blank="
+        cases = (
+            ("article", "/blog/synthetic-article", "/blog/synthetic-article.html"),
+            ("book", "/books/synthetic-book", "/books/synthetic-book.html"),
+            ("person", "/people/synthetic-person", "/people/synthetic-person.html"),
+            (
+                "podcast",
+                "/podcast/s24e06-synthetic-episode",
+                "/podcast/s24e06/synthetic-episode",
+            ),
+        )
+        for kind, alias, target in cases:
+            with (
+                self.subTest(kind=kind),
+                patch(
+                    f"content.public_views.catalogue.{kind}",
+                    return_value={"public_path": target},
+                ),
+            ):
+                for source in (alias, f"{alias}/"):
+                    response = self.client.get(f"{source}?{query}", follow=False)
+                    self.assertEqual(response.status_code, 301)
+                    self.assertEqual(response["Location"], f"{target}?{query}")
+                    self.assertEqual(response["Cache-Control"], "public, max-age=300")
+                    head = self.client.head(f"{source}?{query}", follow=False)
+                    self.assertEqual(head.status_code, 301)
+                    self.assertEqual(head["Location"], f"{target}?{query}")
+                    self.assertEqual(head.content, b"")
+
+    def test_editorial_detail_aliases_fail_closed_for_unknown_records(self) -> None:
+        cases = (
+            ("article", "/blog/missing"),
+            ("book", "/books/missing"),
+            ("person", "/people/missing"),
+            ("podcast", "/podcast/missing"),
+        )
+        for kind, path in cases:
+            with (
+                self.subTest(kind=kind),
+                patch(f"content.public_views.catalogue.{kind}", return_value=None),
+            ):
+                self.assertEqual(self.client.get(path).status_code, 404)
+
+    def test_hierarchical_only_podcast_keeps_its_flat_aliases_unavailable(self) -> None:
+        path = "/podcast/s24e04-from-genai-pilots-to-production"
+        with patch("content.public_views.catalogue.podcast") as podcast:
+            for source in (path, f"{path}/"):
+                with self.subTest(source=source):
+                    response = self.client.get(source, follow=False)
+                    self.assertEqual(response.status_code, 404)
+                    self.assertNotIn("Location", response.headers)
+            podcast.assert_not_called()
+
     def test_slack_route_and_alias_have_exact_method_and_query_contracts(self) -> None:
         query = "x=%2F&x=&q=A+B&q=A%20B"
         canonical = self.client.get("/slack")

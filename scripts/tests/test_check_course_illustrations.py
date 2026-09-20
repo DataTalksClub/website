@@ -107,11 +107,11 @@ def _catalogue_markup(theme):
         + image("doodle-light", "eager")
         + image("doodle-dark", "eager")
         + "<p class='hero-collage-caption'>A course title is not a placeholder</p></div>"
-        + '<div class="spacer"></div><div class="open-card-media">'
+        + '<div class="spacer"></div><div class="catalog-card-media">'
         + pair()
-        + '</div><div class="spacer"></div><div class="active-card-media">'
+        + '</div><div class="spacer"></div><div class="catalog-card-media">'
         + image()
-        + '</div><div class="spacer"></div><div class="selfpaced-card-media">'
+        + '</div><div class="spacer"></div><div class="catalog-card-media">'
         + pair()
         + "</div>"
     )
@@ -121,7 +121,11 @@ def _catalogue_markup(theme):
 def test_checker_loads_every_lazy_card_and_accepts_single_campaign_images(page, theme):
     page.set_viewport_size({"width": 390, "height": 844})
     page.set_content(_catalogue_markup(theme))
-    assert page.locator(".selfpaced-card-media img:visible").evaluate("img => !img.complete")
+    assert (
+        page.locator(".catalog-card-media")
+        .last.locator("img:visible")
+        .evaluate("img => !img.complete")
+    )
 
     report = inspect_page(page, route="/courses", theme=theme, width=390)
 
@@ -143,7 +147,7 @@ def test_checker_loads_every_lazy_card_and_accepts_single_campaign_images(page, 
 )
 def test_checker_rejects_leftover_placeholder_class_or_text_even_with_an_image(page, markup):
     page.set_content(_catalogue_markup("light"))
-    page.locator(".selfpaced-card-media").evaluate(
+    page.locator(".catalog-card-media").last.evaluate(
         "(el, markup) => el.insertAdjacentHTML('beforeend', markup)", markup
     )
 
@@ -154,10 +158,31 @@ def test_checker_rejects_leftover_placeholder_class_or_text_even_with_an_image(p
 
 def test_checker_still_requires_the_correct_single_visible_theme_image(page):
     page.set_content(_catalogue_markup("light"))
-    page.locator(".selfpaced-card-media .doodle-dark").evaluate(
+    page.locator(".catalog-card-media").last.locator(".doodle-dark").evaluate(
         "img => img.style.display = 'inline'"
     )
 
     report = inspect_page(page, route="/courses", theme="light", width=1280)
 
     assert any("wrong number of visible images" in error for error in report["failures"])
+
+
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_checker_requires_visible_family_art_on_mobile(page, theme):
+    hidden = "dark" if theme == "light" else "light"
+    image_url = "data:image/svg+xml," + quote(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"/>'
+    )
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.set_content(
+        f"<style>.doodle-{hidden} {{ display:none }}</style>"
+        '<div class="family-hero-art">'
+        f'<img class="doodle-light" src="{image_url}" alt="" decoding="async">'
+        f'<img class="doodle-dark" src="{image_url}" alt="" decoding="async">'
+        "</div>"
+    )
+
+    report = inspect_page(page, route="/courses/ml-zoomcamp", theme=theme, width=390)
+
+    assert report["failures"] == []
+    assert sum(image["visible"] for image in report["images"]) == 1

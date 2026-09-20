@@ -80,7 +80,7 @@ def test_operator_manages_sponsors_and_public_strip(
     screenshot(page, "sponsors-empty", suffix)
 
     create = page.get_by_role("region", name="Create a sponsor")
-    create.get_by_label("Key").fill(f"acme-{suffix}")
+    create.get_by_label("Key", exact=True).fill(f"acme-{suffix}")
     create.get_by_label("Name").fill("Acme Analytics")
     create.get_by_label("HTTPS URL").fill("https://acme.example")
     create.get_by_label("Tagline").fill("Data for everyone")

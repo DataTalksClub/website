@@ -41,6 +41,9 @@ from test_support.safety import (
 PUBLIC_FIXTURE_ROOT = Path(__file__).resolve().parent / "test_support" / "fixtures" / "public"
 OFFLINE_ROUTE_FIXTURES: dict[str, tuple[str, str, str]] = {}
 EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
+    "test_unknown_same_origin_image_reaches_the_media_view": (
+        (re.compile(r"^/images/not-a-recorded-media-object\.png$"), 404),
+    ),
     "test_alias_query_and_safe_denial_browser_matrix": (
         (re.compile(r"^/podcast$"), 400),
         (re.compile(r"^/podcast$"), 404),
@@ -813,6 +816,7 @@ def context(
     def route_request(route: Route) -> None:
         url = route.request.url
         parsed = urlsplit(url)
+        origin = f"{parsed.scheme}://{parsed.netloc}"
         if parsed.scheme in {"about", "blob", "data"}:
             route.continue_()
             return
@@ -834,7 +838,6 @@ def context(
             # to load, just as episode-specific tests do with their page route.
             route.fulfill(status=200, content_type="text/html", body="")
             return
-        origin = f"{parsed.scheme}://{parsed.netloc}"
         if allowed_origin and origin == allowed_origin:
             if authorization is not None:
                 authorization.authorize_request(route.request.method, url)
@@ -1001,8 +1004,16 @@ def context(
         finally:
             context_closed = True
         try:
-            for root in owned_publication_roots(settings.BASE_DIR, worker.artifacts):
-                scan_artifacts(root, canaries=artifact_canaries())
+            # Scan only artifacts created by this browser case here.  Re-reading
+            # every prior compressed trace after every test is quadratic and can
+            # itself cross the per-test diagnostic budget.  Session teardown
+            # still scans the complete publication roots once, including the
+            # separately captured screenshot handoff tree.
+            scan_artifacts(
+                worker.artifacts,
+                canaries=artifact_canaries(),
+                paths=(trace_path, screenshot_path),
+            )
         except BaseException as error:
             cleanup_errors.append(f"browser artifact scan failed ({type(error).__name__})")
         failures.extend(cleanup_errors)

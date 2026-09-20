@@ -105,12 +105,19 @@ def test_project_gallery_dependency_table_and_statuses_in_both_themes(
         )
 
         page.get_by_label("Course", exact=True).select_option(family.slug)
-        expect(page).to_have_url(gallery_url + f"?course={family.slug}&sort=cohort")
+        page.wait_for_url(
+            gallery_url + f"?course={family.slug}&sort=cohort",
+            wait_until="domcontentloaded",
+        )
         expect(page.get_by_label("Cohort", exact=True)).to_be_enabled()
         expect(page.get_by_label("Assignment", exact=True)).to_be_disabled()
 
         cohort = rows[0].project.course.identifier
         page.get_by_label("Cohort", exact=True).select_option(cohort)
+        page.wait_for_url(
+            gallery_url + f"?course={family.slug}&cohort={cohort}&sort=cohort",
+            wait_until="domcontentloaded",
+        )
         expect(page.get_by_label("Assignment", exact=True)).to_be_enabled()
         expect(page.locator(".gallery-submission-row")).to_have_count(2)
         expect(page.locator(".gallery-status.is-passed")).to_have_text("Passed")

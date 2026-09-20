@@ -76,7 +76,12 @@ from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 
-from accounts.identity_inventory import ACCOUNT_RELATIONS, relationship_evidence
+from accounts.identity_inventory import (
+    ACCOUNT_RELATIONS,
+    append_only_relation_keys,
+    relationship_evidence,
+    relationship_row_identities,
+)
 from accounts.identity_values import (
     canonical_json,
     normalize_account_email,
@@ -94,13 +99,12 @@ from accounts_ext.models import (
     identity_state_row,
     normalized_email_of,
 )
+from course_management.observability import record_event
 from courses.models.learner_profile import (
     LearnerProfile,
-    ensure_learner_profile,
     learner_profile_for,
     profile_field_default,
 )
-from course_management.observability import record_event
 
 PROFILE_FIELDS = (
     "first_name",
@@ -138,9 +142,7 @@ _LEARNER_PROFILE_FIELDS = frozenset(
 def _field_value(user, field: str) -> Any:
     if field in _LEARNER_PROFILE_FIELDS:
         profile = learner_profile_for(user)
-        return (
-            getattr(profile, field) if profile is not None else profile_field_default(field)
-        )
+        return getattr(profile, field) if profile is not None else profile_field_default(field)
     return getattr(user, field)
 
 
@@ -699,14 +701,21 @@ def _profile_changes(
     *,
     source: User,
     survivor: User,
+    survivor_profile_row: LearnerProfile | None,
     mapping: ReviewedMapping,
 ) -> tuple[LearnerProfile, list[str]]:
     # Applies every "source" decision onto the survivor in memory: user-row
     # fields on the user, learner-profile fields on the survivor's profile
-    # row (created if absent). Returns the profile row and the decided field
-    # names; the caller persists them behind the compare-and-swap checks.
+    # row. Returns the profile row and the decided field names; the caller
+    # persists them behind the compare-and-swap checks. When the survivor has
+    # no profile row yet, an unsaved instance is returned rather than
+    # creating one here: creating it before the guards run would itself be
+    # an unguarded write, and the caller's insert of this same unsaved
+    # instance is what gives the no-prior-row case its compare-and-swap (the
+    # LearnerProfile.user unique constraint raises on a concurrent
+    # creation of the same row).
     update_fields: list[str] = []
-    survivor_profile = ensure_learner_profile(survivor)
+    survivor_profile = survivor_profile_row or LearnerProfile(user=survivor)
     for field, decision in mapping.field_decisions.items():
         if decision != "source":
             continue
@@ -717,6 +726,38 @@ def _profile_changes(
             setattr(survivor, field, value)
         update_fields.append(field)
     return survivor_profile, update_fields
+
+
+def _check_relationship_evidence_unchanged(
+    *,
+    before: dict[str, frozenset[tuple[str, int]]],
+    after: dict[str, frozenset[tuple[str, int]]],
+) -> None:
+    """The compare-and-swap over every relation ``relationship_evidence`` tracks.
+
+    A plain reparented relation's row set must come out byte-identical
+    (aliased): reparenting only changes who owns a row, never how many rows
+    exist, so any change there is a real one. ``append_only_relation_keys()``
+    -- the two extension tables plus ``accounts_ext.AccountIdentityAlias
+    .survivor`` -- are different: this apply itself is documented to add a
+    row there (a backfilled ``IdentityState``/``LearnerProfile`` where a user
+    had none, or the one new alias row every successful merge creates), so
+    those three keys only require a subset: nothing already present may be
+    lost, but a new row is not a regression. D3.3 (see its evidence audit)
+    found the equality check was only ever true by omission -- it held
+    because the two things this function is documented to create were
+    outside what ``relationship_evidence()`` used to measure. Do not widen
+    the subset rule beyond these three keys; every other relation keeps the
+    strict check.
+    """
+    append_only_keys = append_only_relation_keys()
+    for key, before_rows in before.items():
+        after_rows = after.get(key, frozenset())
+        if key in append_only_keys:
+            if not before_rows <= after_rows:
+                raise IntegrityError(f"account relationship reconciliation lost rows from {key}")
+        elif before_rows != after_rows:
+            raise IntegrityError("account relationship reconciliation changed logical evidence")
 
 
 def _reparent_relations(*, source_id: int, survivor_id: int) -> None:
@@ -816,6 +857,7 @@ def _apply_one_mapping(
     survivor_profile, update_fields = _profile_changes(
         source=source,
         survivor=survivor,
+        survivor_profile_row=survivor_profile_row,
         mapping=mapping,
     )
     survivor_email = normalize_account_email(survivor.email)
@@ -824,15 +866,21 @@ def _apply_one_mapping(
 
     if not User.objects.filter(pk=source.pk, **source_user_snapshot).exists():
         raise IntegrityError("source identity changed during apply")
-    if source_identity_snapshot is not None and not IdentityState.objects.filter(
-        user_id=source.pk,
-        **source_identity_snapshot,
-    ).exists():
+    if (
+        source_identity_snapshot is not None
+        and not IdentityState.objects.filter(
+            user_id=source.pk,
+            **source_identity_snapshot,
+        ).exists()
+    ):
         raise IntegrityError("source identity changed during apply")
-    if source_profile_snapshot is not None and not LearnerProfile.objects.filter(
-        user_id=source.pk,
-        **source_profile_snapshot,
-    ).exists():
+    if (
+        source_profile_snapshot is not None
+        and not LearnerProfile.objects.filter(
+            user_id=source.pk,
+            **source_profile_snapshot,
+        ).exists()
+    ):
         raise IntegrityError("source identity changed during apply")
     if source_identity_row is None:
         IdentityState.objects.create(
@@ -840,21 +888,31 @@ def _apply_one_mapping(
             identity_state=IdentityState.States.ABSORBED,
         )
     else:
-        IdentityState.objects.filter(user_id=source.pk).update(
-            identity_state=IdentityState.States.ABSORBED,
-        )
+        assert source_identity_snapshot is not None
+        source_identity_updated = IdentityState.objects.filter(
+            user_id=source.pk,
+            **source_identity_snapshot,
+        ).update(identity_state=IdentityState.States.ABSORBED)
+        if source_identity_updated != 1:
+            raise IntegrityError("source identity changed during apply")
 
     if not User.objects.filter(pk=survivor.pk, **survivor_user_snapshot).exists():
         raise IntegrityError("survivor identity changed during apply")
-    if survivor_identity_snapshot is not None and not IdentityState.objects.filter(
-        user_id=survivor.pk,
-        **survivor_identity_snapshot,
-    ).exists():
+    if (
+        survivor_identity_snapshot is not None
+        and not IdentityState.objects.filter(
+            user_id=survivor.pk,
+            **survivor_identity_snapshot,
+        ).exists()
+    ):
         raise IntegrityError("survivor identity changed during apply")
-    if survivor_profile_snapshot is not None and not LearnerProfile.objects.filter(
-        user_id=survivor.pk,
-        **survivor_profile_snapshot,
-    ).exists():
+    if (
+        survivor_profile_snapshot is not None
+        and not LearnerProfile.objects.filter(
+            user_id=survivor.pk,
+            **survivor_profile_snapshot,
+        ).exists()
+    ):
         raise IntegrityError("survivor identity changed during apply")
 
     survivor_user_updates = {
@@ -863,9 +921,12 @@ def _apply_one_mapping(
         if field not in _LEARNER_PROFILE_FIELDS
     }
     if survivor_user_updates:
-        User.objects.filter(pk=survivor.pk, **survivor_user_snapshot).update(
-            **survivor_user_updates
-        )
+        survivor_user_row_updated = User.objects.filter(
+            pk=survivor.pk,
+            **survivor_user_snapshot,
+        ).update(**survivor_user_updates)
+        if survivor_user_row_updated != 1:
+            raise IntegrityError("survivor identity changed during apply")
     if survivor_identity_row is None:
         IdentityState.objects.create(
             user_id=survivor.pk,
@@ -873,25 +934,36 @@ def _apply_one_mapping(
             identity_state=IdentityState.States.ACTIVE,
         )
     else:
-        IdentityState.objects.filter(
+        assert survivor_identity_snapshot is not None
+        survivor_identity_updated = IdentityState.objects.filter(
             user_id=survivor.pk,
-            normalized_email=survivor_identity_row.normalized_email,
-            identity_state=survivor_identity_row.identity_state,
+            **survivor_identity_snapshot,
         ).update(
             normalized_email=survivor_email,
             identity_state=IdentityState.States.ACTIVE,
         )
+        if survivor_identity_updated != 1:
+            raise IntegrityError("survivor identity changed during apply")
     if survivor_profile_row is None:
-        # _profile_changes already applied the decisions onto this row.
+        # _profile_changes returned an unsaved instance for this case, so
+        # this insert is itself the compare-and-swap: a concurrent creation
+        # of the same row raises IntegrityError from the unique constraint
+        # on LearnerProfile.user, exactly like the create() branches above.
         survivor_profile.save()
     else:
-        LearnerProfile.objects.filter(user_id=survivor.pk).update(
-            **{
-                field: getattr(survivor_profile, field)
-                for field in update_fields
-                if field in _LEARNER_PROFILE_FIELDS
-            }
-        )
+        assert survivor_profile_snapshot is not None
+        profile_updates = {
+            field: getattr(survivor_profile, field)
+            for field in update_fields
+            if field in _LEARNER_PROFILE_FIELDS
+        }
+        if profile_updates:
+            survivor_profile_updated = LearnerProfile.objects.filter(
+                user_id=survivor.pk,
+                **survivor_profile_snapshot,
+            ).update(**profile_updates)
+            if survivor_profile_updated != 1:
+                raise IntegrityError("survivor identity changed during apply")
 
     _reparent_relations(
         source_id=source.pk,
@@ -963,7 +1035,7 @@ def apply_reviewed_mapping(plan: MappingPlan) -> dict[str, Any]:
     prospective_aliases = {
         mapping.source_user_id: mapping.survivor_user_id for mapping in plan.mappings
     }
-    before_counts, before_checksums = relationship_evidence(alias_overrides=prospective_aliases)
+    before_row_identities = relationship_row_identities(alias_overrides=prospective_aliases)
     source_account_count = User.objects.count()
 
     try:
@@ -1007,9 +1079,11 @@ def apply_reviewed_mapping(plan: MappingPlan) -> dict[str, Any]:
 
             for mapping in plan.mappings:
                 _apply_one_mapping(mapping=mapping, plan=plan)
-            reconciled_counts, reconciled_checksums = relationship_evidence()
-            if before_counts != reconciled_counts or before_checksums != reconciled_checksums:
-                raise IntegrityError("account relationship reconciliation changed logical evidence")
+            reconciled_row_identities = relationship_row_identities()
+            _check_relationship_evidence_unchanged(
+                before=before_row_identities,
+                after=reconciled_row_identities,
+            )
 
             for mapping in plan.mappings:
                 _record_merge_audit(

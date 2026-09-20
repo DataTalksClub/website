@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from allauth.socialaccount.models import SocialAccount, SocialApp
@@ -37,34 +36,14 @@ VIEWPORTS = (
 SCREENSHOTS = Path(".tmp/screenshots/account-preferences")
 
 
-@pytest.fixture(autouse=True)
-def _available_email_preferences():
-    """Datamailer is unconfigured under test, and the settings page fetches it.
-
-    Without a stand-in the page logs a 503 to the console on every visit, which
-    says nothing about the two controls these tests are about.  live_server runs
-    in this process, so patching the view's own reference is enough.
-    """
-
-    preferences = {
-        "email_submission_confirmations": True,
-        "email_deadline_reminders": True,
-        "email_course_updates": False,
-    }
-    with patch(
-        "accounts.views.email_preferences.get_email_preferences_for_user",
-        return_value=preferences,
-    ):
-        yield
-
-
 def _member(*, suffix: str, dark_mode: bool = False) -> User:
     email = f"preferences-{suffix}@example.invalid"
-    return User.objects.create_user(
+    member = User.objects.create_user(
         username=email,
         email=email,
-        dark_mode=dark_mode,
     )
+    LearnerProfile.objects.create(user=member, dark_mode=dark_mode)
+    return member
 
 
 def _sign_in(page: Page, live_server, user: User) -> None:
@@ -244,8 +223,7 @@ def test_a_denied_storage_write_never_rolls_back_a_saved_theme_switch(
         expect(status).not_to_contain_text("not saved")
         expect(checkbox).to_be_checked()
         expect(page.locator("body")).to_have_attribute("data-dark-mode", "true")
-        member.refresh_from_db()
-        assert member.dark_mode is True
+        assert LearnerProfile.objects.get(user=member).dark_mode is True
         _screenshot(page, "theme-storage-denied-dark", "desktop")
 
         # The switch still works after the denied copy: a second save rounds
@@ -255,8 +233,7 @@ def test_a_denied_storage_write_never_rolls_back_a_saved_theme_switch(
         expect(status).not_to_contain_text("not saved")
         expect(checkbox).not_to_be_checked()
         expect(page.locator("body")).to_have_attribute("data-dark-mode", "false")
-        member.refresh_from_db()
-        assert member.dark_mode is False
+        assert LearnerProfile.objects.get(user=member).dark_mode is False
     finally:
         context.close()
 
@@ -301,8 +278,7 @@ def test_storage_denied_at_load_leaves_the_account_theme_in_charge(
         expect(status).not_to_contain_text("not saved")
         expect(checkbox).not_to_be_checked()
         expect(page.locator("body")).to_have_attribute("data-dark-mode", "false")
-        member.refresh_from_db()
-        assert member.dark_mode is False
+        assert LearnerProfile.objects.get(user=member).dark_mode is False
     finally:
         context.close()
 
@@ -334,8 +310,7 @@ def test_a_failed_theme_save_still_reverts_and_says_so(page: Page, live_server) 
     expect(page.locator("body")).to_have_attribute("data-dark-mode", "false")
     expect(checkbox).to_be_enabled()
     expect(checkbox).to_be_focused()
-    member.refresh_from_db()
-    assert member.dark_mode is False
+    assert LearnerProfile.objects.get(user=member).dark_mode is False
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)

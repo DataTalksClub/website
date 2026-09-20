@@ -36,6 +36,20 @@ _AUDITED_COMMAND_CAPABILITIES = frozenset(
 )
 
 
+def package_studio_authorizer(request: HttpRequest) -> bool:
+    """STUDIO_AUTHORIZER for package views: the same role gate as site Studio."""
+
+    try:
+        authorize_studio_request(
+            request_user=request.user,
+            session_reference=session_reference(request),
+            capability=CAPABILITY_REGISTRY.require("studio.home.read"),
+        )
+    except (StudioAuthenticationRequired, StudioAuthorizationDenied):
+        return False
+    return True
+
+
 def _safe_login_redirect(request: HttpRequest) -> HttpResponseRedirect:
     login_url = resolve_url("login")
     return HttpResponseRedirect(f"{login_url}?{urlencode({'next': request.path})}")

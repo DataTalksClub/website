@@ -10,7 +10,7 @@ the root Makefile contains only local development lifecycle commands.
 
 Counts were measured on `main` on 2026-09-03 and re-checked on 2026-09-05. The
 2026-09-05 pass re-measured the CMP export, the `aisl` export, event identity,
-content and new-event discovery, and the registration aggregates; a figure it did
+content and new-event discovery, and the provider registration exports; a figure it did
 not re-measure says so where it appears rather than implying a fresh count.
 Where a number is asserted by code, the assertion is cited so you can re-check it.
 
@@ -81,8 +81,9 @@ that way since the database cutover, so a row in §2 never carries it.
 > `ContentAsset` — is live at both ends: the `scripts/prod/` importers write it and
 > a public request reads it. `content/public_data.py`, the module that used to
 > reassemble those rows into the old projection dictionary, is deleted;
-> `content/catalogue.py`, `content/docs_projection.py`, `content/faq_data.py`,
-> `content/article_faq.py` and `events/queries.py` are the readers now. §9 lists
+> `content/catalogue.py`, `content/docs_reader.py`, `content/wiki_reader.py`,
+> `content/faq_data.py`, `content/article_faq.py` and `events/queries.py` are the
+> readers now. §9 lists
 > every surface.
 >
 > **So an importer is the right tool for every source below**, and the missing piece
@@ -114,8 +115,8 @@ that way since the database cutover, so a row in §2 never carries it.
 | 13 | `zoomcamp-scoring` (pre-2024) | One-time | Database | One-off export |
 | 14 | Event identity manifest | One-time | Database | One-off export |
 | 15 | Event description bridge | One-time | Database | One-off export |
-| 16 | Luma registration aggregates | One-time | Database | One-off export |
-| 17 | Eventbrite registration aggregates | One-time | Database | One-off export |
+| 16 | Luma event registrants | Refreshable export | Database | Explicit protected import |
+| 17 | Eventbrite event registrants | One-time | Database | Explicit protected import |
 | 18 | Public media objects | Hydrate/publish | Object store | Already fine → CDN |
 | 19 | Sponsors | **No source** | Database | Undecided |
 | 20 | Testimonials | Migration seed only | Database | Undecided |
@@ -806,7 +807,7 @@ postdates the export the manifest was built from) had no path into the database 
 
 **The mechanism**: `scripts/prod/import_events.py`'s
 `discover_new_luma_event_identities()` (orchestration) calls
-`scripts.prod.registration_sources.luma.discover_luma_events()` (the read) and
+`scripts.prod.registration_sources.luma_events.discover_luma_events()` (the read) and
 `scripts.prod.registrant_import.create_provider_event_identity()` (the write, itself a thin wrapper
 around `create_event_identity()`; it does not reimplement allocation or path
 construction). Run it two ways:
@@ -818,15 +819,12 @@ uv run --frozen python scripts/prod/import_events.py \
     --discover-new-events-only
 ```
 
-`--discover-new-events-only` runs the identity-manifest import, this leg and the staged
-content of §14.4, and deliberately **does not** require `--eventbrite-source` or a Luma
-export matching the pinned checksum in `event-registration-sources.json` — that pin
-exists to protect registration *counts* from silent drift, and this leg writes no count.
-Without the flag, a full `run()` (§16/17) also calls it once, right after the identity
-and content imports and before registration-aggregate derivation, reporting it under the
-`new_event_identities` key — a distinct top-level key, deliberately never merged into
-`identities` (the manifest replay) or `activation_coverage` (the registration-count
-gate), so an automatic creation can never be mistaken for either.
+`--discover-new-events-only` imports the identity manifest, discovers new Luma
+identities and imports their staged content without importing registrants. A full
+`run()` also performs discovery once after the identity and content imports and reports
+it under `new_event_identities`, a distinct top-level key that is deliberately never
+merged into `identities` (the reviewed manifest replay). Attendee rows are handled
+separately by `scripts/prod/import_event_registrants.py`.
 
 **What counts as "new," and the duplicate bug that taught us the rule.** The first
 version of this leg asked only whether *we* had already minted an identity for the
@@ -1004,65 +1002,37 @@ despite naming it in `LEGACY_REPOSITORY`. That constant is provenance stamping o
 The bridge is applied into the event records at projection-build time, and those
 records are what §14.2 imports. No runtime code reads the bridge.
 
-### 16 / 17 — Luma and Eventbrite registration aggregates
+### 16 / 17 — Luma and Eventbrite registrants
 
-The pinned facts, from `_docs/migration-data/event-registration-sources.json`. **A run
-validates against these**, so they are the numbers that matter, not whatever a directory
-on disk currently holds.
+`_docs/migration-data/event-registration-sources.json` records the reviewed historical
+capture. The current importer does not validate a live export against that old snapshot;
+operators select an explicit source and use the pull procedure below when it changes.
 
 | | Luma | Eventbrite |
 | --- | --- | --- |
 | **Events** | 166 | 209 |
 | **Rows** | 51,924 (51,873 approved + 51 declined) | 24,001 (all `attending`) |
 | **Schema** | `luma_v1` | three CSV schema versions, fingerprint-checked |
-| **Adapter** | `scripts/prod/registration_sources/luma.py` | `scripts/prod/registration_sources/eventbrite.py` |
-| **Prep** | `scripts/prepare_event_registration_sources.py` | same |
-| **Facts** | `_docs/migration-data/event-registration-sources.json` | same |
-| **Activation** | `mapping_review_required` | `mapping_review_required` |
+| **Reader** | `scripts/prod/registration_sources/luma_registrants.py` | `scripts/prod/registration_sources/eventbrite_registrants.py` |
+| **Entry point** | `scripts/prod/import_event_registrants.py` | same |
+| **Historical capture** | `_docs/migration-data/event-registration-sources.json` | same |
 
-**Aggregate-only. No attendee row is ever read into the database** — the adapters
-return counts, checksums and provider IDs. An unsupported schema fingerprint refuses
-to parse rows at all (see `derive_eventbrite`'s unsupported-schema branch); one Eventbrite `.xlsx` is
-recorded as `unsupported_xlsx_total: 1`.
-
-Both are `activation_state: mapping_review_required` — **staged but not activated.**
-Prepared bundles land in a gitignored `.local/migration-data`, never in the worktree.
-The durable protected copy a real run should point at lives outside any worktree, at
-`~/prod/dtc-data/luma-eventbrite-export/luma-aggregate-v1/`.
-
-> **The default `--luma-source` no longer validates.**
-> `.local/migration-data/events/luma-aggregate-v1` has grown to 174 events against the
-> 166 the facts file pins, so a full `import_events.py run()` against it exits 1 with
-> `registration_source_validation_failed` (verified 2026-09-05). The sibling
-> `luma-aggregate-v1.backup-20260902` holds the pinned 166 and runs clean. Somebody has
-> to decide whether the pin moves or the directory is discarded — §12.1, was item 10.
->
-> **It should move.** Counted 2026-09-05: the 174-event directory is a later capture of
-> the same account — 52,467 rows, `tree_sha256 2e18d184…`, the eight extra events dated
-> 2026-08-31 to 2026-09-15 — not a corrupted one. Moving a pin is a reviewed commit;
-> [`event-registration-pull.md`](event-registration-pull.md) §4.3 is what that review is.
+The readers load only the provider event and registrant identifiers, normalized email,
+status and registration timestamp needed for consolidation. `registrant_import.py`
+resolves those rows into `event_registrants.EventRegistrantIdentity` and
+`EventRegistration`; unresolved events are reported and skipped, never guessed. The
+durable protected exports live outside the repository, and attendee values must not be
+logged or copied into a worktree.
 
 **Luma is not frozen history, and this table is a snapshot rather than a fact.**
 New events keep appearing and people keep registering for events we already have:
 between the two prepared exports on this machine, 8 events are new and **99 of the
-166 they share have different registrant rows — 5 grew, 13 shrank**. A provider
-export is therefore not append-only, and neither the aggregate leg nor the
-attendee-level leg picks any of that up on a plain re-run. The recurring
-procedure, the last-synchronised record, and what is lost when Luma access
-expires are in [`event-registration-pull.md`](event-registration-pull.md).
-
-**What a clean run actually resolves.** Measured 2026-09-05 against the pinned export
-and the Eventbrite archive, into a scratch database: 375 provider events stage, the
-`activation_coverage` line reports `0 of 375 provider events resolved` because no
-`--current-registration-input` file named any exact pair, the automatic exact
-date-and-title pass then resolves 99 Luma aggregates, and 276 stay unresolved and render
-no count. Both sources finish `activated: false`. See §12 item 2 for the breakdown of
-why each one is unresolved.
-
-`uv run --frozen python scripts/prod/import_events.py` runs with
-`--current-registration-input` pointed at
-`_docs/migration-data/local-current-registration-input.json`; set that variable empty to
-leave every mapping review-required.
+166 they share have different registrant rows — 5 grew, 13 shrank**. A provider export
+is therefore not append-only. A normal resumed run skips completed events; use the
+registrant importer's explicit `--refresh` mode to replace each event's stored facts
+from a newer export. The recurring procedure, last-synchronised record, and what is
+lost when Luma access expires are in
+[`event-registration-pull.md`](event-registration-pull.md).
 
 ### 18 — Mailchimp export, course-cohort registration backfill
 
@@ -1103,7 +1073,7 @@ and an ambient `DTC_SQLITE_PATH`/`DTC_ENVIRONMENT`/`DJANGO_SETTINGS_MODULE` unse
    `import_sponsors.py`, `import_testimonials.py`. The editorial catalogue
    (articles/podcasts/books/people/wiki/docs/FAQ) is no longer seeded this way — it
    needs a live `manage.py sync_content` run against a real checkout instead.
-4. `import_events.py` (§14-17) — one call, six legs internally sequenced.
+4. `import_events.py` (§14-15) — one call, five legs internally sequenced.
 5. `import_mailchimp_course_tags.py` (§18) — after step 2, since it needs the course
    catalogue's cohorts to already exist.
 
@@ -1122,20 +1092,23 @@ of the old arrangement is naming, not behaviour. `content/public_data.py` — th
 compatibility layer that kept returning the dict shape the files had — is deleted;
 `content/catalogue.py` is a query function per kind, `content/public_routes.py`
 holds the route inventory and `content/public_graph.py` the graph safety contract.
-The name still shows on `content/docs_projection.py` and on
-`content/media_store.py`'s `PROJECTION_ROOT`. Describe those as "database-backed,
-still wearing the projection's name", not as unfinished ingest.
+The name still shows on `content/media_store.py`'s `PROJECTION_ROOT`. Describe
+that as "database-backed, still wearing the projection's name", not as unfinished
+ingest. `content/docs_projection.py` is gone: since D7.1 the documentation and
+wiki pages are `community_base.knowledge_base` rows read by
+`content/docs_reader.py` and `content/wiki_reader.py`.
 
 | Area | Serving path | Source |
 | --- | --- | --- |
-| Wiki (hub, detail, search, graph, feed, sitemap) | **Database** | `ContentDocument`, via `content/catalogue.py` |
+| Wiki pages (hub, detail, feed, sitemap) | **Database** | `KnowledgeBasePage`, via `content/wiki_reader.py` |
+| Wiki search and graph | **Database** | `SyncedDocument` singletons, via `content/catalogue.py` |
 | Podcasts (hub, episodes, guests, transcripts, resources) | **Database** | as above |
 | Articles (hub, detail) | **Database** | as above |
 | Article FAQ accordions | **Database** | `content/article_faq.py` over `ContentDocument` |
 | People / authors | **Database** | `ContentDocument` |
 | Books | **Database** | `ContentDocument` |
 | FAQ (`/faq/`) | **Database** | `content/faq_data.py` over `ContentDocument` |
-| Docs (`/docs/`) | **Database** | `content/docs_projection.py` over `ContentDocument` / `ContentAsset` |
+| Docs (`/docs/`) | **Database** | `content/docs_reader.py` over `KnowledgeBasePage`, assets from `content/docs_assets/` |
 | Editorial redirects | **Database** | `ContentDocument` (the route manifest is one document) |
 | Media (`/images/…`) | **Database record + object store** | record from `ContentDocument`, bytes from the store (`content/media_store.py`) |
 | Event listing, descriptions and links | **Database** | `events.EventContent` / `EventLink` |
@@ -1477,14 +1450,13 @@ What genuinely differs, and needs care rather than a separate pipeline:
    empty editorial catalogue as expected rather than a failure, is a product decision
    nobody has made yet — this note exists so the next person hitting that failure does
    not read it as a regression in either script.
-5. `scripts/prod/import_events.py`, whose own `run()` performs six legs in a fixed
+5. `scripts/prod/import_events.py`, whose own `run()` performs five legs in a fixed
    order because each reconciles against the one before it: identity import (§14),
    content import (§14.2), the Eventbrite description-precedence overlay (landed
    2026-09-11 — overwrites the row content import just wrote, for every event whose
    Eventbrite id resolves against `~/prod/dtc-data/eventbrite-event-identities.json`;
    see `events.eventbrite_content`), new-event identity discovery (§14.3), staged
-   content for those events (§14.4), then registration-aggregate derivation and
-   staging (§16/17). Run it before anything else event-related.
+   content for those events (§14.4). Run it before anything else event-related.
 6. `scripts/prod/import_event_registrants.py` — both providers now: `--luma-source`
    (always run) and, since 2026-09-11, `--eventbrite-source`/`--eventbrite-identities`
    (opt-in; a one-time backfill against Eventbrite's frozen export, not a recurring
@@ -1494,7 +1466,7 @@ What genuinely differs, and needs care rather than a separate pipeline:
 
 `scripts/production_data.py dataset` runs stages 1–3 plus `scripts/prepare_local_data.py` and
 `scripts/verify_local_dataset.py`; that orchestrator runs the whole of step 5 by
-composing `import_events.run()` itself — one call, all six legs, in the fixed order,
+composing `import_events.run()` itself — one call, all five legs, in the fixed order,
 under its single transaction, after the editorial block — and `verify_local_dataset.py`
 reports `database_event_identities` and `database_event_content` separately, because an
 identity alone publishes no page. `scripts/production_data.py bootstrap` therefore has no
@@ -1600,24 +1572,14 @@ closed, so an old item number still leads somewhere.
    off the upstream graph. It is no longer invisible: `scripts/content.py drift` reports it as
    `revision_status.state = "unreachable"` and exits 1 (§10.3, §12.1 was item 10).
 
-2. **The mapping backlog: registration aggregates stage, mostly do not resolve, and
-   none activate.** Measured on 2026-09-05 by a full
-   `scripts/prod/import_events.py` run against the then-pinned 166-event Luma export and
-   the Eventbrite archive, into a scratch SQLite database built by `manage.py migrate`:
-   **375 provider events** stage (166 Luma, 209 Eventbrite). With no
-   `--current-registration-input` file supplied, `activation_coverage` reports **0 of
-   375 resolved**; the narrower automatic pass then resolves **99** Luma aggregates on
-   exact date-and-title equality, leaving **276 unresolved** (67 Luma — 48 ambiguous
-   dates, 11 title mismatches, 6 with no canonical event on the date, 2 with no
-   provider metadata — and all 209 Eventbrite, whose export carries no event-level
-   title or date to match on). Both sources finish `activated: false`,
-   `activation_state: unresolved`. Resolution and public-display activation are two
-   separate gates and neither has been passed. The adapters are not the gap; the
-   mapping review is. *Every figure here is against the 166-event capture and was not
-   re-measured on 2026-09-07; the Luma pin has since moved to the 174-event export
-   (`f100d16d`, 2026-09-06 — §12.1, was item 10), so the staged totals will differ on
-   the next run.* The code path is unchanged: `--current-registration-input`
-   (`import_events.py:1129`) and `activation_coverage` (`:954`, reported at `:1100`).
+2. **Provider rows still depend on reviewed event identity resolution.**
+   `scripts/prod/import_event_registrants.py` never guesses an event target. Luma can
+   use the reviewed `--luma-identities` document and Eventbrite requires
+   `--eventbrite-identities`; any unresolved provider event is reported under
+   `awaiting_identity_events` and skipped. The source readers and consolidation path
+   are live, so the remaining operational work is to keep those identity documents
+   reviewed and to use `--refresh` deliberately when a newer Luma export supersedes a
+   completed import.
 
 3. **The only remaining route to 438 of the media objects is the legacy repository**
    (§5.2 a5), and the media tree is gitignored. The default is closed —
@@ -1752,7 +1714,7 @@ number can appear twice in this table for two unrelated defects.
 | Was item | Was claimed | Closed by |
 | --- | --- | --- |
 | 1 | "CMP learner data beyond accounts has no importer — that importer does not exist, and it is the largest remaining gap in the migration" | `scripts/prod/import_cmp_learner_history.py` over `courses/services/cmp_learner_history_import.py`, whose `TABLE_ORDER` (`:171-181`) covers all nine remaining learner tables — course registrations, enrollments, submissions, answers, project submissions, peer reviews, criteria responses, project evaluation scores and Wrapped statistics. Rehearsed end to end on 2026-09-05: 20,469 accounts and 414,768 history rows, replay a no-op, SIGKILL-and-resume identical (`production-data-migration.md` §8.3 step 4). §8 source 12 |
-| 2 | "The content database pipeline is dead at both ends — nothing writes them and nothing reads them" | `scripts/prod/import_public_content.py` writes `ContentDocument` rows; `content/catalogue.py`, `content/article_faq.py`, `content/faq_data.py` and `content/docs_projection.py` read them on every public request. §9 |
+| 2 | "The content database pipeline is dead at both ends — nothing writes them and nothing reads them" | `scripts/prod/import_public_content.py` writes `ContentDocument` rows; `content/catalogue.py`, `content/article_faq.py` and `content/faq_data.py` read them on every public request, and `content/docs_reader.py` and `content/wiki_reader.py` read the knowledge base pages. §9 |
 | 7 | "Sponsors have no ingest at all" | `scripts/prod/import_sponsors.py`, reading `temporary/content/sponsor_directory.json` through `core.sponsors`' shared services. `core/sponsor_history.py` and its hardcoded `FEATURED_SUPPORTERS` tuple are deleted |
 | 8 | "Testimonials arrive only through a data migration" | `scripts/prod/import_testimonials.py`, reading `temporary/content/homepage_testimonials.json`. The seeding migration is gone; the two `RunPython` migrations left repo-wide (`courses/0002_simplify_registration_counts.py` and `data/0002_redact_datamailer_audit_pii.py`) seed no content |
 | 10 | "`.local/migration-data/events/luma-aggregate-v1` has drifted off the pin — it holds 174 events against the 166 `_docs/migration-data/event-registration-sources.json` pins, so the default `--luma-source` fails, and somebody has to decide whether the pin moves or the directory is discarded" | The decision was taken and the pin moved: `f100d16d` (2026-09-06) re-pins `luma.event_total` to **174** and `luma.tree_sha256` to `2e18d184…`, the digest of that directory, with the row, registration and status totals moved together. Reviewed per [`event-registration-pull.md`](event-registration-pull.md) §4.3. *Closed on the pin file alone; no import was re-run for this pass* |

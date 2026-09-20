@@ -135,6 +135,7 @@ class CourseListOrderingTest(CourseListViewTestBase):
         response = self.course_list_response()
         content = response.content.decode()
         active_card = self.course_card_html(content, active)
+        finished_card = self.course_card_html(content, finished)
         active_family_url = reverse(
             "course_family",
             kwargs={"course_slug": active.course.slug},
@@ -144,9 +145,19 @@ class CourseListOrderingTest(CourseListViewTestBase):
             kwargs={"course_slug": finished.course.slug},
         )
 
-        self.assertIn(f"window.location.href='{active_family_url}'", active_card)
-        self.assertIn(f'href="{active_family_url}">Active Family</a>', active_card)
-        self.assertIn(f'href="{finished_family_url}">Finished Family</a>', content)
+        for card, family_url, title in (
+            (active_card, active_family_url, "Active Family"),
+            (finished_card, finished_family_url, "Finished Family"),
+        ):
+            with self.subTest(title=title):
+                self.assertIn("stretched-card-link", card)
+                self.assertIn(
+                    f'class="course-link" href="{family_url}">{title}</a>',
+                    card,
+                )
+                self.assertEqual(card.count("<a "), 1)
+                self.assertNotIn("onclick=", card)
+                self.assertNotIn("window.location.href", card)
 
     def test_catalogue_has_one_family_card_for_multiple_cohorts(self):
         today = timezone.localdate()
@@ -243,5 +254,12 @@ class CourseListOrderingTest(CourseListViewTestBase):
             "course_family",
             kwargs={"course_slug": upcoming.course.slug},
         )
-        self.assertIn(f"window.location.href='{family_url}'", content)
-        self.assertIn(f'href="{family_url}">Upcoming Course</a>', content)
+        upcoming_card = self.course_card_html(content, upcoming)
+        self.assertIn("stretched-card-link", upcoming_card)
+        self.assertIn(
+            f'class="course-link" href="{family_url}">Upcoming Course</a>',
+            upcoming_card,
+        )
+        self.assertEqual(upcoming_card.count("<a "), 1)
+        self.assertNotIn("onclick=", upcoming_card)
+        self.assertNotIn("window.location.href", upcoming_card)

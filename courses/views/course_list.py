@@ -471,10 +471,6 @@ def open_registration_registered_total(open_registration_family_cards):
     return sum(counts)
 
 
-# Preserve existing dark scenes while light illustrations follow the family.
-HERO_COLLAGE_DARK_ILLUSTRATIONS = ("reading", "pipeline", "shipping", "learner")
-
-
 def hero_collage_cards(active_family_cards, open_registration_family_cards):
     """Pair up to four real family titles with the hero's decorative artwork."""
 
@@ -493,9 +489,8 @@ def hero_collage_cards(active_family_cards, open_registration_family_cards):
         {
             "title": title,
             "family_slug": family_slug,
-            "dark_illustration": HERO_COLLAGE_DARK_ILLUSTRATIONS[index],
         }
-        for index, (family_slug, title) in enumerate(ordered_families[:4])
+        for family_slug, title in ordered_families[:4]
     ]
 
 

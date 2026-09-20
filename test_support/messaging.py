@@ -5,6 +5,7 @@ import os
 import re
 import stat
 import zipfile
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -111,12 +112,19 @@ class CaptureMailbox:
         return message
 
 
-def scan_artifacts(root: Path, *, canaries: tuple[str, ...]) -> tuple[Path, ...]:
+def scan_artifacts(
+    root: Path,
+    *,
+    canaries: tuple[str, ...],
+    paths: Iterable[Path] | None = None,
+) -> tuple[Path, ...]:
     """Fail closed before artifact publication if any protected canary escaped."""
 
     boundary = root.resolve(strict=True)
     found: list[Path] = []
-    for path in sorted(root.rglob("*")):
+    explicit_paths = paths is not None
+    candidates = sorted(root.rglob("*") if paths is None else paths)
+    for path in candidates:
         if path.is_symlink():
             try:
                 target = path.resolve(strict=True)
@@ -126,6 +134,15 @@ def scan_artifacts(root: Path, *, canaries: tuple[str, ...]) -> tuple[Path, ...]
                 raise CaptureSafetyError("artifact scan crossed its ownership boundary")
             # Pytest creates internal convenience links below its owned basetemp.
             # Their targets are scanned through their canonical paths.
+            continue
+        if explicit_paths:
+            try:
+                lexical = path.absolute()
+            except OSError as error:
+                raise CaptureSafetyError("artifact path could not be resolved") from error
+            if not lexical.is_relative_to(boundary):
+                raise CaptureSafetyError("artifact scan crossed its ownership boundary")
+        if not path.exists():
             continue
         if not path.is_file():
             continue

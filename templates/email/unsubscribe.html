@@ -74,18 +74,26 @@
     <form method="post" class="unsubscribe-form">
       <fieldset class="unsubscribe-options">
         <legend class="mono-label mono-label-indigo">What would you like to stop?</legend>
-        {% for choice in scope_choices %}
-          <label class="unsubscribe-option" for="scope-{{ choice.value }}">
+        {% for value, label in scope_choices %}
+          <label class="unsubscribe-option" for="scope-{{ value }}">
             <input
               type="radio"
-              id="scope-{{ choice.value }}"
+              id="scope-{{ value }}"
               name="scope"
-              value="{{ choice.value }}"
-              {% if choice.value == chosen_scope or not chosen_scope and forloop.first %}checked{% endif %}
+              value="{{ value }}"
+              {% if value == chosen_scope or not chosen_scope and forloop.first %}checked{% endif %}
             >
             <span class="unsubscribe-option-text">
-              <strong>{{ choice.label }}</strong>
-              <span>{{ choice.description }}</span>
+              <strong>{{ label }}</strong>
+              <span>
+                {% if value == "client" %}
+                  Only marketing email sent by DataTalks.Club.
+                {% elif value == "audience" %}
+                  Only email sent to this mailing list.
+                {% else %}
+                  All marketing email covered by this address.
+                {% endif %}
+              </span>
             </span>
           </label>
         {% endfor %}

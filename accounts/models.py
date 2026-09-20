@@ -8,6 +8,31 @@ from django.utils import timezone
 
 
 class User(AbstractUser):
+    email_submission_confirmations = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Mail category opt-out for submission confirmations and score "
+            "emails. Unset means allowed."
+        ),
+    )
+    email_deadline_reminders = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Mail category opt-out for deadline reminders. Unset means "
+            "allowed."
+        ),
+    )
+    email_course_updates = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Mail category opt-out for general course-related emails. "
+            "Unset means allowed."
+        ),
+    )
+
     preferred_timezone = models.CharField(
         verbose_name="Preferred timezone",
         max_length=100,

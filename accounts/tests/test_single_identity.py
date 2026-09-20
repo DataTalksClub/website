@@ -11,34 +11,35 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 from allauth.account.models import EmailAddress
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.models import SocialAccount
+from django.apps import apps as global_apps
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.models import Session
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, models, transaction
 from django.test import (
     Client,
     RequestFactory,
     SimpleTestCase,
     TestCase,
 )
+from django.urls import resolve
 from django.utils import timezone
 
 from accounts.auth import ConsolidatingSocialAccountAdapter
-from accounts.identity_inventory import account_inventory
+from accounts.identity_inventory import (
+    ACCOUNT_RELATIONS,
+    account_inventory,
+    relationship_evidence,
+    stale_account_relations,
+    unclassified_account_relations,
+)
 from accounts.identity_resolution import resolve_durable_user_id
 from accounts.models import (
     User,
 )
 from accounts.navigation import SAFE_ACCOUNT_DESTINATION, safe_next_path
 from accounts.studio_roles import synchronize_studio_roles
-from core.models import AuditEvent
-from management_api.authentication import authenticate as authenticate_management
-from management_auth.constants import DIGEST_ALGORITHM, DIGEST_VERSION
-from management_auth.models import APICredential, APIPrincipal
-from management_auth.tokens import encode_secret, generate_token
-from review_import.manifest import is_sensitive_table
-from courses.models.learner_profile import LearnerProfile
 from accounts_ext.models import (
     AccountIdentityAlias,
     AccountIdentityQuarantine,
@@ -46,6 +47,13 @@ from accounts_ext.models import (
     identity_state_of,
     set_identity_state,
 )
+from core.models import AuditEvent
+from courses.models.learner_profile import LearnerProfile
+from management_api.authentication import authenticate as authenticate_management
+from management_auth.constants import DIGEST_ALGORITHM, DIGEST_VERSION
+from management_auth.models import APICredential, APIPrincipal
+from management_auth.tokens import encode_secret, generate_token
+from review_import.manifest import is_sensitive_table
 
 TRANSITION_BYPASS_NEXT_VALUES = (
     "/courses/../accounts/continue/",
@@ -94,7 +102,9 @@ def create_verified_user(
 ) -> User:
     identity_state = fields.pop("identity_state", None)
     normalized_email = fields.pop("normalized_email", None)
-    profile_values = {name: fields.pop(name) for name in list(fields) if name in LEARNER_PROFILE_KWARGS}
+    profile_values = {
+        name: fields.pop(name) for name in list(fields) if name in LEARNER_PROFILE_KWARGS
+    }
     user = User.objects.create_user(
         username=username,
         email=email,
@@ -151,9 +161,7 @@ class SingleIdentityModelTests(TestCase):
 
         # The conditional unique index moved onto IdentityState with the
         # contract migration, under its original name (plan D3.1d).
-        IdentityState.objects.filter(user=first).update(
-            identity_state=IdentityState.States.ACTIVE
-        )
+        IdentityState.objects.filter(user=first).update(identity_state=IdentityState.States.ACTIVE)
         with self.assertRaises(IntegrityError), transaction.atomic():
             IdentityState.objects.filter(user=second).update(
                 identity_state=IdentityState.States.ACTIVE
@@ -234,6 +242,17 @@ class SafeNextCanonicalizationTests(SimpleTestCase):
             self.safe_next("?tab=still-self"),
             SAFE_ACCOUNT_DESTINATION,
         )
+
+    def test_recipient_private_routes_never_echo_their_token_into_login(self) -> None:
+        for path in (
+            "/unsubscribe/synthetic-recipient-token",
+            "/t/c/synthetic-recipient-token",
+            "/t/o/synthetic-recipient-token.gif",
+        ):
+            with self.subTest(path=path):
+                request = self.factory.get(path)
+                request.resolver_match = resolve(path)
+                self.assertEqual(safe_next_path(request), SAFE_ACCOUNT_DESTINATION)
 
 
 class DurableAuthenticationTests(TestCase):
@@ -675,7 +694,10 @@ class SharedAccountSurfaceTests(TestCase):
 
         self.assertEqual(inventory["auth_user_model"], "accounts.User")
         self.assertEqual(inventory["user_table"], "accounts_user")
-        self.assertEqual(len(inventory["dependent_relations"]), 20)
+        # D3.3: not a hand-written count. See AccountRelationGuardTests below
+        # for the actual ratchet -- this only checks the report reflects
+        # whatever ACCOUNT_RELATIONS currently classifies.
+        self.assertEqual(len(inventory["dependent_relations"]), len(ACCOUNT_RELATIONS))
         self.assertEqual(len(inventory["many_to_many_relations"]), 3)
         relation_keys = {
             f"{item['model_label']}.{item['field_name']}"
@@ -735,6 +757,72 @@ class SharedAccountSurfaceTests(TestCase):
         names = [item["name"] for item in inventory["account_fields"]]
         self.assertEqual(sorted(names), sorted(set(names)))
         self.assertNotIn("user", names)
+
+    def test_relationship_evidence_covers_the_extension_tables(self) -> None:
+        # D3.3: relationship_evidence() proves the reviewed merge lost no
+        # rows. It has to reach accounts_ext_identitystate and
+        # courses_learnerprofile too -- the two tables the merge now writes
+        # (D3.1) -- not just the relations ACCOUNT_RELATIONS already named.
+        counts, checksums = relationship_evidence()
+
+        self.assertIn("accounts_ext.IdentityState.user", counts)
+        self.assertIn("courses.LearnerProfile.user", counts)
+        self.assertIn("accounts_ext.IdentityState.user", checksums)
+        self.assertIn("courses.LearnerProfile.user", checksums)
+        self.assertEqual(len(checksums["accounts_ext.IdentityState.user"]), 64)
+        self.assertEqual(len(checksums["courses.LearnerProfile.user"]), 64)
+
+
+class AccountRelationGuardTests(SimpleTestCase):
+    """D3.3: the guard is derived from the model graph, not from a list of
+    what the code already knows about.
+
+    ``ACCOUNT_RELATIONS`` used to be checked only by counting it against
+    itself (``assertEqual(len(inventory["dependent_relations"]), 20)``),
+    which can never notice a relation nobody added -- exactly how the D3.1
+    stack shipped two new relations onto ``User`` without either of them
+    appearing here. These tests instead walk ``User._meta.related_objects``
+    (``unclassified_account_relations``) and the reverse direction
+    (``stale_account_relations``), per playbook P7's "enumerate from both
+    directions".
+    """
+
+    def test_every_relation_onto_the_account_is_classified(self) -> None:
+        self.assertEqual(unclassified_account_relations(), [])
+
+    def test_every_named_relation_still_exists_in_the_model_graph(self) -> None:
+        # The other half of the same guard: a spec whose field was renamed
+        # or removed without updating ACCOUNT_RELATIONS would otherwise keep
+        # silently reporting a relation that no longer exists.
+        self.assertEqual(stale_account_relations(), [])
+
+    def test_an_unclassified_relation_fails_the_guard(self) -> None:
+        # Prove the guard actually rejects something, not just that it is
+        # quiet today: add a real, throwaway reverse relation onto the live
+        # User model, watch unclassified_account_relations() name it, then
+        # remove it. A guard never seen to fail is not a guard.
+        from accounts.models import User
+
+        class _ThrowawayAccountRelation(models.Model):
+            user = models.ForeignKey(
+                User,
+                on_delete=models.CASCADE,
+                related_name="throwaway_account_relation_d33",
+            )
+
+            class Meta:
+                app_label = "accounts"
+
+        try:
+            unclassified = unclassified_account_relations()
+        finally:
+            del global_apps.all_models["accounts"]["_throwawayaccountrelation"]
+            global_apps.clear_cache()
+
+        self.assertIn("accounts._ThrowawayAccountRelation.user", unclassified)
+        # And the cleanup actually took: the live model graph no longer
+        # shows it once the test is done making its point.
+        self.assertEqual(unclassified_account_relations(), [])
 
 
 class SessionLifecycleTests(TestCase):

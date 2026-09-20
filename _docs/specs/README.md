@@ -65,8 +65,8 @@ These defaults keep the first release useful without reproducing unrelated AI Sh
 - Provider acceptance is distinct from delivery. A lost or uncertain Relay acknowledgement becomes
   `ambiguous` and is never automatically resent; idempotent replay, reconciliation, or an audited
   operator action resolves it.
-- New website code calls neither Amazon SES nor Datamailer directly. Datamailer is read-only
-  migration/history/reconciliation input and receives no new sends. Until #22 approves the
+- New website code calls neither Amazon SES nor Datamailer directly. Datamailer is retired
+  (D1.2ca/D1.2cb): no client, no surfaces, no storage, and no path that could send. Until #22 approves the
   non-course purpose catalog, only the development Relay sender ID `courses` may be enabled and
   every other purpose or sender fails closed.
 - CloudFront/WAF uses the cheapest currently eligible plan that supports the complete reviewed

@@ -147,13 +147,11 @@ INSTALLED_APPS = [
     "community_base.coursework",
     "event_qna",
     "event_registrants",
-    "email_app.apps.EmailAppConfig",
     "studio.apps.StudioConfig",
     "management_api.apps.ManagementAPIConfig",
     "api.apps.ApiConfig",
     "community_base.jobs",
     "community_base.mail",
-    "data.apps.DataConfig",
     "studio_courses.apps.StudioCoursesConfig",
     # community-base kernel (D0.1a). D1.1 installs the package jobs app: the
     # site's jobs app and django_q are gone and durable intents run on Relay.
@@ -163,9 +161,18 @@ INSTALLED_APPS = [
     "community_base.kernel.apps.KernelConfig",
     "community_base.config",
     "community_base.api",
+    # D2.1b: package Studio is installed for the route partition and
+    # authorizer. The site still renders templates/studio/base.html.
+    "community_base.studio",
     # D2.2a: the package content sync engine. Sources and parsers are
     # site owned; nothing serving changes until the D2.2c route cutover.
     "community_base.content_sync",
+    # D7.1: the shared knowledge base app stores the wiki and documentation
+    # pages the dtc-podwiki and dtc-docs parsers write. The public routes,
+    # templates and the knowledge graph stay in `content`; only storage and
+    # hierarchy resolution are the package's. The package Studio and public
+    # URL modules are deliberately not mounted.
+    "community_base.knowledge_base",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -291,7 +298,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = Path(os.getenv("DTC_STATIC_ROOT") or (BASE_DIR / "staticfiles"))
 # Managed shared-curriculum assets are written through the default storage by
 # the schema-2 importer.  Production points MEDIA_ROOT at a durable,
 # non-source location via the environment; the default keeps developer bytes
@@ -341,49 +348,10 @@ PUBLIC_MEDIA_MAX_OBJECT_BYTES = int(
     os.getenv("PUBLIC_MEDIA_MAX_OBJECT_BYTES", str(8 * 1024 * 1024))
 )
 
-DATAMAILER_URL = os.getenv("DATAMAILER_URL", "")
-DATAMAILER_API_KEY = os.getenv("DATAMAILER_API_KEY", "")
-DATAMAILER_CLIENT = os.getenv("DATAMAILER_CLIENT", "")
-DATAMAILER_AUDIENCE = os.getenv("DATAMAILER_AUDIENCE", "")
-DATAMAILER_FROM_EMAIL = os.getenv("DATAMAILER_FROM_EMAIL", "")
-DATAMAILER_STRICT = env_flag("DATAMAILER_STRICT")
-DATAMAILER_TIMEOUT_SECONDS = float(os.getenv("DATAMAILER_TIMEOUT_SECONDS", "60"))
-DATAMAILER_TRANSACTIONAL_DRY_RUN = env_flag("DATAMAILER_TRANSACTIONAL_DRY_RUN")
-DATAMAILER_WEBHOOK_TOKEN = os.getenv("DATAMAILER_WEBHOOK_TOKEN", "")
-DATAMAILER_IMPORT_S3_BUCKET = os.getenv("DATAMAILER_IMPORT_S3_BUCKET", "")
-DATAMAILER_IMPORT_S3_PREFIX = os.getenv("DATAMAILER_IMPORT_S3_PREFIX", "datamailer-imports").strip(
-    "/"
-)
-DATAMAILER_IMPORT_URL_EXPIRES_SECONDS = int(
-    os.getenv("DATAMAILER_IMPORT_URL_EXPIRES_SECONDS", "3600")
-)
-DATAMAILER_IMPORT_S3_REGION = os.getenv("DATAMAILER_IMPORT_S3_REGION", "")
-DATAMAILER_SYNC_ON_USER_CREATE = env_flag("DATAMAILER_SYNC_ON_USER_CREATE", True)
-DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY = env_flag("DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY")
-
-# Relay recipient-link bridge.  Relay renders open, click and unsubscribe links
-# from its own ``PUBLIC_BASE_URL``; that value points at this site, so this site
-# has to answer ``/t/o/<token>.gif``, ``/t/c/<token>`` and ``/unsubscribe/<token>``
-# and hand each one to Relay in-VPC.  Relay has no public listener, so the base
-# below is the private ``http://relay.<zone>:8000`` address, never a public URL.
-#
-# Empty is the fail-closed default: with no configured Relay the three public
-# routes answer 404 and the click route never redirects, so an unconfigured
-# environment cannot become an open redirect.
-RELAY_LINK_BRIDGE_BASE_URL = os.getenv("RELAY_LINK_BRIDGE_BASE_URL", "").strip()
-# Distinct budgets, because the three endpoints have different stakes.  The open
-# pixel is the highest-volume route in the system and must never park a worker;
-# unsubscribe is low volume and prefers correctness over speed.
-RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS = float(
-    os.getenv("RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS", "2")
-)
-RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS = float(
-    os.getenv("RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS", "3")
-)
-RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS = float(
-    os.getenv("RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS", "10")
-)
-RELAY_LINK_BRIDGE_POOL_SIZE = int(os.getenv("RELAY_LINK_BRIDGE_POOL_SIZE", "16"))
+# Relay recipient-link bridge.  Since D1.2cb the package mail app owns the
+# open, click and unsubscribe routes and resolves the Relay base from
+# COMMUNITY_BASE["RELAY_BASE_URL"]; the old relay.link_bridge.* runtime
+# settings and their environment fallbacks are retired with the bridge client.
 
 
 NOINDEX = False
@@ -415,6 +383,7 @@ COMMUNITY_BASE: dict[str, Any] = {
     "JOBS_BACKEND": "relay",
     "MAIL_BACKEND": "relay",
     "STUDIO_TITLE": "DataTalks.Club Studio",
+    "STUDIO_AUTHORIZER": "studio.auth.package_studio_authorizer",
     # D4.1: canonical event routes carry the public ID, as they always
     # have on this site; slug-only spellings redirect.
     "EVENT_URL_STYLE": "public_id",
@@ -431,8 +400,8 @@ COMMUNITY_BASE: dict[str, Any] = {
     # DTC mail purposes; the ses_local renderer reads it and the deploy's
     # import_mail_templates step mirrors it into the Relay catalog.
     "MAIL_TEMPLATE_DIR": str(BASE_DIR / "email_templates"),
-    # D1.2b: the datamailer preference store keeps holding opt-outs while
-    # the five purposes send through the package; D1.2c replaces the store.
+    # D1.2ca: the three category opt-outs are fields on the site user and
+    # the resolver reads them directly; the remote Datamailer store is gone.
     "MAIL_PREFERENCE_RESOLVER": ("course_management.mail_preferences.resolve_mail_preference"),
     "RELAY_BASE_URL": os.getenv("RELAY_BASE_URL", ""),
     "RELAY_API_KEY": os.getenv("RELAY_API_KEY", ""),

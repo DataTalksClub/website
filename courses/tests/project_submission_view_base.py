@@ -1,7 +1,12 @@
 from dataclasses import dataclass
 from typing import Any
 
+from community_base.mail.service import IDEMPOTENCY_PATTERN
+
 from courses.tests.project_view_base import ProjectViewTestBase
+from courses.views.project_confirmation import (
+    project_confirmation_idempotency_key,
+)
 
 
 @dataclass(frozen=True)
@@ -26,14 +31,25 @@ class ProjectSubmissionViewTestBase(ProjectViewTestBase):
         self.assertEqual(response.status_code, 302)
         submission = self.get_project_submission()
         send_email.assert_called_once()
-        payload = send_email.call_args.args[0]
+        kwargs = send_email.call_args.kwargs
+        self.assertEqual(kwargs["purpose"], "project-submission-confirmation")
+        self.assertEqual(kwargs["to"], "test@test.com")
+        self.assertEqual(kwargs["category"], "submission-results")
+        self.assertEqual(
+            kwargs["idempotency_key"],
+            project_confirmation_idempotency_key(submission),
+        )
+        # The key reaches community_base.mail.send, which refuses anything
+        # the pattern below does not match; an aware isoformat's "+" is
+        # exactly that.
+        self.assertRegex(kwargs["idempotency_key"], IDEMPOTENCY_PATTERN)
+        context = kwargs["context"]
 
-        self.assert_project_confirmation_payload(payload, submission)
-        self.assert_project_confirmation_context(payload, submission)
-        self.assert_project_submission_fields(payload)
+        self.assert_project_confirmation_context(context, submission)
+        self.assert_project_submission_fields(context)
         self.assertIn(
             "GitHub repository: https://github.com/test/project",
-            payload["context"]["submission_summary_text"],
+            context["submission_summary_text"],
         )
 
     def prepare_project_with_learning_cap(self):

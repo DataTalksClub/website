@@ -28,8 +28,7 @@ boundary, where it is unchanged.
 
 What is deliberately *not* here:
 
-* **Secrets.**  ``DATAMAILER_API_KEY``, ``DATAMAILER_WEBHOOK_TOKEN``,
-  ``COURSE_REPOSITORY_WEBHOOK_SECRET`` and ``COURSE_HOMEWORK_ANSWER_KEYRING``
+* **Secrets.**  ``COURSE_REPOSITORY_WEBHOOK_SECRET`` and ``COURSE_HOMEWORK_ANSWER_KEYRING``
   stay in the environment.  ``core.configuration`` refuses to register them and
   that refusal is the point: this table is readable by anything that can read
   the database, and its values are written to an audit trail and a revision
@@ -58,9 +57,7 @@ from core.models import OperationalSetting
 
 OPERATIONAL_SETTINGS_DOCS_REFERENCE = "_docs/specs/01-platform-architecture.md"
 
-DATAMAILER_GROUP = "datamailer"
 PUBLIC_MEDIA_GROUP = "public_media"
-RELAY_LINK_BRIDGE_GROUP = "relay.link_bridge"
 OBSERVABILITY_GROUP = "observability"
 SITE_ORIGIN_GROUP = "site.origin"
 
@@ -238,167 +235,6 @@ INTEGER = OperationalSetting.ValueType.INTEGER
 STRING = OperationalSetting.ValueType.STRING
 
 
-# -- the transactional mailer ------------------------------------------------
-#
-# The API key and the webhook token are the two values this group cannot hold,
-# so they stay in the environment; everything an operator actually changes --
-# which audience a campaign lands in, which address it comes from, whether a
-# send is a dry run -- is here.
-
-DATAMAILER_URL = _declare(
-    key="datamailer.url",
-    group=DATAMAILER_GROUP,
-    label="Datamailer URL",
-    description="Base https URL of the transactional mailer. Empty means no mailer.",
-    value_type=STRING,
-    default="",
-    env_var="DATAMAILER_URL",
-    settings_attr="DATAMAILER_URL",
-    validation={"https_url": True, "trim": True},
-    validator=_url("https"),
-)
-
-DATAMAILER_CLIENT = _declare(
-    key="datamailer.client",
-    group=DATAMAILER_GROUP,
-    label="Datamailer client",
-    description="Client identifier this site sends under.",
-    value_type=STRING,
-    default="",
-    env_var="DATAMAILER_CLIENT",
-    settings_attr="DATAMAILER_CLIENT",
-    validation={"trim": True},
-    validator=_trimmed,
-)
-
-DATAMAILER_AUDIENCE = _declare(
-    key="datamailer.audience",
-    group=DATAMAILER_GROUP,
-    label="Datamailer audience",
-    description="Audience that newsletter subscriptions are written into.",
-    value_type=STRING,
-    default="",
-    env_var="DATAMAILER_AUDIENCE",
-    settings_attr="DATAMAILER_AUDIENCE",
-    validation={"trim": True},
-    validator=_trimmed,
-)
-
-DATAMAILER_FROM_EMAIL = _declare(
-    key="datamailer.from_email",
-    group=DATAMAILER_GROUP,
-    label="Sender address",
-    description=(
-        "Address course and event mail is sent from, or the named sender the "
-        "mailer resolves. One sender, never a list."
-    ),
-    value_type=STRING,
-    default="",
-    env_var="DATAMAILER_FROM_EMAIL",
-    settings_attr="DATAMAILER_FROM_EMAIL",
-    validation={"sender": True, "trim": True},
-    validator=_sender,
-)
-
-DATAMAILER_STRICT = _declare(
-    key="datamailer.strict",
-    group=DATAMAILER_GROUP,
-    label="Fail sends instead of degrading",
-    description="Raise on a mailer error rather than recording it and continuing.",
-    value_type=BOOLEAN,
-    default=False,
-    env_var="DATAMAILER_STRICT",
-    settings_attr="DATAMAILER_STRICT",
-)
-
-DATAMAILER_TIMEOUT_SECONDS = _declare(
-    key="datamailer.timeout_seconds",
-    group=DATAMAILER_GROUP,
-    label="Datamailer request timeout",
-    description="Seconds one mailer request may take before it is abandoned.",
-    value_type=INTEGER,
-    default=60,
-    env_var="DATAMAILER_TIMEOUT_SECONDS",
-    settings_attr="DATAMAILER_TIMEOUT_SECONDS",
-    validation={"minimum": 1, "maximum": 600},
-    validator=_bounded_int(minimum=1, maximum=600),
-)
-
-DATAMAILER_TRANSACTIONAL_DRY_RUN = _declare(
-    key="datamailer.transactional_dry_run",
-    group=DATAMAILER_GROUP,
-    label="Transactional dry run",
-    description="Record transactional sends without handing them to the mailer.",
-    value_type=BOOLEAN,
-    default=False,
-    env_var="DATAMAILER_TRANSACTIONAL_DRY_RUN",
-    settings_attr="DATAMAILER_TRANSACTIONAL_DRY_RUN",
-)
-
-DATAMAILER_SYNC_ON_USER_CREATE = _declare(
-    key="datamailer.sync_on_user_create",
-    group=DATAMAILER_GROUP,
-    label="Sync a new account to the mailer",
-    description="Send a newly registered account to the mailer as it is created.",
-    value_type=BOOLEAN,
-    default=True,
-    env_var="DATAMAILER_SYNC_ON_USER_CREATE",
-    settings_attr="DATAMAILER_SYNC_ON_USER_CREATE",
-)
-
-DATAMAILER_IMPORT_S3_BUCKET = _declare(
-    key="datamailer.import_s3_bucket",
-    group=DATAMAILER_GROUP,
-    label="Recipient import bucket",
-    description="Bucket recipient-list imports are staged in.",
-    value_type=STRING,
-    default="",
-    env_var="DATAMAILER_IMPORT_S3_BUCKET",
-    settings_attr="DATAMAILER_IMPORT_S3_BUCKET",
-    validation={"trim": True},
-    validator=_trimmed,
-)
-
-DATAMAILER_IMPORT_S3_PREFIX = _declare(
-    key="datamailer.import_s3_prefix",
-    group=DATAMAILER_GROUP,
-    label="Recipient import prefix",
-    description="Key prefix recipient-list imports are staged under.",
-    value_type=STRING,
-    default="datamailer-imports",
-    env_var="DATAMAILER_IMPORT_S3_PREFIX",
-    settings_attr="DATAMAILER_IMPORT_S3_PREFIX",
-    validation={"trim": True},
-    validator=_trimmed,
-)
-
-DATAMAILER_IMPORT_S3_REGION = _declare(
-    key="datamailer.import_s3_region",
-    group=DATAMAILER_GROUP,
-    label="Recipient import region",
-    description="Region of the recipient-list import bucket.",
-    value_type=STRING,
-    default="",
-    env_var="DATAMAILER_IMPORT_S3_REGION",
-    settings_attr="DATAMAILER_IMPORT_S3_REGION",
-    validation={"trim": True},
-    validator=_trimmed,
-)
-
-DATAMAILER_IMPORT_URL_EXPIRES_SECONDS = _declare(
-    key="datamailer.import_url_expires_seconds",
-    group=DATAMAILER_GROUP,
-    label="Recipient import link lifetime",
-    description="Seconds a staged recipient-list download link stays valid.",
-    value_type=INTEGER,
-    default=3600,
-    env_var="DATAMAILER_IMPORT_URL_EXPIRES_SECONDS",
-    settings_attr="DATAMAILER_IMPORT_URL_EXPIRES_SECONDS",
-    validation={"minimum": 60, "maximum": 86_400},
-    validator=_bounded_int(minimum=60, maximum=86_400),
-)
-
-
 # -- the public media store --------------------------------------------------
 
 PUBLIC_MEDIA_STORE_BACKEND = _declare(
@@ -497,78 +333,6 @@ PUBLIC_MEDIA_MAX_OBJECT_BYTES = _declare(
 )
 
 
-# -- the relay's link bridge -------------------------------------------------
-
-RELAY_LINK_BRIDGE_BASE_URL = _declare(
-    key="relay.link_bridge.base_url",
-    group=RELAY_LINK_BRIDGE_GROUP,
-    label="Relay link bridge base URL",
-    description=(
-        "Base URL of the relay that resolves open, click and unsubscribe links. "
-        "Relay has no public listener, so this is the private in-VPC address and "
-        "http is allowed. Empty means no relay, and the three public routes 404."
-    ),
-    value_type=STRING,
-    default="",
-    env_var="RELAY_LINK_BRIDGE_BASE_URL",
-    settings_attr="RELAY_LINK_BRIDGE_BASE_URL",
-    validation={"url": True, "schemes": ["https", "http"], "trim": True},
-    validator=_url("https", "http"),
-)
-
-RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS = _declare(
-    key="relay.link_bridge.open_timeout_seconds",
-    group=RELAY_LINK_BRIDGE_GROUP,
-    label="Open beacon timeout",
-    description="Seconds an open beacon may take before the pixel is served anyway.",
-    value_type=INTEGER,
-    default=2,
-    env_var="RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS",
-    settings_attr="RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS",
-    validation={"minimum": 1, "maximum": 30},
-    validator=_bounded_int(minimum=1, maximum=30),
-)
-
-RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS = _declare(
-    key="relay.link_bridge.click_timeout_seconds",
-    group=RELAY_LINK_BRIDGE_GROUP,
-    label="Click resolution timeout",
-    description="Seconds a click resolution may take before the reader is redirected anyway.",
-    value_type=INTEGER,
-    default=3,
-    env_var="RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS",
-    settings_attr="RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS",
-    validation={"minimum": 1, "maximum": 30},
-    validator=_bounded_int(minimum=1, maximum=30),
-)
-
-RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS = _declare(
-    key="relay.link_bridge.unsubscribe_timeout_seconds",
-    group=RELAY_LINK_BRIDGE_GROUP,
-    label="Unsubscribe timeout",
-    description="Seconds an unsubscribe may take before the reader is answered anyway.",
-    value_type=INTEGER,
-    default=10,
-    env_var="RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS",
-    settings_attr="RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS",
-    validation={"minimum": 1, "maximum": 60},
-    validator=_bounded_int(minimum=1, maximum=60),
-)
-
-RELAY_LINK_BRIDGE_POOL_SIZE = _declare(
-    key="relay.link_bridge.pool_size",
-    group=RELAY_LINK_BRIDGE_GROUP,
-    label="Relay connection pool size",
-    description="Connections kept open to the relay.",
-    value_type=INTEGER,
-    default=16,
-    env_var="RELAY_LINK_BRIDGE_POOL_SIZE",
-    settings_attr="RELAY_LINK_BRIDGE_POOL_SIZE",
-    validation={"minimum": 1, "maximum": 256},
-    validator=_bounded_int(minimum=1, maximum=256),
-)
-
-
 # -- observability -----------------------------------------------------------
 
 CLOUDWATCH_APP_METRIC_NAMESPACE = _declare(
@@ -640,18 +404,6 @@ CANONICAL_ORIGIN = _declare(
 #: the registry, so adding a setting without listing it here fails a test.
 OPERATIONAL_SETTING_KEYS: tuple[str, ...] = (
     CANONICAL_ORIGIN.key,
-    DATAMAILER_AUDIENCE.key,
-    DATAMAILER_CLIENT.key,
-    DATAMAILER_FROM_EMAIL.key,
-    DATAMAILER_IMPORT_S3_BUCKET.key,
-    DATAMAILER_IMPORT_S3_PREFIX.key,
-    DATAMAILER_IMPORT_S3_REGION.key,
-    DATAMAILER_IMPORT_URL_EXPIRES_SECONDS.key,
-    DATAMAILER_STRICT.key,
-    DATAMAILER_SYNC_ON_USER_CREATE.key,
-    DATAMAILER_TIMEOUT_SECONDS.key,
-    DATAMAILER_TRANSACTIONAL_DRY_RUN.key,
-    DATAMAILER_URL.key,
     CLOUDWATCH_APP_METRIC_NAMESPACE.key,
     CLOUDWATCH_APP_METRIC_REGION.key,
     OBSERVABILITY_EVENT_SCHEMA_VERSION.key,
@@ -662,9 +414,4 @@ OPERATIONAL_SETTING_KEYS: tuple[str, ...] = (
     PUBLIC_MEDIA_S3_REGION.key,
     PUBLIC_MEDIA_S3_TIMEOUT_SECONDS.key,
     PUBLIC_MEDIA_STORE_BACKEND.key,
-    RELAY_LINK_BRIDGE_BASE_URL.key,
-    RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS.key,
-    RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS.key,
-    RELAY_LINK_BRIDGE_POOL_SIZE.key,
-    RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS.key,
 )

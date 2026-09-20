@@ -157,10 +157,11 @@ def test_the_body_reads_at_a_measure_and_keeps_its_anchors(
 
     prose = page.locator(".prose")
     expect(prose).to_have_count(1)
-    # A reading measure, not the full 76rem shell: wide enough for prose, never
-    # the whole desktop window.
+    # Owner feedback aligned article prose with the ordinary 56rem content
+    # shell.  The shell's inline padding remains part of that bounded column,
+    # so the body is wide without approaching the full 76rem landing shell.
     width = prose.evaluate("(node) => node.getBoundingClientRect().width")
-    assert 480 <= width <= 640, width
+    assert 840 <= width <= 896, width
     # Every projected heading is on the page, at its own level, with its anchor.
     for block in headings:
         anchor = page.locator(f"#{block['id']}")

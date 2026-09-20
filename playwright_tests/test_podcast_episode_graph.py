@@ -15,9 +15,7 @@ from playwright_tests.accessibility_support import assert_accessible_page
 
 pytestmark = [pytest.mark.core]
 
-REPRESENTATIVE = (
-    "s23e06-data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for"
-)
+REPRESENTATIVE = "synthetic-episode-one"
 SCREENSHOTS = Path(".tmp/screenshots/issue-217")
 PODCAST_GRAPH_PATH_PATTERN = re.compile(r"^/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*$")
 
@@ -28,6 +26,69 @@ def _episode(slug: str) -> dict[str, Any]:
     record = catalogue.podcast(slug)
     assert record is not None, slug
     return record
+
+
+def _graph_node(node_id: str, title: str, node_type: str, url: str) -> dict[str, str]:
+    return {
+        "id": node_id,
+        "label": title,
+        "title": title,
+        "type": node_type,
+        "url": url,
+    }
+
+
+def _synthetic_episode_graph(episode: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    """A deterministic full neighbourhood owned by this browser contract."""
+
+    neighbours = [
+        _graph_node("wiki:mlops", "MLOps", "wiki", "/wiki/mlops"),
+        _graph_node(
+            "person:synthetic-rich-profile",
+            "Synthetic Rich Profile",
+            "person",
+            "/people/synthetic-rich-profile.html",
+        ),
+        _graph_node(
+            "wiki:feature-stores",
+            "Feature Stores",
+            "wiki",
+            "/wiki/feature-stores",
+        ),
+        *(
+            _graph_node(
+                f"wiki:synthetic-connection-{index:02d}",
+                f"Synthetic Connection {index:02d}",
+                "wiki",
+                f"/wiki/synthetic-wiki-bulk-{index:04d}",
+            )
+            for index in range(1, 21)
+        ),
+    ]
+    hub_id = f"podcast:{episode['slug']}"
+    return {
+        "nodes": [
+            _graph_node(hub_id, episode["title"], "podcast", episode["public_path"]),
+            *neighbours,
+        ],
+        "links": [
+            {
+                "kind": "related",
+                "source": hub_id,
+                "target": neighbour["id"],
+                "weight": len(neighbours) - index,
+            }
+            for index, neighbour in enumerate(neighbours)
+        ],
+    }
+
+
+@pytest.fixture
+def graph_episode(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    episode = _episode(REPRESENTATIVE)
+    graph = _synthetic_episode_graph(episode)
+    monkeypatch.setattr(catalogue, "wiki_graph", lambda: graph)
+    return episode
 
 
 def _hierarchical_graph_path(episode: dict[str, Any]) -> str:
@@ -124,8 +185,9 @@ def _assert_no_external_graph_request(urls: list[str]) -> None:
 def test_episode_graph_has_complete_links_and_a_bounded_visual_on_desktop(
     page: Page,
     live_server,
+    graph_episode: dict[str, Any],
 ) -> None:
-    episode = _episode(REPRESENTATIVE)
+    episode = graph_episode
     requests: list[str] = []
     page.on("request", lambda request: requests.append(request.url))
     page.set_viewport_size({"width": 1440, "height": 900})
@@ -147,15 +209,15 @@ def test_episode_graph_has_complete_links_and_a_bounded_visual_on_desktop(
     )
     _assert_graph_hrefs_are_safe(visual)
     graph_links = page.locator("#episode-graph-connections")
-    expect(graph_links.get_by_role("link", name=re.compile("Slawomir Tulski"))).to_have_attribute(
-        "href", "/people/slawomirtulski.html"
+    expect(
+        graph_links.get_by_role("link", name=re.compile("Synthetic Rich Profile"))
+    ).to_have_attribute("href", "/people/synthetic-rich-profile.html")
+    expect(graph_links.get_by_role("link", name=re.compile(r"^MLOps \("))).to_have_attribute(
+        "href", "/wiki/mlops"
     )
     expect(
-        graph_links.get_by_role("link", name=re.compile(r"^Data Engineering \("))
-    ).to_have_attribute("href", "/wiki/data-engineering")
-    expect(
-        graph_links.get_by_role("link", name=re.compile(r"^Portfolio Projects \("))
-    ).to_have_attribute("href", "/wiki/portfolio-projects")
+        graph_links.get_by_role("link", name=re.compile(r"^Feature Stores \("))
+    ).to_have_attribute("href", "/wiki/feature-stores")
 
     first_connection = page.locator("#episode-graph-connections a").first
     first_connection.focus()
@@ -168,8 +230,8 @@ def test_episode_graph_has_complete_links_and_a_bounded_visual_on_desktop(
     expect(page).to_have_url(f"{live_server.url}{visual_target}")
     page.go_back(wait_until="networkidle")
     expect(page).to_have_url(f"{live_server.url}{episode['public_path']}")
-    _screenshot(page, "s23e06-desktop-1440x900.png")
-    _graph_screenshot(page, "s23e06-desktop-1440x900-graph.png")
+    _screenshot(page, "synthetic-episode-desktop-1440x900.png")
+    _graph_screenshot(page, "synthetic-episode-desktop-1440x900-graph.png")
     _assert_no_horizontal_overflow(page)
     _assert_no_external_graph_request(requests)
 
@@ -178,8 +240,9 @@ def test_episode_graph_has_complete_links_and_a_bounded_visual_on_desktop(
 def test_episode_graph_is_accessible_on_a_mobile_viewport(
     page: Page,
     live_server,
+    graph_episode: dict[str, Any],
 ) -> None:
-    episode = _episode(REPRESENTATIVE)
+    episode = graph_episode
     page.set_viewport_size({"width": 390, "height": 844})
     _stub_video_provider(page)
     response = page.goto(f"{live_server.url}{episode['public_path']}", wait_until="networkidle")
@@ -204,13 +267,13 @@ def test_episode_graph_is_accessible_on_a_mobile_viewport(
     page.go_back(wait_until="networkidle")
     expect(page).to_have_url(f"{live_server.url}{episode['public_path']}")
     _assert_narrow_hub_clear(page)
-    _screenshot(page, "s23e06-mobile-390x844-light.png")
-    _graph_screenshot(page, "s23e06-mobile-390x844-light-graph.png")
+    _screenshot(page, "synthetic-episode-mobile-390x844-light.png")
+    _graph_screenshot(page, "synthetic-episode-mobile-390x844-light-graph.png")
     page.locator("#dark-mode-toggle").click()
     expect(page.locator("body.dark-mode")).to_have_count(1)
     _assert_narrow_hub_clear(page)
-    _screenshot(page, "s23e06-mobile-390x844-dark.png")
-    _graph_screenshot(page, "s23e06-mobile-390x844-dark-graph.png")
+    _screenshot(page, "synthetic-episode-mobile-390x844-dark.png")
+    _graph_screenshot(page, "synthetic-episode-mobile-390x844-dark-graph.png")
     page.locator("#dark-mode-toggle").click()
     expect(page.locator("body.dark-mode")).to_have_count(0)
     _assert_no_horizontal_overflow(page)
@@ -220,8 +283,9 @@ def test_episode_graph_is_accessible_on_a_mobile_viewport(
 def test_episode_graph_has_a_native_fallback_without_javascript(
     browser: Browser,
     live_server,
+    graph_episode: dict[str, Any],
 ) -> None:
-    episode = _episode(REPRESENTATIVE)
+    episode = graph_episode
     context = browser.new_context(
         java_script_enabled=False,
         viewport={"width": 390, "height": 844},
@@ -250,8 +314,8 @@ def test_episode_graph_has_a_native_fallback_without_javascript(
         connection = page.locator("#episode-graph-connections a").first
         connection.focus()
         expect(connection).to_be_focused()
-        _screenshot(page, "s23e06-mobile-390x844-no-js.png")
-        _graph_screenshot(page, "s23e06-mobile-390x844-no-js-graph.png")
+        _screenshot(page, "synthetic-episode-mobile-390x844-no-js.png")
+        _graph_screenshot(page, "synthetic-episode-mobile-390x844-no-js-graph.png")
         _assert_no_horizontal_overflow(page)
 
     finally:

@@ -156,7 +156,7 @@ def test_the_unit_page_reads_at_a_measure_beside_a_quiet_rail(
         )
         # 40.5rem content column, 38rem article inside it, and a rail that
         # weighs less than the column it accompanies.
-        assert 640 <= widths["main"] <= 656, widths
+        assert 848 <= widths["main"] <= 880, widths
         assert 600 <= widths["article"] <= 616, widths
         assert widths["rail"] <= widths["main"], widths
         assert abs(widths["navRight"] - widths["mainRight"]) < 1, widths

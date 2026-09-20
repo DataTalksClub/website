@@ -26,16 +26,21 @@ from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount
 from django.conf import settings
 from django.db import IntegrityError
-from django.test import Client, TestCase, TransactionTestCase
+from django.test import Client, SimpleTestCase, TestCase, TransactionTestCase
 from django.utils import timezone
 
 from accounts.identity_resolution import resolve_durable_user_id
 from accounts.models import (
-    User,
     Token,
+    User,
 )
 from accounts.tests.test_single_identity import create_verified_user
-from courses.models.learner_profile import LearnerProfile
+from accounts_ext.models import (
+    AccountIdentityAlias,
+    AccountIdentityQuarantine,
+    AccountReconciliationRun,
+    IdentityState,
+)
 from core.models import AuditEvent, StaffSession
 from courses.models import (
     Cohort,
@@ -46,16 +51,12 @@ from courses.models import (
     ProjectSubmission,
     Submission,
 )
-from accounts_ext.models import (
-    AccountIdentityAlias,
-    AccountIdentityQuarantine,
-    AccountReconciliationRun,
-    IdentityState,
-)
+from courses.models.learner_profile import LearnerProfile
 from management_auth.models import APIPrincipal
 from scripts.prod.account_reconciliation import (
     ReconciliationBlocked,
     ReconciliationError,
+    _check_relationship_evidence_unchanged,
     apply_reviewed_mapping,
     dry_run_reconciliation,
     parse_mapping_document,
@@ -87,6 +88,73 @@ def mapping_document(
             }
         ],
     }
+
+
+class RelationshipEvidenceInvariantTests(SimpleTestCase):
+    """D3.3: the apply-time compare-and-swap has two different rules under
+    one dict, now that it covers accounts_ext.IdentityState/
+    courses.LearnerProfile and accounts_ext.AccountIdentityAlias.survivor
+    alongside every reparented relation.
+
+    A reparented relation (``courses.Enrollment`` and the rest of
+    ``ACCOUNT_RELATIONS``) must come back byte-identical: reparenting only
+    changes who owns a row, never how many exist, so any change there is
+    real. The append-only keys (the two extension tables, plus the merge
+    ledger itself) are different -- this very apply is documented to add a
+    row there (a backfilled extension row, or the one new alias row every
+    successful merge creates), so their rule is a subset check: nothing
+    already there may be lost, but a new row is not a regression.
+
+    Found the hard way: an earlier version of this fix only exempted the two
+    extension keys, and every apply in this file failed, because the alias
+    ledger gains a row on every single successful merge, not just the
+    missing-row edge case. That regression is the second test below.
+    """
+
+    def test_extension_table_gaining_a_row_is_not_a_lost_row(self) -> None:
+        before = {"accounts_ext.IdentityState.user": frozenset({("1", 10)})}
+        after = {
+            "accounts_ext.IdentityState.user": frozenset({("1", 10), ("2", 10)}),
+        }
+        _check_relationship_evidence_unchanged(before=before, after=after)
+
+    def test_merge_ledger_gaining_its_new_alias_row_is_not_a_lost_row(self) -> None:
+        before = {"accounts_ext.AccountIdentityAlias.survivor": frozenset()}
+        after = {
+            "accounts_ext.AccountIdentityAlias.survivor": frozenset({("1", 10)}),
+        }
+        _check_relationship_evidence_unchanged(before=before, after=after)
+
+    def test_extension_table_losing_a_row_still_raises(self) -> None:
+        before = {
+            "courses.LearnerProfile.user": frozenset({("1", 10), ("2", 10)}),
+        }
+        after = {"courses.LearnerProfile.user": frozenset({("2", 10)})}
+        with self.assertRaises(IntegrityError):
+            _check_relationship_evidence_unchanged(before=before, after=after)
+
+    def test_merge_ledger_losing_a_row_still_raises(self) -> None:
+        before = {
+            "accounts_ext.AccountIdentityAlias.survivor": frozenset({("1", 10), ("2", 10)}),
+        }
+        after = {"accounts_ext.AccountIdentityAlias.survivor": frozenset({("2", 10)})}
+        with self.assertRaises(IntegrityError):
+            _check_relationship_evidence_unchanged(before=before, after=after)
+
+    def test_an_ordinary_reparented_relation_gaining_a_row_still_raises(self) -> None:
+        # Anything that is not one of the three append-only keys keeps the
+        # stricter rule: a new row appearing there is exactly the kind of
+        # unexplained change the guard exists to catch.
+        before = {"courses.Enrollment.student": frozenset({("1", 10)})}
+        after = {"courses.Enrollment.student": frozenset({("1", 10), ("2", 10)})}
+        with self.assertRaises(IntegrityError):
+            _check_relationship_evidence_unchanged(before=before, after=after)
+
+    def test_an_ordinary_reparented_relation_losing_a_row_raises(self) -> None:
+        before = {"courses.Enrollment.student": frozenset({("1", 10), ("2", 10)})}
+        after = {"courses.Enrollment.student": frozenset({("1", 10)})}
+        with self.assertRaises(IntegrityError):
+            _check_relationship_evidence_unchanged(before=before, after=after)
 
 
 class ReconciliationDryRunTests(TestCase):
@@ -735,10 +803,11 @@ class ReconciliationTransactionalFailureTests(TransactionTestCase):
     def test_stale_survivor_state_fails_closed_before_reparenting(self) -> None:
         from scripts.prod.account_reconciliation import _profile_changes
 
-        def change_survivor_after_snapshot(*, source, survivor, mapping):
+        def change_survivor_after_snapshot(*, source, survivor, survivor_profile_row, mapping):
             changes = _profile_changes(
                 source=source,
                 survivor=survivor,
+                survivor_profile_row=survivor_profile_row,
                 mapping=mapping,
             )
             User.objects.filter(pk=survivor.pk).update(
@@ -754,6 +823,45 @@ class ReconciliationTransactionalFailureTests(TransactionTestCase):
             self.assertRaises(ReconciliationBlocked) as raised,
         ):
             apply_reviewed_mapping(self.plan())
+
+        self.assertEqual(
+            raised.exception.conflicts[0]["reason_codes"],
+            ["reconciliation_integrity_conflict"],
+        )
+        self.assert_no_merge_writes()
+        self.survivor.refresh_from_db()
+        self.assertEqual(self.survivor.last_name, "")
+        self.assertEqual(AccountIdentityQuarantine.objects.count(), 1)
+
+    def test_write_landing_between_survivor_guard_check_and_write_fails_closed(self) -> None:
+        document = mapping_document(
+            source=self.source,
+            survivor=self.survivor,
+            field_decisions={"last_name": "source"},
+            evidence=["manual_verified_ownership"],
+        )
+        self.source.last_name = "Decided Last Name"
+        self.source.save(update_fields=["last_name"])
+        plan = parse_mapping_document(document)
+
+        real_filter = IdentityState.objects.filter
+        race = {"fired": False}
+
+        def racing_survivor_identity_check(*args, **kwargs):
+            if not race["fired"] and kwargs.get("user_id") == self.survivor.pk:
+                race["fired"] = True
+                User.objects.filter(pk=self.survivor.pk).update(
+                    preferred_timezone="Antarctica/Troll",
+                )
+            return real_filter(*args, **kwargs)
+
+        with patch.object(
+            IdentityState.objects,
+            "filter",
+            side_effect=racing_survivor_identity_check,
+        ):
+            with self.assertRaises(ReconciliationBlocked) as raised:
+                apply_reviewed_mapping(plan)
 
         self.assertEqual(
             raised.exception.conflicts[0]["reason_codes"],

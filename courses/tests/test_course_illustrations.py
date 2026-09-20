@@ -73,19 +73,6 @@ class CourseIllustrationTests(SimpleTestCase):
         for image in self.render_images(family_slug="ml-zoomcamp", loading="lazy"):
             self.assertEqual(image["loading"], "lazy")
 
-    def test_existing_catalogue_dark_variants_are_preserved(self):
-        variants = {
-            "reading": ("course-learning-dark.webp", "1024", "1024"),
-            "pipeline": ("home-step-2-dark.webp", "957", "532"),
-            "shipping": ("home-step-3-dark.webp", "957", "532"),
-            "learner": ("home-hero-dark.webp", "1470", "834"),
-        }
-        for variant, (filename, width, height) in variants.items():
-            with self.subTest(variant=variant):
-                _, dark = self.render_images(family_slug="ml-zoomcamp", dark_variant=variant)
-                self.assertEqual(dark["src"], static("core/illustrations/" + filename))
-                self.assertEqual((dark["width"], dark["height"]), (width, height))
-
     def test_collage_keeps_database_title_with_family_after_ordering_and_deduplication(self):
         def card(slug, title):
             return SimpleNamespace(family=SimpleNamespace(slug=slug), title=title)
@@ -103,17 +90,13 @@ class CourseIllustrationTests(SimpleTestCase):
         with patch("courses.views.course_list.COURSE_FAMILIES", [("ml-zoomcamp", "Not copy")]):
             cards = hero_collage_cards(active, upcoming)
         self.assertEqual(
-            [(item["family_slug"], item["title"]) for item in cards],
+            cards,
             [
-                ("ml-zoomcamp", "Database ML title"),
-                ("de-zoomcamp", "Database DE title"),
-                ("new-course", "New course title"),
-                ("another-course", "Another title"),
+                {"family_slug": "ml-zoomcamp", "title": "Database ML title"},
+                {"family_slug": "de-zoomcamp", "title": "Database DE title"},
+                {"family_slug": "new-course", "title": "New course title"},
+                {"family_slug": "another-course", "title": "Another title"},
             ],
-        )
-        self.assertEqual(
-            [item["dark_illustration"] for item in cards],
-            ["reading", "pipeline", "shipping", "learner"],
         )
 
     def test_empty_catalogue_has_no_invented_collage(self):
@@ -198,4 +181,8 @@ class CourseIllustrationPageTests(TestCase):
         for card in response.context["hero_collage"]:
             self.assertContains(
                 response, static(f"core/illustrations/course-{card['family_slug']}.webp")
+            )
+            self.assertContains(
+                response,
+                static(f"core/illustrations/course-{card['family_slug']}-dark.webp"),
             )

@@ -18,9 +18,8 @@ model.
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.db import IntegrityError, connection, transaction
 from django.db.migrations.loader import MigrationLoader
-from django.db import connection
 from django.test import TestCase
 
 from accounts_ext.models import IdentityState
@@ -84,9 +83,7 @@ class ExtensionModelsExistTestCase(TestCase):
             self.assertNotIn(field_name, field_names)
 
     def test_the_moved_constraint_left_the_user_model(self):
-        constraint_names = {
-            constraint.name for constraint in get_user_model()._meta.constraints
-        }
+        constraint_names = {constraint.name for constraint in get_user_model()._meta.constraints}
         self.assertNotIn("accounts_active_normalized_email_unique", constraint_names)
 
     def test_the_dtc_only_columns_stayed(self):
@@ -169,9 +166,7 @@ class SavePathInvariantTestCase(TestCase):
     def test_a_partial_save_without_email_does_not_touch_the_row(self):
         # Mirror of the old persistence rule: the normalized column was only
         # rewritten when the save persisted it.
-        IdentityState.objects.filter(user=self.user).update(
-            normalized_email="held@example.com"
-        )
+        IdentityState.objects.filter(user=self.user).update(normalized_email="held@example.com")
         self.user.preferred_timezone = "Europe/Berlin"
         self.user.save(update_fields=["preferred_timezone"])
         self.assertEqual(self._row().normalized_email, "held@example.com")
@@ -204,7 +199,7 @@ class IdentityStateConstraintTestCase(TestCase):
         row = IdentityState.objects.get(user=self.user)
         row.normalized_email = "same@example.com"
         row.identity_state = IdentityState.States.ACTIVE
-        with self.assertRaises(Exception), transaction.atomic():
+        with self.assertRaises(IntegrityError), transaction.atomic():
             row.save()
 
     def test_duplicate_normalized_email_is_allowed_outside_active(self):

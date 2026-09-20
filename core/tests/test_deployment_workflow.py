@@ -84,9 +84,15 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # ignore_missing_imports override for `events.models` -- the Django plugin
 # resolves the `events` label to that module name, which community_base.events
 # owns since D4.1 -- and a run of quality-gate opt-ins, both configuration only.
-STUDIO_COURSES_PYPROJECT_SHA256 = "766129bfc5250290b8750ea85350e3d678557fbac41b17033b9bd9499cb8880f"
+# D2.1a moved the pin again, from v0.4.7 to the v0.5.4 release (444538cd).
+# D1.2ca/D1.2cb then edit pyproject config-only (mypy overrides, ruff exclude
+# of the retired data app). Issue #430 adds six strict account/course modules;
+# the post-pull review also enrolls the new Luma event reader that the upstream
+# runtime-removal merge left outside the adoption gate. These reviewed config
+# bytes move the seal without weakening Gate B.
+STUDIO_COURSES_PYPROJECT_SHA256 = "1b8e296791a327cf219ad8c29e843fae3f76424a4f88eb836f287c0b0864b3e1"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "eaa1574e661b6d84a8bc406cba443a5e242cbafdcf58d2a5fdd5394385408f9c"
+    "1b207c8d1fc0e0b365c780324425b61fe056a5bc9ab9e8b7c622627734da99ea"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
@@ -97,6 +103,16 @@ DJANGO_SECRET_ARN = f"{SECRET_PREFIX}/django-secret-key-Ef34Gh"
 
 
 class DeploymentWorkflowContractTests(SimpleTestCase):
+    def test_pyproject_seal_rejects_synthetic_unreviewed_drift(self) -> None:
+        reviewed = (ROOT / "pyproject.toml").read_bytes()
+        synthetic_drift = reviewed + b"\n# unreviewed synthetic drift\n"
+
+        self.assertEqual(hashlib.sha256(reviewed).hexdigest(), STUDIO_COURSES_PYPROJECT_SHA256)
+        self.assertNotEqual(
+            hashlib.sha256(synthetic_drift).hexdigest(),
+            STUDIO_COURSES_PYPROJECT_SHA256,
+        )
+
     def test_django_gate_fetches_history_for_frozen_evidence_tests(self) -> None:
         document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         checkout = next(

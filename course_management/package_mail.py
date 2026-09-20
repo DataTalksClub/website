@@ -1,9 +1,9 @@
 """Sending the DTC mail purposes through the package mail app (D1.2b).
 
 The five purposes D1.2a committed as ``email_templates/`` are sent through
-``community_base.mail.send`` with the idempotency keys the datamailer
+``community_base.mail.send`` with the idempotency keys the Datamailer
 outbox used, so a replay of the same business event returns the original
-``EmailDelivery`` instead of sending twice. The datamailer keeps serving
+``EmailDelivery`` instead of sending twice. Before D1.2ca the Datamailer kept serving
 the legacy non-purpose flows (submission confirmations, score and
 peer-review notifications) until D1.2c retires it; only the five purposes
 moved here.
@@ -97,17 +97,15 @@ def _registration_verify_email_prompt(registration, email: str) -> str:
 def send_registration_confirmation_mail(registration):
     """Confirm a course registration through the package (D1.2b).
 
-    Replaces the datamailer transactional send and keeps its idempotency
+    Replaces the Datamailer transactional send and keeps its idempotency
     key ``registration-confirmation:<registration pk>`` and its
     ``email_course_updates`` preference category.
     """
 
-    from course_management.datamailer.payloads.registration_common import (
-        registration_email,
-    )
-    from course_management.datamailer.payloads.registration_confirmations import (
+    from course_management.mail_payloads import (
         registration_confirmation_course_context,
         registration_confirmation_urls,
+        registration_email,
     )
 
     email = registration_email(registration)
@@ -142,7 +140,7 @@ def send_enrollment_confirmation_mail(enrollment):
 
     Replaces the enrollment member-upsert outbox event: the enrollment
     itself is the replay boundary, so the key is derived from it. The
-    datamailer never sent an enrollment confirmation; this purpose is new
+    Datamailer never sent an enrollment confirmation; this purpose is new
     and fires on the same trigger the outbox event had.
     """
 
@@ -201,11 +199,11 @@ def send_deadline_reminder_mail(event, member, user=None):
 def send_certificate_ready_mail(enrollment):
     """Tell a graduate their certificate is ready (D1.2b).
 
-    Replaces the datamailer transactional availability notification and
+    Replaces the Datamailer transactional availability notification and
     keeps its idempotency key ``certificate-available:<enrollment pk>``.
     """
 
-    from course_management.datamailer.payloads.certificate_availability import (
+    from course_management.mail_payloads import (
         certificate_availability_urls,
     )
 
@@ -239,7 +237,7 @@ def cohort_display_name(cohort) -> str:
 
 
 def cohort_public_url(cohort) -> str:
-    from course_management.datamailer.payloads.urls import (
+    from course_management.public_urls import (
         cohort_route_kwargs,
         public_route_url,
     )

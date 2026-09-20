@@ -326,6 +326,48 @@ def test_artifact_scan_checks_compressed_playwright_trace_members(tmp_path: Path
     trace.unlink()
 
 
+def test_artifact_scan_can_bound_a_per_test_pass_to_new_files(tmp_path: Path) -> None:
+    prior = tmp_path / "prior.trace"
+    prior.write_text("synthetic-token-canary", encoding="utf-8")
+    current = tmp_path / "current.trace"
+    current.write_text("safe", encoding="utf-8")
+
+    assert (
+        scan_artifacts(
+            tmp_path,
+            canaries=artifact_canaries(),
+            paths=(current, tmp_path / "absent.png"),
+        )
+        == ()
+    )
+    with pytest.raises(CaptureSafetyError, match="protected canary"):
+        scan_artifacts(
+            tmp_path,
+            canaries=artifact_canaries(),
+            paths=(current, prior),
+        )
+
+
+def test_artifact_scan_rejects_broken_symlinks_in_full_and_bounded_passes(
+    tmp_path: Path,
+) -> None:
+    broken = tmp_path / "broken.trace"
+    broken.symlink_to(tmp_path / "missing.trace")
+    with pytest.raises(CaptureSafetyError, match="broken symlink"):
+        scan_artifacts(tmp_path, canaries=())
+    with pytest.raises(CaptureSafetyError, match="broken symlink"):
+        scan_artifacts(tmp_path, canaries=(), paths=(broken,))
+
+
+def test_bounded_artifact_scan_rejects_an_absent_path_outside_its_root(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "owned"
+    root.mkdir()
+    with pytest.raises(CaptureSafetyError, match="ownership boundary"):
+        scan_artifacts(root, canaries=(), paths=(tmp_path / "outside.trace",))
+
+
 def test_artifact_scan_rejects_any_email_shape_in_plain_and_compressed_files(
     tmp_path: Path,
 ) -> None:

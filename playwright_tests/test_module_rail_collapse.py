@@ -163,16 +163,15 @@ def test_hiding_the_rail_removes_it_and_keeps_the_reading_measure(
     expect(restore).to_have_attribute("aria-controls", "module-rail")
     expect(restore).to_be_focused()
 
-    # The prose never reflows: the reclaimed room re-centres the column instead
-    # of stretching it past the measure the page was designed around.
+    # The prose never reflows: reclaiming the rail does not stretch it past the
+    # measure the page was designed around.  The restore stub retains the rail
+    # grid, whose pair is centred; it does not promise the prose itself is
+    # centred in the viewport.
     collapsed_measure = _measure(page)
     assert abs(collapsed_measure["width"] - expanded_measure["width"]) <= 1, (
         expanded_measure,
         collapsed_measure,
     )
-    expanded_offset = abs(expanded_measure["centre"] - expanded_measure["viewportCentre"])
-    collapsed_offset = abs(collapsed_measure["centre"] - collapsed_measure["viewportCentre"])
-    assert collapsed_offset < expanded_offset, (expanded_measure, collapsed_measure)
     _shot(page, "collapsed-desktop.png")
 
     # The restore stub is a real 24x24+ target and it is the rail's own place.

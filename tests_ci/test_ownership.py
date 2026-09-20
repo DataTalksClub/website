@@ -124,7 +124,7 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
     assert graph_digest(graph) == graph_digest(deepcopy(graph))
     assert application_test_labels(graph) == {
         "api": ("api",),
-        "studio_courses": ("studio_courses",),
+        "studio_courses": ("studio", "studio_courses"),
         "content": (
             "accounts",
             "api",
@@ -143,12 +143,10 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
             "content_sync",
             "core",
             "courses",
-            "data",
             "management_api",
             "studio",
             "studio_courses",
         ),
-        "data": ("api", "courses", "data", "studio_courses"),
         "management_api": ("api", "management_api", "studio"),
         "management_auth": (
             "accounts",
@@ -251,7 +249,6 @@ def test_impact_resolves_transitive_test_nodes_and_hostile_filenames() -> None:
         "content_sync",
         "core",
         "courses",
-        "data",
         "management_api",
         "studio",
         "studio_courses",

@@ -212,7 +212,7 @@ class AdminOperationalSettingsTests(TestCase):
             {
                 "updates": [
                     {
-                        "key": "datamailer.api_key",
+                        "key": "site.origin.canonical",
                         "value": "anything",
                         "expected_revision": 0,
                     }

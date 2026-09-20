@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from courses.models import Course, Cohort, Homework, Project
+from courses.models import Cohort, Course, Homework, Project
 
 
 class CourseCohortModelTests(TestCase):
@@ -228,13 +228,23 @@ class CanonicalCourseRouteTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
+        card_start = content.index('<article class="card catalog-card')
+        card_end = content.index("</article>", card_start)
+        course_card = content[card_start:card_end]
         # Cards link the family page (the owner's "no special treatment"
         # ask): one CTA per card, and the family page is the one place that
         # shows each family's real, current state. The card stays a
-        # keyboard-reachable whole-card link; exact attribute indentation
-        # is template formatting.
-        self.assertRegex(content, r'role="link"\s+tabindex="0"')
-        self.assertIn('href="/courses/de-zoomcamp"', content)
-        self.assertIn("event.key === 'Enter'", content)
-        self.assertIn("event.key === ' '", content)
-        self.assertNotIn("Open course", content)
+        # keyboard-reachable whole-card link. The title anchor is the single
+        # semantic target and its stretched overlay owns the card surface.
+        self.assertIn(
+            'class="card catalog-card interactive-card interactive-lift stretched-card-link"',
+            content,
+        )
+        self.assertIn(
+            'class="course-link" href="/courses/de-zoomcamp"',
+            content,
+        )
+        self.assertNotIn('role="link"', course_card)
+        self.assertNotIn('tabindex="0"', course_card)
+        self.assertNotIn("event.key === 'Enter'", course_card)
+        self.assertNotIn("Open course", course_card)

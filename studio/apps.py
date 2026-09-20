@@ -8,3 +8,6 @@ class StudioConfig(AppConfig):
     def ready(self) -> None:
         import accounts.studio_sessions  # noqa: F401
         import studio.checks  # noqa: F401
+        from studio.registration import register_dtc_studio_destinations
+
+        register_dtc_studio_destinations()

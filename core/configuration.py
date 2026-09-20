@@ -298,7 +298,7 @@ def _declare_in_package(definition: OperationalSettingDefinition) -> None:
         description=definition.description,
         value_type=package_value_type(raw_type),
         default=definition.default,
-        is_email=definition.key == "datamailer.from_email",
+        is_email=False,
         env_var=definition.env_var or None,
         django_settings_fallback=definition.settings_attr or False,
         docs_url=definition.docs_reference,

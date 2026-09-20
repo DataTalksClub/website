@@ -188,10 +188,6 @@ def focus_issues(page: Page, state: str) -> list[str]:
         """
     )
     page.keyboard.press("Tab")
-    settle_focus = (
-        "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))"
-    )
-    page.evaluate(settle_focus)
     issues: list[str] = page.evaluate(
         """
         ({state}) => [...document.querySelectorAll('[tabindex]')].flatMap((node) => {
@@ -300,7 +296,12 @@ def focus_issues(page: Page, state: str) -> list[str]:
         if result["obscured"]:
             issues.append(f"{state}: focus target is obscured: {result['description']}")
         page.keyboard.press("Tab")
-        page.evaluate(settle_focus)
+        # ``keyboard.press`` resolves after Chromium dispatches the focus event,
+        # and the next ``evaluate`` forces style/layout before reading the new
+        # target.  Waiting two animation frames after every Tab made the complete
+        # registry spend most of its runner budget idling.  Controls whose focus
+        # treatment really is delayed still take the bounded 100 ms re-check
+        # above, so removing the unconditional delay does not relax the audit.
     if not seen:
         issues.append(f"{state}: no keyboard-focusable controls were reached")
     page.evaluate("window.scrollTo({left: 0, top: 0, behavior: 'instant'})")

@@ -75,7 +75,7 @@ def registration_verification_url(user, email: str) -> str:
     narrower, registration-scoped ask, not a sitewide verification mandate).
     """
 
-    from course_management.datamailer.payloads.urls import public_route_url
+    from course_management.public_urls import public_route_url
 
     address = _email_address_for_verification(user, email)
     confirmation = EmailConfirmationHMAC(address)

@@ -23,7 +23,6 @@ from scripts.prod.import_shared_course_platform import (
     SelfPacedCohortNotUnique,
     SharedBackfillRequired,
     UnknownDeliveryMode,
-    _package_carries,
     import_course_platform,
 )
 
@@ -553,9 +552,6 @@ class SharedCoursePlatformImportTests(ImportRunMixin, TestCase):
         from community_base.coursework import models as cw
 
         from courses import models as site
-
-        if not _package_carries(cw.ProjectSubmission, "review_state"):
-            self.skipTest("the pinned community-base release predates C5.2f")
 
         def review_states() -> set[str]:
             return set(

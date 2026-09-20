@@ -250,7 +250,7 @@ def discover_new_provider_events(
 
     ``discovered`` items only need ``external_event_identifier``, ``title``,
     ``start_at`` and ``eligible_count`` attributes -- shaped for
-    ``scripts.prod.registration_sources.luma.DiscoveredLumaEvent`` today,
+    ``scripts.prod.registration_sources.luma_events.DiscoveredLumaEvent`` today,
     provider-agnostic by contract for whenever an Eventbrite export carries its
     own title source.
 
@@ -430,7 +430,7 @@ def discover_new_luma_event_identities(*, luma_source: Path, apply: bool = True)
     Unlike ``derive_luma`` (below), this never requires the export to match a
     previously pinned whole-tree checksum -- that pin exists to protect
     registration *counts* from silent drift, and identity creation writes no
-    count.  See ``scripts.prod.registration_sources.luma.discover_luma_events``
+    count.  See ``scripts.prod.registration_sources.luma_events.discover_luma_events``
     for the read and ``discover_new_provider_events`` for the create-or-skip
     decision.
     """

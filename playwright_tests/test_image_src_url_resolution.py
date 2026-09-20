@@ -81,3 +81,12 @@ def test_sanitizer_rejects_every_ambiguous_resolution(page: Page) -> None:
     for source, expected_origin, expected_path in CASES:
         if expected_origin != "https://datatalks.club" or expected_path != source:
             assert not is_admitted_site_image_src(source), source
+
+
+def test_unknown_same_origin_image_reaches_the_media_view(page: Page, live_server) -> None:
+    """The browser harness must not turn arbitrary media paths into healthy images."""
+
+    response = page.goto(f"{live_server.url}/images/not-a-recorded-media-object.png")
+    assert response is not None
+    assert response.status == 404
+    assert response.headers["content-type"].startswith("text/html")

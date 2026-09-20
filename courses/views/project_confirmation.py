@@ -3,10 +3,7 @@ from dataclasses import dataclass
 from django.http import HttpRequest
 from django.urls import reverse
 
-from course_management import email_templates
-from course_management.datamailer.sync.transactional import (
-    send_transactional_email,
-)
+from course_management.package_mail import mail_idempotency_key, send_package_mail
 from courses.models.cohort import Cohort, User
 from courses.models.project import Project, ProjectSubmission
 from courses.views.project_confirmation_context import (
@@ -48,22 +45,16 @@ def send_project_confirmation_email(data: ProjectConfirmationEmailData) -> None:
     if not data.user.email:
         return
 
-    payload = project_confirmation_payload(data)
-    send_transactional_email(payload)
-
-
-def project_confirmation_payload(data: ProjectConfirmationEmailData) -> dict:
-    idempotency_key = project_confirmation_idempotency_key(data.submission)
-    context = project_confirmation_payload_context(data)
-    metadata = project_confirmation_email_metadata(data)
-    return {
-        "email": data.user.email,
-        "template_key": email_templates.PROJECT_SUBMISSION_CONFIRMATION,
-        "category_tag": "submission-results",
-        "idempotency_key": idempotency_key,
-        "context": context,
-        "metadata": metadata,
-    }
+    send_package_mail(
+        purpose="project-submission-confirmation",
+        to=data.user.email,
+        context=project_confirmation_payload_context(data),
+        idempotency_key=project_confirmation_idempotency_key(
+            data.submission,
+        ),
+        category="submission-results",
+        user=data.user,
+    )
 
 
 def project_confirmation_payload_context(
@@ -85,19 +76,15 @@ def project_confirmation_payload_context(
 def project_confirmation_idempotency_key(
     submission: ProjectSubmission,
 ) -> str:
-    return (
-        f"project-submission:{submission.id}:"
-        f"{submission.submitted_at.isoformat()}"
+    """The replay boundary for one saved project submission.
+
+    Built through the shared sanitizer for the reason spelled out on
+    ``homework_confirmation_idempotency_key``: an aware ``isoformat()``
+    carries a ``+`` the package's key pattern refuses.
+    """
+
+    return mail_idempotency_key(
+        "project-submission",
+        str(submission.id),
+        submission.submitted_at.isoformat(),
     )
-
-
-def project_confirmation_email_metadata(
-    data: ProjectConfirmationEmailData,
-) -> dict:
-    return {
-        "source": "course-management-platform",
-        "event": "project_submission",
-        "course_slug": data.course.slug,
-        "project_slug": data.project.slug,
-        "submission_id": data.submission.id,
-    }

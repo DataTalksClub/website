@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
-from content import catalogue
-from content.docs_projection import docs_projection
+from content import catalogue, wiki_reader
+from content.docs_reader import docs_assets
 from content.podcast_content import podcast_seasons
 from content.podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS
 from events.queries import published_event_records
@@ -22,7 +22,7 @@ FEATURED_SPEAKER_PATH = "/people/synthetic-rich-profile.html"
 FEATURED_SPEAKER_NAME = "Synthetic O'Speaker"
 FEATURED_SPEAKER_TITLE = "Synthetic Rich Profile"
 HOME_HEADING = "Learn the fundamentals. Build real projects. Share your work."
-CLIMB_HEADING = "From “What does that mean?” to “Let me show you.”"
+CLIMB_HEADING = "From following tutorials to building your own projects."
 PODCAST_HEADING = "Conversations with people who ship data"
 # "Events" is the navigation label and the page title; the index leads with this headline.
 EVENTS_HEADING = "Something happening every week"
@@ -129,11 +129,10 @@ def test_public_home_and_hubs(
         if label == "Courses":
             # The hub reads the same cohorts as the homepage band asserted above, so
             # the catalogue this test owns has to be listed here rather than the
-            # designed empty state.  Seven cards for six families: ``ai-dev-tools``
-            # and ``ai-dev-tools-zoomcamp`` are still two rows sharing one title, and
-            # only the homepage collapses them (``core.home_content.FAMILY_ALIASES``).
+            # designed empty state. Editions collapse into six family cards; only
+            # the featured homepage panel names the newest cohort edition.
             expect(page.get_by_text("No active courses right now.", exact=True)).to_have_count(0)
-            expect(page.locator("main .active-card")).to_have_count(7)
+            expect(page.locator("main .catalog-card")).to_have_count(6)
             _shot(page, f"{label.casefold()}-hub-{suffix}.png", full_page=True)
         else:
             _shot(page, f"{label.casefold()}-hub-{suffix}.png")
@@ -165,9 +164,11 @@ def test_docs_and_faq_root_trailing_slash_browser_contract(
     origin = live_server.url
     query = "utm_source=oncall%2Btest&x=a%2Fb&blank="
 
-    for final_path, alias_path, heading in (
-        ("/docs/", "/docs", "DataTalks.Club Zoomcamps Notes and Resources"),
-        ("/faq/", "/faq", "Frequently Asked Questions"),
+    for final_path, alias_path, heading, self_links in (
+        # The hub's own path appears once when the primary navigation still links
+        # there; FAQ deliberately left the global primary navigation.
+        ("/docs/", "/docs", "DataTalks.Club Zoomcamps Notes and Resources", 1),
+        ("/faq/", "/faq", "Frequently Asked Questions", 0),
     ):
         alias = page.request.get(f"{origin}{alias_path}?{query}", max_redirects=0)
         assert alias.status == 301
@@ -187,7 +188,7 @@ def test_docs_and_faq_root_trailing_slash_browser_contract(
         expect(page.locator('meta[property="og:url"]')).to_have_attribute(
             "content", f"https://datatalks.club{final_path}"
         )
-        expect(page.locator(f'a[href="{final_path}"]')).to_have_count(1)
+        expect(page.locator(f'a[href="{final_path}"]')).to_have_count(self_links)
         expect(page.locator(f'a[href="{alias_path}"]')).to_have_count(0)
 
         redirected = page.goto(f"{origin}{alias_path}?{query}", wait_until="networkidle")
@@ -200,7 +201,7 @@ def test_docs_and_faq_root_trailing_slash_browser_contract(
     )
     assert docs_detail is not None and docs_detail.status == 200
     assert page.locator('a[href="/docs/"]').count() >= 1
-    docs_asset_path = docs_projection()["assets"][0]["public_path"]
+    docs_asset_path = docs_assets()[0]["public_path"]
     docs_asset = page.request.get(f"{origin}{docs_asset_path}")
     assert docs_asset.status == 200
 
@@ -440,7 +441,7 @@ def test_oldest_latest_details_and_media_fallback(page: Page, live_server) -> No
         # The first book carries no preview image, so its detail page is also the
         # media fallback this test is named for.
         catalogue.books()[0]["public_path"],
-        catalogue.wiki_pages()[0]["public_path"],
+        wiki_reader.wiki_pages()[0]["public_path"],
     ):
         response = page.goto(f"{origin}{path}")
         assert response is not None and response.status == 200

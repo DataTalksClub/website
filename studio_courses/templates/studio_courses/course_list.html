@@ -6,8 +6,8 @@
   .row-list than as a table that scrolls sideways on a phone, so the copied
   duplicate mobile-card / desktop-table pair collapses into one list.  Every
   destination the page has always offered — the workspace, the public course
-  page, the Django admin record, the landing-page builder, Datamailer and the
-  dashboard — is unchanged.
+  page, the Django admin record, the landing-page builder and the dashboard —
+  is unchanged. (D1.2ca removed the Datamailer ops link with its views.)
 {% endcomment %}
 
 {% block title %}
@@ -23,9 +23,6 @@
     <div class="admin-toolbar">
       <a href="{% url 'studio_courses_campaign_create' %}" class="cta cta-primary cta-compact">
         New landing page
-      </a>
-      <a href="{% url 'studio_courses_datamailer_operations' %}" class="cta cta-secondary cta-compact">
-        Datamailer ops
       </a>
       <a href="{% url 'studio_courses_cloudwatch_dashboard' %}" class="cta cta-secondary cta-compact">
         CloudWatch

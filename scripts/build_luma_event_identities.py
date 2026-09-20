@@ -5,7 +5,7 @@ The Eventbrite sibling of this file, ``~/prod/dtc-data/eventbrite-event-identiti
 resolves Eventbrite's numeric ids via ``events.xlsx`` (an identity table Eventbrite's
 export itself carries). Luma's export carries no such table -- the only per-event
 facts it has are ``title``/``start_at`` (read by
-:func:`scripts.prod.registration_sources.luma.discover_luma_events`, the same
+:func:`scripts.prod.registration_sources.luma_events.discover_luma_events`, the same
 reader ``scripts/prod/import_events.py``'s ``activate_unambiguous_mappings`` step
 already uses every run).
 
@@ -79,7 +79,7 @@ def build(*, luma_source: Path) -> dict[str, Any]:
         EXISTING_EVENT_NONE,
         ExistingEventIndex,
     )
-    from scripts.prod.registration_sources.luma import discover_luma_events
+    from scripts.prod.registration_sources.luma_events import discover_luma_events
 
     discovered = discover_luma_events(luma_source)
     index = ExistingEventIndex()

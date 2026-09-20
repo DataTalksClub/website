@@ -180,6 +180,7 @@ def test_podcast_card_is_a_whole_keyboard_destination_without_nested_interactive
 
     # A physical point on the card still activates the title anchor's stretched
     # hit area.  The pseudo-element is intentionally the topmost pointer target.
+    card.scroll_into_view_if_needed()
     box = card.bounding_box()
     assert box is not None
     page.mouse.click(box["x"] + box["width"] - 8, box["y"] + box["height"] / 2)

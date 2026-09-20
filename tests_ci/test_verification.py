@@ -155,7 +155,6 @@ def test_single_app_plan_reruns_affected_closure_and_preserves_baseline_without_
         "content_sync",
         "core",
         "courses",
-        "data",
         "management_api",
         "studio",
         "studio_courses",
@@ -352,7 +351,9 @@ def test_large_value_only_content_selects_focused_digest_exhaustive_verification
         for index in range(10_000)
     ]
     body = __import__("json").dumps(records)
-    _repository, plan = make_plan(tmp_path, {"data/catalog.json": body})
+    # The path only has to be owned by some application node; "data/" was
+    # that node until D1.2cb deleted the app.
+    _repository, plan = make_plan(tmp_path, {"api/catalog.json": body})
     assert plan["profile"] == "focused"
     assert plan["browser_profile"] == "smoke"
     assert plan["components"]["django"]["disposition"] == "rerun"
@@ -360,7 +361,7 @@ def test_large_value_only_content_selects_focused_digest_exhaustive_verification
     manifest_entry = next(
         entry
         for entry in plan["components"]["django"]["inputs"]["manifest"]
-        if entry["path"] == "data/catalog.json"
+        if entry["path"] == "api/catalog.json"
     )
     assert len(manifest_entry["object_id"]) == 40  # Exact Git blob identity covers the whole value.
 
