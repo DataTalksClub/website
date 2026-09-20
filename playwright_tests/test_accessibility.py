@@ -777,9 +777,6 @@ class ScenarioRecorder:
 
 
 def _public_scenario(recorder: ScenarioRecorder) -> set[str]:
-    event = recorder.environment.objects["event"]
-    assert isinstance(event, dict)
-    seed_total(event, count=3, complete=True)
     for state in _public_rendered_states(recorder.environment):
         recorder.scan(state.identifier, state.surface, text=state.marker)
 
@@ -1635,9 +1632,6 @@ def test_javascript_off_public_reads_remain_semantic(
 ) -> None:
     policy_issues = _no_javascript_public_policy_issues(accessibility_environment)
     assert not policy_issues, "; ".join(policy_issues)
-    event = accessibility_environment.objects["event"]
-    assert isinstance(event, dict)
-    seed_total(event, count=3, complete=True)
     rendered_states = _public_rendered_states(accessibility_environment)
 
     for viewport, viewport_name in VIEWPORTS:
