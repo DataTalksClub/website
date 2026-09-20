@@ -31,6 +31,7 @@ review_import/tests/test_workflow.py	legacy contract test	courses	Remove the off
 scripts/sync_course_platform.py	adoption provenance	courses	Retain controlled upstream mapping and conflict detection while CMP is adopted by literal copy.
 scripts/tests/test_sync_course_platform.py	adoption provenance test	courses	Retain sync safety coverage while CMP is adopted by literal copy.
 scripts/verify_course_platform_adoption.py	adoption provenance	courses	Retain the source-root mapping while pinned CMP checksums are verified.
+studio/registration.py	legacy URL adapter	courses	Remove the cadmin_course_list claim only when the adapter is deleted.
 studio_courses/tests/test_studio_course_routes.py	legacy contract test	courses	Remove literal redirect and legacy-name denial checks only when the adapter is deleted.
 studio/registration.py	legacy route ownership	courses	Remove the cadmin course-list route claim only when the compatibility adapter and retained copied-shell route name are retired.
 tests_ci/test_ownership.py	verification policy test	testing	Retain while the ownership graph tests the legacy compatibility mapping.

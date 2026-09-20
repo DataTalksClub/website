@@ -13,7 +13,7 @@ from playwright.sync_api import Page, expect
 
 from accounts.models import User
 from accounts.studio_roles import synchronize_studio_roles
-from accounts_ext.models import IdentityState
+from accounts_ext.models import IdentityState, set_identity_state
 from courses.models import Cohort, Enrollment, RegistrationCampaign
 from courses.models.homework import Homework, HomeworkState
 from courses.models.project import Project, ProjectState
@@ -67,10 +67,7 @@ def _active_user(*, suffix: str, is_staff: bool = False) -> User:
         email=email,
         is_staff=is_staff,
     )
-    IdentityState.objects.update_or_create(
-        user=user,
-        defaults={"identity_state": IdentityState.States.ACTIVE},
-    )
+    set_identity_state(user, IdentityState.States.ACTIVE)
     EmailAddress.objects.create(
         user=user,
         email=email,
