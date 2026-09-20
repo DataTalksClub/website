@@ -1,9 +1,8 @@
 """D2.1b: every registered destination has a resolvable href."""
 
+from community_base.studio.registry import sections
 from django.test import SimpleTestCase
 from django.urls import reverse
-
-from community_base.studio.registry import sections
 
 
 class D21bStudioRegistrationTests(SimpleTestCase):
