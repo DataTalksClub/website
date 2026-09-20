@@ -79,7 +79,7 @@ def build(*, luma_source: Path) -> dict[str, Any]:
         EXISTING_EVENT_NONE,
         ExistingEventIndex,
     )
-    from scripts.prod.registration_sources.luma import discover_luma_events
+    from scripts.prod.registration_sources.luma_events import discover_luma_events
 
     discovered = discover_luma_events(luma_source)
     index = ExistingEventIndex()

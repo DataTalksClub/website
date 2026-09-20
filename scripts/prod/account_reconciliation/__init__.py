@@ -888,6 +888,7 @@ def _apply_one_mapping(
             identity_state=IdentityState.States.ABSORBED,
         )
     else:
+        assert source_identity_snapshot is not None
         source_identity_updated = IdentityState.objects.filter(
             user_id=source.pk,
             **source_identity_snapshot,
@@ -933,6 +934,7 @@ def _apply_one_mapping(
             identity_state=IdentityState.States.ACTIVE,
         )
     else:
+        assert survivor_identity_snapshot is not None
         survivor_identity_updated = IdentityState.objects.filter(
             user_id=survivor.pk,
             **survivor_identity_snapshot,
@@ -955,6 +957,7 @@ def _apply_one_mapping(
             if field in _LEARNER_PROFILE_FIELDS
         }
         if profile_updates:
+            assert survivor_profile_snapshot is not None
             survivor_profile_updated = LearnerProfile.objects.filter(
                 user_id=survivor.pk,
                 **survivor_profile_snapshot,
