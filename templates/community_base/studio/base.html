@@ -1,5 +1,20 @@
-{% extends "studio/base.html" %}{# Site override: package Studio pages (D2.2a, D2.1b) render inside the site Studio shell. #}
-{% block content %}
-{% block studio_content %}{% endblock %}
-{% endblock %}
-
+{# Site override: package Studio pages (D2.2a, D2.1b) keep a reachable
+   content/studio_content slot. This file must not extend studio/base.html:
+   that parent includes hashed static font URLs, and manage.py check --deploy
+   has no staticfiles.json, so the package E001 probe raises ValueError and
+   reports the blocks as unreachable. D2.1c deletes this override. #}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Studio · DataTalks.Club{% endblock %}</title>
+  </head>
+  <body>
+    <main id="main-content" tabindex="-1">
+      {% block content %}
+      {% block studio_content %}{% endblock %}
+      {% endblock %}
+    </main>
+  </body>
+</html>
