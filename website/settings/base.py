@@ -161,6 +161,9 @@ INSTALLED_APPS = [
     "community_base.kernel.apps.KernelConfig",
     "community_base.config",
     "community_base.api",
+    # D2.1b: package Studio is installed for the route partition and
+    # authorizer. The site still renders templates/studio/base.html.
+    "community_base.studio",
     # D2.2a: the package content sync engine. Sources and parsers are
     # site owned; nothing serving changes until the D2.2c route cutover.
     "community_base.content_sync",
@@ -380,6 +383,7 @@ COMMUNITY_BASE: dict[str, Any] = {
     "JOBS_BACKEND": "relay",
     "MAIL_BACKEND": "relay",
     "STUDIO_TITLE": "DataTalks.Club Studio",
+    "STUDIO_AUTHORIZER": "studio.auth.package_studio_authorizer",
     # D4.1: canonical event routes carry the public ID, as they always
     # have on this site; slug-only spellings redirect.
     "EVENT_URL_STYLE": "public_id",

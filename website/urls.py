@@ -136,6 +136,9 @@ urlpatterns = [
     # studio shell; the package owns the exact studio/content-sync/* paths.
     path("studio/", include("community_base.content_sync.studio_urls")),
     path("studio/", include("studio.urls")),
+    # D2.1b: package Studio search, impersonation and user views sit behind
+    # the site home route so templates/studio/base.html still owns "".
+    path("studio/", include("community_base.studio.urls")),
     studio_course_urls.canonical_root_pattern("studio/courses"),
     # The exact copied CMP shell still emits this route name for its staff menu.  Keep the
     # compatibility name pointed at Studio while the template provenance remains byte-for-byte.
