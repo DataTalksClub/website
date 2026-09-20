@@ -8,6 +8,7 @@ from . import (  # noqa: F401
     homework,
     learner_profile,
     project,
+    project_repo_enrichment,
     shared_curriculum,
     testimonial,
     wrapped,
@@ -71,6 +72,7 @@ from .project import (
     ReviewCriteriaTypes,
     criteria_for_project,
 )
+from .project_repo_enrichment import ProjectRepoEnrichment
 from .shared_curriculum import (
     CohortSharedModule,
     CurriculumRouteAlias,
@@ -116,6 +118,7 @@ __all__ = (
     "Project",
     "ProjectCriteriaAssignment",
     "ProjectEvaluationScore",
+    "ProjectRepoEnrichment",
     "ProjectState",
     "ProjectStatistics",
     "ProjectSubmission",

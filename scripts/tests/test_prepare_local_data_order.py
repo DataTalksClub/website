@@ -79,6 +79,24 @@ class LocalPreparationOrderTests(TestCase):
             "the reviewed editorial inputs are step 4, after the catalogue in step 3",
         )
 
+    def test_the_gallery_enrichment_import_is_composed(self) -> None:
+        """The reviewed one-time gallery enrichment (issue #416) actually runs,
+        through the production entry point, in the step 4 block it belongs to.
+
+        It bootstraps its own table and touches no row another step writes, so
+        its position inside the block is free; that it runs at all, through the
+        same ``run()`` the standalone script calls, is what is pinned here.
+        """
+
+        self.assertIn("import_project_repo_enrichment", scripts.prod.BOOTSTRAPPING_ENTRY_POINTS)
+        composed = self.source.index("run as import_project_repo_enrichment")
+        editorial = self.source.index(
+            "editorial_content = _import_sponsor_and_testimonial_content()"
+        )
+        event_stage = self.source.index("event_pipeline = run_event_pipeline(")
+        self.assertGreater(composed, editorial, "step 4 runs after the editorial block")
+        self.assertLess(composed, event_stage, "the event stage is step 5 and runs last")
+
     def test_the_event_stage_is_one_composed_pipeline_after_editorial(self) -> None:
         """§11 step 5 runs whole, last, through the production entry point.
 

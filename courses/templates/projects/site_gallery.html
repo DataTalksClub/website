@@ -206,6 +206,90 @@
     min-width: 12rem;
   }
 
+  .gallery-cell-repository .repo-gone-chip,
+  .gallery-cell-repository .repo-kind-chip {
+    border: 1.5px dashed var(--line);
+    border-radius: 999px;
+    color: var(--muted);
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin-inline-start: 0.4rem;
+    padding: 0.05rem 0.45rem;
+    text-transform: uppercase;
+    vertical-align: middle;
+  }
+
+  .repo-gone-note {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-style: italic;
+    font-weight: 400;
+    margin: 0.25rem 0 0;
+  }
+
+  .repo-summary {
+    font-size: 0.82rem;
+    font-weight: 400;
+    margin: 0.3rem 0 0;
+    max-width: 38ch;
+  }
+
+  .repo-topics {
+    align-content: start;
+    align-items: start;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0.3rem 0 0;
+    padding: 0;
+  }
+
+  .repo-topic {
+    border: 1px solid var(--line-soft);
+    border-radius: 999px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    padding: 0 0.4rem;
+    white-space: nowrap;
+  }
+
+  .repo-pipeline {
+    align-content: start;
+    align-items: start;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0.3rem 0 0;
+    padding: 0;
+  }
+
+  .repo-pipeline-item {
+    border: 1px solid var(--line-soft);
+    border-radius: 999px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    padding: 0 0.4rem;
+    white-space: nowrap;
+  }
+
+  .repo-reviewer-note {
+    border-inline-start: 3px solid var(--sand);
+    font-size: 0.8rem;
+    font-weight: 400;
+    margin: 0.3rem 0 0;
+    max-width: 44ch;
+    padding-inline-start: 0.5rem;
+  }
+
   .gallery-group-row th {
     color: var(--muted);
     font-family: var(--font-mono);
@@ -385,6 +469,11 @@
       text-transform: uppercase;
     }
 
+    .gallery-table .gallery-submission-row > td.gallery-cell-repository {
+      gap: 0.45rem;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
     .gallery-cell-repository {
       min-width: 0;
     }
@@ -534,13 +623,46 @@
                   <td data-label="Course">{{ submission.family.title }}</td>
                   <td data-label="Cohort">{{ submission.cohort.identifier }}</td>
                   <td class="gallery-cell-repository" data-label="Repository">
-                    {% if submission.repository_url %}
-                      <a href="{{ submission.repository_url }}" target="_blank" rel="noopener noreferrer" aria-label="Open repository">
-                        {{ submission.repository_label }} ↗ <span class="sr-only">(opens in a new tab)</span>
-                      </a>
-                    {% else %}
-                      Repository link unavailable
-                    {% endif %}
+                    {% with enrichment=submission.repo_enrichment %}
+                      {% if enrichment and enrichment.is_unavailable %}
+                        <span class="repo-gone-chip">gone</span>
+                        <p class="repo-gone-note">Repository no longer available — kept for cohort history.</p>
+                      {% elif submission.repository_url %}
+                        <a href="{{ submission.repository_url }}" target="_blank" rel="noopener noreferrer" aria-label="Open repository">
+                          {{ submission.repository_label }} ↗ <span class="sr-only">(opens in a new tab)</span>
+                        </a>
+                      {% else %}
+                        Repository link unavailable
+                      {% endif %}
+                      {% if enrichment and enrichment.is_coursework %}
+                        <span class="repo-kind-chip">coursework</span>
+                      {% endif %}
+                      {% if enrichment and not enrichment.is_unavailable and enrichment.card_summary and enrichment.confidence != "low" and enrichment.confidence != "baseline" %}
+                        <p class="repo-summary">{{ enrichment.card_summary }}</p>
+                        {% if enrichment.topic_list %}
+                          <p class="repo-topics">
+                            {% for topic in enrichment.topic_list|slice:":4" %}
+                              <span class="repo-topic">{{ topic }}</span>
+                            {% endfor %}
+                          </p>
+                        {% endif %}
+                      {% endif %}
+                      {% if enrichment.structured.course_fields and not enrichment.is_unavailable and enrichment.confidence != "low" and enrichment.confidence != "baseline" %}
+                        <p class="repo-pipeline">
+                          {% for key, field in enrichment.structured.course_fields.items %}
+                            {% if field.value and forloop.counter0 < 4 %}
+                              <span class="repo-pipeline-item">{{ key }}: {{ field.value|truncatechars:32 }}</span>
+                            {% endif %}
+                          {% endfor %}
+                        </p>
+                      {% endif %}
+                      {% if user.is_staff and enrichment and enrichment.improvements %}
+                        <p class="repo-reviewer-note">
+                          <strong>Review:</strong>
+                          {{ enrichment.improvements }}
+                        </p>
+                      {% endif %}
+                    {% endwith %}
                   </td>
                   <td data-label="Assignment">{{ submission.assignment.title }}</td>
                   <td data-label="Author">

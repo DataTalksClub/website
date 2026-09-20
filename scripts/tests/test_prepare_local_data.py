@@ -55,6 +55,7 @@ class OrchestratorReportTests(SimpleTestCase):
             editorial_content={"public_content": {"replayed": True}},
             event_pipeline=dict(self.EVENT_PIPELINE),
             registrations={"luma": {"rows_written": 6}},
+            project_repo_enrichment={"enrichment": {"total": 2, "created": 2}},
         )
 
     def test_every_event_result_is_exposed_under_its_own_name(self) -> None:
@@ -64,6 +65,9 @@ class OrchestratorReportTests(SimpleTestCase):
         for report_key, pipeline_key in self.REPORT_KEYS.items():
             self.assertEqual(report[report_key], self.EVENT_PIPELINE[pipeline_key])
         self.assertEqual(report["event_registrations"], {"luma": {"rows_written": 6}})
+        self.assertEqual(
+            report["project_repo_enrichment"], {"enrichment": {"total": 2, "created": 2}}
+        )
 
     def test_the_course_and_editorial_steps_stay_under_steps(self) -> None:
         report = self._report()
