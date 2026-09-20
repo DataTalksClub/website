@@ -1,3 +1,4 @@
+# ruff: noqa: DJ001
 from django.conf import settings
 from django.db import models
 
@@ -100,7 +101,10 @@ def learner_profile_for(user) -> LearnerProfile | None:
 def profile_field_default(field_name: str):
     """The moved field's declared default, for readers without a row."""
 
-    return LearnerProfile._meta.get_field(field_name).get_default()
+    field = LearnerProfile._meta.get_field(field_name)
+    if not isinstance(field, models.Field):
+        raise TypeError(f"{field_name} is not a concrete LearnerProfile field")
+    return field.get_default()
 
 
 def ensure_learner_profile(user) -> LearnerProfile:

@@ -210,6 +210,13 @@ module = [
     "courses.tests.test_course_family_seo",
     "scripts.prod.import_shared_course_platform",
     "scripts.tests.test_import_shared_course_platform",
+    "accounts.tests.test_d31_extension_models",
+    "accounts.tests.test_identity_state_refresh_migration",
+    "courses.models.learner_profile",
+    "courses.templatetags.project_gallery",
+    "courses.tests.test_learner_profile_refresh_migration",
+    "courses.tests.test_moved_profile_field_readers",
+    "scripts.prod.registration_sources.luma_events",
 ]
 ignore_errors = false
 

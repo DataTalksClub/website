@@ -140,6 +140,12 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/tests/test_leaderboard_project_stars.py",
     "courses/tests/test_course_family_docs_cross_link.py",
     "courses/tests/test_course_family_seo.py",
+    "accounts/tests/test_d31_extension_models.py",
+    "accounts/tests/test_identity_state_refresh_migration.py",
+    "courses/models/learner_profile.py",
+    "courses/templatetags/project_gallery.py",
+    "courses/tests/test_learner_profile_refresh_migration.py",
+    "courses/tests/test_moved_profile_field_readers.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",
@@ -152,6 +158,7 @@ PRODUCTION_IMPORT_PYTHON: Final = (
     # coverage test still sees the opt-in by path.
     "scripts/prod/import_shared_course_platform.py",
     "scripts/tests/test_import_shared_course_platform.py",
+    "scripts/prod/registration_sources/luma_events.py",
 )
 TYPECHECK_PATHS: Final = (
     "manage.py",

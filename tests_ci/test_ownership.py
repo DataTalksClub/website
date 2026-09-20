@@ -124,7 +124,7 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
     assert graph_digest(graph) == graph_digest(deepcopy(graph))
     assert application_test_labels(graph) == {
         "api": ("api",),
-        "studio_courses": ("studio_courses",),
+        "studio_courses": ("studio", "studio_courses"),
         "content": (
             "accounts",
             "api",
