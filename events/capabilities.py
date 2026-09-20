@@ -46,9 +46,7 @@ def _identity_capability(*, detail: bool) -> Capability:
         service=get_event_identity if detail else list_event_identities,
         django_permission="core.access_studio",
         studio=AdapterMetadata(
-            route=(
-                "studio:event-identity-detail" if detail else "studio:event-identity-list"
-            ),
+            route=("studio:event-identity-detail" if detail else "studio:event-identity-list"),
             method="GET",
             operation_id=f"{key}.html",
         ),
