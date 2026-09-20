@@ -18,6 +18,8 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.db import DatabaseError, transaction
 
 from courses.models import Course, Testimonial, TestimonialPlacement
@@ -73,11 +75,24 @@ def load_reviewed_homepage_testimonials(source: Path) -> tuple[dict[str, str], .
             raise TestimonialImportError("reviewed_testimonial_shape_invalid")
         if not entry["source_url"]:
             raise TestimonialImportError("reviewed_testimonial_source_url_missing")
+        try:
+            URLValidator(schemes=["https", "http"])(entry["source_url"])
+        except ValidationError as error:
+            raise TestimonialImportError("reviewed_testimonial_source_url_invalid") from error
         course = entry.get("course", "")
         if not isinstance(course, str):
             raise TestimonialImportError("reviewed_testimonial_shape_invalid")
-        parsed.append({**{field: entry[field] for field in _REQUIRED_FIELDS}, "course": course})
-    links = [(entry["course"], entry["source_url"]) for entry in parsed]
+        placement = entry.get("placement", "course" if course else "homepage")
+        if placement not in TestimonialPlacement.values or (placement == "course") != bool(course):
+            raise TestimonialImportError("reviewed_testimonial_placement_invalid")
+        parsed.append(
+            {
+                **{field: entry[field] for field in _REQUIRED_FIELDS},
+                "course": course,
+                "placement": placement,
+            }
+        )
+    links = [(entry["placement"], entry["course"], entry["source_url"]) for entry in parsed]
     if len(set(links)) != len(links):
         raise TestimonialImportError("reviewed_testimonial_source_url_duplicated")
     return tuple(parsed)
@@ -103,16 +118,15 @@ def import_homepage_testimonials(path: Path) -> TestimonialImportReport:
     for entry in entries:
         course_slug = entry["course"]
         course = None
-        placement = TestimonialPlacement.HOMEPAGE
+        placement = entry["placement"]
         if course_slug:
             course = Course.objects.filter(slug=course_slug).first()
             if course is None:
-                raise TestimonialImportError(
-                    f"reviewed_testimonial_course_unknown:{course_slug}"
-                )
+                raise TestimonialImportError(f"reviewed_testimonial_course_unknown:{course_slug}")
             placement = TestimonialPlacement.COURSE
-        position = positions.get(course_slug, 0)
-        positions[course_slug] = position + 1
+        scope = f"{placement}:{course_slug}"
+        position = positions.get(scope, 0)
+        positions[scope] = position + 1
 
         values = {
             "course": course,
@@ -170,3 +184,12 @@ def homepage_testimonials() -> tuple[Testimonial, ...]:
     except DatabaseError:
         logger.warning("Testimonial read failed; rendering the homepage without the band.")
         return ()
+
+
+def tour_testimonials() -> tuple[Testimonial, ...]:
+    """The first three published tour stories, in editor order; no fallback."""
+    return tuple(
+        Testimonial.objects.filter(placement=TestimonialPlacement.TOUR, published=True)
+        .exclude(source_url="")
+        .order_by("position", "id")[:3]
+    )

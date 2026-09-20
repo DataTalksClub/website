@@ -121,6 +121,7 @@ BOOTSTRAPPING_ENTRY_POINTS = frozenset(
         "import_legacy_zoomcamp",
         "import_sponsors",
         "import_testimonials",
+        "import_tour",
         "sync_course_repositories",
         "sync_course_repository_sources",
     }

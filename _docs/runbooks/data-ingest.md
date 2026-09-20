@@ -1057,6 +1057,29 @@ counted; this importer never creates a `CustomUser`.
 
 ---
 
+### 23 — Tour page editorial copy
+
+| | |
+| --- | --- |
+| **Upstream** | The community's own public sources for the /tour page: the 2025 community survey article, the founder's anniversary-interview quotes, and the standing channel descriptions (issue #418). Reviewed editorial, not a moving upstream |
+| **Staging** | `~/prod/dtc-data/content-staging/tour_page.json` (`schema_version` 1, one `page` record: hero/week/community/founder copy, the four survey tiles, the eight channel blurbs, all https source URLs). Tour *member stories* do not ride in this file — they arrive through the testimonials staging file as `placement: "tour"` rows via `import_testimonials.py` |
+| **Script** | `scripts/prod/import_tour.py` |
+| **Writes** | Exactly one `content.models.ContentDocument` (`content_kind` `tour_page`, `stable_key` `tour`) under the `ContentSource` `dtc-tour-page`, through the shared reviewed-release machinery; `/tour` reads it at request time via `content.tour_content.tour_page()` |
+| **Does not read or write** | Nothing learner-identifying and no testimonial rows. Quotation content about members lives in `courses.Testimonial`, imported by the testimonials importer |
+| **Idempotency** | Safe. Validation (shape, list sizes, https-only URLs — `javascript:` refuses as `reviewed_tour_invalid`) runs before any mutation; a re-run against an already-imported artifact reports `replayed` and writes nothing |
+| **Bootstrap** | **Yes.** It populates its own document on an empty database and depends on no other source |
+
+```
+uv run --frozen python scripts/prod/import_tour.py \
+    --database .tmp/local.sqlite3
+```
+
+`--dry-run` validates the staged record without writing. The page renders with
+no fallback when nothing is published: the editorial sections disappear and the
+catalogue-backed skeleton remains.
+
+---
+
 ## 8.1 Rebuilding a local dev database end to end
 
 The order that actually matters, all commands assuming
@@ -1433,9 +1456,9 @@ What genuinely differs, and needs care rather than a separate pipeline:
    order still refuses on a homework slug collision the first time one cohort is
    described by both CMP and a repository.
    `scripts/tests/test_prepare_local_data_order.py` holds the orchestrator to it.
-4. `scripts/prod/import_sponsors.py`, `import_testimonials.py` — the reviewed one-time
-   inputs under `~/prod/dtc-data/content-staging/` (outside this repository). Both
-   bootstrap; neither depends on the other. `import_public_content.py`, `import_faq.py`
+4. `scripts/prod/import_sponsors.py`, `import_testimonials.py`, `import_tour.py` — the reviewed one-time
+   inputs under `~/prod/dtc-data/content-staging/` (outside this repository). All
+   bootstrap; none depends on another. `import_public_content.py`, `import_faq.py`
    and `import_docs.py` used to be part of this step; they were removed once
    `content/catalogue.py`, `content/docs_projection.py` and `content/faq_data.py`
    moved to reading `content.models.SyncedDocument` exclusively — the live

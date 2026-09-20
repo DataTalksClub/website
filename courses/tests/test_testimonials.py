@@ -48,6 +48,15 @@ class TestimonialPlacementConstraintTests(TestCase):
         with transaction.atomic(), self.assertRaises(IntegrityError):
             self._create(placement=TestimonialPlacement.COURSE, course=None)
 
+    def test_a_tour_testimonial_cannot_name_a_course(self) -> None:
+        with transaction.atomic(), self.assertRaises(IntegrityError):
+            self._create(placement=TestimonialPlacement.TOUR, course=self.course)
+
+    def test_a_tour_testimonial_without_course_is_valid(self) -> None:
+        story = self._create(placement=TestimonialPlacement.TOUR, course=None)
+        story.clean()
+        self.assertIsNone(story.course_id)
+
     def test_an_unknown_placement_is_refused_outright(self) -> None:
         with transaction.atomic(), self.assertRaises(IntegrityError):
             self._create(placement="somewhere-else", course=None)

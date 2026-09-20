@@ -107,16 +107,19 @@
          already uses. */
   .tour-cards .catalog-card-body p { color: var(--muted); }
 
-  /* --- cohort week: spec strip, then the note, then the graduate's quote
-         below it.  2026-09: restacked to one column, matching the design
-         system -- the note and the quote are two different kinds of content,
-         not a repeating grid, so they no longer sit side by side.  The quote
-         uses the same member-story card the homepage and the family landing
-         draw, so the page has one quote treatment. */
-  .tour-week { display: grid; gap: 1.5rem; margin-top: 0.25rem; }
-  .tour-week-note { color: var(--body-text); }
-  .tour-week-note p + p { margin-top: 0.75rem; }
-  .tour-week-note + .card { margin-top: 0.25rem; max-width: 32rem; }
+  /* --- cohort week and community facets: the same three-card shape, an
+         unordered list in both cases -- these are descriptions of how the
+         community works, not instructions to follow in order.  The note
+         under the week steps is the one place the page states what varies
+         by course, so it reads as plain body copy after the cards. */
+  .tour-week-note { color: var(--body-text); margin-top: 1.25rem; max-width: 46rem; }
+
+  /* --- member stories: the homepage member-story card drawn three across,
+         one attributed voice per card with its own source link. */
+  .tour-voice { gap: 0.75rem; padding: 1.25rem 1.4rem; }
+  .tour-voice .story-quote { font-size: 0.98rem; line-height: 1.55; }
+  .tour-voice .story-context { display: block; }
+  .tour-voice .story-source { font-size: 0.85rem; margin-top: 0.25rem; }
 
   /* --- events: the events-index date rail beside the title, on list rows */
   .tour-events .list-row { --row-cols: 11rem minmax(0, 1fr); }
@@ -132,8 +135,8 @@
   .tour-thing p { color: var(--body-text); font-size: 0.9rem; }
   .tour-thing .mono-note { margin-top: auto; padding-top: 0.5rem; }
 
-  /* --- slack norms: the homepage climb-card's own shape (disc + heading,
-         then a description line), three real cards across */
+  /* --- norm and facet cards: the homepage climb-card's own shape (a
+         heading, then a description line), three real cards across */
   .tour-norms {
     display: grid;
     gap: 1.25rem;
@@ -237,14 +240,16 @@
     <div>
       <h1>Take the tour</h1>
       {% comment %}
-        The page's own scope statement, now the hero's lede.  Every figure in
-        it is a catalogue count and every clause is gated on that count, so an
-        empty database states less rather than promising something it cannot
-        back.  It is one line because the gating reads as one sentence.
+        The editorial lede is a database record (content.tour_content), and
+        under it the page states its scope with catalogue counts only: every
+        clause is gated on its real count, so an empty database states less
+        rather than promising something it cannot back.
       {% endcomment %}
+      <p class="tour-lede">{{ tour_content.hero_intro }}</p>
       <p class="tour-lede">
-        DataTalks.Club is an independent community for people who work with data — no employer runs it and nothing behind it is paywalled. It comes down to
-        {% if course_family_count %}<strong>{{ course_family_count }} free course{{ course_family_count|pluralize }}</strong> with homework and projects{% endif %}{% if upcoming_events %}, weekly live events with practitioners{% endif %}{% if counts.podcasts %}, <strong>{{ counts.podcasts }} podcast conversation{{ counts.podcasts|pluralize }}</strong>{% endif %}{% if counts.wiki %}, a member-written wiki of {{ counts.wiki }} topic{{ counts.wiki|pluralize }}{% endif %}, and a Slack where all of it is discussed.
+        {% if course_family_count %}Explore <strong>{{ course_family_count }} free course{{ course_family_count|pluralize }}</strong>.{% endif %}
+        {% if counts.podcasts %}Listen to <strong>{{ counts.podcasts }} podcast conversation{{ counts.podcasts|pluralize }}</strong>.{% endif %}
+        {% if counts.wiki %}Browse the member-written wiki's {{ counts.wiki }} topic{{ counts.wiki|pluralize }}.{% endif %}
       </p>
       <div class="tour-hero-actions">
         <a class="cta cta-primary interactive-lift" href="{% url 'account_signup' %}">Create your free account</a>
@@ -264,54 +269,49 @@
 
 {% block page_content %}
   {% comment %}
-    Who's here, from the community's own 2025 survey, on the same lavender
-    stat tiles the course family landing opens its content with.  The section
-    opens with a real band-head, like every section below it, rather than a
-    caption trailing the numbers.
+    Who's here, from the community's own survey, on the same lavender stat
+    tiles the course family landing opens its content with.  The figures and
+    their intro line are a database record, so the section only renders when
+    an editorial import has published one.
   {% endcomment %}
-  <section class="tour-chapter shell-breakout tour-stats" aria-labelledby="tour-stats-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="tour-stats-heading">Who's here</h2>
-        <p>From the community's own 2025 survey.</p>
+  {% if tour_content.stats %}
+    <section class="tour-chapter shell-breakout tour-stats" aria-labelledby="tour-stats-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="tour-stats-heading">Who's here</h2>
+          <p>{{ tour_content.stats_intro }}</p>
+        </div>
       </div>
-    </div>
-    <div class="stat-tiles tour-stat-tiles">
-      <div class="stat-tile">
-        <strong>65+</strong>
-        <span>countries</span>
+      <div class="stat-tiles tour-stat-tiles">
+        {% for stat in tour_content.stats %}
+          <div class="stat-tile">
+            <strong>{{ stat.value }}</strong>
+            <span>{{ stat.label }}</span>
+          </div>
+        {% endfor %}
       </div>
-      <div class="stat-tile">
-        <strong>41%</strong>
-        <span>senior-level</span>
-      </div>
-      <div class="stat-tile">
-        <strong>36%</strong>
-        <span>entry-level</span>
-      </div>
-      <div class="stat-tile">
-        <strong>29%</strong>
-        <span>in data engineering</span>
-      </div>
-    </div>
-    <a class="band-link tour-content-link" href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full survey →</a>
-  </section>
+      <a class="band-link tour-content-link" href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full survey →</a>
+    </section>
+  {% endif %}
 
   {% if catalog_courses %}
     <section class="tour-chapter shell-breakout" aria-labelledby="tour-courses-heading">
       <div class="band-head">
         <div>
           <h2 id="tour-courses-heading">Learn by building</h2>
-          <p>Free cohorts with homework, projects, and a certificate of completion.</p>
+          <p>{{ tour_content.courses_intro }}</p>
         </div>
       </div>
       <div class="card-grid card-grid-3 tour-cards">
         {% comment %}
           The catalogue's own .catalog-card component (design-system.md),
           not the invented card this section drew before.  It keeps the
-          catalogue's stretched-card-link technique: the single real anchor
-          (.course-link) is the one correct tab stop and its overlay owns the
-          rest of the card surface.
+          catalogue's stretched-card-link technique rather than the catalogue's
+          own role="link"/onclick pattern: that pattern's outer role="link"
+          wraps a real inner anchor, which is two focusable targets for one
+          destination, where stretched-card-link keeps the single real
+          anchor (.course-link) as the one correct tab stop and its overlay
+          owns the rest of the card surface.
         {% endcomment %}
         {% for course in catalog_courses|slice:":3" %}
           <article class="card catalog-card interactive-card interactive-lift stretched-card-link">
@@ -334,71 +334,37 @@
     </section>
   {% endif %}
 
-  <section class="tour-chapter shell-breakout" aria-labelledby="tour-week-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="tour-week-heading">What a cohort week looks like</h2>
-        <p>The same shape for every zoomcamp, from the community's own logistics docs.</p>
+  {% comment %}
+    How a course actually runs, as three unordered facets plus the one note
+    that states what varies by course and cohort.  All of it is a database
+    record: no fixed duration, workload or certificate contract lives here,
+    because no single contract is true for every zoomcamp.
+  {% endcomment %}
+  {% if tour_content.week %}
+    <section class="tour-chapter shell-breakout" aria-labelledby="tour-week-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="tour-week-heading">How learning together works</h2>
+          <p>{{ tour_content.week_intro }}</p>
+        </div>
       </div>
-    </div>
-    <div class="tour-week">
-      <dl class="spec-strip">
-        <div class="spec">
-          <dt class="mono-label">Cost</dt>
-          <dd>
-            <strong>Free, incl. certificate</strong>
-          </dd>
+      <ol class="tour-norms">
+        {% for step in tour_content.week %}
+          <li class="tour-norm card">
+            <div class="tour-norm-head">
+              <strong>{{ step.title }}</strong>
+            </div>
+            <p>{{ step.body }}</p>
+          </li>
+        {% endfor %}
+      </ol>
+      {% if tour_content.week_note %}
+        <div class="tour-week-note">
+          <p>{{ tour_content.week_note }}</p>
         </div>
-        <div class="spec">
-          <dt class="mono-label">Length</dt>
-          <dd>
-            <strong>7–10 weeks</strong>
-          </dd>
-        </div>
-        <div class="spec">
-          <dt class="mono-label">Weekly load</dt>
-          <dd>
-            <strong>10–15 hours</strong>
-          </dd>
-        </div>
-        <div class="spec">
-          <dt class="mono-label">Final project</dt>
-          <dd>
-            <strong>2–3 weeks</strong>
-          </dd>
-        </div>
-      </dl>
-      <div class="tour-week-note">
-        <p>
-          Office hours and the occasional workshop stream live on the DataTalks.Club YouTube channel — no Zoom link, no separate tool, no signup, just open YouTube at the scheduled time.
-        </p>
-        <p>
-          The certificate needs the project and its peer reviews; the weekly homework itself is optional, though it's what the leaderboard runs on.
-        </p>
-      </div>
-      {% comment %}
-        The graduate's quote on the same member-story card the founder's
-        takes below, so one page draws one kind of content one way.
-      {% endcomment %}
-      <figure class="card">
-        <blockquote class="story-quote">“The practicality of DataTalks is the huge difference. … The issue with that university and others is that everything stays in a Jupyter notebook. You know how the algorithm works … but it never goes beyond the notebook. … The difference with DataTalks is that the goal is for the person to use it in real life.”</blockquote>
-        <figcaption class="story-person">
-          <span class="story-identity">
-            <span class="avatar" aria-hidden="true"></span>
-            <span>
-              <strong>
-                <a href="https://www.youtube.com/watch?v=B2tzuUg5uZs&amp;t=2190s" target="_blank" rel="noopener noreferrer">
-                  Dashel Ruiz Perez
-                  <span class="sr-only"> (opens in a new tab)</span>
-                </a>
-              </strong>
-              <span class="story-context">ML Zoomcamp graduate</span>
-            </span>
-          </span>
-        </figcaption>
-      </figure>
-    </div>
-  </section>
+      {% endif %}
+    </section>
+  {% endif %}
 
   {% comment %}
     The next live events, on the events index's own date rail.  The section is
@@ -433,173 +399,226 @@
   {% endif %}
 
   {% comment %}
+    What the community is like: three unordered facets -- learn together, meet
+    practitioners, share what you build -- as a database record, with the
+    Slack destination as the section's action.  No rules list, no numbering,
+    no external etiquette link: a newcomer needs a truthful overview, not
+    instructions.
+  {% endcomment %}
+  {% if tour_content.community %}
+    <section class="tour-chapter shell-breakout" aria-labelledby="tour-norms-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="tour-norms-heading">What the community is like</h2>
+          <p>{{ tour_content.community_intro }}</p>
+        </div>
+      </div>
+      <ul class="tour-norms">
+        {% for facet in tour_content.community %}
+          <li class="tour-norm card">
+            <div class="tour-norm-head">
+              <strong>{{ facet.title }}</strong>
+            </div>
+            <p>{{ facet.body }}</p>
+          </li>
+        {% endfor %}
+      </ul>
+      <a class="band-link tour-content-link" href="{% url 'slack' %}">join the Slack →</a>
+    </section>
+  {% endif %}
+
+  {% comment %}
+    Member stories: published, attributed Testimonial rows read through the
+    narrow tour query -- the page renders whatever the community has verified
+    and nothing else, so with no stories the section disappears entirely
+    rather than falling back to an unattributed claim.
+  {% endcomment %}
+  {% if tour_stories %}
+    <section class="tour-chapter shell-breakout" aria-labelledby="tour-stories-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="tour-stories-heading">Member stories</h2>
+          <p>{{ tour_content.testimonials_intro }}</p>
+        </div>
+      </div>
+      <div class="card-grid card-grid-3">
+        {% for story in tour_stories %}
+          <figure class="card tour-voice">
+            <blockquote class="story-quote">{{ story.quote }}</blockquote>
+            <figcaption class="story-person">
+              <span class="story-identity">
+                {% if story.portrait_url %}
+                  <img class="avatar" src="{{ story.portrait_url }}" alt="" loading="lazy">
+                {% else %}
+                  <span class="avatar tour-portrait" aria-hidden="true"></span>
+                {% endif %}
+                <span>
+                  <strong>{{ story.name }}</strong>
+                  <span class="story-context">{{ story.attribution }}</span>
+                  <a class="story-source" href="{{ story.source_url }}" target="_blank" rel="noopener noreferrer">source<span class="sr-only"> (opens in a new tab)</span></a>
+                </span>
+              </span>
+            </figcaption>
+          </figure>
+        {% endfor %}
+      </div>
+      <script>
+        document.querySelectorAll(".tour-voice img.avatar").forEach((image) => {
+          const useAvatar = () => {
+            const fallback = document.createElement("span");
+            fallback.className = "avatar tour-portrait";
+            fallback.setAttribute("aria-hidden", "true");
+            image.replaceWith(fallback);
+          };
+          if (image.complete && image.naturalWidth === 0) useAvatar();
+          else image.addEventListener("error", useAvatar);
+        });
+      </script>
+    </section>
+  {% endif %}
+
+  {% comment %}
+    The founder story, as a database record: the causal setup in the editor's
+    words, then the founder's own contiguous quotation, the neutral caption,
+    and the source link -- no stitched fragments, no invented portrait.
+  {% endcomment %}
+  {% if tour_content.founder_name %}
+    <section class="tour-chapter shell-breakout" aria-labelledby="tour-story-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="tour-story-heading">How it started, and why it's free</h2>
+          <p>{{ tour_content.founder_intro }}</p>
+        </div>
+      </div>
+      <figure class="card tour-story">
+        <div class="tour-story-quotes">
+          {% if tour_content.founder_context %}
+            <div>
+              <span class="mono-label">How it started</span>
+              <blockquote class="story-quote">{{ tour_content.founder_context }}</blockquote>
+            </div>
+          {% endif %}
+          {% if tour_content.founder_quote %}
+            <div>
+              <span class="mono-label">Why it's free</span>
+              <blockquote class="story-quote">“{{ tour_content.founder_quote }}”</blockquote>
+            </div>
+          {% endif %}
+        </div>
+        <figcaption class="story-person">
+          <span class="story-identity">
+            {% if founder and founder.media_available %}
+              <img class="avatar" src="{{ founder.image_path }}" alt="" loading="lazy">
+            {% else %}
+              <span class="avatar" aria-hidden="true"></span>
+            {% endif %}
+            <span>
+              <strong>
+                <a href="{{ tour_content.founder_source_url }}" target="_blank" rel="noopener noreferrer">
+                  {{ tour_content.founder_name }}
+                  <span class="sr-only"> (opens in a new tab)</span>
+                </a>
+              </strong>
+              <span class="story-context">{{ tour_content.founder_attribution }}</span>
+            </span>
+          </span>
+        </figcaption>
+      </figure>
+    </section>
+  {% endif %}
+
+  {% comment %}
     Everything else the community runs, one whole-card link each, on the same
     card grid the catalogue and the family editions draw.  Catalogue-backed
     cards are gated on their real counts and state them in the mono foot; the
-    YouTube channel and Slack are standing channels, not catalogue rows, so
-    they always appear.  The card count still varies by environment because
-    the catalogue-backed cards are each gated on their own real count -- that
-    is inherent to data-gated cards, not something to force further.
+    YouTube channel and Slack are standing channels, not catalogue rows.  Each
+    description is a database record, so an unimported channel renders no
+    invented promise.
   {% endcomment %}
-  <section class="tour-chapter shell-breakout" aria-labelledby="tour-more-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="tour-more-heading">More than courses and events</h2>
-        <p>The rest of what the community runs — all of it free and open, whether or not you ever take a course.</p>
-      </div>
-    </div>
-    <div class="card-grid card-grid-3 tour-cards">
-      <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
-        <h3>
-          <a class="course-link" href="https://www.youtube.com/c/DataTalksClub" target="_blank" rel="noopener noreferrer">YouTube channel<span class="sr-only"> (opens in a new tab)</span></a>
-        </h3>
-        <p>Where events, office hours and course workshops stream live and stay up afterwards.</p>
-        <span class="mono-note">live streams · recordings</span>
-      </article>
-      <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
-        <h3>
-          <a class="course-link" href="{% url 'slack' %}">Slack</a>
-        </h3>
-        <p>A channel per course, questions answered by other members, and every announcement.</p>
-        <span class="mono-note">channel per course</span>
-      </article>
-      {% if not upcoming_events %}
-        <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
-          <h3>
-            <a class="course-link" href="{% url 'events' %}">Events</a>
-          </h3>
-          <p>Live talks and workshops with practitioners, and the recordings of past ones.</p>
-          <span class="mono-note">talks · workshops · recordings</span>
-        </article>
-      {% endif %}
-      {% if counts.podcasts %}
-        <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
-          <h3>
-            <a class="course-link" href="{% url 'podcast' %}">Podcast</a>
-          </h3>
-          <p>Conversations with practitioners about the work, the tools and the career.</p>
-          <span class="mono-note">{{ counts.podcasts }} conversation{{ counts.podcasts|pluralize }}</span>
-        </article>
-      {% endif %}
-      {% if counts.articles %}
-        <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
-          <h3>
-            <a class="course-link" href="{% url 'articles' %}">Blog</a>
-          </h3>
-          <p>Articles written by members and guests.</p>
-          <span class="mono-note">{{ counts.articles }} article{{ counts.articles|pluralize }}</span>
-        </article>
-      {% endif %}
-      {% if counts.books %}
-        <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
-          <h3>
-            <a class="course-link" href="{% url 'books' %}">Book of the Week</a>
-          </h3>
-          <p>Books whose authors came to answer the community's questions.</p>
-          <span class="mono-note">{{ counts.books }} book{{ counts.books|pluralize }}</span>
-        </article>
-      {% endif %}
-      {% if counts.wiki %}
-        <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
-          <h3>
-            <a class="course-link" href="{% url 'wiki-home' %}">Wiki</a>
-          </h3>
-          <p>The community's own knowledge base: member-written topics, A–Z.</p>
-          <span class="mono-note">{{ counts.wiki }} topic{{ counts.wiki|pluralize }}</span>
-        </article>
-      {% endif %}
-      {% if docs_available %}
-        <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
-          <h3>
-            <a class="course-link" href="{% url 'docs-home' %}">Docs</a>
-          </h3>
-          <p>The community's own documentation: how cohorts, homework, projects and certificates work.</p>
-          <span class="mono-note">cohorts · homework · certificates</span>
-        </article>
-      {% endif %}
-    </div>
-  </section>
-
-  <section class="tour-chapter shell-breakout" aria-labelledby="tour-slack-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="tour-slack-heading">What Slack is actually like</h2>
-        <p>Where the community actually talks: a channel per course, questions answered by other members, and every announcement. A few norms, straight from the community guidelines.</p>
-      </div>
-    </div>
-    {% comment %}
-      Each norm is its own card -- the homepage climb-card's own shape (a
-      numbered disc beside a heading, then a description line) -- rather
-      than a bare disc-and-text row, so the section carries the same visual
-      weight as the card grids above and below it now that every chapter on
-      the page is the same full width.
-    {% endcomment %}
-    <ol class="tour-norms">
-      <li class="tour-norm card">
-        <div class="tour-norm-head">
-          <span class="step-number" aria-hidden="true">1</span>
-          <strong>
-            <a href="https://dontasktoask.com/" target="_blank" rel="noopener noreferrer">Don't ask to ask<span class="sr-only"> (opens in a new tab)</span></a>
-          </strong>
-        </div>
-        <p>Just post your question in the channel.</p>
-      </li>
-      <li class="tour-norm card">
-        <div class="tour-norm-head">
-          <span class="step-number step-number-2" aria-hidden="true">2</span>
-          <strong>Paste the error as text</strong>
-        </div>
-        <p>In a code block — never a screenshot or a photo of your screen.</p>
-      </li>
-      <li class="tour-norm card">
-        <div class="tour-norm-head">
-          <span class="step-number step-number-3" aria-hidden="true">3</span>
-          <strong>Judge the code, never the person</strong>
-        </div>
-        <p>Built on mutual respect and kindness.</p>
-      </li>
-    </ol>
-    <a class="band-link tour-content-link" href="{% url 'slack' %}">join the Slack →</a>
-  </section>
-
-  <section class="tour-chapter shell-breakout" aria-labelledby="tour-story-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="tour-story-heading">How it started, and why it's free</h2>
-        <p>In his own words, from the show's own anniversary episode.</p>
-      </div>
-    </div>
-    <figure class="card tour-story">
-      <div class="tour-story-quotes">
+  {% if tour_content.channels %}
+    <section class="tour-chapter shell-breakout" aria-labelledby="tour-more-heading">
+      <div class="band-head">
         <div>
-          <span class="mono-label">How it started</span>
-          <blockquote class="story-quote">“I started DataTalks.Club four years ago by accident. … By September, restrictions were back, and we were stuck at home. That's when I thought, ‘Maybe I should start something.’”</blockquote>
-        </div>
-        <div>
-          <span class="mono-label">Why it's free</span>
-          <blockquote class="story-quote">“I benefited a lot from free courses when I was starting my career in data science. So, this is my way of giving back to the community.”</blockquote>
+          <h2 id="tour-more-heading">More than courses and events</h2>
+          <p>{{ tour_content.more_intro }}</p>
         </div>
       </div>
-      <figcaption class="story-person">
-        <span class="story-identity">
-          {% if founder and founder.media_available %}
-            <img class="avatar" src="{{ founder.image_path }}" alt="" loading="lazy">
-          {% else %}
-            <span class="avatar" aria-hidden="true"></span>
-          {% endif %}
-          <span>
-            <strong>
-              <a href="https://www.youtube.com/watch?v=GHbeXIKnkLQ&amp;t=149s" target="_blank" rel="noopener noreferrer">
-                Alexey Grigorev
-                <span class="sr-only"> (opens in a new tab)</span>
-              </a>
-            </strong>
-            <span class="story-context">Founder · DataTalks.Club Anniversary Podcast</span>
-          </span>
-        </span>
-      </figcaption>
-    </figure>
-  </section>
+      <div class="card-grid card-grid-3 tour-cards">
+        {% if tour_content.channels.youtube %}
+          <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+            <h3>
+              <a class="course-link" href="https://www.youtube.com/c/DataTalksClub" target="_blank" rel="noopener noreferrer">YouTube channel<span class="sr-only"> (opens in a new tab)</span></a>
+            </h3>
+            <p>{{ tour_content.channels.youtube }}</p>
+            <span class="mono-note">live streams · recordings</span>
+          </article>
+        {% endif %}
+        {% if tour_content.channels.slack %}
+          <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+            <h3>
+              <a class="course-link" href="{% url 'slack' %}">Slack</a>
+            </h3>
+            <p>{{ tour_content.channels.slack }}</p>
+            <span class="mono-note">channel per course</span>
+          </article>
+        {% endif %}
+        {% if not upcoming_events and tour_content.channels.events %}
+          <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+            <h3>
+              <a class="course-link" href="{% url 'events' %}">Events</a>
+            </h3>
+            <p>{{ tour_content.channels.events }}</p>
+            <span class="mono-note">talks · workshops · recordings</span>
+          </article>
+        {% endif %}
+        {% if counts.podcasts and tour_content.channels.podcasts %}
+          <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+            <h3>
+              <a class="course-link" href="{% url 'podcast' %}">Podcast</a>
+            </h3>
+            <p>{{ tour_content.channels.podcasts }}</p>
+            <span class="mono-note">{{ counts.podcasts }} conversation{{ counts.podcasts|pluralize }}</span>
+          </article>
+        {% endif %}
+        {% if counts.articles and tour_content.channels.articles %}
+          <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+            <h3>
+              <a class="course-link" href="{% url 'articles' %}">Blog</a>
+            </h3>
+            <p>{{ tour_content.channels.articles }}</p>
+            <span class="mono-note">{{ counts.articles }} article{{ counts.articles|pluralize }}</span>
+          </article>
+        {% endif %}
+        {% if counts.books and tour_content.channels.books %}
+          <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+            <h3>
+              <a class="course-link" href="{% url 'books' %}">Book of the Week</a>
+            </h3>
+            <p>{{ tour_content.channels.books }}</p>
+            <span class="mono-note">{{ counts.books }} book{{ counts.books|pluralize }}</span>
+          </article>
+        {% endif %}
+        {% if counts.wiki and tour_content.channels.wiki %}
+          <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+            <h3>
+              <a class="course-link" href="{% url 'wiki-home' %}">Wiki</a>
+            </h3>
+            <p>{{ tour_content.channels.wiki }}</p>
+            <span class="mono-note">{{ counts.wiki }} topic{{ counts.wiki|pluralize }}</span>
+          </article>
+        {% endif %}
+        {% if docs_available and tour_content.channels.docs %}
+          <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+            <h3>
+              <a class="course-link" href="{% url 'docs-home' %}">Docs</a>
+            </h3>
+            <p>{{ tour_content.channels.docs }}</p>
+            <span class="mono-note">cohorts · homework · certificates</span>
+          </article>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
 
   {% comment %}
     The close: the site-wide tour stripe's own ink shape, drawn full-bleed and
@@ -611,9 +630,9 @@
     <div class="tour-close-inner">
       <div>
         <h2 id="tour-community-heading">Build in public, together.</h2>
-        <p>
-          One free account for homework, leaderboards, and events — and <a href="{% url 'slack' %}">the Slack</a> whenever you want it.
-        </p>
+        {% if tour_content.close_intro %}
+          <p>{{ tour_content.close_intro }}</p>
+        {% endif %}
       </div>
       <a class="cta cta-primary interactive-lift" href="{% url 'account_signup' %}">Create your free account</a>
     </div>

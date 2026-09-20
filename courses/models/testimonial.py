@@ -52,6 +52,7 @@ class TestimonialPlacement(models.TextChoices):
     """Where one testimonial belongs."""
 
     HOMEPAGE = "homepage", "Homepage"
+    TOUR = "tour", "Community tour"
     COURSE = "course", "Course family"
 
 
@@ -74,7 +75,10 @@ class Testimonial(models.Model):
     placement = models.CharField(
         max_length=16,
         choices=TestimonialPlacement.choices,
-        help_text="Homepage testimonials carry no course; course testimonials carry exactly one.",
+        help_text=(
+            "Homepage and tour testimonials carry no course; "
+            "course testimonials carry exactly one."
+        ),
     )
     course = models.ForeignKey(
         "courses.Course",
@@ -127,7 +131,10 @@ class Testimonial(models.Model):
         constraints = [
             models.CheckConstraint(
                 condition=(
-                    Q(placement=TestimonialPlacement.HOMEPAGE, course__isnull=True)
+                    Q(
+                        placement__in=[TestimonialPlacement.HOMEPAGE, TestimonialPlacement.TOUR],
+                        course__isnull=True,
+                    )
                     | Q(placement=TestimonialPlacement.COURSE, course__isnull=False)
                 ),
                 name="courses_testimonial_placement_scope",
@@ -184,7 +191,10 @@ class Testimonial(models.Model):
         """Report the stored constraint as a form error instead of a 500."""
 
         super().clean()
-        if self.placement == TestimonialPlacement.HOMEPAGE and self.course_id is not None:
-            raise ValidationError({"course": "A homepage testimonial cannot name a course."})
+        if (
+            self.placement in (TestimonialPlacement.HOMEPAGE, TestimonialPlacement.TOUR)
+            and self.course_id is not None
+        ):
+            raise ValidationError({"course": "A site-wide testimonial cannot name a course."})
         if self.placement == TestimonialPlacement.COURSE and self.course_id is None:
             raise ValidationError({"course": "A course testimonial must name a course."})

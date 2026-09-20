@@ -19,6 +19,7 @@ from content.docs_reader import DOCS_ROOT_PATH, docs_page
 from content.event_content import event_groups
 from content.person_chip import PersonChip, person_chip
 from content.podcast_content import ordered_podcasts
+from content.tour_content import tour_page
 from core.home_content import (
     FEATURED_FAMILY,
     course_catalog,
@@ -31,7 +32,7 @@ from core.home_content import (
 )
 from core.sponsors import public_home_sponsors, public_sponsors, public_supporter_history
 from courses.services.member_home import build_member_home_context
-from courses.services.testimonials import homepage_testimonials
+from courses.services.testimonials import homepage_testimonials, tour_testimonials
 
 DEVELOPMENT_ROBOTS_BODY = "User-agent: *\nDisallow: /\n"
 # ``/unified/`` renders the same view as ``/``.  It is not editorial: it is the
@@ -147,19 +148,15 @@ def tour(request: HttpRequest) -> HttpResponse:
 
     The homepage is the live front door -- the newest cohort, this week's
     events, the latest article and podcast. The tour answers a different
-    question: "what actually is this, and is it for me?" So instead of
-    re-listing the homepage's own sections, it states the community's real
-    scope in one place (the catalogue's own counts), keeps only the two
-    sections a newcomer actually needs to see for themselves (courses,
-    events), and then names every other channel the community runs -- the
-    podcast, the blog, the books, the wiki, the docs and the YouTube channel
-    -- as one card each. Every figure is a catalogue count, never a
-    written-in number, and every catalogue-backed card is gated on that count,
-    so an empty database renders the page with its claims dropped rather
-    than a promise it cannot back. The docs card is gated the same way, on
-    whether the documentation home is actually published, and the events
-    section is gated on real upcoming rows rather than drawing an invented
-    week.
+    question: "what actually is this, and is it for me?" The editorial copy
+    and the member stories are published database records (the tour page
+    record via ``content.tour_content``, stories through the narrow
+    ``tour_testimonials`` query); with nothing published the page renders
+    its catalogue-backed skeleton and no invented claims.  Every figure the
+    template states about the catalogue is a catalogue count, never a
+    written-in number, and every catalogue-backed card is gated on that
+    count, so an empty database renders the page with its claims dropped
+    rather than a promise it cannot back.
     """
 
     events = event_groups()
@@ -179,6 +176,8 @@ def tour(request: HttpRequest) -> HttpResponse:
             "counts": catalogue.collection_counts(),
             "docs_available": docs_page(DOCS_ROOT_PATH) is not None,
             "founder": _founder_chip(),
+            "tour_content": tour_page(),
+            "tour_stories": tour_testimonials(),
         },
     )
 
