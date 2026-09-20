@@ -141,12 +141,12 @@ class MovedProfileFieldReaderTests(SimpleTestCase):
         # ``public_profile`` that held the user, which no denylist would name.
         allowed_holders = frozenset(
             {
-                "form",              # a bound form field, not a stored value
+                "form",  # a bound form field, not a stored value
                 "profile",
                 "learner_profile",
-                "public_profile",    # the LearnerProfile row, see the view
-                "enrollment",        # owns its own certificate_name copy
-                "registration",      # owns its own snapshot
+                "public_profile",  # the LearnerProfile row, see the view
+                "enrollment",  # owns its own certificate_name copy
+                "registration",  # owns its own snapshot
                 "submission",
             }
         )
@@ -155,9 +155,7 @@ class MovedProfileFieldReaderTests(SimpleTestCase):
         # variables, filter dictionaries and editorial rows that have nothing
         # to do with an account, so the Python rule above is their guard.
         person_fields = MOVED_FIELDS - {"country", "region", "role", "registration_role"}
-        pattern = re.compile(
-            r"([A-Za-z_][\w.]*)\.(" + "|".join(sorted(person_fields)) + r")\b"
-        )
+        pattern = re.compile(r"([A-Za-z_][\w.]*)\.(" + "|".join(sorted(person_fields)) + r")\b")
         comments = re.compile(r"{%\s*comment\s*%}.*?{%\s*endcomment\s*%}|{#.*?#}", re.S)
         offenders = []
         for relative in _tracked("*.html"):
