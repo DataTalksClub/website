@@ -111,16 +111,6 @@ ACCOUNT_RELATIONS = (
     # risk profile for every reparented relation, not a new one.
     AccountRelationSpec("courses.UnitReadState", "user", "reparent"),
     AccountRelationSpec("courses.SharedLessonReadState", "user", "reparent"),
-    # historical_registrations.HistoricalRegistrationSourceRun.actor records
-    # who ran a historical-data ingest, the same "who did this" provenance
-    # shape as admin.LogEntry.user/core.AuditEvent.actor/core.Operation.actor
-    # above: an operator's own account merging elsewhere must not rewrite
-    # which account actually ran a past ingest.
-    AccountRelationSpec(
-        "historical_registrations.HistoricalRegistrationSourceRun",
-        "actor",
-        "provenance_alias",
-    ),
     # cb_api.APIKey.user: community_base.api is installed (website/settings
     # /base.py) but no urlconf, view, management command, or job in this
     # site ever includes its urls or imports the model -- website/urls.py

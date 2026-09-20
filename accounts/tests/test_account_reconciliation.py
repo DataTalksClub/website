@@ -803,10 +803,11 @@ class ReconciliationTransactionalFailureTests(TransactionTestCase):
     def test_stale_survivor_state_fails_closed_before_reparenting(self) -> None:
         from scripts.prod.account_reconciliation import _profile_changes
 
-        def change_survivor_after_snapshot(*, source, survivor, mapping):
+        def change_survivor_after_snapshot(*, source, survivor, survivor_profile_row, mapping):
             changes = _profile_changes(
                 source=source,
                 survivor=survivor,
+                survivor_profile_row=survivor_profile_row,
                 mapping=mapping,
             )
             User.objects.filter(pk=survivor.pk).update(
@@ -822,6 +823,45 @@ class ReconciliationTransactionalFailureTests(TransactionTestCase):
             self.assertRaises(ReconciliationBlocked) as raised,
         ):
             apply_reviewed_mapping(self.plan())
+
+        self.assertEqual(
+            raised.exception.conflicts[0]["reason_codes"],
+            ["reconciliation_integrity_conflict"],
+        )
+        self.assert_no_merge_writes()
+        self.survivor.refresh_from_db()
+        self.assertEqual(self.survivor.last_name, "")
+        self.assertEqual(AccountIdentityQuarantine.objects.count(), 1)
+
+    def test_write_landing_between_survivor_guard_check_and_write_fails_closed(self) -> None:
+        document = mapping_document(
+            source=self.source,
+            survivor=self.survivor,
+            field_decisions={"last_name": "source"},
+            evidence=["manual_verified_ownership"],
+        )
+        self.source.last_name = "Decided Last Name"
+        self.source.save(update_fields=["last_name"])
+        plan = parse_mapping_document(document)
+
+        real_filter = IdentityState.objects.filter
+        race = {"fired": False}
+
+        def racing_survivor_identity_check(*args, **kwargs):
+            if not race["fired"] and kwargs.get("user_id") == self.survivor.pk:
+                race["fired"] = True
+                User.objects.filter(pk=self.survivor.pk).update(
+                    preferred_timezone="Antarctica/Troll",
+                )
+            return real_filter(*args, **kwargs)
+
+        with patch.object(
+            IdentityState.objects,
+            "filter",
+            side_effect=racing_survivor_identity_check,
+        ):
+            with self.assertRaises(ReconciliationBlocked) as raised:
+                apply_reviewed_mapping(plan)
 
         self.assertEqual(
             raised.exception.conflicts[0]["reason_codes"],
