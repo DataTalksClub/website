@@ -9,6 +9,7 @@ from unittest import TestCase
 
 from deploy.contracts import ReleaseContractError
 from deploy.deployment_targets import registered_target
+from deploy.task_definitions import COMMANDS
 from deploy.update_task_definition_image import update_task_definition
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -49,7 +50,7 @@ class CmpStyleDeploymentWorkflowTests(TestCase):
         self.assertIn("aws ecs describe-services", script)
         self.assertIn(".services[0].networkConfiguration", script)
         self.assertIn("Running migrations and loading required code-owned data", script)
-        self.assertIn('["prepare_deployment"]', script)
+        self.assertIn(COMMANDS["migration"]["command"][0], script)
         self.assertLess(script.index("aws ecs run-task"), script.index("aws ecs update-service"))
         self.assertIn("aws ecs wait services-stable", script)
         # REL-06 pins the promoted-release verification to three bounded curls

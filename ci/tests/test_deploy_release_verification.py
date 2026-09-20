@@ -473,6 +473,20 @@ def test_a_clean_rollout_verifies_tasks_selfcheck_and_readiness(
     completed = harness.deploy()
 
     assert completed.returncode == 0, completed.stderr
+    migration = next(
+        args
+        for args in harness.calls()
+        if args[:2] == ["ecs", "run-task"]
+        and any('"name":"migration"' in str(part) for part in args)
+    )
+    migration_overrides = json.loads(migration[migration.index("--overrides") + 1])
+    assert COMMANDS["migration"]["entryPoint"] == ["/bin/sh", "-lc"]
+    assert migration_overrides["containerOverrides"] == [
+        {
+            "name": "migration",
+            "command": COMMANDS["migration"]["command"],
+        }
+    ]
     # The coherence, per-task and readiness checks all ran.
     assert any(args[:2] == ["ecs", "list-tasks"] for args in harness.calls())
     assert any(args[:2] == ["ecs", "describe-tasks"] for args in harness.calls())
