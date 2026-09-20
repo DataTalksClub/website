@@ -119,6 +119,7 @@ BOOTSTRAPPING_ENTRY_POINTS = frozenset(
         "import_cmp_content",
         "import_cmp_learners",
         "import_legacy_zoomcamp",
+        "import_project_repo_enrichment",
         "import_sponsors",
         "import_testimonials",
         "sync_course_repositories",
@@ -164,8 +165,8 @@ SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
         "data. Step 6, excluded from the local dataset runner."
     ),
     "sync_public_media_hydrate": (
-        "Not decided yet. It is not a general script command; deciding whether it gets one belongs to the ingest "
-        "consolidation epic, DataTalksClub/website#310."
+        "Not decided yet. It is not a general script command; deciding whether it gets "
+        "one belongs to the ingest consolidation epic, DataTalksClub/website#310."
     ),
     "sync_public_media_publish": (
         "Not decided yet. Its absence from the general script command is recorded here rather "

@@ -3,7 +3,8 @@ from urllib.parse import unquote, urlencode, urlsplit
 
 from django import forms
 from django.core.paginator import Paginator
-from django.db.models import Count
+from django.db.models import Count, Value
+from django.db.models.functions import Concat, Lower, StrIndex, Substr
 from django.http import Http404, HttpResponse, HttpResponsePermanentRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import NoReverseMatch, reverse
@@ -11,6 +12,7 @@ from django.views.decorators.http import require_http_methods
 
 from courses.models.cohort import Cohort, Course
 from courses.models.project import Project
+from courses.models.project_repo_enrichment import ProjectRepoEnrichment
 from courses.views.project_gallery_groups import site_project_submissions
 from courses.views.project_submission_listing import (
     project_submissions_page,
@@ -23,6 +25,21 @@ SITE_PROJECT_SUBMISSIONS_PAGE_SIZE = 25
 GALLERY_SORTS = frozenset({"cohort", "recent", "votes"})
 
 
+def _repo_slug_annotation():
+    """The 'owner/name' slug of a submission's GitHub link, in SQL.
+
+    Lets the queryset exclude (or match) repositories by identity without
+    materializing rows in Python. Links that are not GitHub URLs degrade to
+    a harmless value that matches no real slug.
+    """
+
+    link = Lower("github_link")
+    path = Substr(link, StrIndex(link, Value("github.com/")) + 11)
+    owner_slash = StrIndex(Concat(path, Value("/")), Value("/"))
+    rest = Concat(Substr(path, owner_slash + Value(1)), Value("/"))
+    return Substr(path, Value(1), owner_slash + StrIndex(rest, Value("/")) - Value(1))
+
+
 class ProjectGalleryFilters(forms.Form):
     course = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "field-input"}))
     cohort = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "field-input"}))
@@ -30,6 +47,11 @@ class ProjectGalleryFilters(forms.Form):
         label="Assignment",
         required=False,
         widget=forms.Select(attrs={"class": "field-input"}),
+    )
+    hide_unavailable = forms.BooleanField(
+        label="Hide gone repositories",
+        required=False,
+        initial=False,
     )
     sort = forms.ChoiceField(
         label="Sort by",
@@ -62,6 +84,24 @@ def _repository_identity(raw_url: str) -> tuple[str, str]:
         return "", ""
     path = unquote(parsed.path).strip("/")
     return f"{parsed.hostname}/{path}".rstrip("/"), raw_url
+
+
+def _github_repo_slug(raw_url: str) -> str:
+    """Return the lowercased 'owner/name' slug of a GitHub repository URL."""
+
+    try:
+        parsed = urlsplit(raw_url)
+    except ValueError:
+        return ""
+    if parsed.scheme not in {"http", "https"} or parsed.hostname not in {
+        "github.com",
+        "www.github.com",
+    }:
+        return ""
+    parts = [part for part in unquote(parsed.path).strip("/").split("/") if part]
+    if len(parts) < 2:
+        return ""
+    return f"{parts[0]}/{parts[1]}".lower()
 
 
 def optional_all_projects_url() -> str | None:
@@ -223,6 +263,14 @@ def _apply_filters(submissions, filters):
         submissions = submissions.filter(project__course__identifier=values["cohort"])
     if values["project"]:
         submissions = submissions.filter(project__slug=values["project"])
+    if values["hide_unavailable"]:
+        gone = set(
+            ProjectRepoEnrichment.objects.filter(is_unavailable=True).values_list(
+                "repo_lower", flat=True
+            )
+        )
+        if gone:
+            submissions = submissions.exclude(repo_slug_norm__in=gone)
     if values["sort"] == "recent":
         return submissions.order_by("-submitted_at", "-pk")
     if values["sort"] == "votes":
@@ -231,6 +279,7 @@ def _apply_filters(submissions, filters):
 
 
 def _decorate_rows(submissions, family=None, cohort=None, project=None):
+    slugs: dict[str, ProjectRepoEnrichment | None] = {}
     for submission in submissions:
         submission.cohort = cohort or submission.project.course
         submission.family = family or submission.cohort.course
@@ -238,6 +287,24 @@ def _decorate_rows(submissions, family=None, cohort=None, project=None):
         submission.repository_label, submission.repository_url = _repository_identity(
             submission.github_link
         )
+        slug = _github_repo_slug(submission.github_link)
+        submission.repo_slug = slug
+        if slug:
+            slugs.setdefault(slug, None)
+    if slugs:
+        for enrichment in ProjectRepoEnrichment.objects.filter(repo_lower__in=slugs):
+            slugs[enrichment.repo_lower] = enrichment
+    for submission in submissions:
+        enrichment = slugs.get(submission.repo_slug)
+        submission.repo_enrichment = enrichment
+        if (
+            enrichment is not None
+            and not enrichment.is_unavailable
+            and enrichment.effective_url
+        ):
+            # The repository was renamed after submission; link its current
+            # location while the card keeps the slug the cohort knows.
+            submission.repository_url = enrichment.effective_url
 
 
 def cohort_gallery_url(cohort: Cohort) -> str:
@@ -330,7 +397,9 @@ def project_gallery_view(
             raise ValueError("Only an assignment-scoped gallery accepts votes")
         return project_vote_response(request, cohort, project)
 
-    all_public_submissions = site_project_submissions()
+    all_public_submissions = site_project_submissions().annotate(
+        repo_slug_norm=_repo_slug_annotation()
+    )
     eligible_submissions = all_public_submissions.filter(passed=True)
     facet_rows = _choice_rows(eligible_submissions)
     requested_course = request.GET.get("course", "")

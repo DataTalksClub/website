@@ -9,7 +9,9 @@ reviewed identities, reviewed content, new-event discovery, and staged
 descriptions. The attendee exports are then ingested directly into current
 registration rows by the same readers as `import_event_registrants.py`. The
 course catalog is imported first and the reviewed editorial
-inputs after it, which is the bootstrap order in
+inputs (and the project-gallery repository enrichment with its structured
+course records, both staged under `~/prod/dtc-data/content-staging/`) after
+it, which is the bootstrap order in
 `_docs/runbooks/data-ingest.md` §11; the event stage is §11 step 5 and runs
 last, through the same functions the production entry points call.
 """
@@ -61,12 +63,14 @@ from scripts.prod.sync_course_repository_sources import (  # noqa: E402
 )
 
 ORCHESTRATOR_SCHEMA_VERSION = 2
-EVENTBRITE_RELATIVE_SOURCE = Path(
-    ".local/migration-data/events/eventbrite/aggregate-v1.zip"
-)
+EVENTBRITE_RELATIVE_SOURCE = Path(".local/migration-data/events/eventbrite/aggregate-v1.zip")
 LUMA_IDENTITIES_PATH = Path.home() / "prod/dtc-data/luma-event-identities.json"
-EVENTBRITE_IDENTITIES_PATH = (
-    Path.home() / "prod/dtc-data/eventbrite-event-identities.json"
+EVENTBRITE_IDENTITIES_PATH = Path.home() / "prod/dtc-data/eventbrite-event-identities.json"
+GALLERY_ENRICHMENT_PATH = (
+    Path.home() / "prod/dtc-data/content-staging/project_gallery_repo_enrichment.jsonl"
+)
+GALLERY_STRUCTURED_PATH = (
+    Path.home() / "prod/dtc-data/content-staging/project_gallery_structured.jsonl"
 )
 
 
@@ -197,6 +201,8 @@ def run(
     eventbrite_source: Path,
     luma_identities: Path | None = LUMA_IDENTITIES_PATH,
     eventbrite_identities: Path = EVENTBRITE_IDENTITIES_PATH,
+    gallery_enrichment_source: Path = GALLERY_ENRICHMENT_PATH,
+    gallery_structured_source: Path = GALLERY_STRUCTURED_PATH,
     cmp_source_db: Path | None = None,
     fresh: bool,
 ) -> dict[str, Any]:
@@ -285,6 +291,24 @@ def run(
     # is not seeded here -- it requires a live `manage.py sync_content` run
     # against a real checkout, which this offline rehearsal does not attempt.
     editorial_content = _import_sponsor_and_testimonial_content()
+    # Step 4 alongside the other reviewed one-time staging inputs: the
+    # project-gallery repository enrichment (issue #416), with its structured
+    # course records attached.  Order-free -- it bootstraps its own table and
+    # touches no row another step writes -- and the same failure shape.
+    from scripts.prod.import_project_repo_enrichment import (  # noqa: E402
+        ProjectRepoEnrichmentImportFailure,
+    )
+    from scripts.prod.import_project_repo_enrichment import (  # noqa: E402
+        run as import_project_repo_enrichment,
+    )
+
+    try:
+        project_repo_enrichment = import_project_repo_enrichment(
+            enrichment_source=gallery_enrichment_source,
+            structured_source=gallery_structured_source,
+        )
+    except ProjectRepoEnrichmentImportFailure as error:
+        raise LocalPreparationError(f"project_repo_enrichment_{error}") from error
     # Step 5: import current Event identities and content, then populate current
     # attendee rows from both provider exports.
     with _event_import_refusals():
@@ -296,10 +320,14 @@ def run(
         from scripts.prod.registrant_import import RegistrantImportError, import_registrants
         from scripts.prod.registration_sources.eventbrite_registrants import (
             PROVIDER as EVENTBRITE_PROVIDER,
+        )
+        from scripts.prod.registration_sources.eventbrite_registrants import (
             eventbrite_registrant_sources,
         )
         from scripts.prod.registration_sources.luma_registrants import (
             PROVIDER as LUMA_PROVIDER,
+        )
+        from scripts.prod.registration_sources.luma_registrants import (
             luma_registrant_sources,
         )
 
@@ -333,6 +361,7 @@ def run(
         editorial_content=editorial_content,
         event_pipeline=event_pipeline,
         registrations=registrations,
+        project_repo_enrichment=project_repo_enrichment,
     )
 
 
@@ -347,12 +376,14 @@ def _orchestrator_report(
     editorial_content: dict[str, Any],
     event_pipeline: dict[str, Any],
     registrations: dict[str, Any],
+    project_repo_enrichment: dict[str, Any],
 ) -> dict[str, Any]:
     """The rehearsal report: course/editorial under ``steps``, the event
     stage's own structured result at top level.
 
     The event keys are carried over from ``import_events.run()`` and the
-    provider registration imports are reported separately.
+    provider registration imports and the gallery enrichment import are
+    reported separately.
     """
 
     return {
@@ -372,6 +403,7 @@ def _orchestrator_report(
         "new_event_content": event_pipeline["new_event_content"],
         "eventbrite_descriptions": event_pipeline["eventbrite_descriptions"],
         "event_registrations": registrations,
+        "project_repo_enrichment": project_repo_enrichment,
     }
 
 

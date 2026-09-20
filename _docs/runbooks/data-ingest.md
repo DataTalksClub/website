@@ -120,6 +120,7 @@ that way since the database cutover, so a row in §2 never carries it.
 | 19 | Sponsors | **No source** | Database | Undecided |
 | 20 | Testimonials | Migration seed only | Database | Undecided |
 | 21 | `rds-aisl_prod` — second production database | **Not addressed** | — | **Undecided** |
+| 22 | Project gallery repository enrichment | One-time | Database | One-off export |
 
 Sources 3–6 are separate upstream repositories that the owner's original list
 folded into "`DataTalksClub/content`". They are not in that repository and never
@@ -1085,6 +1086,27 @@ uv run --frozen python scripts/prod/import_mailchimp_course_tags.py \
 read-only queries only. A row whose email matches no existing account is skipped and
 counted; this importer never creates a `CustomUser`.
 
+### 22 — Project gallery repository enrichment
+
+| | |
+| --- | --- |
+| **Upstream** | The learner-project gallery's submitted GitHub repositories themselves: README snapshots and live availability probes, analysed offline (issue #416). Not a moving upstream — the reviewed exports are frozen at analysis time |
+| **Staging** | `~/prod/dtc-data/content-staging/project_gallery_repo_enrichment.jsonl` (one row per distinct submitted repository) and `project_gallery_structured.jsonl` (the `course-structured-v1` records extracted from the same README snapshots). Measured 2026-09-20: 5,224 enrichment rows, 1,202 of them carrying a structured record |
+| **Script** | `scripts/prod/import_project_repo_enrichment.py` |
+| **Writes** | `courses.models.ProjectRepoEnrichment` rows: what the repository does, why it is worth reading, observed gaps, topics, availability, coursework-vs-capstone, and the structured record stored whole as JSON on the row |
+| **Does not read or write** | Nothing learner-identifying. Score, cohort, course and author facts stay on the submissions; the gallery falls back to plain rendering where a submission's repository has no enrichment row |
+| **Idempotency** | Safe. Rows are keyed on the lowercased `owner/name` slug; a replay reports `unchanged` and writes nothing. The two files are cross-checked before any write — a structured record whose repository has no enrichment row refuses with `structured_without_enrichment_row` — and the writes run in one transaction |
+| **Bootstrap** | **Yes.** It populates its own table on an empty database and depends on no other source |
+
+```
+uv run --frozen python scripts/prod/import_project_repo_enrichment.py \
+    --database .tmp/local.sqlite3
+```
+
+`--dry-run` validates both files against the target database and reports the
+would-be counts without writing. The pair is one reviewed release: re-extracting
+a cohort means replacing both staged files together and re-running.
+
 ---
 
 ## 8.1 Rebuilding a local dev database end to end
@@ -1099,8 +1121,9 @@ and an ambient `DTC_SQLITE_PATH`/`DTC_ENVIRONMENT`/`DJANGO_SETTINGS_MODULE` unse
    (§13), then `scripts/prod/sync_course_repositories.py` against each registered course
    repository checkout (§3), then `scripts/prod/import_cmp_content.py --source <rds export>`
    (§11). CMP runs last because it reconciles.
-3. The two independent, order-free reviewed one-time imports (§4, §11 item 4):
-   `import_sponsors.py`, `import_testimonials.py`. The editorial catalogue
+3. The independent, order-free reviewed one-time imports (§4, §11 item 4):
+   `import_sponsors.py`, `import_testimonials.py`, `import_project_repo_enrichment.py`
+   (§22). The editorial catalogue
    (articles/podcasts/books/people/wiki/docs/FAQ) is no longer seeded this way — it
    needs a live `manage.py sync_content` run against a real checkout instead.
 4. `import_events.py` (§14-17) — one call, six legs internally sequenced.
@@ -1441,7 +1464,7 @@ What genuinely differs, and needs care rather than a separate pipeline:
    `import_account_reconciliation`, declare nothing and are read as not bootstrapping.
    `scripts/prod/__init__.py` lists the bootstrapping set in
    `BOOTSTRAPPING_ENTRY_POINTS`, and `scripts/tests/test_prod_conventions.py` checks the
-   two agree. Eleven modules bootstrap today and nine do not: `import_events`,
+   two agree. Twelve modules bootstrap today and nine do not: `import_events`,
    `import_event_registrants`, `import_mailchimp_event_tags`,
    `import_mailchimp_subscriptions`, `import_cmp_learner_history`,
    `import_account_reconciliation` and the three media `sync_public_media_*` scripts.
@@ -1460,9 +1483,10 @@ What genuinely differs, and needs care rather than a separate pipeline:
    order still refuses on a homework slug collision the first time one cohort is
    described by both CMP and a repository.
    `scripts/tests/test_prepare_local_data_order.py` holds the orchestrator to it.
-4. `scripts/prod/import_sponsors.py`, `import_testimonials.py` — the reviewed one-time
-   inputs under `~/prod/dtc-data/content-staging/` (outside this repository). Both
-   bootstrap; neither depends on the other. `import_public_content.py`, `import_faq.py`
+4. `scripts/prod/import_sponsors.py`, `import_testimonials.py`,
+   `import_project_repo_enrichment.py` (§22) — the reviewed one-time
+   inputs under `~/prod/dtc-data/content-staging/` (outside this repository). All
+   bootstrap; none depends on another. `import_public_content.py`, `import_faq.py`
    and `import_docs.py` used to be part of this step; they were removed once
    `content/catalogue.py`, `content/docs_projection.py` and `content/faq_data.py`
    moved to reading `content.models.SyncedDocument` exclusively — the live
