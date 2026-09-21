@@ -11,9 +11,10 @@ long-running services), so a malformed or foreign response fails closed
 before anything is registered.
 
 Only then is the release identity rewritten: the immutable image digest
-reference and the complete identity environment.  Everything the release
-pipeline does not own (Terraform-managed sizing, networking, and the rest of
-the container environment) is carried over unchanged.
+reference and the complete identity environment. The migration entry point
+and command are set to the shell contract used by the run-task override.
+Everything else the release pipeline does not own (Terraform-managed sizing,
+networking, and the rest of the container environment) is carried over.
 
 The deployment target is selected the same closed way as everywhere else in
 ``deploy/``: ``DTC_DEPLOYMENT_TARGET`` names a member of
@@ -34,7 +35,7 @@ import sys
 
 from deploy.contracts import ReleaseContractError
 from deploy.deployment_targets import SELECTED_TARGET, DeploymentTarget
-from deploy.task_definitions import config_for_target, validate_source_workload
+from deploy.task_definitions import COMMANDS, config_for_target, validate_source_workload
 
 REGISTER_TASK_DEFINITION_EXCLUDED_FIELDS = (
     "status",
@@ -100,6 +101,12 @@ def update_task_definition(
     containers = task["containerDefinitions"]
     container = containers[0]
     container["image"] = image
+    if workload == "migration":
+        # ECS run-task overrides the command, not the entry point. Terraform's
+        # migration source invokes manage.py directly; the deploy override is
+        # a shell script with phase-specific exit codes. Register a matching
+        # shell entry point instead of carrying over the source one.
+        container.update(COMMANDS["migration"])
     environment = [
         entry
         for entry in container.setdefault("environment", [])

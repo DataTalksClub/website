@@ -64,7 +64,11 @@ def task_document(family: str, revision: int, **overrides: Any) -> str:
     container: dict[str, Any] = {
         "name": workload,
         "image": "old-image:tag",
-        "command": list(COMMANDS[workload]["command"]) if workload != "migration" else ["legacy"],
+        "command": (
+            list(COMMANDS[workload]["command"])
+            if workload != "migration"
+            else ["migrate", "--noinput"]
+        ),
         "environment": [
             {"name": name, "value": value}
             for name, value in sorted(DEV_TARGET.fixed_nonsecret_environment.items())
@@ -108,7 +112,9 @@ def task_document(family: str, revision: int, **overrides: Any) -> str:
         "containerDefinitions": [container],
     }
     if workload == "migration":
-        container["entryPoint"] = ["/bin/sh", "-lc"]
+        # Match the Terraform-owned dev source: run-task's command override
+        # cannot work with this manage.py entry point until promotion fixes it.
+        container["entryPoint"] = ["uv", "run", "--no-sync", "python", "manage.py"]
     task.update(overrides)
     return json.dumps({"taskDefinition": task})
 
@@ -213,6 +219,7 @@ elif command == "register-task-definition":
         if arg.startswith("file://")
     )
     family = document["family"]
+    (state / f"registered-{family}.json").write_text(json.dumps(document))
     counters = json.loads((state / "revisions.json").read_text())
     counters[family] = counters.get(family, 40) + 1
     (state / "revisions.json").write_text(json.dumps(counters))
@@ -223,8 +230,14 @@ elif command == "run-task":
     entry = overrides["containerOverrides"][0]
     container = entry["name"]
     command_line = " ".join(entry.get("command", []))
+    task_definition = flag_value("--task-definition")
+    family = task_definition.split(":task-definition/")[-1].split(":")[0]
     if "jobs_ingress_selftest" in command_line:
         exit_code = 1 if fault == "selfcheck" else 0
+    elif json.loads((state / f"registered-{family}.json").read_text())[
+        "containerDefinitions"
+    ][0].get("entryPoint") != ["/bin/sh", "-lc"]:
+        exit_code = 1
     else:
         exit_code = int(os.environ.get("FAKE_MIGRATION_EXIT", "0"))
     task_arn = f"arn:aws:ecs:eu-west-1:387546586013:task/website-production/{uuid.uuid4().hex}"
@@ -482,7 +495,11 @@ def test_a_clean_rollout_verifies_tasks_selfcheck_and_readiness(
         and any('"name":"migration"' in str(part) for part in args)
     )
     migration_overrides = json.loads(migration[migration.index("--overrides") + 1])
-    assert COMMANDS["migration"]["entryPoint"] == ["/bin/sh", "-lc"]
+    registered_migration = json.loads(
+        (harness.state / "registered-website-dev-migration.json").read_text()
+    )["containerDefinitions"][0]
+    assert registered_migration["entryPoint"] == COMMANDS["migration"]["entryPoint"]
+    assert registered_migration["command"] == COMMANDS["migration"]["command"]
     assert migration_overrides["containerOverrides"] == [
         {
             "name": "migration",
