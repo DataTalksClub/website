@@ -30,6 +30,7 @@ class KernelInstallationTests(SimpleTestCase):
                 "community_base.events",
                 "community_base.curriculum",
                 "community_base.coursework",
+                "community_base.homework_steps",
                 "community_base.jobs",
                 "community_base.mail",
                 "community_base.kernel.apps.KernelConfig",

@@ -24,6 +24,7 @@ from unittest.mock import patch
 
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount
+from community_base.homework_steps.models import HomeworkDraft
 from django.conf import settings
 from django.db import IntegrityError
 from django.test import Client, SimpleTestCase, TestCase, TransactionTestCase
@@ -274,6 +275,21 @@ class ReviewedReconciliationTests(TestCase):
             **kwargs,
         )
         return parse_mapping_document(document)
+
+    def test_apply_reparents_in_progress_homework_draft(self) -> None:
+        draft = HomeworkDraft.objects.create(
+            user=self.source,
+            assignment_key="dtc:cohort:1:homework:1",
+            answers={"q-1": "saved answer"},
+            revision=1,
+        )
+
+        apply_reviewed_mapping(self.plan())
+
+        draft.refresh_from_db()
+        self.assertEqual(draft.user_id, self.survivor.pk)
+        self.assertEqual(draft.answers, {"q-1": "saved answer"})
+        self.assertEqual(draft.revision, 1)
 
     def test_apply_reparents_course_and_social_relations_once(self) -> None:
         enrollment = Enrollment.objects.create(

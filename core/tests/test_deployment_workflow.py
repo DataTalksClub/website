@@ -88,11 +88,13 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # D1.2ca/D1.2cb then edit pyproject config-only (mypy overrides, ruff exclude
 # of the retired data app). Issue #430 adds six strict account/course modules;
 # the post-pull review also enrolls the new Luma event reader that the upstream
-# runtime-removal merge left outside the adoption gate. These reviewed config
-# bytes move the seal without weakening Gate B.
-STUDIO_COURSES_PYPROJECT_SHA256 = "1b8e296791a327cf219ad8c29e843fae3f76424a4f88eb836f287c0b0864b3e1"
+# runtime-removal merge left outside the adoption gate. Issue #432 pins
+# community-base v0.5.5 for homework steps (changing uv.lock) and adds eight
+# strict homework and gallery modules. These reviewed bytes move both seals
+# without weakening Gate B.
+STUDIO_COURSES_PYPROJECT_SHA256 = "46353fe49b2d5ea09734c14ce7122a9d7286f1fae6153705f79f3830f76d68e8"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "1b207c8d1fc0e0b365c780324425b61fe056a5bc9ab9e8b7c622627734da99ea"
+    "393deeef6dfd48dea1e66d3c9aab1528dc369f0f59fc6220640075d601dcff38"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"

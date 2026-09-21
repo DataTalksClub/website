@@ -116,6 +116,10 @@ ACCOUNT_RELATIONS = (
     # risk profile for every reparented relation, not a new one.
     AccountRelationSpec("courses.UnitReadState", "user", "reparent"),
     AccountRelationSpec("courses.SharedLessonReadState", "user", "reparent"),
+    # Shared homework drafts are in-progress account data. Move a source
+    # user's draft to the survivor; the (user, assignment_key) constraint
+    # fails the merge closed if both accounts have a draft for one assignment.
+    AccountRelationSpec("cb_homework_steps.HomeworkDraft", "user", "reparent"),
     # cb_api.APIKey.user: community_base.api is installed (website/settings
     # /base.py) but no urlconf, view, management command, or job in this
     # site ever includes its urls or imports the model -- website/urls.py
