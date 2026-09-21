@@ -297,11 +297,7 @@ def _decorate_rows(submissions, family=None, cohort=None, project=None):
     for submission in submissions:
         enrichment = slugs.get(submission.repo_slug)
         submission.repo_enrichment = enrichment
-        if (
-            enrichment is not None
-            and not enrichment.is_unavailable
-            and enrichment.effective_url
-        ):
+        if enrichment is not None and not enrichment.is_unavailable and enrichment.effective_url:
             # The repository was renamed after submission; link its current
             # location while the card keeps the slug the cohort knows.
             submission.repository_url = enrichment.effective_url
