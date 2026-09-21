@@ -221,9 +221,13 @@ class LocalQuestionSeedTests(TestCase):
                 password="test-password",
             )
         )
-        authenticated_response = self.client.get(response.request["PATH_INFO"])
-        self.assertContains(authenticated_response, 'type="url"')
-        self.assertContains(authenticated_response, 'id="homework_url"')
+        homework_path = response.request["PATH_INFO"]
+        review_response = self.client.get(f"{homework_path}?homework_step=review")
+        self.assertContains(review_response, 'name="final_homework_url" type="text"')
+
+        classic_response = self.client.get(f"{homework_path}?homework_view=classic")
+        self.assertContains(classic_response, 'type="url"')
+        self.assertContains(classic_response, 'id="homework_url"')
 
 
 class LocalQuestionSeedRefusalTests(TestCase):
