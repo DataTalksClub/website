@@ -145,6 +145,7 @@ INSTALLED_APPS = [
     # events.Host.
     "community_base.curriculum",
     "community_base.coursework",
+    "community_base.homework_steps",
     "event_qna",
     "event_registrants",
     "studio.apps.StudioConfig",

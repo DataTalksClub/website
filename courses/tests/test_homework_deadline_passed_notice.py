@@ -24,7 +24,7 @@ class HomeworkDeadlinePassedNoticeTests(HomeworkSubmissionValidationBase):
         self.pass_deadline()
         self.client.login(**self.credentials())
 
-        response = self.client.get(self.homework_url())
+        response = self.client.get(f"{self.homework_url()}?homework_view=classic")
 
         self.assertContains(response, SIGNED_IN_NOTICE)
         self.assertContains(
@@ -38,7 +38,7 @@ class HomeworkDeadlinePassedNoticeTests(HomeworkSubmissionValidationBase):
     def test_open_homework_before_deadline_hides_notice(self):
         self.client.login(**self.credentials())
 
-        response = self.client.get(self.homework_url())
+        response = self.client.get(f"{self.homework_url()}?homework_view=classic")
 
         self.assertNotContains(response, SIGNED_IN_NOTICE)
         self.assertNotContains(response, SIGNED_OUT_NOTICE)
@@ -49,7 +49,7 @@ class HomeworkDeadlinePassedNoticeTests(HomeworkSubmissionValidationBase):
 
         self.client.login(**self.credentials())
 
-        response = self.client.get(self.homework_url())
+        response = self.client.get(f"{self.homework_url()}?homework_view=classic")
 
         self.assertContains(response, '<div class="homework-state-notices">')
         self.assertNotContains(response, 'class="callout callout-')
@@ -59,7 +59,7 @@ class HomeworkDeadlinePassedNoticeTests(HomeworkSubmissionValidationBase):
         self.close_homework()
         self.client.login(**self.credentials())
 
-        response = self.client.get(self.homework_url())
+        response = self.client.get(f"{self.homework_url()}?homework_view=classic")
 
         self.assertNotContains(response, SIGNED_IN_NOTICE)
         self.assertNotContains(response, SIGNED_OUT_NOTICE)
@@ -68,7 +68,7 @@ class HomeworkDeadlinePassedNoticeTests(HomeworkSubmissionValidationBase):
     def test_notice_shown_to_anonymous_visitor(self):
         self.pass_deadline()
 
-        response = self.client.get(self.homework_url())
+        response = self.client.get(f"{self.homework_url()}?homework_view=classic")
 
         self.assertContains(response, SIGNED_OUT_NOTICE)
         self.assertContains(response, "Log in to submit")
@@ -78,7 +78,7 @@ class HomeworkDeadlinePassedNoticeTests(HomeworkSubmissionValidationBase):
         self.pass_deadline()
         self.client.login(**self.credentials())
 
-        response = self.client.get(self.homework_url())
+        response = self.client.get(f"{self.homework_url()}?homework_view=classic")
 
         self.assertContains(response, HELPER_AFTER)
         self.assertNotContains(response, HELPER_BEFORE)
@@ -86,7 +86,7 @@ class HomeworkDeadlinePassedNoticeTests(HomeworkSubmissionValidationBase):
     def test_helper_text_before_deadline_mentions_the_deadline(self):
         self.client.login(**self.credentials())
 
-        response = self.client.get(self.homework_url())
+        response = self.client.get(f"{self.homework_url()}?homework_view=classic")
 
         self.assertContains(response, HELPER_BEFORE)
         self.assertNotContains(response, HELPER_AFTER)
