@@ -227,7 +227,7 @@ elif command == "run-task":
         exit_code = 1 if fault == "selfcheck" else 0
     else:
         exit_code = int(os.environ.get("FAKE_MIGRATION_EXIT", "0"))
-    task_arn = f"arn:aws:ecs:eu-west-1:387546586013:task/{uuid.uuid4()}"
+    task_arn = f"arn:aws:ecs:eu-west-1:387546586013:task/website-production/{uuid.uuid4().hex}"
     tasks = read_tasks()
     tasks[task_arn] = {"lastStatus": "STOPPED", "containers": {container: exit_code}}
     (state / "tasks.json").write_text(json.dumps(tasks))
@@ -249,13 +249,15 @@ elif command == "describe-tasks":
         if arn in tasks:
             stopped = tasks[arn]
             containers = [
-                {"name": name, "exitCode": code}
+                {"name": name, "exitCode": code, "reason": "synthetic-private-canary"}
                 for name, code in stopped["containers"].items()
             ]
             out.append(
                 {
                     "taskArn": arn,
                     "lastStatus": stopped["lastStatus"],
+                    "stopCode": "EssentialContainerExited",
+                    "stoppedReason": "synthetic-private-canary",
                     "containers": containers,
                 }
             )
@@ -508,6 +510,23 @@ def test_a_clean_rollout_verifies_tasks_selfcheck_and_readiness(
     assert set(receipt["promoted"].values()) == promoted_arns
     assert set(receipt["promoted"]) == {"web", "worker"}
     assert receipt["promoted_at"]
+
+
+def test_failed_migration_reports_safe_phase_and_log_location_without_promotion(
+    tmp_path: Path,
+) -> None:
+    harness = VerificationHarness(tmp_path)
+
+    completed = harness.deploy(FAKE_MIGRATION_EXIT="21")
+
+    assert completed.returncode != 0
+    assert '"phase": "schema_migration"' in completed.stderr
+    assert '"ecs_stop_code": "EssentialContainerExited"' in completed.stderr
+    assert '"cloudwatch_log_group": "/ecs/website-dev/migration"' in completed.stderr
+    assert "migration/migration/" in completed.stderr
+    assert "synthetic-private-canary" not in completed.stderr
+    assert "services were not changed" in completed.stderr
+    assert harness.update_service_calls() == []
 
 
 def test_the_promotion_sources_are_the_service_active_revisions(tmp_path: Path) -> None:

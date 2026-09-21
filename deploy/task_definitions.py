@@ -47,9 +47,9 @@ COMMANDS = {
     "migration": {
         "entryPoint": ["/bin/sh", "-lc"],
         "command": [
-            "uv run --no-sync python manage.py migrate --noinput"
-            " && uv run --no-sync python manage.py sync_relay_schedules"
-            " && uv run --no-sync python manage.py import_mail_templates",
+            "uv run --no-sync python manage.py migrate --noinput || exit 21; "
+            "uv run --no-sync python manage.py sync_relay_schedules || exit 22; "
+            "uv run --no-sync python manage.py import_mail_templates || exit 23",
         ],
     },
 }

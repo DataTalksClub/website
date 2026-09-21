@@ -190,7 +190,7 @@ aws ecs run-task --region "$AWS_REGION" \
   --task-definition "$MIGRATION_TASK_DEFINITION" \
   --launch-type FARGATE \
   --network-configuration "$NETWORK_CONFIGURATION" \
-  --overrides '{"containerOverrides":[{"name":"migration","command":["uv run --no-sync python manage.py migrate --noinput && uv run --no-sync python manage.py sync_relay_schedules && uv run --no-sync python manage.py import_mail_templates"]}]}' \
+  --overrides '{"containerOverrides":[{"name":"migration","command":["uv run --no-sync python manage.py migrate --noinput || exit 21; uv run --no-sync python manage.py sync_relay_schedules || exit 22; uv run --no-sync python manage.py import_mail_templates || exit 23"]}]}' \
   > "$WORKDIR/migration.json"
 jq -e '(.failures | length) == 0 and (.tasks | length) == 1' \
   "$WORKDIR/migration.json" > /dev/null
@@ -201,6 +201,10 @@ aws ecs describe-tasks --region "$AWS_REGION" \
   --cluster "$CLUSTER" --tasks "$MIGRATION_TASK" > "$WORKDIR/migration-result.json"
 MIGRATION_EXIT_CODE="$(jq -er '.tasks[0].containers[] | select(.name == "migration") | .exitCode' "$WORKDIR/migration-result.json")"
 if [[ "$MIGRATION_EXIT_CODE" != "0" ]]; then
+  # ECS reasons are arbitrary text and can carry runtime data. This helper
+  # prints only allowlisted codes, the failed phase, and the exact log stream
+  # for a reader with separately granted CloudWatch access.
+  python3 -m deploy.migration_failure_summary "$WORKDIR/migration-result.json" "$MIGRATION_TASK" >&2 || true
   echo "Migration task exited ${MIGRATION_EXIT_CODE}; services were not changed" >&2
   exit 1
 fi
