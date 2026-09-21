@@ -79,7 +79,7 @@ def _sign_in(page: Page, live_server, user: User) -> None:
 def _open_homework_page(page: Page, live_server) -> None:
     _homework_setup()
     _sign_in(page, live_server, _member())
-    page.goto(f"{live_server.url}{_homework_path()}")
+    page.goto(f"{live_server.url}{_homework_path()}?homework_view=classic")
     expect(page.locator("#learning-in-public-link-1")).to_have_count(1)
 
 
@@ -127,4 +127,4 @@ def test_invalid_url_error_is_wired_through_a_stable_error_id(page: Page, live_s
     feedback = page.locator("#learning-in-public-link-1-error")
     expect(feedback).to_be_visible()
     expect(feedback).to_contain_text("must start with http:// or https://")
-    expect(page).to_have_url(f"{live_server.url}{_homework_path()}")
+    expect(page).to_have_url(f"{live_server.url}{_homework_path()}?homework_view=classic")

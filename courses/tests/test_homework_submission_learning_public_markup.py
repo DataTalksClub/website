@@ -56,7 +56,7 @@ class HomeworkSubmissionLearningPublicMarkupTests(HomeworkSubmissionValidationBa
 
     def get_homework_page(self):
         self.client.login(**credentials)
-        return self.client.get(self.homework_url())
+        return self.client.get(f"{self.homework_url()}?homework_view=classic")
 
     def create_submission_with_links(self, links):
         enrollment = Enrollment.objects.create(student=self.user, course=self.course)

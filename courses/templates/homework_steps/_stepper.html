@@ -1,0 +1,87 @@
+{% load static %}
+<section class="homework-steps" aria-label="{{ stepper.assignment.title }} homework steps">
+  <p class="homework-steps-progress" aria-live="polite">Step {{ stepper.step_number|add:1 }} of {{ stepper.step_count }}</p>
+  {% if stepper.submitted %}<p role="status">Your homework was submitted.</p>{% endif %}
+  {% if stepper.notice %}<p role="status">This question changed. Your saved answers are still here.</p>{% endif %}
+  {% if stepper.error %}<p role="alert">{{ stepper.error }}</p>{% endif %}
+  {% if stepper.reason and not stepper.can_write %}<p role="status">{{ stepper.reason }}</p>{% endif %}
+  <nav aria-label="Homework steps">
+    <ol class="homework-step-list">
+      {% for title, url, current in stepper.nav_steps %}
+        <li><a href="{{ url }}"{% if current %} aria-current="step"{% endif %}>{{ title }}</a></li>
+      {% endfor %}
+    </ol>
+  </nav>
+  {% if stepper.step == 'intro' %}
+    <div class="homework-step-panel">
+      <h2>Introduction</h2>
+      {% if stepper.assignment.introduction %}<p>{{ stepper.assignment.introduction }}</p>{% endif %}
+      {% if stepper_instructions_html %}<div class="prose">{{ stepper_instructions_html }}</div>{% endif %}
+      {% if instructions_url %}<p><a class="band-link" href="{{ instructions_url }}" target="_blank" rel="noopener noreferrer">Full instructions</a></p>{% endif %}
+      <div class="homework-step-actions"><a class="cta cta-primary cta-compact" href="{{ stepper.next_url }}">Start questions</a></div>
+    </div>
+  {% elif stepper.question %}
+    <div class="homework-step-panel">
+      <h2>Question {{ stepper.step_number }}</h2>
+      <form method="post" action="{{ stepper.action }}" class="homework-step-form" data-homework-autosave data-save-url="{{ stepper.save_url }}">
+        {% csrf_token %}
+        <input type="hidden" name="assignment_key" value="{{ stepper.assignment.key }}">
+        <input type="hidden" name="draft_token" value="{{ stepper.draft_token }}">
+        <input type="hidden" name="{{ stepper.step_param }}" value="{{ stepper.step }}">
+        <input type="hidden" name="revision" value="{{ stepper.revision }}">
+        <input type="hidden" name="intent" value="save">
+        <fieldset class="homework-step-fieldset"{% if not stepper.can_write %} disabled{% endif %}>
+          <legend>{{ stepper.question.prompt }}</legend>
+          {% if stepper.question.type == 'choice' or stepper.question.type == 'checkbox' %}
+            {% for option, selected in stepper.options %}
+              <label class="homework-step-option"><input type="{% if stepper.question.type == 'choice' %}radio{% else %}checkbox{% endif %}" name="answer" value="{{ option.key }}"{% if selected %} checked{% endif %}> <span>{{ option.label }}</span></label>
+            {% endfor %}
+          {% elif stepper.question.type == 'long_text' %}
+            <label for="homework-answer">Your answer</label>
+            <textarea class="field-input form-control" id="homework-answer" name="answer" maxlength="10000" rows="8">{{ stepper.answer }}</textarea>
+          {% else %}
+            <label for="homework-answer">Your answer</label>
+            <input class="field-input form-control" id="homework-answer" name="answer" type="{% if stepper.question.key in stepper_integer_keys or stepper.question.key in stepper_float_keys %}number{% else %}text{% endif %}"{% if stepper.question.key in stepper_integer_keys %} step="1" inputmode="numeric"{% elif stepper.question.key in stepper_float_keys %} step="any" inputmode="decimal"{% endif %} maxlength="10000" value="{{ stepper.answer }}">
+          {% endif %}
+        </fieldset>
+        <p data-save-status role="status" aria-live="polite">{{ stepper.draft_status }}</p>
+        <div class="homework-step-actions">
+          <button class="cta cta-secondary cta-compact" type="submit" name="next_step" value="{{ stepper.previous }}">Save and back</button>
+          <button class="cta cta-primary cta-compact" type="submit" name="next_step" value="{{ stepper.next }}">Save &amp; continue</button>
+        </div>
+      </form>
+    </div>
+  {% else %}
+    <div class="homework-step-panel">
+      <h2>Review &amp; submit</h2>
+      <ol class="homework-review-list">
+        {% for prompt, answer, url in stepper.review_rows %}
+          <li><a class="band-link" href="{{ url }}">Question {{ forloop.counter }}: {{ prompt }}</a><span class="homework-review-answer">{% if answer %}{{ answer }}{% else %}No answer saved{% endif %}</span></li>
+        {% endfor %}
+      </ol>
+      <form method="post" action="{{ stepper.action }}" class="homework-step-form" data-homework-autosave data-save-url="{{ stepper.save_url }}">
+        {% csrf_token %}
+        <input type="hidden" name="assignment_key" value="{{ stepper.assignment.key }}">
+        <input type="hidden" name="draft_token" value="{{ stepper.draft_token }}">
+        <input type="hidden" name="{{ stepper.step_param }}" value="review">
+        <input type="hidden" name="revision" value="{{ stepper.revision }}">
+        {% for field, value in stepper.final_field_rows %}
+          <div class="field">
+            <label class="field-label" for="final-{{ field.key }}">{{ field.label }}{% if field.required %} (required){% endif %}</label>
+            {% if field.type == 'textarea' %}
+              <textarea class="field-input form-control" id="final-{{ field.key }}" name="final_{{ field.key }}" maxlength="10000" rows="4"{% if field.required %} required{% endif %}>{{ value }}</textarea>
+            {% else %}
+              <input class="field-input form-control" id="final-{{ field.key }}" name="final_{{ field.key }}" type="{{ field.type }}" maxlength="10000" value="{{ value }}"{% if field.required %} required{% endif %}>
+            {% endif %}
+          </div>
+        {% endfor %}
+        <p data-save-status role="status" aria-live="polite">{{ stepper.draft_status }}</p>
+        <div class="homework-step-actions">
+          <button class="cta cta-secondary cta-compact" type="submit" name="intent" value="save"{% if not stepper.can_write %} disabled{% endif %}>Save draft</button>
+          <button class="cta cta-primary cta-compact" type="submit" name="intent" value="submit"{% if not stepper.can_submit %} disabled{% endif %}>{% if submission.pk %}Update submission{% else %}Submit homework{% endif %}</button>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+</section>
+<script defer src="{% static 'community_base/homework_steps.js' %}"></script>

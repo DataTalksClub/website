@@ -161,7 +161,8 @@ class HomeworkDetailViewTestBase(TestCase):
     def get_homework_response(self, login=False):
         if login:
             self.client.login(**credentials)
-        url = self.homework_url()
+        # Existing view assertions cover the all-in-one compatibility form.
+        url = f"{self.homework_url()}?homework_view=classic"
         return self.client.get(url)
 
     def enable_all_optional_submission_fields(self):

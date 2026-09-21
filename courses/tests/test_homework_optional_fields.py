@@ -296,7 +296,7 @@ class HomeworkOptionalFullFieldsTests(HomeworkOptionalFieldsBase):
 
         self.client.login(**credentials)
         homework_url = self.homework_url()
-        response = self.client.get(homework_url)
+        response = self.client.get(f"{homework_url}?homework_view=classic")
         self.assert_submission_help_links(response)
 
         self.client.post(homework_url, post_data)
