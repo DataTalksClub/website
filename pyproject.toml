@@ -14,7 +14,7 @@ dependencies = [
     # template seam and block contract check, and C7.26/C7.27's settings
     # shapes. v0.5.1 was never cut; v0.4.7 was the prior pin. D7.1 needs C7.4,
     # which is in this tag.
-    "community-base @ git+https://github.com/DataTalksClub/community-base@v0.5.4",
+    "community-base @ git+https://github.com/DataTalksClub/community-base@v0.5.5",
     "cryptography>=50,<51",
     "django>=6.0,<6.1",
     "django-allauth>=65.10,<66",
