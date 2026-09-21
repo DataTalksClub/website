@@ -27,6 +27,16 @@ DUE = timezone.now() + timedelta(days=7)
 
 
 class RepoEnrichmentGalleryTests(TestCase):
+    family: Course
+    cohort: Cohort
+    project: Project
+    rich: ProjectRepoEnrichment
+    rich_submission: ProjectSubmission
+    low_submission: ProjectSubmission
+    gone_submission: ProjectSubmission
+    coursework_submission: ProjectSubmission
+    unknown_submission: ProjectSubmission
+
     @classmethod
     def setUpTestData(cls):
         cls.family = Course.objects.create(slug="de-zoomcamp", title="Data Engineering Zoomcamp")
@@ -70,24 +80,16 @@ class RepoEnrichmentGalleryTests(TestCase):
             confidence="medium",
             is_coursework=True,
         )
-        cls.rich_submission = cls._submission(
-            "https://github.com/LEARNER/RICH-PROJECT/tree/main"
-        )
+        cls.rich_submission = cls._submission("https://github.com/LEARNER/RICH-PROJECT/tree/main")
         cls.low_submission = cls._submission("https://github.com/learner/low-project")
         cls.gone_submission = cls._submission("https://github.com/learner/gone-project")
-        cls.coursework_submission = cls._submission(
-            "https://github.com/learner/homework-dumps"
-        )
-        cls.unknown_submission = cls._submission(
-            "https://github.com/learner/never-analyzed"
-        )
+        cls.coursework_submission = cls._submission("https://github.com/learner/homework-dumps")
+        cls.unknown_submission = cls._submission("https://github.com/learner/never-analyzed")
 
     @classmethod
     def _enrichment(cls, repo, **fields):
         fields.setdefault("confidence", "")
-        return ProjectRepoEnrichment.objects.create(
-            repo=repo, repo_lower=repo.lower(), **fields
-        )
+        return ProjectRepoEnrichment.objects.create(repo=repo, repo_lower=repo.lower(), **fields)
 
     @classmethod
     def _submission(cls, github_link):

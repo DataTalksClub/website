@@ -1,5 +1,7 @@
 """Cohort-owned homework through the shared draft reader."""
 
+from datetime import timedelta
+
 from community_base.homework_steps.models import HomeworkDraft
 from django.test import Client
 from django.utils import timezone
@@ -187,7 +189,7 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
         self.homework.time_spent_lectures_field = True
         self.homework.time_spent_homework_field = True
         self.homework.faq_contribution_field = True
-        self.homework.due_date = timezone.now() - timezone.timedelta(days=1)
+        self.homework.due_date = timezone.now() - timedelta(days=1)
         self.homework.save()
         old_submitted_at = self.submission.submitted_at
         intro = self.client.get(self.homework_url())

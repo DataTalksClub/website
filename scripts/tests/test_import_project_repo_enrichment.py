@@ -25,7 +25,7 @@ from scripts.prod.import_project_repo_enrichment import (
 
 PROD_ROOT = Path(scripts.prod.__file__).resolve().parent
 
-ENRICHMENT_ROWS = [
+ENRICHMENT_ROWS: list[dict[str, object]] = [
     {
         "repo": "alice/capstone",
         "url": "https://github.com/alice/capstone",
@@ -63,7 +63,7 @@ ENRICHMENT_ROWS = [
     },
 ]
 
-STRUCTURED_ROWS = [
+STRUCTURED_ROWS: list[dict[str, object]] = [
     {
         "repo": "alice/capstone",
         "course": "Data Engineering Zoomcamp 2024",
@@ -100,7 +100,7 @@ class ProjectRepoEnrichmentImportTests(TestCase):
         self._write(self.structured_source, STRUCTURED_ROWS)
 
     @staticmethod
-    def _write(path: Path, rows: list[dict]) -> None:
+    def _write(path: Path, rows: list[dict[str, object]]) -> None:
         path.write_text(
             "\n".join(json.dumps(row) for row in rows) + "\n",
             encoding="utf-8",

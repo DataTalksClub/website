@@ -292,8 +292,8 @@ def _decorate_rows(submissions, family=None, cohort=None, project=None):
         if slug:
             slugs.setdefault(slug, None)
     if slugs:
-        for enrichment in ProjectRepoEnrichment.objects.filter(repo_lower__in=slugs):
-            slugs[enrichment.repo_lower] = enrichment
+        for found_enrichment in ProjectRepoEnrichment.objects.filter(repo_lower__in=slugs):
+            slugs[found_enrichment.repo_lower] = found_enrichment
     for submission in submissions:
         enrichment = slugs.get(submission.repo_slug)
         submission.repo_enrichment = enrichment

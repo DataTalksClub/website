@@ -152,9 +152,17 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/templatetags/project_gallery.py",
     "courses/tests/test_learner_profile_refresh_migration.py",
     "courses/tests/test_moved_profile_field_readers.py",
+    "courses/models/project_repo_enrichment.py",
+    "courses/tests/test_homework_steps.py",
+    "courses/tests/test_site_gallery_repo_enrichment.py",
+    "courses/tests/test_site_gallery_structured_fields.py",
+    "courses/views/homework_steps.py",
+    "scripts/tests/test_import_project_repo_enrichment.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",
+    "scripts/prod/import_project_repo_enrichment.py",
+    "scripts/prod/import_tour.py",
     "courses/services/cmp_content_import.py",
     "courses/services/cmp_learner_history_import.py",
     "courses/services/cmp_certificate_reconciliation.py",

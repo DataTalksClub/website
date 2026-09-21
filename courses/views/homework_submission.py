@@ -34,7 +34,7 @@ class HomeworkPostData:
     homework: Homework
     questions: list[Question]
     submission: Submission | None
-    enrollment: Enrollment
+    enrollment: Enrollment | None
 
 
 def homework_answers_from_post(request):

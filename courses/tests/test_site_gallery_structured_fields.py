@@ -42,6 +42,10 @@ PIPELINE = {
 
 
 class RepoStructuredFieldsTests(TestCase):
+    family: Course
+    cohort: Cohort
+    project: Project
+
     @classmethod
     def setUpTestData(cls):
         cls.family = Course.objects.create(slug="de-zoomcamp", title="Data Engineering Zoomcamp")
@@ -74,9 +78,7 @@ class RepoStructuredFieldsTests(TestCase):
     @classmethod
     def _enrichment(cls, repo, **fields):
         fields.setdefault("confidence", "high")
-        return ProjectRepoEnrichment.objects.create(
-            repo=repo, repo_lower=repo.lower(), **fields
-        )
+        return ProjectRepoEnrichment.objects.create(repo=repo, repo_lower=repo.lower(), **fields)
 
     @classmethod
     def _submission(cls, github_link, suffix):
