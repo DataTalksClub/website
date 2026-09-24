@@ -19,6 +19,7 @@ from courses.views.project_confirmation import (
     send_project_confirmation_email,
 )
 from courses.views.submission_formatting import parse_time_spent_hours
+from courses.views.submission_urls import canonical_github_repository_url
 
 
 def project_submission_from_post(request: HttpRequest, project: Project) -> ProjectSubmission:
@@ -183,7 +184,9 @@ def apply_project_submission_post_fields(
     project: Project,
     project_submission: ProjectSubmission,
 ) -> None:
-    project_submission.github_link = request.POST.get("github_link")
+    project_submission.github_link = canonical_github_repository_url(
+        request.POST.get("github_link")
+    )
     project_submission.commit_id = request.POST.get("commit_id")
     apply_project_submission_optional_post_fields(
         request,
