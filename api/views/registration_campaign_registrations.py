@@ -20,9 +20,9 @@ def registration_campaign_registrations_payload(campaign, params):
 
 
 def filtered_registrations(campaign, params):
-    registrations = CourseRegistration.objects.filter(
-        campaign=campaign
-    ).select_related("campaign", "course")
+    registrations = CourseRegistration.objects.filter(campaign=campaign).select_related(
+        "campaign", "course"
+    )
     search_query = params.get("q", "")
     registrations = apply_registration_search(
         registrations,
@@ -36,9 +36,7 @@ def apply_registration_search(queryset, search):
     if not search:
         return queryset
 
-    return queryset.filter(
-        Q(email_normalized__icontains=search) | Q(name__icontains=search)
-    )
+    return queryset.filter(Q(email_normalized__icontains=search) | Q(name__icontains=search))
 
 
 def apply_registration_exact_filters(queryset, params):
@@ -55,25 +53,45 @@ def registration_campaign_stats(campaign):
     by_role = count_by(stats_base, "role")
     by_country = count_by(stats_base, "country")
     by_region = count_by(stats_base, "region")
+    by_company = count_by_company(stats_base)
     return {
         "total": total,
         "by_role": by_role,
         "by_country": by_country,
         "by_region": by_region,
+        "by_company": by_company,
     }
 
 
 def count_by(queryset, field):
     counts = []
     group_count = Count("id")
-    grouped_values = queryset.values(field).annotate(count=group_count).order_by(
-        "-count",
-        field,
+    grouped_values = (
+        queryset.values(field)
+        .annotate(count=group_count)
+        .order_by(
+            "-count",
+            field,
+        )
     )
     for item in grouped_values:
         count_record = {"value": item[field] or "", "count": item["count"]}
         counts.append(count_record)
     return counts
+
+
+def count_by_company(queryset):
+    # Response-only Python str.strip(), not SQL TRIM: every leading or
+    # trailing character str.strip() removes shares a bucket. Case and
+    # internal whitespace stay as stored. NULL matches count_by's "".
+    counts_by_company = {}
+    company_names = queryset.values_list("company_name", flat=True).iterator()
+    for company_name in company_names:
+        key = "" if company_name is None else company_name.strip()
+        counts_by_company[key] = counts_by_company.get(key, 0) + 1
+    buckets = [{"value": company, "count": count} for company, count in counts_by_company.items()]
+    buckets.sort(key=lambda bucket: (-bucket["count"], bucket["value"]))
+    return buckets
 
 
 def registration_limit(params):

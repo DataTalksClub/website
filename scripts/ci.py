@@ -158,6 +158,7 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/tests/test_site_gallery_structured_fields.py",
     "courses/views/homework_steps.py",
     "scripts/tests/test_import_project_repo_enrichment.py",
+    "api/tests/test_registration_campaign_company_stats.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",
