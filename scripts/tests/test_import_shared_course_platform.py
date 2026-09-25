@@ -457,6 +457,8 @@ class SharedCoursePlatformImportTests(ImportRunMixin, TestCase):
         self.assertEqual(Module.objects.filter(course__slug="p6-course").count(), 1)
         module = Module.objects.get(course__slug="p6-course", slug="intro")
         self.assertEqual(module.sort_order, 1)
+        if hasattr(module, "syllabus_section"):
+            self.assertEqual(module.syllabus_section, "")
         self.assertEqual(module.overview, "Module overview text.")
         self.assertEqual(Unit.objects.filter(module=module).count(), 1)
         unit = Unit.objects.get(module=module, slug="welcome")
