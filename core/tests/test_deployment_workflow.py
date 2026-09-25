@@ -91,8 +91,11 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # runtime-removal merge left outside the adoption gate. Issue #432 pins
 # community-base v0.5.5 for homework steps (changing uv.lock) and adds eight
 # strict homework and gallery modules. These reviewed bytes move both seals
-# without weakening Gate B.
-STUDIO_COURSES_PYPROJECT_SHA256 = "46353fe49b2d5ea09734c14ce7122a9d7286f1fae6153705f79f3830f76d68e8"
+# without weakening Gate B. Issue #433 adds the registration-campaign
+# company-stats test module to the strict mypy override (configuration only,
+# no dependency change) and the pyproject seal moves with that reviewed
+# pyproject.
+STUDIO_COURSES_PYPROJECT_SHA256 = "adb709e192f1279e68e16ab0c81206dd1e9e7abf001d90fa6a49eec5f81664fe"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
     "393deeef6dfd48dea1e66d3c9aab1528dc369f0f59fc6220640075d601dcff38"
 )

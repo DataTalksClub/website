@@ -22,6 +22,15 @@ REGISTRATION_CAMPAIGN_REF = ref("RegistrationCampaign")
 REGISTRATION_CAMPAIGN_ARRAY = array_of(REGISTRATION_CAMPAIGN_REF)
 REGISTRATION_COUNT_REF = ref("RegistrationCount")
 REGISTRATION_COUNT_ARRAY = array_of(REGISTRATION_COUNT_REF)
+BY_COMPANY_ARRAY = {
+    **array_of(REGISTRATION_COUNT_REF),
+    "description": (
+        "Counts of company_name for the whole campaign, not the limited "
+        "registrations row list. value is company_name with leading and "
+        "trailing whitespace stripped and letter case preserved. Blank and "
+        'whitespace-only names are grouped as "".'
+    ),
+}
 REGISTRATION_STATS_REF = ref("RegistrationStats")
 COURSE_REGISTRATION_REF = ref("CourseRegistration")
 COURSE_REGISTRATION_ARRAY = array_of(COURSE_REGISTRATION_REF)
@@ -233,6 +242,7 @@ COURSE_SCHEMAS = {
             "by_role": REGISTRATION_COUNT_ARRAY,
             "by_country": REGISTRATION_COUNT_ARRAY,
             "by_region": REGISTRATION_COUNT_ARRAY,
+            "by_company": BY_COMPANY_ARRAY,
         },
     },
     "RegistrationCampaignRegistrations": {
