@@ -94,8 +94,9 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # without weakening Gate B. Issue #433 adds the registration-campaign
 # company-stats test module to the strict mypy override (configuration only,
 # no dependency change) and the pyproject seal moves with that reviewed
-# pyproject.
-STUDIO_COURSES_PYPROJECT_SHA256 = "adb709e192f1279e68e16ab0c81206dd1e9e7abf001d90fa6a49eec5f81664fe"
+# pyproject. The local submission-URL normalization enrolls
+# courses.views.submission_urls and its test the same way.
+STUDIO_COURSES_PYPROJECT_SHA256 = "2ad803c70e6ec0732bd64346cafc8a8d25a8db7024aed67dc70c4d1cfc26d064"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
     "393deeef6dfd48dea1e66d3c9aab1528dc369f0f59fc6220640075d601dcff38"
 )

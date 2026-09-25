@@ -226,6 +226,8 @@ module = [
     "scripts.prod.registration_sources.luma_events",
     "scripts.tests.test_import_shared_course_platform",
     "api.tests.test_registration_campaign_company_stats",
+    "courses.tests.test_submission_urls",
+    "courses.views.submission_urls",
 ]
 ignore_errors = false
 
