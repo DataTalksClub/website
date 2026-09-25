@@ -109,6 +109,8 @@ Site `courses.Cohort` (`courses/models/cohort.py:207`), package
   site already made for the shared graph. Site `Module.terminal_homework` (OneToOne to
   `courses.Homework`) and `Module.link` have **no package column**: the package module
   carries `overview`/`overview_html` text, not bindings. Gap.
+- Package-only `Module.syllabus_section` stays at its blank default for migrated DTC
+  rows because DTC has no authored syllabus section value.
 - Site `Unit` content maps as `content_markdown` → `body`, `rendered_html` →
   `body_html`, `video_url` → `video_url`, `position` → `sort_order`. Site `Unit.link`
   (external-link units) and `Unit.code_sources` (declared code sources) have **no
