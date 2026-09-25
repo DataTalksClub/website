@@ -9,6 +9,18 @@ from courses.tests.project_view_base import fetch_fresh
 
 
 class ProjectSubmissionCreateViewTestCase(ProjectSubmissionViewTestBase):
+    def test_project_submission_canonicalizes_github_repository_url(self):
+        data = self.project_confirmation_data()
+        data["github_link"] = "http://www.github.com/learner/project.git/"
+
+        response = self.post_project(data)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            self.get_project_submission().github_link,
+            "https://github.com/learner/project",
+        )
+
     @mock.patch("requests.head")
     @mock.patch("requests.get")
     def test_project_submission_post_no_submissions(

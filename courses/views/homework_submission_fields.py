@@ -13,6 +13,7 @@ from courses.views.homework_learning_links import (
     find_duplicate_learning_in_public_links,
 )
 from courses.views.submission_formatting import parse_time_spent_hours
+from courses.views.submission_urls import canonical_github_repository_url
 
 
 @dataclass(frozen=True)
@@ -36,7 +37,7 @@ class HomeworkTimeSpentFieldData:
 
 def apply_homework_submission_fields(field_data):
     if field_data.homework.homework_url_field:
-        field_data.submission.homework_link = (
+        field_data.submission.homework_link = canonical_github_repository_url(
             field_data.request.POST.get("homework_url")
         )
     apply_learning_in_public_links(field_data)

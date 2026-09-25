@@ -58,3 +58,17 @@ class HomeworkSubmissionValidationTests(HomeworkSubmissionValidationBase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self.get_saved_submission().homework_link, homework_url)
+
+    def test_submit_homework_canonicalizes_github_repository_url(self):
+        self.enable_homework_url_field()
+        post_data = self.updated_answer_post_data(
+            homework_url="https://github.com/learner/project.git"
+        )
+
+        response = self.post_homework(post_data)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            self.get_saved_submission().homework_link,
+            "https://github.com/learner/project",
+        )
