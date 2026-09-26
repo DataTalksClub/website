@@ -84,6 +84,7 @@
       <p class="fact-status">
         {% if submission.pk %}
           <span class="status-pill status-pill-mint"><span class="status-dot" aria-hidden="true"></span>saved &middot; {{ submission.submitted_at|user_date_short:request }}</span>
+          {% if stepper.has_pending_changes %}<span class="status-pill status-pill-wait">unsent draft changes</span>{% endif %}
         {% else %}
           <span class="status-pill status-pill-wait">{% if stepper %}not submitted yet{% else %}not saved yet{% endif %}</span>
         {% endif %}

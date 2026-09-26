@@ -1,9 +1,10 @@
 from dataclasses import dataclass
+from urllib.parse import urlencode
 
 from community_base.homework_steps.services import clear_draft
 from community_base.homework_steps.views import handle_stepper
 from django.http import HttpRequest
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 
 from courses.models.cohort import Cohort
 from courses.models.homework import (
@@ -23,6 +24,8 @@ from courses.views.homework_steps import (
     DtcHomeworkStepsAdapter,
     assignment_key,
     build_assignment,
+    homework_step_url,
+    step_context_query_params,
 )
 from courses.views.homework_submission import (
     HomeworkPostData,
@@ -89,6 +92,7 @@ def homework_view(
     course_slug: str,
     homework_slug: str,
     cohort_identifier: str | int | None = None,
+    homework_step: str | None = None,
 ):
     detail_objects = homework_detail_objects(
         course_slug,
@@ -129,6 +133,20 @@ def homework_view(
                 questions=questions,
             )
             adapter = DtcHomeworkStepsAdapter(course, homework, questions)
+            query_params = step_context_query_params(request, course)
+            step_url_builder = lambda step: homework_step_url(course, homework, step)
+            if (
+                request.method == "GET"
+                and homework_step is None
+                and len(request.GET.getlist("homework_step")) == 1
+            ):
+                bookmarked_step = request.GET["homework_step"]
+                valid_steps = {"intro", "review"} | {item.key for item in assignment.questions}
+                if bookmarked_step in valid_steps:
+                    destination = step_url_builder(bookmarked_step)
+                    if query_params:
+                        destination = f"{destination}?{urlencode(query_params)}"
+                    return redirect(destination)
             return handle_stepper(
                 request,
                 assignment,
@@ -136,6 +154,9 @@ def homework_view(
                 action=request.path,
                 template_name="homework/steps.html",
                 step_param="homework_step",
+                query_params=query_params,
+                route_step=homework_step,
+                step_url_builder=step_url_builder,
             )
         except (ValueError, KeyError, IndexError):
             # An old or malformed question binding keeps the working classic
