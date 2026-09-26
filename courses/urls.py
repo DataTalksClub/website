@@ -88,6 +88,11 @@ urlpatterns = [
         name="cohort_homework_submissions",
     ),
     path(
+        "<slug:course_slug>/<slug:cohort_identifier>/homework/<slug:homework_slug>/<str:homework_step>",
+        homework.homework_view,
+        name="cohort_homework_step",
+    ),
+    path(
         "<slug:course_slug>/<slug:cohort_identifier>/leaderboard/<int:enrollment_id>/",
         course_leaderboard.leaderboard_score_breakdown_view,
         name="cohort_leaderboard_score_breakdown",
@@ -292,14 +297,18 @@ urlpatterns = [
         homework_submissions.homework_submissions,
         name="homework_submissions",
     ),
+    path(
+        "<slug:course_slug>/homework/<slug:homework_slug>/<str:homework_step>",
+        homework.homework_view,
+        name="homework_step",
+    ),
 ]
 
 # Route resolution order:
 # 0. the retired ``cohorts/`` prefix, matched only to 301-redirect it away;
 # 1. a cohort route with a literal operation segment (``modules/``,
 #    ``homework/``, ``enrollment``, ...), which must win over any generic
-#    slug shape -- ``/courses/x/homework/hw`` is a homework route, never a
-#    lesson;
+#    slug shape -- homework stats/submissions routes win over child step keys;
 # 2. the generic two-segment ``cohort`` route: the one entry point for a
 #    bare two-segment course path, dispatching to the shared-curriculum
 #    module view when the second segment isn't a cohort of this family;

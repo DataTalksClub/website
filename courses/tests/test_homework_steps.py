@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from community_base.homework_steps.models import HomeworkDraft
 from django.test import Client
+from django.urls import reverse
 from django.utils import timezone
 
 from courses.models import Answer, Enrollment, HomeworkState, Submission
@@ -23,7 +24,15 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
         self.client.login(**credentials)
 
     def step_url(self, step):
-        return f"{self.homework_url()}?homework_step={step}"
+        return reverse(
+            "cohort_homework_step",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_identifier": self.course.identifier,
+                "homework_slug": self.homework.slug,
+                "homework_step": step,
+            },
+        )
 
     def draft_token(self):
         return str(
@@ -35,7 +44,7 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
     def save(self, question, answer, revision, *, client=None):
         client = client or self.client
         return client.post(
-            self.homework_url(),
+            self.step_url(f"q-{question.pk}"),
             {
                 "assignment_key": assignment_key(self.homework),
                 "draft_token": self.draft_token(),
@@ -56,6 +65,8 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
         self.assertContains(intro, "<h2>Before you start</h2>", html=True)
         self.assertContains(intro, "Review &amp; submit")
         self.assertContains(intro, self.course.title)
+        self.assertContains(intro, f'href="{self.step_url("intro")}"')
+        self.assertContains(intro, f'href="{self.step_url("review")}"')
         self.assertNotContains(intro, 'name="answer"')
 
         question = self.client.get(self.step_url(f"q-{self.question1.pk}"))
@@ -64,6 +75,77 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
         self.assertNotContains(question, self.question2.text + "</legend>")
         self.assertEqual(Enrollment.objects.count(), 0)
         self.assertEqual(Submission.objects.count(), 0)
+
+    def test_legacy_query_bookmark_redirects_to_canonical_path_and_keeps_cohort_context(self):
+        response = self.client.get(
+            f"{self.homework_url()}?homework_step=q-{self.question1.pk}"
+            f"&cohort={self.course.identifier}"
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response["Location"],
+            f"{self.step_url(f'q-{self.question1.pk}')}?cohort={self.course.identifier}",
+        )
+
+    def test_stale_query_bookmark_redirects_with_explanation(self):
+        response = self.client.get(f"{self.homework_url()}?homework_step=removed-question")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response["Location"], f"{self.step_url(f'q-{self.question1.pk}')}?notice=changed"
+        )
+
+    def test_source_question_id_is_the_bookmarkable_step_key(self):
+        self.question1.source_question_id = "capital.question"
+        self.question1.source_content_id = "homework-source"
+        self.question1.source_commit_sha = "a" * 40
+        self.question1.source_checksum = "b" * 64
+        self.question1.source_path = "homework/homework.yml"
+        self.question1.save(
+            update_fields=[
+                "source_question_id",
+                "source_content_id",
+                "source_commit_sha",
+                "source_checksum",
+                "source_path",
+            ]
+        )
+
+        step_url = self.step_url("capital.question")
+        response = self.client.get(step_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.question1.text)
+        saved = self.client.post(
+            step_url,
+            {
+                "assignment_key": assignment_key(self.homework),
+                "draft_token": self.draft_token(),
+                "homework_step": "capital.question",
+                "revision": 0,
+                "answer": "2",
+                "intent": "save",
+            },
+        )
+
+        self.assertEqual(saved.status_code, 302)
+        draft = HomeworkDraft.objects.get(
+            user=self.user, assignment_key=assignment_key(self.homework)
+        )
+        self.assertEqual(draft.answers["capital.question"], "2")
+        self.assertNotIn(f"q-{self.question1.pk}", draft.answers)
+
+    def test_submitted_version_stays_accepted_when_a_draft_changes(self):
+        self.create_submission_with_answers()
+        self.client.get(self.homework_url())
+        response = self.save(self.question1, "2", 0)
+        self.assertEqual(response.status_code, 302)
+
+        review = self.client.get(self.step_url("review"))
+
+        self.assertContains(review, "Your submitted version remains accepted")
+        self.assertContains(review, "unsent draft changes")
+        self.assertEqual(self.submission.answer_set.get(question=self.question1).answer_text, "3")
 
     def test_answer_survives_new_session_without_submission_and_conflict_is_rejected(self):
         self.client.get(self.homework_url())
@@ -93,7 +175,7 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
         self.assertContains(review, "answer from draft")
         self.assertEqual(Submission.objects.count(), 0)
         response = self.client.post(
-            self.homework_url(),
+            self.step_url("review"),
             {
                 "assignment_key": assignment_key(self.homework),
                 "draft_token": self.draft_token(),
@@ -103,6 +185,7 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
             },
         )
         self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], self.step_url("review"))
         submission = Submission.objects.get(student=self.user, homework=self.homework)
         self.assertEqual(submission.answer_set.get(question=self.question1).answer_text, "3")
         self.assertEqual(
@@ -132,7 +215,7 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
         self.homework.state = HomeworkState.CLOSED.value
         self.homework.save(update_fields=["state"])
         response = self.client.post(
-            self.homework_url(),
+            self.step_url("review"),
             {
                 "assignment_key": assignment_key(self.homework),
                 "draft_token": self.draft_token(),
@@ -160,7 +243,7 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
         question = self.client.get(self.step_url(f"q-{self.question1.pk}"))
         self.assertContains(question, 'value="paris" checked')
         response = self.client.post(
-            self.homework_url(),
+            self.step_url("review"),
             {
                 "assignment_key": assignment_key(self.homework),
                 "draft_token": self.draft_token(),
@@ -200,7 +283,7 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
         review = self.client.get(self.step_url("review"))
         self.assertContains(review, 'value="https://github.com/example/homework"')
         response = self.client.post(
-            self.homework_url(),
+            self.step_url("review"),
             {
                 "assignment_key": assignment_key(self.homework),
                 "draft_token": self.draft_token(),
@@ -241,11 +324,11 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
             "revision": 1,
             "intent": "submit",
         }
-        first = self.client.post(self.homework_url(), payload)
+        first = self.client.post(self.step_url("review"), payload)
         self.assertEqual(first.status_code, 302)
         submission = Submission.objects.get(student=self.user, homework=self.homework)
         submitted_at = submission.submitted_at
-        second = self.client.post(self.homework_url(), payload)
+        second = self.client.post(self.step_url("review"), payload)
         self.assertEqual(second.status_code, 409)
         submission.refresh_from_db()
         self.assertEqual(submission.submitted_at, submitted_at)

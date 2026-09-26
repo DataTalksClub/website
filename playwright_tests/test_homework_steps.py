@@ -58,13 +58,15 @@ def test_homework_steps_save_resume_and_submit_at_desktop_and_mobile(page: Page,
             }
         ]
     )
-    path = reverse(
-        "cohort_homework",
-        kwargs={
-            "course_slug": cohort.course.slug,
-            "cohort_identifier": cohort.identifier,
-            "homework_slug": homework.slug,
-        },
+    route_kwargs = {
+        "course_slug": cohort.course.slug,
+        "cohort_identifier": cohort.identifier,
+        "homework_slug": homework.slug,
+    }
+    path = reverse("cohort_homework", kwargs=route_kwargs)
+    review_path = reverse(
+        "cohort_homework_step",
+        kwargs={**route_kwargs, "homework_step": "review"},
     )
     page.goto(f"{live_server.url}{path}")
     page.get_by_role("button", name="Keep analytics off").click()
@@ -82,13 +84,15 @@ def test_homework_steps_save_resume_and_submit_at_desktop_and_mobile(page: Page,
         else:
             route.continue_()
 
-    page.route("**/homework/stepper-homework*", fail_saves)
+    page.route(f"**/homework/{homework.slug}/**", fail_saves)
     page.get_by_label("Your answer").fill("Because it comes first")
-    expect(page.locator("[data-save-status]")).to_contain_text("Save failed")
+    save_status = page.locator("[data-save-status]")
+    expect(save_status).to_have_attribute("role", "alert")
+    expect(save_status).to_contain_text("could not be saved")
     page.get_by_role("link", name="Review & submit").click()
     expect(page.get_by_text("Explain your choice", exact=True)).to_be_visible()
     expect(page.get_by_label("Your answer")).to_have_value("Because it comes first")
-    page.unroute("**/homework/stepper-homework*", fail_saves)
+    page.unroute(f"**/homework/{homework.slug}/**", fail_saves)
     page.get_by_role("button", name="Save & continue").click()
     expect(page.get_by_role("heading", name="Review & submit")).to_be_visible()
     expect(page.locator(".homework-review-list")).to_contain_text("Alpha")
@@ -106,5 +110,5 @@ def test_homework_steps_save_resume_and_submit_at_desktop_and_mobile(page: Page,
     page.reload()
     expect(page.locator(".homework-review-list")).to_contain_text("Because it comes first")
     page.get_by_role("button", name="Submit homework").click()
-    expect(page).to_have_url(f"{live_server.url}{path}")
+    expect(page).to_have_url(f"{live_server.url}{review_path}")
     assert Submission.objects.filter(student=member, homework=homework).count() == 1

@@ -1,7 +1,11 @@
 {% load static %}
 <section class="homework-steps" aria-label="{{ stepper.assignment.title }} homework steps">
   <p class="homework-steps-progress" aria-live="polite">Step {{ stepper.step_number|add:1 }} of {{ stepper.step_count }}</p>
-  {% if stepper.submitted %}<p role="status">Your homework was submitted.</p>{% endif %}
+  {% if stepper.has_pending_changes %}
+    <p role="status">Your submitted version remains accepted. Saved changes are a draft until you submit them.</p>
+  {% elif stepper.submitted %}
+    <p role="status">Your homework was submitted.</p>
+  {% endif %}
   {% if stepper.notice %}<p role="status">This question changed. Your saved answers are still here.</p>{% endif %}
   {% if stepper.error %}<p role="alert">{{ stepper.error }}</p>{% endif %}
   {% if stepper.reason and not stepper.can_write %}<p role="status">{{ stepper.reason }}</p>{% endif %}
@@ -22,7 +26,7 @@
     </div>
   {% elif stepper.question %}
     <div class="homework-step-panel">
-      <h2>Question {{ stepper.step_number }}</h2>
+      <h2>{{ stepper.question_label }}</h2>
       <form method="post" action="{{ stepper.action }}" class="homework-step-form" data-homework-autosave data-save-url="{{ stepper.save_url }}">
         {% csrf_token %}
         <input type="hidden" name="assignment_key" value="{{ stepper.assignment.key }}">
@@ -45,6 +49,7 @@
           {% endif %}
         </fieldset>
         <p data-save-status role="status" aria-live="polite">{{ stepper.draft_status }}</p>
+        {% include "homework_steps/_draft_status_help.html" %}
         <div class="homework-step-actions">
           <button class="cta cta-secondary cta-compact" type="submit" name="next_step" value="{{ stepper.previous }}">Save and back</button>
           <button class="cta cta-primary cta-compact" type="submit" name="next_step" value="{{ stepper.next }}">Save &amp; continue</button>
@@ -55,8 +60,8 @@
     <div class="homework-step-panel">
       <h2>Review &amp; submit</h2>
       <ol class="homework-review-list">
-        {% for prompt, answer, url in stepper.review_rows %}
-          <li><a class="band-link" href="{{ url }}">Question {{ forloop.counter }}: {{ prompt }}</a><span class="homework-review-answer">{% if answer %}{{ answer }}{% else %}No answer saved{% endif %}</span></li>
+        {% for row in stepper.review_display_rows %}
+          <li><a class="band-link" href="{{ row.url }}">{% if row.has_semantic_label %}{{ row.step_label }}{% else %}Question {{ row.question_number }}: {{ row.prompt }}{% endif %}</a><span class="homework-review-answer">{% if row.answer %}{{ row.answer }}{% else %}No answer saved{% endif %}</span></li>
         {% endfor %}
       </ol>
       <form method="post" action="{{ stepper.action }}" class="homework-step-form" data-homework-autosave data-save-url="{{ stepper.save_url }}">
@@ -76,6 +81,7 @@
           </div>
         {% endfor %}
         <p data-save-status role="status" aria-live="polite">{{ stepper.draft_status }}</p>
+        {% include "homework_steps/_draft_status_help.html" %}
         <div class="homework-step-actions">
           <button class="cta cta-secondary cta-compact" type="submit" name="intent" value="save"{% if not stepper.can_write %} disabled{% endif %}>Save draft</button>
           <button class="cta cta-primary cta-compact" type="submit" name="intent" value="submit"{% if not stepper.can_submit %} disabled{% endif %}>{% if submission.pk %}Update submission{% else %}Submit homework{% endif %}</button>

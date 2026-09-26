@@ -222,7 +222,10 @@ class LocalQuestionSeedTests(TestCase):
             )
         )
         homework_path = response.request["PATH_INFO"]
-        review_response = self.client.get(f"{homework_path}?homework_step=review")
+        review_response = self.client.get(
+            f"{homework_path}?homework_step=review",
+            follow=True,
+        )
         self.assertContains(review_response, 'name="final_homework_url" type="text"')
 
         classic_response = self.client.get(f"{homework_path}?homework_view=classic")

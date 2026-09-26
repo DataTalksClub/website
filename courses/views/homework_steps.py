@@ -13,6 +13,8 @@ from community_base.homework_steps.types import (
 )
 from django.core.exceptions import ValidationError
 from django.http import QueryDict
+from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from courses.models.cohort import Enrollment
@@ -26,11 +28,34 @@ from courses.models.homework import (
 from courses.registration import render_markdown
 from courses.views.homework_context import homework_detail_build_context_authenticated
 from courses.views.homework_submission import HomeworkPostData, process_homework_submission
+from courses.views.url_utils import canonical_cohort_url_kwargs
 
 
 def assignment_key(homework):
     # A homework is owned by an exact cohort, even when slugs are reused.
     return f"dtc:cohort:{homework.course_id}:homework:{homework.pk}"
+
+
+def homework_step_url(course, homework, step):
+    """Build a canonical path for one step of this cohort-owned homework."""
+
+    return reverse(
+        "cohort_homework_step",
+        kwargs={
+            **canonical_cohort_url_kwargs(course),
+            "homework_slug": homework.slug,
+            "homework_step": step,
+        },
+    )
+
+
+def step_context_query_params(request, course):
+    """Keep only a valid explicit cohort context on child-step URLs."""
+
+    values = request.GET.getlist("cohort")
+    if values == [str(course.identifier)]:
+        return {"cohort": course.identifier}
+    return {}
 
 
 def question_key(question):
@@ -175,6 +200,7 @@ def build_assignment(*, request, course, homework, questions):
         },
         existing_final_fields=_existing_final_fields(submission, fields),
         context=context,
+        has_submission=submission is not None,
     )
 
 
@@ -195,7 +221,8 @@ class DtcHomeworkStepsAdapter:
         )
 
     def submit(self, request, assignment, answers, final_fields):
-        if not self.eligibility(request, assignment).submit:
+        current_homework = type(self.homework).objects.get(pk=self.homework.pk)
+        if current_homework.state != HomeworkState.OPEN.value:
             raise ValidationError("This homework is not open for submissions.")
         post = QueryDict(mutable=True)
         for question in self.questions:
@@ -241,9 +268,14 @@ class DtcHomeworkStepsAdapter:
         data = HomeworkPostData(
             request=synthetic_request,
             course=self.course,
-            homework=self.homework,
+            homework=current_homework,
             questions=self.questions,
             submission=submission,
             enrollment=Enrollment.objects.filter(student=request.user, course=self.course).first(),
         )
-        return process_homework_submission(data)
+        response = process_homework_submission(data)
+        if response.status_code in (301, 302, 303):
+            # The legacy service owns writes, scoring, messages and callbacks;
+            # keep its successful result but return the canonical Review path.
+            return redirect(homework_step_url(self.course, current_homework, "review"))
+        return response
