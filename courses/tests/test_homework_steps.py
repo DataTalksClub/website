@@ -198,6 +198,31 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
             ).exists()
         )
 
+    def test_blank_required_homework_url_cannot_be_submitted_from_review(self):
+        self.homework.homework_url_field = True
+        self.homework.save(update_fields=["homework_url_field"])
+        self.client.get(self.homework_url())
+
+        response = self.client.post(
+            self.step_url("review"),
+            {
+                "assignment_key": assignment_key(self.homework),
+                "draft_token": self.draft_token(),
+                "homework_step": "review",
+                "revision": 0,
+                "intent": "submit",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "Homework URL is required.", status_code=400)
+        self.assertFalse(Submission.objects.exists())
+        self.assertTrue(
+            HomeworkDraft.objects.filter(
+                user=self.user, assignment_key=assignment_key(self.homework)
+            ).exists()
+        )
+
     def test_classic_post_invalidates_old_draft(self):
         self.client.get(self.homework_url())
         self.save(self.question1, "2", 0)
