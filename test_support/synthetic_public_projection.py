@@ -1,23 +1,11 @@
-"""A small, synthetic stand-in for the reviewed public projection.
+"""Synthetic stand-ins for the event-description bridge tests.
 
-The reviewed projection lives outside this repository
-(``~/prod/dtc-data/content-staging/`` -- see
-``_docs/architecture/database-only-content.md``), so CI and a fresh checkout
-cannot reach it.  The tests that still exercise the projection file contract --
-the tree digest, the manifest scope declaration, the editorial route manifest,
-and the Markdown/link policies the description bridge renders under -- generate
-the tree here instead: a handful of records whose provenance names the accepted
-revisions, whose digests and counts are derived exactly the way
-``scripts/prod/public_projection_source`` and ``scripts/build_public_projection``
-derive them, and whose media references resolve.
+The reviewed public projection lives outside this repository, so those tests
+cannot read it. They need two local substitutes: a handful of collection files
+with public paths, which is all the link policy's route registry reads, and a
+bridge artifact whose pins come from the bridge contract itself.
 
-Everything the loaders check is code-owned, so a generated tree can satisfy
-every pin while staying synthetic: the accepted revisions, the marker canary
-counts and the route manifest shape are constants of the checking modules, and
-this factory reads those same constants rather than re-stating them.
-
-Nothing here touches the real reviewed tree, and no module under ``scripts/``
-changes: production keeps reading the corpus it has always read.
+Nothing here touches the real reviewed tree.
 """
 
 from __future__ import annotations
@@ -27,37 +15,15 @@ import json
 from pathlib import Path
 from typing import Any
 
-from content.podcast_routes import podcast_canonical_path
-from scripts.prod.public_projection_source import (
-    COLLECTION_NAMES,
-    EDITORIAL_ROUTE_COLLECTIONS,
-    EDITORIAL_ROUTE_MIGRATION_SCHEMA,
-    EXPECTED_PODCAST_PLATFORM_PROVIDERS,
-    EXPECTED_RECORD_SOURCES,
-    EXPECTED_REVISIONS,
-    EXPECTED_TREE_DIGEST_SCOPE,
-    _editorial_route_counts,
-    _editorial_route_manifest_digest,
-    _expected_editorial_routes,
-    _sha256,
-    _tree_sha256,
+_ROUTE_COLLECTIONS = (
+    "articles",
+    "podcasts",
+    "books",
+    "people",
+    "events",
+    "wiki",
+    "courses",
 )
-
-#: Kramdown inline target metadata, the canary the projection build pins per
-#: collection (``REVIEWED_TARGET_MARKER_COUNTS``).  The synthetic people carry
-#: exactly the accepted count; the synthetic articles carry none.
-TARGET_MARKER = '{: target="blank" }'
-
-_SINGULAR = {
-    "articles": "article",
-    "podcasts": "podcast",
-    "books": "book",
-    "people": "profile",
-    "events": "event",
-    "wiki": "wiki page",
-    "courses": "course",
-    "media": "media record",
-}
 
 _RECORD_PREFIX = {
     "articles": "/blog",
@@ -67,231 +33,26 @@ _RECORD_PREFIX = {
     "events": "/events/archive",
     "wiki": "/wiki/pages",
     "courses": "/courses/catalogue",
-    "media": "/media",
 }
 
 
-def _record(collection: str, slug: str, *, provenance_pair: int = 0) -> dict[str, Any]:
-    """One synthetic catalogue record the loaders accept.
-
-    Each collection names the accepted (repository, revision) pairs it is
-    built from; ``provenance_pair`` picks among them when there is more than
-    one, mirroring the real projection whose records arrive from several
-    accepted sources.
-    """
-
-    pairs = sorted(EXPECTED_RECORD_SOURCES[collection])
-    repository, revision = pairs[min(provenance_pair, len(pairs) - 1)]
-    return {
-        "slug": slug,
-        "public_path": f"{_RECORD_PREFIX[collection]}/{slug}.html",
-        "title": f"Synthetic {_SINGULAR[collection]} {slug}",
-        "provenance": {
-            "repository": repository,
-            "revision": revision,
-            "source_path": f"synthetic/{collection}/{slug}.md",
-            "source_key": slug,
-            "checksum": hashlib.sha256(f"{collection}/{slug}".encode()).hexdigest(),
-        },
-        "blocks": [{"kind": "text", "text": f"A synthetic {_SINGULAR[collection]} record."}],
-    }
-
-
-def _people_records() -> list[dict[str, Any]]:
-    """Two profiles carrying exactly the accepted target-marker canary count."""
-
-    accepted_markers = 10
-    rich = _record("people", "synthetic-projection-rich")
-    sparse = _record("people", "synthetic-projection-sparse", provenance_pair=1)
-    per_profile = accepted_markers // 2
-    for record in (rich, sparse):
-        record["blocks"] = [
-            {
-                "kind": "text",
-                "text": (f"A synthetic profile biography. {TARGET_MARKER} " * per_profile).strip(),
-            }
-        ]
-    return [rich, sparse]
-
-
-def _podcast_records() -> list[dict[str, Any]]:
-    # Positive season/episode integers and a published date are what the
-    # listing order reads; transcripts stay absent, so the manifest declares
-    # none.
-    records = [
-        _record("podcasts", f"synthetic-episode-{index}", provenance_pair=index % 2)
-        for index in range(1, 4)
-    ]
-    for index, record in enumerate(records, start=1):
-        record["season"] = index
-        record["episode"] = 100 - index
-        record["published"] = f"2026-08-{index:02d}"
-        record["transcript"] = ""
-        record["public_path"] = podcast_canonical_path(
-            season=record["season"], episode=record["episode"], slug=record["slug"]
-        )
-    return records
-
-
 def build_synthetic_projection(root: Path) -> Path:
-    """Write the whole synthetic projection tree under ``root`` and return it."""
+    """Write the collection files the route registry reads and return ``root``."""
 
     root.mkdir(parents=True, exist_ok=True)
-    counts: dict[str, int] = {}
-    for name in COLLECTION_NAMES:
-        if name == "people":
-            records = _people_records()
-        elif name == "podcasts":
-            records = _podcast_records()
-        elif name == "media":
-            records = [
-                {
-                    "slug": f"synthetic-media-{index}",
-                    "record_key": f"images/synthetic/{index}.png",
-                    "public_path": f"/media/synthetic/{index}.png",
-                    "provenance": {
-                        "repository": sorted(EXPECTED_RECORD_SOURCES["media"])[index % 2][0],
-                        "revision": sorted(EXPECTED_RECORD_SOURCES["media"])[index % 2][1],
-                        "checksum": hashlib.sha256(f"synthetic-media-{index}".encode()).hexdigest(),
-                    },
-                }
-                for index in range(1, 4)
-            ]
-        else:
-            records = [
-                _record(name, f"synthetic-{name}-{index}", provenance_pair=index % 2)
-                for index in range(1, 3)
-            ]
-        counts[name] = len(records)
+    for name in _ROUTE_COLLECTIONS:
+        slug = f"synthetic-{name}"
+        records = [
+            {
+                "slug": slug,
+                "public_path": f"{_RECORD_PREFIX[name]}/{slug}.html",
+                "title": f"Synthetic {name} {slug}",
+                "blocks": [{"kind": "text", "text": f"A synthetic {name} record."}],
+            }
+        ]
         (root / f"{name}.json").write_text(
             json.dumps(records, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
         )
-
-    providers = list(EXPECTED_PODCAST_PLATFORM_PROVIDERS)
-    (root / "podcast_platforms.json").write_text(
-        json.dumps(
-            [
-                {
-                    "key": provider,
-                    "provider": provider,
-                    "label": f"Synthetic {provider}",
-                    "title": f"Synthetic {provider}",
-                    "url": f"https://{provider}.example/subscription",
-                    "dot": provider[0],
-                }
-                for provider in providers
-            ],
-            ensure_ascii=False,
-            indent=1,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    counts["transcripts"] = 0
-
-    graph = {
-        "nodes": [
-            {
-                "id": "synthetic-node-a",
-                "label": "Synthetic node A",
-                "title": "Synthetic node A",
-                "type": "page",
-                "url": "/wiki/pages/synthetic-wiki-1.html",
-            },
-            {
-                "id": "synthetic-node-b",
-                "label": "Synthetic node B",
-                "title": "Synthetic node B",
-                "type": "page",
-                "url": "",
-            },
-        ],
-        "links": [
-            {
-                "source": "synthetic-node-a",
-                "target": "synthetic-node-b",
-                "kind": "related",
-                "weight": 1,
-            }
-        ],
-    }
-    (root / "wiki_graph.json").write_text(
-        json.dumps(graph, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
-    )
-    (root / "wiki_search.json").write_text(
-        json.dumps({"documents": []}, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
-    )
-
-    artifacts = {path.name: _sha256(path) for path in sorted(root.glob("*.json"))}
-
-    projection: dict[str, Any] = {
-        "manifest": {"selection_mode": "preferred"},
-        **{
-            name: tuple(json.loads((root / f"{name}.json").read_text(encoding="utf-8")))
-            for name in EDITORIAL_ROUTE_COLLECTIONS
-        },
-    }
-    finals, aliases = _expected_editorial_routes(projection)
-    finals_count, aliases_count = _editorial_route_counts(projection)
-    source_revisions = sorted(
-        {
-            (record["provenance"]["repository"], record["provenance"]["revision"])
-            for name in EDITORIAL_ROUTE_COLLECTIONS
-            for record in projection[name]
-        }
-    )
-    route_manifest = {
-        "schema_version": 1,
-        "schema": {
-            "path": "_docs/compatibility/editorial-route-migration.schema.json",
-            "sha256": _sha256(EDITORIAL_ROUTE_MIGRATION_SCHEMA),
-        },
-        "provenance": {
-            "builder": "scripts/build_public_projection.py",
-            "projection_schema_version": 1,
-            "projection_selection_mode": "preferred",
-            "source_artifacts": {
-                f"{name}.json": artifacts[f"{name}.json"] for name in EDITORIAL_ROUTE_COLLECTIONS
-            },
-            "source_revisions": [
-                {"repository": repository, "revision": revision}
-                for repository, revision in source_revisions
-            ],
-        },
-        "counts": {"finals": finals_count, "aliases": aliases_count},
-        "finals": finals,
-        "aliases": aliases,
-    }
-    route_manifest["content_sha256"] = _editorial_route_manifest_digest(route_manifest)
-    (root / "editorial_route_migration.json").write_text(
-        json.dumps(route_manifest, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
-    )
-    artifacts["editorial_route_migration.json"] = _sha256(root / "editorial_route_migration.json")
-
-    manifest = {
-        "schema_version": 1,
-        "selection_mode": "preferred",
-        "counts": counts,
-        "tree_digest_scope": EXPECTED_TREE_DIGEST_SCOPE,
-        "media_storage": {
-            "location": "object-store",
-            "records": "media.json",
-            "integrity": "per-record provenance.checksum",
-            "count": counts["media"],
-        },
-        "tree_sha256": _tree_sha256(root),
-        "sources": {
-            name: {
-                "revision": revision,
-                "accepted": name == "preferred_content",
-            }
-            for name, revision in EXPECTED_REVISIONS.items()
-        },
-        "artifacts": artifacts,
-    }
-    (root / "manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
-    )
     return root
 
 

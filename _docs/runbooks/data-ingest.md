@@ -1709,9 +1709,7 @@ closed, so an old item number still leads somewhere.
 12. **The projection's `courses` collection (12 records) was imported and read by no
     view even before `import_public_content.py` (which wrote it into `ContentDocument`)
     was removed entirely** — `/courses` is served from `courses.models.Cohort`, never
-    through those documents. `scripts/prod/public_projection_source.py` still lists
-    `courses` in `COLLECTION_NAMES` for the projection files it validates, but nothing
-    reads that collection out of the database any more.
+    through those documents. Nothing reads that collection out of the database.
 
 13. **The pinned revisions are behind upstream, so the site is missing records that
     exist today** — 4 people, 3 podcast episodes, 1 book, 8 event rows, 1 wiki page

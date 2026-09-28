@@ -780,7 +780,6 @@ scripts/prod/legacy_zoomcamp/email_recovery.py
 scripts/prod/legacy_zoomcamp/homework_content.py
 scripts/prod/legacy_zoomcamp/identity.py
 scripts/prod/legacy_zoomcamp/scoring_import.py
-scripts/prod/public_projection_source.py
 scripts/prod/registrant_import.py
 scripts/prod/registration_sources/__init__.py
 scripts/prod/registration_sources/eventbrite.py
@@ -797,7 +796,6 @@ scripts/prod/sync_public_media_publish.py
 scripts/prod/sync_public_media_verify.py
 scripts/prod/target/__init__.py
 scripts/pull_project_data.py
-scripts/repin_projection_digests.py
 scripts/score_project.py
 scripts/score_project_dev.py
 scripts/security_artifact_scan.py
@@ -822,7 +820,6 @@ scripts/tests/test_prepare_registration_sources.py
 scripts/tests/test_prod_conventions.py
 scripts/tests/test_prod_make_targets.py
 scripts/tests/test_prod_write_target.py
-scripts/tests/test_public_projection_media_digest.py
 scripts/tests/test_registration_sources.py
 scripts/tests/test_retired_broad_loader.py
 scripts/tests/test_scratch_staging.py

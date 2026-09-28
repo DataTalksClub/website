@@ -96,8 +96,9 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # company-stats test module to the strict mypy override (configuration only,
 # no dependency change) and the pyproject seal moves with that reviewed
 # pyproject. The local submission-URL normalization enrolls
-# courses.views.submission_urls and its test the same way.
-STUDIO_COURSES_PYPROJECT_SHA256 = "f1586643d084f8739a67d547e3f7c024a0cfe2ed308c1177c11ee080eec1bafa"
+# courses.views.submission_urls and its test the same way. Removing the retired
+# projection-loader mypy entries moves the pyproject seal the same way.
+STUDIO_COURSES_PYPROJECT_SHA256 = "708c5cec2dff7437866a53806358955885b35e606e42a97a89465a38a9a17021"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
     "71954a8d6d40ac62a4ba0d1c13ba1bae59665534d1497d52a065f4059f4a6f31"
 )

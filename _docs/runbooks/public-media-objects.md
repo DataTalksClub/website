@@ -279,15 +279,8 @@ symlink anywhere below the projection root — including under `media/` — is s
 Per-object integrity moved to `provenance.checksum`: every served object is verified before a byte
 reaches the client.
 
-To recompute only the derived digest fields after an artifact change, without re-running the full
-builder:
-
-```bash
-uv run python scripts/repin_projection_digests.py --check
-uv run python scripts/repin_projection_digests.py --write
-```
-
-The utility rewrites only `tree_sha256`, `tree_digest_scope`, and `media_storage`.
+Nothing in this repository loads or rewrites that manifest. Served media is checked per object
+from `provenance.checksum`.
 
 ## Deployment
 

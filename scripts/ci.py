@@ -101,7 +101,6 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "api/tests/staff_credentials.py",
     "api/tests/test_staff_authority_boundary.py",
     "courses/services/course_family_identity.py",
-    "scripts/tests/test_projection_marker_provenance.py",
     "scripts/build_luma_event_identities.py",
     "scripts/tests/test_scoring_import_submitted_at.py",
     "course_management/mail_preferences.py",

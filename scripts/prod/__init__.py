@@ -192,18 +192,7 @@ SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
 # and mints provider-discovered Event identities.  Both are domain logic real
 # entry points (`import_events.py`, `import_event_registrants.py`) compose --
 # neither opens a database connection or a provider export file of its own.
-# `public_projection_source` reads and fully checks the built public
-# projection files.  Its former entry point, `import_public_content.py`, was
-# removed once `content/catalogue.py` and friends moved to reading
-# `content.models.SyncedDocument` exclusively -- the projection files it
-# validates have no reader left in this repository.  It stays as a library
-# module because its own focused tests
-# (`scripts/tests/test_public_projection_media_digest.py`,
-# `scripts/tests/test_projection_marker_provenance.py`) still exercise it
-# directly; see `_docs/architecture/database-only-content.md`.
-LIBRARY_MODULES = frozenset(
-    {"identity_manifest", "registrant_import", "reviewed_release", "public_projection_source"}
-)
+LIBRARY_MODULES = frozenset({"identity_manifest", "registrant_import", "reviewed_release"})
 
 __all__ = [
     "BOOTSTRAPPING_ENTRY_POINTS",

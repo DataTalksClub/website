@@ -119,15 +119,14 @@ The projection *files* -- the frozen legacy public-content build, not the
 articles/podcasts/books/people/wiki/docs/FAQ this repository now serves from
 `SyncedDocument` -- still live outside this repository, at
 `~/prod/dtc-data/content-staging/public_projection/`. Nothing in this
-repository reads that tree any more: `scripts/prod/import_public_content.py`,
-its only real reader, was deleted once `content/catalogue.py` moved off
-`ContentDocument`. `scripts/prod/public_projection_source.py` (moved from the
-now-retired `scripts/projection_build/` package) still loads and fully checks
-that tree's shape, but only its own focused tests
-(`scripts/tests/test_public_projection_media_digest.py`,
-`scripts/tests/test_projection_marker_provenance.py`, against a synthetic
-stand-in) exercise it now -- it kept its `scripts/prod/` home because those
-tests still import it from there. `scripts/staging/` holds the unrelated, still-live code that builds an event
+repository reads that tree for the public catalogue any more:
+`scripts/prod/import_public_content.py`, its only catalogue reader, was deleted
+once `content/catalogue.py` moved off `ContentDocument`. The file loader that
+stayed behind to check that tree, `scripts/prod/public_projection_source.py`,
+and `scripts/repin_projection_digests.py` are gone too: their only callers were
+the tests written for them. The event-description bridge still reads the
+collection JSON in that tree when it builds staged descriptions.
+`scripts/staging/` holds the unrelated, still-live code that builds an event
 description/bio staging artifact from a reviewed source
 (`event_description_bridge.py`, `event_speaker_bio_normalization.py`,
 `event_description_link_policy.py`, `luma_event_descriptions.py`) for
@@ -260,15 +259,15 @@ moved from the retired `scripts/projection_build/` package to
 `scripts/staging/`, where `scripts/staging/luma_event_descriptions.py`'s live
 dependency on them is described alongside it. `public_projection_source.py`
 moved to `scripts/prod/`, next to its then one remaining caller,
-`scripts/prod/import_public_content.py` (since deleted -- `public_projection_source.py`
-stayed, since its own tests still exercise it directly; see the update note below);
+`scripts/prod/import_public_content.py` (since deleted). `public_projection_source.py`
+stayed only while its own tests imported it, and was removed with those tests;
 `scripts/projection_build/__init__.py` and the now-empty package were deleted.
 
-**What Stage 3 said to delete did not come out** -- `scripts/repin_projection_digests.py`
-and `scripts/build_public_projection.py` still exist, just repointed at the new
-location, because deleting them was never asked for by this relocation and
-both still have real (if narrow) callers: the former by part of
-`scripts/tests/test_public_projection_media_digest.py`, the latter by the
+**What Stage 3 said to delete did not come out in that relocation** --
+`scripts/repin_projection_digests.py` and `scripts/build_public_projection.py`
+were repointed at the new location, because deleting them was never asked for
+by this relocation and both then had real (if narrow) callers: the former by
+part of `scripts/tests/test_public_projection_media_digest.py`, the latter by the
 four tests named in the original Stage 3.2 entry
 (`content/tests/test_public_projection_builder.py`, `test_podcast_platforms.py`,
 `test_sponsor_article_charts.py`, `test_review_skeleton.py`). Their real
@@ -291,10 +290,12 @@ others -- which is the real reason the module could not simply be deleted once
 projection-writing orchestration, and everything reachable only from them (`build()`,
 `_courses`, `_copy_media`, the wiki/people/events builders, the editorial-route
 manifest writer) were removed instead, leaving a much smaller file of just the
-helpers those parsers and `content/public_records.py`/`scripts/repin_projection_digests.py`
-still use. The four tests named above still exercise it too, alongside those
-live callers -- none of that changes this section's point that the *staging tree*
-itself is a separate, later decision.
+helpers those parsers and `content/public_records.py` still use. The tree-digest
+helper those parsers never called, and the repin utility that was its only
+other caller, were removed with the loader. The four tests named above still
+exercise the remaining helpers, alongside those live callers. None of that
+changes this section's point that the *staging tree* itself is a separate,
+later decision.
 
 `temporary/content/public_projection/` and the reviewed JSON files beside it
 are gone from this repository (moved, `git rm`'d), including
@@ -311,8 +312,8 @@ this repository. Nothing here has changed the actual precondition: production
 still has to be ingested first (`temporary/content/`, now
 `~/prod/dtc-data/content-staging/`, is the reviewed content itself and is not
 re-derivable from a checkout anyone holds), and the two things that do not
-come out even then are `luma_event_descriptions.json` and
-`public_projection_source.py`'s callers -- see above.
+come out even then are `luma_event_descriptions.json` and the
+event-description bridge's read of the projection collection files -- see above.
 
 The names left over once a projection is not a file anywhere --
 `content/media_store.py`'s `PROJECTION_ROOT`/`REVIEWED_PROJECTION_ROOT`, and

@@ -12,9 +12,8 @@ What is left is a genuinely reusable library: the record-shape validation,
 Markdown/HTML body parsing, and URL/link normalization that
 ``content/sync_parsers/*.py`` -- the live ``community_base.content_sync`` parsers
 -- import directly (``from scripts import build_public_projection as builder``),
-plus a handful of helpers ``content/public_records.py`` and
-``scripts/repin_projection_digests.py`` still use.  The import path is
-unchanged on purpose: it is what those modules already spell.
+plus ``content/public_records.py``.  The import path is unchanged on purpose:
+it is what those modules already spell.
 """
 
 from __future__ import annotations
@@ -61,11 +60,6 @@ PODCAST_PLATFORM_KEY_ALIASES = {"anchor": "spotify_for_creators"}
 #: reads this directly for its own record provenance.
 WIKI_REPOSITORY = "https://github.com/DataTalksClub/podwiki"
 
-# Media objects are published to an object store, so the complete-tree digest covers the
-# JSON artifacts and wiki assets only.  The manifest declares the scope in
-# machine-readable form; the runtime rejects a manifest that does not declare it.
-MEDIA_TREE_PREFIX = "media/"
-TREE_DIGEST_SCOPE = "projection artifacts and wiki assets; excludes manifest.json and media/"
 MAX_SOURCE_FILE_BYTES = 2 * 1024 * 1024
 MAX_GRAPH_FILE_BYTES = 16 * 1024 * 1024
 SAFE_KEY = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,199}$")
@@ -1321,27 +1315,3 @@ def _load_json_bounded(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ProjectionBuildError(f"JSON source is not an object: {path.name[:120]}")
     return value
-
-
-def _tree_sha256(root: Path) -> str:
-    """Digest the projection artifacts and wiki assets, excluding the media objects.
-
-    The media objects are served from an object store and verified per record against
-    ``provenance.checksum``, while a symlink anywhere below the root — including under
-    ``media/`` — is still a hard failure.
-    """
-
-    digest = hashlib.sha256()
-    for path in sorted(item for item in root.rglob("*") if item.is_file()):
-        if path.is_symlink():
-            raise ProjectionBuildError("projection tree contains a symlink")
-        relative_path = path.relative_to(root).as_posix()
-        if path.name == "manifest.json" or relative_path.startswith(MEDIA_TREE_PREFIX):
-            continue
-        relative = relative_path.encode()
-        payload = path.read_bytes()
-        digest.update(len(relative).to_bytes(8, "big"))
-        digest.update(relative)
-        digest.update(len(payload).to_bytes(8, "big"))
-        digest.update(payload)
-    return digest.hexdigest()

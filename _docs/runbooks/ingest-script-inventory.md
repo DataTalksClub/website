@@ -698,9 +698,9 @@ checkout, or its webhook), not from a staged, digest-verified snapshot.
 parsing/derivation helpers (`_frontmatter`, `_string`, `_article_blocks`,
 `_provenance`, and others), which `content/sync_parsers/*.py` — the live sync
 parsers — import directly; only its CLI and the staging-tree-writing
-orchestration are gone. `scripts/prod/public_projection_source.py` still loads
-and fully checks the old staging tree's shape, but only its own tests exercise
-it now, against a synthetic stand-in.
+orchestration are gone. `scripts/prod/public_projection_source.py` and
+`scripts/repin_projection_digests.py` are gone as well: nothing but their own
+tests called them.
 
 ## 8.3 Drift check — reports, never writes
 
