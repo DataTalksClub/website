@@ -5,7 +5,7 @@ import uuid
 from django.test import TestCase, override_settings
 
 from courses.homework_answer_checks import is_answer_correct
-from courses.homework_answer_crypto import (
+from community_base.coursework.answer_crypto import (
     HomeworkAnswerKeyring,
     encrypt_choice_answer,
     encrypt_scalar_answer,

@@ -4,7 +4,7 @@ from courses.models.homework import (
     Question,
     QuestionTypes,
 )
-from courses.homework_answer_crypto import HomeworkAnswerCryptoError
+from community_base.coursework.answer_crypto import HomeworkAnswerCryptoError
 
 
 def is_float_equal(
