@@ -8,13 +8,12 @@ import subprocess
 import sys
 from typing import Any
 
-from deploy.deployment_targets import registered_target
-
-TARGET = registered_target("website-development")
-
-
-class ResetRefused(RuntimeError):
-    """The reviewed development website target cannot be proven."""
+from deploy.dev_reset_tasks import (
+    TARGET,
+    ResetRefused,
+    capture_service_tasks,
+    wait_for_service_tasks,
+)
 
 
 def _aws(*arguments: str) -> dict[str, Any]:
@@ -173,7 +172,7 @@ def observed_counts() -> dict[str, dict[str, int]]:
     return observed
 
 
-def _wait_until_quiescent() -> None:
+def _wait_until_quiescent(captured: dict[str, str] | None = None) -> None:
     _aws(
         "ecs",
         "wait",
@@ -184,11 +183,14 @@ def _wait_until_quiescent() -> None:
         TARGET.web_service_name,
         TARGET.worker_service_name,
     )
+    if captured is not None:
+        wait_for_service_tasks(_aws, captured)
     assert_quiescent()
 
 
 def drain() -> None:
     services = _service_pair()
+    captured = capture_service_tasks(_aws)
     for name in (TARGET.web_service_name, TARGET.worker_service_name):
         _aws(
             "ecs",
@@ -202,7 +204,7 @@ def drain() -> None:
             "--desired-count",
             "0",
         )
-    _wait_until_quiescent()
+    _wait_until_quiescent(captured)
 
 
 def stop() -> None:
@@ -246,7 +248,10 @@ def main() -> int:
             print(json.dumps(observed_counts(), sort_keys=True))
         else:
             raise ResetRefused("unsupported dev reset operation")
-    except (ResetRefused, OSError, KeyError, ValueError, subprocess.TimeoutExpired):
+    except ResetRefused as error:
+        print(f"Development reset {action} refused: {error}", file=sys.stderr)
+        return 1
+    except (OSError, KeyError, ValueError, subprocess.TimeoutExpired):
         print(f"Development reset {action} refused or failed", file=sys.stderr)
         return 1
     return 0

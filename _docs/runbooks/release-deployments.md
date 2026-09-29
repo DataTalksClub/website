@@ -169,7 +169,15 @@ diagnose a failed run and use a fresh normal dispatch from current `main`.
 The controller checks the dev deployer identity, reviewed ECS cluster and
 service identities, and the website-only migration task secret. It captures
 the prior service state in the redacted recovery receipt, drains both website
-services, and proves that no other website writer task remains. The migration
+services, and proves that no other website writer task remains. Service stability
+and zero service counts do not prove task termination: before draining, the
+controller captures and validates both services' RUNNING and STOPPED desired-state
+listings. After service stability it polls only those captured tasks for actual
+`STOPPED`, with a 300-second deadline (an in-flight AWS read is bounded to another
+60 seconds). At most 100 captured tasks are accepted. Missing task details,
+identity changes, timeout, or AWS failure refuse the operation with a safe
+category; no task is force-stopped. A final cluster-wide writer check still
+refuses new or competing website writers, including migration tasks. The migration
 task checks its actual database, role, schema owner, search path, recreate
 privilege, active connections, and absence of additional schemas or public
 extensions before resetting only `dtc_website_dev.public` in one transaction.
@@ -184,6 +192,13 @@ recovery and the receipt records the observed counts. No old image is
 automatically restored against a potentially new schema. A successful
 run passes the ordinary exact-image migration, worker self-check, health,
 readiness, and homepage gates before it writes a `dev-release` artifact.
+
+Service restoration also requires a pullable, schema-compatible web image.
+The September 29 reset attempt failed before SQL; restoring desired count one
+then exposed a deleted image pinned by the old web task definition. Desired-count
+changes alone cannot recover that outage. The separate migration exit 21 still
+requires diagnosis; this task-drain correction neither resolves it nor authorizes
+a second reset or replay of the prior deployment.
 
 The rebuilt schema starts empty. A green deployment does not restore prior
 development users, registrations, courses, jobs, or content. Follow

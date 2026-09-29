@@ -117,6 +117,8 @@ class FakeAws:
         }:
             return self._describe(action)
         if action == "list-tasks":
+            if "--service-name" in arguments:
+                return {"taskArns": []}
             desired = arguments[arguments.index("--desired-status") + 1]
             if self.writer and desired == self.writer_listing:
                 return {"taskArns": ["arn:writer"]}
