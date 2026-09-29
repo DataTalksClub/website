@@ -40,6 +40,7 @@ export DTC_DEPLOYMENT_TARGET
 # The reviewed profile. Fails closed on a retired or unknown target; every
 # value below is shell-quoted registry output.
 eval "$(python3 -m deploy.deployment_targets profile)"
+export AWS_REGION
 
 : "${AWS_REGION:?profile did not provide AWS_REGION}" \
   "${CLUSTER_NAME:?profile did not provide CLUSTER_NAME}" \
@@ -76,29 +77,20 @@ if [[ ! "$VERSION" =~ ^[0-9]{8}-[0-9]{6}-[0-9a-f]{7}$ ]] ||
   exit 1
 fi
 
+source "$REPO_ROOT/deploy/dev_reset_controller.sh"
+dev_reset_validate
+
 mkdir -p .tmp
 WORKDIR="$(mktemp -d ".tmp/deploy-${TARGET}.XXXXXX")"
-# The receipt lives outside WORKDIR on purpose: WORKDIR's raw API responses are
-# scratch, but the receipt is the durable, redacted record of the exact prior
-# service state, written before the first mutation and kept after every exit
-# (REL-02).
 RECEIPT_DIR=".tmp/deploy-receipts"
 mkdir -p "$RECEIPT_DIR"
 RECEIPT="${RECEIPT_DIR}/${TARGET}-${VERSION}.json"
 MUTATION_STARTED=0
+RESET_DRAIN_STARTED=0
+RESET_MAY_HAVE_BEGUN=0
+RESET_STAGE="preflight"
 
-recover_or_clean() {
-  local status=$?
-  if [[ $status -ne 0 && $MUTATION_STARTED -eq 1 && -f "$RECEIPT" ]]; then
-    echo "Deployment failed after the first service mutation; attempting bounded recovery to the captured prior state (receipt: ${RECEIPT})" >&2
-    if ! python3 "$(dirname "$0")/recovery_receipt.py" recover \
-        --receipt "$RECEIPT" --region "$AWS_REGION" --timeout-seconds 900 \
-        --cli "${RECOVERY_AWS_CLI:-aws}"; then
-      echo "AUTOMATIC RECOVERY FAILED. Restore both services by hand from ${RECEIPT}; it names the exact prior task-definition ARNs and desired counts. The deployment still counts as failed." >&2
-    fi
-  fi
-  rm -rf "$WORKDIR"
-}
+source "$REPO_ROOT/deploy/deployment_recovery.sh"
 trap recover_or_clean EXIT
 
 # $1 = workload name, $2 = the describe-task-definition source: the service's
@@ -184,13 +176,24 @@ WEB_TASK_DEFINITION="$(register_family web "$WEB_SOURCE")"
 WORKER_TASK_DEFINITION="$(register_family worker "$WORKER_SOURCE")"
 MIGRATION_TASK_DEFINITION="$(register_family migration "$MIGRATION_FAMILY")"
 
+if [[ $RESET_REQUESTED -eq 1 ]]; then
+  dev_reset_drain
+fi
+
 echo "Running migrations and loading required code-owned data before either service is promoted"
+MIGRATION_COMMAND="uv run --no-sync python manage.py migrate --noinput || exit 21; uv run --no-sync python manage.py sync_relay_schedules || exit 22; uv run --no-sync python manage.py import_mail_templates || exit 23"
+if [[ $RESET_REQUESTED -eq 1 ]]; then
+  RESET_STAGE="schema_reset_or_migration"
+  RESET_MAY_HAVE_BEGUN=1
+  MIGRATION_COMMAND="uv run --no-sync python -m deploy.dev_schema_reset || exit 20; ${MIGRATION_COMMAND}"
+fi
+MIGRATION_OVERRIDES="$(jq -nc --arg command "$MIGRATION_COMMAND" '{containerOverrides:[{name:"migration",command:[$command]}]}')"
 aws ecs run-task --region "$AWS_REGION" \
   --cluster "$CLUSTER" \
   --task-definition "$MIGRATION_TASK_DEFINITION" \
   --launch-type FARGATE \
   --network-configuration "$NETWORK_CONFIGURATION" \
-  --overrides '{"containerOverrides":[{"name":"migration","command":["uv run --no-sync python manage.py migrate --noinput || exit 21; uv run --no-sync python manage.py sync_relay_schedules || exit 22; uv run --no-sync python manage.py import_mail_templates || exit 23"]}]}' \
+  --overrides "$MIGRATION_OVERRIDES" \
   > "$WORKDIR/migration.json"
 jq -e '(.failures | length) == 0 and (.tasks | length) == 1' \
   "$WORKDIR/migration.json" > /dev/null
@@ -209,10 +212,8 @@ if [[ "$MIGRATION_EXIT_CODE" != "0" ]]; then
   exit 1
 fi
 
-# The first service mutation starts here: any failure past this point leaves
-# the site on a mixed or new release, so the EXIT trap runs the bounded
-# recovery against the captured receipt.
 MUTATION_STARTED=1
+if [[ $RESET_REQUESTED -eq 1 ]]; then RESET_STAGE="promotion"; fi
 
 echo "Promoting ${WEB_SERVICE_NAME}"
 aws ecs update-service --region "$AWS_REGION" \
@@ -227,10 +228,6 @@ aws ecs update-service --region "$AWS_REGION" \
 aws ecs wait services-stable --region "$AWS_REGION" \
   --cluster "$CLUSTER" --services "$WEB_SERVICE_NAME" "$WORKER_SERVICE_NAME"
 
-# REL-06: services-stable alone does not prove a coherent release.  Every
-# check below is fail-closed -- a stale worker, a mixed web rollout, a
-# database-unready response, or a hanging connection all prevent the success
-# record (and the EXIT trap treats any of them as a failed deployment).
 echo "Verifying both services are on the promoted definitions"
 aws ecs describe-services --region "$AWS_REGION" \
   --cluster "$CLUSTER" --services "$WEB_SERVICE_NAME" "$WORKER_SERVICE_NAME" \
@@ -278,6 +275,7 @@ echo "Verifying every running worker task carries the promoted definition"
 verify_running_tasks "$WORKER_SERVICE_NAME" "$WORKER_TASK_DEFINITION"
 
 echo "Running the bounded worker self-check on the promoted worker definition"
+if [[ $RESET_REQUESTED -eq 1 ]]; then RESET_STAGE="worker_selfcheck"; fi
 # One-off task on the exact definition the worker service runs: a system.noop
 # durable intent round-trips the signed job ingress and must reach SUCCEEDED
 # within this task's budget.  It contacts no real provider and sends no email;
@@ -306,6 +304,7 @@ if [[ "$WORKER_SELFCHECK_EXIT" != "0" ]]; then
 fi
 
 echo "Verifying ${BASE_URL} reports the promoted release"
+if [[ $RESET_REQUESTED -eq 1 ]]; then RESET_STAGE="readiness_and_smoke"; fi
 # HEALTH_POLL_SECONDS exists so tests can shorten the retry loop; production
 # always uses the default.  The connect/max-time deadlines keep a hanging
 # connection inside the retry budget instead of exceeding it, and

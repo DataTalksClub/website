@@ -2,6 +2,11 @@ name: Deploy Dev
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm_dev_schema_reset:
+        description: 'Type RESET dtc_website_dev.public to rebuild the development website schema'
+        required: false
+        type: string
   push:
     branches: [main]
 
@@ -20,6 +25,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Refuse an invalid schema reset dispatch before AWS access
+        env:
+          RESET_CONFIRMATION: ${{ inputs.confirm_dev_schema_reset }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$RESET_CONFIRMATION" ]]; then
+            exit 0
+          fi
+          [[ "$RESET_CONFIRMATION" == 'RESET dtc_website_dev.public' ]]
+          [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]
+          [[ "$GITHUB_REF" == refs/heads/main ]]
+          [[ "$GITHUB_RUN_ATTEMPT" == 1 ]]
+          head_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          [[ "$GITHUB_SHA" == "$head_sha" ]]
       - name: Check community-base dependency source
         # D0.1a: fail closed before anything installs if community-base is no
         # longer the pinned tagged git release in pyproject.toml/uv.lock (a
@@ -150,6 +170,9 @@ jobs:
           aws-region: eu-west-1
           role-session-name: website-dev-deployer-${{ github.run_id }}
       - name: Deploy the exact published release
+        env:
+          DTC_DEV_SCHEMA_RESET_CONFIRMATION: ${{ inputs.confirm_dev_schema_reset }}
+          GH_TOKEN: ${{ github.token }}
         # `uv run` puts the locked project environment first on PATH, so every
         # python3 call inside deploy_website.sh (REL-02's receipt capture and
         # bounded recovery, the task-definition promotion) resolves to the
