@@ -703,7 +703,7 @@ def _mapping() -> dict[
         # module/lesson-owned (site Module/Unit stay site-side, decision 4),
         # so the import has no site column to read either from; both stay at
         # their package default (null) for every migrated row.
-        frozenset({"module", "unit"}),
+        frozenset({"module", "unit", "stepper_enabled"}),
     )
 
     mapping[("courses.Question", "cb_coursework.Question", False)] = (
@@ -721,7 +721,7 @@ def _mapping() -> dict[
             **prov,
         },
         written(site.Question, set()),
-        frozenset(),
+        frozenset({"authored_position", "step_label"}),
     )
 
     mapping[("courses.Submission", "cb_coursework.Submission", False)] = (

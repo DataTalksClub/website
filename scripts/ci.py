@@ -175,6 +175,7 @@ PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod/import_shared_course_platform.py",
     "scripts/prod/registration_sources/luma_events.py",
     "scripts/tests/test_import_shared_course_platform.py",
+    "scripts/tests/test_import_shared_course_platform_defaults.py",
 )
 TYPECHECK_PATHS: Final = (
     "manage.py",

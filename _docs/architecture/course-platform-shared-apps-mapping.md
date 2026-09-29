@@ -314,6 +314,25 @@ vetoed before the D5.2 freeze weekend without rework beyond the named scope.
       deadline-mode review, whose due date is its project's
       `peer_review_due_date`; a migrated review is always deadline-mode.
 
+### Authored-homework defaults (C5.4c, issue #443)
+
+The import explicitly recognizes three optional package fields without writing
+them. DTC has no source columns for these authored-homework settings; its existing
+site stepper does not opt a homework into the package's authored stepper.
+
+| Package field | Fresh imported row | Replay |
+|---|---|---|
+| `Homework.stepper_enabled` | `False` | Preserve the target value |
+| `Question.authored_position` | `None` | Preserve the target value |
+| `Question.step_label` | Empty string | Preserve the target value |
+
+All-null authored positions keep imported questions in legacy ID order. The
+import does not infer positions or labels from question text. Defaults come from
+the package model and migration; existing target metadata is never reset by
+replay. These explicit default names are inert when absent from the current
+`v0.5.10` target. Any other unclassified concrete field still refuses the import
+before family writes. This declaration changes neither the pin nor site readers.
+
 ## Verification hooks (steps 2–4, executed after the #412 merge)
 
 - `_docs/compatibility/course-route-contracts.json` test keeps passing;
