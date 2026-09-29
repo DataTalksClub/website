@@ -31,6 +31,7 @@ from typing import Any
 
 import yaml
 
+from core.tests.deployment_fixtures import source_document
 from deploy.deployment_targets import registered_target
 from deploy.task_definitions import COMMANDS, config_for_target
 
@@ -54,69 +55,9 @@ DEV_CONFIG = config_for_target(DEV_TARGET)
 
 
 def task_document(family: str, revision: int, **overrides: Any) -> str:
-    """A task definition satisfying the reviewed website-development contract.
-
-    ``overrides`` replaces top-level task fields, so a test can poison exactly
-    one expectation.
-    """
-
-    workload = family.rsplit("-", 1)[-1]
-    container: dict[str, Any] = {
-        "name": workload,
-        "image": "old-image:tag",
-        "command": (
-            list(COMMANDS[workload]["command"])
-            if workload != "migration"
-            else ["migrate", "--noinput"]
-        ),
-        "environment": [
-            {"name": name, "value": value}
-            for name, value in sorted(DEV_TARGET.fixed_nonsecret_environment.items())
-        ],
-        "secrets": [
-            {
-                "name": "DATABASE_URL",
-                "valueFrom": (
-                    "arn:aws:secretsmanager:eu-west-1:387546586013"
-                    ":secret:website-dev/database-url-abc123"
-                ),
-            },
-            {
-                "name": "DJANGO_SECRET_KEY",
-                "valueFrom": (
-                    "arn:aws:secretsmanager:eu-west-1:387546586013"
-                    ":secret:website-dev/django-secret-key-abc123"
-                ),
-            },
-        ],
-        "portMappings": [{"containerPort": 8000}],
-    }
-    task: dict[str, Any] = {
-        "family": family,
-        "revision": revision,
-        "status": "ACTIVE",
-        "taskDefinitionArn": (
-            f"arn:aws:ecs:{REGION}:387546586013:task-definition/{family}:{revision}"
-        ),
-        "requiresAttributes": [],
-        "compatibilities": ["FARGATE"],
-        "registeredAt": 0,
-        "registeredBy": "fixture",
-        "cpu": "512",
-        "memory": "1024",
-        "networkMode": "awsvpc",
-        "requiresCompatibilities": ["FARGATE"],
-        "runtimePlatform": {"cpuArchitecture": "ARM64", "operatingSystemFamily": "LINUX"},
-        "executionRoleArn": DEV_TARGET.execution_role_arn,
-        "taskRoleArn": DEV_TARGET.task_role_arn,
-        "containerDefinitions": [container],
-    }
-    if workload == "migration":
-        # Match the Terraform-owned dev source: run-task's command override
-        # cannot work with this manage.py entry point until promotion fixes it.
-        container["entryPoint"] = ["uv", "run", "--no-sync", "python", "manage.py"]
-    task.update(overrides)
-    return json.dumps({"taskDefinition": task})
+    document = source_document(DEV_TARGET, family.rsplit("-", 1)[-1], revision)
+    document["taskDefinition"].update(overrides)
+    return json.dumps(document)
 
 
 FAKE_AWS = r"""#!/usr/bin/env python3

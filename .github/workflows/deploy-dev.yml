@@ -52,7 +52,9 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - name: Test the deployment contract
-        run: uv run --frozen python -m unittest core.tests.test_cmp_style_deployment
+        run: >-
+          uv run --frozen python -m unittest
+          core.tests.test_cmp_style_deployment core.tests.test_deploy_relay_secrets
 
   verify-ci:
     # REL-01: the deployment-contract checks in `test` are not application

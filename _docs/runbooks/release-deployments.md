@@ -106,7 +106,8 @@ target (`DTC_DEPLOYMENT_TARGET` is derived from the CLI argument):
    `python3 -m deploy.update_task_definition_image` validates it — exactly
    one container with the workload's name (sidecars are refused), exact
    target roles, the target's runtime platform, target-scoped
-   `DATABASE_URL`/`DJANGO_SECRET_KEY` references, the reviewed command for
+   `DATABASE_URL`/`DJANGO_SECRET_KEY` references plus development Relay
+   references (see recovery handoff below), the reviewed command for
    the long-running services — and rewrites only the release identity. A
    refused source stops the deployment before its registration (the gate is
    enforced explicitly because `set -e` does not apply inside `$( )`).
@@ -204,6 +205,43 @@ The rebuilt schema starts empty. A green deployment does not restore prior
 development users, registrations, courses, jobs, or content. Follow
 `development-course-content-bootstrap.md` and `data-ingest.md` for separately
 authorized data and content work after the release is healthy.
+
+### Development Relay recovery handoff (#442)
+
+The authorized rebuild run `36601136596` migrated the development schema, then
+failed Relay schedule synchronization (exit 22). Both website services remain
+stopped. Source acceptance of the promotion validator does not prove live recovery.
+Use the ordinary `deploy-dev.yml` path with `confirm_dev_schema_reset` empty;
+never repeat the schema reset for this recovery.
+
+Active development promotion requires exactly `DATABASE_URL`, `DJANGO_SECRET_KEY`,
+`RELAY_API_KEY`, and `RELAY_WEBHOOK_SECRET`. The Relay references must use the same
+`website-dev/integrations-<six-character AWS suffix>` container in the selected
+target's account and region, with corresponding `:RELAY_API_KEY::` and
+`:RELAY_WEBHOOK_SECRET::` JSON selectors. Promotion preserves the source
+`RELAY_BASE_URL` and references for all three workloads; it cannot create missing
+runtime configuration. Production and the retained manual normalizer keep their
+existing two-secret contracts.
+
+Before an ordinary deployment, the authorized infrastructure operator completes
+[aws-infra #58](https://github.com/DataTalksClub/aws-infra/issues/58)'s non-printing
+secret-shape preflight and reviews a fresh saved plan from its accepted `main/dev`
+revision. The sandbox apply workflow cannot activate `main/dev`. Explicitly
+reconcile the infrastructure README's task-definition/IAM-only limit with the
+necessary stopped web/worker service-pointer updates, reviewing their image
+references and live drift. Keep both desired counts zero during preparation;
+stop for unrelated state, IAM, network, database, replacement or count changes.
+New family revisions alone are insufficient: the controller reads service-selected
+web/worker revisions and the latest migration family revision.
+
+The operator supplies redacted evidence that those three sources carry the reviewed
+Relay URL, selectors and execution access. After that prerequisite and exact-main
+CI pass, on-call observes the ordinary deployment through migration, schedule and
+template synchronization, runtime health, readiness and homepage checks. Record
+the successful run, source SHA and image plus deployed
+`sync_relay_schedules --dry-run` no-diff and `jobs_ingress_selftest` OK evidence.
+Keep #442 open and #439 held until that evidence exists. Never include secret
+contents or Terraform remote state in artifacts or reports.
 
 ## Command inventory
 
