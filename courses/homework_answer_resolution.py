@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from django.conf import settings
 
-from courses.homework_answer_crypto import (
+from community_base.coursework.answer_crypto import (
     AnswerPayload,
     HomeworkAnswerCryptoError,
     HomeworkAnswerKeyring,

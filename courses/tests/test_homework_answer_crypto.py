@@ -5,7 +5,7 @@ import traceback
 from unittest import TestCase
 from unittest.mock import patch
 
-from courses.homework_answer_crypto import (
+from community_base.coursework.answer_crypto import (
     HomeworkAnswerDecryptionError,
     HomeworkAnswerKeyring,
     HomeworkAnswerKeyUnavailable,
@@ -45,7 +45,7 @@ def context_kwargs(**overrides):
 class HomeworkAnswerCryptoRoundTripTests(TestCase):
     def test_documented_aes_gcm_hkdf_envelope_vector(self):
         with patch(
-            "courses.homework_answer_crypto.secrets.token_bytes",
+            "community_base.coursework.answer_crypto.secrets.token_bytes",
             side_effect=[b"s" * 32, b"n" * 12],
         ):
             envelope = encrypt_scalar_answer(
@@ -54,20 +54,20 @@ class HomeworkAnswerCryptoRoundTripTests(TestCase):
                 **context_kwargs(),
             )
 
+        known_envelope = {
+            "version": 1,
+            "algorithm": "A256GCM",
+            "kdf": "HKDF-SHA256",
+            "key_id": "current",
+            "salt": "c3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3M",
+            "nonce": "bm5ubm5ubm5ubm5u",
+            "ciphertext": "nRj9d68AMidFoifs-C9ruNps-owEfLU5dGFIABEADaWjsA",
+            "context_sha256": ("1bb94a6b92ff9a598062228b8be1d21c3a72e38fc7c42e717c178c909ccb0654"),
+        }
+        self.assertEqual(envelope, known_envelope)
         self.assertEqual(
-            envelope,
-            {
-                "version": 1,
-                "algorithm": "A256GCM",
-                "kdf": "HKDF-SHA256",
-                "key_id": "current",
-                "salt": "c3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3M",
-                "nonce": "bm5ubm5ubm5ubm5u",
-                "ciphertext": "nRj9d68AMidFoifs-C9ruNps-owEfLU5dGFIABEADaWjsA",
-                "context_sha256": (
-                    "1bb94a6b92ff9a598062228b8be1d21c3a72e38fc7c42e717c178c909ccb0654"
-                ),
-            },
+            decrypt_answer(known_envelope, keyring=keyring(), **context_kwargs()),
+            {"value": "Python"},
         )
 
     def test_scalar_round_trip_uses_canonical_context_checksum(self):
