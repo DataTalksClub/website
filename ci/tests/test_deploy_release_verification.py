@@ -155,9 +155,11 @@ def service_view(name, updates):
             deployments.append({"status": "ACTIVE", "taskDefinition": promoted["old_arn"]})
         return {
             "serviceName": name,
+            "serviceArn": f"arn:aws:ecs:eu-west-1:387546586013:service/website-production/{name}",
             "taskDefinition": promoted["arn"],
             "desiredCount": promoted["desired"],
             "runningCount": promoted["desired"],
+            "pendingCount": 0,
             "deployments": deployments,
             "networkConfiguration": NETWORK_CONFIGURATION,
         }
@@ -165,9 +167,11 @@ def service_view(name, updates):
     desired, running = counts.get(name, [0, 0])
     return {
         "serviceName": name,
+        "serviceArn": f"arn:aws:ecs:eu-west-1:387546586013:service/website-production/{name}",
         "taskDefinition": _old_arn(name),
         "desiredCount": desired,
         "runningCount": running,
+        "pendingCount": 0,
         "deployments": [{"status": "PRIMARY"}],
         "networkConfiguration": NETWORK_CONFIGURATION,
     }
@@ -193,7 +197,14 @@ OLD = {
     "website-production-worker": _arn("website-production-worker", 60),
 }
 
-if command == "describe-services":
+if command == "get-caller-identity":
+    caller = {"Account": "387546586013"}
+    caller["Arn"] = "arn:aws:sts::387546586013:assumed-role/website-dev-github-deployer/test"
+    print(json.dumps(caller))
+elif command == "describe-clusters":
+    cluster = {"clusterArn": "arn:aws:ecs:eu-west-1:387546586013:cluster/website-production"}
+    print(json.dumps({"failures": [], "clusters": [cluster]}))
+elif command == "describe-services":
     updates = read_updates()
     # The orchestrator names both services as separate argv entries after
     # --services (the last flag on that call).
@@ -246,6 +257,9 @@ elif command == "run-task":
     (state / "tasks.json").write_text(json.dumps(tasks))
     print(json.dumps({"failures": [], "tasks": [{"taskArn": task_arn}]}))
 elif command == "list-tasks":
+    if "--service" not in args:
+        print(json.dumps({"taskArns": []}))
+        sys.exit(0)
     service = flag_value("--service")
     updates = read_updates()
     arns = []
@@ -289,6 +303,11 @@ elif command == "describe-tasks":
     print(json.dumps({"tasks": out}))
 elif command == "update-service":
     service = flag_value("--service")
+    if (os.environ.get("FAKE_FAIL_STOP") == "1" and
+        os.environ.get("FAKE_FAIL_AT") == "selfcheck" and
+        (state / "tasks.json").exists() and
+        service.endswith("-web") and flag_value("--desired-count") == "0"):
+        sys.exit(5)
     sleep_at = os.environ.get("FAKE_SLEEP_AT", "")
     if sleep_at == f"update-{service}":
         time.sleep(30)

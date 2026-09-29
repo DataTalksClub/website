@@ -155,6 +155,41 @@ part of a deployment.
 - Failures before the first mutation (profile, shape checks, source
   validation, migration exit) change nothing and attempt no recovery.
 
+### One-shot development website schema rebuild
+
+The owner-authorized recovery for #440 is a manual `Deploy Dev` dispatch from
+the current `main` revision. Enter `RESET dtc_website_dev.public` in
+`confirm_dev_schema_reset`. Check that the workflow shows its first attempt,
+that its exact source SHA passed `ci-gate`, and that the deployment target is
+`website-development` in account `387546586013`, region `eu-west-1`. The
+confirmation is refused on pushes, reruns, other refs, and production. The
+normal dispatch leaves the confirmation empty. Do not rerun a reset attempt;
+diagnose a failed run and use a fresh normal dispatch from current `main`.
+
+The controller checks the dev deployer identity, reviewed ECS cluster and
+service identities, and the website-only migration task secret. It captures
+the prior service state in the redacted recovery receipt, drains both website
+services, and proves that no other website writer task remains. The migration
+task checks its actual database, role, schema owner, search path, recreate
+privilege, active connections, and absence of additional schemas or public
+extensions before resetting only `dtc_website_dev.public` in one transaction.
+An unexpected additional schema or extension requires a separate review; this
+one-shot path refuses it. Relay, AISL, and production are outside its target.
+
+Before schema mutation may begin, a drain failure attempts receipt-backed
+restoration of the captured service counts. Once the migration task may have
+begun the reset, a failure stops both website services and leaves the run red.
+If AWS cannot verify the stop, the run explicitly reports unresolved manual
+recovery and the receipt records the observed counts. No old image is
+automatically restored against a potentially new schema. A successful
+run passes the ordinary exact-image migration, worker self-check, health,
+readiness, and homepage gates before it writes a `dev-release` artifact.
+
+The rebuilt schema starts empty. A green deployment does not restore prior
+development users, registrations, courses, jobs, or content. Follow
+`development-course-content-bootstrap.md` and `data-ingest.md` for separately
+authorized data and content work after the release is healthy.
+
 ## Command inventory
 
 Every supported entry point, its owner and the tests that pin it:
