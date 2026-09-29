@@ -98,9 +98,9 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # pyproject. The local submission-URL normalization enrolls
 # courses.views.submission_urls and its test the same way. Removing the retired
 # projection-loader mypy entries moves the pyproject seal the same way.
-STUDIO_COURSES_PYPROJECT_SHA256 = "708c5cec2dff7437866a53806358955885b35e606e42a97a89465a38a9a17021"
+STUDIO_COURSES_PYPROJECT_SHA256 = "84998b4e73d9b68910e40472646bdff4d79c9c408e96607242f21c27fa35d466"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "71954a8d6d40ac62a4ba0d1c13ba1bae59665534d1497d52a065f4059f4a6f31"
+    "d634452d31e2dd7fde510713c1866bf01a092ec98a293f9dd310c0312d8a5b78"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
