@@ -7,6 +7,7 @@ from typing import Any
 
 from deploy.contracts import ReleaseContractError, ReleaseIdentity
 from deploy.deployment_targets import CONTAINER_NAMES, SELECTED_TARGET, DeploymentTarget
+from deploy.task_secrets import secret_references
 
 WORKLOADS = ("web", "worker", "migration")
 REGISTERABLE_FIELDS = {
@@ -25,11 +26,6 @@ REGISTERABLE_FIELDS = {
     "runtimePlatform",
     "taskRoleArn",
     "volumes",
-}
-REQUIRED_SECRET_NAMES = {"DATABASE_URL", "DJANGO_SECRET_KEY"}
-SECRET_ARN_PATTERNS = {
-    "DATABASE_URL": SELECTED_TARGET.database_secret_arn_pattern,
-    "DJANGO_SECRET_KEY": SELECTED_TARGET.django_secret_arn_pattern,
 }
 SAFETY_ENVIRONMENT = SELECTED_TARGET.safety_environment
 # The release image deliberately excludes content/public_projection/media (see
@@ -133,7 +129,7 @@ def validate_source_workload(
         raise ReleaseContractError(f"{workload} execution role differs from the expected exact ARN")
     _assert_runtime_platform(task, workload)
     container = _only_container(task, config.container_names[workload])
-    _secrets(container)
+    secret_references(container, resolved, active_promotion=True)
     if workload != "migration":
         for field, expected in COMMANDS[workload].items():
             if container.get(field) != expected:
@@ -192,30 +188,8 @@ def _environment(container: dict[str, Any]) -> dict[str, str]:
 
 
 def _secrets(container: dict[str, Any]) -> tuple[tuple[str, str], ...]:
-    items = container.get("secrets", [])
-    if not isinstance(items, list):
-        raise ReleaseContractError("container secrets must be a list")
-    result: list[tuple[str, str]] = []
-    for item in items:
-        if not isinstance(item, dict) or set(item) != {"name", "valueFrom"}:
-            raise ReleaseContractError("secret entries must contain name and valueFrom")
-        name, value = item["name"], item["valueFrom"]
-        if not isinstance(name, str) or not isinstance(value, str) or not value:
-            raise ReleaseContractError("secret names and references must be non-empty strings")
-        result.append((name, value))
-    names = [name for name, _ in result]
-    if len(names) != len(set(names)):
-        raise ReleaseContractError("secret names must be unique")
-    if set(names) != REQUIRED_SECRET_NAMES or len(result) != len(REQUIRED_SECRET_NAMES):
-        raise ReleaseContractError(
-            "exactly DATABASE_URL and DJANGO_SECRET_KEY secret references are required"
-        )
-    for name, value in result:
-        if not SECRET_ARN_PATTERNS[name].fullmatch(value):
-            raise ReleaseContractError(
-                f"{name} secret reference is outside the {SELECTED_TARGET.name} boundary"
-            )
-    return tuple(sorted(result))
+    # The retained manual normalizer has its own two-secret environment contract.
+    return secret_references(container, SELECTED_TARGET)
 
 
 def build_task_definitions(

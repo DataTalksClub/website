@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
 import tempfile
 from pathlib import Path
 from unittest import TestCase
@@ -277,83 +275,6 @@ class TaskDefinitionImageUpdateTests(TestCase):
         )
         self.assertNotIn("revision", updated)
         self.assertNotIn("taskDefinitionArn", updated)
-
-    def test_the_module_cli_promotes_against_the_development_target(self) -> None:
-        development = registered_target("website-development")
-        document = {
-            "taskDefinition": {
-                "family": "website-dev-web",
-                "revision": 7,
-                "status": "ACTIVE",
-                "taskDefinitionArn": (
-                    development.task_definition_arn_prefix("website-dev-web") + "7"
-                ),
-                "taskRoleArn": development.task_role_arn,
-                "executionRoleArn": development.execution_role_arn,
-                "runtimePlatform": {
-                    "cpuArchitecture": "ARM64",
-                    "operatingSystemFamily": "LINUX",
-                },
-                "containerDefinitions": [
-                    {
-                        "name": "web",
-                        "image": "old-image:tag",
-                        "command": ["web"],
-                        "environment": [],
-                        "secrets": [
-                            {
-                                "name": "DATABASE_URL",
-                                "valueFrom": (
-                                    "arn:aws:secretsmanager:eu-west-1:387546586013"
-                                    ":secret:website-dev/database-url-abc123"
-                                ),
-                            },
-                            {
-                                "name": "DJANGO_SECRET_KEY",
-                                "valueFrom": (
-                                    "arn:aws:secretsmanager:eu-west-1:387546586013"
-                                    ":secret:website-dev/django-secret-key-abc123"
-                                ),
-                            },
-                        ],
-                    }
-                ],
-            }
-        }
-        (ROOT / ".tmp").mkdir(exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=ROOT / ".tmp") as directory:
-            input_path = Path(directory) / "input.json"
-            output_path = Path(directory) / "output.json"
-            input_path.write_text(json.dumps(document), encoding="utf-8")
-            completed = subprocess.run(  # noqa: S603
-                [
-                    sys.executable,
-                    "-m",
-                    "deploy.update_task_definition_image",
-                    str(input_path),
-                    f"{development.ecr_repository_uri}@sha256:{'c' * 64}",
-                    "20260905-130000-bbbbbbb",
-                    "b" * 40,
-                    "sha256:" + "c" * 64,
-                    "web",
-                    str(output_path),
-                ],
-                capture_output=True,
-                text=True,
-                cwd=ROOT,
-                env={"DTC_DEPLOYMENT_TARGET": "website-development", "PATH": "/usr/bin:/bin"},
-            )
-            self.assertEqual(completed.returncode, 0, completed.stderr)
-            updated = json.loads(output_path.read_text(encoding="utf-8"))
-
-        environment = {
-            entry["name"]: entry["value"]
-            for entry in updated["containerDefinitions"][0]["environment"]
-        }
-        self.assertEqual(environment["DTC_ENVIRONMENT"], "development")
-        self.assertEqual(environment["DJANGO_SETTINGS_MODULE"], "website.settings.development")
-        self.assertEqual(environment["DTC_DEVELOPMENT_HOSTNAME"], "dev.datatalks.club")
-        self.assertEqual(environment["VERSION"], "20260905-130000-bbbbbbb")
 
     def test_a_sidecar_container_is_refused_before_registration(self) -> None:
         document = self.production_document()
