@@ -98,9 +98,12 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # pyproject. The local submission-URL normalization enrolls
 # courses.views.submission_urls and its test the same way. Removing the retired
 # projection-loader mypy entries moves the pyproject seal the same way.
-STUDIO_COURSES_PYPROJECT_SHA256 = "0b03fff8636e8bc8e27b78b92e5c7ebb62f1b5798386112101ec84788c62ab08"
+# Issue #449 raises the PyJWT floor and adds an explicit urllib3 floor for the
+# reviewed advisory fixes. The targeted lock changes only those two packages,
+# so both reviewed dependency seals move without changing community-base.
+STUDIO_COURSES_PYPROJECT_SHA256 = "8fe1854009966027f20e46bb6c5ce039c0c5e9137970638f045c13fcd183ac2f"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "d634452d31e2dd7fde510713c1866bf01a092ec98a293f9dd310c0312d8a5b78"
+    "532f210e9447bf063918b21ae86121580f50d699e52103d1566588c09beff150"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
