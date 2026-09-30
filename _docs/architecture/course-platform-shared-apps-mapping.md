@@ -333,6 +333,21 @@ replay. These explicit default names are inert when absent from the current
 `v0.5.10` target. Any other unclassified concrete field still refuses the import
 before family writes. This declaration changes neither the pin nor site readers.
 
+### Source sibling defaults (C5.4, issue #445)
+
+`SharedModule` and `SharedLesson` have no authored mixed-sibling ordinal. The
+import recognizes `Module.source_sibling_position` and
+`Unit.source_sibling_position` as package defaults: fresh rows keep `None`, and
+replay preserves existing null or non-null target values. It never derives these
+ordinals from a site position, title or slug.
+
+Site `position` continues to copy exactly to `sort_order`, including updates on
+replay. Null source ordinals retain legacy sort-order/primary-key tie ordering;
+cohort placements, identities, content and learner progress retain their existing
+mapping. These two exact default names are inert when absent from the pinned
+`v0.5.10`; every other unclassified concrete source or target field still refuses
+before family writes. No dependency, site schema, reader or UI change is made.
+
 ## Verification hooks (steps 2–4, executed after the #412 merge)
 
 - `_docs/compatibility/course-route-contracts.json` test keeps passing;
