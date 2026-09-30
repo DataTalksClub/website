@@ -550,7 +550,15 @@ def _mapping() -> dict[
                 *_PROV_WRITTEN,
             }
         ),
-        frozenset({"parent", "syllabus_section", "is_bonus", "available_after_days"}),
+        frozenset(
+            {
+                "parent",
+                "syllabus_section",
+                "is_bonus",
+                "available_after_days",
+                "source_sibling_position",
+            }
+        ),
     )
 
     mapping[("courses.SharedLesson", "cb_curriculum.Unit", False)] = (
@@ -584,6 +592,7 @@ def _mapping() -> dict[
             {
                 "kind",
                 "session_position",
+                "source_sibling_position",
                 "is_bonus",
                 "homework",
                 "homework_html",
