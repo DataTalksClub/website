@@ -796,11 +796,11 @@ def _mapping() -> dict[
             "state": _COPIED,
         },
         written(site.Project, {"course"}) | {"cohort"},
-        # Decision 18: pooled review is a package-only capability (C5.2g).  The site has no
-        # review window to copy, and deriving one from ``peer_review_due_date`` would fabricate
-        # an operator knob out of a historical date, so the package default (7 days) stands and
-        # an operator sets it when a pooled project is first run.
-        frozenset({"pooled_review_window_days"}),
+        # Decision 18: DTC has no pooled review window; deriving one from a past due date
+        # would fabricate an operator knob, so the package default (7 days) stands.
+        # C5.2m: DTC modules stay site-side and submissions already collect commit IDs.
+        # Package defaults apply only on create, preserving target values on replay.
+        frozenset({"pooled_review_window_days", "module", "commit_id_field"}),
     )
 
     mapping[("courses.ReviewCriteria", "cb_coursework.ReviewCriteria", False)] = (

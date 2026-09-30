@@ -348,6 +348,24 @@ mapping. These two exact default names are inert when absent from the pinned
 `v0.5.10`; every other unclassified concrete source or target field still refuses
 before family writes. No dependency, site schema, reader or UI change is made.
 
+### Project defaults (C5.2m, issue #448)
+
+The package adds two concrete `Project` fields without corresponding DTC source
+fields. DTC projects remain cohort-owned, and site cohort modules stay site-side
+under decision 4. The importer therefore does not infer a package module FK.
+DTC submissions already collect commit IDs, so the package's required-by-default
+commit ID setting matches the existing flow.
+
+| Package field | Fresh imported row | Replay |
+|---|---|---|
+| `Project.module` | `None` | Preserve the target assignment |
+| `Project.commit_id_field` | `True` | Preserve the target value |
+
+Both values come from package model defaults, not importer update values. The
+two names are inert while absent from the pinned `v0.5.10` model. Any other
+unclassified concrete source or target field still refuses the entire import
+before family writes. The package pin, site schema, readers and UI are unchanged.
+
 ## Verification hooks (steps 2–4, executed after the #412 merge)
 
 - `_docs/compatibility/course-route-contracts.json` test keeps passing;

@@ -29,6 +29,7 @@ class SharedCoursePlatformDefaultGuardTests(TestCase):
             (curriculum.Unit, ("source_sibling_position",)),
             (cw.Homework, ("stepper_enabled",)),
             (cw.Question, ("authored_position", "step_label")),
+            (cw.Project, ("module", "commit_id_field")),
         )
         with ExitStack() as patches:
             for model, names in additions:
@@ -37,7 +38,7 @@ class SharedCoursePlatformDefaultGuardTests(TestCase):
             importer._refuse_mapping_drift()
 
     def test_unknown_concrete_field_refuses_before_any_family_write(self):
-        models = (cw.Homework, cw.Question, curriculum.Module, curriculum.Unit)
+        models = (cw.Homework, cw.Question, cw.Project, curriculum.Module, curriculum.Unit)
         for model in (*models, site.SharedModule, site.SharedLesson):
             with self.subTest(model=model._meta.label):
                 fields = _concrete_fields_with(model, ("unreviewed_setting",))
@@ -112,6 +113,52 @@ class SharedCoursePlatformAuthoredDefaultTests(TestCase):
             question.refresh_from_db()
             self.assertEqual(question.authored_position, position)
             self.assertEqual(question.step_label, f"Authored step {position}")
+
+
+class SharedCoursePlatformProjectDefaultTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        _import_family_graph()
+
+    def setUp(self):
+        names = {field.name for field in cw.Project._meta.concrete_fields}
+        if not {"module", "commit_id_field"} <= names:
+            self.skipTest("Requires real C5.2m models; mandatory in disposable P16 check")
+
+    def test_fresh_import_keeps_project_defaults_and_copied_families(self):
+        report = importer.import_course_platform(apply=True)
+        for family, entry in report["verification"].items():
+            self.assertTrue(entry["equal"], family)
+        project = cw.Project.objects.get(slug="final")
+        self.assertIsNone(project.module_id)
+        self.assertTrue(project.commit_id_field)
+        self.assertEqual(project.title, "Final project")
+        self.assertEqual(cw.ProjectSubmission.objects.filter(project=project).count(), 2)
+        self.assertEqual(cw.PeerReview.objects.count(), 1)
+        self.assertEqual(cw.ProjectEvaluationScore.objects.count(), 1)
+
+    def test_replay_keeps_metadata_identities_and_updates_source_fields(self):
+        importer.import_course_platform(apply=True)
+        project = cw.Project.objects.get(slug="final")
+        module = curriculum.Module.objects.get(slug="intro")
+        identities = {}
+        for model in (cw.Project, cw.ProjectSubmission, cw.PeerReview, cw.ProjectEvaluationScore):
+            identities[model] = list(model.objects.order_by("pk").values_list("pk", flat=True))
+        project.module = module
+        project.commit_id_field = False
+        project.save(update_fields=["module", "commit_id_field"])
+        site.Project.objects.filter(slug="final").update(title="Updated final project")
+        report = importer.import_course_platform(apply=True)
+        for family, entry in report["verification"].items():
+            self.assertTrue(entry["equal"], family)
+        project.refresh_from_db()
+        self.assertEqual(project.module_id, module.pk)
+        self.assertFalse(project.commit_id_field)
+        self.assertEqual(project.title, "Updated final project")
+        for model, expected in identities.items():
+            self.assertEqual(
+                list(model.objects.order_by("pk").values_list("pk", flat=True)), expected
+            )
 
 
 def _curriculum_order_graph():
