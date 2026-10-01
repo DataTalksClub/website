@@ -352,6 +352,8 @@ def _source_policy_command() -> tuple[str, ...]:
         "python",
         "-m",
         "pytest",
+        "-p",
+        "ci.source_policy_proof.preflight",
         "--rootdir",
         ".",
         "--confcutdir",
@@ -541,7 +543,7 @@ def _run_ruff(*arguments: str) -> tuple[str, ...]:
 
 
 def _run_ci_contracts() -> None:
-    _run(_pytest("ci/tests", "tests_ci", "-q"))
+    _run(_pytest("ci/tests", "tests_ci", "test_support/tests/test_marker_registry.py", "-q"))
     _run(_source_policy_command(), environment=_source_policy_environment())
 
 

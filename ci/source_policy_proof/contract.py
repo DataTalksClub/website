@@ -5,6 +5,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+import pytest
 import yaml
 from community_base.content_sync.check import check_repository
 from community_base.content_sync.convert.courses import convert_course_repository
@@ -13,6 +14,8 @@ from community_base.curriculum.parsers import parse_course_repository, read_cour
 
 from content_sync.course_repository import ModuleFlowSource
 from content_sync.course_repository import parse_course_repository as parse_site_repository
+
+pytestmark = pytest.mark.usefixtures("verified_source_policy")
 
 FIXTURE_ROOT = Path(__file__).parents[2] / "content_sync/tests/fixtures/course_repository"
 FIXTURE = FIXTURE_ROOT / "llm_zoomcamp_shared"
@@ -47,8 +50,6 @@ def _current_fixture(tmp_path: Path) -> Path:
 
 
 def _retain_site_routes(root: Path) -> None:
-    """Materialize the current site's numeric URL slugs as authored keys."""
-
     for name in ("01-lesson", "02-practice"):
         path = root / "01-agentic-rag" / f"{name}.md"
         body = path.read_text()
@@ -160,7 +161,6 @@ def test_flat_source_keeps_identity_and_explicit_dtc_route_policy(tmp_path: Path
     root = _current_fixture(tmp_path)
     _retain_site_routes(root)
     report = convert_course_repository(root)
-
     assert report.ok, report.render()
     assert check_repository(root) == []
     _assert_flat_graph(root)
