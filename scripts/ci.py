@@ -22,6 +22,8 @@ from typing import Final
 PROJECT_ROOT: Final = Path(__file__).resolve().parents[1]
 UV: Final = ("uv", "run", "--frozen")
 TEST_MEDIA_STORE: Final = "memory"
+SOURCE_POLICY_PROJECT: Final = "ci/source_policy_proof"
+SOURCE_POLICY_TEST: Final = f"{SOURCE_POLICY_PROJECT}/contract.py"
 TEST_ENVIRONMENT_UNSET: Final = (
     # A developer shell may point the local server at its own SQLite file.
     # Maintained test commands own isolated worker databases and must never
@@ -130,6 +132,7 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "studio_courses/tests/test_enrollment_sorting.py",
     "courses/tests/test_course_external_links.py",
     "courses/tests/test_course_family_landing.py",
+    "courses/tests/test_d53a_source_routes.py",
     "courses/tests/test_course_illustrations.py",
     "courses/tests/test_family_project_gallery.py",
     "courses/tests/test_project_gallery_groups.py",
@@ -329,6 +332,37 @@ def _typecheck_environment() -> dict[str, str]:
     return environment
 
 
+def _source_policy_environment() -> dict[str, str]:
+    environment = _environment(
+        PYTHONNOUSERSITE="1",
+        UV_PROJECT_ENVIRONMENT=str(PROJECT_ROOT / ".tmp/source-policy-proof-venv"),
+    )
+    for name in ("PYTHONHOME", "PYTHONPATH", "VIRTUAL_ENV"):
+        environment.pop(name, None)
+    return environment
+
+
+def _source_policy_command() -> tuple[str, ...]:
+    return (
+        "uv",
+        "run",
+        "--project",
+        SOURCE_POLICY_PROJECT,
+        "--frozen",
+        "python",
+        "-m",
+        "pytest",
+        "--rootdir",
+        ".",
+        "--confcutdir",
+        SOURCE_POLICY_PROJECT,
+        "-c",
+        f"{SOURCE_POLICY_PROJECT}/pyproject.toml",
+        SOURCE_POLICY_TEST,
+        "-q",
+    )
+
+
 def _run(command: tuple[str, ...], *, environment: dict[str, str] | None = None) -> None:
     subprocess.run(command, cwd=PROJECT_ROOT, env=environment, check=True)
 
@@ -506,6 +540,11 @@ def _run_ruff(*arguments: str) -> tuple[str, ...]:
     return (*UV, "ruff", *arguments, ".", *ADOPTION_INTEGRATION_PYTHON, *PRODUCTION_IMPORT_PYTHON)
 
 
+def _run_ci_contracts() -> None:
+    _run(_pytest("ci/tests", "tests_ci", "-q"))
+    _run(_source_policy_command(), environment=_source_policy_environment())
+
+
 def _run_test_task(task: str, *, profile: str | None = None) -> int:
     if task in {"test", "test-django-full"}:
         _run(
@@ -533,7 +572,7 @@ def _run_test_task(task: str, *, profile: str | None = None) -> int:
     elif task == "test-course-platform-sync":
         _run(_pytest("scripts/tests/test_sync_course_platform.py", "-q"))
     elif task == "test-ci":
-        _run(_pytest("ci/tests", "tests_ci", "-q"))
+        _run_ci_contracts()
     elif task == "test-ci-focused":
         selection = _required_environment("CI_SELECTION_PATH")["CI_SELECTION_PATH"]
         _run(

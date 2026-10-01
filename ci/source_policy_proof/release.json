@@ -1,0 +1,15 @@
+{
+  "package": "community-base",
+  "proof": {
+    "commit": "bb067c3d4bf66e9bd20d436ccf22d3402667da27",
+    "published_wheel_sha256": "e9a7139016aa301814790b47c7d99fdfde4a9e8bf0f596a8cee684468516bef0",
+    "tag": "v0.5.21",
+    "version": "0.5.21"
+  },
+  "runtime": {
+    "commit": "4c692db461f4c7cbbc2f60afaa05162987a640f6",
+    "tag": "v0.5.10",
+    "version": "0.5.10"
+  },
+  "schema_version": 1
+}
