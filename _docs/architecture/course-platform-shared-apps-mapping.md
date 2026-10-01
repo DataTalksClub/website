@@ -122,6 +122,19 @@ Site `courses.Cohort` (`courses/models/cohort.py:207`), package
   (`courses/models/curriculum.py:158`). The package equivalent is `CohortModule`
   (module placements only); project entries in the flow have no package home. Gap.
 
+### Ordered flow source contract
+
+Issue #450 proves a source-only representation for the existing mixed cohort flow.
+Standard package `modules` and `homework` keep their shared meanings, while the
+site-owned `extra.dtc_flow` mapping preserves the complete module/project order by
+module content ID and cohort-scoped project slug. The DTC normalizer works only on
+an explicit disposable copy and retains the generic converter's refusal for an
+unprocessed legacy `flow`.
+
+This proof adds no runtime registration or database owner. Runtime placement and
+storage, project metadata migration, projection, source cutover, deployment and
+live repository conversion remain open under D5.1, D5.3b, D7.3 and D7.4.
+
 ## Shared current-curriculum family
 
 The site's `Shared*` family (`courses/models/shared_curriculum.py`) was deliberately
