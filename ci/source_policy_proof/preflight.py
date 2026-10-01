@@ -8,9 +8,12 @@ import tomllib
 from importlib.metadata import distribution
 from pathlib import Path
 
+import pytest
+
 PROOF_ROOT = Path(__file__).parent
 REPOSITORY_ROOT = PROOF_ROOT.parents[1]
 PROOF_ENVIRONMENT = REPOSITORY_ROOT / ".tmp/source-policy-proof-venv"
+_identity_verified = False
 RELEASE = json.loads((PROOF_ROOT / "release.json").read_text(encoding="utf-8"))
 
 
@@ -49,6 +52,7 @@ def _assert_declared_release(project: Path, lock: Path, identity: dict) -> None:
 
 
 def pytest_sessionstart() -> None:
+    global _identity_verified
     assert RELEASE["schema_version"] == 1
     assert RELEASE["proof"]["published_wheel_sha256"] == (
         "e9a7139016aa301814790b47c7d99fdfde4a9e8bf0f596a8cee684468516bef0"
@@ -67,3 +71,9 @@ def pytest_sessionstart() -> None:
     direct_url = json.loads(installed.read_text("direct_url.json") or "{}")
     assert direct_url["vcs_info"]["requested_revision"] == RELEASE["proof"]["tag"]
     assert direct_url["vcs_info"]["commit_id"] == RELEASE["proof"]["commit"]
+    _identity_verified = True
+
+
+@pytest.fixture(scope="session")
+def verified_source_policy() -> None:
+    assert _identity_verified
