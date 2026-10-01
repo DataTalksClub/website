@@ -187,6 +187,7 @@ module = [
     "studio_courses.tests.test_enrollment_sorting",
     "courses.tests.test_course_external_links",
     "courses.tests.test_course_family_landing",
+    "courses.tests.test_d53a_source_routes",
     "courses.tests.test_course_illustrations",
     "courses.tests.test_family_project_gallery",
     "courses.tests.test_project_gallery_groups",
