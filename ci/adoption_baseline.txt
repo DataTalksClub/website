@@ -18,7 +18,6 @@ accounts/capabilities.py
 accounts/development_owner.py
 accounts/forms.py
 accounts/home_dismissals.py
-accounts/identity_inventory.py
 accounts/identity_values.py
 accounts/management/__init__.py
 accounts/management/commands/__init__.py
