@@ -33,8 +33,8 @@ are:
 | Mail category consent | the three opt-out fields on the account (D1.2ca moved them off the retired Datamailer store) | Never merge. Preserve the survivor's fields; the source account's fields are left untouched for the later privacy process. |
 | Course consent | registration newsletter choice and enrollment display/privacy flags | Preserve each owned row unchanged. Same-scope collisions fail closed instead of combining choices. |
 
-The dependent relationship inventory contains 21 direct or through-table user
-references:
+The dependent relationship inventory enumerates the installed direct and
+through-table user references; its totals follow the installed model catalog:
 
 | Relationship | Handling |
 | --- | --- |
@@ -50,6 +50,7 @@ references:
 | `accounts.Token.user` | Keep the compatibility owner and resolve the request through the alias. Token hardening remains owned by #52. |
 | `courses.CourseRegistration.user` | Reparent without changing registration or newsletter fields. |
 | `courses.Enrollment.student` | Reparent exactly once; duplicate course ownership is quarantined. |
+| `cb_curriculum.CourseEnrollment.user` (when installed) | Reparent every active and ended course-level history row exactly once; preserve IDs, course IDs, timestamps and source values. |
 | `courses.Submission.student` | Reparent exactly once. Its enrollment remains the same retained row. |
 | `courses.ProjectSubmission.student` | Reparent exactly once. Its enrollment remains the same retained row. |
 | `courses.LeaderboardComplaint.reporter` | Reparent exactly once. |
@@ -58,6 +59,30 @@ references:
 | `courses.UserWrappedStatistics.user` | Reparent exactly once; duplicate wrapped-period ownership is quarantined. |
 | `account.EmailAddress.user` | Move verified addresses only. Unverified claims remain on the absorbed source. |
 | `socialaccount.SocialAccount.user` | Move only after the mapping has verified ownership evidence and provider UID conflicts are absent. |
+
+The explicit relation catalog is owned by `accounts.identity_relations`, and
+`accounts.identity_inventory` preserves the public import facade for reports,
+guards, evidence and reviewed reconciliation. Only the exact
+`cb_curriculum.CourseEnrollment` model may be absent (including the current tagged
+package). Missing mandatory models or a present history model with a missing,
+renamed or incorrectly targeted `user` field fail closed. Unknown reverse account
+relations still fail the inventory guard.
+
+Course-level history is retained-row evidence, never append-only evidence. Ended
+rows for the same course may coexist, and an active row may coexist with ended
+history. The package's one-active-row constraint for `(user, course)` rejects two
+active rows across the reviewed source and survivor. The entire business merge
+rolls back before the existing redacted integrity-conflict/quarantine outcome is
+persisted; no history is deduplicated, ended, reactivated or reset to make it fit.
+Replay changes no history. Existing cohort enrollment, consent, submissions,
+scores and certificate ownership remain distinct.
+
+The isolated test contract uses the real installed history model when available;
+with the current tag it registers the exact relevant model and active-row
+constraint only in a clean subprocess with an ephemeral SQLite database. Real
+package migration, adoption and development-copy verification are not run here;
+they require a tagged package adoption issue. Package-owned P16 verification is
+separate from the site's unchanged tagged-source gates.
 
 The three explicit many-to-many surfaces are `CustomUser.groups`,
 `CustomUser.user_permissions`, and `Course.students` through `Enrollment`.
