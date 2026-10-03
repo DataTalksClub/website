@@ -111,6 +111,7 @@ ignore_missing_imports = true
 # ci/tests/test_adoption_gate_coverage.py enforces that.
 [[tool.mypy.overrides]]
 module = [
+    "courses.tests.test_statistics_display_contract",
     "accounts.backends",
     "accounts.identity_inventory",
     "accounts.identity_relations",

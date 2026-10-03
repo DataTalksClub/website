@@ -105,7 +105,9 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # pyproject seal moves again while the reviewed #449 lock seal stays fixed.
 # Issue #451 enrolls five account/history modules in strict mypy; only the
 # configuration-only pyproject seal moves, preserving the dependency and lock seals.
-STUDIO_COURSES_PYPROJECT_SHA256 = "abc3a81a128ead3411bc82be369e30a07c004791a14502bcaf33e77b3b6d5f11"
+# Issue #453 enrolls only its statistics-display contract test in strict mypy;
+# the reviewed configuration-only seal preserves every dependency and lock seal.
+STUDIO_COURSES_PYPROJECT_SHA256 = "1543cf388f2745578c8391ba9c696b4930c1701061fbbb5bbfd35ec693b83c34"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
     "532f210e9447bf063918b21ae86121580f50d699e52103d1566588c09beff150"
 )
