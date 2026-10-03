@@ -1,5 +1,6 @@
 from enum import Enum
 
+from community_base.coursework import stat_display as display
 from django.db import models
 from django.core.validators import URLValidator
 from django.contrib.auth import get_user_model
@@ -7,7 +8,6 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .cohort import Cohort, Enrollment
-from .stat_display import build_stat_fields, homework_stat_sections
 from courses.curriculum_source_validators import validate_source_path
 from courses.validators.custom_url_validators import validate_url_200
 from .curriculum_import import (
@@ -386,8 +386,8 @@ class HomeworkStatistics(models.Model):
         return getattr(self, attribute_name)
 
     def get_stat_fields(self):
-        sections = homework_stat_sections()
-        return build_stat_fields(self, sections)
+        sections = display.homework_stat_sections()
+        return display.build_stat_fields(self, sections)
 
     def __str__(self):
         return f"Statistics for {self.homework.slug}"

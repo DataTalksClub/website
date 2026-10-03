@@ -1,9 +1,9 @@
+from community_base.coursework.stat_display import project_stat_sections
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
 from courses.assignment_statistics import calculate_project_statistics
 from courses.models.project import Project, ProjectState
-from courses.models.stat_display import project_stat_sections
 from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
 

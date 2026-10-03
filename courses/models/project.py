@@ -3,6 +3,7 @@ import re
 import statistics
 from enum import Enum
 
+from community_base.coursework import stat_display as display
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
@@ -15,7 +16,6 @@ from courses.validators.criteria_validators import (
 from courses.validators.custom_url_validators import validate_url_200
 
 from .cohort import Cohort, Enrollment
-from .stat_display import build_stat_fields, project_stat_sections
 
 User = get_user_model()
 
@@ -554,8 +554,8 @@ class ProjectStatistics(models.Model):
         return getattr(self, attribute_name)
 
     def get_stat_fields(self):
-        sections = project_stat_sections()
-        return build_stat_fields(self, sections)
+        sections = display.project_stat_sections()
+        return display.build_stat_fields(self, sections)
 
     def __str__(self):
         return f"Statistics for {self.project.slug}"
