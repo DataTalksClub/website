@@ -145,8 +145,7 @@ class CoursePlatformRenderedVendorAssetTests(TestCase):
         )
 
         project_html = responses[0].content.decode()
-        self.assertIn(
-            "Open the commit on GitHub and copy the first 7 characters shown next to its title.",
-            project_html,
-        )
+        # 456: the page renders the shared community-base submission form, so
+        # the render canary is the shared partial's own commit-ID help marker.
+        self.assertIn("Where do I find the commit ID?", project_html)
         self.assertNotIn("habrastorage.org", project_html)
