@@ -169,6 +169,11 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "api/tests/test_registration_campaign_company_stats.py",
     "courses/tests/test_submission_urls.py",
     "courses/views/submission_urls.py",
+    # 456: the site-side adapter for the shared community-base project
+    # submission form and its tests are new integration code, so lint,
+    # format, and typecheck must reach them.
+    "courses/services/project_form_adapter.py",
+    "courses/tests/test_project_form_adapter.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",

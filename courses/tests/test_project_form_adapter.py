@@ -99,9 +99,7 @@ class ProjectSubmissionFormContractTest(ProjectViewTestBase):
         self.assertIn("commit_id", form.errors)
 
     def test_faq_url_must_be_a_datatalksclub_faq_issue_or_pull_request(self):
-        form = self.build(
-            self.form_data(faq_contribution_url="https://gist.github.com/some/one")
-        )
+        form = self.build(self.form_data(faq_contribution_url="https://gist.github.com/some/one"))
 
         self.assertFalse(form.is_valid())
         self.assertIn("faq_contribution_url", form.errors)
@@ -142,15 +140,12 @@ class ProjectSubmissionFormSaveTest(ProjectViewTestBase):
 
     def save_valid(self, **overrides):
         data = self.valid_data(**overrides)
-        form = build_project_submission_form(
-            self.project, user=self.user, data=data
-        )
+        form = build_project_submission_form(self.project, user=self.user, data=data)
         self.assertTrue(form.is_valid(), form.errors)
         return form.save()
 
     def test_save_creates_the_submission_enrollment_and_certificate_name(self):
         self.enrollment.delete()
-        enrollments_before = self.project.__class__.objects.count()
 
         submission, created = self.save_valid()
 
@@ -208,9 +203,7 @@ class ProjectSubmissionFormSaveTest(ProjectViewTestBase):
             LearnerProfile.objects.filter(user=self.user).exists(),
             profile_before,
         )
-        self.assertFalse(
-            ProjectSubmission.objects.filter(project=self.project).exists()
-        )
+        self.assertFalse(ProjectSubmission.objects.filter(project=self.project).exists())
 
     def test_blank_certificate_name_keeps_the_profile_value(self):
         LearnerProfile.objects.update_or_create(
@@ -233,9 +226,7 @@ class ProjectSubmissionFormSaveTest(ProjectViewTestBase):
         form = build_project_submission_form(
             self.project,
             user=self.user,
-            data=self.valid_data(
-                faq_contribution_url="https://example.com/not-faq"
-            )
+            data=self.valid_data(faq_contribution_url="https://example.com/not-faq"),
         )
         self.assertFalse(form.is_valid())
         self.assertEqual(

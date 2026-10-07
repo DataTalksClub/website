@@ -20,14 +20,13 @@ adapter (AI-Shipping-Labs/website#1777).
   enrollment display name as fallback.
 """
 
+from community_base.coursework.project_forms import (
+    ProjectSubmissionForm as BaseProjectSubmissionForm,
+)
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
-
-from community_base.coursework.project_forms import (
-    ProjectSubmissionForm as BaseProjectSubmissionForm,
-)
 
 from courses.models.cohort import Enrollment
 from courses.models.project import ProjectSubmission
@@ -67,6 +66,10 @@ class ProjectSubmissionForm(BaseProjectSubmissionForm):
 
     extra_fields_template = "include/project_faq_extra_field.html"
 
+    # The shared base attribute's type does not resolve under this site's
+    # django-stubs run; this form persists the site's ProjectSubmission rows.
+    submission: ProjectSubmission | None
+
     faq_contribution_url = forms.URLField(
         label="FAQ contribution PR or issue URL",
         required=False,
@@ -99,9 +102,7 @@ class ProjectSubmissionForm(BaseProjectSubmissionForm):
     def _initial_from(self, submission, enrollment) -> dict:
         initial = super()._initial_from(submission, enrollment)
         if enrollment is not None:
-            initial["certificate_name"] = learner_profile_certificate_name(
-                enrollment
-            )
+            initial["certificate_name"] = learner_profile_certificate_name(enrollment)
         return initial
 
     def clean_faq_contribution_url(self):
@@ -137,15 +138,11 @@ class ProjectSubmissionForm(BaseProjectSubmissionForm):
             submission.github_link = data["github_link"]
             submission.commit_id = data.get("commit_id", "")
             if "learning_in_public_links" in self.fields:
-                submission.learning_in_public_links = (
-                    data.get("learning_in_public_links") or []
-                )
+                submission.learning_in_public_links = data.get("learning_in_public_links") or []
             if "time_spent" in self.fields:
                 submission.time_spent = data.get("time_spent")
             if "faq_contribution_url" in self.fields:
-                submission.faq_contribution_url = (
-                    data.get("faq_contribution_url") or ""
-                )
+                submission.faq_contribution_url = data.get("faq_contribution_url") or ""
             submission.full_clean()
             submission.save()
             self._save_certificate_name()

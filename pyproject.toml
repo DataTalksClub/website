@@ -232,6 +232,8 @@ module = [
     "api.tests.test_registration_campaign_company_stats",
     "courses.tests.test_submission_urls",
     "courses.views.submission_urls",
+    "courses.services.project_form_adapter",
+    "courses.tests.test_project_form_adapter",
 ]
 ignore_errors = false
 
