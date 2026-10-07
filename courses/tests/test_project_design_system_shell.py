@@ -300,11 +300,13 @@ class ProjectDesignFiveAShellTests(TestCase):
         )
 
         bodies = self.rendered_pages()
-        self.assertIn('class="needs-validation cmp-form project-form', bodies["project"])
+        # The project form is the shared community-base partial (issue #456);
+        # the peer review form keeps the site cmp-form primitives.
+        self.assertIn("data-project-form", bodies["project"])
+        self.assertIn("data-learning-in-public-links", bodies["project"])
         self.assertIn('class="needs-validation cmp-form review-form', bodies["peer review form"])
         for name in ("project", "peer review form"):
             with self.subTest(page=name):
-                self.assertIn('class="field learning-in-public-field"', bodies[name])
                 self.assertIn(".cmp-form {", bodies[name])
                 self.assertIn("background: var(--lavender);", bodies[name])
                 self.assertIn("--form-measure: 46rem;", bodies[name])

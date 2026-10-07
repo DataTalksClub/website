@@ -9,16 +9,19 @@ from courses.tests.project_view_base import fetch_fresh
 
 
 class ProjectSubmissionCreateViewTestCase(ProjectSubmissionViewTestBase):
-    def test_project_submission_canonicalizes_github_repository_url(self):
+    def test_project_submission_stores_the_github_repository_link_as_posted(self):
+        # The shared contract requires a github.com repository link and
+        # stores it as submitted; the site's repo-root canonicalizer stays
+        # owned by the homework path (issue #456).
         data = self.project_confirmation_data()
-        data["github_link"] = "http://www.github.com/learner/project.git/"
+        data["github_link"] = "https://github.com/learner/project.git/"
 
         response = self.post_project(data)
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(
             self.get_project_submission().github_link,
-            "https://github.com/learner/project",
+            "https://github.com/learner/project.git/",
         )
 
     @mock.patch("requests.head")
@@ -28,8 +31,7 @@ class ProjectSubmissionCreateViewTestCase(ProjectSubmissionViewTestBase):
     ):
         self.mock_url_check_status(mock_get, mock_head, 200)
         data = self.project_confirmation_data()
-        data["github_link"] = "https://httpbin.org/status/200"
-        data["problems_comments"] = "Encountered an issue with..."
+        data["github_link"] = "https://github.com/test/httpbin-200"
 
         response = self.post_project(data)
 
@@ -83,7 +85,6 @@ class ProjectSubmissionUpdateViewTestCase(ProjectSubmissionViewTestBase):
             github_link="https://github.com/existing/repo",
             commit_id="123456e",
             time_spent="3",
-            problems_comments="No issues encountered.",
             faq_contribution_url=(
                 "https://github.com/DataTalksClub/faq/issues/266"
             ),

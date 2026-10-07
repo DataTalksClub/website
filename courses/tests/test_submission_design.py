@@ -243,18 +243,21 @@ class SubmissionTemplateStructureTests(SimpleTestCase):
         self.assertIn('{% extends "courses/_submission_page.html" %}', peer_review)
         self.assertIn('label="Project statistics" variant="subtle"', project)
         self.assertIn('label="Manage project in Studio" variant="subtle"', project)
-        self.assertIn("include 'include/learning_in_public_links.html'", project)
+        # The project form is the shared community-base partial (issue #456);
+        # the peer review form keeps the local learning-in-public partial.
+        self.assertIn('include "coursework/_project_submission_form.html"', project)
         self.assertIn("include 'include/learning_in_public_links.html'", peer_review)
         self.assertIn('class="submission-hero-inner"', shared)
         self.assertIn('{% extends "core/content_page.html" %}', shared)
         self.assertIn('{% block content_band_class %}submission-band{% endblock %}', shared)
-        for field in ("github_link", "commit_id", "time_spent", "certificate_name"):
-            with self.subTest(field=field):
-                self.assertIn(f'name="{field}"', project)
+        # The shared partial owns the field names; the page source carries
+        # only the include (rendered fields are covered by the view tests).
         for field in ("form_action", "submission_id", "note_to_peer", "time_spent_reviewing"):
             with self.subTest(field=field):
                 self.assertIn(f'name="{field}"', peer_review)
-        self.assertIn("{% csrf_token %}", project)
+        # The shared partial owns the project form's csrf and fields; the
+        # page keeps only the include.
+        self.assertNotIn("{% csrf_token %}", project)
         self.assertIn("{% csrf_token %}", peer_review)
 
     def test_enrollment_uses_the_course_reading_width_and_lavender_content(self) -> None:

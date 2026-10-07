@@ -60,6 +60,10 @@ def project_problems_comments_submission_field(
 ) -> dict | None:
     if not project.problems_comments_field:
         return None
+    if not submission.problems_comments:
+        # The shared project form (issue #456) does not collect this field,
+        # so a submission saved without it renders no empty email row.
+        return None
 
     return {
         "key": "problems_comments",

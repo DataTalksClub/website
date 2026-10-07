@@ -135,8 +135,8 @@ class LocalProjectReviewSeedTests(TestCase):
             )
         )
         self.assertEqual(project_response.status_code, 200)
-        self.assertContains(project_response, 'class="needs-validation cmp-form project-form ')
-        self.assertContains(project_response, 'class="field learning-in-public-field"')
+        self.assertContains(project_response, 'data-project-form')
+        self.assertContains(project_response, 'data-learning-in-public-links')
         self.assertContains(project_response, "peer-reviewing phase")
 
         list_response = self.client.get(

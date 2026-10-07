@@ -77,14 +77,13 @@ class ProjectViewTestBase(TestCase):
 
     def project_confirmation_data(self):
         learning_links = {
-            "learning_in_public_links[]": [
+            "learning_in_public_links": [
                 "https://example.com/project-notes"
             ],
         }
         return self.project_submission_data(
             **learning_links,
             time_spent="2",
-            problems_comments="No blockers.",
             faq_contribution_url=(
                 "https://github.com/DataTalksClub/faq/pull/266"
             ),
@@ -95,7 +94,6 @@ class ProjectViewTestBase(TestCase):
             github_link="https://github.com/existing/repo",
             commit_id="123456e",
             time_spent="3",
-            problems_comments="No issues encountered.",
             faq_contribution_url=(
                 "https://github.com/DataTalksClub/faq/issues/266"
             ),
@@ -107,7 +105,6 @@ class ProjectViewTestBase(TestCase):
             github_link="https://github.com/existing/repo",
             commit_id="1234567",
             time_spent="2",
-            problems_comments="Encountered an issue with...",
             faq_contribution_url=(
                 "https://github.com/DataTalksClub/faq/pull/266"
             ),
@@ -166,11 +163,6 @@ class ProjectViewTestBase(TestCase):
         if "time_spent" in data:
             expected_time_spent = int(data["time_spent"])
             self.assertEqual(submission.time_spent, expected_time_spent)
-        if "problems_comments" in data:
-            self.assertEqual(
-                submission.problems_comments,
-                data["problems_comments"],
-            )
         if "faq_contribution_url" in data:
             self.assertEqual(
                 submission.faq_contribution_url,
@@ -248,12 +240,6 @@ class ProjectViewTestBase(TestCase):
             "value": "2 hours",
         }
         fields.append(time_spent_field)
-        problems_field = {
-            "key": "problems_comments",
-            "label": "Problems, comments, or feedback",
-            "value": "No blockers.",
-        }
-        fields.append(problems_field)
         faq_field = {
             "key": "faq_contribution_url",
             "label": "FAQ contribution URL",

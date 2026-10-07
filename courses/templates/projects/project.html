@@ -3,8 +3,8 @@
 
 {% comment %}
   Project submission uses the same document and form shell as homework.  The
-  project fields, POST contract, deletion hook, and learning-in-public/FAQ
-  partials remain project-specific below.
+  field contract, validation, and rendering are the shared community-base
+  partial (issue #456); the hero, notices, and deadline countdown stay local.
 {% endcomment %}
 
 {% block document_title %}
@@ -22,34 +22,147 @@
     font-size: 0.85rem;
   }
 
-  .project-toolbar,
-  .project-form-actions {
+  .project-toolbar {
     align-items: center;
     display: flex;
     flex-wrap: wrap;
     gap: 0.6rem;
   }
 
-  .project-form {
-    gap: 1.1rem;
+  .project-faq-hint a {
+    color: var(--indigo);
   }
 
-  .project-hint-details summary {
+  @media (max-width: 47.99rem) {
+    .project-toolbar {
+      display: grid;
+      width: 100%;
+    }
+  }
+
+  /* Site shell for the shared community-base form partial (issue #456).
+     The cb- classes are owned by the package partial; this block maps them
+     onto the same site design tokens the local .field/.cta primitives use
+     (templates/core/_design_system.html). */
+  .cb-project-submission .cb-section-title {
+    color: var(--ink);
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .cb-project-submission .cb-card-meta {
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  .cb-project-submission .cb-field {
+    display: grid;
+    gap: 0.35rem;
+    margin-top: 1.1rem;
+  }
+
+  .cb-project-submission .cb-label {
+    color: var(--ink);
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .cb-project-submission .cb-input {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 0.625rem;
+    color: var(--ink);
+    font: inherit;
+    min-height: 2.75rem;
+    padding: 0.65rem 0.8rem;
+    width: 100%;
+  }
+
+  .cb-project-submission .cb-input[disabled] {
+    background: var(--sand);
+    border-color: var(--line-soft);
+    color: var(--muted);
+  }
+
+  .cb-project-submission .cb-form-help summary,
+  .cb-project-submission .cb-disclosure summary {
     color: var(--indigo);
     cursor: pointer;
     font-size: 0.85rem;
     font-weight: 700;
   }
 
-  .project-hint-details p {
+  .cb-project-submission .cb-disclosure {
     color: var(--body-text);
     font-size: 0.85rem;
-    margin-top: 0.35rem;
+  }
+
+  .cb-project-submission .cb-form-error {
+    color: var(--olive);
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .cb-project-submission .cb-alert {
+    background: var(--sand);
+    border: 2px solid var(--line-soft);
+    border-radius: 0.625rem;
+    color: var(--body-text);
+    padding: 0.65rem 0.8rem;
+  }
+
+  .cb-project-submission .cb-list {
+    color: var(--body-text);
+    font-size: 0.9rem;
+  }
+
+  .cb-project-submission .cb-empty {
+    color: var(--muted);
+  }
+
+  .cb-project-submission .cb-form-status {
+    border-top: 2px dashed var(--line-soft);
+    color: var(--body-text);
+    font-size: 0.85rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+  }
+
+  .cb-project-submission .cb-form-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+  }
+
+  .cb-project-submission .cb-button {
+    align-items: center;
+    appearance: none;
+    border: 2px solid var(--line);
+    border-radius: 0.7rem;
+    box-shadow: 0.3rem 0.3rem 0 var(--shadow);
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    font-size: 1.05rem;
+    font-weight: 700;
+    justify-content: center;
+    padding: 0.5rem 1.25rem;
+  }
+
+  .cb-project-submission .cb-button-primary {
+    background: var(--green);
+    color: var(--on-green);
+  }
+
+  .cb-project-submission .cb-button:not(.cb-button-primary) {
+    background: var(--card);
+    color: var(--ink);
   }
 
   @media (max-width: 47.99rem) {
-    .project-toolbar,
-    .project-form-actions {
+    .cb-project-submission .cb-form-actions {
       display: grid;
       width: 100%;
     }
@@ -165,146 +278,12 @@
 {% block submission_content %}
   {% if accepting_submissions or has_submission %}
     <div class="submission-target">
-      <div class="band-head">
-        <div>
-          <h2 id="submission-details-heading" class="submission-section-heading">Submission details</h2>
-          <p class="project-note">Submit the public repository link and the exact commit you want evaluated.</p>
-        </div>
-      </div>
-      <form method="post" id="project-form" class="needs-validation cmp-form project-form submission-form" novalidate>
-        {% if is_authenticated %}
-          {% csrf_token %}
-        {% endif %}
-        <div class="cmp-form-fields">
-        <div class="field">
-          <label class="field-label" for="github_link">GitHub link to the project</label>
-          <p class="field-hint">Your project should be hosted on GitHub. Make sure your project is public.</p>
-          <input
-            type="url"
-            class="field-input form-control"
-            id="github_link"
-            name="github_link"
-            value="{{ submission.github_link|default:'' }}"
-            required
-            {% if disabled or not is_authenticated %}disabled{% endif %}
-          />
-        </div>
-        <div class="field">
-          <label class="field-label" for="commit_id">Commit ID</label>
-          <p class="field-hint">Paste the first 7 characters of the commit ID.</p>
-          <details class="project-hint-details">
-            <summary>Where do I find the commit ID?</summary>
-            <p>Open the commit on GitHub and copy the first 7 characters shown next to its title.</p>
-          </details>
-          <input
-            type="text"
-            id="commit_id"
-            class="field-input form-control"
-            name="commit_id"
-            value="{{ submission.commit_id|default:'' }}"
-            required
-            {% if disabled or not is_authenticated %}disabled{% endif %}
-          />
-        </div>
-        {% include 'include/learning_in_public_links.html' with course=course learning_in_public_cap=project.learning_in_public_cap_project learning_in_public_links=submission.learning_in_public_links disabled=disabled accepting_submissions=accepting_submissions disable_learning_in_public=disable_learning_in_public %}
-        {% if project.time_spent_project_field %}
-          <div class="field">
-            <label class="field-label" for="time_spent">Time spent on project (hours)</label>
-            <p class="field-hint">How much time (in hours) did you spend to work on the project?</p>
-            <input
-              type="number"
-              class="field-input form-control"
-              name="time_spent"
-              id="time_spent"
-              min="0"
-              value="{{ submission.time_spent|default:'' }}"
-              {% if disabled or not is_authenticated %}disabled{% endif %}
-            />
-          </div>
-        {% endif %}
-        {% if project.faq_contribution_field %}
-          {% include 'include/faq_contribution_field.html' %}
-        {% endif %}
-        {% if accepting_submissions %}
-          <div class="field">
-            <label class="field-label" for="certificate_name">Certificate name</label>
-            <p class="field-hint">Enter the name you would like to be shown on the certificate. This is required and will be used for your certificate.</p>
-            <input
-              type="text"
-              class="field-input form-control"
-              id="certificate_name"
-              name="certificate_name"
-              value="{{ certificate_name|default:'' }}"
-              required
-              {% if disabled or not is_authenticated %}disabled{% endif %}
-            />
-          </div>
-        {% endif %}
-        </div>
-        <p class="submission-status project-note">
-          {% if has_submission %}
-            Last saved at: {{ submission.submitted_at|user_datetime:request }}
-          {% else %}
-            Status: Not saved yet
-          {% endif %}
-        </p>
-        {% if accepting_submissions and is_authenticated %}
-          <p class="project-note">You can save your project now and keep working on it. Update the commit ID before the deadline when you have a newer version.</p>
-        {% endif %}
-        {% if accepting_submissions %}
-          <div class="submission-form-actions cmp-form-actions project-form-actions">
-            {% if is_authenticated %}
-              {% if not has_submission %}
-                {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Save submission" variant="primary" compact=True %}
-              {% else %}
-                {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Update submission" variant="primary" compact=True %}
-                {% include "core/_button.html" with tag="button" type="button" id="delete-button" label="Remove" variant="subtle" compact=True %}
-              {% endif %}
-            {% else %}
-              {% url 'login' as login_url %}
-              {% include "core/_button.html" with href=login_url label="Log in to submit" variant="primary" compact=True %}
-            {% endif %}
-          </div>
-        {% endif %}
-      </form>
+      {# The shared community-base form (issue #456): one field contract with AI Shipping Labs; the site shell stays local. #}
+      {% include "coursework/_project_submission_form.html" with project_form=project_form %}
     </div>
   {% endif %}
 {% endblock %}
 
 {% block extra_js %}
   <script src="{% static 'time_left.js' %}"></script>
-  <script src="{% static 'learning_in_public.js' %}"></script>
-  <script src="{% static 'homework.js' %}"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      var form = document.getElementById('project-form');
-      var deleteButton = document.getElementById('delete-button');
-      var commitIdInput = document.getElementById('commit_id');
-      if (commitIdInput) {
-        commitIdInput.addEventListener('blur', function() {
-          commitIdInput.value = commitIdInput.value.trim();
-        });
-      }
-      if (form) {
-        form.addEventListener('submit', function() {
-          if (commitIdInput) {
-            commitIdInput.value = commitIdInput.value.trim();
-          }
-        });
-      }
-      if (deleteButton && form) {
-        deleteButton.addEventListener('click', function(e) {
-          e.preventDefault();
-          if (confirm('Are you sure you want to delete your project submission?')) {
-            var actionInput = document.createElement('input');
-            actionInput.type = 'hidden';
-            actionInput.name = 'action';
-            actionInput.value = 'delete';
-            form.appendChild(actionInput);
-            form.submit();
-          }
-        });
-      }
-    });
-  </script>
 {% endblock %}

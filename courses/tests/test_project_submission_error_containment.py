@@ -74,16 +74,16 @@ class ProjectSubmissionContainmentTests(ProjectSubmissionViewTestBase):
                 github_link="https://github.com/my/work",
                 commit_id="abc1234",
                 time_spent="nan",
-                **{"learning_in_public_links[]": raw_links},
+                **{"learning_in_public_links": raw_links},
             )
         )
 
         self.assertEqual(response.status_code, 200)
-        submission = response.context["submission"]
-        self.assertEqual(submission.github_link, "https://github.com/my/work")
-        self.assertEqual(submission.commit_id, "abc1234")
-        self.assertEqual(submission.learning_in_public_links, raw_links)
-        self.assertEqual(submission.pk, None)
+        form = response.context["project_form"]
+        self.assertEqual(form["github_link"].value(), "https://github.com/my/work")
+        self.assertEqual(form["commit_id"].value(), "abc1234")
+        self.assertEqual(form.learning_in_public_values, raw_links)
+        self.assertIsNone(form.submission)
 
     def test_invalid_learning_link_renders_the_form_instead_of_a_500(self):
         # The invalid link raises during parsing; re-running the parser while
@@ -92,7 +92,7 @@ class ProjectSubmissionContainmentTests(ProjectSubmissionViewTestBase):
         self.prepare_project_with_learning_cap()
 
         response = self.post_project(
-            self.project_submission_data(**{"learning_in_public_links[]": ["not-a-url-at-all"]})
+            self.project_submission_data(**{"learning_in_public_links": ["not-a-url-at-all"]})
         )
 
         self.assertEqual(response.status_code, 200)

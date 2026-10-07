@@ -6,6 +6,7 @@ from courses.models.project import (
     ProjectSubmission,
     ProjectState,
 )
+from courses.services.project_form_adapter import build_project_submission_form
 
 
 @dataclass(frozen=True)
@@ -38,6 +39,11 @@ def project_build_context(request, course: Cohort, project: Project) -> dict:
         "accepting_submissions": accepting_submissions,
         "certificate_name": user_details.certificate_name,
         "disable_learning_in_public": disable_learning_in_public,
+        "project_form": build_project_submission_form(
+            project,
+            user=user,
+            enrollment=user_details.enrollment,
+        ),
     }
 
 

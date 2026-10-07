@@ -1,0 +1,31 @@
+{% comment %}
+  The project form's FAQ contribution extra field (issue #456), rendering the
+  bound shared-form field with this site's hint and enforced URL pattern.
+  `clean_faq_contribution_url` stays the server-side check behind it.
+{% endcomment %}
+<div class="cb-field" data-project-field="faq_contribution_url">
+  <label class="cb-label" for="{{ project_form.faq_contribution_url.id_for_label }}">
+    FAQ contribution PR or issue URL <span class="cb-card-meta">(optional)</span>
+  </label>
+  <p class="cb-card-meta project-faq-hint">
+    Create a GitHub issue or pull request in the FAQ repo for your contribution, then paste that issue or PR URL here.
+    <a
+      class="band-link"
+      href="https://datatalks.club/docs/courses/faq/"
+      target="_blank"
+      rel="noopener noreferrer"
+    >FAQ docs</a>
+  </p>
+  <input
+    type="url"
+    class="cb-input"
+    id="{{ project_form.faq_contribution_url.id_for_label }}"
+    name="{{ project_form.faq_contribution_url.html_name }}"
+    pattern="https://github\.com/[Dd]ata[Tt]alks[Cc]lub/faq/(issues|pull)/[0-9]+/?([?#].*)?"
+    placeholder="https://github.com/DataTalksClub/faq/issues/281"
+    title="Paste a DataTalksClub/faq issue or pull request URL."
+    value="{{ project_form.faq_contribution_url.value|default:'' }}"
+    {% if not project_form.editable %}disabled{% endif %}
+  />
+  {% for error in project_form.faq_contribution_url.errors %}<p class="cb-form-error" data-field-error="faq_contribution_url">{{ error }}</p>{% endfor %}
+</div>

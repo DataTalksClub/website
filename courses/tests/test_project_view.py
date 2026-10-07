@@ -88,7 +88,7 @@ class ProjectViewTestCase(ProjectViewTestBase):
         self.assertContains(response, "Save submission")
         self.assertContains(
             response,
-            "https://datatalks.club/docs/courses/course-management-platform/learning-in-public/",
+            "Links to social media posts where you share your progress",
         )
         self.assertContains(
             response,

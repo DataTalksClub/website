@@ -74,7 +74,7 @@ class ProjectSubmissionViewTestBase(ProjectViewTestBase):
         return links
 
     def invalid_project_submission_data(self, learning_in_public_links):
-        link_fields = {"learning_in_public_links[]": learning_in_public_links}
+        link_fields = {"learning_in_public_links": learning_in_public_links}
         return self.project_submission_data(
             github_link="https://github.com/alexeygrigorev/404",
             commit_id="123456f",
@@ -86,10 +86,17 @@ class ProjectSubmissionViewTestBase(ProjectViewTestBase):
         expectation,
     ):
         self.assertEqual(expectation.response.status_code, 200)
-        submission = expectation.response.context["submission"]
-        self.assert_submission_form_values(
-            submission,
-            expectation.data,
+        form = expectation.response.context["project_form"]
+        self.assertEqual(
+            form["github_link"].value(),
+            expectation.data["github_link"],
+        )
+        self.assertEqual(
+            form["commit_id"].value(),
+            expectation.data["commit_id"],
+        )
+        self.assertEqual(
+            form.learning_in_public_values,
             expectation.learning_in_public_links,
         )
         self.assert_db_submission_unchanged(

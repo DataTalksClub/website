@@ -13,9 +13,10 @@ from courses.views.project_page_context import (
     project_accepting_submissions,
     project_build_context,
 )
+from courses.services.project_form_adapter import build_project_submission_form
 from courses.views.project_submission_edit import (
     project_delete_submission,
-    project_submission_display_from_post,
+    project_submit_form,
     project_submit_post,
 )
 from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
@@ -37,12 +38,11 @@ def project_login_required_response(
         "You need to be logged in to submit a project",
         extra_tags="homework",
     )
-    response = redirect(
+    return redirect(
         "cohort_project",
         **canonical_cohort_url_kwargs(course),
         project_slug=project.slug,
     )
-    return response
 
 
 def closed_project_submission_response(
@@ -54,32 +54,21 @@ def closed_project_submission_response(
         extra_tags="homework",
     )
     context = project_build_context(request, course, project)
-    response = render(request, "projects/project.html", context)
-    return response
+    return render(request, "projects/project.html", context)
 
 
 def project_validation_error_response(
     request: HttpRequest,
     course: Cohort,
     project: Project,
-    error: ValidationError,
+    form,
 ):
-    error_messages = error.messages
-    for message in error_messages:
-        messages.error(
-            request,
-            f"Failed to submit the project: {message}",
-            extra_tags="alert-danger",
-        )
     context = project_build_context(request, course, project)
-    # Re-render from the raw POST values.  Re-running the persisting parser
-    # here used to save enrollment and certificate-name changes a second time
-    # and re-raise on invalid learning links, escaping the handler (BE-06).
-    context["submission"] = project_submission_display_from_post(
-        request, project
-    )
-    response = render(request, "projects/project.html", context)
-    return response
+    # The bound shared form re-renders the learner's raw entries with the
+    # field errors; its save is the only write path, so a rejected POST
+    # leaves nothing behind (audit BE-06).
+    context["project_form"] = form
+    return render(request, "projects/project.html", context)
 
 
 def delete_project_submission_response(
@@ -93,12 +82,27 @@ def delete_project_submission_response(
         PROJECT_SUBMISSION_DELETED_MESSAGE,
         extra_tags="homework",
     )
-    response = redirect(
+    return redirect(
         "cohort_project",
         **canonical_cohort_url_kwargs(course),
         project_slug=project.slug,
     )
-    return response
+
+
+def project_validation_failed_event(request: HttpRequest, course: Cohort, project: Project, form):
+    record_event(
+        "project.validation_failed",
+        request=request,
+        properties={
+            "course_slug": course.course.slug,
+            "cohort_identifier": course.identifier,
+            "project_slug": project.slug,
+            "project_id": project.id,
+            "error_count": sum(
+                len(messages) for messages in form.errors.values()
+            ),
+        },
+    )
 
 
 def save_project_submission_response(
@@ -106,25 +110,25 @@ def save_project_submission_response(
     course: Cohort,
     project: Project,
 ):
-    try:
-        project_submit_post(request, project)
-    except ValidationError as error:
-        record_event(
-            "project.validation_failed",
-            request=request,
-            properties={
-                "course_slug": course.course.slug,
-                "cohort_identifier": course.identifier,
-                "project_slug": project.slug,
-                "project_id": project.id,
-                "error_count": len(error.messages),
-            },
-        )
+    form = project_submit_form(request, project)
+    if not form.is_valid():
+        project_validation_failed_event(request, course, project, form)
         return project_validation_error_response(
             request,
             course,
             project,
-            error,
+            form,
+        )
+    try:
+        project_submit_post(request, project, form)
+    except ValidationError as error:
+        form.add_model_errors(error)
+        project_validation_failed_event(request, course, project, form)
+        return project_validation_error_response(
+            request,
+            course,
+            project,
+            form,
         )
 
     messages.success(
@@ -132,12 +136,11 @@ def save_project_submission_response(
         PROJECT_SUBMISSION_SAVED_MESSAGE,
         extra_tags="homework",
     )
-    response = redirect(
+    return redirect(
         "cohort_project",
         **canonical_cohort_url_kwargs(course),
         project_slug=project.slug,
     )
-    return response
 
 
 def handle_project_post(request: HttpRequest, course: Cohort, project: Project):
@@ -151,19 +154,17 @@ def handle_project_post(request: HttpRequest, course: Cohort, project: Project):
 
     action = request.POST.get("action")
     if action == "delete":
-        response = delete_project_submission_response(
+        return delete_project_submission_response(
             request,
             course,
             project,
         )
-        return response
 
-    response = save_project_submission_response(
+    return save_project_submission_response(
         request,
         course,
         project,
     )
-    return response
 
 
 def project_view(request, course_slug, project_slug, cohort_identifier=None):
@@ -181,5 +182,4 @@ def project_view(request, course_slug, project_slug, cohort_identifier=None):
 
     context = project_build_context(request, course, project)
 
-    response = render(request, "projects/project.html", context)
-    return response
+    return render(request, "projects/project.html", context)

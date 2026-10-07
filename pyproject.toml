@@ -11,7 +11,7 @@ dependencies = [
 # `uv run python scripts/community_base_link.py link` for a local development link.
     # v0.5.10 includes the released homework-step URL, bookmark, draft-help,
     # and accepted-versus-pending submission behavior used by DTC's adapter.
-    "community-base @ git+https://github.com/DataTalksClub/community-base@v0.5.10",
+    "community-base @ git+https://github.com/DataTalksClub/community-base@v0.5.28",
     "cryptography>=50,<51",
     "django>=6.0,<6.1",
     "django-allauth>=65.10,<66",

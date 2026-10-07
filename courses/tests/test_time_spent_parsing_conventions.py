@@ -72,13 +72,20 @@ class ProjectFormTimeSpentTests(ProjectSubmissionViewTestBase):
         self.project.time_spent_project_field = True
         self.project.save()
 
-    def test_decimal_comma_is_saved(self):
+    def test_decimal_point_is_saved_and_decimal_comma_joins_the_shared_rejects(self):
+        # The shared form's FloatField owns the project time-spent rule
+        # (issue #456): "2.5" saves, while the site-side decimal-comma
+        # convention stays with the review and homework parsers.
         self.enable_time_spent_field()
 
-        response = self.post_project(self.project_submission_data(time_spent="2,5"))
+        response = self.post_project(self.project_submission_data(time_spent="2.5"))
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self.get_project_submission().time_spent, 2.5)
+
+        comma_response = self.post_project(self.project_submission_data(time_spent="2,5"))
+        self.assertEqual(comma_response.status_code, 200)
+        self.assertEqual(self.project_submission_count(), 1)
 
     def test_rejected_values_render_the_form_and_save_nothing(self):
         self.enable_time_spent_field()
