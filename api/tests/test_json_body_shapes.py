@@ -11,9 +11,10 @@ same generic ``Invalid JSON`` response.  Rejected values are never reflected.
 from __future__ import annotations
 
 import json
+from datetime import datetime
 
 from api.tests.project_api_base import PROJECT_INSTRUCTIONS_URL, ProjectAPITestBase
-from courses.models import Project
+from courses.models import Cohort, Project
 
 OBJECT_SHAPE_ERROR = "invalid_json_object"
 BULK_SHAPE_ERROR = "invalid_json_object_list"
@@ -161,3 +162,115 @@ class CoursePatchBodyShapeTests(ProjectAPITestBase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["code"], OBJECT_SHAPE_ERROR)
+
+
+class ProjectUpsertBodyContract(ProjectAPITestBase):
+    def payload(self) -> dict:
+        return {
+            "name": "Fallback title",
+            "submission_due_date": "2026-04-01T18:30:00+02:00",
+            "peer_review_due_date": "2026-04-08T12:15:00-03:00",
+        }
+
+    def put_project(self, data: dict, course_slug: str = "test-course"):
+        return self.client.put(
+            f"/api/courses/{course_slug}/projects/by-slug/contract/",
+            json.dumps(data),
+            content_type="application/json",
+        )
+
+    def assert_mapping(self, project: Project, data: dict, body: dict) -> None:
+        expected = {
+            "slug": "contract",
+            "title": data.get("title", data["name"]),
+            "description": data.get("description", ""),
+            "instructions_url": data.get("instructions_url"),
+            "state": data.get("state", "CL"),
+        }
+        self.assertEqual(project.course_id, self.course.pk)
+        self.assertEqual(body["id"], project.pk)
+        for field, value in expected.items():
+            self.assertEqual(getattr(project, field), value, field)
+            self.assertEqual(body[field], value, field)
+        for field in ("submission_due_date", "peer_review_due_date"):
+            expected_date = datetime.fromisoformat(data[field])
+            self.assertEqual(getattr(project, field), expected_date, field)
+            self.assertEqual(datetime.fromisoformat(body[field]), expected_date, field)
+
+    def test_create_and_update_preserve_full_mapping_and_identity(self) -> None:
+        data = self.payload()
+        data.update(
+            title="Explicit title",
+            description="Literal description",
+            instructions_url=PROJECT_INSTRUCTIONS_URL,
+            state="CS",
+        )
+        response = self.put_project(data)
+        self.assertEqual(response.status_code, 201)
+        project = Project.objects.get(slug="contract", course=self.course)
+        self.assert_mapping(project, data, response.json())
+        original_pk = project.pk
+        update = self.put_project({"title": "Updated title"})
+        self.assertEqual(update.status_code, 200)
+        project.refresh_from_db()
+        data["title"] = "Updated title"
+        self.assert_mapping(project, data, update.json())
+        self.assertEqual(project.pk, original_pk)
+        self.assertEqual(Project.objects.count(), 1)
+
+    def test_defaults_and_explicit_instructions_keep_distinct_values(self) -> None:
+        for instructions in ({}, {"instructions_url": None}, {"instructions_url": ""}):
+            with self.subTest(instructions=instructions):
+                Project.objects.all().delete()
+                data = self.payload()
+                data.update(instructions)
+                response = self.put_project(data)
+                self.assertEqual(response.status_code, 201)
+                project = Project.objects.get(slug="contract")
+                self.assert_mapping(project, data, response.json())
+
+    def test_same_slug_in_another_cohort_keeps_distinct_identity(self) -> None:
+        first = self.put_project(self.payload())
+        cohort = Cohort.objects.create(title="Other", slug="other", description="")
+        second = self.put_project(self.payload(), cohort.slug)
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(second.status_code, 201)
+        self.assertNotEqual(first.json()["id"], second.json()["id"])
+        project = Project.objects.get(pk=second.json()["id"])
+        self.assertEqual(project.course_id, cohort.pk)
+        self.assertEqual(Project.objects.count(), 2)
+
+    def test_invalid_creates_preserve_error_priority_and_zero_rows(self) -> None:
+        cases = (
+            ({"title": None, "state": "XX"}, "missing_required_fields"),
+            ({"title": ""}, "missing_required_fields"),
+            (
+                {"instructions_url": "javascript:bad", "submission_due_date": "bad", "state": "XX"},
+                "invalid_instructions_url",
+            ),
+            ({"submission_due_date": "bad", "state": "XX"}, "invalid_date_format"),
+            ({"peer_review_due_date": "bad"}, "invalid_date_format"),
+            ({"state": "XX"}, "invalid_project_state"),
+        )
+        for invalid, code in cases:
+            with self.subTest(code=code, invalid=invalid):
+                data = self.payload()
+                data.update(invalid)
+                response = self.put_project(data)
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.json()["code"], code)
+                self.assertEqual(Project.objects.count(), 0)
+
+    def test_invalid_update_and_nonstaff_write_preserve_existing_row(self) -> None:
+        created = self.put_project(self.payload())
+        response = self.put_project({"title": "Must not persist", "state": "XX"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["code"], "invalid_project_state")
+        project = Project.objects.get(pk=created.json()["id"])
+        self.assertEqual(project.title, "Fallback title")
+        self.client = self._non_staff_client("contract-denied")
+        denial = self.put_project({"title": "Unauthorized"})
+        self._assert_staff_token_required(denial)
+        project.refresh_from_db()
+        self.assertEqual(project.title, "Fallback title")
+        self.assertEqual(Project.objects.count(), 1)
