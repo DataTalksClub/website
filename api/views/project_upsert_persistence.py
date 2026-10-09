@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 from django.http import JsonResponse
 
 from courses.models.project import Project, ProjectState
@@ -14,18 +12,6 @@ from api.views.project_upsert_rules import (
 from api.views.project_upsert_validation import project_upsert_title
 
 
-@dataclass(frozen=True)
-class ProjectUpsertCreateData:
-    course: object
-    slug: str
-    title: str
-    description: str
-    instructions_url: str | None
-    submission_due_date: object
-    peer_review_due_date: object
-    state: str
-
-
 def project_by_slug(course, project_slug):
     project = Project.objects.filter(
         course=course,
@@ -34,32 +20,17 @@ def project_by_slug(course, project_slug):
     return project, project is None
 
 
-def project_upsert_create_data(course, project_slug, data):
-    title = project_upsert_title(data)
-    description = data.get("description", "")
-    instructions_url = data.get("instructions_url")
-    submission_due_date = parse_date(data["submission_due_date"])
-    peer_review_due_date = parse_date(data["peer_review_due_date"])
-    values = {
-        "course": course,
-        "slug": project_slug,
-        "title": title,
-        "description": description,
-        "instructions_url": instructions_url,
-        "submission_due_date": submission_due_date,
-        "peer_review_due_date": peer_review_due_date,
-        "state": ProjectState.CLOSED.value,
-    }
-    create_data = ProjectUpsertCreateData(**values)
-    return create_data
-
-
 def create_project_from_upsert(course, project_slug, data):
-    create_data = project_upsert_create_data(course, project_slug, data)
-    create_data_vars = vars(create_data)
-    values = create_data_vars.copy()
-    project = Project.objects.create(**values)
-    return project
+    return Project.objects.create(
+        course=course,
+        slug=project_slug,
+        title=project_upsert_title(data),
+        description=data.get("description", ""),
+        instructions_url=data.get("instructions_url"),
+        submission_due_date=parse_date(data["submission_due_date"]),
+        peer_review_due_date=parse_date(data["peer_review_due_date"]),
+        state=ProjectState.CLOSED.value,
+    )
 
 
 def apply_project_instructions_url(project, data):
