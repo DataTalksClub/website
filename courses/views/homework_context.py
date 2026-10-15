@@ -15,6 +15,7 @@ from courses.models.homework import (
 )
 from courses.models.shared_curriculum import CohortSharedModule, SharedLesson
 from courses.services.course_context import context_query
+from courses.services.enrollment import enroll_learner
 from courses.views.homework_answers import process_question_options
 from courses.views.url_utils import get_cohort_or_404
 
@@ -272,10 +273,7 @@ def authenticated_homework_context(
         # Only the authorized mutation path (an actual POST submission) may
         # create the enrollment it submits against.  A GET/HEAD render, a
         # copied URL, or a context preference never enrolls the reader.
-        enrollment, _ = Enrollment.objects.get_or_create(
-            student=user,
-            course=course,
-        )
+        enrollment, _ = enroll_learner(user, course)
     else:
         enrollment = Enrollment.objects.filter(
             student=user,

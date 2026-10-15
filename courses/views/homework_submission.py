@@ -15,6 +15,7 @@ from courses.models.homework import (
     Question,
     Submission,
 )
+from courses.services.enrollment import enroll_learner
 from courses.views.homework_confirmation import (
     HomeworkConfirmationEmailData,
     build_homework_update_url,
@@ -56,10 +57,7 @@ def homework_submission_for_user(user, course, homework, submission):
         submission.submitted_at = timezone.now()
         return submission
 
-    enrollment, _ = Enrollment.objects.get_or_create(
-        student=user,
-        course=course,
-    )
+    enrollment, _ = enroll_learner(user, course)
     return Submission.objects.create(
         homework=homework,
         student=user,

@@ -234,6 +234,8 @@ module = [
     "courses.views.submission_urls",
     "courses.services.project_form_adapter",
     "courses.tests.test_project_form_adapter",
+    "courses.services.enrollment",
+    "courses.tests.test_enrollment_confirmation_paths",
 ]
 ignore_errors = false
 

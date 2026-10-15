@@ -651,6 +651,20 @@ Things that will surprise you:
 
 ## 8. One-time imports into the database
 
+> **Historical enrollment imports send no mail (#460).** Creating an
+> `Enrollment` row has no side effect: there is no `post_save` receiver. The
+> `enrollment-confirmation` mail is sent only by
+> `courses.services.enrollment` for a live learner action (the enrollment
+> form, a homework or project submission, the project pages). So §12, §13 and
+> §18 create no `EmailDelivery` row and no `cb_mail.deliver` job, with no flag
+> to remember. Guarded by
+> `courses/tests/test_package_mail_flows.py::EnrollmentConfirmationMailTest.test_creating_an_enrollment_row_sends_no_mail`,
+> `scripts/tests/test_import_legacy_zoomcamp.py::LegacyZoomcampImportTests.test_historical_enrollments_send_no_confirmation_mail`
+> and
+> `courses/tests/test_mailchimp_course_tag_import.py::MailchimpCourseTagImportTests.test_imported_enrollments_send_no_confirmation_mail`.
+> A new importer must create enrollments with the plain ORM and never call
+> `enroll_learner`.
+
 ### 11 — CMP export, course content
 
 | | |

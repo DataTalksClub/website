@@ -4,8 +4,8 @@ from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 
 from course_management.observability import record_event
-from courses.models.cohort import Enrollment
 from courses.models.project import PeerReview, Project, ProjectSubmission
+from courses.services.enrollment import enroll_learner
 from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
 
@@ -30,10 +30,7 @@ def _project_eval_student_submission(course, project, user):
     if student_submission is not None:
         return student_submission
 
-    enrollment, _ = Enrollment.objects.get_or_create(
-        student=user,
-        course=course,
-    )
+    enrollment, _ = enroll_learner(user, course)
     defaults = volunteer_review_submission_defaults()
     defaults["enrollment"] = enrollment
     student_submission, _ = ProjectSubmission.objects.get_or_create(

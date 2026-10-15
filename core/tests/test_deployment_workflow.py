@@ -111,7 +111,9 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # the reviewed configuration-only seal preserves every dependency and lock seal.
 # Issue #462 moves only the community-base pin from v0.5.28 to v0.5.29 (the
 # dot-directory symlink rule for content sync); no other dependency changes.
-STUDIO_COURSES_PYPROJECT_SHA256 = "280c190306b72e565655dd8ae42d59ba437c536f2432c7dc2cd78edee1765728"
+# Issue #460 enrolls the live enrollment service and its submission-path test in
+# strict mypy; the configuration-only seal moves, preserving the dependency and lock seals.
+STUDIO_COURSES_PYPROJECT_SHA256 = "596879c69d8f00db734df090d3d00a794154908a5431ae1babe82ae3c410402e"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation

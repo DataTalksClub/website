@@ -30,6 +30,7 @@ from django.utils import timezone
 
 from courses.models.cohort import Enrollment
 from courses.models.project import ProjectSubmission
+from courses.services.enrollment import enroll_learner
 from courses.validators.url_status_transport import clean_faq_contribution_url
 
 
@@ -153,10 +154,7 @@ class ProjectSubmissionForm(BaseProjectSubmissionForm):
         """The learner's enrollment, created only inside the save transaction."""
         if self.submission is not None:
             return self.submission.enrollment
-        enrollment, _ = Enrollment.objects.get_or_create(
-            student=self.user,
-            course=self.project.project.course,
-        )
+        enrollment, _ = enroll_learner(self.user, self.project.project.course)
         self.enrollment = enrollment
         return enrollment
 

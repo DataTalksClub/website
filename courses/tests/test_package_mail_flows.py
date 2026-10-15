@@ -1,8 +1,11 @@
 from typing import Any
 
+from community_base.jobs.models import JobIntent
 from community_base.mail.models import EmailDelivery
 from community_base.mail.service import MailConflict, MailError
+from django.db import transaction
 from django.test import TestCase, override_settings
+from django.urls import reverse
 from django.utils.dateparse import parse_date
 
 from accounts.models import User
@@ -19,6 +22,7 @@ from courses.models import (
     Enrollment,
     RegistrationCampaign,
 )
+from courses.services.enrollment import enroll_learner
 
 FLOW_SETTINGS = {
     "PUBLIC_BASE_URL": "https://courses.example.com",
@@ -107,40 +111,147 @@ class RegistrationConfirmationMailTest(TestCase):
         self.assertEqual(EmailDelivery.objects.count(), 1)
 
 
+def enrollment_confirmations():
+    return EmailDelivery.objects.filter(purpose="enrollment-confirmation")
+
+
+def mail_jobs():
+    return JobIntent.objects.filter(handler="cb_mail.deliver")
+
+
+def assert_enrollment_confirmation(test, enrollment, user):
+    """One delivery with the enrollment-confirmation contract (#460)."""
+
+    delivery = enrollment_confirmations().get()
+    test.assertEqual(delivery.recipient_email, user.email)
+    test.assertEqual(
+        delivery.idempotency_key,
+        f"enrollment-confirmation:{enrollment.pk}",
+    )
+    test.assertEqual(delivery.category, "email_course_updates")
+    test.assertEqual(delivery.recipient_user, user)
+    test.assertEqual(
+        delivery.context_data["course_title"],
+        enrollment.course.title,
+    )
+    test.assertIn("cohort_name", delivery.context_data)
+    test.assertIn("course_url", delivery.context_data)
+    return delivery
+
+
 class EnrollmentConfirmationMailTest(TestCase):
-    @override_settings(**FLOW_SETTINGS)
-    def test_enrolling_records_a_confirmation_delivery(self):
-        cohort = create_cohort()
-        user = create_user("student@example.com")
+    """The confirmation is an effect of the live enrollment action (#460)."""
 
-        with self.captureOnCommitCallbacks(execute=True):
-            enrollment = Enrollment.objects.create(student=user, course=cohort)
-
-        delivery = EmailDelivery.objects.get()
-        self.assertEqual(delivery.purpose, "enrollment-confirmation")
+    def assert_confirmation_for(self, enrollment, user):
+        delivery = assert_enrollment_confirmation(self, enrollment, user)
         self.assertEqual(delivery.recipient_email, "student@example.com")
-        self.assertEqual(
-            delivery.idempotency_key,
-            f"enrollment-confirmation:{enrollment.pk}",
-        )
-        self.assertEqual(delivery.recipient_user, user)
+        self.assertEqual(delivery.context_data["course_title"], "ML Zoomcamp 2026")
         self.assertEqual(
             delivery.context_data["cohort_name"],
             "ML Zoomcamp 2026 (2026)",
         )
+        self.assertTrue(delivery.context_data["course_url"].endswith("/2026"))
+        return delivery
 
     @override_settings(**FLOW_SETTINGS)
-    def test_updating_an_enrollment_does_not_reconfirm(self):
+    def test_creating_an_enrollment_row_sends_no_mail(self):
         cohort = create_cohort()
         user = create_user("student@example.com")
-        with self.captureOnCommitCallbacks(execute=True):
-            enrollment = Enrollment.objects.create(student=user, course=cohort)
+
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            Enrollment.objects.create(student=user, course=cohort)
+
+        self.assertEqual(callbacks, [])
+        self.assertEqual(EmailDelivery.objects.count(), 0)
+        self.assertEqual(mail_jobs().count(), 0)
+
+    @override_settings(**FLOW_SETTINGS)
+    def test_enrolling_records_a_confirmation_delivery_on_commit(self):
+        cohort = create_cohort()
+        user = create_user("student@example.com")
+
+        with self.captureOnCommitCallbacks(execute=False) as callbacks:
+            enrollment, created = enroll_learner(user, cohort)
+            self.assertEqual(EmailDelivery.objects.count(), 0)
+
+        self.assertTrue(created)
+        self.assertEqual(len(callbacks), 1)
+        callbacks[0]()
+        self.assert_confirmation_for(enrollment, user)
+        self.assertEqual(mail_jobs().count(), 1)
+
+    @override_settings(**FLOW_SETTINGS)
+    def test_enrolling_again_returns_the_enrollment_without_mail(self):
+        cohort = create_cohort()
+        user = create_user("student@example.com")
+        existing = Enrollment.objects.create(student=user, course=cohort)
 
         with self.captureOnCommitCallbacks(execute=True):
-            enrollment.display_name = "Student"
-            enrollment.save()
+            enrollment, created = enroll_learner(user, cohort)
 
+        self.assertFalse(created)
+        self.assertEqual(enrollment.pk, existing.pk)
+        self.assertEqual(EmailDelivery.objects.count(), 0)
+
+    @override_settings(**FLOW_SETTINGS)
+    def test_a_rolled_back_enrollment_sends_nothing(self):
+        cohort = create_cohort()
+        user = create_user("student@example.com")
+
+        with self.captureOnCommitCallbacks(execute=True):
+            with self.assertRaises(RuntimeError):
+                with transaction.atomic():
+                    enroll_learner(user, cohort)
+                    raise RuntimeError("roll back")
+
+        self.assertEqual(Enrollment.objects.count(), 0)
+        self.assertEqual(EmailDelivery.objects.count(), 0)
+        self.assertEqual(mail_jobs().count(), 0)
+
+    @override_settings(**FLOW_SETTINGS)
+    def test_a_learner_without_email_is_enrolled_without_mail(self):
+        cohort = create_cohort()
+        user = User.objects.create_user(username="no-email", email="", password="password")
+
+        with self.captureOnCommitCallbacks(execute=True):
+            _, created = enroll_learner(user, cohort)
+
+        self.assertTrue(created)
+        self.assertEqual(Enrollment.objects.filter(student=user).count(), 1)
+        self.assertEqual(EmailDelivery.objects.count(), 0)
+
+    @override_settings(**FLOW_SETTINGS)
+    def test_first_enrollment_form_post_confirms_and_an_update_does_not(self):
+        cohort = create_cohort()
+        user = create_user("student@example.com")
+        self.client.force_login(user)
+        url = reverse(
+            "cohort_enrollment",
+            kwargs={"course_slug": "ml", "cohort_identifier": "2026"},
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Enrollment.objects.count(), 0)
+        self.assertEqual(EmailDelivery.objects.count(), 0)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                url,
+                {"display_name": "Student", "display_on_leaderboard": "on"},
+            )
+        self.assertEqual(response.status_code, 302)
+        enrollment = Enrollment.objects.get(student=user, course=cohort)
+        self.assert_confirmation_for(enrollment, user)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(url, {"display_name": "Renamed"})
+        self.assertEqual(response.status_code, 302)
+        enrollment.refresh_from_db()
+        self.assertEqual(enrollment.display_name, "Renamed")
         self.assertEqual(EmailDelivery.objects.count(), 1)
+        self.assertEqual(mail_jobs().count(), 1)
 
 
 class CertificateReadyMailTest(TestCase):
