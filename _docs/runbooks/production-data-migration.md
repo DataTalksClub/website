@@ -2164,7 +2164,7 @@ coursework family with the two FK renames (`Homework`/`Project`/`ReviewCriteria`
 package `Certificate` row whose `url` is **byte-identical** — checkpoint below,
 not a hope.
 
-**Three refusals that are correct, not bugs.**
+**Refusals that are correct, not bugs.**
 
 - **A course still on the bespoke cohort-owned graph.** The run fails with a
   bounded report naming the course; run the site's own
@@ -2174,13 +2174,22 @@ not a hope.
   ships.
 - **A mapping-coverage failure** (either model grew a field the mapping does
   not name). Model drift must fail the run, never drop a field quietly.
+- **`indistinguishable_questions`** (decision 20). Two provenance-less site
+  questions in one homework are equal on every copied value, so they cannot
+  both land and merging them would cross-wire their answers. The report names
+  at most `MAX_NAMED_ROWS` site question ids and no question text, and the run
+  rolls back. It is a data question for the operator. Same-text questions that
+  differ in any copied value (options, correct answer, …) are distinct and
+  migrate one-to-one.
 
 **Expected counts — an equality, not a list of numbers.** The row counts move
 with every daily export, so this step pins a relation instead: for every mapped
 family, package rows equal the site's *migratable* rows — the subset left after
 skipping unpublished shared modules, retired or unpublished shared lessons, and
 the recorded gaps (terminal-homework bindings, project flow placements,
-link/code-source content, cohort-level overrides, assets, course people). The
+link/code-source content, cohort-level overrides, assets, course people, and
+the community-tour testimonials, which stay site-side and serve `/tour` —
+gap key `testimonials:tour_placement_site_side`, decision 19). The
 run's report prints, per family: created, attached, skipped, and every gap
 count. A gap count is a decision recorded, not an error; an *unexplained*
 difference between package rows and migratable site rows is a stop.

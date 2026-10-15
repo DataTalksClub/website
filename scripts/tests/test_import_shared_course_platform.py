@@ -10,6 +10,7 @@ the ways the decisions say it may be.
 
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import UTC, datetime
 
@@ -18,8 +19,10 @@ from django.test import TestCase
 from django.utils import timezone
 
 from scripts.prod.import_shared_course_platform import (
+    MAX_NAMED_ROWS,
     PROVENANCE_NAMESPACE,
     CountMismatch,
+    IndistinguishableQuestions,
     SelfPacedCohortNotUnique,
     SharedBackfillRequired,
     UnknownDeliveryMode,
@@ -766,3 +769,306 @@ class SharedCoursePlatformImportRefusalsTests(ImportRunMixin, TestCase):
             self.run_import(apply=True)
 
         self.assertIn("review_criteria", caught.exception.families)
+
+
+def _add_tour_and_homepage_testimonials() -> None:
+    """Decision 19 fixture: one homepage and three tour stories beside the course one.
+
+    The reviewed reference set every test database is seeded with is cleared
+    first, so the site holds exactly the five rows the acceptance names.
+    """
+
+    from courses import models as site
+
+    site.Testimonial.objects.exclude(name="Graduate").delete()
+    site.Testimonial.objects.create(
+        placement=site.TestimonialPlacement.HOMEPAGE,
+        name="Homepage Member",
+        attribution="Analyst · Portugal",
+        quote="Synthetic homepage quote.",
+        source_url="https://example.com/homepage-member",
+        published=True,
+        position=1,
+    )
+    for index in range(3):
+        site.Testimonial.objects.create(
+            placement=site.TestimonialPlacement.TOUR,
+            name=f"Tour Member {index}",
+            attribution="Synthetic community member",
+            quote=f"Synthetic tour story {index}.",
+            source_url=f"https://example.com/tour-member-{index}",
+            published=True,
+            position=index,
+        )
+
+
+def _add_untagged_question_homework() -> None:
+    """Decision 20 fixture: four provenance-less questions sharing text and type.
+
+    The shape of the audited de-zoomcamp-2024/hw2 rows with synthetic values:
+    identical ``text``/``question_type``, no stable ids, and distinct
+    ``possible_answers``/``correct_answer``.  One learner answers each.
+    """
+
+    from courses import models as site
+
+    cohort = site.Cohort.objects.get(slug="p6-course-2026")
+    learner = get_user_model().objects.get(username="p6-learner")
+    homework = site.Homework.objects.create(
+        slug="hw2",
+        course=cohort,
+        title="Homework 2",
+        due_date=datetime(2026, 3, 1, tzinfo=UTC),
+    )
+    questions = [
+        site.Question.objects.create(
+            homework=homework,
+            text="Data Transformation",
+            question_type=site.QuestionTypes.MULTIPLE_CHOICE.value,
+            possible_answers=f"option {index}a\noption {index}b",
+            correct_answer=str(index % 2 + 1),
+        )
+        for index in range(4)
+    ]
+    submission = site.Submission.objects.create(
+        homework=homework,
+        student=learner,
+        enrollment=site.Enrollment.objects.get(student=learner, course=cohort),
+        submitted_at=_PAST,
+    )
+    for index, question in enumerate(questions):
+        site.Answer.objects.create(
+            submission=submission, question=question, answer_text=f"answer {index}"
+        )
+
+
+def _package_snapshot() -> dict:
+    """Every package question, answer and testimonial, for the replay comparison."""
+
+    from community_base.coursework import models as cw
+
+    return {
+        model.__name__: sorted(model.objects.values_list(*fields))
+        for model, fields in (
+            (
+                cw.Question,
+                (
+                    "pk",
+                    "homework_id",
+                    "text",
+                    "question_type",
+                    "possible_answers",
+                    "correct_answer",
+                    "source_question_id",
+                    "source_content_id",
+                ),
+            ),
+            (cw.Answer, ("pk", "submission_id", "question_id", "answer_text", "is_correct")),
+            (cw.Testimonial, ("pk", "placement", "course_id", "name", "quote", "published")),
+        )
+    }
+
+
+class TourTestimonialsStaySiteSideTests(ImportRunMixin, TestCase):
+    """Decision 19 (#461): tour stories are skipped, counted, and keep serving /tour."""
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        _import_family_graph()
+        _add_tour_and_homepage_testimonials()
+
+    def assert_testimonial_report(self, report: dict) -> None:
+        self.assertEqual(report["counts"]["testimonials"], {"site": 5, "migrated": 2, "skipped": 3})
+        self.assertEqual(report["gaps"]["testimonials:tour_placement_site_side"], 3)
+        self.assertEqual(
+            report["verification"]["testimonials"], {"site": 2, "package": 2, "equal": True}
+        )
+
+    def test_a_dry_run_counts_tour_rows_and_writes_nothing(self) -> None:
+        from community_base.coursework import models as cw
+
+        report = self.run_import(apply=False)
+
+        self.assert_testimonial_report(report)
+        self.assertEqual(cw.Testimonial.objects.count(), 0)
+
+    def test_an_applied_run_and_its_replay_copy_only_homepage_and_course(self) -> None:
+        from community_base.coursework import models as cw
+
+        report = self.run_import(apply=True)
+
+        self.assert_testimonial_report(report)
+        self.assertEqual(
+            sorted(cw.Testimonial.objects.values_list("placement", flat=True)),
+            ["course", "homepage"],
+        )
+        before = _package_snapshot()
+
+        replay = self.run_import(apply=True)
+
+        self.assert_testimonial_report(replay)
+        self.assertEqual(replay["counts"], report["counts"])
+        self.assertEqual(_package_snapshot(), before)
+
+    def test_the_tour_still_renders_its_three_stories_after_the_import(self) -> None:
+        from django.urls import reverse
+
+        from courses import models as site
+
+        self.run_import(apply=True)
+
+        self.assertEqual(
+            site.Testimonial.objects.filter(placement=site.TestimonialPlacement.TOUR).count(), 3
+        )
+        response = self.client.get(reverse("tour"))
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        for index in range(3):
+            self.assertIn(f"https://example.com/tour-member-{index}", body)
+            self.assertIn(f"Tour Member {index}", body)
+
+
+class UntaggedQuestionsReconcileOnFullValuesTests(ImportRunMixin, TestCase):
+    """Decision 20 (#461): provenance-less questions never collapse or cross-wire."""
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        _import_family_graph()
+        _add_untagged_question_homework()
+
+    def test_four_same_text_questions_land_as_four_with_their_own_answers(self) -> None:
+        from community_base.coursework import models as cw
+
+        from courses import models as site
+
+        report = self.run_import(apply=True)
+
+        self.assertTrue(report["verification"]["questions"]["equal"])
+        self.assertTrue(report["verification"]["answers"]["equal"])
+        homework = cw.Homework.objects.get(cohort__slug="2026", slug="hw2")
+        self.assertEqual(cw.Question.objects.filter(homework=homework).count(), 4)
+        site_answers = site.Answer.objects.filter(question__homework__slug="hw2")
+        self.assertEqual(site_answers.count(), 4)
+        for site_answer in site_answers.select_related("question"):
+            package_answer = cw.Answer.objects.select_related("question").get(
+                submission__homework=homework, answer_text=site_answer.answer_text
+            )
+            self.assertEqual(
+                package_answer.question.possible_answers, site_answer.question.possible_answers
+            )
+            self.assertEqual(
+                package_answer.question.correct_answer, site_answer.question.correct_answer
+            )
+
+    def test_a_replay_reports_identical_counts_and_changes_nothing(self) -> None:
+        first = self.run_import(apply=True)
+        before = _package_snapshot()
+
+        replay = self.run_import(apply=True)
+
+        self.assertEqual(replay["counts"], first["counts"])
+        self.assertEqual(replay["verification"], first["verification"])
+        self.assertEqual(_package_snapshot(), before)
+
+    def test_a_dry_run_reports_the_same_counts_as_the_apply(self) -> None:
+        dry = self.run_import(apply=False)
+
+        applied = self.run_import(apply=True)
+
+        self.assertEqual(dry["counts"], applied["counts"])
+        self.assertEqual(dry["verification"], applied["verification"])
+
+    def test_keyed_questions_with_the_same_text_stay_separate(self) -> None:
+        """Regression: a stable-id row keeps its own key beside untagged twins."""
+
+        from community_base.coursework import models as cw
+
+        from courses import models as site
+
+        homework = site.Homework.objects.get(slug="hw2")
+        site.Question.objects.create(
+            homework=homework,
+            text="Data Transformation",
+            question_type=site.QuestionTypes.MULTIPLE_CHOICE.value,
+            possible_answers="option 0a\noption 0b",
+            correct_answer="1",
+            source_question_id="q-transform",
+            source_content_id="p6-course/homework-2/question-transform",
+            source_path="homeworks/hw2.md",
+            source_commit_sha=_SHA,
+            source_checksum=_CHECKSUM,
+        )
+
+        self.run_import(apply=True)
+        replay = self.run_import(apply=True)
+
+        self.assertTrue(replay["verification"]["questions"]["equal"])
+        package_homework = cw.Homework.objects.get(cohort__slug="2026", slug="hw2")
+        self.assertEqual(cw.Question.objects.filter(homework=package_homework).count(), 5)
+        self.assertEqual(
+            cw.Question.objects.filter(
+                homework=package_homework, source_question_id="q-transform"
+            ).count(),
+            1,
+        )
+
+
+class IndistinguishableQuestionsRefuseTests(ImportRunMixin, TestCase):
+    """Decision 20 (#461): fully identical untagged questions refuse, bounded, rolled back."""
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        _import_family_graph()
+
+    def make_identical_questions(self, count: int) -> list[int]:
+        from courses import models as site
+
+        homework = site.Homework.objects.get(slug="hw1")
+        return [
+            site.Question.objects.create(
+                homework=homework,
+                text="Synthetic identical question text",
+                question_type=site.QuestionTypes.FREE_FORM.value,
+            ).pk
+            for _ in range(count)
+        ]
+
+    def test_two_identical_questions_refuse_and_roll_back(self) -> None:
+        from community_base.coursework import models as cw
+        from community_base.curriculum import models as cur
+
+        first, second = self.make_identical_questions(2)
+
+        with self.assertRaises(IndistinguishableQuestions) as caught:
+            self.run_import(apply=True)
+
+        self.assertEqual(caught.exception.question_ids, (second,))
+        self.assertNotIn(first, caught.exception.question_ids)
+        self.assertEqual(str(caught.exception), "indistinguishable_questions")
+        self.assertEqual(cur.Course.objects.count(), 0)
+        self.assertEqual(cw.Homework.objects.count(), 0)
+        self.assertEqual(cw.Question.objects.count(), 0)
+
+    def test_the_refusal_names_at_most_max_named_rows_and_no_text(self) -> None:
+        from io import StringIO
+        from unittest.mock import patch
+
+        import scripts.prod.import_shared_course_platform as importer
+
+        self.make_identical_questions(MAX_NAMED_ROWS + 5)
+
+        with self.assertRaises(IndistinguishableQuestions) as caught:
+            self.run_import(apply=False)
+        self.assertEqual(len(caught.exception.question_ids), MAX_NAMED_ROWS)
+
+        output = StringIO()
+        with (
+            patch.object(importer, "configure_target"),
+            patch("sys.stdout", output),
+        ):
+            exit_code = importer.main(["--database", ".tmp/p461-unused.sqlite3"])
+        self.assertEqual(exit_code, 1)
+        payload = json.loads(output.getvalue())
+        self.assertEqual(payload["error"], "indistinguishable_questions")
+        self.assertEqual(len(payload["question_ids"]), MAX_NAMED_ROWS)
+        self.assertNotIn("Synthetic identical question text", output.getvalue())
