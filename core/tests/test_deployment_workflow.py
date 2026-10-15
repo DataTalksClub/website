@@ -109,12 +109,15 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # the reviewed configuration-only seal preserves every dependency and lock seal.
 # Issue #456 enrolls the shared project-form adapter and its test in strict mypy;
 # the reviewed configuration-only seal preserves every dependency and lock seal.
-STUDIO_COURSES_PYPROJECT_SHA256 = "e78b492142eeb9ba2caff9091d65507f331da2574efbe9351a1d59f500936a19"
-# Issue #456's cb v0.5.28 pin bump moves the lock one advisory step
-# (urllib3 2.7.0 -> 2.8.0); the reviewed remediation seal tracks it while
-# the pinned community-base stays v0.5.28.
+# Issue #462 moves only the community-base pin from v0.5.28 to v0.5.29 (the
+# dot-directory symlink rule for content sync); no other dependency changes.
+STUDIO_COURSES_PYPROJECT_SHA256 = "280c190306b72e565655dd8ae42d59ba437c536f2432c7dc2cd78edee1765728"
+# Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
+# (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
+# community-base entry (tag and commit 22d5fcd0); the reviewed remediation
+# seal tracks it.
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "7d6b45abc3910f90af214082eda71c16abbc8292e4042689b07da279d0d2fbed"
+    "15c7e387e3d17bb1bc4785b5ce336262d98d8497810e11a87dd4f4d838a1b184"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"

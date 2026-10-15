@@ -266,6 +266,19 @@ to import a reviewed `docs_projection.json` snapshot into `ContentDocument` and
 `community_base.content_sync` engine's `dtc-docs` parser — 106 pages, 39 images, same
 as before. Served at `/docs/` by `content/review_views.py`, from the database.
 
+**Symlinks in an editorial checkout (issue #462).** `manage.py sync_content` fails closed on
+symlinks, in both the `--from-disk` checkout and the GitHub tarball path, with one
+exemption: a symlink inside a top-level dot-directory (the first path segment starts with
+`.`, as in the `.claude/skills -> ../.agents/skills` link that `DataTalksClub/faq` and
+`DataTalksClub/docs` track) is agent tooling no parser reads, so it is skipped, never
+followed, and left out of the manifest and `max_files`. The sync still finishes `success`
+and records each skipped path in `SyncLog.warnings` as `Ignored symlink outside content:
+<path>` (at most 20, then a count). Any other symlink — a content file such as
+`faq/x.md -> …`, an `images/` link, a top-level link, or one in a nested dot-directory like
+`faq/.hidden/` — still fails the sync with `Symlink is not allowed: <path>`; that is a
+content-repository defect to fix upstream, not something to work around here. The rule
+ships in `community-base` v0.5.29 (`content_sync/README.md`).
+
 **6 — `DataTalksClub/course-management-platform`** @ `98a23528…`. Two unrelated uses:
 `scripts/production_like_course_specs.json` is pinned from it and produces
 `courses.json` (unused, above) and seeds the local catalogue; and
