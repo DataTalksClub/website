@@ -12,7 +12,9 @@ import csv
 import tempfile
 from pathlib import Path
 
-from django.test import TestCase
+from community_base.jobs.models import JobIntent
+from community_base.mail.models import EmailDelivery
+from django.test import TestCase, override_settings
 
 from accounts.models import User
 from courses.models import Cohort, Course, CourseRegistration, Enrollment
@@ -212,6 +214,31 @@ class MailchimpCourseTagImportTests(TestCase):
         self.assertEqual(second.matched_account_total, 1)
 
         self.assertEqual(Enrollment.objects.filter(student=account, course=cohort).count(), 1)
+
+    @override_settings(PUBLIC_BASE_URL="https://courses.example.com")
+    def test_imported_enrollments_send_no_confirmation_mail(self) -> None:
+        """A Mailchimp tag backfill is not a learner enrolling (#460)."""
+
+        cohort = _cohort("de-zoomcamp", 2025)
+        accounts = [
+            User.objects.create(username=f"learner-m{index}", email=f"m{index}@example.invalid")
+            for index in range(3)
+        ]
+        rows = [
+            {EMAIL_COLUMN: account.email, TAGS_COLUMN: _tags("de-zoomcamp-2025")}
+            for account in accounts
+        ]
+
+        with self.captureOnCommitCallbacks(execute=True):
+            first = self._run(rows)
+        with self.captureOnCommitCallbacks(execute=True):
+            second = self._run(rows)
+
+        self.assertEqual(first.enrollments_created_total, 3)
+        self.assertEqual(second.enrollments_created_total, 0)
+        self.assertEqual(Enrollment.objects.filter(course=cohort).count(), 3)
+        self.assertEqual(EmailDelivery.objects.count(), 0)
+        self.assertEqual(JobIntent.objects.filter(handler="cb_mail.deliver").count(), 0)
 
     def test_dry_run_reports_without_writing(self) -> None:
         _cohort("ai-dev-tools-zoomcamp", 2025)

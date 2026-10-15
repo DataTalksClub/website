@@ -6,6 +6,7 @@ from courses.models.project import (
     ProjectSubmission,
     ProjectState,
 )
+from courses.services.enrollment import enroll_learner
 from courses.services.project_form_adapter import build_project_submission_form
 
 
@@ -57,10 +58,7 @@ def project_context_user_details(
     project: Project,
 ) -> ProjectContextUserDetails:
     project_submission = project_context_submission(user, project)
-    enrollment, _ = Enrollment.objects.get_or_create(
-        student=user,
-        course=course,
-    )
+    enrollment, _ = enroll_learner(user, course)
     certificate_name = project_context_certificate_name(user, enrollment)
     return ProjectContextUserDetails(
         submission=project_submission,

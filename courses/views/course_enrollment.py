@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 
 from course_management.observability import record_event
 from courses.models.cohort import Cohort, Enrollment
+from courses.services.enrollment import confirm_new_enrollment
 from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
 from .course_leaderboard_data import invalidate_leaderboard_cache
@@ -144,6 +145,7 @@ def _handle_enrollment_post(request, course, enrollment):
         created = enrollment.pk is None
         _save_enrollment_form(form, course, enrollment)
         if created:
+            confirm_new_enrollment(enrollment)
             record_enrollment_created(request, course, enrollment)
         record_event(
             "enrollment.updated",

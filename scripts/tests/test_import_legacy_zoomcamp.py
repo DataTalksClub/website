@@ -14,7 +14,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 import scripts.prod
 
@@ -152,6 +152,24 @@ class LegacyZoomcampImportTests(TestCase):
         self.assertEqual(Submission.objects.count(), 2)
         # Two scored learners plus the graduate recovered from graduates.csv.
         self.assertEqual(Enrollment.objects.filter(course=cohort).count(), 3)
+
+    @override_settings(PUBLIC_BASE_URL="https://courses.example.com")
+    def test_historical_enrollments_send_no_confirmation_mail(self) -> None:
+        """Importing history is not a learner enrolling (#460)."""
+
+        from community_base.jobs.models import JobIntent
+        from community_base.mail.models import EmailDelivery
+
+        from courses.models import Enrollment
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self._run()
+        with self.captureOnCommitCallbacks(execute=True):
+            self._run()
+
+        self.assertEqual(Enrollment.objects.count(), 3)
+        self.assertEqual(EmailDelivery.objects.count(), 0)
+        self.assertEqual(JobIntent.objects.filter(handler="cb_mail.deliver").count(), 0)
 
     def test_the_certificate_url_is_joined_by_name(self) -> None:
         self._run()

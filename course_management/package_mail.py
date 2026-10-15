@@ -140,8 +140,10 @@ def send_enrollment_confirmation_mail(enrollment):
 
     Replaces the enrollment member-upsert outbox event: the enrollment
     itself is the replay boundary, so the key is derived from it. The
-    Datamailer never sent an enrollment confirmation; this purpose is new
-    and fires on the same trigger the outbox event had.
+    Datamailer never sent an enrollment confirmation; this purpose is new.
+    It is an explicit effect of a live learner enrollment, scheduled on
+    commit by ``courses.services.enrollment`` (#460). Creating an
+    ``Enrollment`` row does not send it, so historical imports send nothing.
     """
 
     course = enrollment.course

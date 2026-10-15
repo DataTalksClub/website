@@ -174,6 +174,10 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     # format, and typecheck must reach them.
     "courses/services/project_form_adapter.py",
     "courses/tests/test_project_form_adapter.py",
+    # 460: the live enrollment service that owns the confirmation mail, and
+    # its submission-path tests, are new integration code.
+    "courses/services/enrollment.py",
+    "courses/tests/test_enrollment_confirmation_paths.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",
