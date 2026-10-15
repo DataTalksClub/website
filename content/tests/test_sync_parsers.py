@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
 from community_base.content_sync.checkout import ImmutableCheckout
 from community_base.content_sync.media import media_store
-from community_base.content_sync.models import ContentSource
+from community_base.content_sync.models import ContentSource, SyncLog, SyncStatus
+from community_base.content_sync.orchestration import sync_content_source
 from community_base.content_sync.parsers import get_parser
 from community_base.knowledge_base.models import (
     BODY_HTML_SITE,
@@ -18,7 +20,7 @@ from community_base.knowledge_base.models import (
 from django.test import TestCase
 
 from content.models import SyncedDocument
-from content.sync_parsers.base import ContentParserError
+from content.sync_parsers.base import ContentParserError, upsert_document
 from content.sync_parsers.course import COURSE_SOURCE_SLUGS
 
 
@@ -1439,3 +1441,140 @@ class RegistrationTests(unittest.TestCase):
         self.assertEqual(type(get_parser("podcast_platforms")).__name__, "PodcastPlatformsParser")
         self.assertEqual(type(get_parser("slack_page")).__name__, "SlackPageParser")
         self.assertEqual(type(get_parser("course")).__name__, "CourseCatalogParser")
+
+
+def _git_repository(tree: dict[str, bytes]) -> Path:
+    root = _write_tree(tree)
+    subprocess.run(("git", "init", "-q", str(root)), check=True)
+    _git_commit(root)
+    return root
+
+
+def _git_commit(root: Path) -> str:
+    identity = ("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid")
+    subprocess.run(("git", "-C", str(root), "add", "-A"), check=True)
+    subprocess.run(
+        ("git", "-C", str(root), *identity, "commit", "-q", "--allow-empty", "-m", "fixture"),
+        check=True,
+    )
+    return subprocess.run(
+        ("git", "-C", str(root), "rev-parse", "HEAD"),
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+class SyncOrchestrationBoundaryTests(TestCase):
+    """The supported sync boundary, ``sync_content_source``, over a local checkout.
+
+    These carry the still-live guarantees of the retired staged verifier
+    (issue #427): source-local create/update/delete, checksum and revision
+    provenance, idempotence, fail-closed invalid input, and no deletion across
+    sources. The checkout is a synthetic local Git repository, so no network
+    and no operator staging tree is involved.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        SyncedDocument.objects.filter(source__slug="dtc-content").delete()
+        self.source = _source("dtc-content")
+        self.other = _source("some-other-site")
+        self.tree = {
+            "articles/2024-03-07-hello-world.md": _article_markdown().encode(),
+            "articles/2024-03-08-second-post.md": _article_markdown()
+            .replace("Hello World", "Second Post")
+            .encode(),
+            "images/posts/hello-world/cover.png": _png(b"cover"),
+        }
+        self.repository = _git_repository(self.tree)
+
+    def _sync(self) -> SyncLog:
+        log = sync_content_source(self.source, repo_dir=self.repository, force=True)
+        self.source.refresh_from_db()
+        return log
+
+    def _articles(self) -> dict[str, str]:
+        rows = SyncedDocument.objects.filter(source=self.source, content_kind="article")
+        return dict(rows.values_list("stable_key", "checksum"))
+
+    def _write(self, relative: str, payload: bytes | None) -> str:
+        path = self.repository / relative
+        if payload is None:
+            path.unlink()
+        else:
+            path.write_bytes(payload)
+        return _git_commit(self.repository)
+
+    def test_create_update_delete_with_provenance_and_idempotence(self) -> None:
+        log = self._sync()
+        first_commit = log.commit_sha
+        self.assertEqual(log.status, SyncStatus.SUCCESS, log.errors)
+        self.assertEqual(self.source.last_synced_commit, first_commit)
+        self.assertEqual(set(self._articles()), {"hello-world", "second-post"})
+        stored = SyncedDocument.objects.get(source=self.source, stable_key="hello-world")
+        self.assertEqual(stored.record["provenance"]["revision"], first_commit)
+        self.assertEqual(stored.source_path, "articles/2024-03-07-hello-world.md")
+        before = self._articles()
+
+        log = self._sync()
+        self.assertEqual(log.status, SyncStatus.SUCCESS, log.errors)
+        self.assertEqual((log.items_created, log.items_updated, log.items_deleted), (0, 0, 0))
+        self.assertEqual(self._articles(), before)
+
+        changed = _article_markdown().replace("A first paragraph.", "An edited paragraph.")
+        self._write("articles/2024-03-07-hello-world.md", changed.encode())
+        second_commit = self._write("articles/2024-03-08-second-post.md", None)
+        log = self._sync()
+        self.assertEqual(log.status, SyncStatus.SUCCESS, log.errors)
+        self.assertEqual(self.source.last_synced_commit, second_commit)
+        self.assertEqual(set(self._articles()), {"hello-world"})
+        self.assertNotEqual(self._articles()["hello-world"], before["hello-world"])
+        stored.refresh_from_db()
+        self.assertEqual(stored.record["provenance"]["revision"], second_commit)
+
+    def test_invalid_input_leaves_the_existing_rows_and_revision_unchanged(self) -> None:
+        good = self._sync()
+        self.assertEqual(good.status, SyncStatus.SUCCESS, good.errors)
+        before = self._articles()
+
+        # A valid edit and a deletion land in the same commit as a file the
+        # parser refuses: discovery fails as a whole, so neither the edit nor
+        # the deletion is applied, and the source keeps its last good revision.
+        edited = _article_markdown().replace("A first paragraph.", "Never applied.")
+        self._write("articles/2024-03-07-hello-world.md", edited.encode())
+        self._write("articles/2024-03-08-second-post.md", None)
+        self._write("articles/notes.md", _article_markdown().encode())
+        log = self._sync()
+
+        self.assertEqual(log.status, SyncStatus.PARTIAL)
+        self.assertEqual([error["content_type"] for error in log.errors], ["article"])
+        self.assertEqual(self._articles(), before)
+        self.assertEqual(self.source.last_synced_commit, good.commit_sha)
+        self.assertEqual(self.source.last_sync_status, SyncStatus.PARTIAL)
+
+    def test_a_sync_never_deletes_another_sources_rows(self) -> None:
+        foreign, _ = upsert_document(
+            self.other,
+            content_kind="article",
+            stable_key="hello-world",
+            slug="hello-world",
+            title="Foreign",
+            summary="Owned by another source.",
+            public_path="/fixture-other/hello-world.html",
+            source_path="articles/2024-03-07-hello-world.md",
+            checksum="0" * 64,
+            record={},
+        )
+        self.assertEqual(self._sync().status, SyncStatus.SUCCESS)
+        for relative in self.tree:
+            if relative.startswith("articles/"):
+                self._write(relative, None)
+        log = self._sync()
+
+        self.assertEqual(log.status, SyncStatus.SUCCESS, log.errors)
+        self.assertEqual(log.items_deleted, 2)
+        self.assertEqual(self._articles(), {})
+        self.assertTrue(SyncedDocument.objects.filter(pk=foreign.pk).exists())
+        self.assertEqual(get_parser("article").soft_delete_missing(set(), self.other), 0)
+        self.assertTrue(SyncedDocument.objects.filter(pk=foreign.pk).exists())

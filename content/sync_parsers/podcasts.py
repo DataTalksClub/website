@@ -5,8 +5,8 @@ The record rules are the projection builder's preferred-mode podcast rules
 episode catalogue and the transcript conventions of both source layouts —
 the current seasonal layout with the episode-adjacent
 ``{stem}-transcript.yaml`` and the pre-reorg flat layout with
-``podcasts/transcripts/<slug>.yaml``.  The staged adapter and its
-``verify_dtc_content`` contract remain the pinned-corpus gate.
+``podcasts/transcripts/<slug>.yaml``.  (The staged adapter and its
+``verify_dtc_content`` pinned-corpus gate were deleted in ``1cd976a4``.)
 """
 
 from pathlib import PurePosixPath

@@ -101,42 +101,6 @@ def pull_course_content(database: str, checkout_root: str, extra: list[str]) -> 
     )
 
 
-def refresh_editorial_checkout(database: str, checkout: str) -> None:
-    checkout_path = Path(checkout).resolve()
-    checkout_path.parent.mkdir(parents=True, exist_ok=True)
-    plan = _run(
-        _python(
-            "scripts/prod/sync_content_verify.py",
-            "--database",
-            database,
-            "--checkout",
-            str(checkout_path),
-            "--checkout-plan",
-        ),
-        capture_output=True,
-    )
-    _run(
-        _python("scripts/checkout_refresh.py", "--host", _git_host()),
-        input_text=plan.stdout,
-    )
-
-
-def check_editorial_drift(database: str, checkout: str, revision: str | None) -> int:
-    checkout_path = Path(checkout).resolve()
-    command = list(
-        _python(
-            "scripts/prod/sync_content_verify.py",
-            "--database",
-            database,
-            "--checkout",
-            str(checkout_path),
-        )
-    )
-    if revision:
-        command.extend(("--revision", revision))
-    return subprocess.run(tuple(command), cwd=PROJECT_ROOT, check=False).returncode
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -156,15 +120,6 @@ def build_parser() -> argparse.ArgumentParser:
     pull.add_argument("--database")
     pull.add_argument("--checkout-root")
     pull.add_argument("extra", nargs=argparse.REMAINDER)
-
-    editorial_checkout = commands.add_parser("checkout")
-    editorial_checkout.add_argument("--database")
-    editorial_checkout.add_argument("--checkout")
-
-    drift = commands.add_parser("drift")
-    drift.add_argument("--database")
-    drift.add_argument("--checkout")
-    drift.add_argument("--revision")
     return parser
 
 
@@ -180,14 +135,6 @@ def main(argv: list[str] | None = None) -> int:
             refresh_course_checkouts(database, _checkout_root(args.checkout_root))
         elif args.command == "pull":
             pull_course_content(database, _checkout_root(args.checkout_root), args.extra)
-        elif args.command == "checkout":
-            refresh_editorial_checkout(database, args.checkout or ".tmp/content-checkout")
-        elif args.command == "drift":
-            return check_editorial_drift(
-                database,
-                args.checkout or ".tmp/content-checkout",
-                args.revision,
-            )
     except (OSError, subprocess.CalledProcessError) as error:
         if isinstance(error, subprocess.CalledProcessError):
             return error.returncode or 1

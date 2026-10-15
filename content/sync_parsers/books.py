@@ -1,9 +1,9 @@
 """Books parser: book pages from the structured content repository.
 
 The record rules are the projection builder's preferred-mode book rules
-(``_main_records``); the frozen corpus-wide inventory assertions stay with the
-pinned-corpus gates (``verify_dtc_content``, projection CI), so the parser
-follows the repository across commits.
+(``_main_records``); the frozen corpus-wide inventory assertions are
+deliberately not carried (the ``verify_dtc_content`` pinned-corpus gate was
+deleted in ``1cd976a4``), so the parser follows the repository across commits.
 """
 
 from pathlib import PurePosixPath
