@@ -3,6 +3,8 @@
 Every advertised subcommand is driven through ``main`` with the subprocess
 boundary replaced, so the test proves which script each workflow dispatches,
 that the script exists in the tree, and that no network or database is touched.
+The one in-process workflow, ``editorial-plan``, is tested against seeded
+content-sync source rows in the test database.
 The retired editorial ``checkout`` and ``drift`` commands dispatched to the
 deleted ``scripts/prod/sync_content_verify.py`` and must stay unadvertised.
 """
@@ -15,12 +17,29 @@ import unittest
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
-from scripts import content
-from scripts.content import PROJECT_ROOT, build_parser, main
+from django.core.management import call_command
+from django.test import TestCase, override_settings
 
-SUPPORTED_COMMANDS = ("sources", "pull-plan", "checkouts", "pull")
+from scripts import content
+from scripts.content import (
+    PROJECT_ROOT,
+    EditorialPlanError,
+    build_parser,
+    editorial_checkout_plan,
+    main,
+)
+
+SUPPORTED_COMMANDS = (
+    "sources",
+    "pull-plan",
+    "checkouts",
+    "pull",
+    "editorial-plan",
+    "editorial-checkouts",
+)
 
 
 def _subcommands() -> set[str]:
@@ -73,7 +92,12 @@ class ContentCommandDispatchTests(unittest.TestCase):
         dispatch = _Dispatch(stdout)
         with mock.patch.object(content.subprocess, "run", dispatch):
             with mock.patch.dict("os.environ", {}, clear=False) as environment:
-                for name in ("CONTENT_DATABASE", "CONTENT_CHECKOUT_ROOT", "CONTENT_GIT_HOST"):
+                for name in (
+                    "CONTENT_DATABASE",
+                    "CONTENT_CHECKOUT_ROOT",
+                    "CONTENT_EDITORIAL_CHECKOUT_ROOT",
+                    "CONTENT_GIT_HOST",
+                ):
                     environment.pop(name, None)
                 status = main(argv)
         return status, dispatch
@@ -158,12 +182,110 @@ class ContentCommandDispatchTests(unittest.TestCase):
         )
         self.assertDispatchedScriptsExist(dispatch)
 
+    def test_editorial_checkouts_feeds_the_plan_to_the_checked_refresh_helper(self) -> None:
+        root = ".tmp/content-command-test-editorial"
+        with mock.patch.object(content.Path, "mkdir"):
+            status, dispatch = self._main(
+                ["editorial-checkouts", "--database", ".tmp/b.sqlite3", "--checkout-root", root],
+                stdout="dtc-faq\tDataTalksClub/faq\tHEAD\t.tmp/x/dtc-faq\n",
+            )
+        self.assertEqual(status, 0)
+        self.assertEqual(
+            dispatch.scripts,
+            ["scripts/content.py", "scripts/checkout_refresh.py"],
+        )
+        plan, refresh = dispatch.calls
+        self.assertEqual(
+            plan[0][5:],
+            ("editorial-plan", "--database", ".tmp/b.sqlite3", "--checkout-root", root),
+        )
+        self.assertIs(plan[1]["capture_output"], True)
+        self.assertEqual(refresh[0][5:], ("--host", "https://github.com"))
+        self.assertEqual(refresh[1]["input"], "dtc-faq\tDataTalksClub/faq\tHEAD\t.tmp/x/dtc-faq\n")
+        self.assertDispatchedScriptsExist(dispatch)
+
     def test_a_failed_step_returns_its_exit_code(self) -> None:
         def fail(command, **kwargs):  # type: ignore[no-untyped-def]
             raise subprocess.CalledProcessError(3, command)
 
         with mock.patch.object(content.subprocess, "run", fail):
             self.assertEqual(main(["sources"]), 3)
+
+
+EDITORIAL_SOURCES = {
+    "dtc-content": "DataTalksClub/content",
+    "dtc-main-site": "DataTalksClub/datatalksclub.github.io",
+    "dtc-docs": "DataTalksClub/docs",
+    "dtc-faq": "DataTalksClub/faq",
+    "dtc-podwiki": "DataTalksClub/podwiki",
+}
+
+
+def _declared_with_secrets() -> dict[str, Any]:
+    from django.conf import settings
+
+    declared = [
+        {**declaration, "webhook_secret": "synthetic-issue-463-webhook-secret"}
+        for declaration in settings.COMMUNITY_BASE["CONTENT_SOURCES"]
+    ]
+    return {**settings.COMMUNITY_BASE, "CONTENT_SOURCES": declared}
+
+
+class EditorialCheckoutPlanTests(TestCase):
+    """The editorial plan comes from the seeded content-sync source rows."""
+
+    def setUp(self) -> None:
+        self.enterContext(override_settings(COMMUNITY_BASE=_declared_with_secrets()))
+        call_command("seed_content_sources", stdout=StringIO())
+        self.root = PROJECT_ROOT / ".tmp" / "issue-463-editorial-plan"
+        # The command exports the local target's environment; keep it to this test.
+        self.enterContext(mock.patch.dict("os.environ"))
+
+    def test_one_default_branch_line_per_declared_source(self) -> None:
+        self.assertEqual(
+            editorial_checkout_plan(self.root),
+            [
+                (slug, repository, "HEAD", self.root / slug)
+                for slug, repository in EDITORIAL_SOURCES.items()
+            ],
+        )
+
+    def test_a_declared_source_that_was_not_seeded_is_refused(self) -> None:
+        from community_base.content_sync.models import ContentSource
+
+        ContentSource.objects.filter(slug="dtc-faq").update(is_enabled=False)
+        with self.assertRaises(EditorialPlanError) as raised:
+            editorial_checkout_plan(self.root)
+        self.assertEqual(str(raised.exception), "editorial_source_not_seeded_dtc-faq")
+
+    def test_the_command_prints_tab_separated_plan_lines(self) -> None:
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            status = main(
+                [
+                    "editorial-plan",
+                    "--database",
+                    str(PROJECT_ROOT / ".tmp" / "issue-463-plan.sqlite3"),
+                    "--checkout-root",
+                    str(self.root),
+                ]
+            )
+        self.assertEqual(status, 0)
+        lines = stdout.getvalue().splitlines()
+        self.assertEqual(len(lines), len(EDITORIAL_SOURCES))
+        self.assertEqual(
+            lines[3].split("\t"),
+            ["dtc-faq", "DataTalksClub/faq", "HEAD", str(self.root / "dtc-faq")],
+        )
+
+    def test_the_command_refuses_a_database_outside_the_scratch_root(self) -> None:
+        stderr = StringIO()
+        with mock.patch("sys.stderr", stderr), redirect_stdout(StringIO()):
+            status = main(
+                ["editorial-plan", "--database", "/srv/elsewhere.sqlite3", "--checkout-root", "x"]
+            )
+        self.assertEqual(status, 2)
+        self.assertIn(".tmp/", stderr.getvalue())
 
 
 if __name__ == "__main__":

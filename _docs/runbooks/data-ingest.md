@@ -578,20 +578,26 @@ Settled by the owner: **images go to the CDN**, not into the content repository.
 
 The mechanism already exists and is landed — issue #301,
 `_docs/runbooks/public-media-objects.md`. `content/public_projection/media/` (the local hydration
-root) is gitignored; Django resolves `/images/<path>` against
-`~/prod/dtc-data/content-staging/public_projection/media.json` (outside this repository)
-and reads the object through a pluggable store selected by
-`PUBLIC_MEDIA_STORE_BACKEND`:
+root) is gitignored; Django resolves `/images/<path>` against the synced media rows
+(`content.catalogue.media()` — `SyncedDocument(content_kind="media")` of `dtc-content`
+and `dtc-main-site`, written by `manage.py sync_content`) and reads the object through a
+pluggable store selected by `PUBLIC_MEDIA_STORE_BACKEND`:
 
 | Backend | Use |
 | --- | --- |
 | `local` | Default. On-disk tree. What a developer or tester uses |
-| `memory` | Deterministic offline fixture derived from `media.json`. CI. Refuses to activate under production settings |
+| `memory` | Deterministic offline fixture derived from the synced media records. CI. Refuses to activate under production settings |
 | `s3` | Published objects from the bucket, via the ambient credential chain. No static key in the repo |
 
 Commands: `scripts/prod/sync_public_media_hydrate.py` (materialise),
-`sync_public_media_publish.py` (upload), `sync_public_media_verify.py` (check store
-against `media.json`).
+`sync_public_media_publish.py` (upload), `sync_public_media_verify.py` (check the store
+against the synced media records, both directions). All three act on exactly the
+records the `/images/` route serves — `content/media_store.py` `media_records()` is
+`content.catalogue.media()`, with no file fallback — and take the shared target
+selection: `--database .tmp/<file>.sqlite3` (a path outside `.tmp/` is refused) or
+`--deployment-target website-production --allow-production-write website-production`.
+A database with no synced media rows is refused with exit 2 and
+`{"error": "no_synced_media_records"}`, never reported as a clean run (issue #463).
 
 Bucket: `dtc-website-media`, 1,253 objects, ~154 MB, named in
 `main/website-static/terraform.tfvars.example` in `aws-infra`. Object keys are
@@ -1131,10 +1137,34 @@ catalogue-backed skeleton remains.
 
 ## 8.1 Rebuilding a local dev database end to end
 
-The order that actually matters, all commands assuming
-`DTC_ENVIRONMENT=local DTC_SQLITE_PATH=<path> DJANGO_SETTINGS_MODULE=website.settings.local`
-and an ambient `DTC_SQLITE_PATH`/`DTC_ENVIRONMENT`/`DJANGO_SETTINGS_MODULE` unset first
-(a stale ambient value silently points a command at the wrong database):
+`uv run --frozen python scripts/production_data.py dataset` does the whole rebuild,
+in the step table of §11 — run it rather than the steps by hand. It needs an ambient
+`DTC_SQLITE_PATH`/`DTC_ENVIRONMENT`/`DJANGO_SETTINGS_MODULE` unset first (a stale
+ambient value silently points a command at the wrong database), and reads
+`PRODUCTION_PREP_DATASET_ROOT` (default `.tmp/production-prep-dataset`),
+`LEGACY_ZOOMCAMP_SOURCE` (default `~/git/zoomcamp-scoring`; empty skips the legacy
+import, a path that is not a checkout refuses), `PRODUCTION_PREP_CMP_SOURCE`,
+`PRODUCTION_PREP_COURSE_SOURCE_DIR`, `PRODUCTION_PREP_EDITORIAL_SOURCE_DIR` (default
+`<root>/editorial-sources`) and `PRODUCTION_PREP_FRESH=1` (refuse an existing database).
+**On a fresh root, `dataset` exits 1 at the media-store check** of
+`verify_local_dataset.py`: the rebuild syncs the media *records* but never hydrates the media
+*objects* (hydration is a separate operator command, §7), so every record reports missing. That
+exit is expected, not a regression. Hydrate the local store offline from the dataset's own
+editorial checkouts, then re-run the gate, which should exit 0:
+
+```bash
+uv run --frozen python scripts/prod/sync_public_media_hydrate.py \
+    --database <root>/dataset.sqlite3 --source checkout \
+    --checkout DataTalksClub/content=<root>/editorial-sources/dtc-content \
+    --checkout DataTalksClub/datatalksclub.github.io=<root>/editorial-sources/dtc-main-site
+uv run --frozen python scripts/production_data.py verify --database <root>/dataset.sqlite3
+```
+
+`<root>` is `PRODUCTION_PREP_DATASET_ROOT`. Both commands write and read the store that
+`PUBLIC_MEDIA_LOCAL_ROOT` names (default `content/public_projection/media`), so give them the same
+value. Those two `--checkout` repositories are the only ones the synced media records name.
+
+The same order, by hand:
 
 1. `manage.py migrate`
 2. Course catalogue, in order: `import_legacy_zoomcamp.py --source-repo ~/git/zoomcamp-scoring`
@@ -1143,11 +1173,14 @@ and an ambient `DTC_SQLITE_PATH`/`DTC_ENVIRONMENT`/`DJANGO_SETTINGS_MODULE` unse
    (§11). CMP runs last because it reconciles.
 3. The independent, order-free reviewed one-time imports (§4, §11 item 4):
    `import_sponsors.py`, `import_testimonials.py`, `import_project_repo_enrichment.py`
-   (§22). The editorial catalogue
-   (articles/podcasts/books/people/wiki/docs/FAQ) is no longer seeded this way — it
-   needs a live `manage.py sync_content` run against a real checkout instead.
-4. `import_events.py` (§14-15) — one call, five legs internally sequenced.
-5. `import_mailchimp_course_tags.py` (§18) — after step 2, since it needs the course
+   (§22), `import_tour.py` (§23).
+4. The editorial catalogue (articles/podcasts/books/people/media/wiki/docs/FAQ):
+   `manage.py seed_content_sources`, `scripts/content.py editorial-checkouts --database
+   <database> --checkout-root <root>`, then for each of `dtc-content`, `dtc-main-site`,
+   `dtc-docs`, `dtc-faq`, `dtc-podwiki`:
+   `manage.py sync_content --source <slug> --from-disk <root>/<slug>`.
+5. `import_events.py` (§14-15) — one call, five legs internally sequenced.
+6. `import_mailchimp_course_tags.py` (§18) — after step 2, since it needs the course
    catalogue's cohorts to already exist.
 
 **Deliberately not part of a routine rebuild** (§11 "Not in the bootstrap order, and
@@ -1196,8 +1229,9 @@ wiki pages are `community_base.knowledge_base` rows read by
 The one file a public request still touches is the wiki's default social card,
 `content/wiki_assets/og-default.png` — a design asset that ships with the app, and the
 route serving it still checks the published manifest first. `content/media_store.py`'s
-`media_records()` also reads the staged `media.json`, but only for operator tooling and
-the offline fixture store; the `/images/…` view resolves its record from the database.
+`media_records()` — the record set of the media operator tooling and the offline fixture
+store — is `content.catalogue.media()`, the same synced rows the `/images/…` view
+resolves from; it no longer reads the staged `media.json` (issue #463).
 
 ### The pipeline, and what is still wired to nothing
 
@@ -1253,7 +1287,7 @@ The mechanisms that still exist, each solving part of the problem for a differen
 | --- | --- | --- | --- |
 | `manage.py sync_content` (`community_base.content_sync`) | a checkout's files against the stored `SyncedDocument` checksums, per source and kind | by hand / webhook | creates, updates and deletes rows to match the checkout; a parser refusal leaves that kind's rows and the source's last synced revision unchanged |
 | `CourseCurriculumImportRun` + `replayed` | this commit against previously applied runs | during ingest | re-applying a commit; a commit that produces a different manifest checksum |
-| `scripts/prod/sync_public_media_verify.py` | `media.json` against the object store, **both directions** | by hand / ops | missing, unreadable, mismatched and **orphaned** objects |
+| `scripts/prod/sync_public_media_verify.py` | the synced media rows (`content.catalogue.media()`) against the object store, **both directions** | by hand / ops | missing, unreadable, mismatched and **orphaned** objects; exit 2 on a database with no synced media |
 | `ci/content_update.py` | on-disk artifact digests against `manifest.json`, per family | CI | a hand-edited projection artifact |
 
 *Historical, deleted in `1cd976a4`:* `scripts/prod/sync_content_verify.py` (served
@@ -1290,7 +1324,7 @@ two canonical digests. Its two limits: it is **pinned to `ACCEPTED_CONTENT_COMMI
 acceptance* rather than today's upstream; and it only iterates projection → bundle
 (`:410-415`, `projection_document_missing`), never bundle → projection.
 
-**`sync_public_media_verify.py`** (`content/media_tooling.py:311-353`) is **the only true
+**`sync_public_media_verify.py`** (`content/media_tooling.py` `verify_media`, over the synced media rows) is **the only true
 bidirectional set-diff in the codebase** — `missing` / `unreadable` / `mismatched`
 from the record side, `extra` from the store side, `clean` overall, non-zero exit.
 Copy its report shape.
@@ -1420,10 +1454,15 @@ What genuinely differs, and needs care rather than a separate pipeline:
    `import_account_reconciliation`, declare nothing and are read as not bootstrapping.
    `scripts/prod/__init__.py` lists the bootstrapping set in
    `BOOTSTRAPPING_ENTRY_POINTS`, and `scripts/tests/test_prod_conventions.py` checks the
-   two agree. Twelve modules bootstrap today and nine do not: `import_events`,
+   two agree. Nine modules bootstrap today — `import_cmp_content`, `import_cmp_learners`,
+   `import_legacy_zoomcamp`, `import_project_repo_enrichment`, `import_sponsors`,
+   `import_testimonials`, `import_tour`, `sync_course_repositories` and
+   `sync_course_repository_sources` — and the rest do not, among them `import_events`,
    `import_event_registrants`, `import_mailchimp_event_tags`,
-   `import_mailchimp_subscriptions`, `import_cmp_learner_history`,
-   `import_account_reconciliation` and the three media `sync_public_media_*` scripts.
+   `import_mailchimp_subscriptions`, `import_mailchimp_course_tags`,
+   `import_cmp_learner_history`, `import_account_reconciliation`,
+   `import_shared_course_platform` and the three media `sync_public_media_*` scripts
+   (which read the synced media rows and refuse an empty database).
    `import_cmp_learner_history` is the sharpest case — on a database without
    `import_cmp_content` and `import_cmp_learners` it resolves nothing, writes nothing
    and reports success.
@@ -1448,15 +1487,19 @@ What genuinely differs, and needs care rather than a separate pipeline:
    moved to reading `content.models.SyncedDocument` exclusively — the live
    `community_base.content_sync` engine (`manage.py sync_content` against a real
    checkout, or its webhook) is the only way that content arrives now.
-   **Open decision point:** `scripts/prepare_local_data.py`'s offline rehearsal has no
-   checkout to run `sync_content` against, so a rehearsal database now has an empty
-   editorial catalogue (articles, podcasts, books, people, wiki, docs, FAQ) by
-   construction, and `scripts/verify_local_dataset.py`'s editorial gate reports exactly
-   that and fails.  Whether the rehearsal should be taught to run `sync_content`
-   against pinned local checkouts, or the gate should treat an offline rehearsal's
-   empty editorial catalogue as expected rather than a failure, is a product decision
-   nobody has made yet — this note exists so the next person hitting that failure does
-   not read it as a regression in either script.
+   **Decided (issue #463): a rebuild runs the live editorial sync.** After the one-time
+   imports, `scripts/prepare_local_data.py` runs `manage.py seed_content_sources` and
+   then `manage.py sync_content --source <slug> --from-disk <root>/<slug>` for each of
+   the five declared editorial sources (`dtc-content`, `dtc-main-site`, `dtc-docs`,
+   `dtc-faq`, `dtc-podwiki`), from disposable checkouts that
+   `scripts/content.py editorial-checkouts` plans from the seeded `ContentSource` rows
+   and refreshes through `scripts/checkout_refresh.py`. Any sync that does not finish
+   `success` fails the run, naming the slug (`editorial_sync_failed_<slug>`). The
+   rehearsal stays offline-capable: without `--editorial-checkout-root` it records
+   `editorial: {"skipped": "checkout_root_not_supplied"}`, and
+   `scripts/verify_local_dataset.py`'s editorial gate stays strict and fails such a
+   dataset, because it is incomplete. `dtc-faq` and `dtc-docs` track `.claude/skills`
+   symlinks; the pinned community-base (v0.5.29, #462) skips them, see "Symlinks" above.
 5. `scripts/prod/import_events.py`, whose own `run()` performs five legs in a fixed
    order because each reconciles against the one before it: identity import (§14),
    content import (§14.2), the Eventbrite description-precedence overlay (landed
@@ -1471,15 +1514,46 @@ What genuinely differs, and needs care rather than a separate pipeline:
    importers, which reconcile against the events step 5 wrote. They have no Make
    target on purpose — see "Not in the bootstrap order, and why" below.
 
-`scripts/production_data.py dataset` runs stages 1–3 plus `scripts/prepare_local_data.py` and
-`scripts/verify_local_dataset.py`; that orchestrator runs the whole of step 5 by
-composing `import_events.run()` itself — one call, all five legs, in the fixed order,
-under its single transaction, after the editorial block — and `verify_local_dataset.py`
-reports `database_event_identities` and `database_event_content` separately, because an
-identity alone publishes no page. `scripts/production_data.py bootstrap` therefore has no
-`import-events` call of its own: the rehearsal already ran the pipeline, and a second
-pass would re-parse both provider exports and re-run every leg to compensate for drift
-the first pass had not produced. Read
+### The rebuild step table
+
+`scripts/production_data.py dataset` issues exactly the three commands below, once each.
+`scripts/prepare_local_data.py` is the single owner of every nested step — `migrate`
+and source registration run there and nowhere else, so `PRODUCTION_PREP_FRESH=1`
+finds the database absent — and runs them in `STEP_ORDER`
+(`scripts/prepare_local_data.py`); the course steps follow `COURSE_CATALOGUE_ORDER`.
+`scripts/tests/test_production_data.py` holds the code to this table verbatim.
+
+| Step | What it does |
+| --- | --- |
+| `scripts/rebuild_gate.py` | refuses an unsafe dataset path, removes the old database |
+| `scripts/prepare_local_data.py` | owns every step below, in this order |
+| ↳ `migrate` | `manage.py migrate` on the absent (fresh) database |
+| ↳ `course_catalog` | `manage.py seed_local_courses` |
+| ↳ `course_repository_sources` | registers the pinned course-repository sources |
+| ↳ `legacy_zoomcamp` | `import_legacy_zoomcamp`, with `--legacy-zoomcamp-source` |
+| ↳ `course_repository_checkouts` | `scripts/content.py checkouts`, with `--refresh-checkouts` |
+| ↳ `course_modules` | `sync_course_repositories` pull from the checkouts |
+| ↳ `cmp_content` | the CMP content reconcile, with `--cmp-source-db` |
+| ↳ `one_time_imports` | sponsors, testimonials, tour, project-gallery enrichment |
+| ↳ `editorial_seed` | `manage.py seed_content_sources`, with `--editorial-checkout-root` |
+| ↳ `editorial_checkouts` | `scripts/content.py editorial-checkouts`, with `--refresh-checkouts` |
+| ↳ `editorial_sync` | `sync_content --source <slug> --from-disk <root>/<slug>`, five sources |
+| ↳ `events` | `import_events.run()`, then the Luma and Eventbrite attendee exports |
+| `scripts/verify_local_dataset.py` | the dataset gate, editorial and media store included |
+
+`scripts/production_data.py bootstrap` is the same sequence: the legacy Zoomcamp import
+used to be its only addition, and it now runs inside the rehearsal for every rebuild.
+`IMPORT_LEGACY_ZOOMCAMP_ARGS` is gone with the separate pre-step; run
+`scripts/prod/import_legacy_zoomcamp.py` directly for `--edition`, `--skip-*` or
+`--no-homework-content`.
+
+The orchestrator runs the whole of step 5 by composing `import_events.run()` itself —
+one call, all five legs, in the fixed order, under its single transaction, after the
+editorial block — and `verify_local_dataset.py` reports `database_event_identities` and
+`database_event_content` separately, because an identity alone publishes no page. No
+runner has an `import-events` call of its own: the rehearsal already ran the pipeline,
+and a second pass would re-parse both provider exports and re-run every leg to
+compensate for drift the first pass had not produced. Read
 `_docs/runbooks/local-course-modules-preparation.md` for prerequisites.
 
 ### Not in the bootstrap order, and why
@@ -1510,9 +1584,9 @@ points are deliberately outside it, and the exclusions are checked by
 
 `scripts/prod/import_cmp_content.py` is the exception that proves the shape. It reads content
 only, so it is safe in a rebuild — and it is still not added to
-`production_data.py bootstrap`, because that runner already runs it through
-`production_data.py local` → `prepare_local_data.py --cmp-source-db`, and a second call
-would import it twice.
+`production_data.py bootstrap` as a separate call, because that runner already runs
+it through `prepare_local_data.py --cmp-source-db`, and a second call would import it
+twice.
 
 `--source` and `--database` have no default value for these production importers. Every
 command refuses with exit 2 before any Python starts when its source or destination is
@@ -1541,9 +1615,10 @@ explicit script commands resolve:
   declares `CMP_LEARNER_ORDER` for the run order and `SCRIPT_COMMAND_EXCLUSIONS` for the
   entry points that deliberately have no general runner, and
   `scripts/tests/test_prod_conventions.py` closes the set: a new `scripts/prod` module
-  either has a script command or carries a written reason. `sync_content` and the
-  three `sync_public_media_*` scripts are excluded pending #310, which is where that
-  decision belongs.
+  either has a script command or carries a written reason. The three
+  `sync_public_media_*` scripts take the shared target selection (#463) and stay typed
+  operator commands outside the rebuild, for the reasons `SCRIPT_COMMAND_EXCLUSIONS`
+  records; `sync_content` runs inside the rebuild's editorial stage.
 - `_docs/design/specs/script-inventory.md` is a point-in-time analysis pinned to an old
   commit — it still describes `scripts/load_rds_export.py`, which is deleted. **Any
   survey based on it will be wrong.** `_docs/runbooks/ingest-script-inventory.md` is the
@@ -1755,9 +1830,10 @@ number can appear twice in this table for two unrelated defects.
 | See what a description export still needs from a person (§14.4) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --discover-new-events-only`, then `uv run --frozen python scripts/build_luma_event_descriptions.py --database … --source-root …` |
 | Build the staged descriptions once that report is clean (§14.4) | the same command with `--write`; then re-run `import_events.py` |
 | Find the duplicate identities an unguarded discovery run left behind (§14.3) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --report-duplicate-identities`; add `--remove-duplicate-identities` to delete only the provably inert ones |
-| Materialise media | `uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source checkout --checkout …` (`--source` is required; run it bare to see the options) |
-| Publish media to the store | `uv run --frozen python scripts/prod/sync_public_media_publish.py` |
-| Verify media against `media.json` | `uv run --frozen python scripts/prod/sync_public_media_verify.py` |
+| Materialise media | `uv run --frozen python scripts/prod/sync_public_media_hydrate.py --database .tmp/<db>.sqlite3 --source checkout --checkout …` (`--source` is required; run it without one to see the options) |
+| Publish media to the store | `uv run --frozen python scripts/prod/sync_public_media_publish.py --database .tmp/<db>.sqlite3` |
+| Verify media against the synced media rows | `uv run --frozen python scripts/prod/sync_public_media_verify.py --database .tmp/<db>.sqlite3` |
+| Refresh the editorial checkouts | `uv run --frozen python scripts/content.py editorial-checkouts --database … --checkout-root .tmp/…` |
 
 ### Never do these
 

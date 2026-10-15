@@ -1215,7 +1215,8 @@ former `public-projection/` prefix.
 
 [`scripts/prod/sync_public_media_verify.py`](../../scripts/prod/sync_public_media_verify.py)
 
-Source: the live bucket, compared against `media.json`'s records.
+Source: the configured store, compared against the target database's synced media rows
+(`content.catalogue.media()`; `--database` or `--deployment-target`, issue #463).
 Transform: none — a reconciliation report only (`matched`/`missing`/`extra`/
 `mismatched` counts).
 Destination: none; this is a check, not a write.

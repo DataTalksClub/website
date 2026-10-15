@@ -166,18 +166,18 @@ SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
         "data. Step 6, excluded from the local dataset runner."
     ),
     "sync_public_media_hydrate": (
-        "Not decided yet. It is not a general script command; deciding whether it gets "
-        "one belongs to the ingest consolidation epic, DataTalksClub/website#310."
+        "Takes the shared target selection but stays a typed operator command: it "
+        "fills a media object root from a named source (a checkout, a store, or the "
+        "network), which a local dataset rebuild deliberately never does."
     ),
     "sync_public_media_publish": (
-        "Not decided yet. Its absence from the general script command is recorded here rather "
-        "than left silent; deciding whether it gets a target belongs to the ingest "
-        "consolidation epic, DataTalksClub/website#310."
+        "Takes the shared target selection but stays a typed operator command: it "
+        "uploads to the release asset bucket, which no local dataset rebuild may do."
     ),
     "sync_public_media_verify": (
-        "Not decided yet. Its absence from the general script command is recorded here rather "
-        "than left silent; deciding whether it gets a target belongs to the ingest "
-        "consolidation epic, DataTalksClub/website#310."
+        "Takes the shared target selection but stays a typed operator command: it "
+        "checks a configured object store, and verify_local_dataset.py already runs "
+        "the same comparison as part of the dataset gate."
     ),
 }
 

@@ -1678,16 +1678,18 @@ publish media first and content second — never content first.
 
 ```
 # Materialise the tree. --source is required and has no default; do not pass github.
-$TARGET uv run --frozen python scripts/prod/sync_public_media_hydrate.py \
+# The record set is the synced media rows of <target> (issue #463); an empty
+# database exits 2 with no_synced_media_records.
+uv run --frozen python scripts/prod/sync_public_media_hydrate.py <target> \
     --source checkout --checkout DataTalksClub/content=<path> \
                       --checkout DataTalksClub/datatalksclub.github.io=<path>
 
 # Upload. Incremental: an object whose recorded checksum already matches is skipped.
-PUBLIC_MEDIA_STORE_BACKEND=s3 $TARGET \
-    uv run --frozen python scripts/prod/sync_public_media_publish.py
+PUBLIC_MEDIA_STORE_BACKEND=s3 \
+    uv run --frozen python scripts/prod/sync_public_media_publish.py <target>
 
-PUBLIC_MEDIA_STORE_BACKEND=s3 $TARGET \
-    uv run --frozen python scripts/prod/sync_public_media_verify.py
+PUBLIC_MEDIA_STORE_BACKEND=s3 \
+    uv run --frozen python scripts/prod/sync_public_media_verify.py <target>
 ```
 
 #### Checkpoint

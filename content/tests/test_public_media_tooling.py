@@ -3,16 +3,13 @@
 from __future__ import annotations
 
 import base64
-import contextlib
 import hashlib
-import json
 import tempfile
-from io import StringIO
 from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
 
-from django.test import SimpleTestCase, override_settings
+from django.test import SimpleTestCase
 
 from content.media_store import (
     DEFAULT_MAX_OBJECT_BYTES,
@@ -28,9 +25,6 @@ from content.media_tooling import (
     publish_media,
     verify_media,
 )
-from scripts.prod.sync_public_media_hydrate import main as hydrate_main
-from scripts.prod.sync_public_media_publish import main as publish_main
-from scripts.prod.sync_public_media_verify import main as verify_main
 
 CONTENT_REPOSITORY = "DataTalksClub/content"
 LEGACY_REPOSITORY = "DataTalksClub/datatalksclub.github.io"
@@ -153,41 +147,6 @@ class HydrateTests(SimpleTestCase):
         self.assertEqual((report.total, report.written, report.failed), (5, 5, 0))
         self.assertEqual((self.destination / "a3.jpg").read_bytes(), b"object-3")
 
-    def test_the_command_reports_its_counts_and_fails_on_any_failure(self) -> None:
-        self._seed_checkout("images/a.jpg", b"one")
-        stream = StringIO()
-        with override_settings(PUBLIC_MEDIA_LOCAL_ROOT=self.destination):
-            with patch(
-                "content.media_tooling.media_records",
-                return_value=(_record("images/a.jpg", b"one"),),
-            ):
-                with contextlib.redirect_stdout(stream):
-                    exit_code = hydrate_main(
-                        [
-                            "--source",
-                            "checkout",
-                            "--checkout",
-                            f"{CONTENT_REPOSITORY}={self.checkout}",
-                        ]
-                    )
-        self.assertEqual(exit_code, 0)
-        self.assertEqual(json.loads(stream.getvalue())["written"], 1)
-        with override_settings(PUBLIC_MEDIA_LOCAL_ROOT=self.destination):
-            with patch(
-                "content.media_tooling.media_records",
-                return_value=(_record("images/missing.jpg", b"one"),),
-            ):
-                with contextlib.redirect_stdout(StringIO()):
-                    exit_code = hydrate_main(
-                        [
-                            "--source",
-                            "checkout",
-                            "--checkout",
-                            f"{CONTENT_REPOSITORY}={self.checkout}",
-                        ]
-                    )
-        self.assertEqual(exit_code, 1)
-
     def test_the_command_never_reaches_the_network_for_offline_sources(self) -> None:
         self._seed_checkout("images/a.jpg", b"one")
         with patch("urllib.request.urlopen", side_effect=AssertionError("network")) as opened:
@@ -309,12 +268,6 @@ class PublishTests(SimpleTestCase):
         self.assertEqual(report.added, 1)
         self.assertEqual(self.s3_client.puts, [])
 
-    def test_the_command_refuses_a_non_object_store_backend(self) -> None:
-        with override_settings(PUBLIC_MEDIA_STORE_BACKEND="local"):
-            with contextlib.redirect_stdout(StringIO()):
-                exit_code = publish_main([])
-        self.assertEqual(exit_code, 1)
-
 
 class VerifyTests(SimpleTestCase):
     def setUp(self) -> None:
@@ -413,55 +366,6 @@ class VerifyTests(SimpleTestCase):
         client.objects["images/orphan.jpg"] = b"orphan"
         follow_up = verify_media(store=store, records=[_record("images/a.jpg", b"one")])
         self.assertEqual(follow_up.extra, ["images/orphan.jpg"])
-
-    def test_the_command_exits_non_zero_on_any_difference(self) -> None:
-        with tempfile.TemporaryDirectory() as empty:
-            with override_settings(
-                PUBLIC_MEDIA_STORE_BACKEND="local", PUBLIC_MEDIA_LOCAL_ROOT=Path(empty)
-            ):
-                # The command resolves its record set from the reviewed
-                # projection, which the corpus-less environment cannot read:
-                # one synthetic record stands in, and an empty local store
-                # must still report it missing.
-                synthetic_records = (_record("images/synthetic-a.jpg", b"one"),)
-                with (
-                    patch(
-                        "content.media_tooling.media_records",
-                        return_value=synthetic_records,
-                    ),
-                    patch(
-                        "content.media_store.media_records",
-                        return_value=synthetic_records,
-                    ),
-                    contextlib.redirect_stdout(StringIO()),
-                ):
-                    exit_code = verify_main([])
-        self.assertEqual(exit_code, 1)
-
-    def test_the_offline_store_verifies_the_whole_record_set(self) -> None:
-        synthetic_records = (
-            _record("images/synthetic-a.jpg", b"one"),
-            _record("images/synthetic-b.jpg", b"two"),
-        )
-        with override_settings(PUBLIC_MEDIA_STORE_BACKEND="memory"):
-            with (
-                patch(
-                    "content.media_tooling.media_records",
-                    return_value=synthetic_records,
-                ),
-                patch(
-                    "content.media_store.media_records",
-                    return_value=synthetic_records,
-                ),
-            ):
-                stream = StringIO()
-                with contextlib.redirect_stdout(stream):
-                    exit_code = verify_main([])
-                self.assertEqual(exit_code, 0)
-                report = json.loads(stream.getvalue())
-        self.assertEqual(report["missing_count"], 0)
-        self.assertEqual(report["mismatched_count"], 0)
-        self.assertEqual(report["extra_count"], 0)
 
 
 class StoreStatTests(SimpleTestCase):

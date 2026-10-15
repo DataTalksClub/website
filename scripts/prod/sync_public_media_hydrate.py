@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""Materialise the public projection media objects into a local root.
+"""Materialise the synced public media objects into a local root.
 
 Git-synchronized -- see ``scripts/prod/__init__.py`` for what the two sync
-models mean. The set of recorded objects
-(``~/prod/dtc-data/content-staging/public_projection/media.json``, outside
-this repository -- see ``_docs/architecture/database-only-content.md``)
-grows as new content ships, so this is re-run whenever it does, not run once.
-Touches no database: every record and every byte lives in files or the
-configured object store, never in a model row.
+models mean. The set of recorded objects grows as new content ships, so this is
+re-run whenever a ``sync_content`` run adds media, not run once.
+
+Reads its records from the database the target names: the published
+``SyncedDocument`` media rows ``content.catalogue.media()`` serves (written by
+``manage.py sync_content``).  ``--database`` names a SQLite file below the
+project-local ``.tmp/``; ``--deployment-target NAME`` needs the shared
+``--allow-production-write NAME`` opt-in.  A database with no synced media rows is
+refused with exit code 2 and ``{"error": "no_synced_media_records"}``.
 
 ``--source`` has no default. No one source is reachable from every machine, and the
 one that used to be the default reads 438 of the records straight out of
@@ -17,15 +20,18 @@ be able to work without. Naming the source is therefore the operator's call.
 Examples::
 
     # fully offline, from local checkouts of the pinned upstream repositories
-    uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source checkout \\
+    uv run --frozen python scripts/prod/sync_public_media_hydrate.py \\
+        --database .tmp/local.sqlite3 --source checkout \\
         --checkout DataTalksClub/content=/path/to/content \\
         --checkout DataTalksClub/datatalksclub.github.io=/path/to/legacy
 
     # from the configured object store, once the bucket is populated
-    uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source store
+    uv run --frozen python scripts/prod/sync_public_media_hydrate.py \\
+        --database .tmp/local.sqlite3 --source store
 
     # last resort: the pinned upstream revisions, over the network
-    uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source github
+    uv run --frozen python scripts/prod/sync_public_media_hydrate.py \\
+        --database .tmp/local.sqlite3 --source github
 
 No AWS credential is required for the ``github`` or ``checkout`` sources.  Every object
 is verified against its record's ``provenance.checksum`` and a mismatching object is
@@ -44,11 +50,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.prod.target import configure_ambient_settings  # noqa: E402
+from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
 
 SYNC_MODEL = "git-synchronized"
-# Writes files (or object-store keys), never a database row -- there is no
-# database domain for this to bootstrap.
+# Reads the synced media rows and writes files, never a database row -- there
+# is no database domain for this to bootstrap, and an empty one is refused.
 BOOTSTRAPS_EMPTY_DATABASE = False
 
 #: Printed when no ``--source`` is named.  Guessing one is worse than refusing: the
@@ -70,6 +76,7 @@ NO_SOURCE_GUIDANCE = (
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
+    add_target_arguments(parser)
     parser.add_argument(
         "--source",
         choices=("github", "checkout", "store"),
@@ -103,12 +110,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.source is None:
         parser.error(NO_SOURCE_GUIDANCE)
-    configure_ambient_settings()
+    configure_target(parser, args, scratch_database_only=True)
 
     from content.media_store import media_store, media_store_config
     from content.media_tooling import (
         DEFAULT_DOWNLOAD_TIMEOUT_SECONDS,
         MediaToolingError,
+        NoSyncedMediaRecords,
         hydrate_media,
         parse_checkout_arguments,
     )
@@ -126,6 +134,9 @@ def main(argv: list[str] | None = None) -> int:
             timeout_seconds=args.timeout or DEFAULT_DOWNLOAD_TIMEOUT_SECONDS,
             force=args.force,
         )
+    except NoSyncedMediaRecords as refusal:
+        print(json.dumps({"error": refusal.code}, indent=2))
+        return 2
     except MediaToolingError as error:
         print(json.dumps({"error": str(error)}, indent=2))
         return 1

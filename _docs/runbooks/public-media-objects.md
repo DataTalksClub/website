@@ -86,17 +86,22 @@ the retired `DataTalksClub/datatalksclub.github.io`; that is now an explicit opt
 
 ```bash
 # fully offline, from local checkouts of the pinned upstream repositories
-uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source checkout \
+# Every command names the database whose synced media rows it acts on: --database
+# for a .tmp/ SQLite file, or --deployment-target with --allow-production-write.
+uv run --frozen python scripts/prod/sync_public_media_hydrate.py \
+  --database .tmp/local.sqlite3 --source checkout \
   --checkout DataTalksClub/content=/path/to/content \
   --checkout DataTalksClub/datatalksclub.github.io=/path/to/datatalksclub.github.io
 
 # from an already hydrated peer checkout or the configured object store
 PUBLIC_MEDIA_LOCAL_ROOT=/path/to/other/checkout/content/public_projection/media \
-  uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source store \
+  uv run --frozen python scripts/prod/sync_public_media_hydrate.py \
+  --database .tmp/local.sqlite3 --source store \
   --destination content/public_projection/media
 
 # last resort: the pinned upstream revisions over the network, legacy repository included
-uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source github
+uv run --frozen python scripts/prod/sync_public_media_hydrate.py \
+  --database .tmp/local.sqlite3 --source github
 ```
 
 Hydration is idempotent and resumable: an object already present with the recorded checksum is
@@ -160,20 +165,26 @@ eval "$(aws sts assume-role \
 PUBLIC_MEDIA_STORE_BACKEND=s3 \
 PUBLIC_MEDIA_S3_BUCKET=dtc-website-media \
 PUBLIC_MEDIA_S3_REGION=eu-west-1 \
-  uv run --frozen python scripts/prod/sync_public_media_publish.py --dry-run
+  uv run --frozen python scripts/prod/sync_public_media_publish.py <target> --dry-run
 
 # 3. Publish.
 PUBLIC_MEDIA_STORE_BACKEND=s3 \
 PUBLIC_MEDIA_S3_BUCKET=dtc-website-media \
 PUBLIC_MEDIA_S3_REGION=eu-west-1 \
-  uv run --frozen python scripts/prod/sync_public_media_publish.py
+  uv run --frozen python scripts/prod/sync_public_media_publish.py <target>
 
-# 4. Prove 1253/1253 checksums against the bucket.
+# 4. Prove every synced media record's checksum against the bucket.
 PUBLIC_MEDIA_STORE_BACKEND=s3 \
 PUBLIC_MEDIA_S3_BUCKET=dtc-website-media \
 PUBLIC_MEDIA_S3_REGION=eu-west-1 \
-  uv run --frozen python scripts/prod/sync_public_media_verify.py
+  uv run --frozen python scripts/prod/sync_public_media_verify.py <target>
 ```
+
+`<target>` is `--database .tmp/<file>.sqlite3` or
+`--deployment-target website-production --allow-production-write website-production`:
+the records are that database's synced media rows (`content.catalogue.media()`), the same
+ones the `/images/` route serves, and a database with none exits `2` with
+`no_synced_media_records`.
 
 Run these from a checkout whose `content/public_projection/media/` is hydrated — that tree is the
 publish source. `sync_public_media_verify.py` exits non-zero unless every one of the 1,253 records is
@@ -195,10 +206,10 @@ closed with a `502` for that one path rather than serving wrong bytes.
 PUBLIC_MEDIA_STORE_BACKEND=s3 \
 PUBLIC_MEDIA_S3_BUCKET=dtc-website-media \
 PUBLIC_MEDIA_S3_REGION=eu-west-1 \
-  uv run --frozen python scripts/prod/sync_public_media_verify.py
+  uv run --frozen python scripts/prod/sync_public_media_verify.py <target>
 ```
 
-`verify` compares the configured store against `media.json` and exits non-zero when any recorded
+`verify` compares the configured store against the synced media records and exits non-zero when any recorded
 object is missing, unreadable, or checksum mismatched, or when the store holds an object that has no
 record. It also works against a local root.
 

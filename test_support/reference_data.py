@@ -40,6 +40,7 @@ path for the full accounting.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -546,11 +547,23 @@ def load_synced_media() -> int:
     the legacy main site, everything else for the editorial repository.
     """
 
+    return add_synced_media(_synthetic_catalogue()["media"])
+
+
+def add_synced_media(records: Iterable[dict[str, Any]], *, published: bool = True) -> int:
+    """Write media records as the synced rows the two media parsers write.
+
+    A profile picture (``images/authors/``) is a ``dtc-main-site`` row and every
+    other key a ``dtc-content`` row -- the same split the parsers make.  Tests
+    that need a particular media inventory (a podcast cover, a new avatar, an
+    unpublished row) seed it through here rather than through a file.
+    """
+
     from content.models import SyncedDocument
 
     editorial_source, people_source = _sync_engine_sources()
     rows = []
-    for record in _synthetic_catalogue()["media"]:
+    for record in records:
         held = dict(record)
         is_people_picture = held["record_key"].startswith("images/authors/")
         provenance = held.get("provenance") or {}
@@ -566,6 +579,7 @@ def load_synced_media() -> int:
                 source_path=str(provenance.get("source_path") or held["record_key"]),
                 checksum=str(provenance.get("checksum") or "0" * 64),
                 record=held,
+                is_published=published,
             )
         )
     SyncedDocument.objects.bulk_create(rows)

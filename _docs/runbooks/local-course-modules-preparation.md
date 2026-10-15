@@ -115,25 +115,44 @@ unreviewed mapping decisions must be supplied through a separately approved oper
 
 ## One command: `scripts/production_data.py dataset`
 
-The steps above compose into a single rebuild, in three stages:
-
-1. `production_data.py` creates the dataset database and registers the course
-   repositories. This has to come first, because registered `ContentSource` rows are the only
-   place the answer to "which repositories exist" lives.
-2. The `content.py checkouts` stage clones or refreshes one checkout per registered source. It is
-   the only stage that touches the network.
-3. The `production_data.py local` stage builds the database offline from those checkouts and gates
-   the result.
+The steps above compose into a single rebuild: the rebuild gate, then
+`scripts/prepare_local_data.py`, then `scripts/verify_local_dataset.py` (the step table in
+`_docs/runbooks/data-ingest.md` §11). `prepare_local_data.py` is the single owner of the database:
+it creates and migrates it, registers the course repositories (registered `ContentSource` rows are
+the only place the answer to "which repositories exist" lives), imports the legacy Zoomcamp
+editions, refreshes one checkout per registered source through `scripts/content.py checkouts`
+(`--refresh-checkouts`, the networked part), pulls them, reconciles CMP, runs the one-time
+imports, seeds and syncs the five editorial sources from `editorial-sources/`, and runs the event
+stage.
 
 ```bash
 uv run --frozen python scripts/production_data.py dataset
 uv run --frozen python scripts/production_data.py run  # serves it on :8001
 ```
 
+**On a fresh root, `dataset` exits 1 at the media-store check** of `verify_local_dataset.py`. The
+rebuild syncs the media records but never hydrates the media objects, so every image is missing
+and `run` would serve broken images. This is expected, not a regression. Before `run`, hydrate the
+local store offline from the dataset's own editorial checkouts, then re-run the gate, which should
+exit 0:
+
+```bash
+uv run --frozen python scripts/prod/sync_public_media_hydrate.py \
+    --database <root>/dataset.sqlite3 --source checkout \
+    --checkout DataTalksClub/content=<root>/editorial-sources/dtc-content \
+    --checkout DataTalksClub/datatalksclub.github.io=<root>/editorial-sources/dtc-main-site
+uv run --frozen python scripts/production_data.py verify --database <root>/dataset.sqlite3
+```
+
+`<root>` is `PRODUCTION_PREP_DATASET_ROOT` (default `.tmp/production-prep-dataset`). Both commands
+use the store `PUBLIC_MEDIA_LOCAL_ROOT` names (default `content/public_projection/media`), so give
+them, and `run`, the same value.
+
 Artifacts land under `.tmp/production-prep-dataset/`: `course-sources/` (one checkout per
-registered source) and `dataset.sqlite3` (the database). Neither is committed. The build always
-starts from an empty database -- stage 1 refuses to run against one that already exists -- so it
-is a rebuild rather than an update; re-run it whenever a source moves.
+registered source), `editorial-sources/` (one checkout per editorial content source) and
+`dataset.sqlite3` (the database). None is committed. The rebuild gate removes the old database
+first, so it is a rebuild rather than an update, and `PRODUCTION_PREP_FRESH=1` additionally refuses
+to continue if one is still there; re-run it whenever a source moves.
 
 Useful overrides: `PRODUCTION_PREP_DATASET_DATABASE` (build somewhere else, still under `.tmp/`),
 `CONTENT_GIT_HOST` (where the repositories are cloned from; the owner comes from the registered
@@ -152,8 +171,13 @@ source), `PRODUCTION_PREP_DATASET_PORT`, and `PRODUCTION_PREP_DATASET_REGISTRATI
   so no repository identity is written in a command wrapper. The 2026 module curricula are published
   upstream now, so a clean clone satisfies `--require-public-commit` on its own; a checkout that
   has run ahead of its remote will be refused by name until it is pushed.
+- **The legacy Zoomcamp history.** `LEGACY_ZOOMCAMP_SOURCE` defaults to `~/git/zoomcamp-scoring`;
+  set it empty to skip the pre-2024 editions, and a path that is not a checkout is refused.
+- **The editorial content repositories.** Cloned from `CONTENT_GIT_HOST` like the course
+  repositories, at each remote's default branch. (`dtc-faq` and `dtc-docs` track `.claude/skills`
+  symlinks, which the pinned community-base skips since v0.5.29, #462.)
 - **The protected CMP snapshot.** `PRODUCTION_PREP_CMP_SOURCE` defaults to
-  `$(HOME)/git/course-management-platform/db/db.sqlite3`. The `production_data.py local` stage copies that
+  `$(HOME)/git/course-management-platform/db/db.sqlite3`. `prepare_local_data.py` copies that
   file and runs the sanitizing importer before the catalogue seed and the course pull, so
   homework questions and project copy come from CMP rather than the placeholder seed. Learner
   tables stay empty. `scripts/build_local_review_db.py` remains the standalone review-database path.

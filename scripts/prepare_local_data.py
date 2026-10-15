@@ -4,16 +4,19 @@
 This command composes the existing local-only preparation seams.  It writes only to an
 explicit SQLite database below ``.tmp/`` and never connects to a deployed database.
 
-The public event pipeline is `scripts/prod/import_events.py`'s own `run()`:
-reviewed identities, reviewed content, new-event discovery, and staged
-descriptions. The attendee exports are then ingested directly into current
-registration rows by the same readers as `import_event_registrants.py`. The
-course catalog is imported first and the reviewed editorial
-inputs (and the project-gallery repository enrichment with its structured
-course records, both staged under `~/prod/dtc-data/content-staging/`) after
-it, which is the bootstrap order in
-`_docs/runbooks/data-ingest.md` §11; the event stage is §11 step 5 and runs
-last, through the same functions the production entry points call.
+It is the single owner of every step of the bootstrap order in
+``_docs/runbooks/data-ingest.md`` §11, in the order :data:`STEP_ORDER` declares:
+``migrate``, course-source registration, the legacy Zoomcamp import (when
+``--legacy-zoomcamp-source`` is given), the course-repository pull, the CMP content
+reconcile (``COURSE_CATALOGUE_ORDER``), the reviewed one-time imports, the editorial
+stage (``seed_content_sources`` plus one ``sync_content`` per declared editorial
+source, when ``--editorial-checkout-root`` is given), and last the event stage --
+``scripts/prod/import_events.py``'s own ``run()`` followed by the attendee exports.
+
+It is offline by default: it reads the checkouts it is given.  ``--refresh-checkouts``
+opts in to refreshing the disposable course and editorial checkouts through
+``scripts/content.py checkouts`` / ``editorial-checkouts`` (and so through
+``scripts/checkout_refresh.py``) once the rows they are planned from exist.
 """
 
 from __future__ import annotations
@@ -73,6 +76,28 @@ GALLERY_STRUCTURED_PATH = (
     Path.home() / "prod/dtc-data/content-staging/project_gallery_structured.jsonl"
 )
 TOUR_TESTIMONIALS_PATH = Path.home() / "prod/dtc-data/content-staging/tour_testimonials.json"
+#: Where the legacy importer looks for course-repository checkouts to enrich homework
+#: write-ups from -- the standalone script's own default.
+LEGACY_COURSE_REPOS_DIR = Path.home() / "git"
+UV = ("uv", "run", "--frozen", "python")
+
+#: The rehearsal's steps, in the order ``run()`` performs them.  The runbook's step
+#: table (``_docs/runbooks/data-ingest.md`` §11) shows this sequence verbatim, and
+#: ``scripts/tests/test_production_data.py`` holds both to it.
+STEP_ORDER = (
+    "migrate",
+    "course_catalog",
+    "course_repository_sources",
+    "legacy_zoomcamp",
+    "course_repository_checkouts",
+    "course_modules",
+    "cmp_content",
+    "one_time_imports",
+    "editorial_seed",
+    "editorial_checkouts",
+    "editorial_sync",
+    "events",
+)
 
 
 class LocalPreparationError(RuntimeError):
@@ -164,10 +189,9 @@ def _import_sponsor_and_testimonial_content() -> dict[str, Any]:
     podcasts, books, people, wiki, docs and FAQ all read
     ``content.models.SyncedDocument`` rows now, written by the live
     ``community_base.content_sync`` engine (``manage.py sync_content`` against a real
-    checkout, or its webhook), which this offline rehearsal has no checkout to run
-    against.  A rehearsal database therefore has an empty editorial catalogue by
-    design; see the open decision point in the runbook's step 4 for what, if
-    anything, should change that.
+    checkout, or its webhook).  The rehearsal runs that engine itself in its
+    editorial stage (``_run_editorial_stage``) when it is given
+    ``--editorial-checkout-root``, and reports the stage as skipped otherwise.
 
     Sponsors and testimonials are unaffected: they still write ``core.Sponsor`` and
     ``courses.Testimonial`` from their own reviewed one-time inputs, key each row on
@@ -203,6 +227,123 @@ def _import_sponsor_and_testimonial_content() -> dict[str, Any]:
     return reports
 
 
+def _refresh_checkouts(command: str, *, database: Path, checkout_root: Path) -> None:
+    """Refresh disposable checkouts through ``scripts/content.py`` (opt-in, networked)."""
+
+    try:
+        subprocess.run(
+            (
+                *UV,
+                "scripts/content.py",
+                command,
+                "--database",
+                str(database),
+                "--checkout-root",
+                str(checkout_root),
+            ),
+            cwd=PROJECT_ROOT,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise LocalPreparationError(f"{command.replace('-', '_')}_failed") from error
+
+
+def _import_legacy_zoomcamp(source: Path | None) -> dict[str, Any]:
+    """``COURSE_CATALOGUE_ORDER``'s first leg: the frozen pre-2024 editions."""
+
+    if source is None:
+        return {"imported": False, "skipped": "source_not_supplied"}
+    if not source.is_dir():
+        raise LocalPreparationError("legacy_zoomcamp_source_unavailable")
+    from scripts.prod.import_legacy_zoomcamp import LegacyZoomcampImportError
+    from scripts.prod.import_legacy_zoomcamp import run as import_legacy_zoomcamp
+
+    try:
+        report = import_legacy_zoomcamp(
+            source_repo=source, course_repos_dir=LEGACY_COURSE_REPOS_DIR
+        )
+    except LegacyZoomcampImportError as error:
+        raise LocalPreparationError(f"legacy_zoomcamp_{error}") from error
+    return {"imported": True, **report}
+
+
+def _seed_editorial_sources() -> list[str]:
+    """``manage.py seed_content_sources``: one engine row per declared source."""
+
+    from django.core.management import call_command
+
+    output = io.StringIO()
+    try:
+        call_command("seed_content_sources", stdout=output, stderr=output)
+    except Exception as error:
+        raise LocalPreparationError("seed_content_sources_failed") from error
+    return [line.strip() for line in output.getvalue().splitlines() if line.strip()]
+
+
+def _sync_editorial_source(slug: str, checkout: Path) -> dict[str, Any]:
+    """``manage.py sync_content --source <slug> --from-disk <checkout>``.
+
+    Anything short of a ``success`` sync log fails the rehearsal, naming the slug:
+    a ``partial`` sync leaves some kinds stale, and a ``skipped`` one wrote nothing.
+    """
+
+    from community_base.content_sync.models import SyncLog, SyncStatus
+    from django.core.management import call_command
+
+    if not checkout.is_dir():
+        raise LocalPreparationError(f"editorial_checkout_unavailable_{slug}")
+    output = io.StringIO()
+    try:
+        call_command(
+            "sync_content",
+            source_slug=slug,
+            from_disk=str(checkout),
+            stdout=output,
+            stderr=output,
+        )
+    except Exception as error:
+        raise LocalPreparationError(f"editorial_sync_failed_{slug}") from error
+    log = SyncLog.objects.filter(source__slug=slug).order_by("-started_at").first()
+    if log is None or log.status != SyncStatus.SUCCESS:
+        raise LocalPreparationError(f"editorial_sync_failed_{slug}")
+    return {
+        "status": log.status,
+        "commit": log.commit_sha,
+        "created": log.items_created,
+        "updated": log.items_updated,
+        "unchanged": log.items_unchanged,
+        "deleted": log.items_deleted,
+    }
+
+
+def _run_editorial_stage(
+    *, database: Path, checkout_root: Path | None, refresh_checkouts: bool
+) -> dict[str, Any]:
+    """Seed the declared editorial sources and sync each from its checkout.
+
+    The live ``community_base.content_sync`` engine is the only way articles,
+    podcasts, books, people, media, wiki, docs and FAQ arrive, so a rebuild runs it.
+    Without a checkout root the stage is skipped explicitly -- and
+    ``verify_local_dataset.py``'s editorial gate then fails, because such a dataset
+    is incomplete.
+    """
+
+    if checkout_root is None:
+        return {"skipped": "checkout_root_not_supplied"}
+    from scripts.content import EditorialPlanError, declared_editorial_slugs
+
+    seeded = _seed_editorial_sources()
+    if refresh_checkouts:
+        checkout_root.mkdir(parents=True, exist_ok=True)
+        _refresh_checkouts("editorial-checkouts", database=database, checkout_root=checkout_root)
+    try:
+        slugs = declared_editorial_slugs()
+    except EditorialPlanError as error:
+        raise LocalPreparationError(str(error)) from error
+    sources = {slug: _sync_editorial_source(slug, checkout_root / slug) for slug in slugs}
+    return {"seeded": seeded, "sources": sources}
+
+
 def run(
     *,
     database: Path,
@@ -215,6 +356,9 @@ def run(
     gallery_enrichment_source: Path = GALLERY_ENRICHMENT_PATH,
     gallery_structured_source: Path = GALLERY_STRUCTURED_PATH,
     cmp_source_db: Path | None = None,
+    legacy_zoomcamp_source: Path | None = None,
+    editorial_checkout_root: Path | None = None,
+    refresh_checkouts: bool = False,
     fresh: bool,
 ) -> dict[str, Any]:
     if fresh and any(
@@ -251,6 +395,12 @@ def run(
         course_sources = sync_course_repository_sources()
     except SyncCourseRepositorySourcesError as error:
         raise LocalPreparationError(f"sync_course_repository_sources_{error}") from error
+    # COURSE_CATALOGUE_ORDER: the frozen pre-2024 editions first, then the
+    # repositories, then CMP.  The legacy import bootstraps from an empty catalogue.
+    legacy_zoomcamp = _import_legacy_zoomcamp(legacy_zoomcamp_source)
+    if refresh_checkouts:
+        # Planned from the source rows registered just above.
+        _refresh_checkouts("checkouts", database=database, checkout_root=course_checkout_root)
     # Production order: the course repositories are pulled *first*, then CMP is
     # reconciled against what they wrote.  The reverse order happened to work only
     # while CMP had no cohort that a repository also owns; the first time both
@@ -299,8 +449,7 @@ def run(
     # Step 4, after the catalogue and before the event stage: sponsors and
     # testimonials, from the production importers rather than a seeder. The
     # editorial catalogue itself (articles/podcasts/books/people/wiki/docs/FAQ)
-    # is not seeded here -- it requires a live `manage.py sync_content` run
-    # against a real checkout, which this offline rehearsal does not attempt.
+    # arrives through the editorial stage below.
     editorial_content = _import_sponsor_and_testimonial_content()
     # Step 4 alongside the other reviewed one-time staging inputs: the
     # project-gallery repository enrichment (issue #416), with its structured
@@ -320,6 +469,12 @@ def run(
         )
     except ProjectRepoEnrichmentImportFailure as error:
         raise LocalPreparationError(f"project_repo_enrichment_{error}") from error
+    # Step 4, last: the live editorial sync, from one checkout per declared source.
+    editorial = _run_editorial_stage(
+        database=database,
+        checkout_root=editorial_checkout_root,
+        refresh_checkouts=refresh_checkouts,
+    )
     # Step 5: import current Event identities and content, then populate current
     # attendee rows from both provider exports.
     with _event_import_refusals():
@@ -367,9 +522,11 @@ def run(
         migrations=migrations,
         catalog=catalog,
         course_sources=course_sources,
+        legacy_zoomcamp=legacy_zoomcamp,
         modules=modules,
         cmp_content=cmp_content,
         editorial_content=editorial_content,
+        editorial=editorial,
         event_pipeline=event_pipeline,
         registrations=registrations,
         project_repo_enrichment=project_repo_enrichment,
@@ -386,6 +543,8 @@ def _orchestrator_report(
     cmp_content: dict[str, Any],
     editorial_content: dict[str, Any],
     event_pipeline: dict[str, Any],
+    legacy_zoomcamp: dict[str, Any] | None = None,
+    editorial: dict[str, Any] | None = None,
     registrations: dict[str, Any],
     project_repo_enrichment: dict[str, Any],
 ) -> dict[str, Any]:
@@ -404,9 +563,12 @@ def _orchestrator_report(
             "migrations": {"completed": True, "report": migrations},
             "course_catalog": catalog,
             "course_repository_sources": course_sources,
+            "legacy_zoomcamp": legacy_zoomcamp
+            or {"imported": False, "skipped": "source_not_supplied"},
             "course_modules": modules,
             "cmp_content": cmp_content,
             "editorial_content": editorial_content,
+            "editorial": editorial or {"skipped": "checkout_root_not_supplied"},
         },
         "event_identities": event_pipeline["identities"],
         "new_event_identities": event_pipeline["new_event_identities"],
@@ -465,6 +627,35 @@ def _parser() -> argparse.ArgumentParser:
         help="Refuse to run if the selected SQLite database or its WAL files already exist.",
     )
     parser.add_argument(
+        "--legacy-zoomcamp-source",
+        type=Path,
+        default=None,
+        help=(
+            "Local clone of DataTalksClub/zoomcamp-scoring. When given, the pre-2024 "
+            "editions are imported after course-source registration and before the "
+            "course-repository pull (COURSE_CATALOGUE_ORDER)."
+        ),
+    )
+    parser.add_argument(
+        "--editorial-checkout-root",
+        type=Path,
+        default=None,
+        help=(
+            "Directory holding one checkout per declared editorial source, named after "
+            "its slug (`scripts/content.py editorial-checkouts` produces it). When "
+            "given, seed_content_sources and one sync_content per source run; without "
+            "it the editorial stage is reported as skipped."
+        ),
+    )
+    parser.add_argument(
+        "--refresh-checkouts",
+        action="store_true",
+        help=(
+            "Refresh the disposable course and editorial checkouts (network) once the "
+            "rows they are planned from exist. Off by default: the rehearsal is offline."
+        ),
+    )
+    parser.add_argument(
         "--cmp-source-db",
         type=Path,
         default=None,
@@ -495,6 +686,17 @@ def main(argv: list[str] | None = None) -> int:
             cmp_source_db=(
                 Path(args.cmp_source_db).resolve() if args.cmp_source_db is not None else None
             ),
+            legacy_zoomcamp_source=(
+                Path(args.legacy_zoomcamp_source).expanduser().resolve()
+                if args.legacy_zoomcamp_source is not None
+                else None
+            ),
+            editorial_checkout_root=(
+                Path(args.editorial_checkout_root).resolve()
+                if args.editorial_checkout_root is not None
+                else None
+            ),
+            refresh_checkouts=args.refresh_checkouts,
             fresh=args.fresh,
         )
     except LocalPreparationError as error:

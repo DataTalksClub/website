@@ -26,6 +26,10 @@ tab-separated plan lines the checkout-plan command prints (``stable``,
 * clones anything else fresh, so a checkout this tooling owns is always
   distinguishable from one it must never touch.
 
+A plan line whose branch is ``HEAD`` (the editorial plan's) follows the remote's
+default branch: the clone takes no ``--branch``, and a refresh fetches the
+remote ``HEAD``.
+
 Every refusal is a bounded condition code -- never a reflected path or URL.
 """
 
@@ -44,6 +48,8 @@ SCRATCH_ROOT = PROJECT_ROOT / ".tmp"
 #: it never appears in ``git status`` output, so it cannot make an otherwise
 #: clean checkout read as dirty, and it never leaves the local clone.
 OWNERSHIP_MARKER = "dtc-disposable-checkout"
+#: The branch value that means "the remote's default branch".
+DEFAULT_BRANCH = "HEAD"
 
 
 class CheckoutRefused(RuntimeError):
@@ -94,20 +100,21 @@ def refresh_one(*, host: str, repository: str, branch: str, checkout: Path) -> s
         if _git(resolved, "status", "--porcelain", "--ignored"):
             _refuse("dirty-checkout")
         _git(resolved, "fetch", "--quiet", "origin", branch)
-        _git(resolved, "checkout", "--quiet", branch)
+        if branch != DEFAULT_BRANCH:
+            _git(resolved, "checkout", "--quiet", branch)
         _git(resolved, "reset", "--hard", "--quiet", "FETCH_HEAD")
         _git(resolved, "clean", "--quiet", "-fdx")
     else:
         if resolved.exists() and any(resolved.iterdir()):
             _refuse("not-a-checkout")
         resolved.parent.mkdir(parents=True, exist_ok=True)
+        branch_arguments = [] if branch == DEFAULT_BRANCH else ["--branch", branch]
         completed = subprocess.run(
             [
                 "git",
                 "clone",
                 "--quiet",
-                "--branch",
-                branch,
+                *branch_arguments,
                 f"{host.rstrip('/')}/{repository}",
                 str(resolved),
             ],

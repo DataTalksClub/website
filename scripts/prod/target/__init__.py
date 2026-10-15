@@ -92,6 +92,8 @@ from core.bootstrap import RuntimeEnvironment
 #: The settings module a local run falls back to, exactly as ``manage.py`` does.
 LOCAL_SETTINGS_MODULE = "website.settings.local"
 LOCAL_TARGET_NAME = "local"
+#: The project-local scratch root a rehearsal-only ``--database`` must stay below.
+SCRATCH_ROOT = Path(__file__).resolve().parents[3] / ".tmp"
 
 #: Environments whose database holds real member data.
 DEPLOYED_ENVIRONMENTS = frozenset({RuntimeEnvironment.DEVELOPMENT, RuntimeEnvironment.PRODUCTION})
@@ -246,19 +248,46 @@ def resolve_target(
     )
 
 
+def require_scratch_database(args: argparse.Namespace) -> None:
+    """Refuse a ``--database`` that resolves outside the project-local ``.tmp/``.
+
+    For an entry point whose local database is only ever a rehearsal copy, a path
+    anywhere else is a mistake -- most plausibly a developer's working database.
+    A ``--deployment-target`` run is unaffected.
+    """
+
+    database = getattr(args, "database", None)
+    if database is None:
+        return
+    path = Path(database)
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    try:
+        path.resolve().relative_to(SCRATCH_ROOT.resolve())
+    except ValueError:
+        raise TargetRefused(
+            "--database must name a SQLite file below the project-local .tmp/ directory"
+        ) from None
+
+
 def configure_target(
     parser: argparse.ArgumentParser,
     args: argparse.Namespace,
     environ: MutableMapping[str, str] | None = None,
+    *,
+    scratch_database_only: bool = False,
 ) -> WriteTarget:
     """Select the target, export its environment and start Django.
 
     A refusal is reported through ``parser.error``: usage, one line naming the unmet
     condition, exit status 2, and no traceback for an operator to read past.
+    ``scratch_database_only`` additionally refuses a ``--database`` outside ``.tmp/``.
     """
 
     values = os.environ if environ is None else environ
     try:
+        if scratch_database_only:
+            require_scratch_database(args)
         target = resolve_target(args, values)
     except TargetRefused as refusal:
         parser.error(str(refusal))
@@ -270,32 +299,17 @@ def configure_target(
     return target
 
 
-def configure_ambient_settings() -> None:
-    """Start Django for an entry point that has no database of its own.
-
-    These read and write an object store, never the ORM, so they respect whatever
-    ``DJANGO_SETTINGS_MODULE`` is already set -- production included, since a deployed
-    publish or verify needs real settings -- and fall back to local exactly as
-    ``manage.py`` does.
-    """
-
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", LOCAL_SETTINGS_MODULE)
-
-    import django
-
-    django.setup()
-
-
 __all__ = [
     "DEPLOYED_ENVIRONMENTS",
     "DEPLOYED_SETTINGS_MODULES",
     "LOCAL_SETTINGS_MODULE",
     "LOCAL_TARGET_NAME",
     "REQUIRED_DEPLOYED_ENVIRONMENT",
+    "SCRATCH_ROOT",
     "TargetRefused",
     "WriteTarget",
     "add_target_arguments",
-    "configure_ambient_settings",
     "configure_target",
+    "require_scratch_database",
     "resolve_target",
 ]
