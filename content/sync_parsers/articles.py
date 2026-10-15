@@ -3,8 +3,8 @@
 The record rules are the projection builder's preferred-mode article rules
 (``_main_records``), applied per file; the frozen corpus-wide inventory
 assertions are deliberately not carried, so the parser follows the repository
-across commits instead of pinning one checked count.  The staged adapter and
-its ``verify_dtc_content`` contract remain the pinned-corpus gate.
+across commits instead of pinning one checked count.  (The staged adapter and
+its ``verify_dtc_content`` pinned-corpus gate were deleted in ``1cd976a4``.)
 """
 
 import re

@@ -659,29 +659,18 @@ are separate repositories with their own entries (14, 12, 13) even though
 8.2's build script happens to read all of them in one run; if you came here
 looking for how wiki/FAQ/docs are ingested, that's the wrong section.
 
-Two entirely separate journeys exist for this one repository: the one-time import
-that fills the database the site reads (8.2), and the continuous push-sync that
-would keep it current (8.1) and is still wired to nothing.
+This repository is synchronised live by `community_base.content_sync` (8.2). The
+staged push-sync (8.1) and the drift check (8.3) that used to sit beside it are
+historical: both were deleted in `1cd976a4`.
 
-## 8.1 Continuous push-sync — built, not wired
+## 8.1 Continuous staged push-sync — removed
 
-[`scripts/prod/sync_content.py`](../../scripts/prod/sync_content.py) (+
-[`content_sync/dtc_content/`](../../content_sync/dtc_content))
-
-Source: `DataTalksClub/content` on GitHub.
-Transform: parity-diffed per route against the checked projection
-([`content_sync/dtc_content/parity.py`](../../content_sync/dtc_content/parity.py))
-before any cutover.
-Destination: [`content/models.py`](../../content/models.py) (`ContentSource`,
-`ContentRelease`, `ContentDocument`, `ContentRelation`, `ContentAsset`).
-
-Notes: pages read `ContentDocument` now, so that docstring's "a release activated
-here changes nothing a visitor sees" no longer holds — a release this path
-activates would change the live catalogue. What keeps it inert is that nothing
-calls it: `prepare_dtc_content_candidate` is referenced only from
-`content_sync/dtc_content/__init__.py`'s `__all__` and from tests, and no command,
-view, webhook or job invokes it. A push to `DataTalksClub/content` still changes
-nothing here. Deferred past launch by design.
+*Historical:* `scripts/prod/sync_content.py` and `content_sync/dtc_content/` (adapter,
+contract, parity, preparation, repository) parity-diffed a `DataTalksClub/content`
+revision against the checked projection and would have written a `ContentRelease`.
+Nothing ever invoked `prepare_dtc_content_candidate`, and once the catalogue read
+`SyncedDocument` exclusively the whole path was dead; it was deleted in `1cd976a4`.
+The current owner is the live sync in 8.2.
 
 ## 8.2 One-time import — removed; the editorial catalogue now syncs live
 
@@ -702,52 +691,22 @@ orchestration are gone. `scripts/prod/public_projection_source.py` and
 `scripts/repin_projection_digests.py` are gone as well: nothing but their own
 tests called them.
 
-## 8.3 Drift check — reports, never writes
+## 8.3 Drift check — removed
 
-[`scripts/prod/sync_content_verify.py`](../../scripts/prod/sync_content_verify.py)
-(`uv run --frozen python scripts/content.py drift`), fed by
-`uv run --frozen python scripts/content.py checkout`
+*Historical:* `scripts/prod/sync_content_verify.py`, run as the singular
+`scripts/content.py drift` over a checkout refreshed by `scripts/content.py checkout`,
+compared the served `ContentRelease` catalogue with a `DataTalksClub/content`
+checkout and wrote nothing. The verifier was deleted with the staged pipeline in
+`1cd976a4`, and issue #427 removed both wrappers, so neither command exists. The
+plural `scripts/content.py checkouts` (1.2) is unrelated: it covers course
+repositories only.
 
-Two targets, because only one of them touches the network.
-
-**`scripts/content.py checkout`** — Source: GitHub, live network. Transform: clones a
-fresh checkout of `DataTalksClub/content` or fast-forwards an existing one to the
-registered branch, and prints the HEAD it landed on. Destination: a local git
-checkout at `$(CONTENT_CHECKOUT)` (default `.tmp/content-checkout`), on disk only.
-It exists because `scripts/content.py checkouts` (1.2) does **not** cover this
-repository: that target selects only sources whose `adapter_type` is
-`course_repository_v1`, and the editorial source is not one.
-
-**`scripts/content.py drift`** — Source: the served catalogue in the database plus that
-checkout's own object database, at a revision resolved locally (default the
-checkout's `refs/remotes/origin/<branch>`; override with
-`CONTENT_DRIFT_REVISION`). Transform: a set-diff plus a digest compare per family
-— `articles`, `podcasts`, `podcast_transcripts`, `books`, `media` — keyed on
-`provenance.source_key` (`provenance.source_path` for media) and digested against
-`provenance.checksum`, which is the raw SHA-256 of the upstream file bytes. It
-also reports whether the revision the served records were built from is still
-reachable from the remote-tracking branch, and by how many commits it is behind.
-Destination: **none.** No `INSERT`/`UPDATE`/`DELETE`, no service call, no release
-transition, and none of `last_reconciled_at` / `pending_follow_up` /
-`last_successful_commit`. One JSON report on stdout; exit `0` clean, `1` drift,
-`2` refusal, so "we are behind" is distinguishable from "I could not look".
-
-Which repository is compared is a database question — the enabled `ContentSource`
-whose repository is `DataTalksClub/content` — never a name in a command wrapper;
-`--checkout-plan` prints that selection and is what `scripts/content.py checkout`
-consumes.
-
-Media is deliberately asymmetric: the served media set is the *referenced* subset
-by construction, so upstream images nothing points at are reported in their own
-`upstream_unreferenced` bucket, counted and listed but not part of the exit code.
-
-**Known finding — the served catalogue names a revision upstream does not have.**
-`scripts/build_public_projection.py`'s `PREFERRED_CONTENT_REVISION` is not on
-`DataTalksClub/content`, and every content-owned served record carries it, so the
-first real run reports `revision_status.state = "unreachable"` and exits 1.
-Repairing that is
-[issue #326](https://github.com/DataTalksClub/website/issues/326); this check only
-reports it. No CI gate or scheduled job is wired for the same reason.
+For the live rows, run the sync itself:
+`uv run --frozen python manage.py sync_content --source dtc-content --from-disk <checkout>`.
+Each parser deletes only its own source's rows of its own kind, an unchanged file is
+reported `unchanged`, and a refused file leaves that kind's rows and the source's
+`last_synced_commit` untouched (`content/tests/test_sync_parsers.py`,
+`SyncOrchestrationBoundaryTests`). There is no out-of-band drift report.
 
 ---
 

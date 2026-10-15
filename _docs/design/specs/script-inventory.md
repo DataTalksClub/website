@@ -165,7 +165,7 @@ noted.
 | `process_datamailer_outbox` | data | Live | `courses/tests/test_datamailer_outbox_memberships.py:62` |
 | `scripts/prod/sync_public_media_hydrate.py` / `sync_public_media_publish.py` / `sync_public_media_verify.py` (was `public_media_hydrate` / `public_media_publish` / `public_media_verify`) | content | Live (runbook) | `_docs/runbooks/public-media-objects.md:105,111,117` |
 | `register_course_repository` | content_sync | Test-only | `content_sync/tests/test_course_repository_registration.py:11` |
-| `verify_dtc_content` | content_sync | Live (CI gate) | `scripts/ci.py` |
+| `verify_dtc_content` | content_sync | **Retired** | Deleted with the staged `DataTalksClub/content` pipeline in `1cd976a4`; the dangling `scripts/ci.py verify-dtc-content` task was removed in #427 |
 | `compatibility_gate` | core | Live (CI gate) | `scripts/ci.py` |
 | `sync_studio_roles` | core | Test-only | `accounts/tests/test_studio_foundation.py:68` |
 | `import_event_identities` | events | **Retired** | Redundant with `scripts/prod/import_events.py`'s `import_identities()`, which calls the same `scripts.prod.identity_manifest.import_identity_manifest`. `scripts/prepare_local_data.py` now calls that function directly; the command and its `import_event_identity_manifest` alias are deleted |

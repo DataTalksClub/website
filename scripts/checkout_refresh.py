@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """Checked clone/refresh for the disposable content checkouts.
 
-The ``scripts/content.py checkouts`` and ``checkout`` commands used to inline the
-same two destructive loops: any directory with a ``.git`` subdirectory was
-reset with ``git reset --hard FETCH_HEAD`` and scrubbed with
+The ``scripts/content.py checkouts`` command (and a since-retired editorial
+``checkout`` command) used to inline the same two destructive loops: any
+directory with a ``.git`` subdirectory was reset with
+``git reset --hard FETCH_HEAD`` and scrubbed with
 ``git clean -fdx``, with no check of which repository it belonged to, whose
 changes it held, or whether it was a linked worktree (audit REL-10).
 Overriding the checkout variable at an editable repository was enough for a
 refresh to erase tracked edits and every untracked and ignored file.
 
-This helper is the one clone/refresh boundary for both targets.  It reads the
-same tab-separated plan lines the checkout-plan commands print (``stable``,
+This helper is the one clone/refresh boundary for checkouts.  It reads the
+tab-separated plan lines the checkout-plan command prints (``stable``,
 ``repository``, ``branch``, ``checkout``) and, per checkout:
 
 * refuses any path that resolves outside the project's ``.tmp/`` scratch root

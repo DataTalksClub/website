@@ -259,7 +259,6 @@ TASKS: Final = {
     "security-check",
     "security-artifact-scan",
     "database-portability-check",
-    "verify-dtc-content",
     "terraform-seo-source-check",
     "test-core",
     "check-openapi",
@@ -516,19 +515,6 @@ def _run_quality_task(task: str) -> None:
             shutil.rmtree(static_root, ignore_errors=True)
     elif task == "test-ci":
         _run_test_task("test-ci")
-    elif task == "verify-dtc-content":
-        values = _required_environment("CONTENT_CHECKOUT", "CONTENT_COMMIT")
-        _run(
-            _python(
-                "manage.py",
-                "verify_dtc_content",
-                "--checkout",
-                values["CONTENT_CHECKOUT"],
-                "--expected-commit",
-                values["CONTENT_COMMIT"],
-            ),
-            environment=_test_environment(),
-        )
     elif task == "terraform-seo-source-check":
         values = _required_environment(
             "AWS_INFRA_REPOSITORY", "AWS_INFRA_REVISION", "AWS_INFRA_EXPECTED_COMMIT"
