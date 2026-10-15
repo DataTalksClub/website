@@ -1,16 +1,18 @@
-"""Pluggable read-through store for the public projection media objects.
+"""Pluggable read-through store for the public site media objects.
 
-The 1,253 projection images are no longer carried in the git working tree.  Every
-public ``/images/...`` request resolves its record from ``media.json`` first and then
-reads the object through one of three interchangeable backends:
+The site images are not carried in the git working tree.  Every public
+``/images/...`` request resolves its record from the database -- the
+``SyncedDocument(content_kind="media")`` rows ``content.catalogue.media()`` reads --
+and then reads the object through one of three interchangeable backends:
 
 ``local``
-    a filesystem directory (the historic ``content/public_projection/media`` tree),
-    used by developers and testers so the rendered pages show real artwork;
+    a filesystem directory -- ``PUBLIC_MEDIA_LOCAL_ROOT``, which
+    ``scripts/prod/sync_public_media_hydrate.py`` fills -- used by developers and
+    testers so the rendered pages show real artwork;
 ``memory``
-    a deterministic, offline fixture derived from ``media.json`` that serves a minimal
-    valid image per record.  It needs no hydrated tree, no network, and no credentials,
-    and it refuses to activate under production settings;
+    a deterministic, offline fixture derived from the synced media records that
+    serves a minimal valid image per record.  It needs no hydrated tree, no network,
+    and no credentials, and it refuses to activate under production settings;
 ``s3``
     the object store that owns the published release assets.
 
@@ -30,7 +32,6 @@ from __future__ import annotations
 import base64
 import binascii
 import hashlib
-import json
 import zlib
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
@@ -43,22 +44,6 @@ from django.core.exceptions import ImproperlyConfigured
 
 from core.runtime_config import get_int_setting, get_str_setting
 
-#: Where an operator hydrates the local object store. Nothing is checked in
-#: here; ``scripts/prod/sync_public_media_hydrate.py`` fills it, and the default
-#: is overridable through ``PUBLIC_MEDIA_LOCAL_ROOT``.
-PROJECTION_ROOT = Path(__file__).with_name("public_projection")
-#: The reviewed projection tree, ingest input kept outside this repository at
-#: ``~/prod/dtc-data/content-staging/`` (moved out of ``temporary/content/`` --
-#: see ``_docs/architecture/database-only-content.md``). Only the operator
-#: tooling reads it, to learn which objects should exist; the public /images/
-#: route resolves its records from the database and its bytes from the
-#: configured store. Nothing in the ordinary test suite reads this path directly
-#: any more -- ``content/tests/test_public_media_store.py``'s ``MemoryMediaStoreTests``
-#: carries its own small synthetic record set instead of this real one.
-REVIEWED_PROJECTION_ROOT = (
-    Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
-)
-MEDIA_RECORDS_FILENAME = "media.json"
 #: Every projection media record key is path-mirrored below this segment, which is also
 #: the public URL prefix.  The historic on-disk tree drops it, because the local root is
 #: itself named ``media``.
@@ -195,33 +180,20 @@ def _sha256_hex(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-@lru_cache(maxsize=1)
 def media_records() -> tuple[dict[str, Any], ...]:
-    """Return the checked media records without loading the whole public projection.
+    """Return the media records the ``/images/`` route serves.
 
-    The operator tooling and the offline fixture store both need the record set in
-    contexts where the database-adapted projection is unavailable or unnecessary.  The
-    artifact digest recorded in ``manifest.json`` is verified first so the tooling can
-    never act on an edited ``media.json``.
+    One inventory, not two: this is ``content.catalogue.media()`` -- the published
+    ``SyncedDocument`` media rows of ``dtc-content`` and ``dtc-main-site`` that
+    ``manage.py sync_content`` writes -- so the operator tooling hydrates, publishes
+    and verifies exactly what a public request can resolve.  There is no file
+    fallback: a database with no synced media returns an empty tuple, and the
+    tooling refuses on it rather than reporting a vacuous success.
     """
 
-    manifest_path = REVIEWED_PROJECTION_ROOT / "manifest.json"
-    records_path = REVIEWED_PROJECTION_ROOT / MEDIA_RECORDS_FILENAME
-    try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        payload = records_path.read_bytes()
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ImproperlyConfigured("Public projection media records cannot be read.") from exc
-    expected = manifest.get("artifacts", {}).get(MEDIA_RECORDS_FILENAME)
-    if _sha256_hex(payload) != expected:
-        raise ImproperlyConfigured("Public projection media record digest mismatch.")
-    try:
-        records = json.loads(payload.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ImproperlyConfigured("Public projection media records are not valid JSON.") from exc
-    if not isinstance(records, list):
-        raise ImproperlyConfigured("Public projection media records are not a list.")
-    return tuple(records)
+    from . import catalogue
+
+    return tuple(catalogue.media())
 
 
 class MediaStore:
@@ -388,7 +360,7 @@ def deterministic_fixture(record: Mapping[str, Any]) -> bytes:
 
 
 class MemoryMediaStore(MediaStore):
-    """Deterministic offline fixture store derived from ``media.json``.
+    """Deterministic offline fixture store derived from the synced media records.
 
     Each record is served a minimal valid image of its recorded content type, and the
     digest of that image is the checksum the read path verifies against.  The store
@@ -614,12 +586,14 @@ class S3MediaStore(MediaStore):
                 pass
 
 
-def _configured_path(value: Any, default: Path) -> Path:
+def _configured_path(value: Any) -> Path:
+    """The local media root the settings name; the settings own its default."""
+
     if isinstance(value, Path):
         return value
     if isinstance(value, str) and value:
         return Path(value)
-    return default
+    raise ImproperlyConfigured("PUBLIC_MEDIA_LOCAL_ROOT must name the local media root.")
 
 
 def media_store_config() -> MediaStoreConfig:
@@ -650,9 +624,7 @@ def media_store_config() -> MediaStoreConfig:
         )
     return MediaStoreConfig(
         backend=backend,
-        local_root=_configured_path(
-            getattr(settings, "PUBLIC_MEDIA_LOCAL_ROOT", None), PROJECTION_ROOT / "media"
-        ),
+        local_root=_configured_path(getattr(settings, "PUBLIC_MEDIA_LOCAL_ROOT", None)),
         s3_bucket=get_str_setting("public_media.s3_bucket").strip(),
         s3_prefix=get_str_setting("public_media.s3_prefix").strip("/"),
         s3_region=get_str_setting("public_media.s3_region").strip(),

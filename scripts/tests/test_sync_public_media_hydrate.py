@@ -18,16 +18,21 @@ from django.test import SimpleTestCase
 from scripts.prod.sync_public_media_hydrate import _parser, main
 
 
+#: The shared target selection is required too; a scratch file satisfies it so the
+#: source refusal is what these tests see.
+TARGET = ("--database", ".tmp/issue-463-hydrate.sqlite3")
+
+
 class HydrateSourceSelectionTests(SimpleTestCase):
     def test_the_source_has_no_default(self) -> None:
-        defaults = _parser().parse_args([])
+        defaults = _parser().parse_args(list(TARGET))
         self.assertIsNone(defaults.source)
 
     def test_no_source_refuses_and_names_every_alternative(self) -> None:
         stderr = io.StringIO()
         with contextlib.redirect_stderr(stderr):
             with self.assertRaises(SystemExit) as raised:
-                main([])
+                main(list(TARGET))
         self.assertEqual(raised.exception.code, 2)
         message = stderr.getvalue()
         for source in ("--source checkout", "--source store", "--source github"):
@@ -38,5 +43,5 @@ class HydrateSourceSelectionTests(SimpleTestCase):
         with patch("urllib.request.urlopen", side_effect=AssertionError("network")) as opened:
             with contextlib.redirect_stderr(io.StringIO()):
                 with self.assertRaises(SystemExit):
-                    main([])
+                    main(list(TARGET))
         opened.assert_not_called()

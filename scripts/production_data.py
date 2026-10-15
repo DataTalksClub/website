@@ -3,6 +3,13 @@
 
 This module is intentionally separate from ``seed_local_data.py``.  Its inputs
 are reviewed exports and course checkouts; it is never used by ``make data``.
+
+``dataset`` (and its alias ``bootstrap``) issues exactly three commands, in the
+order :data:`DATASET_STEPS` declares: the rebuild gate, ``prepare_local_data.py``
+-- which alone owns ``migrate``, source registration, the legacy Zoomcamp import,
+the checkout refresh, every import and the editorial sync -- and
+``verify_local_dataset.py``.  Nothing here touches the dataset database itself, so
+``PRODUCTION_PREP_FRESH=1`` finds it absent and ``--fresh`` holds.
 """
 
 from __future__ import annotations
@@ -12,12 +19,20 @@ import os
 import shlex
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
 PROJECT_ROOT: Final = Path(__file__).resolve().parents[1]
 UV: Final = ("uv", "run", "--frozen", "python")
 DEFAULT_DATASET_ROOT: Final = ".tmp/production-prep-dataset"
+#: The commands ``dataset`` issues, in order.  ``prepare_local_data.STEP_ORDER``
+#: lists what the middle one does; the runbook's step table shows both.
+DATASET_STEPS: Final = (
+    "scripts/rebuild_gate.py",
+    "scripts/prepare_local_data.py",
+    "scripts/verify_local_dataset.py",
+)
 
 
 def _python(script: str, *arguments: str) -> tuple[str, ...]:
@@ -40,7 +55,17 @@ def _local_environment(database: Path) -> dict[str, str]:
     return environment
 
 
-def _dataset_values() -> tuple[Path, Path, Path, Path | None]:
+@dataclass(frozen=True)
+class DatasetValues:
+    root: Path
+    database: Path
+    course_sources: Path
+    editorial_sources: Path
+    cmp_source: Path | None
+    legacy_source: Path | None
+
+
+def _dataset_values() -> DatasetValues:
     root = Path(os.environ.get("PRODUCTION_PREP_DATASET_ROOT", DEFAULT_DATASET_ROOT))
     database = Path(
         os.environ.get("PRODUCTION_PREP_DATASET_DATABASE", str(root / "dataset.sqlite3"))
@@ -48,63 +73,53 @@ def _dataset_values() -> tuple[Path, Path, Path, Path | None]:
     course_sources = Path(
         os.environ.get("PRODUCTION_PREP_COURSE_SOURCE_DIR", str(root / "course-sources"))
     )
+    editorial_sources = Path(
+        os.environ.get("PRODUCTION_PREP_EDITORIAL_SOURCE_DIR", str(root / "editorial-sources"))
+    )
     cmp_value = os.environ.get(
         "PRODUCTION_PREP_CMP_SOURCE",
         str(Path.home() / "git/course-management-platform/db/db.sqlite3"),
     )
-    cmp_source = Path(cmp_value) if cmp_value else None
-    return root, database, course_sources, cmp_source
+    legacy_value = os.environ.get(
+        "LEGACY_ZOOMCAMP_SOURCE", str(Path.home() / "git/zoomcamp-scoring")
+    )
+    return DatasetValues(
+        root=root,
+        database=database,
+        course_sources=course_sources,
+        editorial_sources=editorial_sources,
+        cmp_source=Path(cmp_value) if cmp_value else None,
+        legacy_source=Path(legacy_value) if legacy_value else None,
+    )
 
 
 def _rebuild_database(database: Path) -> None:
     _run(_python("scripts/rebuild_gate.py", str(database)))
 
 
-def _prepare_course_sources(root: Path, database: Path, course_sources: Path) -> None:
-    if database.exists():
-        raise RuntimeError("dataset database must be absent before course registration")
-    root.mkdir(parents=True, exist_ok=True)
-    _run(
-        _python("manage.py", "migrate", "--no-input"),
-        environment=_local_environment(database),
-    )
-    _run(
-        _python(
-            "scripts/content.py",
-            "sources",
-            "--database",
-            str(database),
-        )
-    )
-    course_sources.mkdir(parents=True, exist_ok=True)
-    _run(
-        _python(
-            "scripts/content.py",
-            "checkouts",
-            "--database",
-            str(database),
-            "--checkout-root",
-            str(course_sources),
-        )
-    )
-
-
-def _prepare_local_data(
-    database: Path,
-    course_sources: Path,
-    cmp_source: Path | None,
-) -> None:
+def _prepare_local_data(values: DatasetValues) -> None:
+    if values.legacy_source is not None and not values.legacy_source.is_dir():
+        raise RuntimeError("LEGACY_ZOOMCAMP_SOURCE is not a checkout")
+    # The checkout directories, not the database: prepare_local_data creates and
+    # migrates that itself.
+    values.course_sources.mkdir(parents=True, exist_ok=True)
+    values.editorial_sources.mkdir(parents=True, exist_ok=True)
     command = list(
         _python(
             "scripts/prepare_local_data.py",
             "--database",
-            str(database),
+            str(values.database),
             "--course-checkout-root",
-            str(course_sources),
+            str(values.course_sources),
+            "--editorial-checkout-root",
+            str(values.editorial_sources),
+            "--refresh-checkouts",
         )
     )
-    if cmp_source is not None:
-        command.extend(("--cmp-source-db", str(cmp_source)))
+    if values.legacy_source is not None:
+        command.extend(("--legacy-zoomcamp-source", str(values.legacy_source)))
+    if values.cmp_source is not None:
+        command.extend(("--cmp-source-db", str(values.cmp_source)))
     if os.environ.get("PRODUCTION_PREP_FRESH"):
         command.append("--fresh")
     command.extend(shlex.split(os.environ.get("PRODUCTION_PREP_LOCAL_ARGS", "")))
@@ -116,37 +131,23 @@ def _verify(database: Path) -> None:
 
 
 def prepare_dataset() -> None:
-    root, database, course_sources, cmp_source = _dataset_values()
-    _rebuild_database(database)
-    _prepare_course_sources(root, database, course_sources)
-    _prepare_local_data(database, course_sources, cmp_source)
-    _verify(database)
+    """Rebuild gate, the one-owner rehearsal, then the dataset gate."""
+
+    values = _dataset_values()
+    _rebuild_database(values.database)
+    _prepare_local_data(values)
+    _verify(values.database)
 
 
 def prepare_bootstrap() -> None:
-    root, database, course_sources, cmp_source = _dataset_values()
-    legacy_source_value = os.environ.get(
-        "LEGACY_ZOOMCAMP_SOURCE", str(Path.home() / "git/zoomcamp-scoring")
-    )
-    _rebuild_database(database)
-    _prepare_course_sources(root, database, course_sources)
-    if legacy_source_value:
-        legacy_source = Path(legacy_source_value)
-        if not legacy_source.is_dir():
-            raise RuntimeError("LEGACY_ZOOMCAMP_SOURCE is not a checkout")
-        command = list(
-            _python(
-                "scripts/prod/import_legacy_zoomcamp.py",
-                "--database",
-                str(database),
-                "--source-repo",
-                str(legacy_source),
-            )
-        )
-        command.extend(shlex.split(os.environ.get("IMPORT_LEGACY_ZOOMCAMP_ARGS", "")))
-        _run(tuple(command))
-    _prepare_local_data(database, course_sources, cmp_source)
-    _verify(database)
+    """The same rebuild as ``dataset``.
+
+    ``bootstrap`` used to add the legacy Zoomcamp import as a pre-step.  That import
+    now runs inside ``prepare_local_data.py`` in its ``COURSE_CATALOGUE_ORDER``
+    position for every rebuild, so the two commands are one sequence.
+    """
+
+    prepare_dataset()
 
 
 def run_local(
@@ -221,10 +222,16 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "verify":
             _verify(Path(args.database))
         elif args.command == "run":
-            _root, database, _sources, _cmp = _dataset_values()
-            run_server(Path(args.database or database), args.port)
+            run_server(Path(args.database or _dataset_values().database), args.port)
     except (OSError, RuntimeError, subprocess.CalledProcessError) as error:
         if isinstance(error, subprocess.CalledProcessError):
+            # The step's own refusal (for example
+            # ``editorial_sync_failed_<slug>``) is already on stderr; name the step.
+            step = next((part for part in error.cmd if str(part).endswith(".py")), "")
+            print(
+                f"production data step failed: {step} exited {error.returncode}",
+                file=sys.stderr,
+            )
             return error.returncode or 1
         print(f"production data command failed: {error}", file=sys.stderr)
         return 2

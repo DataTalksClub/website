@@ -10,11 +10,11 @@ Step 4 -- sponsors and testimonials, from their own reviewed one-time inputs
 under `~/prod/dtc-data/content-staging/` (outside this repository) -- has to run
 at all, and after the catalogue. Only testimonials used to, so a rehearsal
 database came out with no sponsors and nothing in the run said so. The
-editorial catalogue (articles, podcasts, books, people, wiki, docs, FAQ) is no
-longer part of this step: it reads `content.models.SyncedDocument` rows now,
-written by the live `community_base.content_sync` engine, which this offline
-rehearsal has no checkout to run against -- see the open decision point in the
-runbook's step 4.
+editorial catalogue (articles, podcasts, books, people, wiki, docs, FAQ) is not
+one of these importers: it reads `content.models.SyncedDocument` rows written by
+the live `community_base.content_sync` engine, which the orchestrator's editorial
+stage runs from one checkout per declared source. The full step sequence is
+pinned by `scripts/tests/test_production_data.py`.
 """
 
 from __future__ import annotations

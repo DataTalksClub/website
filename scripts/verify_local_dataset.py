@@ -448,7 +448,8 @@ def _media_store_report(*, store: Any | None = None) -> dict[str, Any]:
     }
     if report.missing and not synthetic:
         payload["recovery_command"] = (
-            "uv run --frozen python scripts/prod/sync_public_media_hydrate.py"
+            "uv run --frozen python scripts/prod/sync_public_media_hydrate.py "
+            "--database <database> --source <checkout|store|github>"
         )
     return payload
 

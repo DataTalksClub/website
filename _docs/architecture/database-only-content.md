@@ -48,11 +48,13 @@ Every public surface reads the database. The reviewed ingest input
 2026-09-11 it moved to `~/prod/dtc-data/content-staging/` (an operator's local
 data directory, backed up to a private S3 bucket -- see that directory's own
 `README.md`), the same way `~/prod/dtc-data/eventbrite-content/staging/eventbrite_descriptions.json`
-moved a little earlier the same day. `scripts/prod/*` is its main reader, and
-`content/media_store.py`'s `media_records()` reads its media records for
-operator tooling. Neither is a public request path, and CI cannot reach
-either: nothing that runs in CI depends on this tree being present any more
-(see below).
+moved a little earlier the same day. `scripts/prod/*` is its reader. It is not
+a public request path, and CI cannot reach it: nothing that runs in CI depends
+on this tree being present any more (see below). The media operator tooling
+(`scripts/prod/sync_public_media_{hydrate,publish,verify}.py`) no longer reads
+it either: `content/media_store.py`'s `media_records()` is
+`content.catalogue.media()`, the synced `SyncedDocument` media rows the
+`/images/` route serves, with no file fallback (issue #463).
 
 Two things that used to read this tree are gone outright, on the owner's
 ruling that a one-time ingest-parity check has no business running as an
@@ -247,11 +249,11 @@ targeted change per reader rather than by the sequence originally planned:
    default,
    `content_sync/tests/test_dtc_content_accepted_checkout.py`. Its digests
    being stale (issue #253) is unrelated to this move and still open.
-4. **`content/media_store.py`'s `media_records()`** still reads the (now
-   external) tree for operator tooling; the one CI-reachable test that had
-   called it directly
-   (`content/tests/test_public_media_store.py::MemoryMediaStoreTests`) carries
-   its own small synthetic record set instead.
+4. **`content/media_store.py`'s `media_records()`** no longer reads the
+   tree: since issue #463 it delegates to `content.catalogue.media()`, so the
+   hydrate/publish/verify tooling acts on the served inventory, and an empty
+   database is refused with `no_synced_media_records`. Its tests seed
+   `SyncedDocument` rows (`test_support.reference_data.add_synced_media`).
 
 Stage 2's separation is also done: `event_description_bridge.py`,
 `event_speaker_bio_normalization.py` and `event_description_link_policy.py`
@@ -316,8 +318,9 @@ come out even then are `luma_event_descriptions.json` and the
 event-description bridge's read of the projection collection files -- see above.
 
 The names left over once a projection is not a file anywhere --
-`content/media_store.py`'s `PROJECTION_ROOT`/`REVIEWED_PROJECTION_ROOT`, and
-`BRIDGE_PUBLIC_PATH`'s stale literal -- are unchanged by this relocation and
+`BRIDGE_PUBLIC_PATH`'s stale literal (`content/media_store.py`'s
+`PROJECTION_ROOT`/`REVIEWED_PROJECTION_ROOT` were removed in issue #463; the
+local media root is the `PUBLIC_MEDIA_LOCAL_ROOT` setting) -- are unchanged by this relocation and
 still wait on the same things the earlier "Stage 4" entry described (now
 folded into this one rather than kept as a separate numbered stage, since
 there is no longer a Stage 3 delete step ahead of it to number against).

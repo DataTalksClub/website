@@ -310,42 +310,18 @@ class MediaStoreReportTests(TestCase):
         self.assertEqual(report["matched"], 0)
 
     def test_a_memory_store_is_marked_synthetic(self) -> None:
-        import hashlib
-        from unittest.mock import patch
-
         from content.media_store import MemoryMediaStore
 
-        payload = b"synthetic-fixture-artwork"
-        synthetic_records = (
-            {
-                "content_type": "image/png",
-                "record_key": "images/synthetic-a.png",
-                "public_path": "/images/synthetic-a.png",
-                "provenance": {
-                    "repository": "DataTalksClub/content",
-                    "revision": "a" * 40,
-                    "checksum": hashlib.sha256(payload).hexdigest(),
-                    "size": len(payload),
-                },
-            },
-        )
-        with (
-            patch(
-                "content.media_tooling.media_records",
-                return_value=synthetic_records,
-            ),
-            patch(
-                "content.media_store.media_records",
-                return_value=synthetic_records,
-            ),
-        ):
-            # Injected, not resolved from settings: the synthetic marking
-            # follows the store itself, whatever backend the environment
-            # selected.
-            report = _media_store_report(store=MemoryMediaStore())
+        # The records are the synced media rows every test database is seeded
+        # with; the memory store derives its fixtures from those same rows.
+        self._imported_media()
+        # Injected, not resolved from settings: the synthetic marking follows
+        # the store itself, whatever backend the environment selected.
+        report = _media_store_report(store=MemoryMediaStore())
 
         self.assertEqual(report["backend"], "memory")
         self.assertTrue(report["synthetic_fixture"])
+        self.assertEqual(report["extra_count"], 0)
         # Verification against fixtures gates nothing, either way.
         self.assertEqual(_media_store_failures(report), [])
 

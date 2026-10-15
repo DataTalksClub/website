@@ -275,3 +275,22 @@ def test_the_cli_refuses_a_malformed_plan_line(
     captured = capsys.readouterr()
     assert exit_code == 1
     assert "plan-line-invalid" in captured.err
+
+
+def test_a_head_plan_line_clones_and_refreshes_the_default_branch(
+    upstream: tuple[Path, str], tmp_path: Path
+) -> None:
+    """The editorial plan names no branch: ``HEAD`` is the remote default."""
+    origin, host = upstream
+    checkout = tmp_path / "editorial-checkouts" / REPO_NAME
+
+    head = refresh(host, checkout, branch=checkout_refresh.DEFAULT_BRANCH)
+
+    assert head == _git(origin, "rev-parse", "main")
+    assert _git(checkout, "rev-parse", "--abbrev-ref", "HEAD") == "main"
+    assert (checkout / ".git" / checkout_refresh.OWNERSHIP_MARKER).is_file()
+
+    new_head = _advance_locally(checkout, "article.md", "new article\n")
+    refreshed = _local_refresh(host, checkout, new_head, branch=checkout_refresh.DEFAULT_BRANCH)
+
+    assert refreshed == new_head

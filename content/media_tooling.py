@@ -1,5 +1,10 @@
 """Operator tooling shared by the public media hydrate/publish/verify scripts.
 
+The record set is the one the ``/images/`` route serves: ``media_records()``, which is
+``content.catalogue.media()`` -- the published ``SyncedDocument`` media rows that
+``manage.py sync_content`` writes.  An empty record set is refused with
+``no_synced_media_records`` rather than reported as a vacuous success.
+
 None of this module is reachable from a public, Studio, or admin API request path: it is
 imported only by the three ``scripts/prod/sync_public_media_*.py`` entry points and their
 focused tests.
@@ -37,6 +42,36 @@ DEFAULT_DOWNLOAD_TIMEOUT_SECONDS = 30.0
 
 class MediaToolingError(RuntimeError):
     """An operator command cannot continue safely."""
+
+
+class NoSyncedMediaRecords(MediaToolingError):
+    """The database holds no published media rows, so there is nothing to act on.
+
+    Hydrating, publishing or verifying zero records would report success while
+    checking nothing; the scripts map this refusal to exit code 2.
+    """
+
+    code = "no_synced_media_records"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+def resolve_records(
+    records: Iterable[Mapping[str, Any]] | None,
+) -> tuple[Mapping[str, Any], ...]:
+    """The records to act on: the ones supplied, or every synced media row.
+
+    The database read refuses an empty answer.  An explicitly supplied record set is
+    used as given -- the caller chose it.
+    """
+
+    if records is not None:
+        return tuple(records)
+    resolved = media_records()
+    if not resolved:
+        raise NoSyncedMediaRecords()
+    return resolved
 
 
 @dataclass(slots=True)
@@ -208,7 +243,7 @@ def hydrate_media(
     """
 
     report = HydrateReport()
-    for record in records if records is not None else media_records():
+    for record in resolve_records(records):
         report.total += 1
         key = record_key(record)
         expected = record_checksum(record)
@@ -257,7 +292,7 @@ def publish_media(
     """Upload exactly the recorded objects, refusing anything with no record."""
 
     report = PublishReport()
-    resolved = tuple(records if records is not None else media_records())
+    resolved = resolve_records(records)
     known_relative = {record_relative_path(record) for record in resolved}
     local = LocalMediaStore(root=source_root, maximum_object_bytes=maximum_object_bytes)
 
@@ -314,10 +349,10 @@ def verify_media(
     store: MediaStore,
     records: Iterable[Mapping[str, Any]] | None = None,
 ) -> VerifyReport:
-    """Compare the configured store against ``media.json``."""
+    """Compare the configured store against the synced media records."""
 
     report = VerifyReport()
-    resolved = tuple(records if records is not None else media_records())
+    resolved = resolve_records(records)
     expected_keys = set()
     for record in resolved:
         report.total += 1
