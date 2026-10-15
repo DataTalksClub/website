@@ -168,7 +168,7 @@ and `C5.2g` added afterwards (decision 18). All verdicts **maps**.
 | `LeaderboardComplaint` | same | identical |
 | `RegistrationCampaign` | same | `current_course` → `current_cohort` |
 | `CourseRegistration` | same | `course` → `cohort` |
-| `Testimonial` | same | identical |
+| `Testimonial` | same | `homepage` and `course` placements identical; the site-only `tour` placement (course `NULL`) has no package value and stays site-side (decision 19) |
 | `WrappedStatistics`, `UserWrappedStatistics` | same | identical |
 | `StatRow`/`StatSection` (`courses/models/stat_display.py`, dataclasses) | `coursework/stat_display.py` | helpers, not models; already ported |
 
@@ -197,8 +197,11 @@ profile fields live on `CustomUser` (`role`, `certificate_name`, `country`,
 
 `CohortBuildItem` (featured-cohort "what you'll build" rows), the CMP / Mailchimp /
 Datamailer legacy imports, the `cadmin` redirect shim, people profiles, the banner
-generator, cohort archive provenance, `CurriculumRouteAlias`, and the
-identity-migration tables. None of these have package homes and none should.
+generator, cohort archive provenance, `CurriculumRouteAlias`, the
+identity-migration tables, and the community-tour testimonials
+(`courses_testimonial` rows with `placement='tour'`, read by `/tour` through
+`courses.services.testimonials.tour_testimonials`; decision 19). None of these
+have package homes and none should.
 
 ## Package gaps blocking P6
 
@@ -326,6 +329,39 @@ vetoed before the D5.2 freeze weekend without rework beyond the named scope.
       `PeerReviewBatch` rows. Null is the package's own contract for a
       deadline-mode review, whose due date is its project's
       `peer_review_due_date`; a migrated review is always deadline-mode.
+19. **Tour testimonials stay site-side (found in the 2026-10-13 ingest audit,
+    #461).** The site `Testimonial` grew a third placement, `tour` with no
+    course (`courses/0019`), after this mapping was written; the package
+    allows only `homepage` with no course or `course` with one
+    (`cb_testimonial_placement_scope`). The `/tour` page is community content,
+    not course-platform content, and AI Shipping Labs has no tour. Default:
+    P6 does not copy `placement='tour'` rows; it counts each one as
+    `testimonials:tour_placement_site_side` in the gap ledger, and the
+    `testimonials` count equality is asserted on the migratable subset
+    (`homepage` + `course`), the same pattern as decisions 2–6 and 11. The
+    rows stay in `courses_testimonial` and keep serving `/tour` unchanged.
+    Rejected: mapping `tour` → `homepage` (the stories would surface on the
+    homepage after D5.2) and adding a `tour` placement to community-base (a
+    DTC-only concept in the shared package). **D5.2 (#415) must not drop
+    `courses_testimonial` while tour rows depend on it.**
+20. **Provenance-less questions reconcile on full row values (found in the
+    2026-10-13 ingest audit, #461).** A site `Question` with neither a
+    `source_content_id` (a complete provenance set, decision 7) nor a
+    `source_question_id` has no stable identity, and several such rows in one
+    homework can share `text` and `question_type` while differing only in
+    `possible_answers`/`correct_answer`. Their reconcile key is the full
+    copied value set: `homework`, `text`, `question_type`, `answer_type`,
+    `possible_answers`, `correct_answer`, `scores_for_correct_answer`,
+    `source_option_ids`, `answer_envelope`. Within one run the import never
+    maps two site question pks onto one package row, whatever the key path,
+    so answers always resolve to their own question. Two site rows equal on
+    every copied value cannot both land: the run refuses with
+    `indistinguishable_questions`, naming at most `MAX_NAMED_ROWS` site
+    question ids and never question text, and the transaction rolls back.
+    They are never silently merged. A keyed question (provenance or
+    `source_question_id`) reconciles on its key exactly as before; one not
+    yet copied is created rather than matched on text.
+    `authored_position`/`step_label` stay at package defaults.
 
 ### Authored-homework defaults (C5.4c, issue #443)
 

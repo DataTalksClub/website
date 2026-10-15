@@ -34,8 +34,10 @@ item by item before the D5.2 freeze weekend.  In brief:
 - The gaps stay site-side and are counted, never silently dropped:
   terminal-homework bindings (2), project flow placements (3), module links
   and lesson code sources (4), cohort-level overrides (5), shared curriculum
-  assets (6), course people (8), and the module/lesson ``summary`` text the
-  package has no column for (decision 17).
+  assets (6), course people (8), the module/lesson ``summary`` text the
+  package has no column for (decision 17), and the community-tour
+  testimonials, which the package has no placement for and ``/tour`` keeps
+  reading site-side (decision 19).
 - ``delivery_mode`` ``live`` becomes package ``mode`` ``cohort`` in this
   mapping, not in a later datafix (9); a site ``visible`` course is
   ``published`` and an invisible one ``draft`` (10).
@@ -89,6 +91,10 @@ genuinely indistinguishable site rows -- same homework, student and timestamp;
 same criterion definition twice -- cannot both land, so the final
 count-equality verification refuses the run rather than silently merging them:
 a refusal is a data question for the operator, a silent merge is data loss.
+Provenance-less questions reconcile on every copied value and never share a
+package row within one run; two that are equal on every copied value refuse
+by name (``indistinguishable_questions``, decision 20), since answers are
+keyed through them.
 """
 
 from __future__ import annotations
@@ -179,6 +185,18 @@ class SelfPacedCohortNotUnique(CoursePlatformImportError):
         slugs = tuple(sorted(course_slugs))
         super().__init__("self_paced_cohort_not_unique")
         self.course_slugs = slugs
+
+
+class IndistinguishableQuestions(CoursePlatformImportError):
+    """Decision 20: site questions equal on every copied value cannot both land.
+
+    Names at most :data:`MAX_NAMED_ROWS` site question ids, never question
+    text.  Raised inside the import transaction, so the whole run rolls back.
+    """
+
+    def __init__(self, question_ids: Iterable[Any]):
+        self.question_ids = tuple(sorted(question_ids))[:MAX_NAMED_ROWS]
+        super().__init__("indistinguishable_questions")
 
 
 class CountMismatch(CoursePlatformImportError):
@@ -1467,6 +1485,10 @@ def _import_questions(site: Any, maps: _Maps, report: _Report) -> None:
 
     rows = list(site.Question.objects.select_related("homework").order_by("pk"))
     report.family("questions", len(rows))
+    # Package pk -> the site pk that resolved to it in this run.  Two site
+    # rows must never share one package row: their answers would cross-wire.
+    claimed: dict[Any, Any] = {}
+    indistinguishable: list[Any] = []
     for row in rows:
         homework = maps.homework[row.homework_id]
         provenance = _package_provenance(row)
@@ -1491,24 +1513,74 @@ def _import_questions(site: Any, maps: _Maps, report: _Report) -> None:
             shared = Question.objects.filter(
                 homework=homework, source_question_id=row.source_question_id
             ).first()
+        else:
+            # Decision 20: a database-managed question has no stable identity,
+            # so it reconciles on every value the import copies.
+            shared = _question_by_full_values(Question, homework, values, claimed)
+        if shared is not None and shared.pk in claimed:
+            # Equal on every copied value to a row already copied in this run:
+            # landing both is impossible and merging them is data loss.
+            indistinguishable.append(row.pk)
+            continue
         if shared is None:
-            # A database-managed question has no stable identity to reconcile
-            # on; text and type are the best key and duplicates are caught by
-            # the count verification below.
-            shared, _ = Question.objects.update_or_create(
-                homework=homework,
-                text=row.text,
-                question_type=row.question_type,
-                defaults=values,
-            )
+            # Not copied yet.  A keyed row is created rather than matched on
+            # text: a text match could adopt a different question's row.
+            shared = Question.objects.create(homework=homework, **values)
         else:
             for field, value in values.items():
                 setattr(shared, field, value)
             shared.save()
+        claimed[shared.pk] = row.pk
         maps.questions[row.pk] = shared
         report.migrated("questions")
         if row.source_content_id is None:
             report.gap("questions:provenance_absent")
+    if indistinguishable:
+        raise IndistinguishableQuestions(indistinguishable)
+
+
+#: Decision 20: the reconcile key of a question with no package identity (no
+#: converted ``source_content_id``, no ``source_question_id``) is every value
+#: the import copies.  ``text`` and ``question_type`` narrow the query; the
+#: rest -- two of them JSON -- compare in Python, so a JSON column's
+#: serialization can never decide whether two rows are the same.
+_QUESTION_FULL_VALUE_KEY = (
+    "text",
+    "question_type",
+    "answer_type",
+    "possible_answers",
+    "correct_answer",
+    "scores_for_correct_answer",
+    "source_option_ids",
+    "answer_envelope",
+)
+
+
+def _question_by_full_values(
+    question_model: Any, homework: Any, values: dict[str, Any], claimed: dict[Any, Any]
+) -> Any:
+    """The provenance-less package question equal to ``values`` on the full key.
+
+    An unclaimed match wins.  Otherwise a match another site row already
+    claimed in this run is returned, so the caller refuses instead of merging.
+    """
+
+    candidates = question_model.objects.filter(
+        homework=homework,
+        source_content_id__isnull=True,
+        text=values["text"],
+        question_type=values["question_type"],
+    ).order_by("pk")
+    matches = [
+        candidate
+        for candidate in candidates
+        if not candidate.source_question_id
+        and all(getattr(candidate, field) == values[field] for field in _QUESTION_FULL_VALUE_KEY)
+    ]
+    for candidate in matches:
+        if candidate.pk not in claimed:
+            return candidate
+    return matches[0] if matches else None
 
 
 def _import_submissions(site: Any, maps: _Maps, report: _Report) -> None:
@@ -1892,6 +1964,12 @@ def _import_testimonials(site: Any, maps: _Maps, report: _Report) -> None:
     rows = list(site.Testimonial.objects.select_related("course").order_by("pk"))
     report.family("testimonials", len(rows))
     for row in rows:
+        if row.placement == site.TestimonialPlacement.TOUR:
+            # Decision 19: the community tour is site content, not course
+            # platform content, and the package has no tour placement.  The
+            # row stays in ``courses_testimonial`` and keeps serving ``/tour``.
+            report.skipped("testimonials", "tour_placement_site_side")
+            continue
         values = {
             "attribution": row.attribution or "",
             "quote": row.quote,
@@ -2074,7 +2152,9 @@ def _migratable_site_counts(site: Any) -> dict[str, int]:
         "complaints": site.LeaderboardComplaint.objects.count(),
         "campaigns": site.RegistrationCampaign.objects.count(),
         "course_registrations": site.CourseRegistration.objects.count(),
-        "testimonials": site.Testimonial.objects.count(),
+        "testimonials": site.Testimonial.objects.exclude(
+            placement=site.TestimonialPlacement.TOUR
+        ).count(),
         "wrapped": site.WrappedStatistics.objects.count(),
         "user_wrapped": site.UserWrappedStatistics.objects.count(),
     }
@@ -2174,6 +2254,12 @@ def main(argv: list[str] | None = None) -> int:
             payload["instruction"] = (
                 "name the new field in the mapping registry and decide its "
                 "verdict before running the import"
+            )
+        if isinstance(error, IndistinguishableQuestions):
+            payload["question_ids"] = list(error.question_ids)
+            payload["instruction"] = (
+                "these site questions are equal on every copied value; decide "
+                "which one is real before running the import"
             )
         if isinstance(error, CountMismatch):
             payload["families"] = list(error.families)
