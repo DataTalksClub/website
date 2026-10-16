@@ -84,9 +84,8 @@
       <p class="fact-status">
         {% if submission.pk %}
           <span class="status-pill status-pill-mint"><span class="status-dot" aria-hidden="true"></span>saved &middot; {{ submission.submitted_at|user_date_short:request }}</span>
-          {% if stepper.has_pending_changes %}<span class="status-pill status-pill-wait">unsent draft changes</span>{% endif %}
         {% else %}
-          <span class="status-pill status-pill-wait">{% if stepper %}not submitted yet{% else %}not saved yet{% endif %}</span>
+          <span class="status-pill status-pill-wait">not saved yet</span>
         {% endif %}
       </p>
     {% endif %}
@@ -720,8 +719,18 @@
     <div class="module-layout shell-breakout">
       <div class="module-main">
         {{ block.super }}
+        <nav class="submission-navigation" aria-label="Module reading navigation">
+          {% with previous_lesson=shared_homework_module_lessons|last %}
+            {% if previous_lesson %}
+              {% url 'shared_lesson' course_family.slug shared_homework_module.slug previous_lesson.slug as previous_lesson_url %}
+              {% include "core/_button.html" with href=previous_lesson_url|add:context_q label="← "|add:previous_lesson.title variant="secondary" compact=True aria_label="Previous lesson: "|add:previous_lesson.title %}
+            {% endif %}
+          {% endwith %}
+          {% url 'shared_module' course_family.slug shared_homework_module.slug as shared_module_url %}
+          {% include "core/_button.html" with href=shared_module_url|add:context_q label="Module overview" variant="secondary" compact=True aria_label="Back to module overview: "|add:shared_homework_module.title %}
+        </nav>
       </div>
-      {% include "courses/_shared_module_rail.html" with module=shared_homework_module lessons=shared_homework_module_lessons course_family=course_family context_q=context_q delivery_cohort=course terminal_homework=homework %}
+      {% include "courses/_shared_module_rail.html" with module=shared_homework_module lessons=shared_homework_module_lessons course_family=course_family context_q=context_q delivery_cohort=course terminal_homework=homework current_homework=homework %}
     </div>
   {% else %}
     {{ block.super }}

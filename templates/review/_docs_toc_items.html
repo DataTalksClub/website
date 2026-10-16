@@ -1,0 +1,10 @@
+{% for entry in entries %}
+  <li>
+    <a href="#{{ entry.id }}">{{ entry.title }}</a>
+    {% if entry.children %}
+      <ol>
+        {% include "review/_docs_toc_items.html" with entries=entry.children only %}
+      </ol>
+    {% endif %}
+  </li>
+{% endfor %}

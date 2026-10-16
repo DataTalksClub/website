@@ -128,14 +128,20 @@
                 <h2 id="lessons-heading">Lessons</h2>
                 <span class="module-count">{{ lessons|length }} lesson{{ lessons|length|pluralize }}</span>
               </div>
-              {% if lessons %}
-                <ol class="lesson-list">
+              {% if lessons or terminal_homework %}
+                <ol class="lesson-list" aria-label="Module steps">
                   {% for lesson in lessons %}
                     <li class="lesson-row">
                       <span class="lesson-position" aria-hidden="true">{{ forloop.counter }}</span>
                       <a class="lesson-link" href="{% url 'shared_lesson' course_family.slug module.slug lesson.slug %}{{ context_q }}">{{ lesson.title }}</a>
                     </li>
                   {% endfor %}
+                  {% if terminal_homework and delivery_cohort %}
+                    <li class="lesson-row homework-row">
+                      <span class="lesson-position homework-position" aria-hidden="true">HW</span>
+                      <a class="lesson-link" href="{% url 'cohort_homework' course_family.slug delivery_cohort.identifier terminal_homework.slug %}{{ context_q }}">{{ terminal_homework.title }}</a>
+                    </li>
+                  {% endif %}
                 </ol>
               {% else %}
                 <div class="card"><p>This module does not have any lessons yet.</p></div>

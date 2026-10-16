@@ -1,8 +1,8 @@
       /* Shared module-rail layout and rail rules, included by the module and
          unit pages inside their own <style> element. */
 
-      /* The reading column is capped at the system's own content width rather
-         than stretched to whatever the breakout leaves over.  At the old
+      /* The reading column is capped at the prose measure plus its 2.5rem
+         working gutter rather than stretched to whatever the breakout leaves over. At the old
          `1fr` the article sat at its 38rem measure inside a ~53rem column, so
          the video and the "next lesson" button floated a long way past the
          edge of the prose they belonged to, and moving from a lesson to its
@@ -14,7 +14,7 @@
         display: grid;
         gap: 3rem;
         grid-template-areas: "rail main";
-        grid-template-columns: minmax(16rem, 19rem) minmax(0, var(--content-width));
+        grid-template-columns: minmax(16rem, 19rem) minmax(0, calc(var(--measure) + 2.5rem));
         justify-content: center;
       }
 
@@ -64,9 +64,8 @@
 
       /* --- hide/show ------------------------------------------------------
          The `.scroller-button` anatomy at rail density: the same circle, 2px
-         ink outline and stroked glyph, taken down from 2.75rem to 2.25rem
-         because it sits inside quiet navigation rather than under a carousel.
-         36px clears the 24px WCAG 2.2 target floor with room to spare, and the
+         ink outline and stroked glyph. It stays at 2.75rem so the quiet rail
+         still provides the same 44px target as the reading-flow links, and the
          shared `:focus-visible` ring applies untouched.
 
          The control declares no transition of its own: the collapse itself is a
@@ -82,10 +81,10 @@
         cursor: pointer;
         display: none;
         flex: none;
-        height: 2.25rem;
+        height: 2.75rem;
         justify-content: center;
         padding: 0;
-        width: 2.25rem;
+        width: 2.75rem;
       }
 
       .rail-toggle:hover {
@@ -120,7 +119,7 @@
          page's head script), so a reader who hid the rail never sees it appear
          and vanish on the next lesson. */
       :root[data-module-rail="collapsed"] .module-layout {
-        grid-template-columns: 2.25rem minmax(0, var(--content-width));
+        grid-template-columns: 2.75rem minmax(0, calc(var(--measure) + 2.5rem));
         gap: 1.5rem;
       }
 
@@ -160,7 +159,7 @@
         gap: 0.6rem;
         grid-template-columns: 1.75rem minmax(0, 1fr);
         line-height: 1.4;
-        min-height: 2.25rem;
+        min-height: 2.75rem;
         overflow-wrap: anywhere;
         padding: 0.3rem 0.5rem;
         text-decoration: none;
@@ -227,7 +226,7 @@
       /* Homework is the module's last step, not an appendix under it, so it is
          a rail row with the same anatomy and the section rule the bands
          themselves use. */
-      .rail-homework {
+      .rail-homework-step {
         border-top: 2px dashed var(--line-soft);
         margin-top: 0.25rem;
         padding-top: 0.85rem;
@@ -245,12 +244,12 @@
         font-size: 0.85rem;
       }
 
-      /* 32px clears the 24px WCAG 2.2 target floor for an inline link, the
-         same allowance a breadcrumb crumb takes. */
+      /* Keep the explanatory sign-in link on the same 44px target rhythm as
+         the lesson and homework destinations above it. */
       .rail-signin .band-link {
         align-items: center;
         display: inline-flex;
-        min-height: 2rem;
+        min-height: 2.75rem;
       }
 
       @media (max-width: 52rem) {

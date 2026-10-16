@@ -1,0 +1,17 @@
+{% if video_embed_url and video_watch_url %}
+  <div class="lesson-video-block">
+    <div class="unit-video" aria-label="Lesson recording">
+      <iframe
+        src="{{ video_embed_url }}"
+        title="{{ video_title }} recording"
+        loading="lazy"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen
+      ></iframe>
+    </div>
+    <p class="lesson-video-fallback">
+      <a href="{{ video_watch_url }}" target="_blank" rel="noopener noreferrer">Watch on YouTube<span class="sr-only"> (opens in a new tab)</span></a>
+    </p>
+  </div>
+{% endif %}

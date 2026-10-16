@@ -5,19 +5,14 @@ Precedence (courses/services/course_context.py): explicit ?cohort=, remembered
 preference, sole enrollment, chooser.  The panel never changes the lesson body
 or the canonical path: it only links the selected delivery.
 
-An unambiguously resolved delivery (explicit query, remembered preference, or
-sole enrollment) is not a decision the reader needs explained back to them --
-it is usually already obvious from how they arrived here (a cohort-page
-click-through, a remembered choice).  That case gets one quiet link, no boxed
-card.  The full explanatory card stays for the cases that are doing real
-work: an archived delivery the reader should be warned off, or a genuine
-choice between multiple deliveries with nothing resolved yet.
+An unambiguously resolved current delivery (explicit query, remembered
+preference, or sole enrollment) is not a decision the reader needs explained
+back to them, and the module flow already exposes its assignment. That case
+adds no redundant cohort link. The full explanatory card stays for the cases
+that are doing real work: an archived delivery the reader should be warned
+off, or a genuine choice between multiple deliveries with nothing resolved.
 {% endcomment %}
-{% if delivery_cohort and not archive_cohort %}
-  <p class="delivery-panel-link">
-    <a href="{% url 'cohort' course_family.slug delivery_cohort.identifier %}">Open the cohort page →</a>
-  </p>
-{% else %}
+{% if not delivery_cohort or archive_cohort %}
   <section class="card delivery-panel" aria-labelledby="delivery-heading">
     <h2 id="delivery-heading">How are you taking this course?</h2>
     {% if delivery_cohort %}
@@ -30,7 +25,7 @@ choice between multiple deliveries with nothing resolved yet.
         and are not shown on this site.
       </p>
       <p>
-        <a href="{% url 'cohort' course_family.slug delivery_cohort.identifier %}">Open the cohort page →</a>
+        <a href="{% url 'cohort' course_family.slug delivery_cohort.identifier %}">View {{ delivery_cohort.identifier }} cohort details →</a>
       </p>
     {% elif delivery_multiple_enrollments %}
       <p class="delivery-note">You are enrolled in more than one delivery. Pick one for this visit:</p>

@@ -32,6 +32,8 @@
         min-height: 12rem;
       }
 
+      {% include "courses/_lesson_video_styles.html" %}
+
       .delivery-panel-link {
         font-size: 0.9rem;
         margin-top: 1.5rem;
@@ -83,24 +85,29 @@
       <section aria-label="Lesson content">
         <div class="module-layout shell-breakout">
           <div class="module-main">
+            {% include "courses/_lesson_video.html" with video_title=lesson.title %}
             <article class="prose prose-reading lesson-content">
               {{ lesson.rendered_html|safe }}
             </article>
 
             {% include "courses/_delivery_panel.html" with terminal_homework=terminal_homework %}
 
-            {% if previous_lesson or next_lesson %}
-              <nav class="lesson-nav" aria-label="Lesson navigation">
+            <nav class="lesson-nav" aria-label="Module reading navigation">
                 {% if previous_lesson %}
                   {% include "core/_button.html" with href=previous_lesson_url label="← "|add:previous_lesson.title variant="secondary" compact=True aria_label="Previous lesson: "|add:previous_lesson.title %}
+                {% else %}
+                  {% include "core/_button.html" with href=module_url label="← Module overview" variant="secondary" compact=True aria_label="Back to module overview: "|add:module.title %}
                 {% endif %}
                 {% if next_lesson %}
                   <div class="lesson-nav-next">
                     {% include "core/_button.html" with href=next_lesson_url label=next_lesson.title|add:" →" variant="secondary" compact=True aria_label="Next lesson: "|add:next_lesson.title %}
                   </div>
+                {% elif terminal_homework and homework_url %}
+                  <div class="lesson-nav-next">
+                    {% include "core/_button.html" with href=homework_url label="Continue to homework →" variant="primary" compact=True aria_label="Continue to terminal homework: "|add:terminal_homework.title %}
+                  </div>
                 {% endif %}
-              </nav>
-            {% endif %}
+            </nav>
           </div>
           {% include "courses/_shared_module_rail.html" with current_lesson=lesson %}
         </div>

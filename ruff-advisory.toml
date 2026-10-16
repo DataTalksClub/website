@@ -1,0 +1,43 @@
+# Staged, non-blocking advisory lint profile. Run with:
+#
+#   uv run ruff check --config ruff-advisory.toml --statistics --exit-zero .
+#
+# Standalone on purpose: pyproject.toml's exclude list drops the adopted
+# application directories (accounts/, api/, courses/, course_management/,
+# studio_courses/, e2e/, scripts/) from its default sweep, and the advisory
+# report must measure the whole repository, so this config does not extend it.
+target-version = "py313"
+line-length = 100
+output-format = "concise"
+
+exclude = [
+    "*/migrations/*",
+    # Scratch checkouts, source worktrees, and downloads under .tmp/ are not
+    # repository code; they drown the report in third-party findings.
+    ".tmp/**",
+]
+
+[lint]
+select = ["B", "BLE", "C4", "SIM", "RET", "ARG", "T20", "C901"]
+
+[lint.mccabe]
+max-complexity = 10
+
+[lint.per-file-ignores]
+# Django signal/check receivers and management commands use callback
+# signatures controlled by Django even when a specific hook does not need
+# every argument.
+"*/signals.py" = ["ARG001", "ARG002"]
+"*/checks.py" = ["ARG001", "ARG002"]
+"*/management/commands/*.py" = ["ARG002"]
+
+# Test methods, mocks, and Playwright fixtures often receive framework or
+# patch-provided arguments that are intentionally unused in a specific case.
+"*/tests/*.py" = ["ARG001", "ARG002"]
+"e2e/*.py" = ["ARG001", "ARG002"]
+"playwright_tests/*.py" = ["ARG001", "ARG002"]
+
+# Standalone operational scripts and deploy helpers are CLI surfaces where
+# stdout progress is the interface.
+"scripts/*.py" = ["T201"]
+"deploy/*.py" = ["T201"]
