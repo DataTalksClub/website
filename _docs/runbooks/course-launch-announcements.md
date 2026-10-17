@@ -77,6 +77,9 @@ uv run --frozen python scripts/course_launch.py courses create --slug example-co
 uv run --frozen python scripts/course_launch.py assignments save --course-id COURSE_UUID \
   --expected-revision 1 --version-ids VERSION_UUID --telegram-destination-key example
 uv run --frozen python scripts/course_launch.py cohorts launch --cohort-id COHORT_UUID
+uv run --frozen python scripts/course_launch.py batches preview --cohort-id COHORT_UUID --json
+uv run --frozen python scripts/course_launch.py batches schedule --cohort-id COHORT_UUID \
+  --confirmed --preview-token SIGNED_PREVIEW_TOKEN
 uv run --frozen python scripts/course_launch.py announcements list --cohort-id COHORT_UUID --json
 uv run --frozen python scripts/course_launch.py announcements compose --cohort-id COHORT_UUID \
   --version-id VERSION_UUID --target-kind module --target-id MODULE_ID
@@ -106,7 +109,7 @@ before changing records. A stale command fails without overwriting another opera
 
 ## API contract
 
-`GET /api/v1/admin/course-launch?resource=templates|versions|courses|cohorts|assignments|plans|announcements|schedules|timings`
+`GET /api/v1/admin/course-launch?resource=templates|versions|courses|cohorts|assignments|plans|announcements|schedules|timings|batch_preview`
 returns bounded collections. `id`, `cohort_id`, `target_kind` and `page` select records; timings
 accept cohort/module/shared_module_placement/project/homework owners. Announcement records include
 plain subject/body preview and schedule/status/revision, without recipient data.
@@ -114,9 +117,50 @@ plain subject/body preview and schedule/status/revision, without recipient data.
 `POST /api/v1/admin/course-launch/commands` uses explicit `action` values:
 `template_save`, `template_publish`, `template_archive`, `course_create`, `cohort_create`,
 `assignment_save`, `timing_update`, `launch`, `compose`, `announcement_edit`, `approve`, `cancel`.
-`POST /api/v1/admin/course-launch/dispatch` supports `schedule`, `send`, `test_send`, each with
-`confirmed: true`. Commands require `Idempotency-Key`. Unknown fields are rejected. The generated
+`POST /api/v1/admin/course-launch/dispatch` supports `schedule`, `send`, `test_send`, `launch_and_schedule`,
+each with `confirmed: true`. Commands require `Idempotency-Key`. Unknown fields are rejected. The generated
 OpenAPI document describes command fields. Studio and CLI call the same application services.
+
+## Batch launch-and-schedule (one confirmed cohort action)
+
+`launch` alone only generates unarmed drafts (`armed: 0`, no jobs). To schedule a whole
+cohort in one privileged step, preview first, then confirm:
+
+1. Preview (read-only, zero writes): `GET /api/v1/admin/course-launch?resource=batch_preview&cohort_id=...`
+   (Studio: cohort launch-and-schedule preview; CLI: `batches preview --cohort-id ...`).
+   The preview lists every generated row plus every prospective version/target row with
+   `eligible` or an explicit skip reason, the proposed time, and the per-row expectations.
+   It returns a `preview_fingerprint` (configuration values: cohort/course, delivery,
+   plan selection source, sorted immutable version ids, destination setting key) for
+   display, and a signed `preview_token` that tamper-evidently binds the exact preview
+   membership plus each row's revision, anchor, and proposed time. The token carries
+    no bodies, subjects, or destination values. Row records are lists with the
+    generated key as a value, never as a JSON object key. Previewing never creates
+    a plan, never calls
+   generate, and never writes an idempotency row.
+2. Confirm: `POST .../dispatch` with `action: launch_and_schedule`, `confirmed: true`,
+   and the unchanged `preview_token` exactly as previewed
+   (Studio: confirm form; CLI: `batches schedule --confirmed --preview-token ...`).
+   Editable client maps are never trusted: a missing, forged, or edited token is
+   rejected before any write, and per-row expectations come only from the token.
+   The service rejects the whole confirmation (409, zero writes, zero jobs) when
+   configuration, versions, or destination changed since preview; rows whose copy
+   or start changed skip individually (`stale_revision`, `start_changed`); keys
+   absent from the preview are never enqueued (`not_in_preview`). Each still-eligible
+   row is approved and scheduled at its recomputed anchor+offset through the
+   single-row dispatch path with one durable future job. Same-key replay returns
+   the stored result with zero new jobs. Retrying after a 409 with a fresh preview
+   may reuse the same idempotency key.
+
+Eligibility table: only generated rows with an immutable version, a known future anchor,
+and draft/approved status ship. Skipped otherwise: `manual`, `cancelled` (stays cancelled;
+only explicit per-row recovery reopens it), `settled` (dispatching/submitted/ambiguous),
+`already_scheduled`, `missing_start`, `past_due` (no catch-up), `blocked_destination`
+(blank Telegram setting key), `stale_revision`, `start_changed`, `not_in_preview`.
+Self-paced and archive cohorts are denied before any lock. Sending requires both
+course-management and email-send authority; course-only or email-only principals get a
+403 denial with zero side effects. Simulation default applies: dev/test/flag-off runs
+enqueue simulated jobs only, with no live Relay or Telegram IO.
 
 ## Explicit-start backfill
 

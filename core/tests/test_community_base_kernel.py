@@ -36,6 +36,7 @@ class KernelInstallationTests(SimpleTestCase):
                 "community_base.kernel.apps.KernelConfig",
                 "community_base.config",
                 "community_base.api",
+                "community_base.device_login",
                 "community_base.studio",
                 "community_base.content_sync",
                 "community_base.knowledge_base",

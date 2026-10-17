@@ -23,6 +23,10 @@ def launch_read(request):
         request.session["launch_error"] = str(error)
     from courses.services.launch_queries import RESOURCES
 
+    batch = None
+    if request.GET.get("resource") == "batch_preview" and isinstance(result, dict):
+        batch = result
+        result = {"items": [], "page": 1, "total_count": 0}
     collections = {}
     for name in ("templates", "versions", "courses", "cohorts", "assignments", "plans"):
         model, serializer = RESOURCES[name]
@@ -37,6 +41,8 @@ def launch_read(request):
         "studio/course_launch.html",
         {
             "result": result,
+            "batch": batch,
+            "batch_result": request.session.pop("launch_batch_result", None),
             "collections": collections,
             "idempotency_key": str(uuid.uuid4()),
             "submitted": request.session.pop("launch_submitted", {}),
@@ -91,11 +97,25 @@ def invoke(request, key):
             idempotency_key=request.POST.get("idempotency_key") or "",
         )
         result = capability.service(form_payload(request), context=context)
-        messages.success(
-            request,
-            f"Saved {request.POST.get('action', 'announcement')}. "
-            f"Reference: {result.get('id', '')}",
-        )
+        if isinstance(result, dict) and "enqueued_count" in result:
+            request.session["launch_batch_result"] = {
+                "enqueued_count": result.get("enqueued_count", 0),
+                "skipped_count": result.get("skipped_count", 0),
+                "enqueued": result.get("enqueued", []),
+                "skipped": result.get("skipped", []),
+            }
+            messages.success(
+                request,
+                f"Scheduled {result.get('enqueued_count', 0)} announcements, "
+                f"skipped {result.get('skipped_count', 0)}. "
+                "Reference: launch-and-schedule.",
+            )
+        else:
+            messages.success(
+                request,
+                f"Saved {request.POST.get('action', 'announcement')}. "
+                f"Reference: {result.get('id', '')}",
+            )
     except (LaunchError, IdempotencyConflict, IdempotencyInProgress, ValueError) as error:
         request.session["launch_submitted"] = safe_submitted(request)
         request.session["launch_error"] = str(error)

@@ -113,13 +113,17 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # dot-directory symlink rule for content sync); no other dependency changes.
 # Issue #460 enrolls the live enrollment service and its submission-path test in
 # strict mypy; the configuration-only seal moves, preserving the dependency and lock seals.
-STUDIO_COURSES_PYPROJECT_SHA256 = "f38ddf39e4b1f93f10fbbad5b42221c313eeb86bfacef8ba3f5f438b1fc41835"
+# Issue #468 adds strict-mypy batch launch modules and carries the reviewed
+# device-login community-base v0.5.31 pin from 054f233; this seal tracks both.
+STUDIO_COURSES_PYPROJECT_SHA256 = "be323316deb77680b287ebdacffb717eea99fde6cdc7ec4a9950e176006b0175"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
 # seal tracks it.
+# Issue #468's reviewed device-login v0.5.31 update changes only the community-base
+# entry and pin reference; the lock seal tracks those bytes.
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "15c7e387e3d17bb1bc4785b5ce336262d98d8497810e11a87dd4f4d838a1b184"
+    "555c9a91ef209945e2f75cf8d3de6e9d94bd869a2fae239501cefc879d544d69"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"

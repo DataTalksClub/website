@@ -75,6 +75,11 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "studio.launch_views.launch_read": PRIVATE_DYNAMIC,
     "studio.launch_views.launch_write": PRIVATE_DYNAMIC,
     "studio.launch_views.launch_send": PRIVATE_DYNAMIC,
+    "community_base.device_login.views.device_start": PRIVATE_DYNAMIC,
+    "community_base.device_login.views.device_token": PRIVATE_DYNAMIC,
+    "community_base.device_login.views.device_approve": PRIVATE_DYNAMIC,
+    "community_base.device_login.views.device_page": PRIVATE_DYNAMIC,
+    "community_base.device_login.views.device_pending": PRIVATE_DYNAMIC,
     # -- Public: stable release assets (invalidate on activation; PUB-07 owns
     # the durable invalidation intent).
     "content.public_views.media": STABLE_RELEASE_ASSET,

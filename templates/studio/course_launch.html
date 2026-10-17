@@ -17,6 +17,26 @@
 <p><label class="field-label" for="compose-kind">Start owner</label><select class="field-input" id="compose-kind" name="target_kind"><option value="cohort">Cohort</option><option value="module">Module</option><option value="shared_module_placement">Shared module placement</option><option value="project">Project</option></select></p>
 <p><label class="field-label" for="compose-target">Target ID (copy from Starts)</label><input class="field-input" id="compose-target" name="target_id" required></p>
 <p><label class="field-label" for="compose-context">Optional template context (JSON object)</label><textarea class="field-input" id="compose-context" name="context" rows="3">{}</textarea></p><button class="button" type="submit">Save draft and preview</button></form></section>
+<section class="admin-section"><h2>Cohort launch and schedule</h2>
+<p>Preview first, then explicitly confirm. Preview is read-only: it classifies every generated and prospective row, returns a fingerprint plus per-row expectations, and writes nothing. Confirming approves and schedules each still-eligible row through the single-row dispatch path; changed rows skip with a reason, unseen rows never ship.</p>
+<form class="admin-form" method="get" action="{% url 'studio:course-launch-read' %}">
+<p><label class="field-label" for="batch-cohort">Batch cohort</label><select class="field-input" id="batch-cohort" name="cohort_id" required>{% for cohort in collections.cohorts %}<option value="{{ cohort.id }}">{{ cohort.title }} · {{ cohort.delivery_mode }}</option>{% empty %}<option value="">Create a cohort first</option>{% endfor %}</select></p>
+<input type="hidden" name="resource" value="batch_preview"><button class="button" type="submit">Preview batch schedule</button></form>
+{% if batch %}
+<h3>Batch preview</h3>
+<p>Fingerprint: <code style="overflow-wrap:anywhere">{{ batch.preview_fingerprint }}</code> · Eligible {{ batch.eligible_count }} · Skipped {{ batch.skipped_count }}</p>
+{% if batch.guidance %}<p class="admin-empty">{{ batch.guidance }}</p>{% endif %}
+<ul>{% for item in batch.rows %}<li><code>{{ item.generated_key }}</code> · {{ item.status }} · {{ item.reason }}{% if item.expected_proposed_at %} · {{ item.expected_proposed_at }}{% endif %}</li>{% endfor %}</ul>
+<form class="admin-form" method="post" action="{% url 'studio:course-launch-send' %}">{% csrf_token %}<input type="hidden" name="idempotency_key" value="{% launch_key %}"><input type="hidden" name="action" value="launch_and_schedule">
+<input type="hidden" name="cohort_id" value="{{ batch.cohort_id }}"><input type="hidden" name="preview_token" value="{{ batch.preview_token }}">
+<p><label class="field-label" for="batch-confirmed"><input type="checkbox" id="batch-confirmed" name="confirmed" value="true" required> I reviewed the preview, audience and destination above</label></p><button class="button" type="submit">Confirm and schedule eligible rows</button></form>
+{% endif %}
+{% if batch_result %}
+<h3>Batch result</h3>
+<p>Scheduled {{ batch_result.enqueued_count }} · Skipped {{ batch_result.skipped_count }}</p>
+<ul>{% for item in batch_result.enqueued %}<li><code>{{ item.generated_key }}</code> · scheduled {{ item.scheduled_at }}</li>{% endfor %}{% for item in batch_result.skipped %}<li><code>{{ item.generated_key }}</code> · {{ item.reason }}</li>{% endfor %}</ul>
+{% endif %}
+</section>
 <section class="admin-section"><h2>Start times</h2><p>Unknown starts stay empty. Enter a timestamp with an offset, for example 2027-01-11T17:00:00+00:00. Deadlines are never used to infer starts.</p>
 <form class="admin-form" method="post" action="{% url 'studio:course-launch-write' %}">{% csrf_token %}<input type="hidden" name="idempotency_key" value="{% launch_key %}"><input type="hidden" name="action" value="timing_update">
 <p><label class="field-label" for="timing-kind">Owner</label><select class="field-input" id="timing-kind" name="target_kind"><option>cohort</option><option>module</option><option>shared_module_placement</option><option>project</option><option>homework</option></select></p>

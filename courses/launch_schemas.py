@@ -21,6 +21,7 @@ REQUIRED = {
     "schedule": ["id", "expected_revision", "scheduled_at", "confirmed"],
     "send": ["id", "expected_revision", "confirmed"],
     "test_send": ["id", "destination", "confirmed"],
+    "launch_and_schedule": ["cohort_id", "confirmed", "preview_token"],
 }
 
 

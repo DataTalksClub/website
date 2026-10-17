@@ -14,6 +14,7 @@ from courses.models import (
 )
 from courses.services.launch_announcements import serialize_announcement
 from courses.services.launch_assignments import serialize_assignment
+from courses.services.launch_batch import preview_batch
 from courses.services.launch_templates import serialize_template
 from courses.services.launch_timing import TIMING_MODELS, serialize_timing
 from courses.services.launch_validation import LaunchError
@@ -94,6 +95,8 @@ def filtered_rows(model, query):
 
 def read_launch(query, *, context=None):
     del context
+    if query.get("resource") == "batch_preview":
+        return preview_batch(query)
     model, serializer = resource_selection(query)
     rows = filtered_rows(model, query)
     try:

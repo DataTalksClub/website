@@ -8,6 +8,7 @@ from core.idempotency import execute_idempotent
 from courses.models import Cohort
 from courses.services import launch_announcements as announcements
 from courses.services import launch_assignments as assignments
+from courses.services import launch_batch as batch
 from courses.services import launch_templates as templates
 from courses.services.launch_generation import generate
 from courses.services.launch_test_send import test_send
@@ -82,6 +83,10 @@ SEND_ACTIONS = {
         {"id", "expected_revision", "scheduled_at", "confirmed"},
     ),
     "send": (announcements.schedule_announcement, {"id", "expected_revision", "confirmed"}),
+    "launch_and_schedule": (
+        batch.execute_batch,
+        {"cohort_id", "confirmed", "preview_token"},
+    ),
 }
 
 

@@ -46,6 +46,7 @@ COMMANDS = {
         "test": "test_send",
     },
     "schedules": {"cancel": "cancel", "schedule": "schedule"},
+    "batches": {"preview": "batch_preview", "schedule": "launch_and_schedule"},
 }
 VALUE_FLAGS = (
     "description",
@@ -72,6 +73,7 @@ VALUE_FLAGS = (
     "scheduled_at",
     "telegram_destination_key",
     "context",
+    "preview_token",
 )
 
 
@@ -152,10 +154,13 @@ def payload_for(args):
 def execute(args):
     if args.family in {"login", "logout", "whoami"}:
         return authenticate(args)
-    if args.command == "list":
+    action = COMMANDS[args.family].get(args.command)
+    if args.command == "list" or action == "batch_preview":
         resource = args.family
         if resource == "starts":
             resource = "timings"
+        if action == "batch_preview":
+            resource = "batch_preview"
         query = {"resource": resource}
         for name in ("id", "cohort_id", "target_kind", "page"):
             if getattr(args, name) is not None:
@@ -168,7 +173,7 @@ def execute(args):
         digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
         payload["seed_key"] = f"copy-bank:{digest}"
     path = "/commands"
-    if payload["action"] in {"send", "schedule", "test_send"}:
+    if payload["action"] in {"send", "schedule", "test_send", "launch_and_schedule"}:
         path = "/dispatch"
     return request(
         "POST",

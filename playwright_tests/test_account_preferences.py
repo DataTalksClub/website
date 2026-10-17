@@ -303,7 +303,7 @@ def test_a_failed_theme_save_still_reverts_and_says_so(page: Page, live_server) 
     # On the page before acting: a transient bad load must read as one, not
     # as a failed toggle.
     expect(checkbox).to_be_visible()
-    checkbox.check()
+    checkbox.click()
 
     expect(status).to_contain_text("Your change was not saved.")
     expect(checkbox).not_to_be_checked()

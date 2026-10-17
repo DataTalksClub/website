@@ -27,6 +27,8 @@ EXAMPLES = {
     "2027-01-11T17:00:00+00:00 --confirmed",
     "send": "--id ANNOUNCEMENT_UUID --expected-revision 2 --confirmed",
     "test_send": "--id ANNOUNCEMENT_UUID --destination operator@example.invalid --confirmed",
+    "batch_preview": "--cohort-id COHORT_UUID",
+    "launch_and_schedule": "--cohort-id COHORT_UUID --confirmed --preview-token PREVIEW_TOKEN",
 }
 
 
@@ -40,6 +42,23 @@ def command_example(family, command, action):
 def emit_result(result, as_json):
     if as_json:
         print(json.dumps(result))
+        return
+    if "preview_fingerprint" in result and "rows" in result:
+        print(f"Preview fingerprint: {result['preview_fingerprint']}")
+        print(f"Eligible: {result.get('eligible_count', 0)}")
+        print(f"Skipped: {result.get('skipped_count', 0)}")
+        if result.get("guidance"):
+            print(result["guidance"])
+        for item in result["rows"]:
+            print(f"{item.get('generated_key', '')}  {item.get('reason', '')}")
+        return
+    if "enqueued_count" in result and "skipped_count" in result:
+        print(f"Enqueued: {result['enqueued_count']}")
+        print(f"Skipped: {result['skipped_count']}")
+        for item in result.get("enqueued", []):
+            print(f"{item.get('generated_key', '')}  scheduled {item.get('scheduled_at', '')}")
+        for item in result.get("skipped", []):
+            print(f"{item.get('generated_key', '')}  {item.get('reason', '')}")
         return
     if "items" in result:
         print(

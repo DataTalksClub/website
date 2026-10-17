@@ -912,6 +912,31 @@
               "confirmed"
             ],
             "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "launch_and_schedule",
+                "type": "string"
+              },
+              "cohort_id": {
+                "type": "string"
+              },
+              "confirmed": {
+                "type": "boolean"
+              },
+              "preview_token": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action",
+              "cohort_id",
+              "confirmed",
+              "preview_token"
+            ],
+            "type": "object"
           }
         ]
       },
