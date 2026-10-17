@@ -56,14 +56,19 @@ PLAN_COMPONENTS = (
 )
 AUTOMATED_COMPONENTS = frozenset(PLAN_COMPONENTS) - {"screenshots"}
 COMPONENT_REQUIRED_CONFIG = {
-    "django": {"DJANGO_SETTINGS_MODULE": "website.settings.test"},
+    "django": {
+        "DJANGO_SETTINGS_MODULE": "website.settings.test",
+        "PUBLIC_MEDIA_STORE_BACKEND": "memory",
+    },
     "playwright": {
         "DJANGO_ALLOW_ASYNC_UNSAFE": "true",
         "DJANGO_SETTINGS_MODULE": "website.settings.test",
+        "PUBLIC_MEDIA_STORE_BACKEND": "memory",
     },
     "screenshots": {
         "DJANGO_ALLOW_ASYNC_UNSAFE": "true",
         "DJANGO_SETTINGS_MODULE": "website.settings.test",
+        "PUBLIC_MEDIA_STORE_BACKEND": "memory",
     },
 }
 # The container component builds and runs the exact release image, so the job
