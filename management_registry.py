@@ -27,6 +27,7 @@ from core.navigation import SITE_NAVIGATION_CAPABILITIES
 from core.operational_settings_service import OPERATIONAL_SETTING_CAPABILITIES
 from core.site_settings import SITE_SETTING_CAPABILITIES
 from core.sponsors import SPONSOR_CAPABILITIES
+from courses.launch_capabilities import LAUNCH_CAPABILITIES
 from event_qna.capabilities import QNA_CAPABILITIES
 from events.capabilities import EVENT_IDENTITY_CAPABILITIES
 from management_auth.fixture_capabilities import CREDENTIAL_FIXTURE_CAPABILITIES
@@ -172,6 +173,7 @@ STUDIO_AUDIT_EXPORT = Capability(
 
 CAPABILITY_REGISTRY = CapabilityRegistry(
     (
+        *LAUNCH_CAPABILITIES,
         STUDIO_HOME,
         STUDIO_AUDIT,
         STUDIO_AUDIT_DETAIL,

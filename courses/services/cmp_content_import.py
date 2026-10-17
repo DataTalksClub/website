@@ -84,6 +84,7 @@ from courses.services.course_family_identity import (
     family_and_year_from_edition_slug,
     family_title_from_edition_title,
 )
+from courses.services.launch_import_timing import import_explicit_start
 
 __all__ = [
     "CampaignReport",
@@ -718,6 +719,7 @@ def _import_cohort(
     homework_slug_overrides: Mapping[str, Mapping[str, str]] = MappingProxyType({}),
 ) -> CohortReport:
     _apply(cohort, _values(row, _COHORT_FIELDS))
+    import_explicit_start(cohort, row, "cohort")
     course_id = row["id"]
 
     homework_rows = _rows(
@@ -771,6 +773,7 @@ def _import_cohort(
             homework = Homework.objects.create(course=cohort, slug=slug, **values)
             if is_modules:
                 unpaired_cmp.append(slug)
+        import_explicit_start(homework, source, "homework")
         existing[slug] = homework
         written += 1
         question_count, retained_count = _reconcile_questions(connection, source["id"], homework)
@@ -808,6 +811,7 @@ def _import_cohort(
         )
         if not created:
             _apply(project, _values(source, _PROJECT_FIELDS))
+        import_explicit_start(project, source, "project")
         projects_written += 1
     projects_removed = (
         Project.objects.filter(course=cohort).exclude(slug__in=project_slugs).delete()[0]

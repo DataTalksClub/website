@@ -1,0 +1,30 @@
+{% extends "studio/base.html" %}
+{% load launch_tags %}
+{% block title %}Course announcements · Studio{% endblock %}
+{% block page_head %}
+<div class="admin-head"><p class="mono-label mono-label-indigo">Studio · Courses</p><h1>Course announcements</h1><p class="admin-lede">Compose and review email and Telegram messages. Launch generates unarmed drafts. Approve the current copy before explicitly scheduling or sending.</p></div>
+{% endblock %}
+{% block content %}
+{% if launch_error %}<div role="alert" class="admin-notice"><h2>Changes were not saved</h2><p>{{ launch_error }}</p><p>Your submitted values: {{ submitted }}</p></div>{% endif %}
+<p class="admin-notice">Delivery defaults to simulation. Email audience: enrolled learners who allow course updates. Telegram destinations resolve from a configured setting at send time. Provider acceptance does not mean delivery.</p>
+<nav class="filter-pills" aria-label="Announcement resources"><a class="filter-pill" href="?resource=announcements">Announcements</a><a class="filter-pill" href="?resource=templates">Templates</a><a class="filter-pill" href="?resource=timings">Starts</a><a class="filter-pill" href="?resource=assignments">Assignments</a></nav>
+{% include "studio/launch_templates.html" %}
+{% include "studio/launch_courses.html" %}
+<section class="admin-section"><h2>Compose announcement</h2>
+<form class="admin-form" method="post" action="{% url 'studio:course-launch-write' %}">{% csrf_token %}<input type="hidden" name="idempotency_key" value="{% launch_key %}"><input type="hidden" name="action" value="compose">
+<p><label class="field-label" for="compose-cohort">Cohort</label><select class="field-input" id="compose-cohort" name="cohort_id" required>{% for cohort in collections.cohorts %}<option value="{{ cohort.id }}">{{ cohort.title }} · {{ cohort.delivery_mode }}</option>{% empty %}<option value="">Create a cohort first</option>{% endfor %}</select></p>
+<p><label class="field-label" for="compose-version">Published template</label><select class="field-input" id="compose-version" name="version_id" required>{% for version in collections.versions %}<option value="{{ version.id }}">{{ version.kind }} · {{ version.channel }} · v{{ version.number }}</option>{% empty %}<option value="">Publish a template first</option>{% endfor %}</select></p>
+<p><label class="field-label" for="compose-kind">Start owner</label><select class="field-input" id="compose-kind" name="target_kind"><option value="cohort">Cohort</option><option value="module">Module</option><option value="shared_module_placement">Shared module placement</option><option value="project">Project</option></select></p>
+<p><label class="field-label" for="compose-target">Target ID (copy from Starts)</label><input class="field-input" id="compose-target" name="target_id" required></p>
+<p><label class="field-label" for="compose-context">Optional template context (JSON object)</label><textarea class="field-input" id="compose-context" name="context" rows="3">{}</textarea></p><button class="button" type="submit">Save draft and preview</button></form></section>
+<section class="admin-section"><h2>Start times</h2><p>Unknown starts stay empty. Enter a timestamp with an offset, for example 2027-01-11T17:00:00+00:00. Deadlines are never used to infer starts.</p>
+<form class="admin-form" method="post" action="{% url 'studio:course-launch-write' %}">{% csrf_token %}<input type="hidden" name="idempotency_key" value="{% launch_key %}"><input type="hidden" name="action" value="timing_update">
+<p><label class="field-label" for="timing-kind">Owner</label><select class="field-input" id="timing-kind" name="target_kind"><option>cohort</option><option>module</option><option>shared_module_placement</option><option>project</option><option>homework</option></select></p>
+<p><label class="field-label" for="timing-id">Target ID</label><input class="field-input" id="timing-id" name="id" required></p><p><label class="field-label" for="timing-revision">Current revision</label><input class="field-input" id="timing-revision" name="expected_revision" type="number" min="0" required></p><p><label class="field-label" for="starts-at">Starts at (leave blank to clear)</label><input class="field-input" id="starts-at" name="starts_at"></p><p><label class="field-label" for="provenance">Source / provenance</label><input class="field-input" id="provenance" name="provenance" maxlength="200" required></p><button class="button" type="submit">Save start and invalidate approval</button></form>
+<p>Inspect: <a href="?resource=timings&amp;target_kind=cohort">Cohorts</a> · <a href="?resource=timings&amp;target_kind=module">Modules</a> · <a href="?resource=timings&amp;target_kind=shared_module_placement">Shared placements</a> · <a href="?resource=timings&amp;target_kind=project">Projects</a></p></section>
+<section class="admin-section"><h2>Saved records</h2>
+{% for item in result.items %}
+{% if item.status %}{% include "studio/launch_announcement.html" with item=item %}{% else %}<pre style="white-space:pre-wrap;overflow-wrap:anywhere">{{ item }}</pre>{% endif %}
+{% empty %}<p class="admin-empty">No records yet. Publish templates, assign them to a course, add known starts, and launch a live cohort to generate unarmed schedules.</p>{% endfor %}
+<p>Page {{ result.page }} · {{ result.total_count }} records. API and CLI provide paginated access to the full collection.</p></section>
+{% endblock %}

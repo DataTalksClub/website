@@ -6,10 +6,12 @@ from django.utils import timezone
 
 from courses.curriculum_source_validators import validate_unit_code_sources
 
+from .timing import TimingOwner
+
 from .curriculum_import import SourceProvenanceModel, source_provenance_constraint
 
 
-class Module(SourceProvenanceModel):
+class Module(TimingOwner, SourceProvenanceModel):
     """An ordered module in a module-format cohort."""
 
     cohort = models.ForeignKey(

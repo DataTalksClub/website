@@ -15,6 +15,8 @@ from courses.validators.criteria_validators import (
 )
 from courses.validators.custom_url_validators import validate_url_200
 
+from .timing import TimingOwner
+
 from .cohort import Cohort, Enrollment
 
 User = get_user_model()
@@ -47,7 +49,7 @@ PROJECT_STATE_LABELS = {
 }
 
 
-class Project(models.Model):
+class Project(TimingOwner, models.Model):
     course = models.ForeignKey(Cohort, on_delete=models.CASCADE)
     slug = models.SlugField(blank=False)
 

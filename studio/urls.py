@@ -2,11 +2,14 @@ from django.urls import path
 
 from event_qna import studio_views as qna_views
 
-from . import views
+from . import launch_views, views
 
 app_name = "studio"
 
 urlpatterns = [
+    path("course-launch/", launch_views.launch_read, name="course-launch-read"),
+    path("course-launch/commands/", launch_views.launch_write, name="course-launch-write"),
+    path("course-launch/dispatch/", launch_views.launch_send, name="course-launch-send"),
     path("", views.home, name="home"),
     path("settings", views.site_settings, name="settings"),
     path("navigation", views.site_navigation, name="navigation"),

@@ -1104,6 +1104,27 @@ def _mapping() -> dict[
             frozenset(),
         )
 
+    # Website announcement timing is delivery-owned and is never projected into
+    # the shared curriculum/coursework package by this one-way historical import.
+    timing_models = {
+        "courses.Cohort",
+        "courses.Module",
+        "courses.CohortSharedModule",
+        "courses.Homework",
+        "courses.Project",
+    }
+    for (site_label, _, _), (site_fields, _, _) in mapping.items():
+        if site_label in timing_models:
+            site_fields.update(
+                {
+                    name: _STAYS
+                    for name in (
+                        "starts_at",
+                        "timing_revision",
+                        "timing_provenance",
+                    )
+                }
+            )
     return mapping
 
 

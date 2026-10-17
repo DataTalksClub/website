@@ -10,6 +10,7 @@ from accounts.services.oauth_providers import SUPPORTED_PROVIDERS
 from core.capabilities import ConcurrencyPolicy, IdempotencyPolicy
 from core.configuration import registered_operational_settings
 from core.operational_settings import OPERATIONAL_SETTING_KEYS
+from courses.launch_schemas import launch_command_schema, launch_parameters
 from management_registry import CAPABILITY_REGISTRY
 
 SCHEMA_PATH = Path(settings.BASE_DIR) / "_docs/api/admin-openapi.json"
@@ -438,6 +439,7 @@ def generate_document() -> dict[str, Any]:
                     "schema": {"type": "string", "pattern": if_match_pattern},
                 }
             )
+        parameters = launch_parameters(capability.key, parameters)
         if parameters:
             operation["parameters"] = parameters
         if adapter.request_schema:
@@ -1001,6 +1003,8 @@ def generate_document() -> dict[str, Any]:
                         "revision": {"type": "integer", "minimum": 1},
                     },
                 },
+                "LaunchCommand": launch_command_schema(),
+                "LaunchResult": {"type": "object"},
                 "APIError": _error_schema(),
             },
         },

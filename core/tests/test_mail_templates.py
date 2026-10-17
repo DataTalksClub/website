@@ -24,6 +24,7 @@ from core import mail_templates
 EXPECTED_KEYS = frozenset(
     {
         "certificate-ready",
+        "course-announcement",
         "course-registration-confirmation",
         "deadline-reminder",
         "enrollment-confirmation",

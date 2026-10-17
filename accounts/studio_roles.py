@@ -32,6 +32,9 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
                 AUDIT_BROWSE,
                 AUDIT_EXPORT,
                 MANAGE_API_CREDENTIALS,
+                "courses.read_course_launch",
+                "courses.manage_course_launch",
+                "courses.send_course_launch",
                 EVENT_QNA_VIEW,
                 EVENT_QNA_MANAGE,
                 SITE_SETTINGS_READ,
@@ -55,7 +58,7 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
                 SPONSORS_EXPORT,
             }
         ),
-        "course_operator": frozenset({STUDIO_ACCESS}),
+        "course_operator": frozenset({STUDIO_ACCESS, "courses.read_course_launch", "courses.manage_course_launch"}),
         "event_operator": frozenset(
             {
                 STUDIO_ACCESS,
@@ -63,7 +66,7 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
                 EVENT_QNA_MANAGE,
             }
         ),
-        "email_operator": frozenset({STUDIO_ACCESS}),
+        "email_operator": frozenset({STUDIO_ACCESS, "courses.read_course_launch", "courses.send_course_launch"}),
         "support_operator": frozenset({STUDIO_ACCESS}),
         "auditor": frozenset(
             {

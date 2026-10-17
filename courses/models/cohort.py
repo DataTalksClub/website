@@ -10,6 +10,8 @@ from accounts.models import User
 from courses.curriculum_source_validators import validate_course_progression
 from courses.random_names import generate_random_name
 
+from .timing import TimingOwner
+
 from .curriculum_import import (
     SOURCE_STABLE_ID_PATTERN,
     SourceProvenanceModel,
@@ -187,7 +189,7 @@ def _validate_cohort_identifier_available(
         )
 
 
-class Cohort(SourceProvenanceModel):
+class Cohort(TimingOwner, SourceProvenanceModel):
     """One dated delivery of a reusable :class:`Course` family."""
 
     CurriculumFormat = CurriculumFormat

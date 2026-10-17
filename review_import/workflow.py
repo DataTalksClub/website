@@ -1385,7 +1385,9 @@ def _assert_final_database(path: Path, expected: AllowedDataset, create_admin: b
                 (SYNTHETIC_ADMIN_EMAIL,),
             ).fetchall()
             if [(row["group_name"], row["permission_name"]) for row in role_permissions] != [
-                ("course_operator", "core.access_studio")
+                ("course_operator", "core.access_studio"),
+                ("course_operator", "courses.manage_course_launch"),
+                ("course_operator", "courses.read_course_launch"),
             ]:
                 raise ImportFailure("target-account-boundary", table="auth_group")
         deny_counts = _sensitive_zero_counts(connection)
@@ -1396,7 +1398,7 @@ def _assert_final_database(path: Path, expected: AllowedDataset, create_admin: b
             # (plan D3.1a); it carries no learner profile.
             "accounts_ext_identitystate": expected_users,
             "auth_group": expected_users,
-            "auth_group_permissions": expected_users,
+            "auth_group_permissions": 3 * expected_users,
         }
         for table, count in deny_counts.items():
             allowed_count = synthetic_role_counts.get(table, 0)

@@ -64,6 +64,9 @@ class DevelopmentOwnerBootstrapTests(TestCase):
             ),
             {
                 ("core", "access_studio"),
+                ("courses", "read_course_launch"),
+                ("courses", "manage_course_launch"),
+                ("courses", "send_course_launch"),
                 ("core", "browse_audit"),
                 ("core", "export_audit"),
                 ("management_auth", "manage_api_credentials"),

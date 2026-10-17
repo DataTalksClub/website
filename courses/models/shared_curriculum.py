@@ -18,6 +18,8 @@ from django.utils import timezone
 
 from courses.curriculum_source_validators import validate_unit_code_sources
 
+from .timing import TimingOwner
+
 from .curriculum_import import SourceProvenanceModel, source_provenance_constraint
 
 
@@ -176,7 +178,7 @@ class SharedLesson(SourceProvenanceModel):
         return self.title
 
 
-class CohortSharedModule(models.Model):
+class CohortSharedModule(TimingOwner, models.Model):
     """One cohort's delivery placement of one shared module.
 
     A placement binds optional terminal homework by stable IDs.  Assessment

@@ -1,7 +1,7 @@
 from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
 
-from . import views
+from . import launch_views, views
 
 
 @csrf_exempt
@@ -151,6 +151,9 @@ event_qna_collection.management_capability_views = {  # type: ignore[attr-define
 
 
 urlpatterns = [
+    path("course-launch", launch_views.launch_read, name="course-launch-read"),
+    path("course-launch/commands", launch_views.launch_write, name="course-launch-write"),
+    path("course-launch/dispatch", launch_views.launch_send, name="course-launch-send"),
     path("health", views.admin_health, name="admin-health"),
     path("settings", site_settings_collection, name="admin-site-settings"),
     path(

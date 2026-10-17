@@ -15,6 +15,8 @@ from core.bootstrap import (
 from core.runtime_identity import read_runtime_identity
 from website.loginas_policy import can_login_as
 
+from .announcements import announcement_configuration
+
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 LOCAL_DEVELOPMENT_SECRET_KEY = "dtc-local-only-insecure-secret-key"
@@ -443,3 +445,11 @@ COMMUNITY_BASE: dict[str, Any] = {
         },
     ],
 }
+
+# Announcement transports are opt-in and remain simulated outside production.
+
+(
+    COURSE_ANNOUNCEMENTS_ENABLED,
+    COURSE_TELEGRAM_BOT_TOKEN,
+    COURSE_TELEGRAM_DESTINATIONS,
+) = announcement_configuration(os.environ)

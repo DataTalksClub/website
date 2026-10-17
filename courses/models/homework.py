@@ -7,6 +7,8 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
+from .timing import TimingOwner
+
 from .cohort import Cohort, Enrollment
 from courses.curriculum_source_validators import validate_source_path
 from courses.validators.custom_url_validators import validate_url_200
@@ -37,7 +39,7 @@ def _build_homework_state_choices():
 HOMEWORK_STATE_CHOICES = _build_homework_state_choices()
 
 
-class Homework(SourceProvenanceModel):
+class Homework(TimingOwner, SourceProvenanceModel):
     slug = models.SlugField(blank=False)
 
     course = models.ForeignKey(Cohort, on_delete=models.CASCADE)

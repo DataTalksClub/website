@@ -69,6 +69,12 @@ QUERY_ALLOWLISTS: dict[str, frozenset[str]] = {
 #: classified`` — and the private/dynamic block is the explicit, reviewed
 #: complement of the shareable classes above, not a default.
 ROUTE_CACHE_CLASSES: dict[str, str] = {
+    "management_api.launch_views.launch_read": PRIVATE_DYNAMIC,
+    "management_api.launch_views.launch_write": PRIVATE_DYNAMIC,
+    "management_api.launch_views.launch_send": PRIVATE_DYNAMIC,
+    "studio.launch_views.launch_read": PRIVATE_DYNAMIC,
+    "studio.launch_views.launch_write": PRIVATE_DYNAMIC,
+    "studio.launch_views.launch_send": PRIVATE_DYNAMIC,
     # -- Public: stable release assets (invalidate on activation; PUB-07 owns
     # the durable invalidation intent).
     "content.public_views.media": STABLE_RELEASE_ASSET,

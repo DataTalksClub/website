@@ -690,6 +690,27 @@ class ReviewImportWorkflowTests(TestCase):
         ):
             return importer.run(config)
 
+    def test_synthetic_course_operator_rejects_an_added_send_grant(self) -> None:
+        self.run_from_migrated_baseline(self.config())
+        with workflow._writable_connection(self.target) as connection:
+            expected = workflow._read_allowed_dataset(connection)
+            connection.execute(
+                """
+                INSERT INTO auth_group_permissions (group_id, permission_id)
+                SELECT auth_group.id, auth_permission.id
+                FROM auth_group CROSS JOIN auth_permission
+                JOIN django_content_type
+                  ON django_content_type.id = auth_permission.content_type_id
+                WHERE auth_group.name = 'course_operator'
+                  AND django_content_type.app_label = 'courses'
+                  AND auth_permission.codename = 'send_course_launch'
+                """
+            )
+            connection.commit()
+        with self.assertRaises(ImportFailure) as caught:
+            workflow._assert_final_database(self.target, expected, True)
+        self.assertEqual(caught.exception.category, "target-account-boundary")
+
     def test_apply_is_repeatable_and_excludes_every_canary(self) -> None:
         before = fingerprint(self.source)
         first = ReviewImporter().run(self.config())
