@@ -144,7 +144,7 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
         review = self.client.get(self.step_url("review"))
 
         self.assertContains(review, "Your submitted version remains accepted")
-        self.assertContains(review, "unsent draft changes")
+        self.assertContains(review, "Saved changes are a draft until you submit them.")
         self.assertEqual(self.submission.answer_set.get(question=self.question1).answer_text, "3")
 
     def test_answer_survives_new_session_without_submission_and_conflict_is_rejected(self):

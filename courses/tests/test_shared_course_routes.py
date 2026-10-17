@@ -318,7 +318,7 @@ class SharedRouteTests(SharedWorldTestCase):
         module_response = self.client.get(flow[0].url)
         self.assertEqual(module_response.status_code, 200)
         self.assertEqual(module_response.context["delivery_cohort"], self.cohort_2026)
-        self.assertContains(module_response, "Open the cohort page")
+        self.assertNotContains(module_response, "Open the cohort page")
         self.assertNotContains(module_response, "How are you taking this course?")
 
         # The resolved cohort also unlocks this module's own terminal homework

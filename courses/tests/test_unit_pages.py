@@ -173,7 +173,8 @@ class PublicUnitPageTests(TestCase):
         response = self.client.get(self.unit_url(self.first_unit))
 
         self.assertContains(response, 'src="https://www.youtube.com/embed/abc123"')
-        self.assertContains(response, 'title="Introduction video lesson"')
+        self.assertContains(response, 'title="Introduction recording"')
+        self.assertContains(response, 'href="https://www.youtube.com/watch?v=abc123"')
         self.assertContains(response, 'referrerpolicy="strict-origin-when-cross-origin"')
         self.assertContains(response, "The lesson body.")
         self.assertNotContains(response, "<h1>Introduction</h1>", html=True)

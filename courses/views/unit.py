@@ -140,6 +140,9 @@ def unit_view(
             "previous_unit": previous_unit,
             "next_unit": next_unit,
             "video_embed_url": unit_video_embed_url(unit),
+            "video_watch_url": unit_video_embed_url(unit).replace(
+                "https://www.youtube.com/embed/", "https://www.youtube.com/watch?v=", 1
+            ),
             "unit_code_links": unit_code_links(unit),
             "edit_on_github_url": unit_edit_on_github_url(unit),
             "canonical_url": f"https://datatalks.club{canonical_path}",
