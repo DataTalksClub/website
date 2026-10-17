@@ -1,7 +1,6 @@
 """Operator CLI. Examples: templates list; announcements schedule --help."""
 
 import argparse
-import getpass
 import hashlib
 import json
 import sys
@@ -15,6 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.course_launch_client import (
     ClientError,
     configuration,
+    device_login_flow,
+    origin,
     profile_path,
     request,
     write_profile,
@@ -89,6 +90,7 @@ def parser():
         sub.add_argument("--url", default=argparse.SUPPRESS)
         if name == "login":
             sub.add_argument("--token-stdin", action="store_true")
+            sub.add_argument("--label", default=None)
     for family, commands in COMMANDS.items():
         family_commands = families.add_parser(family).add_subparsers(dest="command", required=True)
         for command in ("list", *commands):
@@ -118,14 +120,16 @@ def authenticate(args):
         return {"signed_in": False}
     if args.family == "whoami":
         return request("GET", PREFIX + "?resource=identity", url=args.url)
-    token = None
     if args.token_stdin:
         token = sys.stdin.readline().strip()
-    else:
-        token = getpass.getpass("Scoped Bearer token: ")
-    base, credential = configuration(args.url, token)
-    identity = request("GET", PREFIX + "?resource=identity", url=base, token=credential)
-    write_profile({"url": base, "token": credential})
+        base, credential = configuration(args.url, token)
+        identity = request("GET", PREFIX + "?resource=identity", url=base, token=credential)
+        write_profile({"url": base, "token": credential})
+        return identity
+    base = origin(args.url)
+    credential = device_login_flow(base, label=args.label)
+    identity = request("GET", PREFIX + "?resource=identity", url=base, token=credential["token"])
+    write_profile({"url": base, "token": credential["token"]})
     return identity
 
 

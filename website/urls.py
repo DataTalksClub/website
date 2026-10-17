@@ -126,6 +126,10 @@ urlpatterns = [
     # callback ingress (D1.2a mounted it; the retired email_app kept the paths
     # until this retirement).
     path("", include("community_base.mail.urls")),
+    # Admin CLI device login: the verification page (/device) plus the
+    # /api/auth/device start/poll/approve endpoints. Approval mints a
+    # management credential (management_auth/device_login.py).
+    path("", include("community_base.device_login.urls")),
     path("health/live", core_views.liveness, name="health-live"),
     path("health/ready", core_views.readiness, name="health-ready"),
     path("studio", core_views.management_slash_redirect, name="studio-slash-redirect"),

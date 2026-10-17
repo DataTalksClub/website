@@ -87,9 +87,14 @@ uv run --frozen python scripts/course_launch.py announcements cancel --id ANNOUN
 uv run --frozen python scripts/course_launch.py logout --json
 ```
 
-`login` prompts without echo for an existing scoped token (`--token-stdin` is available).
-Profiles live at `~/.config/dtc-course-launch/credentials.json` with mode 0600. `DTC_TOKEN` and
-`DTC_URL` override the stored profile. Do not put tokens in command arguments, URLs or reports.
+`login` runs the browser device flow, which is the preferred sign-in: it prints a
+code and a verification URL, an admin approves it in the browser, and the CLI stores
+the resulting management credential. Only launch managers approve (the site_admin
+role carries `courses.manage_course_launch`); other users get a clear refusal and no
+token is issued. `login --token-stdin` keeps the previous hand-carried scoped-token
+path. Profiles live at `~/.config/dtc-course-launch/credentials.json` with mode 0600.
+`DTC_TOKEN` and `DTC_URL` override the stored profile. Do not put tokens in command
+arguments, URLs or reports.
 `DTC_PROFILE_PATH` supports an isolated synthetic test profile. Logout deletes the local profile;
 revoke the credential in Studio to revoke server-side access.
 

@@ -64,11 +64,11 @@ class CourseLaunchCliTests(TestCase):
     def test_login_never_echoes_or_serializes_token(self):
         output = StringIO()
         with (
-            patch("scripts.course_launch.getpass.getpass", return_value="synthetic-private"),
+            patch("sys.stdin", StringIO("synthetic-private\n")),
             patch("scripts.course_launch.request", return_value={"principal_id": "test"}),
             redirect_stdout(output),
         ):
-            self.assertEqual(main(["login", "--json"]), 0)
+            self.assertEqual(main(["login", "--token-stdin", "--json"]), 0)
         self.assertNotIn("synthetic-private", output.getvalue())
         self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
 
@@ -113,3 +113,88 @@ class CourseLaunchCliTests(TestCase):
                 request("GET", "/api/v1/admin/course-launch")
         self.assertEqual(caught.exception.exit_code, 6)
         self.assertEqual(str(caught.exception), "Use an ISO 8601 timestamp with a UTC offset.")
+
+
+class CourseLaunchDeviceLoginTests(TestCase):
+    def setUp(self):
+        self.path = Path(__file__).resolve().parents[2] / ".tmp" / "cli-device-test-profile.json"
+        self.path.unlink(missing_ok=True)
+        self.environment = patch.dict(
+            os.environ,
+            {
+                "DTC_PROFILE_PATH": str(self.path),
+                "DTC_URL": "http://localhost:8000",
+            },
+        )
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
+        self.addCleanup(self.path.unlink, missing_ok=True)
+        self.sleep = patch("scripts.course_launch_client.time.sleep", return_value=None)
+        self.sleep.start()
+        self.addCleanup(self.sleep.stop)
+
+    def _offer(self):
+        return {
+            "device_code": "synthetic-device-secret",
+            "user_code": "BCDF-GHJK",
+            "verification_uri": "http://localhost:8000/device",
+            "verification_uri_complete": "http://localhost:8000/device?code=BCDF-GHJK",
+            "expires_in": 600,
+            "interval": 0.01,
+        }
+
+    def test_device_login_prints_code_and_url_but_never_the_secret(self):
+        from scripts.course_launch_client import device_login_flow
+
+        script = [(200, self._offer()), (400, {"error": "authorization_pending"})]
+        script.append((200, {"token": "synthetic-credential", "expires_at": None}))
+        printed: list[str] = []
+        with patch("scripts.course_launch_client.anonymous_post", side_effect=script):
+            credential = device_login_flow(
+                "http://localhost:8000", label="agent@box", printer=printed.append
+            )
+        self.assertEqual(credential["token"], "synthetic-credential")
+        self.assertTrue(any("BCDF-GHJK" in line for line in printed))
+        self.assertTrue(
+            any("http://localhost:8000/device?code=BCDF-GHJK" in line for line in printed)
+        )
+        self.assertFalse(any("synthetic-device-secret" in line for line in printed))
+
+    def test_device_login_denied_and_expired(self):
+        from scripts.course_launch_client import ClientError, device_login_flow
+
+        with patch(
+            "scripts.course_launch_client.anonymous_post",
+            side_effect=[(200, self._offer()), (400, {"error": "access_denied"})],
+        ):
+            with self.assertRaises(ClientError) as denied:
+                device_login_flow("http://localhost:8000", printer=lambda line: None)
+        self.assertEqual(denied.exception.exit_code, 3)
+        with patch(
+            "scripts.course_launch_client.anonymous_post",
+            side_effect=[(200, self._offer()), (400, {"error": "expired_token"})],
+        ):
+            with self.assertRaises(ClientError) as expired:
+                device_login_flow("http://localhost:8000", printer=lambda line: None)
+        self.assertEqual(expired.exception.exit_code, 3)
+
+    def test_login_command_stores_device_credential(self):
+        output = StringIO()
+        with (
+            patch(
+                "scripts.course_launch.device_login_flow",
+                return_value={"token": "synthetic-credential", "expires_at": None},
+            ) as flow,
+            patch(
+                "scripts.course_launch.request",
+                return_value={"principal_id": "synthetic", "kind": "human", "scopes": []},
+            ),
+            redirect_stdout(output),
+        ):
+            self.assertEqual(main(["login", "--label", "agent@box", "--json"]), 0)
+        self.assertEqual(flow.call_args.kwargs["label"], "agent@box")
+        stored = json.loads(self.path.read_text())
+        self.assertEqual(stored["token"], "synthetic-credential")
+        self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
+        self.assertNotIn("synthetic-device-secret", output.getvalue())
+        self.assertNotIn("synthetic-credential", output.getvalue())

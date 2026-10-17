@@ -1,7 +1,11 @@
 """Bearer profiles and safe HTTP output for the course operator CLI."""
 
+import getpass
 import json
 import os
+import socket
+import sys
+import time
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
@@ -53,6 +57,18 @@ def write_profile(profile):
 
 
 def configuration(url=None, token=None):
+    base = origin(url)
+    profile = read_profile()
+    credential = token or os.getenv("DTC_TOKEN")
+    if not credential and profile.get("url") == base:
+        credential = profile.get("token")
+    if not credential:
+        raise ClientError("Sign in with login or supply DTC_TOKEN.", 3)
+    return base.rstrip("/"), credential
+
+
+def origin(url=None):
+    """Validate the operator origin without requiring a credential."""
     profile = read_profile()
     base = url or os.getenv("DTC_URL") or profile.get("url") or "http://localhost:8000"
     base = base.rstrip("/")
@@ -70,12 +86,106 @@ def configuration(url=None, token=None):
         parsed.scheme == "http" and parsed.hostname in {"localhost", "127.0.0.1", "::1"}
     ):
         raise ClientError("Use HTTPS, or HTTP on localhost.", 2)
-    credential = token or os.getenv("DTC_TOKEN")
-    if not credential and profile.get("url") == base:
-        credential = profile.get("token")
-    if not credential:
-        raise ClientError("Sign in with login or supply DTC_TOKEN.", 3)
-    return base.rstrip("/"), credential
+    return base.rstrip("/")
+
+
+def default_device_label():
+    try:
+        user = getpass.getuser()
+    except Exception:
+        user = ""
+    try:
+        host = socket.gethostname().split(".")[0]
+    except Exception:
+        host = ""
+    label = f"{user}@{host}".strip("@")
+    return (label or "course-launch CLI")[:80]
+
+
+def device_prompt_printer(message):
+    print(message, file=sys.stderr)
+
+
+def anonymous_post(base, path, payload):
+    """POST JSON without a credential; used by the device flow only."""
+    body = json.dumps(payload or {}).encode()
+    try:
+        with build_opener(NoCredentialRedirect()).open(
+            Request(
+                base + path,
+                data=body,
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
+                method="POST",
+            ),
+            timeout=30,
+        ) as response:
+            return response.status, json.load(response)
+    except HTTPError as error:
+        try:
+            document = json.loads(error.read(65536))
+        except (ValueError, OSError):
+            document = None
+        if isinstance(document, dict) and isinstance(document.get("error"), str):
+            return error.code, document
+        raise ClientError(f"Login start failed (HTTP {error.code}).", 7) from None
+    except (URLError, TimeoutError, OSError, ValueError):
+        raise ClientError("Server unavailable or returned an invalid response.", 7) from None
+
+
+def device_login_flow(base, *, label=None, printer=None, timeout=600):
+    """Run the browser device flow and return the minted credential dict."""
+    say = printer or device_prompt_printer
+    status, offer = anonymous_post(
+        base, "/api/auth/device", {"label": label or default_device_label()}
+    )
+    if status != 200 or not isinstance(offer, dict):
+        raise ClientError("Login start failed.", 7)
+    for field in ("device_code", "user_code", "verification_uri"):
+        if not offer.get(field):
+            raise ClientError("Login start returned an invalid offer.", 7)
+    device_code = offer["device_code"]
+    user_code = offer["user_code"]
+    url = offer.get("verification_uri_complete") or offer["verification_uri"]
+    expires_in = offer.get("expires_in", 600) or 600
+    interval = max(float(offer.get("interval", 5) or 5), 1.0)
+    minutes = max(int(round(expires_in / 60)), 1)
+
+    say("")
+    say(f"  Confirm this code:  {user_code}")
+    say(f"    Open in a browser:  {url}")
+    say("    Open that link on a machine you trust and sign in as usual.")
+    say(f"    Waiting for confirmation (the code is valid for {minutes} minute(s))...")
+    say("")
+
+    deadline = time.monotonic() + max(timeout, expires_in + 15)
+    wait = interval
+    while True:
+        if time.monotonic() >= deadline:
+            raise ClientError("Timed out waiting for browser approval.", 3)
+        time.sleep(wait)
+        status, document = anonymous_post(
+            base,
+            "/api/auth/device/token",
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": device_code,
+            },
+        )
+        if status == 200:
+            if not isinstance(document, dict) or "token" not in document:
+                raise ClientError("Login completed with an invalid response.", 7)
+            return document
+        error_code = document.get("error", "") if isinstance(document, dict) else ""
+        if error_code == "authorization_pending":
+            continue
+        if error_code == "slow_down" or status == 429:
+            wait = min(wait + 5, 60)
+            continue
+        if error_code == "access_denied":
+            raise ClientError("The login was denied in the browser.", 3)
+        if error_code == "expired_token":
+            raise ClientError("The code expired. Run login again.", 3)
+        raise ClientError("Login failed.", 7)
 
 
 def request(method, path, *, url=None, token=None, payload=None, key=None, revision=None):

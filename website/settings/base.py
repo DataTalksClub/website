@@ -164,6 +164,7 @@ INSTALLED_APPS = [
     "community_base.kernel.apps.KernelConfig",
     "community_base.config",
     "community_base.api",
+    "community_base.device_login",
     # D2.1b: package Studio is installed for the route partition and
     # authorizer. The site still renders templates/studio/base.html.
     "community_base.studio",
@@ -387,6 +388,13 @@ COMMUNITY_BASE: dict[str, Any] = {
     "MAIL_BACKEND": "relay",
     "STUDIO_TITLE": "DataTalks.Club Studio",
     "STUDIO_AUTHORIZER": "studio.auth.package_studio_authorizer",
+    # Admin CLI device login (community_base.device_login): approval mints a
+    # management credential with the course-launch scopes, so the CLI works
+    # like a Studio-issued scoped token. Only launch managers approve: the
+    # site_admin role carries courses.manage_course_launch, and bare
+    # is_staff/superuser never bypass the registry.
+    "DEVICE_LOGIN_TOKEN_MINTER": "management_auth.device_login.mint_device_credential",
+    "DEVICE_LOGIN_ADMIN_CHECK": "management_auth.device_login.is_device_login_admin",
     # D4.1: canonical event routes carry the public ID, as they always
     # have on this site; slug-only spellings redirect.
     "EVENT_URL_STYLE": "public_id",

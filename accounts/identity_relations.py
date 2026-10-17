@@ -119,6 +119,12 @@ _MANDATORY_RELATIONS = (
     # has no route for it. Nothing can create a row, so there is no row a
     # merge could lose. Revisit if this site ever wires the app in.
     AccountRelationSpec("cb_api.APIKey", "user", "no_handling_required"),
+    # cb_device_login.DeviceGrant.approved_by records which admin approved a
+    # CLI device grant. Grants are single-use and short-lived (ten minutes),
+    # so a merge almost never meets a live one; the approver reference is
+    # audit provenance either way and resolves through merge aliases like
+    # the other actor relations, never reparented.
+    AccountRelationSpec("cb_device_login.DeviceGrant", "approved_by", "provenance_alias"),
     # event_registrants.EventRegistrantIdentity.account is a nullable
     # OneToOne written only by scripts/prod/registrant_import.py and its
     # siblings, which resolve it by ``normalized_email`` against
