@@ -101,6 +101,17 @@ class DeviceLoginFlowTests(TestCase):
         self.assertEqual(identity.status_code, 200)
         self.assertEqual(identity.json()["scopes"], sorted(LAUNCH_SCOPES))
 
+        from core.models import AuditEvent
+
+        audit_event = AuditEvent.objects.filter(
+            action="management.credential.created",
+            target_type="management.credential",
+        ).first()
+        self.assertIsNotNone(audit_event)
+        self.assertEqual(audit_event.actor_id, self.manager.pk)
+        self.assertEqual(audit_event.outcome, AuditEvent.Outcome.SUCCEEDED)
+        self.assertEqual(audit_event.metadata.get("source"), "device_login")
+
         again = self._poll(offer["device_code"])
         self.assertEqual(again.json()["error"], "expired_token")
 
@@ -110,6 +121,15 @@ class DeviceLoginFlowTests(TestCase):
         refused = self._approve(offer["user_code"])
         self.assertEqual(refused.status_code, 403)
         self.assertEqual(refused.json()["error"], "admin_only")
+
+        from core.models import AuditEvent
+
+        self.assertFalse(
+            AuditEvent.objects.filter(
+                action="management.credential.created",
+                target_type="management.credential",
+            ).exists()
+        )
 
         pending = self._poll(offer["device_code"])
         self.assertEqual(pending.json()["error"], "authorization_pending")

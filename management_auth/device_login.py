@@ -29,7 +29,11 @@ from management_auth.constants import (
     PREFIX_COLLISION_RETRIES,
 )
 from management_auth.models import APIPrincipal
-from management_auth.services import create_principal, normalize_scopes
+from management_auth.services import (
+    _audit_credential,
+    create_principal,
+    normalize_scopes,
+)
 from management_auth.tokens import encode_secret, generate_token
 
 LAUNCH_SCOPES = (
@@ -111,7 +115,7 @@ def mint_device_credential(*, user, label: str, request) -> dict:
         generated = generate_token()
         try:
             with transaction.atomic():
-                APICredential.objects.create(
+                credential = APICredential.objects.create(
                     principal=principal,
                     name=name,
                     prefix=generated.prefix,
@@ -121,6 +125,16 @@ def mint_device_credential(*, user, label: str, request) -> dict:
                     scopes=list(scopes),
                     expires_at=expires_at,
                     created_by=user,
+                )
+                _audit_credential(
+                    actor_principal=principal,
+                    credential=credential,
+                    action="management.credential.created",
+                    operation="management.credential.create",
+                    idempotency_key="",
+                    changes={"created": True, "source": "device_login"},
+                    using="default",
+                    extra_metadata={"source": "device_login", "device_label": name},
                 )
         except IntegrityError:
             continue

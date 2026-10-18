@@ -162,7 +162,19 @@ def _audit_credential(
     idempotency_key: str,
     changes: dict,
     using: str,
+    extra_metadata: dict | None = None,
 ) -> None:
+    metadata = {
+        "credential_id": str(credential.id),
+        "principal_id": str(credential.principal_id),
+        "prefix": credential.prefix,
+        "scopes": list(credential.scopes),
+        "expires_at": credential.expires_at.isoformat(),
+        "state": credential_state(credential),
+        "reason": "completed",
+    }
+    if extra_metadata:
+        metadata.update(extra_metadata)
     record_audit_event(
         action=action,
         target_type="management.credential",
@@ -175,15 +187,7 @@ def _audit_credential(
             idempotency_key=idempotency_key,
         ),
         changes=changes,
-        metadata={
-            "credential_id": str(credential.id),
-            "principal_id": str(credential.principal_id),
-            "prefix": credential.prefix,
-            "scopes": list(credential.scopes),
-            "expires_at": credential.expires_at.isoformat(),
-            "state": credential_state(credential),
-            "reason": "completed",
-        },
+        metadata=metadata,
         using=using,
     )
 
