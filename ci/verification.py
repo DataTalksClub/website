@@ -60,9 +60,15 @@ COMPONENT_REQUIRED_CONFIG = {
         "DJANGO_SETTINGS_MODULE": "website.settings.test",
         "PUBLIC_MEDIA_STORE_BACKEND": "memory",
     },
+    "evidence_validation": {
+        "PUBLIC_MEDIA_STORE_BACKEND": "memory",
+    },
     "playwright": {
         "DJANGO_ALLOW_ASYNC_UNSAFE": "true",
         "DJANGO_SETTINGS_MODULE": "website.settings.test",
+        "PUBLIC_MEDIA_STORE_BACKEND": "memory",
+    },
+    "quality": {
         "PUBLIC_MEDIA_STORE_BACKEND": "memory",
     },
     "screenshots": {
