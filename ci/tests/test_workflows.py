@@ -636,3 +636,22 @@ def test_scheduled_full_marker_and_gate_cover_every_component_or_exact_skip() ->
     assert "django-output.log" in workflow_text
     assert "playwright-output.log" in workflow_text
     assert "container-check.json" in workflow_text
+
+
+def test_all_workflow_jobs_pin_reviewed_runner_labels() -> None:
+    """Every workflow job pins a reviewed runner label so CI does not drift into Ubuntu 26."""
+    allowed_labels = {"ubuntu-24.04", "ubuntu-24.04-arm"}
+    workflow_files = (
+        "ci.yml",
+        "scheduled-full-regression.yml",
+        "deploy-dev.yml",
+        "deploy-prod.yml",
+        "release-advisory.yml",
+    )
+    for filename in workflow_files:
+        data = workflow(filename)
+        for job_name, job in data.get("jobs", {}).items():
+            runs_on = job.get("runs-on")
+            assert runs_on in allowed_labels, (
+                f"Job {job_name!r} in {filename} has unreviewed runs-on label {runs_on!r}"
+            )

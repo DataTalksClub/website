@@ -26,7 +26,7 @@ env:
 
 jobs:
   selector:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The scheduled selector performs the same bounded planning work as push CI.
     timeout-minutes: 10
     outputs:
@@ -102,7 +102,7 @@ jobs:
   quality:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       # The checkout carries no projection media objects; every job reads them from
@@ -168,7 +168,7 @@ jobs:
   factories:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       PUBLIC_MEDIA_STORE_BACKEND: memory
     steps:
@@ -187,7 +187,7 @@ jobs:
   migrations:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       PUBLIC_MEDIA_STORE_BACKEND: memory
     steps:
@@ -206,7 +206,7 @@ jobs:
   django:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       DJANGO_SETTINGS_MODULE: website.settings.test
@@ -267,7 +267,7 @@ jobs:
   playwright:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The verified full-profile suite currently takes ~49-52m on the hosted
     # runner (issue #206; ci.yml keeps the same reserve on its Playwright
     # job). A 45m bound killed healthy runs at ~80% completion, so keep a
@@ -335,7 +335,7 @@ jobs:
     if: always() && needs.selector.result == 'success'
     needs: selector
     continue-on-error: true
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
       DJANGO_ALLOW_ASYNC_UNSAFE: "true"
@@ -569,7 +569,7 @@ jobs:
       needs.selector.result == 'success' &&
       needs.selector.outputs.decision == 'run_full'
     needs: [selector, quality, factories, migrations, django, playwright, container]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -640,7 +640,7 @@ jobs:
   scheduled-gate:
     if: always()
     needs: [selector, quality, factories, migrations, django, playwright, container, full-regression]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:

@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Refuse an invalid schema reset dispatch before AWS access
@@ -65,7 +65,7 @@ jobs:
     # code-owned in deploy/ci_verdict.py and exercised by
     # ci/tests/test_deploy_ci_gate.py.
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The full CI profile (including the hosted Playwright suite) currently
     # fits inside one hour; this bounded reserve covers it while keeping a
     # wedged verification from holding the serialized deploy queue forever.
@@ -150,7 +150,7 @@ jobs:
 
   deploy:
     needs: publish
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: development
       url: https://dev.datatalks.club
