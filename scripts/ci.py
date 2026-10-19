@@ -46,6 +46,9 @@ PLAYWRIGHT_EXCLUSIONS: Final = (
 # These lists used to live in Makefile variables. They are part of the quality
 # gate, so keep them next to the command that consumes them.
 ADOPTION_INTEGRATION_PYTHON: Final = (
+    "courses/models/homework_solution.py",
+    "courses/tests/test_homework_solutions.py",
+    "courses/views/homework_solution.py",
     "courses/tests/test_statistics_display_contract.py",
     "accounts/managers.py",
     "accounts/tests/test_user.py",
@@ -216,6 +219,7 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",
+    "scripts/prod/sync_homework_solutions.py",
     "scripts/prod/import_project_repo_enrichment.py",
     "scripts/prod/import_tour.py",
     "courses/services/cmp_content_import.py",

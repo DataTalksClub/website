@@ -1,3 +1,4 @@
+from .homework_solution import HomeworkSolution
 from django.contrib.auth import get_user_model
 
 from . import (  # noqa: F401
@@ -108,6 +109,7 @@ __all__ = (
     "Enrollment",
     "FlowItem",
     "Homework",
+    "HomeworkSolution",
     "HomeworkState",
     "HomeworkStatistics",
     "InvalidCriteriaAnswerError",

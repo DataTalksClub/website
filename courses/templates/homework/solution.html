@@ -1,0 +1,23 @@
+{% extends "core/content_page.html" %}
+
+{% block document_title %}Solution — {{ homework.title }} — DataTalks.Club{% endblock %}
+{% block metadata %}<meta name="robots" content="noindex">{% endblock %}
+{% block page_header %}
+  <p><a href="{{ homework_url }}">Back to {{ homework.title }}</a></p>
+  <h1>{{ homework.title }}: solution</h1>
+  <p>{{ course.title }}</p>
+{% endblock %}
+{% block page_content %}
+  <article class="prose">
+    {{ solution_html }}
+    {% if answers %}
+    <h2>Answers</h2>
+    <dl>
+      {% for answer in answers %}
+      <dt>{{ answer.question_id }}</dt>
+      <dd>{{ answer.answer|linebreaksbr }}</dd>
+      {% endfor %}
+    </dl>
+    {% endif %}
+  </article>
+{% endblock %}

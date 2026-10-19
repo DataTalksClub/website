@@ -146,6 +146,10 @@ CMP_LEARNER_ORDER = (
 # Modules that deliberately have no general script command: module name -> why. An entry
 # here is a decision someone has to argue with, not an omission.
 SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
+    "sync_homework_solutions": (
+        "Requires a private-repository credential or external private checkout and "
+        "existing homework targets; never part of a general dataset rebuild."
+    ),
     "import_event_registrants": (
         "Reads attendee-level personal data and provider credentials, so it stays a "
         "deliberate, separately invoked run rather than something a local rebuild "

@@ -70,6 +70,9 @@
     at hint scale instead of as body copy.
   {% endcomment %}
   <div class="homework-facts">
+    {% if solution_url %}
+      {% include "core/_button.html" with href=solution_url label="View solution and answers" variant="secondary" compact=True %}
+    {% endif %}
     <div class="homework-deadline">
       <span class="mono-label">deadline</span>
       <strong>{{ homework.due_date|user_datetime:request }}</strong>

@@ -1,3 +1,4 @@
+from courses.views.homework_solution import homework_solution
 import re
 
 from django.urls import path
@@ -28,6 +29,11 @@ from .views import (
 )
 
 urlpatterns = [
+    path(
+        "<slug:course_slug>/<slug:cohort_identifier>/homework/<slug:homework_slug>/solution",
+        homework_solution,
+        name="cohort_homework_solution",
+    ),
     path("", course_list.course_list, name="course_list"),
     # A cohort's URL is one flat, cohorts-segment-free shape:
     # ``<family>/<cohort_identifier>/...`` (issue #320). The old

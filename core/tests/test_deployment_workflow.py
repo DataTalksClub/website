@@ -115,7 +115,9 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # strict mypy; the configuration-only seal moves, preserving the dependency and lock seals.
 # Issue #468 adds strict-mypy batch launch modules and carries the reviewed
 # device-login community-base v0.5.31 pin from 054f233; this seal tracks both.
-STUDIO_COURSES_PYPROJECT_SHA256 = "be323316deb77680b287ebdacffb717eea99fde6cdc7ec4a9950e176006b0175"
+# Private homework solutions enroll four new strict-mypy modules (configuration
+# only); dependency and lock seals remain unchanged.
+STUDIO_COURSES_PYPROJECT_SHA256 = "930d210f47242534f2f789fe37db18c4002eff60ab4af6db9c73bb399bacac48"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation

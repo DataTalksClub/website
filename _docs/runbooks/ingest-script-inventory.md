@@ -1254,3 +1254,13 @@ export, and `/data/tmp/rds-export/website/` now holds daily
 backups of **our own** deployed database rather than an upstream source, so they
 are a restore artifact and not an ingest source, but nobody has confirmed that in
 writing.
+
+
+## Private homework solutions
+
+[`scripts/prod/sync_homework_solutions.py`](../../scripts/prod/sync_homework_solutions.py)
+imports a complete private Git snapshot into database-owned publication records.
+It needs existing homework targets and is excluded from general dataset rebuilds.
+Credentials, schema, release/revocation steps and failure behavior are in
+[Publish homework solutions](homework-solutions.md). No private data is staged in
+the website checkout or image.

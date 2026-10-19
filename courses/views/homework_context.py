@@ -13,6 +13,8 @@ from courses.models.homework import (
     Question,
     Submission,
 )
+from courses.models.homework_solution import HomeworkSolution
+from courses.views.url_utils import cohort_url
 from courses.models.shared_curriculum import CohortSharedModule, SharedLesson
 from courses.services.course_context import context_query
 from courses.services.enrollment import enroll_learner
@@ -134,6 +136,11 @@ def homework_navigation_context(
         else []
     )
     return {
+        "solution_url": (
+            cohort_url(course, "cohort_homework_solution", homework_slug=homework.slug)
+            if HomeworkSolution.objects.published().filter(homework=homework).exists()
+            else ""
+        ),
         "instructions_url": homework_instructions_url(course, homework),
         "homework_module": homework_terminal_module(homework),
         "shared_homework_module": shared_homework_module,
