@@ -1,15 +1,27 @@
 """Bearer profiles and safe HTTP output for the course operator CLI."""
 
-import getpass
 import json
 import os
-import socket
 import sys
 import time
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
+
+from community_base.device_login.client import (
+    DeviceLoginError,
+)
+from community_base.device_login.client import (
+    default_label as cb_default_label,
+)
+from community_base.device_login.client import (
+    device_login as cb_device_login,
+)
+from community_base.device_login.storage import (
+    read_private_json,
+    save_private_json,
+)
 
 
 class ClientError(RuntimeError):
@@ -33,27 +45,22 @@ def read_profile():
     path = profile_path()
     if not path.exists():
         return {}
-    if path.stat().st_mode & 0o077:
-        raise ClientError("Credential profile must have mode 0600.", 3)
     try:
-        profile = json.loads(path.read_text())
+        profile = read_private_json(path)
         if not isinstance(profile, dict):
             raise ValueError("invalid profile")
         for field in ("url", "token"):
             if field in profile and not isinstance(profile[field], str):
                 raise ValueError("invalid profile")
         return profile
+    except PermissionError as error:
+        raise ClientError("Credential profile must have mode 0600.", 3) from error
     except (ValueError, OSError) as error:
         raise ClientError("Cannot read credential profile.", 3) from error
 
 
 def write_profile(profile):
-    path = profile_path()
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
-    os.fchmod(descriptor, 0o600)
-    with os.fdopen(descriptor, "w") as output:
-        json.dump(profile, output)
+    save_private_json(profile_path(), profile)
 
 
 def configuration(url=None, token=None):
@@ -90,16 +97,7 @@ def origin(url=None):
 
 
 def default_device_label():
-    try:
-        user = getpass.getuser()
-    except Exception:
-        user = ""
-    try:
-        host = socket.gethostname().split(".")[0]
-    except Exception:
-        host = ""
-    label = f"{user}@{host}".strip("@")
-    return (label or "course-launch CLI")[:80]
+    return cb_default_label("course-launch CLI")
 
 
 def device_prompt_printer(message):
@@ -132,60 +130,38 @@ def anonymous_post(base, path, payload):
         raise ClientError("Server unavailable or returned an invalid response.", 7) from None
 
 
+class _AnonymousPostSession:
+    def post(self, url, json=None, timeout=None):
+        parsed = urlsplit(url)
+        path = parsed.path
+        base = f"{parsed.scheme}://{parsed.netloc}"
+        status_code, data = anonymous_post(base, path, json)
+
+        class _Response:
+            def __init__(self, sc, d):
+                self.status_code = sc
+                self._data = d
+                self.text = "" if isinstance(d, dict) else str(d)
+
+            def json(self):
+                return self._data
+
+        return _Response(status_code, data)
+
+
 def device_login_flow(base, *, label=None, printer=None, timeout=600):
     """Run the browser device flow and return the minted credential dict."""
-    say = printer or device_prompt_printer
-    status, offer = anonymous_post(
-        base, "/api/auth/device", {"label": label or default_device_label()}
-    )
-    if status != 200 or not isinstance(offer, dict):
-        raise ClientError("Login start failed.", 7)
-    for field in ("device_code", "user_code", "verification_uri"):
-        if not offer.get(field):
-            raise ClientError("Login start returned an invalid offer.", 7)
-    device_code = offer["device_code"]
-    user_code = offer["user_code"]
-    url = offer.get("verification_uri_complete") or offer["verification_uri"]
-    expires_in = offer.get("expires_in", 600) or 600
-    interval = max(float(offer.get("interval", 5) or 5), 1.0)
-    minutes = max(int(round(expires_in / 60)), 1)
-
-    say("")
-    say(f"  Confirm this code:  {user_code}")
-    say(f"    Open in a browser:  {url}")
-    say("    Open that link on a machine you trust and sign in as usual.")
-    say(f"    Waiting for confirmation (the code is valid for {minutes} minute(s))...")
-    say("")
-
-    deadline = time.monotonic() + max(timeout, expires_in + 15)
-    wait = interval
-    while True:
-        if time.monotonic() >= deadline:
-            raise ClientError("Timed out waiting for browser approval.", 3)
-        time.sleep(wait)
-        status, document = anonymous_post(
+    try:
+        return cb_device_login(
             base,
-            "/api/auth/device/token",
-            {
-                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-                "device_code": device_code,
-            },
+            label=label or default_device_label(),
+            printer=printer or device_prompt_printer,
+            timeout=timeout,
+            session=_AnonymousPostSession(),
         )
-        if status == 200:
-            if not isinstance(document, dict) or "token" not in document:
-                raise ClientError("Login completed with an invalid response.", 7)
-            return document
-        error_code = document.get("error", "") if isinstance(document, dict) else ""
-        if error_code == "authorization_pending":
-            continue
-        if error_code == "slow_down" or status == 429:
-            wait = min(wait + 5, 60)
-            continue
-        if error_code == "access_denied":
-            raise ClientError("The login was denied in the browser.", 3)
-        if error_code == "expired_token":
-            raise ClientError("The code expired. Run login again.", 3)
-        raise ClientError("Login failed.", 7)
+    except DeviceLoginError as error:
+        exit_code = 3 if error.code in {"access_denied", "expired_token", "timeout"} else 7
+        raise ClientError(str(error), exit_code) from error
 
 
 def request(method, path, *, url=None, token=None, payload=None, key=None, revision=None):
