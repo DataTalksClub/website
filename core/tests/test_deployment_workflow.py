@@ -117,15 +117,19 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # device-login community-base v0.5.31 pin from 054f233; this seal tracks both.
 # Private homework solutions enroll four new strict-mypy modules (configuration
 # only); dependency and lock seals remain unchanged.
-STUDIO_COURSES_PYPROJECT_SHA256 = "930d210f47242534f2f789fe37db18c4002eff60ab4af6db9c73bb399bacac48"
+# The course-launch device-login wiring moves community-base v0.5.31 to v0.5.33
+# (0e820369); the reviewed configuration-only seal tracks the pin bytes.
+STUDIO_COURSES_PYPROJECT_SHA256 = "f937e2ef54d227c666c6ffea9767afc37fd8f73eeaa369f7cbacefb543cc204f"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
 # seal tracks it.
 # Issue #468's reviewed device-login v0.5.31 update changes only the community-base
 # entry and pin reference; the lock seal tracks those bytes.
+# The course-launch device-login wiring moves community-base v0.5.31 to v0.5.33
+# (0e820369); the reviewed lock seal tracks the entry and pin reference bytes.
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "555c9a91ef209945e2f75cf8d3de6e9d94bd869a2fae239501cefc879d544d69"
+    "d3b7154f304e227338091015c3880cbd30ce0ae6dbd43e8e0243a9806c35ee94"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"

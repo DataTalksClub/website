@@ -3,7 +3,6 @@
 import json
 import os
 import sys
-import time
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
