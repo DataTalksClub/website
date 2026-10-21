@@ -564,6 +564,21 @@ class RegistrationCampaign(models.Model):
         blank=True,
         validators=[URLValidator()],
     )
+    requires_approval = models.BooleanField(
+        default=False,
+        help_text=(
+            "Application-style registration: seats are limited and each "
+            "registration waits for review instead of confirming a place."
+        ),
+    )
+    application_notice = models.TextField(
+        blank=True,
+        help_text=(
+            "Short disclaimer shown above the registration form, for "
+            "example seat limits and the level expected. Shown only when "
+            "the campaign requires approval."
+        ),
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -592,6 +607,11 @@ class CourseRegistration(models.Model):
         STUDENT_STEM = "student_stem", "Student (STEM)"
         STUDENT_NON_STEM = "student_non_stem", "Student (Non-STEM)"
         OTHER = "other", "Other"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
 
     campaign = models.ForeignKey(
         RegistrationCampaign,
@@ -623,8 +643,28 @@ class CourseRegistration(models.Model):
     country = models.CharField(max_length=100)
     region = models.CharField(max_length=100)
     role = models.CharField(max_length=40, choices=Role.choices)
+    experience = models.TextField(blank=True, default="")
+    motivation = models.TextField(blank=True, default="")
+    linkedin_url = models.URLField(blank=True, default="")
+    github_url = models.URLField(blank=True, default="")
+    prereq_python = models.BooleanField(default=False)
+    prereq_docker = models.BooleanField(default=False)
+    prereq_http_apis = models.BooleanField(default=False)
+    prereq_cli = models.BooleanField(default=False)
     comment = models.TextField(blank=True)
     accepted_newsletter = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_default=Status.PENDING,
+        help_text=(
+            "Review state for application-style campaigns. Open campaigns "
+            "approve on submit; campaigns that require approval stay pending "
+            "until an operator reviews them. Never auto-enrolls: enrollment "
+            "is a separate row."
+        ),
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
