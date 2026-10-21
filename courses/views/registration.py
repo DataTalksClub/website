@@ -28,6 +28,7 @@ from courses.views.url_utils import canonical_cohort_url_kwargs
 from .registration_form import (
     CourseRegistrationForm,
     authenticated_registration_identity,
+    campaign_requires_approval,
     missing_profile_field_names,
 )
 
@@ -214,6 +215,8 @@ def registration_campaign_view(
                     "course_slug": course_slug,
                     "registration_id": registration.id,
                     "accepted_newsletter": registration.accepted_newsletter,
+                    "requires_approval": campaign_requires_approval(campaign),
+                    "registration_status": registration.status,
                 },
             )
 

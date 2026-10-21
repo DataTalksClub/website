@@ -17,6 +17,22 @@ COMPANY_NAME_WIDGET = forms.TextInput(
 )
 COUNTRY_SELECT_WIDGET = forms.Select(attrs={"class": "form-control"})
 ROLE_WIDGET = forms.Select(attrs={"class": "form-control"})
+EXPERIENCE_WIDGET = forms.Textarea(
+    attrs={
+        "class": "form-control",
+        "rows": 4,
+        "placeholder": "Years of experience, relevant projects, tools you use",
+    }
+)
+MOTIVATION_WIDGET = forms.Textarea(
+    attrs={
+        "class": "form-control",
+        "rows": 4,
+        "placeholder": "What do you want to build or learn in this course?",
+    }
+)
+PROFILE_URL_WIDGET = forms.URLInput(attrs={"class": "form-control"})
+PREREQ_WIDGET = forms.CheckboxInput(attrs={"class": "h-4 w-4"})
 COMMENT_WIDGET = forms.Textarea(
     attrs={
         "class": "form-control",
@@ -37,11 +53,28 @@ OPTIONAL_REGISTRATION_FIELDS = (
     "role",
     "comment",
 )
+#: Application-style campaigns (``RegistrationCampaign.requires_approval``)
+#: ask for a name, a role and experience the way Mikhail's course does:
+#: limited seats, medium-advanced level, approve targeted applicants after
+#: registration. Open campaigns keep the historically optional shape.
+APPLICATION_REQUIRED_FIELDS = (
+    "name",
+    "role",
+    "experience",
+)
 
 
-def configure_registration_form_fields(form):
+def campaign_requires_approval(campaign) -> bool:
+    return bool(campaign is not None and getattr(campaign, "requires_approval", False))
+
+
+def configure_registration_form_fields(form, campaign=None):
     for field_name in OPTIONAL_REGISTRATION_FIELDS:
         form.fields[field_name].required = False
+
+    if campaign_requires_approval(campaign):
+        for field_name in APPLICATION_REQUIRED_FIELDS:
+            form.fields[field_name].required = True
 
     country_widget = forms.TextInput(attrs=COUNTRY_COMBOBOX_WIDGET_ATTRS)
     form.fields["country"].widget = country_widget
@@ -178,6 +211,52 @@ class CourseRegistrationForm(forms.ModelForm):
         required=True,
         widget=ACCEPTED_NEWSLETTER_WIDGET,
     )
+    experience = forms.CharField(
+        label="Experience",
+        required=False,
+        widget=EXPERIENCE_WIDGET,
+        help_text=(
+            "Your background: years of experience, relevant projects, "
+            "tools you use."
+        ),
+    )
+    motivation = forms.CharField(
+        label="Why do you want to join?",
+        required=False,
+        widget=MOTIVATION_WIDGET,
+    )
+    linkedin_url = forms.URLField(
+        label="LinkedIn profile",
+        required=False,
+        widget=PROFILE_URL_WIDGET,
+        help_text="Optional. A link to your LinkedIn profile, starting with https://.",
+    )
+    github_url = forms.URLField(
+        label="GitHub profile",
+        required=False,
+        widget=PROFILE_URL_WIDGET,
+        help_text="Optional. A link to your GitHub profile, starting with https://.",
+    )
+    prereq_python = forms.BooleanField(
+        label="I am comfortable with Python",
+        required=False,
+        widget=PREREQ_WIDGET,
+    )
+    prereq_docker = forms.BooleanField(
+        label="I know Docker basics",
+        required=False,
+        widget=PREREQ_WIDGET,
+    )
+    prereq_http_apis = forms.BooleanField(
+        label="I have worked with HTTP APIs",
+        required=False,
+        widget=PREREQ_WIDGET,
+    )
+    prereq_cli = forms.BooleanField(
+        label="I am comfortable with the command line",
+        required=False,
+        widget=PREREQ_WIDGET,
+    )
 
     class Meta:
         model = CourseRegistration
@@ -187,6 +266,14 @@ class CourseRegistrationForm(forms.ModelForm):
             "company_name",
             "country",
             "role",
+            "experience",
+            "prereq_python",
+            "prereq_docker",
+            "prereq_http_apis",
+            "prereq_cli",
+            "linkedin_url",
+            "github_url",
+            "motivation",
             "comment",
             "accepted_newsletter",
         ]
@@ -196,6 +283,10 @@ class CourseRegistrationForm(forms.ModelForm):
             "company_name": COMPANY_NAME_WIDGET,
             "country": COUNTRY_SELECT_WIDGET,
             "role": ROLE_WIDGET,
+            "experience": EXPERIENCE_WIDGET,
+            "linkedin_url": PROFILE_URL_WIDGET,
+            "github_url": PROFILE_URL_WIDGET,
+            "motivation": MOTIVATION_WIDGET,
             "comment": COMMENT_WIDGET,
         }
 
@@ -203,7 +294,7 @@ class CourseRegistrationForm(forms.ModelForm):
         self.campaign = kwargs.pop("campaign", None)
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-        configure_registration_form_fields(self)
+        configure_registration_form_fields(self, self.campaign)
         configure_authenticated_registration_user(self, self.user)
 
     def clean_email(self):
@@ -238,6 +329,10 @@ class CourseRegistrationForm(forms.ModelForm):
         registration.campaign = self.campaign
         registration.course = self.campaign.current_course
         registration.region = region_for_country(registration.country)
+        if campaign_requires_approval(self.campaign):
+            registration.status = CourseRegistration.Status.PENDING
+        else:
+            registration.status = CourseRegistration.Status.APPROVED
         if has_authenticated_registration_user(self.user):
             registration.user = self.user
             registration.email = self.user.email
