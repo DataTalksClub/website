@@ -15,14 +15,23 @@
 {% endcomment %}
 <div class="card registration-panel">
   <div class="registration-submitted">
-    {% if form.is_bound %}
-      <h2 id="registration-form-heading">You are registered</h2>
+    {% if campaign.requires_approval and registration.status == "pending" %}
+      <h2 id="registration-form-heading">Application received</h2>
+      <p class="registration-note">
+        Your application is pending review. We will notify
+        {{ registration.email_normalized }} once it is approved —
+        acceptance is not automatic.
+      </p>
     {% else %}
-      <h2 id="registration-form-heading">You are already registered</h2>
+      {% if form.is_bound %}
+        <h2 id="registration-form-heading">You are registered</h2>
+      {% else %}
+        <h2 id="registration-form-heading">You are already registered</h2>
+      {% endif %}
+      <p class="registration-note">
+        We will send course updates to {{ registration.email_normalized }}.
+      </p>
     {% endif %}
-    <p class="registration-note">
-      We will send course updates to {{ registration.email_normalized }}.
-    </p>
   </div>
   <div class="registration-next-steps">
     <p class="mono-label" id="registration-next-steps-heading">What to do next</p>

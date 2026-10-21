@@ -557,6 +557,25 @@
         </section>
       {% endif %}
 
+      {% if campaign.requires_approval %}
+        <section class="registration-section" aria-labelledby="registration-application-heading">
+          <div class="panel panel-lavender panel-outlined registration-state">
+            <p class="registration-state-title" id="registration-application-heading">
+              Limited seats · medium–advanced level
+            </p>
+            <p class="registration-note">
+              Registration is an application: submitting the form does not
+              reserve a seat. Every application is reviewed, and targeted
+              applicants are approved after registration — acceptance is not
+              automatic.
+            </p>
+            {% if campaign.application_notice %}
+              <p class="registration-note">{{ campaign.application_notice|linebreaksbr }}</p>
+            {% endif %}
+          </div>
+        </section>
+      {% endif %}
+
       <section class="registration-section" aria-labelledby="registration-form-heading">
         <div>
           {% if registration %}

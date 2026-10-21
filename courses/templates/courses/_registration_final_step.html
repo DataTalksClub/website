@@ -106,6 +106,14 @@
     <div class="registration-about">
       <p class="mono-label">About this registration</p>
       {% include "courses/_registration_field.html" with field=form.company_name %}
+      {% include "courses/_registration_field.html" with field=form.experience %}
+      {% include "courses/_registration_consent.html" with field=form.prereq_python %}
+      {% include "courses/_registration_consent.html" with field=form.prereq_docker %}
+      {% include "courses/_registration_consent.html" with field=form.prereq_http_apis %}
+      {% include "courses/_registration_consent.html" with field=form.prereq_cli %}
+      {% include "courses/_registration_field.html" with field=form.linkedin_url %}
+      {% include "courses/_registration_field.html" with field=form.github_url %}
+      {% include "courses/_registration_field.html" with field=form.motivation %}
       {% include "courses/_registration_field.html" with field=form.comment %}
     </div>
     {% include "courses/_registration_consent.html" with field=form.accepted_newsletter %}
