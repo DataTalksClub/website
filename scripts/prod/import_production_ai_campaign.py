@@ -66,14 +66,20 @@ MARKETING_MARKDOWN = """\
 
 4 weeks · ~8–10 h/week · free · open-source · project-based.
 
-> How do you build a production AI system when an agent can launch expensive, slow, failure-prone GPU workloads that produce large media artifacts?
+> How do you build a production AI system when an agent can launch expensive,
+> slow, failure-prone GPU workloads that produce large media artifacts?
 
-Outcome: build, deploy, evaluate, optimize and monitor a production AI system in which agents orchestrate GPU-powered image, video and audio models.
+Outcome: build, deploy, evaluate, optimize and monitor a production AI system
+in which agents orchestrate GPU-powered image, video and audio models.
 
 ### Program
 
-- **Week 1 — Make it work.** Generative media workloads: modalities and model families, first GPU generation from script to container to GPU job, containers for generative AI, GPU engineering (precision, quantization, offloading, batching, OOM debugging), jobs vs endpoints.
-- **Week 2 — Make it intelligent.** Agents that use GPUs: the agent loop, tools and structured outputs, CPU agents with GPU tools, long-running tools.
+- **Week 1 — Make it work.** Generative media workloads: modalities and model
+  families, first GPU generation from script to container to GPU job,
+  containers for generative AI, GPU engineering (precision, quantization,
+  offloading, batching, OOM debugging), jobs vs endpoints.
+- **Week 2 — Make it intelligent.** Agents that use GPUs: the agent loop,
+  tools and structured outputs, CPU agents with GPU tools, long-running tools.
 - **Week 3 — Make it scale.**
 - **Week 4 — Make it production-ready.**
 
@@ -85,7 +91,8 @@ Outcome: build, deploy, evaluate, optimize and monitor a production AI system in
 
 ### Prerequisites
 
-Python, Docker basics, HTTP APIs, command line. No diffusion theory required. Prior LLM or MLOps course experience helps, not required.
+Python, Docker basics, HTTP APIs, command line. No diffusion theory required.
+Prior LLM or MLOps course experience helps, not required.
 """
 
 META_DESCRIPTION = (
@@ -111,9 +118,7 @@ def run(*, apply: bool = True, refresh_copy: bool = False) -> dict[str, Any]:
             "campaign_slug": CAMPAIGN_SLUG,
             "family_exists": Course.objects.filter(slug=FAMILY_SLUG).exists(),
             "cohort_exists": Cohort.objects.filter(slug=COHORT_SLUG).exists(),
-            "campaign_exists": RegistrationCampaign.objects.filter(
-                slug=CAMPAIGN_SLUG
-            ).exists(),
+            "campaign_exists": RegistrationCampaign.objects.filter(slug=CAMPAIGN_SLUG).exists(),
         }
 
     with transaction.atomic():

@@ -23,9 +23,7 @@ class RegistrationApplicationGateTests(RegistrationCampaignBase):
             "4 weeks, about 8-10 hours per week. "
             "Prerequisites: Python, Docker basics, HTTP APIs, command line."
         )
-        self.campaign.save(
-            update_fields=["requires_approval", "application_notice"]
-        )
+        self.campaign.save(update_fields=["requires_approval", "application_notice"])
 
     def application_payload(self, **overrides):
         payload = {
@@ -78,19 +76,13 @@ class RegistrationApplicationGateTests(RegistrationCampaignBase):
         self.assertEqual(response.status_code, 200)
         registration = CourseRegistration.objects.get()
         self.assertEqual(registration.status, CourseRegistration.Status.PENDING)
-        self.assertEqual(
-            registration.experience, "3 years of ML, shipped two LLM services"
-        )
+        self.assertEqual(registration.experience, "3 years of ML, shipped two LLM services")
         self.assertTrue(registration.prereq_python)
         self.assertTrue(registration.prereq_docker)
         self.assertTrue(registration.prereq_http_apis)
         self.assertTrue(registration.prereq_cli)
-        self.assertEqual(
-            registration.linkedin_url, "https://www.linkedin.com/in/applicant-one"
-        )
-        self.assertEqual(
-            registration.github_url, "https://github.com/applicant-one"
-        )
+        self.assertEqual(registration.linkedin_url, "https://www.linkedin.com/in/applicant-one")
+        self.assertEqual(registration.github_url, "https://github.com/applicant-one")
         self.assertEqual(
             registration.motivation,
             "I want to run media models on GPUs in production",
@@ -106,9 +98,7 @@ class RegistrationApplicationGateTests(RegistrationCampaignBase):
             self.client.post(url, self.application_payload())
 
         registration = CourseRegistration.objects.get()
-        self.assertEqual(
-            Enrollment.objects.filter(course=registration.course).count(), 0
-        )
+        self.assertEqual(Enrollment.objects.filter(course=registration.course).count(), 0)
 
     def test_open_campaign_keeps_experience_optional_and_approves(self):
         self.campaign.requires_approval = False
@@ -121,9 +111,7 @@ class RegistrationApplicationGateTests(RegistrationCampaignBase):
 
         self.assertEqual(response.status_code, 200)
         registration = CourseRegistration.objects.get()
-        self.assertEqual(
-            registration.status, CourseRegistration.Status.APPROVED
-        )
+        self.assertEqual(registration.status, CourseRegistration.Status.APPROVED)
         self.assertEqual(registration.experience, "")
         self.assertContains(response, "You are registered")
         self.assertNotContains(response, "Limited seats")

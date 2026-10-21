@@ -276,6 +276,8 @@ module = [
     "courses.tests.test_project_form_adapter",
     "courses.services.enrollment",
     "courses.tests.test_enrollment_confirmation_paths",
+    "courses.tests.test_registration_application_gate",
+    "scripts.prod.import_production_ai_campaign",
 ]
 ignore_errors = false
 

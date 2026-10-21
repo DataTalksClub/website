@@ -216,6 +216,9 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "scripts/course_launch.py",
     "scripts/course_launch_client.py",
     "scripts/course_launch_presentation.py",
+    # Application-gate registration path: the approval-campaign gate tests
+    # are new integration code, so lint, format, and typecheck must reach them.
+    "courses/tests/test_registration_application_gate.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",
@@ -233,6 +236,11 @@ PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod/registration_sources/luma_events.py",
     "scripts/tests/test_import_shared_course_platform.py",
     "scripts/tests/test_import_shared_course_platform_defaults.py",
+    # One-time Production AI campaign bootstrap: new production-import code.
+    # Listed after the directory so _dedupe_typecheck_paths drops the file
+    # for mypy (the directory walk already covers it) while the adoption-gate
+    # coverage test still sees the opt-in by path.
+    "scripts/prod/import_production_ai_campaign.py",
 )
 TYPECHECK_PATHS: Final = (
     "manage.py",
