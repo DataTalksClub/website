@@ -129,7 +129,9 @@ class CourseLaunchDeviceLoginTests(TestCase):
         self.environment.start()
         self.addCleanup(self.environment.stop)
         self.addCleanup(self.path.unlink, missing_ok=True)
-        self.sleep = patch("scripts.course_launch_client.time.sleep", return_value=None)
+        # The device flow polls inside community_base.device_login.client
+        # (v0.5.33 wiring), so sleep is patched on the time module itself.
+        self.sleep = patch("time.sleep", return_value=None)
         self.sleep.start()
         self.addCleanup(self.sleep.stop)
 

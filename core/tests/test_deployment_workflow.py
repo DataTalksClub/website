@@ -128,8 +128,10 @@ STUDIO_COURSES_PYPROJECT_SHA256 = "f937e2ef54d227c666c6ffea9767afc37fd8f73eeaa36
 # entry and pin reference; the lock seal tracks those bytes.
 # The course-launch device-login wiring moves community-base v0.5.31 to v0.5.33
 # (0e820369); the reviewed lock seal tracks the entry and pin reference bytes.
+# The certifi 2026.7.22 -> 2026.10.19 upgrade remediates PYSEC-2026-4320; the
+# reviewed lock seal tracks that entry's bytes.
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "d3b7154f304e227338091015c3880cbd30ce0ae6dbd43e8e0243a9806c35ee94"
+    "4c78dce94aadf22f51b649364bcc056aa3632ba5f5358240e8798eee0b26949f"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
