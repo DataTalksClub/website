@@ -17,6 +17,12 @@ REGISTRATION_CAMPAIGN_COURSE_WIDGET = forms.Select(
 REGISTRATION_CAMPAIGN_ACTIVE_WIDGET = forms.CheckboxInput(
     attrs={"class": "form-check-input"}
 )
+REGISTRATION_CAMPAIGN_APPROVAL_WIDGET = forms.CheckboxInput(
+    attrs={"class": "form-check-input"}
+)
+REGISTRATION_CAMPAIGN_NOTICE_WIDGET = forms.Textarea(
+    attrs={"class": "form-control", "rows": 3}
+)
 REGISTRATION_CAMPAIGN_HERO_URL_WIDGET = forms.URLInput(
     attrs={"class": "form-control"}
 )
@@ -120,6 +126,8 @@ class RegistrationCampaignForm(forms.ModelForm):
             "edition_label",
             "current_course",
             "is_active",
+            "requires_approval",
+            "application_notice",
             "hero_image_url",
             "video_url",
             "meta_description",
@@ -131,6 +139,8 @@ class RegistrationCampaignForm(forms.ModelForm):
             "edition_label": REGISTRATION_CAMPAIGN_EDITION_WIDGET,
             "current_course": REGISTRATION_CAMPAIGN_COURSE_WIDGET,
             "is_active": REGISTRATION_CAMPAIGN_ACTIVE_WIDGET,
+            "requires_approval": REGISTRATION_CAMPAIGN_APPROVAL_WIDGET,
+            "application_notice": REGISTRATION_CAMPAIGN_NOTICE_WIDGET,
             "hero_image_url": REGISTRATION_CAMPAIGN_HERO_URL_WIDGET,
             "video_url": REGISTRATION_CAMPAIGN_VIDEO_URL_WIDGET,
             "meta_description": REGISTRATION_CAMPAIGN_META_DESCRIPTION_WIDGET,
@@ -141,12 +151,22 @@ class RegistrationCampaignForm(forms.ModelForm):
             "current_course": "Current course edition",
             "hero_image_url": "Hero image URL",
             "video_url": "Video URL",
+            "requires_approval": "Requires approval",
+            "application_notice": "Application notice",
         }
         help_texts = {
             "slug": "Public URL: /courses/register/<slug>/",
             "edition_label": "Shown above the page title, for example 2026 cohort.",
             "current_course": "The course edition promoted by this landing page.",
             "is_active": "Inactive campaigns do not render publicly.",
+            "requires_approval": (
+                "Application-style registration: submissions stay pending "
+                "for operator review instead of confirming a place."
+            ),
+            "application_notice": (
+                "Short disclaimer shown above the form when approval is "
+                "required, for example seat limits and expected level."
+            ),
             "meta_description": "Optional text for previews and search snippets.",
             "marketing_markdown": "Main landing-page body. Markdown is supported.",
         }

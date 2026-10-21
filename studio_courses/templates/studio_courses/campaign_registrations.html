@@ -128,7 +128,7 @@
         Search
       </button>
     </form>
-    {% if filters.role or filters.country or filters.region or search_query %}
+    {% if filters.role or filters.country or filters.region or filters.status or search_query %}
       <p class="admin-note">
         Filters are active.
         <a href="{% url 'studio_courses_campaign_registrations' campaign.slug %}">Clear filters</a>
@@ -154,6 +154,9 @@
               <a href="?region={{ registration.region|urlencode }}">{{ registration.region }}</a>
             </p>
             <p>{{ registration.get_role_display }}</p>
+            <p class="admin-note">
+              <a href="?status={{ registration.status }}">{{ registration.get_status_display }}</a>
+            </p>
             <p class="admin-note">{{ registration.created_at|date:"M j, Y" }}</p>
           </article>
         {% endfor %}

@@ -337,9 +337,10 @@ class RegistrationCampaignAdmin(ModelAdmin):
         "slug",
         "current_course",
         "is_active",
+        "requires_approval",
     ]
     search_fields = ["title", "slug"]
-    list_filter = ["is_active", "current_course"]
+    list_filter = ["is_active", "requires_approval", "current_course"]
     readonly_fields = ["created_at", "updated_at"]
     fieldsets = [
         (
@@ -351,6 +352,8 @@ class RegistrationCampaignAdmin(ModelAdmin):
                     "edition_label",
                     "current_course",
                     "is_active",
+                    "requires_approval",
+                    "application_notice",
                     "hero_image_url",
                     "video_url",
                     "meta_description",
@@ -378,6 +381,7 @@ class CourseRegistrationAdmin(ModelAdmin):
         "country",
         "region",
         "role",
+        "status",
         "created_at",
     ]
     search_fields = ["email", "email_normalized", "name", "company_name"]
@@ -386,7 +390,9 @@ class CourseRegistrationAdmin(ModelAdmin):
         "course",
         "region",
         "role",
+        "status",
     ]
+    actions = ["approve_registrations", "reject_registrations"]
     readonly_fields = [
         "email_normalized",
         "created_at",
@@ -407,9 +413,23 @@ class CourseRegistrationAdmin(ModelAdmin):
                     "country",
                     "region",
                     "role",
+                    "experience",
+                    "prereq_python",
+                    "prereq_docker",
+                    "prereq_http_apis",
+                    "prereq_cli",
+                    "linkedin_url",
+                    "github_url",
+                    "motivation",
                     "comment",
                     "accepted_newsletter",
                 ]
+            },
+        ),
+        (
+            "Review",
+            {
+                "fields": ["status"],
             },
         ),
         (
@@ -420,6 +440,14 @@ class CourseRegistrationAdmin(ModelAdmin):
             },
         ),
     ]
+
+    @admin.action(description="Approve selected applications")
+    def approve_registrations(self, request, queryset):
+        queryset.update(status=CourseRegistration.Status.APPROVED)
+
+    @admin.action(description="Reject selected applications")
+    def reject_registrations(self, request, queryset):
+        queryset.update(status=CourseRegistration.Status.REJECTED)
 
 
 @admin.register(LeaderboardComplaint)

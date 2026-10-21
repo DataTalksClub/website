@@ -23,13 +23,16 @@ def campaign_registration_filters(request):
     raw_role = request.GET.get("role", "")
     raw_country = request.GET.get("country", "")
     raw_region = request.GET.get("region", "")
+    raw_status = request.GET.get("status", "")
     role = raw_role.strip()
     country = raw_country.strip()
     region = raw_region.strip()
+    status = raw_status.strip()
     return {
         "role": role,
         "country": country,
         "region": region,
+        "status": status,
     }
 
 
