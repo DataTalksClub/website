@@ -362,6 +362,18 @@ vetoed before the D5.2 freeze weekend without rework beyond the named scope.
     `source_question_id`) reconciles on its key exactly as before; one not
     yet copied is created rather than matched on text.
     `authored_position`/`step_label` stay at package defaults.
+21. **Application-gate review state stays site-side (found in the 2026-10-21
+    tip CI repair).** The site `RegistrationCampaign` grew
+    `requires_approval` plus `application_notice`, and the site
+    `CourseRegistration` grew applicant-background columns (`experience`,
+    `motivation`, `linkedin_url`, `github_url`, the four `prereq_*`
+    self-checks) plus a `status` approval workflow (`courses/0026`). The
+    package `cb_coursework` models have no columns for any of them, and
+    approval review is site workflow state, not course-platform content.
+    Default: the P6 import names every one of them in the mapping as
+    site-side (`_STAYS`) and copies no values; the package rows keep their
+    own defaults. Rejected: adding DTC-only review columns to
+    community-base.
 
 ### Authored-homework defaults (C5.4c, issue #443)
 

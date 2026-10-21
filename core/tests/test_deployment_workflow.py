@@ -119,7 +119,10 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # only); dependency and lock seals remain unchanged.
 # The course-launch device-login wiring moves community-base v0.5.31 to v0.5.33
 # (0e820369); the reviewed configuration-only seal tracks the pin bytes.
-STUDIO_COURSES_PYPROJECT_SHA256 = "f937e2ef54d227c666c6ffea9767afc37fd8f73eeaa369f7cbacefb543cc204f"
+# The tip CI repair enrolls the application-gate registration test and the
+# Production AI campaign bootstrap script in strict mypy (configuration only,
+# no dependency change); the reviewed configuration-only seal moves the same way.
+STUDIO_COURSES_PYPROJECT_SHA256 = "75abcea1304dc147b4f85dc3d907b01c627186f3e07822d83ab1dcc7a4ab1af4"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation

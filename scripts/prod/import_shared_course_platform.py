@@ -960,6 +960,10 @@ def _mapping() -> dict[
             "meta_description": _COPIED,
             "hero_image_url": _COPIED,
             "video_url": _COPIED,
+            # Decision 21: the application gate is site workflow state with
+            # no package columns; approval routing stays site-side.
+            "requires_approval": _STAYS,
+            "application_notice": _STAYS,
             "created_at": "copied verbatim (decision 13)",
             "updated_at": "copied verbatim (decision 13)",
         },
@@ -981,6 +985,18 @@ def _mapping() -> dict[
             "role": _COPIED,
             "comment": _COPIED,
             "accepted_newsletter": _COPIED,
+            # Decision 21: applicant background and the approval review state
+            # are site workflow state with no package columns; they stay
+            # site-side with the campaign's approval routing.
+            "experience": _STAYS,
+            "motivation": _STAYS,
+            "linkedin_url": _STAYS,
+            "github_url": _STAYS,
+            "prereq_python": _STAYS,
+            "prereq_docker": _STAYS,
+            "prereq_http_apis": _STAYS,
+            "prereq_cli": _STAYS,
+            "status": _STAYS,
             "created_at": "copied verbatim (decision 13)",
             "updated_at": "copied verbatim (decision 13)",
         },

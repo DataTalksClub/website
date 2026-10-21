@@ -171,6 +171,13 @@ TARGET_ONLY_COLUMNS: dict[str, dict[str, object]] = {
         "archive_url": "",
     },
     "courses_homework": {"instructions_markdown": "", "instructions_source_path": ""},
+    "courses_registrationcampaign": {
+        # The application gate is site workflow state: legacy CMP campaigns
+        # were open registration with no approval notice, so the honest
+        # copied values are the model's empty defaults.
+        "requires_approval": False,
+        "application_notice": "",
+    },
     "courses_wrappedstatistics": {"leaderboard": "[]"},
 }
 

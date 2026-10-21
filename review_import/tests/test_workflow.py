@@ -325,6 +325,8 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "edition_label": "2026 cohort",
             "current_course_id": 1,
             "is_active": 1,
+            "requires_approval": 0,
+            "application_notice": "",
             "marketing_markdown": "Join the public course.",
             "meta_description": "Registration information.",
             "hero_image_url": "https://datatalks.club/images/courses/de-zoomcamp.png",
