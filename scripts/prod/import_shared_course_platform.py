@@ -988,6 +988,8 @@ def _mapping() -> dict[
             # Decision 21: applicant background and the approval review state
             # are site workflow state with no package columns; they stay
             # site-side with the campaign's approval routing.
+            "accepted_nebius_sharing": _STAYS,
+            "years_experience": _STAYS,
             "experience": _STAYS,
             "motivation": _STAYS,
             "linkedin_url": _STAYS,

@@ -366,8 +366,11 @@ vetoed before the D5.2 freeze weekend without rework beyond the named scope.
     tip CI repair).** The site `RegistrationCampaign` grew
     `requires_approval` plus `application_notice`, and the site
     `CourseRegistration` grew applicant-background columns (`experience`,
-    `motivation`, `linkedin_url`, `github_url`, the four `prereq_*`
-    self-checks) plus a `status` approval workflow (`courses/0026`). The
+    the optional `years_experience` single-select, new `Role` values for
+    founders/CTOs and MLOps / platform engineers, the required Nebius
+    data-sharing consent `accepted_nebius_sharing`, `motivation`,
+    `linkedin_url`, `github_url`, the four `prereq_*`
+    self-checks) plus a `status` approval workflow (`courses/0026`–`courses/0027`). The
     package `cb_coursework` models have no columns for any of them, and
     approval review is site workflow state, not course-platform content.
     Default: the P6 import names every one of them in the mapping as
