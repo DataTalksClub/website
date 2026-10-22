@@ -49,10 +49,21 @@ jobs:
     needs: test
     runs-on: ubuntu-24.04
     outputs:
-      image_tag: sha-${{ github.sha }}
+      image_tag: ${{ steps.identity.outputs.version }}
       image_digest: ${{ steps.push.outputs.digest }}
     steps:
       - uses: actions/checkout@v5
+
+      - name: Construct release identity (exact ECR tag format)
+        id: identity
+        run: |
+          set -euo pipefail
+          # Same construction as website .github/workflows/deploy-dev.yml:
+          #   version="$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA:0:7}"
+          # CMP/AISHL deploy-dev: DATE=$(date +'%Y%m%d-%H%M%S'); SHORT_SHA=…; TAG=${DATE}-${SHORT_SHA}
+          # Live ECR example (CMP): 20261021-094333-f922dc4
+          version="$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA:0:7}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -66,10 +77,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          # Immutable tags only (ECR-like). Coolify pins sha-<full>; never :latest.
+          # Exact ECR production tag only (YYYYMMDD-HHMMSS-<7>). Never :latest. Never sha-<…>.
           tags: |
-            type=sha,prefix=sha-,format=short
-            type=raw,value=sha-${{ github.sha }}
+            type=raw,value=${{ steps.identity.outputs.version }}
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
@@ -103,7 +113,7 @@ jobs:
           COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           COOLIFY_SERVICE_UUID: ${{ secrets.COOLIFY_WEBSITE_SERVICE_UUID }}
-          IMAGE_TAG: sha-${{ github.sha }}
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
         run: |
           set -euo pipefail
           if [[ -z "${COOLIFY_URL:-}" || -z "${COOLIFY_TOKEN:-}" || -z "${COOLIFY_SERVICE_UUID:-}" ]]; then
@@ -111,9 +121,9 @@ jobs:
             exit 1
           fi
           # Website Contabo app is still Coolify Dockerfile/git today (not a GHCR compose
-          # service). GHCR already receives immutable sha-<full> tags (no :latest).
+          # service). GHCR receives exact ECR-format tags YYYYMMDD-HHMMSS-<7> (no :latest).
           # When website-staging is converted to Docker Image/compose like Relay, reuse
-          # Relay's Pin Coolify compose step to set image to sha-${{ github.sha }}.
+          # Relay's Pin Coolify compose step to set image to that ECR tag.
           curl --fail --show-error --silent --request POST             --header "Authorization: Bearer ${COOLIFY_TOKEN}"             --header "Accept: application/json"             "${COOLIFY_URL%/}/api/v1/deploy?uuid=${COOLIFY_SERVICE_UUID}&force=true"
           echo
           echo "Triggered Coolify deploy for ${COOLIFY_SERVICE_UUID} (GHCR tag ${IMAGE_TAG} ready; app not yet on GHCR compose)"
