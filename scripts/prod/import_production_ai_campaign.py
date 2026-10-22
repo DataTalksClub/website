@@ -41,7 +41,7 @@ FAMILY_SLUG = "production-ai-agents-generative-media"
 COHORT_SLUG = "production-ai-agents-generative-media-2026"
 CAMPAIGN_SLUG = "production-ai-agents-generative-media"
 COHORT_YEAR = 2026
-COURSE_TITLE = "Production AI: Agents + Generative Media"
+COURSE_TITLE = "Production AI Agents for Generative Media"
 
 COURSE_DESCRIPTION = (
     "A 4-week, project-based course on building production AI systems in "
@@ -55,33 +55,40 @@ COURSE_PREREQUISITES = (
 WEEKLY_COMMITMENT = "4 weeks, about 8-10 hours per week. Free."
 
 APPLICATION_NOTICE = (
-    "4 weeks, about 8-10 hours per week, free and open-source. "
+    "4 weeks over 5 calendar weeks (~8-10 h/week), free and open-source. "
+    "Welcome 10 Nov 2026 · starts 17 Nov 2026 · apply by 26 Nov 2026 · ends 21 Dec 2026 · capstone due 15 Jan 2027. "
     "Prerequisites: Python, Docker basics, HTTP APIs, command line. "
     "Only applicants whose background fits the medium-advanced level "
     "are approved."
 )
 
 MARKETING_MARKDOWN = """\
-## Production AI: Agents + Generative Media
+## Production AI Agents for Generative Media
 
-4 weeks · ~8–10 h/week · free · open-source · project-based.
+4 weeks over 5 calendar weeks (Module 1 is two weeks) · ~8-10 h/week · free · open-source · project-based.
 
-> How do you build a production AI system when an agent can launch expensive,
-> slow, failure-prone GPU workloads that produce large media artifacts?
+> How do you build a production AI system when an agent can launch expensive, slow, failure-prone GPU workloads that produce large media artifacts?
 
-Outcome: build, deploy, evaluate, optimize and monitor a production AI system
-in which agents orchestrate GPU-powered image, video and audio models.
+Outcome: build, deploy, evaluate, optimize and monitor a production AI system in which agents orchestrate GPU-powered image, video and audio models on Nebius Serverless AI.
+
+### Dates (2026 cohort)
+
+- Welcome: Tue 10 Nov 2026
+- Course starts: Mon 17 Nov 2026
+- Apply by: Wed 26 Nov 2026
+- Module 1 (two weeks): 17-30 Nov 2026 (through Sun 30 Nov)
+- Module 2: 1-7 Dec 2026
+- Module 3: 8-14 Dec 2026
+- Module 4: 15-21 Dec 2026
+- Course ends: Sun 21 Dec 2026
+- Capstone due: Fri 15 Jan 2027
 
 ### Program
 
-- **Week 1 — Make it work.** Generative media workloads: modalities and model
-  families, first GPU generation from script to container to GPU job,
-  containers for generative AI, GPU engineering (precision, quantization,
-  offloading, batching, OOM debugging), jobs vs endpoints.
-- **Week 2 — Make it intelligent.** Agents that use GPUs: the agent loop,
-  tools and structured outputs, CPU agents with GPU tools, long-running tools.
-- **Week 3 — Make it scale.**
-- **Week 4 — Make it production-ready.**
+- **Week 1 - Make it work.** Generative media workloads: modalities and model families, first GPU generation from script to container to GPU job, containers for generative AI, GPU engineering, jobs vs endpoints.
+- **Week 2 - Make it intelligent.** Agents that use GPUs: the agent loop, tools and structured outputs, CPU agents with GPU tools, long-running tools.
+- **Week 3 - Make it scale.** Scaling, reliability and cost.
+- **Week 4 - Make it production-ready.** Evaluation, observability and production.
 
 ### Who this is for
 
@@ -91,13 +98,14 @@ in which agents orchestrate GPU-powered image, video and audio models.
 
 ### Prerequisites
 
-Python, Docker basics, HTTP APIs, command line. No diffusion theory required.
-Prior LLM or MLOps course experience helps, not required.
+Python, Docker basics, HTTP APIs, command line. No diffusion theory required. Prior LLM or MLOps course experience helps, not required.
+
+Application only, limited seats.
 """
 
 META_DESCRIPTION = (
-    "Production AI: Agents + Generative Media — a free 4-week project-based "
-    "course on production GPU media systems. Limited seats, application only."
+    "Production AI Agents for Generative Media - free project-based course on production GPU media systems. "
+    "Welcome 10 Nov 2026, starts 17 Nov, apply by 26 Nov, ends 21 Dec, capstone 15 Jan 2027. Limited seats, application only."
 )
 
 
