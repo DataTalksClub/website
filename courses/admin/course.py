@@ -414,6 +414,7 @@ class CourseRegistrationAdmin(ModelAdmin):
                     "region",
                     "role",
                     "experience",
+                    "years_experience",
                     "prereq_python",
                     "prereq_docker",
                     "prereq_http_apis",
@@ -423,6 +424,7 @@ class CourseRegistrationAdmin(ModelAdmin):
                     "motivation",
                     "comment",
                     "accepted_newsletter",
+                    "accepted_nebius_sharing",
                 ]
             },
         ),

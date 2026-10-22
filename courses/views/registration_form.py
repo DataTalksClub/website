@@ -17,6 +17,7 @@ COMPANY_NAME_WIDGET = forms.TextInput(
 )
 COUNTRY_SELECT_WIDGET = forms.Select(attrs={"class": "form-control"})
 ROLE_WIDGET = forms.Select(attrs={"class": "form-control"})
+YEARS_EXPERIENCE_WIDGET = forms.Select(attrs={"class": "form-control"})
 EXPERIENCE_WIDGET = forms.Textarea(
     attrs={
         "class": "form-control",
@@ -57,10 +58,13 @@ OPTIONAL_REGISTRATION_FIELDS = (
 #: ask for a name, a role and experience the way Mikhail's course does:
 #: limited seats, medium-advanced level, approve targeted applicants after
 #: registration. Open campaigns keep the historically optional shape.
+#: The Nebius sharing consent is required only there; other campaigns do
+#: not see that checkbox at all.
 APPLICATION_REQUIRED_FIELDS = (
     "name",
     "role",
     "experience",
+    "accepted_nebius_sharing",
 )
 
 
@@ -75,6 +79,8 @@ def configure_registration_form_fields(form, campaign=None):
     if campaign_requires_approval(campaign):
         for field_name in APPLICATION_REQUIRED_FIELDS:
             form.fields[field_name].required = True
+    else:
+        form.fields.pop("accepted_nebius_sharing", None)
 
     country_widget = forms.TextInput(attrs=COUNTRY_COMBOBOX_WIDGET_ATTRS)
     form.fields["country"].widget = country_widget
@@ -83,6 +89,12 @@ def configure_registration_form_fields(form, campaign=None):
     for role_choice in CourseRegistration.Role.choices:
         role_choices.append(role_choice)
     form.fields["role"].choices = role_choices
+
+    if "years_experience" in form.fields:
+        years_choices = [("", "Select years of experience")]
+        for years_choice in CourseRegistration.YearsExperience.choices:
+            years_choices.append(years_choice)
+        form.fields["years_experience"].choices = years_choices
 
 
 def has_authenticated_registration_user(user):
@@ -225,6 +237,13 @@ class CourseRegistrationForm(forms.ModelForm):
         required=False,
         widget=MOTIVATION_WIDGET,
     )
+    years_experience = forms.ChoiceField(
+        label="Years of professional software or ML experience",
+        required=False,
+        widget=YEARS_EXPERIENCE_WIDGET,
+        choices=[],
+        help_text="Optional.",
+    )
     linkedin_url = forms.URLField(
         label="LinkedIn profile",
         required=False,
@@ -257,6 +276,15 @@ class CourseRegistrationForm(forms.ModelForm):
         required=False,
         widget=PREREQ_WIDGET,
     )
+    accepted_nebius_sharing = forms.BooleanField(
+        label=(
+            "Share my application with Nebius and Nebius Academy "
+            "for review, credits and course operation"
+        ),
+        required=False,
+        widget=ACCEPTED_NEWSLETTER_WIDGET,
+        help_text="Required for application-review courses.",
+    )
 
     class Meta:
         model = CourseRegistration
@@ -267,6 +295,7 @@ class CourseRegistrationForm(forms.ModelForm):
             "country",
             "role",
             "experience",
+            "years_experience",
             "prereq_python",
             "prereq_docker",
             "prereq_http_apis",
@@ -276,6 +305,7 @@ class CourseRegistrationForm(forms.ModelForm):
             "motivation",
             "comment",
             "accepted_newsletter",
+            "accepted_nebius_sharing",
         ]
         widgets = {
             "email": EMAIL_WIDGET,
@@ -323,6 +353,16 @@ class CourseRegistrationForm(forms.ModelForm):
         if not accepted_newsletter:
             raise forms.ValidationError("This field is required.")
         return accepted_newsletter
+
+    def clean_accepted_nebius_sharing(self):
+        accepted_nebius_sharing = self.cleaned_data.get("accepted_nebius_sharing")
+        if (
+            "accepted_nebius_sharing" in self.fields
+            and self.fields["accepted_nebius_sharing"].required
+            and not accepted_nebius_sharing
+        ):
+            raise forms.ValidationError("This field is required.")
+        return bool(accepted_nebius_sharing)
 
     def save(self, commit=True):
         registration = super().save(commit=False)

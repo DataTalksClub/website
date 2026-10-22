@@ -32,6 +32,7 @@ class RegistrationApplicationGateTests(RegistrationCampaignBase):
             "country": "Germany",
             "role": CourseRegistration.Role.ML_ENGINEER,
             "experience": "3 years of ML, shipped two LLM services",
+            "years_experience": CourseRegistration.YearsExperience.THREE_TO_SIX,
             "prereq_python": "on",
             "prereq_docker": "on",
             "prereq_http_apis": "on",
@@ -41,6 +42,7 @@ class RegistrationApplicationGateTests(RegistrationCampaignBase):
             "motivation": "I want to run media models on GPUs in production",
             "comment": "Looking forward to it",
             "accepted_newsletter": "on",
+            "accepted_nebius_sharing": "on",
         }
         payload.update(overrides)
         return payload
@@ -67,6 +69,46 @@ class RegistrationApplicationGateTests(RegistrationCampaignBase):
         self.assertEqual(CourseRegistration.objects.count(), 0)
         self.assertContains(response, "This field is required.")
 
+    def test_approval_campaign_requires_nebius_sharing_consent(self):
+        url = self.campaign_url()
+        payload = self.application_payload()
+        del payload["accepted_nebius_sharing"]
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(url, payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(CourseRegistration.objects.count(), 0)
+        self.assertContains(response, "This field is required.")
+
+    def test_approval_page_offers_new_roles_and_years(self):
+        response = self.client.get(self.campaign_url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Founder/CTO")
+        self.assertContains(response, "MLOps/Platform Engineer")
+        self.assertContains(response, "Nebius and Nebius Academy")
+
+    def test_approval_accepts_new_roles_and_optional_years(self):
+        url = self.campaign_url()
+
+        for role in (
+            CourseRegistration.Role.FOUNDER_CTO,
+            CourseRegistration.Role.MLOPS_PLATFORM,
+        ):
+            payload = self.application_payload(
+                email=f"{role}@example.com",
+                role=role,
+            )
+            del payload["years_experience"]
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(url, payload)
+            self.assertEqual(response.status_code, 200)
+            registration = CourseRegistration.objects.get(email_normalized=f"{role}@example.com")
+            self.assertEqual(registration.role, role)
+            self.assertEqual(registration.years_experience, "")
+            self.assertTrue(registration.accepted_nebius_sharing)
+
     def test_approval_submission_stays_pending_with_new_fields(self):
         url = self.campaign_url()
 
@@ -77,6 +119,11 @@ class RegistrationApplicationGateTests(RegistrationCampaignBase):
         registration = CourseRegistration.objects.get()
         self.assertEqual(registration.status, CourseRegistration.Status.PENDING)
         self.assertEqual(registration.experience, "3 years of ML, shipped two LLM services")
+        self.assertEqual(
+            registration.years_experience,
+            CourseRegistration.YearsExperience.THREE_TO_SIX,
+        )
+        self.assertTrue(registration.accepted_nebius_sharing)
         self.assertTrue(registration.prereq_python)
         self.assertTrue(registration.prereq_docker)
         self.assertTrue(registration.prereq_http_apis)
@@ -113,5 +160,17 @@ class RegistrationApplicationGateTests(RegistrationCampaignBase):
         registration = CourseRegistration.objects.get()
         self.assertEqual(registration.status, CourseRegistration.Status.APPROVED)
         self.assertEqual(registration.experience, "")
+        self.assertEqual(registration.years_experience, "")
+        self.assertFalse(registration.accepted_nebius_sharing)
         self.assertContains(response, "You are registered")
         self.assertNotContains(response, "Limited seats")
+
+    def test_open_campaign_hides_nebius_sharing_consent(self):
+        self.campaign.requires_approval = False
+        self.campaign.application_notice = ""
+        self.campaign.save(update_fields=["requires_approval", "application_notice"])
+
+        response = self.client.get(self.campaign_url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Nebius and Nebius Academy")
