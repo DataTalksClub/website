@@ -49,7 +49,7 @@ jobs:
     needs: test
     runs-on: ubuntu-24.04
     outputs:
-      image_tag: ${{ steps.meta.outputs.version }}
+      image_tag: sha-${{ github.sha }}
       image_digest: ${{ steps.push.outputs.digest }}
     steps:
       - uses: actions/checkout@v5
@@ -66,9 +66,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # Immutable tags only (ECR-like). Coolify pins sha-<full>; never :latest.
           tags: |
             type=sha,prefix=sha-,format=short
-            type=raw,value=latest
             type=raw,value=sha-${{ github.sha }}
 
       - name: Set up Buildx
@@ -98,21 +98,22 @@ jobs:
     # Staging Contabo Coolify only — production AWS workflows stay separate.
     environment: coolify-staging
     steps:
-      - name: Trigger Coolify deploy (pull GHCR image)
+      - name: Trigger Coolify deploy
         env:
           COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           COOLIFY_SERVICE_UUID: ${{ secrets.COOLIFY_WEBSITE_SERVICE_UUID }}
+          IMAGE_TAG: sha-${{ github.sha }}
         run: |
           set -euo pipefail
           if [[ -z "${COOLIFY_URL:-}" || -z "${COOLIFY_TOKEN:-}" || -z "${COOLIFY_SERVICE_UUID:-}" ]]; then
             echo "Missing Coolify secrets: COOLIFY_URL, COOLIFY_TOKEN, COOLIFY_WEBSITE_SERVICE_UUID" >&2
             exit 1
           fi
-          # Prefer Bearer deploy API (force=true so image pull is requested).
-          curl --fail --show-error --silent --request POST \
-            --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
-            --header "Accept: application/json" \
-            "${COOLIFY_URL%/}/api/v1/deploy?uuid=${COOLIFY_SERVICE_UUID}&force=true"
+          # Website Contabo app is still Coolify Dockerfile/git today (not a GHCR compose
+          # service). GHCR already receives immutable sha-<full> tags (no :latest).
+          # When website-staging is converted to Docker Image/compose like Relay, reuse
+          # Relay's Pin Coolify compose step to set image to sha-${{ github.sha }}.
+          curl --fail --show-error --silent --request POST             --header "Authorization: Bearer ${COOLIFY_TOKEN}"             --header "Accept: application/json"             "${COOLIFY_URL%/}/api/v1/deploy?uuid=${COOLIFY_SERVICE_UUID}&force=true"
           echo
-          echo "Triggered Coolify deploy for ${COOLIFY_SERVICE_UUID} image ${{ needs.build-and-push.outputs.image_tag }}"
+          echo "Triggered Coolify deploy for ${COOLIFY_SERVICE_UUID} (GHCR tag ${IMAGE_TAG} ready; app not yet on GHCR compose)"
