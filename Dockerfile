@@ -14,7 +14,10 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 FROM python:3.13-slim AS runtime
 COPY --from=uv /uv /uvx /bin/
-RUN groupadd --system --gid 10001 dtc \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 10001 dtc \
     && useradd --system --uid 10001 --gid dtc --home-dir /app --shell /usr/sbin/nologin dtc
 WORKDIR /app
 COPY --from=builder --chown=dtc:dtc /app/.venv /app/.venv
