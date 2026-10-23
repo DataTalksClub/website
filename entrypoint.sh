@@ -15,13 +15,8 @@ case "${1:-web}" in
     # The service selects its backend through DJANGO_SETTINGS_MODULE.
     # Coolify's worker profile executes domain jobs locally with the database
     # runner's leases and retries; Relay remains the email transport.
-    # Deployment validates Django separately. Rechecking the template contracts
-    # on every empty poll burns CPU (notably community_base.kernel.W005).
-    while true; do
-      uv run --no-sync python manage.py jobs_run_due --skip-checks --limit 100 || true
-      uv run --no-sync python manage.py jobs_sweep --skip-checks --limit 100 || true
-      sleep 10
-    done
+    # Bootstrap Django once; the persistent loop skips per-poll system checks.
+    exec uv run --no-sync python manage.py jobs_worker
     ;;
   *)
     echo "Usage: entrypoint.sh [web|worker]" >&2

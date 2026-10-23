@@ -12,11 +12,15 @@ existing synchronous lease-fenced runner inside this dedicated process.
 Gunicorn must keep production settings. The shared entrypoint preserves the
 caller's settings, including development deployments.
 
-`entrypoint.sh worker` runs `jobs_run_due --skip-checks --limit 100` and
-`jobs_sweep --skip-checks --limit 100`, then pauses ten seconds. Django checks
-remain in deployment validation; repeating the template-contract checks on
-every empty poll (including W005) wastes CPU. This flag affects only worker
-polls, not web settings or healthchecks. The singleton worker has no public port or
+`entrypoint.sh worker` executes `jobs_worker`, bootstrapping Django once for the
+life of the container. The command calls `jobs_run_due` and `jobs_sweep` with
+`limit=100` and `skip_checks=True`, then pauses ten seconds. It closes obsolete
+database connections each tick and continues after a command failure, reporting
+the command and exception class without job data. Django checks remain in
+deployment validation. Skipping checks alone removed W005 spam but left the
+repeated application bootstrap burning CPU; keeping the process alive removes
+that recurring cost. Web settings and healthchecks are unchanged.
+The singleton worker has no public port or
 router and a 240 MiB memory ceiling. Both services use the existing external
 `coolify` network and the website database on pg-shared through its private
 bridge; do not create a separate worker database.
