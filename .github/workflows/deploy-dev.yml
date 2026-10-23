@@ -1,4 +1,15 @@
-name: Deploy Dev
+name: Deploy Dev (AWS ECS — retired)
+
+# RETIRED (2026-10-23): the AWS ECS dev path is obsolete and intentionally NOT
+# triggered by pushes. Staging CD is now owned by Deploy Website Coolify (Contabo)
+# (.github/workflows/deploy-coolify.yml). On-push runs of Deploy Dev on AWS ECS
+# repeatedly failed during migrations / code-owned data (e.g. sync_relay_schedules exit 22;
+# see GHA run 39876609438 and ~/tmp/agent-reports/website-deploy-dev-39583975430.md),
+# causing false-red notifications on every push.
+# Do NOT re-add a `push` trigger here and do NOT recreate ALB/TG/ECS unless AWS ECS
+# staging is explicitly required for live traffic again.
+# Kept as workflow_dispatch-only (preserving confirm_dev_schema_reset input)
+# for manual AWS operations/verification.
 
 on:
   workflow_dispatch:
@@ -7,8 +18,6 @@ on:
         description: 'Type RESET dtc_website_dev.public to rebuild the development website schema'
         required: false
         type: string
-  push:
-    branches: [main]
 
 permissions:
   contents: read

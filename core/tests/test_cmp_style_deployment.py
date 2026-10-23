@@ -24,10 +24,11 @@ class CmpStyleDeploymentWorkflowTests(TestCase):
         self.assertNotIn("DEV_SECURITY_GROUP_IDS", workflows)
         self.assertNotIn("vars.DEVELOPMENT_", workflows)
 
-    def test_push_deploys_dev_and_production_is_dispatch_only(self) -> None:
+    def test_dev_and_production_are_dispatch_only(self) -> None:
         dev = (ROOT / ".github" / "workflows" / "deploy-dev.yml").read_text(encoding="utf-8")
         prod = (ROOT / ".github" / "workflows" / "deploy-prod.yml").read_text(encoding="utf-8")
-        self.assertIn("branches: [main]", dev)
+        self.assertNotIn("push:", dev)
+        self.assertIn("workflow_dispatch:", dev)
         self.assertIn("name: development", dev)
         self.assertIn("https://dev.datatalks.club", dev)
         self.assertIn("Test the deployment contract", dev)
@@ -37,6 +38,11 @@ class CmpStyleDeploymentWorkflowTests(TestCase):
         self.assertIn("name: production", prod)
         self.assertIn("https://prod.datatalks.club", prod)
         self.assertIn("dev-release-*", prod)
+
+    # Backward compatibility alias for earlier runbook or test invocations
+    test_push_deploys_dev_and_production_is_dispatch_only = (
+        test_dev_and_production_are_dispatch_only
+    )
 
     def test_legacy_ci_cannot_deploy_on_push(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")

@@ -652,3 +652,25 @@ def test_the_promotion_flow_wires_the_new_checks_into_both_workflows() -> None:
         )
         deploy_steps = json.dumps(workflow["jobs"]["deploy"]["steps"])
         assert "deploy_dev.sh" in deploy_steps or "deploy_prod.sh" in deploy_steps
+
+
+def test_deploy_dev_preflight_fails_closed_when_aws_resources_missing() -> None:
+    # deploy/deploy_dev.sh preflight fails closed with a clear message if AWS ECS resources fail
+    result = subprocess.run(  # noqa: S603
+        [
+            "bash",
+            str(ROOT / "deploy" / "deploy_dev.sh"),
+            "387546586013.dkr.ecr.eu-west-1.amazonaws.com/website-production@sha256:" + "0" * 64,
+            "20261023-000000-0000000",
+            "0" * 40,
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    expected = (
+        "The AWS ECS Deploy Dev path is retired; "
+        "live staging CD is Deploy Website Coolify (Contabo)."
+    )
+    assert expected in result.stderr
