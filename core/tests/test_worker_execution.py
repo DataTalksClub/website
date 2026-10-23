@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from community_base.jobs.dispatch import dispatch_after_commit
 from community_base.jobs.models import JobIntent
-from django.core.management import call_command
+from django.core.management import call_command, get_commands, load_command_class
 from django.db import transaction
 from django.test import SimpleTestCase, TransactionTestCase, override_settings
 
@@ -50,9 +50,9 @@ class WorkerSettingsTests(SimpleTestCase):
                 output.read_text().splitlines(),
                 [
                     "website.settings.development:run --no-sync python manage.py "
-                    "jobs_run_due --limit 100",
+                    "jobs_run_due --skip-checks --limit 100",
                     "website.settings.development:run --no-sync python manage.py "
-                    "jobs_sweep --limit 100",
+                    "jobs_sweep --skip-checks --limit 100",
                 ],
             )
 
@@ -72,6 +72,20 @@ class WorkerSettingsTests(SimpleTestCase):
 
 
 class WorkerExecutionTests(TransactionTestCase):
+    @override_settings(COMMUNITY_BASE={"JOBS_BACKEND": "sync"})
+    def test_empty_worker_commands_skip_checks_and_still_report_results(self):
+        for name, expected in (
+            ("jobs_run_due", "found=0 submitted=0"),
+            ("jobs_sweep", "recovered=0 dead=0"),
+        ):
+            with self.subTest(command=name):
+                command = load_command_class(get_commands()[name], name)
+                output = io.StringIO()
+                command.stdout = command.stdout.__class__(output)
+                with patch.object(command, "check", side_effect=AssertionError("poll ran checks")):
+                    command.run_from_argv(["manage.py", name, "--skip-checks", "--limit", "100"])
+                self.assertEqual(output.getvalue().strip(), expected)
+
     @override_settings(COMMUNITY_BASE={"JOBS_BACKEND": "sync"})
     def test_due_runner_executes_pending_intent_without_relay(self):
         with patch("community_base.jobs.dispatch._best_effort_submit"):

@@ -12,8 +12,11 @@ existing synchronous lease-fenced runner inside this dedicated process.
 Gunicorn must keep production settings. The shared entrypoint preserves the
 caller's settings, including development deployments.
 
-`entrypoint.sh worker` runs `jobs_run_due --limit 100` and `jobs_sweep --limit
-100`, then pauses ten seconds. The singleton worker has no public port or
+`entrypoint.sh worker` runs `jobs_run_due --skip-checks --limit 100` and
+`jobs_sweep --skip-checks --limit 100`, then pauses ten seconds. Django checks
+remain in deployment validation; repeating the template-contract checks on
+every empty poll (including W005) wastes CPU. This flag affects only worker
+polls, not web settings or healthchecks. The singleton worker has no public port or
 router and a 240 MiB memory ceiling. Both services use the existing external
 `coolify` network and the website database on pg-shared through its private
 bridge; do not create a separate worker database.
