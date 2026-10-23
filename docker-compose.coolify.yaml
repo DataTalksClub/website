@@ -1,0 +1,49 @@
+# Coolify supplies SOURCE_COMMIT and the same runtime .env to both services.
+x-website: &website
+  image: dtc-website:${SOURCE_COMMIT:?Set the immutable source revision}
+  build:
+    context: .
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  env_file: .env
+  networks: [coolify]
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  web:
+    <<: *website
+    command: [web]
+    expose: ["8000"]
+    healthcheck:
+      test:
+        - CMD
+        - uv
+        - run
+        - --no-sync
+        - python
+        - -c
+        - "import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=5); assert r.status == 200"
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+  worker:
+    <<: *website
+    command: [worker]
+    environment:
+      DJANGO_SETTINGS_MODULE: website.settings.worker
+    mem_limit: 240m
+    stop_grace_period: 30s
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+
+networks:
+  coolify:
+    external: true
