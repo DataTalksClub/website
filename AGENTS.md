@@ -54,3 +54,12 @@ Where the rest went: app and service boundaries are in
 `deploy/development_target.py`; the prod ingest pipeline — every source, its
 run order, and what `scripts/production_data.py` does — is in
 `_docs/runbooks/data-ingest.md`.
+
+## Throwaway containers
+
+Use `docker run --rm` for throwaway/test containers and add a unique
+`--label agent.session=<Hub session id>` (or native session id registered in Hub).
+Label `docker create` and Compose test containers the same way. Install a shell
+`trap` or `try/finally` cleanup before creation, and remove all resources you
+create before the session exits, including failed starts. Preserve other
+sessions' resources, production data/volumes and Coolify-managed containers.
