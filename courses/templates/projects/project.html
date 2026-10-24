@@ -238,6 +238,7 @@
 {% endblock %}
 
 {% block hero_notices %}
+  {% include "courses/_registration_approval.html" %}
   <div class="submission-notices">
     {% for message in messages %}
       {% if 'error' in message.tags or 'warning' in message.tags or 'danger' in message.tags %}
@@ -249,7 +250,7 @@
     {% for error in errors %}
       {% include "core/_callout.html" with tone="attention" role="alert" message=error %}
     {% endfor %}
-    {% if disabled %}
+    {% if not accepting_submissions %}
       {% if has_submission %}
         {% if project.state == 'PR' %}
           {% if course.course %}
@@ -276,11 +277,13 @@
 {% endblock %}
 
 {% block submission_content %}
+  {% if not registration_wall_blocked %}
   {% if accepting_submissions or has_submission %}
     <div class="submission-target">
       {# The shared community-base form (issue #456): one field contract with AI Shipping Labs; the site shell stays local. #}
       {% include "coursework/_project_submission_form.html" with project_form=project_form %}
     </div>
+  {% endif %}
   {% endif %}
 {% endblock %}
 

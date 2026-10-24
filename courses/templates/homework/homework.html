@@ -78,7 +78,7 @@
       <strong>{{ homework.due_date|user_datetime:request }}</strong>
       <span class="time-left" data-deadline="{{ homework.due_date|date:"c" }}" data-prefix="false"></span>
     </div>
-    {% if is_authenticated and accepting_submissions and not homework.is_scored %}
+    {% if is_authenticated and accepting_submissions and not homework.is_scored and not registration_wall_blocked %}
       {% comment %}
         The student's own save state, said once, above the fold -- a form
         that can run past 3,000px used to say this only next to the button
@@ -126,6 +126,7 @@
 {% endblock %}
 
 {% block content_notices %}
+  {% include "courses/_registration_approval.html" %}
   {% comment %}
     Exactly one state notice, in the band, above the form it gates.  Feedback
     about a submission the learner just posted may sit above it, because that
@@ -746,7 +747,7 @@
     <script src="{% static 'learning_in_public.js' %}"></script>
   {% endif %}
   <script src="{% static 'homework.js' %}"></script>
-  {% if is_authenticated and accepting_submissions and not homework.is_scored %}
+  {% if is_authenticated and accepting_submissions and not homework.is_scored and not registration_wall_blocked %}
     <script src="{% static 'homework_progress.js' %}"></script>
   {% endif %}
 {% endblock %}

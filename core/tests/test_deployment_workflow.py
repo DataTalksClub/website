@@ -122,7 +122,9 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # The tip CI repair enrolls the application-gate registration test and the
 # Production AI campaign bootstrap script in strict mypy (configuration only,
 # no dependency change); the reviewed configuration-only seal moves the same way.
-STUDIO_COURSES_PYPROJECT_SHA256 = "75abcea1304dc147b4f85dc3d907b01c627186f3e07822d83ab1dcc7a4ab1af4"
+# Issue #469 enrolls the approval helper and public-audit contract test in
+# strict mypy only; dependencies and the lock seal remain unchanged.
+STUDIO_COURSES_PYPROJECT_SHA256 = "6efac180fe8b8fdf6ec9411be9535413b5e01db845542eb5561708522b32c623"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation

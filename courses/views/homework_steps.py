@@ -26,6 +26,7 @@ from courses.models.homework import (
     Submission,
 )
 from courses.registration import render_markdown
+from courses.registration_wall import registration_wall_blocks_user, require_registration_approval
 from courses.views.homework_context import homework_detail_build_context_authenticated
 from courses.views.homework_submission import HomeworkPostData, process_homework_submission
 from courses.views.url_utils import canonical_cohort_url_kwargs
@@ -213,6 +214,10 @@ class DtcHomeworkStepsAdapter:
     def eligibility(self, request, assignment):
         current = type(self.homework).objects.get(pk=self.homework.pk)
         is_open = current.state == HomeworkState.OPEN.value
+        if registration_wall_blocks_user(current.course, request.user):
+            return Eligibility(
+                read=True, write=False, submit=False, reason="Registration approval is required."
+            )
         return Eligibility(
             read=True,
             write=is_open,
@@ -222,6 +227,7 @@ class DtcHomeworkStepsAdapter:
 
     def submit(self, request, assignment, answers, final_fields):
         current_homework = type(self.homework).objects.get(pk=self.homework.pk)
+        require_registration_approval(current_homework.course, request.user)
         if current_homework.state != HomeworkState.OPEN.value:
             raise ValidationError("This homework is not open for submissions.")
         post = QueryDict(mutable=True)

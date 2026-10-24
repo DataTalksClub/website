@@ -7,6 +7,7 @@ from django.http import HttpRequest
 from django.shortcuts import redirect, render
 
 from courses.models.cohort import Cohort
+from courses.registration_wall import registration_wall_blocks_user, require_registration_approval
 from courses.models.homework import (
     Homework,
     Question,
@@ -104,6 +105,9 @@ def homework_view(
     questions = detail_objects.questions
     user = request.user
 
+    if request.method == "POST":
+        require_registration_approval(course, user)
+
     if not user.is_authenticated:
         context = homework_detail_build_context_not_authenticated(
             course=course, homework=homework, questions=questions
@@ -124,7 +128,7 @@ def homework_view(
         and homework.state == "OP"
         and request.GET.get("homework_view") != "classic"
     ) or is_step_post
-    if use_stepper:
+    if use_stepper and not registration_wall_blocks_user(course, user):
         try:
             assignment = build_assignment(
                 request=request,

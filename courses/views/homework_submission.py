@@ -16,6 +16,7 @@ from courses.models.homework import (
     Submission,
 )
 from courses.services.enrollment import enroll_learner
+from courses.registration_wall import require_registration_approval
 from courses.views.homework_confirmation import (
     HomeworkConfirmationEmailData,
     build_homework_update_url,
@@ -137,6 +138,7 @@ def save_homework_submission_data(data):
 
 
 def process_homework_submission(data: HomeworkPostData):
+    require_registration_approval(data.course, data.request.user)
     is_update = data.submission is not None
     submission = save_homework_submission_data(data)
     record_event(

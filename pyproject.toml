@@ -277,6 +277,8 @@ module = [
     "courses.services.enrollment",
     "courses.tests.test_enrollment_confirmation_paths",
     "courses.tests.test_registration_application_gate",
+    "courses.registration_wall",
+    "courses.tests.test_public_course_audit",
     "scripts.prod.import_production_ai_campaign",
 ]
 ignore_errors = false

@@ -30,6 +30,7 @@ from django.utils import timezone
 
 from courses.models.cohort import Enrollment
 from courses.models.project import ProjectSubmission
+from courses.registration_wall import require_registration_approval
 from courses.services.enrollment import enroll_learner
 from courses.validators.url_status_transport import clean_faq_contribution_url
 
@@ -121,6 +122,7 @@ class ProjectSubmissionForm(BaseProjectSubmissionForm):
         is created only inside the save transaction, so a rejected POST
         leaves nothing behind.
         """
+        require_registration_approval(self.project.project.course, self.user)
         data = self.cleaned_data
         with transaction.atomic():
             enrollment = self._save_enrollment()

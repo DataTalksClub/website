@@ -17,9 +17,9 @@
   computes for the initial render; `homework_progress.js` keeps it live as
   the student fills the form in, before anything is saved.
 {% endcomment %}
-<div class="work-surface{% if is_authenticated and accepting_submissions and not homework.is_scored %} work-surface-with-rail{% endif %}">
+<div class="work-surface{% if is_authenticated and accepting_submissions and not homework.is_scored and not registration_wall_blocked %} work-surface-with-rail{% endif %}">
 <form method="post" class="needs-validation cmp-form homework-form submission-form" id="homework-form" novalidate>
-  {% if is_authenticated %}
+  {% if is_authenticated and not registration_wall_blocked %}
     {% csrf_token %}
   {% endif %}
   {% if error_summary_items %}
@@ -72,7 +72,7 @@
     {% endcomment %}
     {% if homework.is_scored and not is_authenticated %}
       <p class="submission-support">Review the expected answers for this scored homework.</p>
-    {% elif is_authenticated and accepting_submissions and not homework.is_scored %}
+    {% elif is_authenticated and accepting_submissions and not homework.is_scored and not registration_wall_blocked %}
       <p class="submission-support">Partial answers are fine &mdash; save as often as you like. Unanswered questions score zero, not a penalty.</p>
     {% endif %}
     <ol class="questions submission-fields homework-fields homework-questions cmp-form-fields">
@@ -191,7 +191,7 @@
       {% endfor %}
     </ol>
   </div>
-  {% if is_authenticated %}
+  {% if is_authenticated and not registration_wall_blocked %}
     <div>
       <div class="band-head band-head-secondary">
         <div>
@@ -321,7 +321,7 @@
           On a closed one it used to promise updating "until the deadline"
           directly beneath a notice saying the submission cannot be changed.
         {% endcomment %}
-        {% if accepting_submissions and not homework.is_scored and is_authenticated %}
+        {% if accepting_submissions and not homework.is_scored and is_authenticated and not registration_wall_blocked %}
           {% if deadline_passed %}
             <p>You can still save and update your answers until this homework is closed. Your latest saved version will be scored.</p>
           {% else %}
@@ -334,7 +334,7 @@
         No submit control on a homework that is not open: `handle_homework_post`
         rejects the POST outright, so the button could only ever fail.
       {% endcomment %}
-      {% if is_authenticated and accepting_submissions and not homework.is_scored %}
+      {% if is_authenticated and accepting_submissions and not homework.is_scored and not registration_wall_blocked %}
         <div class="submission-form-actions cmp-form-actions">
           {% if not submission.pk %}
             {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Save submission" variant="primary" compact=True %}
@@ -365,7 +365,7 @@
     </div>
   {% endif %}
 </form>
-{% if is_authenticated and accepting_submissions and not homework.is_scored %}
+{% if is_authenticated and accepting_submissions and not homework.is_scored and not registration_wall_blocked %}
   {% comment %}
     The progress rail: sticky from 62rem beside the form (see
     `.work-surface-with-rail` in `homework.html`).  It answers "where am I"

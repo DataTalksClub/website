@@ -42,6 +42,7 @@ COHORT_SLUG = "production-ai-agents-generative-media-2026"
 CAMPAIGN_SLUG = "production-ai-agents-generative-media"
 COHORT_YEAR = 2026
 COURSE_TITLE = "Production AI Agents for Generative Media"
+MATERIALS_REPOSITORY = "https://github.com/DataTalksClub/open-source-llm-zoomcamp"
 
 COURSE_DESCRIPTION = (
     "A 4-week, project-based course on building production AI systems in "
@@ -147,6 +148,7 @@ def run(*, apply: bool = True, refresh_copy: bool = False) -> dict[str, Any]:
                 "description": COURSE_DESCRIPTION,
                 "prerequisites": COURSE_PREREQUISITES,
                 "weekly_commitment": WEEKLY_COMMITMENT,
+                "github_repo_url": MATERIALS_REPOSITORY,
             },
         )
         cohort, cohort_created = Cohort.objects.update_or_create(
@@ -158,6 +160,8 @@ def run(*, apply: bool = True, refresh_copy: bool = False) -> dict[str, Any]:
                 "title": f"{COURSE_TITLE} {COHORT_YEAR}",
                 "description": COURSE_DESCRIPTION,
                 "visible": True,
+                "requires_registration_approval": True,
+                "github_repo_url": MATERIALS_REPOSITORY,
             },
         )
         campaign, campaign_created = RegistrationCampaign.objects.update_or_create(

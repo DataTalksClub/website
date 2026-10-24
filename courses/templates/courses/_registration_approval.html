@@ -1,0 +1,16 @@
+{% if registration_wall_blocked %}
+  <div class="registration-approval" role="status">
+    {% if registration_wall_status == "pending" %}
+      <p><strong>Application pending review</strong></p>
+      <p>Your application is under review. You can read the course materials while you wait. Approval is required to enroll or submit homework and projects.</p>
+    {% elif registration_wall_status == "rejected" %}
+      <p>Your application was not approved. You can still read the course materials.</p>
+    {% else %}
+      <p>Course materials are public. An approved application is required to enroll or submit homework and projects.</p>
+      {% if registration_campaign %}
+        {% url 'registration_campaign' registration_campaign.slug as application_url %}
+        {% include "core/_button.html" with href=application_url label="Apply for this course" variant="primary" compact=True %}
+      {% endif %}
+    {% endif %}
+  </div>
+{% endif %}

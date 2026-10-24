@@ -499,6 +499,9 @@ def _mapping() -> dict[
             "registration_url": _COPIED,
             "social_media_hashtag": "copied as hashtag",
             "first_homework_scored": _COPIED,
+            # Approval belongs to the site's registration workflow; the shared
+            # curriculum cohort has no corresponding participation gate.
+            "requires_registration_approval": _STAYS,
             "finished": _COPIED,
             "min_projects_to_pass": _COPIED,
             "homework_problems_comments_field": _COPIED,

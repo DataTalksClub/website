@@ -17,18 +17,12 @@ class RegistrationCampaignCoursePageTests(RegistrationCampaignBase):
         self.assertNotContains(response, "Register for the cohort")
         self.assertNotContains(response, self.campaign_url())
 
-    def test_empty_course_redirects_non_staff_to_campaign(self):
+    def test_empty_course_stays_public_with_registration_link(self):
         url = self.course_url()
         response = self.client.get(url)
 
-        redirect_url = reverse(
-            "registration_campaign",
-            kwargs={"campaign_slug": self.campaign.slug},
-        )
-        self.assertRedirects(
-            response,
-            redirect_url,
-        )
+        self.assertContains(response, self.course.title)
+        self.assertContains(response, self.campaign_url())
 
     def test_course_with_homework_shows_workspace_and_registration_link(
         self,

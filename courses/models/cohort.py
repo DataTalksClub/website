@@ -360,6 +360,11 @@ class Cohort(TimingOwner, SourceProvenanceModel):
         help_text="Minimum score required to pass any project in this course",
     )
 
+    requires_registration_approval = models.BooleanField(
+        default=False,
+        help_text="Require an approved application for enrollment and submissions; materials stay public.",
+    )
+
     visible = models.BooleanField(
         default=True,
         blank=False,

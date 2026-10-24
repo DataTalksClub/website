@@ -6,6 +6,7 @@ from django.views.decorators.http import require_POST
 from course_management.observability import record_event
 from courses.models.project import PeerReview, Project, ProjectSubmission
 from courses.services.enrollment import enroll_learner
+from courses.registration_wall import require_registration_approval
 from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
 
@@ -48,6 +49,7 @@ def _create_optional_peer_review_if_allowed(
     user,
     submission_id,
 ):
+    require_registration_approval(course, user)
     # Validate the target before any write: a missing, cross-project, or
     # self target must leave the learner's enrollment and volunteer
     # submission untouched (audit BE-07).

@@ -49,6 +49,7 @@ from courses.views.course_projects import get_projects_for_course
 from courses.views.project_gallery_groups import family_project_submissions
 from courses.views.site_project_gallery import _repository_identity
 from courses.views.url_utils import get_cohort_or_404
+from courses.registration_wall import registration_wall_context
 
 
 @dataclass(frozen=True)
@@ -75,21 +76,6 @@ def active_registration_campaign_for_course(
     """The campaign promoting this exact edition. One definition, owned by the service."""
 
     return active_campaign_for_cohort(course)
-
-
-def should_redirect_to_registration_campaign(
-    *,
-    registration_campaign: RegistrationCampaign | None,
-    homeworks,
-    projects,
-    user,
-) -> bool:
-    return (
-        registration_campaign is not None
-        and not homeworks
-        and not projects
-        and not user.is_staff
-    )
 
 
 def has_completed_projects(projects) -> bool:
@@ -255,6 +241,7 @@ def course_page_context(data: CoursePageData) -> dict:
         data.registration_campaign,
     )
     context.update(user_context)
+    context.update(registration_wall_context(data.course, data.user))
     # The submitted counts are this learner's own, so the bar is only drawn for the
     # signed-in learner whose enrolment produced them.
     context["submission_progress"] = (
@@ -703,6 +690,7 @@ def course_family_page_context(family: Course, user) -> dict:
     )
     return {
         "course_family": family,
+        **registration_wall_context(registration_cohort, user),
         "cohorts": cohorts,
         "cohort_editions": editions,
         "current_edition_row": current_edition_row,

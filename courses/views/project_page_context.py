@@ -7,6 +7,8 @@ from courses.models.project import (
     ProjectState,
 )
 from courses.services.enrollment import enroll_learner
+from courses.services.registration_campaigns import active_campaign_for_cohort
+from courses.registration_wall import registration_wall_context, registration_wall_blocks_user
 from courses.services.project_form_adapter import build_project_submission_form
 
 
@@ -21,7 +23,8 @@ def project_build_context(request, course: Cohort, project: Project) -> dict:
     user = request.user
     is_authenticated = user.is_authenticated
     accepting_submissions = project_accepting_submissions(project)
-    if is_authenticated:
+    wall_blocked = registration_wall_blocks_user(course, user)
+    if is_authenticated and not wall_blocked:
         user_details = project_context_user_details(user, course, project)
     else:
         user_details = ProjectContextUserDetails(None, None, None)
@@ -31,12 +34,14 @@ def project_build_context(request, course: Cohort, project: Project) -> dict:
 
     return {
         "course": course,
+        **registration_wall_context(course, user),
+        "registration_campaign": active_campaign_for_cohort(course),
         "course_family": course.course,
         "project": project,
         "submission": user_details.submission,
         "has_submission": user_details.submission is not None,
         "is_authenticated": is_authenticated,
-        "disabled": not accepting_submissions,
+        "disabled": not accepting_submissions or wall_blocked,
         "accepting_submissions": accepting_submissions,
         "certificate_name": user_details.certificate_name,
         "disable_learning_in_public": disable_learning_in_public,
@@ -92,7 +97,7 @@ def project_context_certificate_name(
     )
     if certificate_name:
         return certificate_name
-    return enrollment.display_name
+    return enrollment.display_name if enrollment else ""
 
 
 def project_learning_in_public_disabled(

@@ -14,6 +14,7 @@ from django.db import transaction
 
 from course_management.package_mail import send_enrollment_confirmation_mail
 from courses.models.cohort import Enrollment
+from courses.registration_wall import require_registration_approval
 
 
 def enroll_learner(student, cohort) -> tuple[Enrollment, bool]:
@@ -23,6 +24,7 @@ def enroll_learner(student, cohort) -> tuple[Enrollment, bool]:
     the mail is sent after the surrounding transaction commits.
     """
 
+    require_registration_approval(cohort, student)
     enrollment, created = Enrollment.objects.get_or_create(
         student=student,
         course=cohort,

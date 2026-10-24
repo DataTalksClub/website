@@ -234,6 +234,15 @@
           grid-row: 1 / span 4;
           margin: 0;
         }
+
+        .family-register-card.has-approval-notice {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .family-register-card.has-approval-notice > .family-card-actions {
+          grid-column: 1;
+          grid-row: auto;
+        }
       }
 
       .family-register-card h3,
@@ -777,7 +786,9 @@
               second action is the strongest start-now route the data actually has.
             {% endcomment %}
             <div class="family-hero-actions">
-              {% if family_registration %}
+              {% if registration_wall_blocked %}
+                {% include "courses/_registration_approval.html" with registration_campaign=family_registration.campaign %}
+              {% elif family_registration %}
                 {% if registration_cohort %}
                   {% include "core/_button.html" with href="#register-heading" label="Register for the cohort" variant="primary" %}
                 {% else %}
@@ -901,7 +912,7 @@
             </div>
           </div>
           <div class="family-register-cards is-single">
-            <article class="card family-register-card">
+            <article class="card family-register-card{% if registration_wall_blocked %} has-approval-notice{% endif %}">
               {% if registration_cohort %}
                 <h3>Cohort {{ registration_cohort.identifier }} starts {{ registration_cohort.start_date|date:"M j, Y" }}</h3>
                 <p>Follow this edition's schedule and assignments with the cohort.</p>
@@ -921,7 +932,9 @@
               {% endif %}
               {% url 'registration_campaign' family_registration.campaign.slug as family_registration_url %}
               <div class="family-card-actions">
-                {% if registration_cohort %}
+                {% if registration_wall_blocked %}
+                  {% include "courses/_registration_approval.html" with registration_campaign=family_registration.campaign %}
+                {% elif registration_cohort %}
                   {% include "core/_button.html" with href=family_registration_url label="Register for the "|add:registration_cohort.identifier|add:" cohort" variant="primary" %}
                 {% else %}
                   {% include "core/_button.html" with href=family_registration_url label="Register interest" variant="primary" %}

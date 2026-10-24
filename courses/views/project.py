@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from course_management.observability import record_event
 from courses.models.cohort import Cohort
 from courses.models.project import Project
+from courses.registration_wall import require_registration_approval
 from courses.views.project_page_context import (
     project_accepting_submissions,
     project_build_context,
@@ -146,6 +147,8 @@ def save_project_submission_response(
 def handle_project_post(request: HttpRequest, course: Cohort, project: Project):
     if not request.user.is_authenticated:
         return project_login_required_response(request, course, project)
+
+    require_registration_approval(course, request.user)
 
     if not project_accepting_submissions(project):
         return closed_project_submission_response(

@@ -169,6 +169,9 @@ TARGET_ONLY_COLUMNS: dict[str, dict[str, object]] = {
         "archive_commit_sha": "",
         "archive_notice_path": "",
         "archive_url": "",
+        # Historical review snapshots predate application approval. Live
+        # campaign ingestion enables the gate on the corresponding cohort.
+        "requires_registration_approval": False,
     },
     "courses_homework": {"instructions_markdown": "", "instructions_source_path": ""},
     "courses_registrationcampaign": {

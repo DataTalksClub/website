@@ -219,6 +219,8 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     # Application-gate registration path: the approval-campaign gate tests
     # are new integration code, so lint, format, and typecheck must reach them.
     "courses/tests/test_registration_application_gate.py",
+    "courses/registration_wall.py",
+    "courses/tests/test_public_course_audit.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",

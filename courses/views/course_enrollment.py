@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 from course_management.observability import record_event
 from courses.models.cohort import Cohort, Enrollment
 from courses.services.enrollment import confirm_new_enrollment
+from courses.registration_wall import require_registration_approval
 from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
 from .course_leaderboard_data import invalidate_leaderboard_cache
@@ -165,6 +166,7 @@ def _handle_enrollment_post(request, course, enrollment):
 @login_required
 def enrollment_view(request, course_slug, cohort_identifier=None):
     course = get_cohort_or_404(course_slug, cohort_identifier)
+    require_registration_approval(course, request.user)
 
     # Reading the settings page is a pure GET: it renders from an existing
     # enrollment or an unsaved stand-in and creates nothing (audit BE-07).

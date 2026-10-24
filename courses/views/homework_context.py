@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import PurePosixPath
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth.models import AnonymousUser
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -18,6 +19,8 @@ from courses.views.url_utils import cohort_url
 from courses.models.shared_curriculum import CohortSharedModule, SharedLesson
 from courses.services.course_context import context_query
 from courses.services.enrollment import enroll_learner
+from courses.services.registration_campaigns import active_campaign_for_cohort
+from courses.registration_wall import registration_wall_context
 from courses.views.homework_answers import process_question_options
 from courses.views.url_utils import get_cohort_or_404
 
@@ -171,6 +174,8 @@ def homework_detail_build_context_not_authenticated(
         "deadline_passed": homework_deadline_passed(homework),
     }
     context.update(homework_navigation_context(course, homework))
+    context.update(registration_wall_context(course, AnonymousUser()))
+    context["registration_campaign"] = active_campaign_for_cohort(course)
 
     return context
 
@@ -294,6 +299,10 @@ def authenticated_homework_context(
         enrollment=enrollment,
     )
     context = homework_detail_build_context_authenticated(context_data)
+    context.update(registration_wall_context(course, user))
+    context["registration_campaign"] = active_campaign_for_cohort(course)
+    if context["registration_wall_blocked"]:
+        context["disabled"] = True
     return AuthenticatedHomeworkContext(
         context=context,
         submission=submission,
