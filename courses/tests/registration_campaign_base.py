@@ -22,6 +22,20 @@ from courses.models import (
 @override_settings(REGISTRATION_REQUIRES_ACCOUNT=False)
 class RegistrationCampaignBase(TestCase):
     def setUp(self):
+        # Registration UI tests must not depend on external DNS (mirror
+        # of CMP c2f7d87): MX lookups are stubbed good by default;
+        # individual tests override with NXDOMAIN/NoAnswer/timeout cases.
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        mx = patch(
+            "courses.email_validation._mx_records_for_domain",
+            return_value=[
+                SimpleNamespace(exchange="mx.example.net.", preference=10)
+            ],
+        )
+        mx.start()
+        self.addCleanup(mx.stop)
         self.client = Client()
         self.course = Cohort.objects.create(
             slug="llm-zoomcamp-2026",
@@ -152,6 +166,8 @@ class RegistrationCampaignBase(TestCase):
         )
 
     def create_registered_course_user(self):
+        from django.utils import timezone as _tz
+
         user = User.objects.create_user(
             username="registered",
             email="registered@example.com",
@@ -167,6 +183,8 @@ class RegistrationCampaignBase(TestCase):
             region="Europe",
             role=CourseRegistration.Role.DATA_ENGINEER,
             accepted_newsletter=True,
+            email_confirmed=True,
+            email_confirmation_confirmed_at=_tz.now(),
         )
         return user
 

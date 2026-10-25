@@ -150,7 +150,7 @@ class RegistrationFinalStepTests(RegistrationCampaignBase):
 
         response = self.client.post(self.campaign_url(), payload)
 
-        self.assertContains(response, "You are registered")
+        self.assertContains(response, "Check your inbox to finish registering")
         self.assertContains(response, "Go to your home")
         self.assertContains(response, f'href="{reverse("home")}"')
 

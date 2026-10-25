@@ -90,7 +90,8 @@ class RegistrationConfirmationVerifyEmailScreenTests(RegistrationCampaignBase):
 
         response = self.client.post(self.campaign_url(), self.blank_optional_logged_in_payload())
 
-        self.assertContains(response, "You are registered")
+        self.assertContains(response, "Check your inbox to finish registering")
+        self.assertContains(response, "MUST click the confirmation link")
         self.assertContains(response, "One last step: verify your email")
         self.assertContains(response, "Check your inbox")
 
@@ -101,7 +102,7 @@ class RegistrationConfirmationVerifyEmailScreenTests(RegistrationCampaignBase):
 
         response = self.client.post(self.campaign_url(), self.blank_optional_logged_in_payload())
 
-        self.assertContains(response, "You are registered")
+        self.assertContains(response, "Check your inbox to finish registering")
         self.assertNotContains(response, "One last step: verify your email")
 
     def test_the_screen_always_offers_the_generic_next_steps(self):
@@ -146,6 +147,19 @@ class RegistrationConfirmationVerifyEmailScreenTests(RegistrationCampaignBase):
 
         address = EmailAddress.objects.get(user=user, email__iexact=user.email)
         self.assertTrue(address.verified)
+
+        # Account verification alone does not complete the registration:
+        # the pending block stays until the registration link is clicked.
+        pending = self.client.get(self.campaign_url())
+        self.assertContains(pending, "Check your inbox to finish registering")
+        self.assertNotContains(pending, "One last step: verify your email")
+
+        registration = CourseRegistration.objects.get()
+        confirm_url = reverse(
+            "registration_confirm",
+            kwargs={"token": registration.email_confirmation_token},
+        )
+        self.client.get(confirm_url)
 
         response = self.client.get(self.campaign_url())
         self.assertContains(response, "You are already registered")
