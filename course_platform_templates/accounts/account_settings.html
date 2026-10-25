@@ -688,6 +688,43 @@
         </div>
       </section>
 
+      <section class="band band-lavender" aria-labelledby="course-registrations-heading">
+        <div class="shell settings-shell">
+          <div class="band-head">
+            <div>
+              <h2 id="course-registrations-heading">Course registrations</h2>
+              <p>Confirm your email to complete registration. Look for the confirmation email, including in spam.</p>
+            </div>
+          </div>
+          {% if course_registrations %}
+            <div class="row-list">
+              {% for registration in course_registrations %}
+                <div class="list-row">
+                  <div>
+                    <p class="connection-name">{{ registration.campaign.title }}</p>
+                    <p class="connection-address">{{ registration.email_normalized }}</p>
+                    {% if registration.email_confirmed %}
+                      <p class="enrollment-name">Email confirmed</p>
+                    {% else %}
+                      <p class="enrollment-name">Unconfirmed — check your inbox and click the confirmation link</p>
+                    {% endif %}
+                  </div>
+                  {% if not registration.email_confirmed %}
+                    <form class="connection-form" method="post" action="{% url 'registration_confirmation_resend' %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="token" value="{{ registration.confirmation_management_token|default:'' }}">
+                      <button class="cta cta-compact cta-secondary" type="submit">Resend confirmation</button>
+                    </form>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="settings-note">You have no course registrations yet.</p>
+          {% endif %}
+        </div>
+      </section>
+
       <section class="band band-cream" aria-labelledby="courses-enrolled-heading">
         <div class="shell settings-shell">
           <div class="band-head">

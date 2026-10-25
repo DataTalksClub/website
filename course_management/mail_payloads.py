@@ -21,7 +21,7 @@ def registration_email(registration) -> str:
     return email.strip().lower()
 
 
-def registration_confirmation_urls(campaign, course) -> dict[str, str]:
+def registration_confirmation_urls(campaign, course, token="") -> dict[str, str]:
     registration_kwargs = {"campaign_slug": campaign.slug}
     registration_url = public_route_url(
         "registration_campaign",
@@ -32,10 +32,16 @@ def registration_confirmation_urls(campaign, course) -> dict[str, str]:
         course_kwargs = cohort_route_kwargs(course)
         course_url = public_route_url("cohort", course_kwargs)
     profile_url = public_route_url("account_settings")
+    confirmation_url = ""
+    if token:
+        from accounts.services.email_verification import registration_confirmation_url
+
+        confirmation_url = registration_confirmation_url(token)
     return {
         "registration_url": registration_url,
         "course_url": course_url,
         "profile_url": profile_url,
+        "confirmation_url": confirmation_url,
     }
 
 

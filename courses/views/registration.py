@@ -106,13 +106,52 @@ def _save_registration_if_valid(
     if not form.is_valid():
         return None
 
+    from courses.registration_confirmation import issue_confirmation_token
+
     registration = form.save()
+    # New registrations start pending email confirmation: issue the
+    # token now so the confirmation email carries the link.
+    issue_confirmation_token(registration)
     email_callback = partial(
         send_registration_confirmation_mail,
         registration,
     )
     transaction.on_commit(email_callback)
     return registration
+
+
+def _pending_duplicate_registration(
+    request: HttpRequest,
+    campaign,
+    form: CourseRegistrationForm,
+) -> CourseRegistration | None:
+    """Recover the pending block after a refresh/double POST.
+
+    Only for anonymous users whose POST failed on the duplicate-email
+    error while the existing registration is still unconfirmed.
+    """
+
+    from courses.views.registration_form import normalized_registration_email
+
+    if request.user.is_authenticated or "email" not in form.errors:
+        return None
+    email_error = " ".join(str(error) for error in form.errors["email"])
+    if "already registered" not in email_error:
+        return None
+    normalized = normalized_registration_email(request.POST.get("email", ""))
+    registration_id = request.session.get("registration_pending", {}).get(str(campaign.pk))
+    if not normalized or not registration_id:
+        return None
+    return (
+        CourseRegistration.objects.filter(
+            campaign=campaign,
+            pk=registration_id,
+            email_normalized=normalized,
+            email_confirmed=False,
+        )
+        .select_related("campaign", "course")
+        .first()
+    )
 
 
 def _start_course_url(campaign: RegistrationCampaign) -> str:
@@ -202,7 +241,17 @@ def registration_campaign_view(
     registration = None
     if request.method == "POST":
         registration = _save_registration_if_valid(form)
-        if registration is not None:
+        saved_fresh = registration is not None
+        if saved_fresh:
+            pending = request.session.get("registration_pending", {})
+            pending[str(campaign.pk)] = registration.pk
+            request.session["registration_pending"] = pending
+        if registration is None:
+            # Refresh-after-POST (or double submit) re-posts the same
+            # address: surface the pending confirmation block with its
+            # resend/fix options instead of only a duplicate error.
+            registration = _pending_duplicate_registration(request, campaign, form)
+        if saved_fresh:
             course_slug = ""
             if registration.course_id:
                 course_slug = registration.course.slug

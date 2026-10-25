@@ -455,6 +455,15 @@ def build_member_home_context(request) -> dict:
 
     your_courses_variant = "row_list" if len(active_cards) >= 4 else "cards"
 
+    unconfirmed_registrations = list(
+        CourseRegistration.objects.filter(
+            Q(user=user) | Q(email_normalized=(user.email or "").strip().lower()),
+            email_confirmed=False,
+        )
+        .select_related("campaign", "course")
+        .order_by("-created_at")
+    )
+
     return {
         "member_home_state": state,
         "active_cards": active_cards,
@@ -476,4 +485,5 @@ def build_member_home_context(request) -> dict:
         "single_active_cohort": active_cards[0] if len(active_cards) == 1 else None,
         "next_upcoming_cohort": next_upcoming_cohort,
         "multi_active_cohorts": len(active_cards) > 1,
+        "unconfirmed_registrations": unconfirmed_registrations,
     }

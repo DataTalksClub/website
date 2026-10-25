@@ -1,0 +1,31 @@
+{% comment %}
+  Unconfirmed course registrations: double opt-in pending state with resend.
+  Rendered on the signed-in home for states with cohorts.
+{% endcomment %}
+{% if unconfirmed_registrations %}
+  <section class="member-home-section" aria-labelledby="unconfirmed-registrations-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="unconfirmed-registrations-heading">Confirm your email</h2>
+        <p>Check your inbox and click the confirmation link to complete registration.</p>
+      </div>
+    </div>
+    <div class="row-list">
+      {% for registration in unconfirmed_registrations %}
+        <div class="list-row">
+          <div>
+            <p class="checklist-item-title">{{ registration.campaign.title }}</p>
+            <p class="checklist-item-description">{{ registration.email_normalized }} — Unconfirmed</p>
+          </div>
+          <div class="checklist-row-actions">
+            <form method="post" action="{% url 'registration_confirmation_resend' %}">
+              {% csrf_token %}
+              <input type="hidden" name="token" value="{{ registration.confirmation_management_token|default:'' }}">
+              <button class="cta cta-compact cta-secondary" type="submit">Resend confirmation</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}

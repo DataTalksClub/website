@@ -97,10 +97,16 @@ def _registration_verify_email_prompt(registration, email: str) -> str:
 def send_registration_confirmation_mail(registration):
     """Confirm a course registration through the package (D1.2b).
 
-    Replaces the Datamailer transactional send and keeps its idempotency
-    key ``registration-confirmation:<registration pk>`` and its
-    ``email_course_updates`` preference category.
+    Replaces the Datamailer transactional send and keeps its
+    ``email_course_updates`` preference category. The idempotency key is
+    ``registration-confirmation:<pk>`` for the first send and gains a
+    hashed token generation on every re-issue (mirror of CMP c2f7d87),
+    so a resend/fix-email gets a fresh Relay delivery while retrying the
+    same generation keeps its key; legacy tokenless deliveries keep the
+    original key shape.
     """
+
+    import hashlib
 
     from course_management.mail_payloads import (
         registration_confirmation_course_context,
@@ -113,8 +119,13 @@ def send_registration_confirmation_mail(registration):
         return None
 
     course = registration.course
-    urls = registration_confirmation_urls(registration.campaign, course)
+    token = getattr(registration, "email_confirmation_token", "") or ""
+    urls = registration_confirmation_urls(registration.campaign, course, token=token)
     course_context = registration_confirmation_course_context(course)
+    key_parts = ["registration-confirmation", str(registration.pk)]
+    if token:
+        generation = hashlib.sha256(token.encode()).hexdigest()[:24]
+        key_parts.append(generation)
     return send_package_mail(
         purpose=PURPOSE_REGISTRATION_CONFIRMATION,
         to=email,
@@ -124,12 +135,10 @@ def send_registration_confirmation_mail(registration):
             "start_date": course_context["course_start_date"],
             "campaign_title": registration.campaign.title,
             "profile_url": urls["profile_url"],
+            "confirmation_url": urls["confirmation_url"],
             "verify_email_prompt": _registration_verify_email_prompt(registration, email),
         },
-        idempotency_key=mail_idempotency_key(
-            "registration-confirmation",
-            str(registration.pk),
-        ),
+        idempotency_key=mail_idempotency_key(*key_parts),
         category="email_course_updates",
         user=registration.user,
     )

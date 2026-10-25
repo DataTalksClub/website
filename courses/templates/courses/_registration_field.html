@@ -29,6 +29,9 @@
     {{ country_options|json_script:"country-options-json" }}
     <div class="country-combobox-panel" data-country-combobox-panel hidden></div>
   {% endif %}
+  {% if field.name == 'email' %}
+    <p class="a11y-help" data-email-typo-hint hidden></p>
+  {% endif %}
   {% if field.help_text %}
     <p id="{{ help_id }}" class="a11y-help">{{ field.help_text }}</p>
   {% endif %}

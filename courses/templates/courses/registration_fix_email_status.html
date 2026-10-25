@@ -1,0 +1,62 @@
+{% extends "core/content_page.html" %}
+
+{% block document_title %}Fix registration email - DataTalks.Club{% endblock %}
+
+{% block metadata %}{% endblock %}
+
+{% block page_styles %}
+      :root {
+        --page: var(--lavender);
+      }
+      .registration-note {
+        color: var(--body-text);
+        font-size: 0.92rem;
+        overflow-wrap: anywhere;
+      }
+{% endblock %}
+
+{% block header_band_class %}registration-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="registration-fix-heading"{% endblock %}
+
+{% block page_header %}
+        <p class="mono-label mono-label-indigo">Registration</p>
+        <h1 id="registration-fix-heading">Fix registration email</h1>
+{% endblock %}
+
+{% block page_content %}
+      <section class="registration-section">
+        <div class="card registration-panel">
+          {% if updated %}
+            <h2>Email updated</h2>
+            <p class="registration-note">
+              Check your inbox at {{ registration.email }} — you MUST click the confirmation link to complete registration.
+            </p>
+            <form method="post" action="{% url 'registration_confirmation_resend' %}">
+              {% csrf_token %}
+              <input type="hidden" name="token" value="{{ registration.confirmation_management_token }}">
+              <button class="cta cta-secondary" type="submit">Resend confirmation email</button>
+            </form>
+            <p class="registration-note">
+              <a href="{% url 'registration_campaign' campaign.slug %}">Back to registration</a>
+            </p>
+          {% elif already_confirmed %}
+            <h2>Already confirmed</h2>
+            <p class="registration-note">
+              This registration is already confirmed; the address can no longer be changed here.
+            </p>
+          {% else %}
+            <h2>Could not update the address</h2>
+            <p class="registration-note">{{ error|default:"Something went wrong. Please try again." }}</p>
+            {% if registration %}
+              <form method="post" action="{% url 'registration_confirmation_fix_email' %}">
+                {% csrf_token %}
+                <input type="hidden" name="token" value="{{ registration.confirmation_management_token|default:'' }}">
+                <label for="fix-email-input">Corrected email address</label>
+                <input id="fix-email-input" type="email" name="email" required class="form-control" value="{{ registration.email }}">
+                <button class="cta cta-primary" type="submit">Send confirmation to this address</button>
+              </form>
+            {% endif %}
+          {% endif %}
+        </div>
+      </section>
+{% endblock %}

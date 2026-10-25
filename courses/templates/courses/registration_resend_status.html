@@ -1,0 +1,68 @@
+{% extends "core/content_page.html" %}
+
+{% block document_title %}Confirmation email - DataTalks.Club{% endblock %}
+
+{% block metadata %}{% endblock %}
+
+{% block page_styles %}
+      :root {
+        --page: var(--lavender);
+      }
+      .registration-note {
+        color: var(--body-text);
+        font-size: 0.92rem;
+        overflow-wrap: anywhere;
+      }
+{% endblock %}
+
+{% block header_band_class %}registration-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="registration-resend-heading"{% endblock %}
+
+{% block page_header %}
+        <p class="mono-label mono-label-indigo">Registration</p>
+        <h1 id="registration-resend-heading">Confirmation email</h1>
+{% endblock %}
+
+{% block page_content %}
+      <section class="registration-section">
+        <div class="card registration-panel">
+          {% if recovery_requested %}
+            <h2>Check your inbox</h2>
+            <p class="registration-note">If an unconfirmed registration matches, we will send a fresh confirmation. Wait a minute between requests; you can request up to 10 emails before a 24-hour pause.</p>
+          {% elif sent %}
+            <h2>Confirmation email sent</h2>
+            <p class="registration-note">
+              Check your inbox at {{ registration.email }} — you MUST click the confirmation link to complete registration.
+            </p>
+          {% elif already_confirmed %}
+            <h2>Already confirmed</h2>
+            <p class="registration-note">
+              {{ registration.email }} is already confirmed. Your registration for {{ campaign.title }} is complete.
+            </p>
+          {% else %}
+            <h2>Could not resend right now</h2>
+            <p class="registration-note">
+              {% if rate_limited and reason == "too_many_resends" %}
+                Too many confirmation emails were requested for this registration. Please try again after 24 hours.
+              {% elif rate_limited %}
+                Please wait a minute before requesting another confirmation email.
+              {% else %}
+                {{ error|default:"Something went wrong. Please try again." }}
+              {% endif %}
+            </p>
+            {% if registration %}
+              <form method="post" action="{% url 'registration_confirmation_resend' %}">
+                {% csrf_token %}
+                <input type="hidden" name="token" value="{{ registration.confirmation_management_token|default:'' }}">
+                <button class="cta cta-primary" type="submit">Try resending again</button>
+              </form>
+            {% endif %}
+          {% endif %}
+          {% if campaign %}
+            <p class="registration-note">
+              <a href="{% url 'registration_campaign' campaign.slug %}">Back to registration / fix email</a>
+            </p>
+          {% endif %}
+        </div>
+      </section>
+{% endblock %}

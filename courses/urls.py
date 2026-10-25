@@ -22,6 +22,7 @@ from .views import (
     project_statistics,
     project_submissions,
     registration,
+    registration_confirmation,
     shared_course,
     site_project_gallery,
     unit,
@@ -167,6 +168,21 @@ urlpatterns = [
         "<slug:course_slug>/<slug:module_slug>/<slug:lesson_slug>",
         shared_course.shared_lesson_view,
         name="shared_lesson",
+    ),
+    path(
+        "register/confirm/<str:token>/",
+        registration_confirmation.registration_confirm_view,
+        name="registration_confirm",
+    ),
+    path(
+        "register/resend-confirmation/",
+        registration_confirmation.registration_confirmation_resend_view,
+        name="registration_confirmation_resend",
+    ),
+    path(
+        "register/fix-email/",
+        registration_confirmation.registration_confirmation_fix_email_view,
+        name="registration_confirmation_fix_email",
     ),
     path(
         "register/<slug:campaign_slug>/",

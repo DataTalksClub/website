@@ -6,15 +6,24 @@ pipeline (#49) — neither exists yet, and this is a pre-launch site with no
 real production data, so building toward that formal 7-state design now
 would be scope the site does not need yet.
 
-This module is the smallest working slice: it answers "is this account's
-registration email verified" using allauth's own ``EmailAddress`` model (the
-same evidence ``accounts/auth.py`` already treats as verification truth for
-social-login identity resolution) and builds the confirmation link that
+What existed before the double-opt-in mirror (kept, extended — no
+parallel pipeline): this module answered "is this account's registration
+email verified" using allauth's own ``EmailAddress`` model (the same
+evidence ``accounts/auth.py`` already treats as verification truth for
+social-login identity resolution) and built the confirmation link that
 ``allauth.urls`` already serves at ``account_confirm_email`` — no new
-verification model, no new confirm view, no new email pipeline. The link is
-folded into the registration confirmation email
+verification model, no new confirm view, no new email pipeline. The link
+was folded into the registration confirmation email
 (``course_management.package_mail.send_registration_confirmation_mail``)
 rather than sent as a second, separate email.
+
+Double-opt-in extension (mirror of CMP c2f7d87): course registration
+itself is now pending until its own confirmation link is clicked
+(``courses/registration_confirmation.py`` + ``CourseRegistration``
+``email_confirmed``/token fields). The account-level allauth link below
+is unchanged and still folded into the same Relay-backed delivery; the
+registration confirmation URL builder lives here too so both links come
+from the one verification service.
 """
 
 from __future__ import annotations
@@ -80,3 +89,20 @@ def registration_verification_url(user, email: str) -> str:
     address = _email_address_for_verification(user, email)
     confirmation = EmailConfirmationHMAC(address)
     return public_route_url("account_confirm_email", {"key": confirmation.key})
+
+
+def registration_confirmation_url(token: str) -> str:
+    """The double-opt-in link a registration email carries.
+
+    Built here (not in a parallel mail pipeline) so both the
+    registration confirmation link and the account allauth link above
+    come from the one verification service. Empty token renders as no
+    link — the caller keeps the legacy context shape in that case.
+    """
+
+    from course_management.public_urls import public_route_url
+
+    token = (token or "").strip()
+    if not token:
+        return ""
+    return public_route_url("registration_confirm", {"token": token})

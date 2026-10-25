@@ -15,7 +15,35 @@
 {% endcomment %}
 <div class="card registration-panel">
   <div class="registration-submitted">
-    {% if campaign.requires_approval and registration.status == "pending" %}
+    {% if not registration.email_confirmed %}
+      <div data-pending-confirmation>
+        <h2 id="registration-form-heading">Check your inbox to finish registering</h2>
+        <p class="registration-note">
+          We sent a confirmation email to <strong>{{ registration.email }}</strong>.
+          You MUST click the confirmation link in that email to complete your registration.
+        </p>
+        <p class="registration-note">
+          Didn't get it? Check spam, then resend:
+        </p>
+        <form method="post" action="{% url 'registration_confirmation_resend' %}">
+          {% csrf_token %}
+          <input type="hidden" name="token" value="{{ registration.confirmation_management_token|default:'' }}">
+          <button class="cta cta-secondary" type="submit">Resend confirmation email</button>
+        </form>
+        <div>
+          <p class="registration-note"><strong>Wrong email? Fix it:</strong></p>
+          <form method="post" action="{% url 'registration_confirmation_fix_email' %}" data-fix-email-form>
+            {% csrf_token %}
+            <input type="hidden" name="token" value="{{ registration.confirmation_management_token|default:'' }}">
+            <label for="fix-email-input" class="registration-field-label">Corrected email address</label>
+            <input id="fix-email-input" type="email" name="email" required class="form-control" value="{{ registration.email_normalized }}" data-fix-email-input>
+            <p class="registration-note" data-fix-email-hint hidden></p>
+            <p class="registration-note">Wait a minute between requests. Confirmation links expire after 7 days.</p>
+            <button class="cta cta-primary" type="submit">Send confirmation to this address</button>
+          </form>
+        </div>
+      </div>
+    {% elif campaign.requires_approval and registration.status == "pending" %}
       <h2 id="registration-form-heading">Application received</h2>
       <p class="registration-note">
         Your application is pending review. We will notify

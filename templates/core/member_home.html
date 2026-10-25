@@ -216,6 +216,7 @@
         {% include "core/_member_home_discover.html" %}
         {% include "core/_member_home_events.html" %}
       {% elif member_home_state == "state_2" %}
+        {% include "core/_member_home_unconfirmed.html" %}
         {% include "core/_member_home_your_courses.html" %}
         {% include "core/_member_home_due_soon.html" %}
         {% include "core/_member_home_checklist.html" %}
@@ -223,6 +224,7 @@
         {% include "core/_member_home_discover.html" %}
         {% include "core/_member_home_events.html" %}
       {% else %}
+        {% include "core/_member_home_unconfirmed.html" %}
         {% include "core/_member_home_finished.html" %}
         {% include "core/_member_home_checklist.html" %}
         {% include "core/_member_home_discover.html" %}

@@ -1,0 +1,96 @@
+{% extends "core/content_page.html" %}
+
+{% block document_title %}Confirm your registration - DataTalks.Club{% endblock %}
+
+{% block metadata %}{% endblock %}
+
+{% block page_styles %}
+      :root {
+        --page: var(--lavender);
+      }
+      .registration-note {
+        color: var(--body-text);
+        font-size: 0.92rem;
+        overflow-wrap: anywhere;
+      }
+{% endblock %}
+
+{% block header_band_class %}registration-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="registration-confirm-heading"{% endblock %}
+
+{% block page_header %}
+        <p class="mono-label mono-label-indigo">Registration</p>
+        <h1 id="registration-confirm-heading">Confirm your registration</h1>
+{% endblock %}
+
+{% block page_content %}
+      <section class="registration-section" aria-labelledby="registration-confirm-heading">
+        <div class="card registration-panel">
+          {% if outcome == "confirmed" or outcome == "already_confirmed" %}
+            <h2>
+              {% if outcome == "already_confirmed" %}
+                This address was already confirmed
+              {% else %}
+                Your email is confirmed
+              {% endif %}
+            </h2>
+            <p class="registration-note">
+              {% if registration %}
+                Your email for {{ campaign.title }} ({{ registration.email }}) is confirmed.
+                Your registration is now complete.
+              {% else %}
+                Thank you for confirming your email.
+              {% endif %}
+            </p>
+            {% if campaign %}
+              <p class="registration-note">
+                <a href="{% url 'registration_campaign' campaign.slug %}">Back to registration</a>
+              </p>
+            {% endif %}
+          {% else %}
+            <h2>
+              Confirmation link {% if outcome == "expired" %}expired{% else %}invalid{% endif %}
+            </h2>
+            <p class="registration-note">
+              {% if outcome == "expired" %}
+                This confirmation link is older than 7 days and no longer works.
+              {% else %}
+                We could not find a registration for this confirmation link. It may have been used already, or the address may have changed.
+              {% endif %}
+            </p>
+            {% if registration and campaign %}
+              <p class="registration-note">
+                We can send a fresh confirmation email to {{ registration.email_normalized }}.
+              </p>
+              <form method="post" action="{% url 'registration_confirmation_resend' %}">
+                {% csrf_token %}
+                <input type="hidden" name="token" value="{{ registration.confirmation_management_token|default:'' }}">
+                <button class="cta cta-primary" type="submit">Resend confirmation email</button>
+              </form>
+            {% elif campaign %}
+              <p class="registration-note">
+                <a href="{% url 'registration_campaign' campaign.slug %}">Register again</a>.
+              </p>
+            {% else %}
+              <p class="registration-note">Request a fresh link using the address and course you registered with.</p>
+              <form method="post" action="{% url 'registration_confirmation_resend' %}">
+                {% csrf_token %}
+                <div>
+                  <label for="recovery-email">Email address</label>
+                  <input id="recovery-email" type="email" name="email" class="form-control" required>
+                </div>
+                <div>
+                  <label for="recovery-campaign">Course</label>
+                  <select id="recovery-campaign" name="campaign_slug" class="form-control" required>
+                    {% for item in campaigns %}
+                      <option value="{{ item.slug }}">{{ item.title }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <button class="cta cta-primary" type="submit">Resend confirmation email</button>
+              </form>
+            {% endif %}
+          {% endif %}
+        </div>
+      </section>
+{% endblock %}

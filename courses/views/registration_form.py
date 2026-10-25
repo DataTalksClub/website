@@ -338,6 +338,20 @@ class CourseRegistrationForm(forms.ModelForm):
             raise forms.ValidationError(
                 "You have already registered for this course."
             )
+        from courses.email_validation import (
+            email_domain_has_mx,
+            suggest_email_correction,
+        )
+
+        suggestion = suggest_email_correction(email_normalized)
+        if suggestion and suggestion.lower() != email_normalized:
+            raise forms.ValidationError(f"Did you mean {suggestion}?")
+        mx_result = email_domain_has_mx(email_normalized)
+        if mx_result is False:
+            raise forms.ValidationError(
+                "That email domain does not accept mail. "
+                "Please check the address."
+            )
         return email_normalized
 
     def clean_country(self):
@@ -376,6 +390,15 @@ class CourseRegistrationForm(forms.ModelForm):
         if has_authenticated_registration_user(self.user):
             registration.user = self.user
             registration.email = self.user.email
+        else:
+            # clean_email() normalizes; keep the exact address the user
+            # typed so the pending page shows it back verbatim.
+            raw_email = ""
+            if hasattr(self, "data") and self.data is not None:
+                raw_email = self.data.get("email", "")
+            raw_email = (raw_email or "").strip()
+            if raw_email:
+                registration.email = raw_email
         if commit:
             registration.save()
             save_registration_user_profile(self.user, registration)
