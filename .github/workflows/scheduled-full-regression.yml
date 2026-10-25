@@ -1,6 +1,7 @@
 name: Scheduled full regression
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "17 */4 * * *"
 

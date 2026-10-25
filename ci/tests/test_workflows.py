@@ -445,7 +445,10 @@ def test_manual_release_is_full_and_probe_contract_stays_separate() -> None:
 
 def test_scheduled_workflow_has_exact_trigger_queue_and_least_permissions() -> None:
     data = workflow("scheduled-full-regression.yml")
-    assert data["on"] == {"schedule": [{"cron": "17 */4 * * *"}]}
+    assert data["on"] == {
+        "workflow_dispatch": "",
+        "schedule": [{"cron": "17 */4 * * *"}],
+    }
     assert data["permissions"] == {"contents": "read", "actions": "read"}
     assert data["concurrency"] == {
         "group": "website-scheduled-full-regression",
