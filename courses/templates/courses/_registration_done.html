@@ -42,6 +42,11 @@
             <button class="cta cta-primary" type="submit">Send confirmation to this address</button>
           </form>
         </div>
+        {% if campaign.requires_approval %}
+          <p class="registration-note">
+            After confirming your email, your application will be reviewed. Only approved applicants join the full course path.
+          </p>
+        {% endif %}
       </div>
     {% elif campaign.requires_approval and registration.status == "pending" %}
       <h2 id="registration-form-heading">Application received</h2>

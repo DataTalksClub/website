@@ -135,8 +135,10 @@ class RegistrationApplicationGateTests(RegistrationCampaignBase):
             "I want to run media models on GPUs in production",
         )
         self.assertEqual(registration.region, "Europe")
-        self.assertContains(response, "Application received")
-        self.assertContains(response, "pending review")
+        self.assertFalse(registration.email_confirmed)
+        self.assertContains(response, "Check your inbox to finish registering")
+        self.assertContains(response, "MUST click the confirmation link")
+        self.assertContains(response, "After confirming your email")
 
     def test_approval_submission_does_not_create_enrollment(self):
         url = self.campaign_url()
@@ -162,7 +164,8 @@ class RegistrationApplicationGateTests(RegistrationCampaignBase):
         self.assertEqual(registration.experience, "")
         self.assertEqual(registration.years_experience, "")
         self.assertFalse(registration.accepted_nebius_sharing)
-        self.assertContains(response, "You are registered")
+        self.assertFalse(registration.email_confirmed)
+        self.assertContains(response, "Check your inbox to finish registering")
         self.assertNotContains(response, "Limited seats")
 
     def test_open_campaign_hides_nebius_sharing_consent(self):
