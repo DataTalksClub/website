@@ -680,6 +680,41 @@ class CourseRegistration(models.Model):
             "for review, credits and course operation."
         ),
     )
+    email_confirmed = models.BooleanField(
+        default=False,
+        help_text=(
+            "Whether the registrant clicked the email confirmation link "
+            "(double opt-in)."
+        ),
+    )
+    email_confirmation_token = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        default=None,
+        unique=True,
+        help_text=(
+            "Secret token for the email confirmation link. Null for rows "
+            "confirmed by the backfill migration."
+        ),
+    )
+    email_confirmation_sent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the latest confirmation email was sent.",
+    )
+    email_confirmation_confirmed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the email confirmation link was clicked.",
+    )
+    email_confirmation_resend_count = models.PositiveIntegerField(
+        default=0,
+        help_text=(
+            "How many confirmation emails were sent "
+            "(initial send counts as the first)."
+        ),
+    )
     status = models.CharField(
         max_length=16,
         choices=Status.choices,
@@ -707,6 +742,12 @@ class CourseRegistration(models.Model):
         if self.campaign and self.course_id is None:
             self.course = self.campaign.current_course
         super().save(*args, **kwargs)
+
+    @property
+    def confirmation_management_token(self):
+        from courses.registration_confirmation import management_token
+
+        return management_token(self)
 
     def __str__(self):
         return f"{self.email_normalized} registered for {self.campaign}"
