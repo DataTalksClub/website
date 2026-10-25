@@ -18,7 +18,7 @@ from courses.models import (
 from playwright_tests.accessibility_support import target_size_issues
 from playwright_tests.course_catalog_contract import assert_copied_course_catalog_link
 
-pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
+pytestmark = [pytest.mark.django_db(transaction=True)]
 
 CMP_SOURCE_COMMIT = "98a235283904b4ef9ad29e196298540756cf1bcc"
 # The courses index left the byte-exact CMP copy with the design system rebuild (issue #179);
@@ -244,6 +244,7 @@ def _assert_registration_hero_is_contained(page: Page) -> dict[str, float]:
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
+@pytest.mark.full
 def test_database_course_catalog_renders_the_design_system_index(
     page: Page,
     live_server,
@@ -383,6 +384,7 @@ def test_database_course_catalog_renders_the_design_system_index(
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
+@pytest.mark.full
 def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     page: Page,
     live_server,
@@ -461,6 +463,7 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 1})
 
 
+@pytest.mark.full
 def test_registration_pages_emit_exact_production_canonicals(
     page: Page,
     live_server,
@@ -504,6 +507,7 @@ def test_registration_pages_emit_exact_production_canonicals(
 
 
 @pytest.mark.parametrize("viewport_width", (320, 390, 414))
+@pytest.mark.full
 def test_registration_hero_fits_loaded_image_without_javascript(
     browser,
     live_server,
@@ -572,10 +576,16 @@ def test_registration_hero_fits_loaded_image_without_javascript(
         context.close()
 
 
+@pytest.mark.core
+@pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
+@pytest.mark.parametrize("email_confirmed", [False, True], ids=["pending", "confirmed"])
 def test_registration_hero_fits_success_state_without_javascript(
     browser,
     live_server,
     cmp_registration_campaign: RegistrationCampaign,
+    viewport: dict[str, int],
+    suffix: str,
+    email_confirmed: bool,
 ) -> None:
     user = User.objects.create_user(
         username="cmp-registration-success",
@@ -592,6 +602,7 @@ def test_registration_hero_fits_success_state_without_javascript(
         region="Europe",
         role="data_engineer",
         accepted_newsletter=True,
+        email_confirmed=email_confirmed,
     )
     client = Client()
     client.force_login(user)
@@ -599,7 +610,7 @@ def test_registration_hero_fits_success_state_without_javascript(
 
     context = browser.new_context(
         java_script_enabled=False,
-        viewport={"width": 390, "height": 844},
+        viewport=viewport,
         color_scheme="light",
         reduced_motion="reduce",
     )
@@ -614,7 +625,23 @@ def test_registration_hero_fits_success_state_without_javascript(
         )
         response = page.goto(f"{live_server.url}{registration_path}", wait_until="networkidle")
         assert response is not None and response.status == 200
-        expect(page.get_by_role("heading", name="You are already registered")).to_be_visible()
+        heading = (
+            "You are already registered"
+            if email_confirmed
+            else "Check your inbox to finish registering"
+        )
+        expect(page.get_by_role("heading", name=heading, exact=True)).to_be_visible()
+        expect(page.locator("[data-pending-confirmation]")).to_have_count(
+            0 if email_confirmed else 1
+        )
+        if not email_confirmed:
+            pending = page.locator("[data-pending-confirmation]")
+            expect(pending.get_by_text(user.email, exact=True)).to_be_visible()
+            expect(pending).to_contain_text(
+                "You MUST click the confirmation link in that email to complete your registration."
+            )
+            expect(pending.get_by_role("button", name="Resend confirmation email")).to_be_visible()
+            expect(pending.get_by_label("Corrected email address")).to_be_visible()
         expect(page.locator(".registration-panel form[data-registration-form]")).to_have_count(0)
         _assert_registration_hero_is_contained(page)
     finally:
@@ -622,6 +649,7 @@ def test_registration_hero_fits_success_state_without_javascript(
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
+@pytest.mark.full
 def test_no_database_course_catalog_uses_the_design_system_empty_state(
     page: Page,
     live_server,
@@ -669,6 +697,7 @@ def test_no_database_course_catalog_uses_the_design_system_empty_state(
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
+@pytest.mark.full
 def test_database_backed_empty_catalog_keeps_the_design_system_empty_composition(
     page: Page,
     live_server,

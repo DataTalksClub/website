@@ -355,6 +355,22 @@ def test_ordinary_local_selection_collects_after_copied_e2e_is_deselected() -> N
     assert nodes
     assert all(node.startswith("playwright_tests/") for node in nodes)
     assert "e2e/" not in result.stdout
+    # Split registration/account-settings views select core on push. These
+    # guards must remain in that tier, including both email states without JS
+    # and the byte-identical account-settings/error-focus captures.
+    required = {
+        "playwright_tests/test_course_design_parity.py::"
+        "test_registration_hero_fits_success_state_without_javascript"
+        f"[chromium-{state}-{viewport}]"
+        for state in ("pending", "confirmed")
+        for viewport in ("viewport0-desktop", "viewport1-mobile")
+    }
+    required.update(
+        "playwright_tests/test_accessibility.py::test_accessibility_visual_evidence"
+        f"[chromium-{viewport}]"
+        for viewport in ("viewport0-desktop", "viewport1-mobile")
+    )
+    assert required <= nodes
 
 
 def test_direct_copied_e2e_node_is_denied_before_playwright_or_network() -> None:

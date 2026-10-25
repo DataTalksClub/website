@@ -21,7 +21,7 @@
     "playwright": {
       "command": "scripts/ci.py test-playwright",
       "environment_dimensions": ["allowlisted_config", "architecture", "browser", "django", "operating_system", "playwright", "python", "runner_image", "uv"],
-      "relevant_patterns": ["playwright_tests/**", "**/templates/**", "**/static/**", "**/views.py", "**/urls.py", "**/context_processors.py", "**/serializers.py", "**/fixtures/**", "pyproject.toml", "uv.lock"],
+      "relevant_patterns": ["playwright_tests/**", "**/templates/**", "**/static/**", "**/views.py", "**/views/**", "**/urls.py", "**/context_processors.py", "**/serializers.py", "**/fixtures/**", "pyproject.toml", "uv.lock"],
       "validity_class": "volatile"
     },
     "quality": {
@@ -33,7 +33,7 @@
     "screenshots": {
       "command": "independent tester desktop/mobile capture and inspection",
       "environment_dimensions": ["allowlisted_config", "architecture", "browser", "django", "operating_system", "playwright", "python", "runner_image", "uv"],
-      "relevant_patterns": ["playwright_tests/**", "**/templates/**", "**/static/**", "**/views.py", "**/urls.py", "**/context_processors.py", "**/serializers.py", "**/fixtures/**"],
+      "relevant_patterns": ["playwright_tests/**", "**/templates/**", "**/static/**", "**/views.py", "**/views/**", "**/urls.py", "**/context_processors.py", "**/serializers.py", "**/fixtures/**"],
       "validity_class": "visual"
     },
     "selector": {
@@ -93,7 +93,7 @@
   "render_rules": {
     "basenames": ["context_processors.py", "serializers.py", "urls.py", "views.py"],
     "extensions": [".css", ".htm", ".html", ".jinja", ".jinja2", ".js", ".mjs", ".tmpl", ".tpl"],
-    "segments": ["static", "templates"]
+    "segments": ["static", "templates", "views"]
   },
   "risk_rules": {
     "configuration_hidden_prefixes": ["."],

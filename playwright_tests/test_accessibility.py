@@ -485,7 +485,12 @@ def _visit_surface(
     assert response is not None and response.status == surface.expected_status, name
     page.wait_for_load_state("load")
 
-    if name == "login-error":
+    if name == "account-settings":
+        expect(page.locator(".js-email-preferences-status")).to_have_text(
+            "Email subscriptions loaded."
+        )
+        expect(page.locator(".js-email-preferences-status")).to_have_attribute("aria-busy", "false")
+    elif name == "login-error":
         page.get_by_label("Email", exact=True).fill("invalid@example.invalid")
         page.get_by_label("Password", exact=True).fill("synthetic-invalid-password")
         page.get_by_role("button", name="Sign in").click()
@@ -506,12 +511,16 @@ def _visit_surface(
         form = page.locator("[data-registration-form]")
         form.locator('[name="company_name"]').fill(INVALID_FORM_COMPANY)
         form.evaluate("element => element.submit()")
-        expect(page.locator("[data-focus-error-summary]")).to_be_visible()
+        expect(page.locator("[data-focus-error-summary]")).to_be_focused()
 
 
 def _capture_deterministic_screenshot(page: Page, path: Path) -> None:
     """Capture only when two identical-source renders produce identical PNG bytes."""
 
+    # Full-page captures must share one scroll origin. Programmatic error focus
+    # scrolls the viewport; Chromium can otherwise rasterize fixed elements at
+    # different subpixel offsets between consecutive captures. Preserve focus.
+    page.evaluate("window.scrollTo({top: 0, left: 0, behavior: 'instant'})")
     page.evaluate(
         """async () => {
             await document.fonts.ready;
@@ -652,7 +661,7 @@ def test_homework_breadcrumb_target_spacing_ignores_closed_account_menu(
 
 
 @pytest.mark.accessibility
-@pytest.mark.full
+@pytest.mark.core
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
 def test_accessibility_visual_evidence(
     page: Page,

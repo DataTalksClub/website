@@ -264,7 +264,17 @@ def test_prose_only_docs_are_explicitly_not_applicable(tmp_path: Path) -> None:
         assert plan["components"][component]["disposition"] == "not_applicable"
 
 
-@pytest.mark.parametrize("path", ["api/views.py", "api/urls.py", "api/context_processors.py"])
+@pytest.mark.parametrize(
+    "path",
+    [
+        "api/views.py",
+        "api/urls.py",
+        "api/context_processors.py",
+        "courses/views/registration.py",
+        "courses/views/registration_confirmation.py",
+        "accounts/views/account_settings.py",
+    ],
+)
 def test_data_shape_and_navigation_changes_require_core_browser_and_screenshots(
     tmp_path: Path, path: str
 ) -> None:
@@ -274,6 +284,10 @@ def test_data_shape_and_navigation_changes_require_core_browser_and_screenshots(
     assert plan["browser_profile"] == "core"
     assert plan["components"]["playwright"]["disposition"] == "rerun"
     assert plan["components"]["screenshots"]["disposition"] == "rerun"
+    for component in ("playwright", "screenshots"):
+        assert path in {
+            entry["path"] for entry in plan["components"][component]["inputs"]["manifest"]
+        }
 
 
 def test_ci_render_plan_fails_closed_without_screenshot_evidence(tmp_path: Path) -> None:
