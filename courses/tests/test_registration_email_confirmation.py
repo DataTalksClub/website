@@ -184,6 +184,8 @@ class RegistrationPendingFlowTests(RegistrationCampaignBase):
         self.assertEqual(CourseRegistration.objects.count(), 1)
 
     def test_confirm_link_marks_confirmed_idempotently(self):
+        # E2E core: register -> pending page -> confirm link -> confirmed
+        # -> replay stays confirmed.
         with self.captureOnCommitCallbacks(execute=True):
             self.client.post(
                 self.campaign_url(),
