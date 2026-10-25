@@ -95,6 +95,13 @@ BACKEND_PATTERN_EXCEPTIONS: dict[Path, frozenset[str]] = {
     # which SQLite has no spelling for and does not need. The behavior is the
     # same on both engines and only the token is backend-specific.
     Path("core/management/commands/rebuild_events_tables.py"): frozenset({"connection.vendor"}),
+    # Registration double opt-in serializes concurrent confirm/resend/fix
+    # writers on a single registration row. On the deployed PostgreSQL
+    # engine that is ``select_for_update``; on SQLite (tests, local) the
+    # database-level write lock serializes the same transaction, so the
+    # behavior stays portable and only the token is backend-specific.
+    Path("courses/registration_confirmation.py"): frozenset({"select_for_update"}),
+    Path("courses/views/registration_confirmation.py"): frozenset({"select_for_update"}),
 }
 DATABASE_REFERENCE = re.compile(
     r"\b(?:postgres(?:ql)?|psycopg|database_url)\b",
