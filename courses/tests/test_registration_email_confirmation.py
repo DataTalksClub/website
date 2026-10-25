@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import dns.resolver
 from django.apps import apps
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -114,9 +114,7 @@ class RegistrationPendingFlowTests(RegistrationCampaignBase):
     def test_register_creates_pending_registration(self):
         url = self.campaign_url()
         with self.captureOnCommitCallbacks(execute=True):
-            response = self.client.post(
-                url, self.registration_payload(email="New@Example.com")
-            )
+            response = self.client.post(url, self.registration_payload(email="New@Example.com"))
         self.assertEqual(response.status_code, 200)
         registration = CourseRegistration.objects.get()
         self.assertFalse(registration.email_confirmed)
@@ -131,9 +129,8 @@ class RegistrationPendingFlowTests(RegistrationCampaignBase):
         self.assertContains(response, "Wrong email? Fix it")
         self.assertContains(response, "Resend confirmation email")
         # The secret token is never exposed in the pending page.
-        self.assertNotContains(
-            response, registration.email_confirmation_token
-        )
+        assert registration.email_confirmation_token is not None
+        self.assertNotContains(response, registration.email_confirmation_token)
 
     def test_typo_address_rejected_with_suggestion(self):
         url = self.campaign_url()
@@ -211,23 +208,17 @@ class RegistrationPendingFlowTests(RegistrationCampaignBase):
                 self.registration_payload(email="old@example.com"),
             )
         registration = CourseRegistration.objects.get()
-        registration.email_confirmation_sent_at = (
-            timezone.now() - timedelta(days=8)
-        )
+        registration.email_confirmation_sent_at = timezone.now() - timedelta(days=8)
         registration.save(update_fields=["email_confirmation_sent_at"])
         token = registration.email_confirmation_token
-        response = self.client.get(
-            reverse("registration_confirm", kwargs={"token": token})
-        )
+        response = self.client.get(reverse("registration_confirm", kwargs={"token": token}))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "expired")
         registration.refresh_from_db()
         self.assertFalse(registration.email_confirmed)
 
     def test_invalid_link_shows_recovery(self):
-        response = self.client.get(
-            reverse("registration_confirm", kwargs={"token": "bad-token"})
-        )
+        response = self.client.get(reverse("registration_confirm", kwargs={"token": "bad-token"}))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "invalid")
 
@@ -240,9 +231,7 @@ class RegistrationPendingFlowTests(RegistrationCampaignBase):
         registration = CourseRegistration.objects.get()
         token = management_token(registration)
         # Immediate resend hits the 60s cooldown.
-        response = self.client.post(
-            reverse("registration_confirmation_resend"), {"token": token}
-        )
+        response = self.client.post(reverse("registration_confirmation_resend"), {"token": token})
         self.assertEqual(response.status_code, 429)
 
     def test_resend_cap_and_reset(self):
@@ -252,19 +241,13 @@ class RegistrationPendingFlowTests(RegistrationCampaignBase):
                 self.registration_payload(email="cap@example.com"),
             )
         registration = CourseRegistration.objects.get()
-        registration.email_confirmation_resend_count = (
-            EMAIL_CONFIRMATION_MAX_RESENDS
-        )
+        registration.email_confirmation_resend_count = EMAIL_CONFIRMATION_MAX_RESENDS
         registration.save(update_fields=["email_confirmation_resend_count"])
         token = management_token(registration)
         # Move the clock past the cooldown so the cap (not cooldown) fires.
-        registration.email_confirmation_sent_at = timezone.now() - timedelta(
-            minutes=5
-        )
+        registration.email_confirmation_sent_at = timezone.now() - timedelta(minutes=5)
         registration.save(update_fields=["email_confirmation_sent_at"])
-        response = self.client.post(
-            reverse("registration_confirmation_resend"), {"token": token}
-        )
+        response = self.client.post(reverse("registration_confirmation_resend"), {"token": token})
         self.assertEqual(response.status_code, 429)
         self.assertContains(response, "Too many", status_code=429)
 
@@ -278,9 +261,7 @@ class RegistrationPendingFlowTests(RegistrationCampaignBase):
         old_token = registration.email_confirmation_token
         old_management = management_token(registration)
         # Wait out the cooldown.
-        registration.email_confirmation_sent_at = timezone.now() - timedelta(
-            minutes=2
-        )
+        registration.email_confirmation_sent_at = timezone.now() - timedelta(minutes=2)
         registration.save(update_fields=["email_confirmation_sent_at"])
         with self.captureOnCommitCallbacks(execute=True):
             response = self.client.post(
@@ -292,9 +273,7 @@ class RegistrationPendingFlowTests(RegistrationCampaignBase):
         self.assertContains(response, "fixed@example.com")
         registration.refresh_from_db()
         self.assertEqual(registration.email_normalized, "fixed@example.com")
-        self.assertNotEqual(
-            registration.email_confirmation_token, old_token
-        )
+        self.assertNotEqual(registration.email_confirmation_token, old_token)
         # Old management capability no longer works (address changed).
         stale = self.client.post(
             reverse("registration_confirmation_resend"),
@@ -309,9 +288,7 @@ class RegistrationPendingFlowTests(RegistrationCampaignBase):
                 self.registration_payload(email="fixme@example.com"),
             )
         registration = CourseRegistration.objects.get()
-        registration.email_confirmation_sent_at = timezone.now() - timedelta(
-            minutes=2
-        )
+        registration.email_confirmation_sent_at = timezone.now() - timedelta(minutes=2)
         registration.save(update_fields=["email_confirmation_sent_at"])
         token = management_token(registration)
         typo = self.client.post(
@@ -361,9 +338,7 @@ class RegistrationPendingFlowTests(RegistrationCampaignBase):
         self.assertIn("registration-confirmation:", first_key)
         # Re-issue rotates the token generation in the key.
         registration = CourseRegistration.objects.get()
-        registration.email_confirmation_sent_at = timezone.now() - timedelta(
-            minutes=2
-        )
+        registration.email_confirmation_sent_at = timezone.now() - timedelta(minutes=2)
         registration.save(update_fields=["email_confirmation_sent_at"])
         from courses.registration_confirmation import issue_confirmation_token
 
@@ -374,9 +349,7 @@ class RegistrationPendingFlowTests(RegistrationCampaignBase):
 
         with self.captureOnCommitCallbacks(execute=True):
             send_registration_confirmation_mail(registration)
-        keys = sorted(
-            EmailDelivery.objects.values_list("idempotency_key", flat=True)
-        )
+        keys = sorted(EmailDelivery.objects.values_list("idempotency_key", flat=True))
         self.assertEqual(len(keys), 2)
         self.assertNotEqual(keys[0], keys[1])
 
@@ -384,12 +357,10 @@ class RegistrationPendingFlowTests(RegistrationCampaignBase):
 class RegistrationConfirmationMigrationTests(TestCase):
     def test_backfill_marks_existing_as_confirmed(self):
         apps.get_model("courses", "CourseRegistration")
-        from courses.models import Cohort, RegistrationCampaign
-        from django.utils import timezone as _tz
 
-        course = Cohort.objects.create(
-            slug="mig-2026", title="Mig 2026", description="x"
-        )
+        from courses.models import Cohort, RegistrationCampaign
+
+        course = Cohort.objects.create(slug="mig-2026", title="Mig 2026", description="x")
         campaign = RegistrationCampaign.objects.create(
             slug="mig-camp",
             title="Mig Camp",
@@ -413,9 +384,7 @@ class RegistrationConfirmationMigrationTests(TestCase):
         # Run the same update the 0030 backfill migration performs.
         from django.utils import timezone
 
-        Reg.objects.filter(
-            email_confirmed=False, email_confirmation_token__isnull=True
-        ).update(
+        Reg.objects.filter(email_confirmed=False, email_confirmation_token__isnull=True).update(
             email_confirmed=True,
             email_confirmation_confirmed_at=timezone.now(),
         )
@@ -429,9 +398,7 @@ class RegistrationConfirmationProfileTests(RegistrationCampaignBase):
         user = self.create_signed_user()
         self.client.force_login(user)
         with self.captureOnCommitCallbacks(execute=True):
-            self.client.post(
-                self.campaign_url(), self.blank_optional_logged_in_payload()
-            )
+            self.client.post(self.campaign_url(), self.blank_optional_logged_in_payload())
         response = self.client.get(reverse("account_settings"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Course registrations")
@@ -442,9 +409,7 @@ class RegistrationConfirmationProfileTests(RegistrationCampaignBase):
         user = self.create_signed_user()
         self.client.force_login(user)
         with self.captureOnCommitCallbacks(execute=True):
-            self.client.post(
-                self.campaign_url(), self.blank_optional_logged_in_payload()
-            )
+            self.client.post(self.campaign_url(), self.blank_optional_logged_in_payload())
         response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Confirm your email")
@@ -457,15 +422,9 @@ class RegistrationConfirmationProfileTests(RegistrationCampaignBase):
             )
         registration = CourseRegistration.objects.get()
         token = registration.email_confirmation_token
-        _, outcome = confirm_registration_by_token(
-            CourseRegistration, token
-        )
+        _, outcome = confirm_registration_by_token(CourseRegistration, token)
         self.assertEqual(outcome, "confirmed")
-        _, replay = confirm_registration_by_token(
-            CourseRegistration, token
-        )
+        _, replay = confirm_registration_by_token(CourseRegistration, token)
         self.assertEqual(replay, "already_confirmed")
-        _, invalid = confirm_registration_by_token(
-            CourseRegistration, "nope"
-        )
+        _, invalid = confirm_registration_by_token(CourseRegistration, "nope")
         self.assertEqual(invalid, "invalid")

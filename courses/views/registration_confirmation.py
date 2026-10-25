@@ -51,9 +51,7 @@ def _queue_confirmation_send(request, registration):
 @never_cache
 @require_GET
 def registration_confirm_view(request, token):
-    registration, outcome = confirm_registration_by_token(
-        CourseRegistration, token
-    )
+    registration, outcome = confirm_registration_by_token(CourseRegistration, token)
     if registration is not None:
         record_event(
             "registration.confirmed",
@@ -103,9 +101,7 @@ def registration_confirmation_resend_view(request: HttpRequest) -> HttpResponse:
             "courses/registration_resend_status.html",
             {
                 "sent": False,
-                "error": (
-                    "That confirmation link is invalid. Please register again."
-                ),
+                "error": ("That confirmation link is invalid. Please register again."),
                 "registration": None,
                 "campaign": None,
             },
@@ -199,9 +195,7 @@ def registration_confirmation_fix_email_view(request: HttpRequest) -> HttpRespon
             "courses/registration_fix_email_status.html",
             {
                 "updated": False,
-                "error": (
-                    "That confirmation link is invalid. Please register again."
-                ),
+                "error": ("That confirmation link is invalid. Please register again."),
                 "registration": None,
                 "campaign": None,
             },
@@ -234,9 +228,7 @@ def registration_confirmation_fix_email_view(request: HttpRequest) -> HttpRespon
             },
             status=429,
         )
-    normalized, error = validate_fixed_confirmation_email(
-        campaign, registration, new_email
-    )
+    normalized, error = validate_fixed_confirmation_email(campaign, registration, new_email)
     if error:
         return render(
             request,

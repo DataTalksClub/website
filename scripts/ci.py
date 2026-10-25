@@ -221,6 +221,12 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/tests/test_registration_application_gate.py",
     "courses/registration_wall.py",
     "courses/tests/test_public_course_audit.py",
+    # Registration double opt-in (mirror of CMP c2f7d87): new integration
+    # code, so lint, format, and typecheck must reach it.
+    "courses/email_validation.py",
+    "courses/registration_confirmation.py",
+    "courses/views/registration_confirmation.py",
+    "courses/tests/test_registration_email_confirmation.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",

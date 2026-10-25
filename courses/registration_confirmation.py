@@ -105,9 +105,9 @@ def resend_allowed(registration, now=None):
         registration.email_confirmation_sent_at is not None
         and now - registration.email_confirmation_sent_at < timedelta(days=1)
     )
-    if recent and (
-        registration.email_confirmation_resend_count or 0
-    ) >= (EMAIL_CONFIRMATION_MAX_RESENDS):
+    if recent and (registration.email_confirmation_resend_count or 0) >= (
+        EMAIL_CONFIRMATION_MAX_RESENDS
+    ):
         return False, "too_many_resends"
     remaining = resend_cooldown_remaining_seconds(registration, now=now)
     if remaining > 0:
@@ -155,9 +155,7 @@ def management_token(registration):
 
 def managed_registration(model_class, token):
     try:
-        pk, email = signing.loads(
-            token, salt=MANAGEMENT_TOKEN_SALT, max_age=7 * 24 * 60 * 60
-        )
+        pk, email = signing.loads(token, salt=MANAGEMENT_TOKEN_SALT, max_age=7 * 24 * 60 * 60)
     except (signing.BadSignature, ValueError, TypeError):
         return None
     return (
