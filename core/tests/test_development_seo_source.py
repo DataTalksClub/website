@@ -182,6 +182,35 @@ class ApplicationSourcePolicyTests(SimpleTestCase):
         with self.assertRaises(SourcePolicyError):
             validate_gunicorn_entrypoint(source + "\n--access-logformat '%(r)s'\n")
 
+    def test_gunicorn_policy_accepts_reviewed_serving_cases(self) -> None:
+        source = (ROOT / "entrypoint.sh").read_text(encoding="utf-8")
+        self.assertIn("\n  web|web-migrate)\n", source)
+        for serving_case in ("web)", "web|web-migrate)"):
+            with self.subTest(serving_case=serving_case):
+                candidate = source.replace("\n  web|web-migrate)\n", f"\n  {serving_case}\n")
+                validate_gunicorn_entrypoint(candidate)
+                self.assertEqual(parse_gunicorn_timeout(candidate), GUNICORN_WEB_TIMEOUT_SECONDS)
+
+    def test_gunicorn_policy_rejects_missing_or_ambiguous_web_command(self) -> None:
+        source = (ROOT / "entrypoint.sh").read_text(encoding="utf-8")
+        command = next(
+            line for line in source.splitlines() if "exec uv run --no-sync gunicorn " in line
+        )
+        mutations = {
+            "migration_only": source.replace("\n  web|web-migrate)\n", "\n  web-migrate)\n"),
+            "worker_only": source.replace("\n  web|web-migrate)\n", "\n  worker)\n"),
+            "missing_command": source.replace(command, ""),
+            "duplicate_command": source.replace(command, f"{command}\n{command}"),
+            "command_outside_serving_case": source.replace(command, "") + f"\n{command}\n",
+            "duplicate_serving_case": source + f"\n  web)\n{command}\n    ;;\n",
+        }
+        for name, candidate in mutations.items():
+            with (
+                self.subTest(name=name),
+                self.assertRaisesRegex(SourcePolicyError, "^gunicorn_web_command_mismatch$"),
+            ):
+                parse_gunicorn_timeout(candidate)
+
     def test_entrypoint_timeout_is_explicit_and_covers_reviewed_client_bounds(self) -> None:
         source = (ROOT / "entrypoint.sh").read_text(encoding="utf-8")
         gunicorn_line = next(
