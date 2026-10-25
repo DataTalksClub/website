@@ -167,7 +167,11 @@ def course_catalog() -> tuple[CatalogCourse, ...]:
                 start_date=cohort.start_date,
                 delivery_format=str(cohort.delivery_format),
                 promo_summary=str(cohort.promo_summary),
-                build_items=tuple(item.text for item in cohort.build_items.order_by("position")),
+                # ``visible_course_list_queryset`` prefetches ``build_items`` in
+                # position order, so reading the cached relation costs no extra
+                # query per family.  Calling ``order_by`` here would bypass the
+                # prefetch cache and reintroduce one query per family (N+1).
+                build_items=tuple(item.text for item in cohort.build_items.all()),
             )
         )
     return tuple(catalog)

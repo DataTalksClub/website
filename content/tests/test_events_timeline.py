@@ -6,8 +6,10 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from community_base.events.models import Event
+from django.db import connection
 from django.db.models import Max
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.utils.html import escape
 
 from content import catalogue, public_views
@@ -839,3 +841,77 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         self.assertNotIn('<ul class="row-list speaker-rows">', body)
         self.assertNotIn('aria-label="Event links"', body)
         self.assertNotIn('class="cta cta-compact cta-secondary"', body)
+
+
+class PastArchiveQueryBudgetTests(StableEventClockTestCase):
+    """`/events/past` reads the event rows once, however many events exist.
+
+    The archive paginates the recent sequence and then renders it, and the
+    render used to call ``event_groups()`` a second time -- doubling the row
+    fetch and the speaker prefetch on every request, which tied up gunicorn
+    workers behind 6s+ past-page responses.  These tests pin the single read
+    and the absence of any per-event query.
+    """
+
+    BUDGET_PUBLIC_ID_BASE = 95_000
+
+    def setUp(self) -> None:
+        super().setUp()
+        from events.queries import _cached_published_records
+
+        _cached_published_records.cache_clear()
+        self.addCleanup(_cached_published_records.cache_clear)
+        self._seeded = 0
+
+    def _seed_past_events(self, count: int) -> None:
+        """Add ``count`` completed events well before the frozen test clock."""
+
+        import uuid
+
+        base = STABLE_EVENT_NOW - timedelta(days=60)
+        Event.objects.bulk_create(
+            [
+                Event(
+                    content_id=uuid.uuid4(),
+                    public_id=self.BUDGET_PUBLIC_ID_BASE + self._seeded + index,
+                    title=f"Budget past event {self._seeded + index}",
+                    slug=f"budget-past-{self._seeded + index}",
+                    status="completed",
+                    start_datetime=base - timedelta(days=index),
+                    kind="standard",
+                    tags=["dtc-type:webinar"],
+                )
+                for index in range(count)
+            ]
+        )
+        self._seeded += count
+
+    def _past_queries(self) -> list[str]:
+        with CaptureQueriesContext(connection) as captured:
+            response = self.client.get("/events/past")
+        self.assertEqual(response.status_code, 200)
+        return [query["sql"] for query in captured.captured_queries]
+
+    def _row_fetch_queries(self, queries: list[str]) -> list[str]:
+        # The full-row fetch selects the event schedule; the stamp queries
+        # that guard the cache only count and max the table.
+        return [sql for sql in queries if '"events_event"."start_datetime"' in sql]
+
+    def test_past_archive_reads_event_rows_once_per_request(self) -> None:
+        self._seed_past_events(25)
+
+        cold = self._past_queries()
+
+        self.assertEqual(len(self._row_fetch_queries(cold)), 1)
+
+    def test_past_archive_query_count_ignores_event_volume(self) -> None:
+        self._seed_past_events(25)
+        self._past_queries()
+        small = self._past_queries()
+
+        self._seed_past_events(50)
+        self._past_queries()
+        large = self._past_queries()
+
+        self.assertEqual(len(large), len(small))
+        self.assertLessEqual(len(small), 20)

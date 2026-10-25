@@ -17,9 +17,9 @@ from collections.abc import Iterable, Sequence
 from datetime import date
 
 from django.db import DatabaseError
-from django.db.models import Count
+from django.db.models import Count, Prefetch
 
-from courses.models.cohort import Cohort
+from courses.models.cohort import Cohort, CohortBuildItem
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,12 @@ def visible_course_list_queryset():
         module_count=module_count,
     )
     courses = courses.select_related("course").prefetch_related(
-        "homework_set", "project_set"
+        "homework_set",
+        "project_set",
+        Prefetch(
+            "build_items",
+            queryset=CohortBuildItem.objects.order_by("position", "pk"),
+        ),
     )
     return courses.order_by("-id")
 

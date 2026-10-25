@@ -45,7 +45,7 @@ from .article_content import article_view, render_body_markdown
 from .article_faq import ArticleFaq, article_faq
 from .docs_reader import docs_pages
 from .event_banners import event_banner_url
-from .event_content import event_date_groups, event_groups
+from .event_content import EventGroups, event_date_groups, event_groups
 from .event_speakers import event_speaker_records
 from .faq_data import faq_courses
 from .media_store import (
@@ -327,21 +327,27 @@ def events_past(request: HttpRequest) -> HttpResponse:
     event still appears exactly once.
     """
 
+    groups = event_groups()
     pagination = paginate_public_request(
         request,
-        event_groups().recent,
+        groups.recent,
         clean_base_path="/events/past",
         catalogue_label="Past event pages",
     )
     if isinstance(pagination, HttpResponse):
         return pagination
-    return _render_events(request, past=True, pagination=pagination)
+    return _render_events(request, past=True, pagination=pagination, groups=groups)
 
 
 def _render_events(
-    request: HttpRequest, *, past: bool, pagination: PublicPagination | None
+    request: HttpRequest,
+    *,
+    past: bool,
+    pagination: PublicPagination | None,
+    groups: EventGroups | None = None,
 ) -> HttpResponse:
-    groups = event_groups()
+    if groups is None:
+        groups = event_groups()
     upcoming_groups = groups.upcoming_groups or event_date_groups(list(groups.upcoming))
     if past:
         assert pagination is not None

@@ -18,10 +18,11 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Iterable
+from functools import lru_cache
 from typing import Any
 
-from community_base.events.models import Event, EventHost
-from django.db.models import Count, Prefetch, Q
+from community_base.events.models import Event, EventHost, Host
+from django.db.models import Count, Max, Prefetch, Q
 
 from content.models import EventSource
 
@@ -116,6 +117,67 @@ def _published() -> Any:
 def published_event_records() -> tuple[dict[str, Any], ...]:
     """Every published event, newest first, as the record the pages read."""
 
+    return _cached_published_records(_published_records_stamp())
+
+
+def _stamp(model: Any, field: str) -> tuple[int, str]:
+    """A cheap stamp that moves whenever the table's rows could have.
+
+    One aggregate, not a row per record.  A database failure raises, so an
+    outage can never enter the cache below disguised as an empty catalogue.
+    """
+
+    agg = model.objects.aggregate(total=Count("id"), latest=Max(field))
+    return (int(agg["total"] or 0), str(agg["latest"] or ""))
+
+
+def _published_records_stamp() -> tuple[tuple[int, str], ...]:
+    """The exact cache key for :func:`published_event_records`.
+
+    Every table a record is derived from contributes its stamp, so a warmed
+    answer cannot outlive the rows it was read from:
+
+    * ``Event``/``Host`` carry ``updated_at`` and the content import saves the
+      event row (bumping it) whenever it applies new copy, a new schedule or
+      new speakers, while a host row is minted once and never renamed by a
+      later import.
+    * ``EventHost`` link rows carry no timestamp of their own and are only
+      ever rewritten by the import above, so their count and newest id join
+      the event stamp rather than standing alone.
+    * Registration counts are annotated from the site's own
+      ``event_registrants`` rows, so those join in too.
+    * Provenance is read off the site-owned ``EventSource`` row, and a
+      speaker's profile path is resolved against the synced people catalogue
+      at record time, so both stamps join as well.
+    """
+
+    from content.catalogue import PEOPLE_SOURCE_SLUG, synced_stamp
+    from event_registrants.models import EventRegistration
+
+    return (
+        _stamp(Event, "updated_at"),
+        _stamp(Host, "updated_at"),
+        _stamp(EventHost, "id"),
+        _stamp(EventRegistration, "updated_at"),
+        _stamp(EventSource, "updated_at"),
+        synced_stamp(PEOPLE_SOURCE_SLUG),
+    )
+
+
+@lru_cache(maxsize=8)
+def _cached_published_records(
+    stamp: tuple[tuple[int, str], ...],
+) -> tuple[dict[str, Any], ...]:
+    """The published event records for exactly one stamp, newest first.
+
+    The query is bound to the stamp the cache key names, so a warmed answer
+    cannot outlive the rows it was read from: any write to any table the
+    records derive from moves the stamp, and the next read rebuilds the entry
+    instead of serving stale pages.  A zero-count stamp is an empty table --
+    an empty event catalogue, not a failure -- and caches as such.
+    """
+
+    del stamp
     return tuple(_record(event) for event in _published().order_by("-start_datetime", "pk"))
 
 

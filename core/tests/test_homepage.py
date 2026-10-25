@@ -940,3 +940,76 @@ class HomepageWikiGraphTests(TestCase):
         self.assertIn("data-home-graph-live hidden", body)
         self.assertIn("data-home-graph-random", body)
         self.assertIn(f'href="{graph.hub.public_path}"', body)
+
+
+class HomeQueryBudgetTests(TestCase):
+    """`/` keeps a bounded query budget, however many events exist.
+
+    The homepage renders three upcoming events and one recent event, but the
+    composition used to materialize every published event and to read each
+    course family's build items with its own query (N+1) -- which held
+    gunicorn workers behind 2s+ homepage responses.  These tests pin the
+    single build-items read and the absence of any per-event query.
+    """
+
+    BUDGET_PUBLIC_ID_BASE = 96_000
+
+    def setUp(self) -> None:
+        super().setUp()
+        from events.queries import _cached_published_records
+
+        _cached_published_records.cache_clear()
+        self.addCleanup(_cached_published_records.cache_clear)
+        self._seeded = 0
+
+    def _seed_past_events(self, count: int) -> None:
+        import uuid
+
+        from community_base.events.models import Event
+
+        now = timezone.now()
+        Event.objects.bulk_create(
+            [
+                Event(
+                    content_id=uuid.uuid4(),
+                    public_id=self.BUDGET_PUBLIC_ID_BASE + self._seeded + index,
+                    title=f"Budget home event {self._seeded + index}",
+                    slug=f"budget-home-{self._seeded + index}",
+                    status="completed",
+                    start_datetime=now - timedelta(days=30 + index),
+                    kind="standard",
+                    tags=["dtc-type:webinar"],
+                )
+                for index in range(count)
+            ]
+        )
+        self._seeded += count
+
+    def _home_queries(self) -> list[str]:
+        with CaptureQueriesContext(connection) as captured:
+            response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        return [query["sql"] for query in captured.captured_queries]
+
+    def test_home_build_items_cost_one_query(self) -> None:
+        build_reviewed_catalog()
+        self._seed_past_events(10)
+        self._home_queries()
+        warmed = self._home_queries()
+
+        build_item_queries = [sql for sql in warmed if "courses_cohortbuilditem" in sql]
+
+        self.assertEqual(len(build_item_queries), 1)
+
+    def test_home_query_count_ignores_event_volume(self) -> None:
+        build_reviewed_catalog()
+        self._seed_past_events(20)
+        self._home_queries()
+        small = self._home_queries()
+
+        self._seed_past_events(40)
+        self._home_queries()
+        large = self._home_queries()
+
+        self.assertEqual(len(large), len(small))
+        self.assertLessEqual(len(small), 60)

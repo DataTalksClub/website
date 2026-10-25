@@ -144,9 +144,16 @@ class PublishedEventRecordTests(TestCase):
         )
 
     def test_an_unpublished_status_is_not_listed(self) -> None:
+        from events.queries import _cached_published_records
+
         for status in ("draft", "cancelled", "archived"):
             with self.subTest(status=status):
+                # ``QuerySet.update`` writes SQL directly and bumps no
+                # ``updated_at``, so it bypasses the stamp the cached record
+                # list is keyed on -- the same contract the catalogue caches
+                # hold.  Clear it explicitly, the way a save would move it.
                 Event.objects.filter(pk=self.event.pk).update(status=status)
+                _cached_published_records.cache_clear()
 
                 self.assertIsNone(published_event_record(self.event.content_id))
                 self.assertEqual(published_event_records(), ())
