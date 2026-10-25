@@ -34,7 +34,7 @@
             <form method="post" action="{% url 'registration_confirmation_resend' %}">
               {% csrf_token %}
               <input type="hidden" name="token" value="{{ registration.confirmation_management_token }}">
-              <button class="cta cta-secondary" type="submit">Resend confirmation email</button>
+              <button class="cta cta-secondary interactive-lift" type="submit">Resend confirmation email</button>
             </form>
             <p class="registration-note">
               <a href="{% url 'registration_campaign' campaign.slug %}">Back to registration</a>
@@ -53,7 +53,7 @@
                 <input type="hidden" name="token" value="{{ registration.confirmation_management_token|default:'' }}">
                 <label for="fix-email-input">Corrected email address</label>
                 <input id="fix-email-input" type="email" name="email" required class="form-control" value="{{ registration.email }}">
-                <button class="cta cta-primary" type="submit">Send confirmation to this address</button>
+                <button class="cta cta-primary interactive-lift" type="submit">Send confirmation to this address</button>
               </form>
             {% endif %}
           {% endif %}

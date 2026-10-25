@@ -54,7 +54,7 @@
               <form method="post" action="{% url 'registration_confirmation_resend' %}">
                 {% csrf_token %}
                 <input type="hidden" name="token" value="{{ registration.confirmation_management_token|default:'' }}">
-                <button class="cta cta-primary" type="submit">Try resending again</button>
+                <button class="cta cta-primary interactive-lift" type="submit">Try resending again</button>
               </form>
             {% endif %}
           {% endif %}

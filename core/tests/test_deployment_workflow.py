@@ -124,7 +124,10 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # no dependency change); the reviewed configuration-only seal moves the same way.
 # Issue #469 enrolls the approval helper and public-audit contract test in
 # strict mypy only; dependencies and the lock seal remain unchanged.
-STUDIO_COURSES_PYPROJECT_SHA256 = "6efac180fe8b8fdf6ec9411be9535413b5e01db845542eb5561708522b32c623"
+# Registration double opt-in (mirror of CMP c2f7d87) adds dnspython for MX
+# checks and enrolls the new confirmation modules in strict mypy; the
+# reviewed configuration-only seal tracks the pyproject bytes.
+STUDIO_COURSES_PYPROJECT_SHA256 = "ef40e24ea918de9a908859aba9ea613b208dc28ee545c532d71702312b36fd32"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
@@ -135,8 +138,10 @@ STUDIO_COURSES_PYPROJECT_SHA256 = "6efac180fe8b8fdf6ec9411be9535413b5e01db845542
 # (0e820369); the reviewed lock seal tracks the entry and pin reference bytes.
 # The certifi 2026.7.22 -> 2026.10.19 upgrade remediates PYSEC-2026-4320; the
 # reviewed lock seal tracks that entry's bytes.
+# Registration double opt-in adds dnspython 2.9.0 to the lock; the reviewed
+# lock seal tracks that entry's bytes.
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "4c78dce94aadf22f51b649364bcc056aa3632ba5f5358240e8798eee0b26949f"
+    "e74f8937f7228a4ad5744d42cdf01a80912a1525ec1e3a755ddd74580dba9b08"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"

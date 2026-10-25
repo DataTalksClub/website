@@ -28,7 +28,7 @@
         <form method="post" action="{% url 'registration_confirmation_resend' %}">
           {% csrf_token %}
           <input type="hidden" name="token" value="{{ registration.confirmation_management_token|default:'' }}">
-          <button class="cta cta-secondary" type="submit">Resend confirmation email</button>
+          <button class="cta cta-secondary interactive-lift" type="submit">Resend confirmation email</button>
         </form>
         <div>
           <p class="registration-note"><strong>Wrong email? Fix it:</strong></p>
@@ -39,7 +39,7 @@
             <input id="fix-email-input" type="email" name="email" required class="form-control" value="{{ registration.email_normalized }}" data-fix-email-input>
             <p class="registration-note" data-fix-email-hint hidden></p>
             <p class="registration-note">Wait a minute between requests. Confirmation links expire after 7 days.</p>
-            <button class="cta cta-primary" type="submit">Send confirmation to this address</button>
+            <button class="cta cta-primary interactive-lift" type="submit">Send confirmation to this address</button>
           </form>
         </div>
         {% if campaign.requires_approval %}

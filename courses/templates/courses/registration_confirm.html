@@ -65,7 +65,7 @@
               <form method="post" action="{% url 'registration_confirmation_resend' %}">
                 {% csrf_token %}
                 <input type="hidden" name="token" value="{{ registration.confirmation_management_token|default:'' }}">
-                <button class="cta cta-primary" type="submit">Resend confirmation email</button>
+                <button class="cta cta-primary interactive-lift" type="submit">Resend confirmation email</button>
               </form>
             {% elif campaign %}
               <p class="registration-note">
@@ -87,7 +87,7 @@
                     {% endfor %}
                   </select>
                 </div>
-                <button class="cta cta-primary" type="submit">Resend confirmation email</button>
+                <button class="cta cta-primary interactive-lift" type="submit">Resend confirmation email</button>
               </form>
             {% endif %}
           {% endif %}

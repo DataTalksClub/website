@@ -173,8 +173,8 @@ class AccessibleEmailFixtureTests(SimpleTestCase):
 
         self.assertEqual(
             registration.subject,
-            "You are registered for Q2Z",
+            "Confirm your registration for Q3Z",
         )
-        self.assertIn('href="Q3Z"', registration.html)
+        self.assertIn('href="Q2Z"', registration.html)
         self.assertEqual(score.subject, "Scores available: Q5Z")
         self.assertIn("Review your homework score", score.html)

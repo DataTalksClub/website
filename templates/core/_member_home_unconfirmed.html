@@ -21,7 +21,7 @@
             <form method="post" action="{% url 'registration_confirmation_resend' %}">
               {% csrf_token %}
               <input type="hidden" name="token" value="{{ registration.confirmation_management_token|default:'' }}">
-              <button class="cta cta-compact cta-secondary" type="submit">Resend confirmation</button>
+              <button class="cta cta-compact cta-secondary interactive-lift" type="submit">Resend confirmation</button>
             </form>
           </div>
         </div>
