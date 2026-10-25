@@ -23,7 +23,9 @@ _CANONICAL_REL = re.compile(
     r"\brel\s*=\s*(?:[\"'][^\"']*\bcanonical\b[^\"']*[\"']|[^\s\"'=<>`]*canonical[^\s\"'=<>`]*)",
     re.IGNORECASE,
 )
-_GUNICORN_WEB_CASE = re.compile(r"(?ms)^[ \t]*web\)[ \t]*\n(?P<body>.*?)(?=^[ \t]*;;[ \t]*$)")
+_GUNICORN_WEB_CASE = re.compile(
+    r"(?ms)^[ \t]*web(?:\|web-migrate)?\)[ \t]*\n(?P<body>.*?)(?=^[ \t]*;;[ \t]*$)"
+)
 _GUNICORN_COMMAND = re.compile(
     r"^[ \t]*exec[ \t]+uv[ \t]+run[ \t]+--no-sync[ \t]+gunicorn(?:[ \t]+.*)?$"
 )
