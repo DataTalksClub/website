@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+import yaml
 from community_base.jobs.dispatch import dispatch_after_commit
 from community_base.jobs.models import JobIntent
 from django.core.management import call_command, get_commands, load_command_class
@@ -18,6 +19,58 @@ from core.tests import test_bootstrap_context
 
 
 class WorkerSettingsTests(SimpleTestCase):
+    def test_coolify_web_migrates_before_serving_and_releasing_worker(self):
+        root = Path(__file__).resolve().parents[2]
+        compose = yaml.safe_load((root / "docker-compose.coolify.yaml").read_text())
+        self.assertEqual(compose["services"]["web"]["command"], ["web-migrate"])
+        self.assertEqual(
+            compose["services"]["worker"]["depends_on"]["web"]["condition"],
+            "service_healthy",
+        )
+        scratch = root / ".tmp"
+        scratch.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=scratch) as temporary:
+            directory = Path(temporary)
+            output = directory / "commands"
+            uv = directory / "uv"
+            uv.write_text(
+                '#!/bin/sh\nprintf "%s\\n" "$*" >> "$WORKER_TEST_OUTPUT"\n'
+                'case "$*" in *"manage.py migrate"*) exit "$MIGRATION_EXIT";; esac\n'
+                "exit 9\n"
+            )
+            uv.chmod(0o755)
+            for mode, migration_exit, expected_exit, migration_runs in (
+                ("web-migrate", "0", 9, True),
+                ("web-migrate", "23", 23, True),
+                ("web", "23", 9, False),
+            ):
+                with self.subTest(mode=mode, migration_exit=migration_exit):
+                    output.write_text("")
+                    result = subprocess.run(
+                        ["/bin/sh", str(root / "entrypoint.sh"), mode],
+                        env={
+                            **os.environ,
+                            "PATH": str(directory),
+                            "WORKER_TEST_OUTPUT": str(output),
+                            "MIGRATION_EXIT": migration_exit,
+                        },
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                    self.assertEqual(result.returncode, expected_exit, result.stderr)
+                    commands = output.read_text().splitlines()
+                    if migration_runs:
+                        self.assertEqual(
+                            commands[0],
+                            "run --no-sync python manage.py migrate --noinput",
+                        )
+                    if mode == "web-migrate" and migration_exit != "0":
+                        self.assertEqual(len(commands), 1)
+                    else:
+                        self.assertEqual(len(commands), 2 if migration_runs else 1)
+                        self.assertTrue(commands[-1].startswith("run --no-sync gunicorn "))
+
     def test_entrypoint_preserves_other_worker_environments_and_executes_worker(self):
         root = Path(__file__).resolve().parents[2]
         scratch = root / ".tmp"

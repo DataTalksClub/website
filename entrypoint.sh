@@ -8,7 +8,13 @@ GUNICORN_ACCESS_LOG_FORMAT='%(t)s "%(m)s %(U)s %(H)s" %(s)s %(b)s %(D)s request_
 GUNICORN_LOGGER_CLASS='core.gunicorn_logging.RecipientTokenSafeLogger'
 
 case "${1:-web}" in
-  web)
+  web|web-migrate)
+    # Coolify Compose has no separate release task. Apply this image's schema
+    # before readiness can admit traffic or release the dependent worker.
+    # Other deployment controllers continue to own their migration step.
+    if [ "${1:-web}" = web-migrate ]; then
+      uv run --no-sync python manage.py migrate --noinput
+    fi
     exec uv run --no-sync gunicorn website.wsgi:application --bind 0.0.0.0:8000 --workers "${WEB_CONCURRENCY:-2}" --timeout 90 --access-logfile - --access-logformat "$GUNICORN_ACCESS_LOG_FORMAT" --logger-class "$GUNICORN_LOGGER_CLASS" --error-logfile -
     ;;
   worker)
@@ -19,7 +25,7 @@ case "${1:-web}" in
     exec uv run --no-sync python manage.py jobs_worker
     ;;
   *)
-    echo "Usage: entrypoint.sh [web|worker]" >&2
+    echo "Usage: entrypoint.sh [web|web-migrate|worker]" >&2
     exit 64
     ;;
 esac

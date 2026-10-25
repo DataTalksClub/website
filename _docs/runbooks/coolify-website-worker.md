@@ -6,6 +6,23 @@ revision-tagged image. Coolify supplies `.env` to both services. Assign existing
 website domains to `web` on port 8000 only. The readiness path is
 `/health/ready`, without a trailing slash.
 
+Compose starts web with `entrypoint.sh web-migrate`: it runs the new image's
+`manage.py migrate --noinput` before Gunicorn. A migration failure exits before
+the HTTP server starts. Keep the worker's `service_healthy` dependency: it
+prevents jobs from executing against an unapplied schema. The ordinary `web`
+entrypoint stays available for controllers that run a separate migration task.
+Run only one web service with this startup migration owner; scaling web requires
+a separate serialized release task first. Review schema and data migrations
+before deploying, including their compatibility with the previous worker.
+
+A worker left in `Created` can be an intentional Compose dependency wait.
+Inspect web readiness and deployment logs before treating it as a Docker start
+failure. In the 2026-10-25 incident, missing courses migrations 0029/0030 made
+web unhealthy; Compose exited before starting worker and the generic watchdog
+started it after 181–215 seconds. The three API deployments used distinct source
+commits; they were unrelated to the Berlin clock change at 01:00 UTC. The
+watchdog is a recovery backstop, not evidence of successful deployment.
+
 The worker service selects `website.settings.worker`, which inherits production
 database, security and Relay email settings but runs domain jobs through the
 existing synchronous lease-fenced runner inside this dedicated process.

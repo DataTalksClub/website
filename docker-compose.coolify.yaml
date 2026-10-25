@@ -16,7 +16,7 @@ x-website: &website
 services:
   web:
     <<: *website
-    command: [web]
+    command: [web-migrate]
     expose: ["8000"]
     healthcheck:
       test:
