@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from pathlib import Path, PurePosixPath
@@ -563,7 +564,19 @@ def dump_json(payload: object, path: str | Path) -> None:
 
 
 def load_plan(path: str | Path) -> dict[str, Any]:
-    return validate_plan(json.loads(Path(path).read_text(encoding="utf-8")))
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        raise VerificationError(
+            f"verification plan is missing ({path}); resolve-release did not produce a plan"
+        ) from None
+    except OSError as exc:
+        raise VerificationError(f"verification plan cannot be read ({path}): {exc}") from None
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise VerificationError(f"verification plan is not valid JSON ({path}): {exc}") from None
+    return validate_plan(payload)
 
 
 def plan_summary(plan: Mapping[str, Any]) -> str:
@@ -2014,6 +2027,16 @@ def main() -> None:
     scheduled_state_parser.add_argument("--output", required=True)
 
     args = parser.parse_args()
+    try:
+        _dispatch(args)
+    except VerificationError as exc:
+        # ci-gate must report an upstream failure (for example a missing plan
+        # when resolve-release was cancelled) as a clear error, not a traceback.
+        print(f"::error::{exc}", file=sys.stderr)
+        raise SystemExit(1) from None
+
+
+def _dispatch(args: argparse.Namespace) -> None:
     if args.command_name == "plan":
         selection = load_selection(args.selection)
         payload = build_plan(

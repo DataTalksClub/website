@@ -638,6 +638,55 @@ def test_scheduled_full_marker_and_gate_cover_every_component_or_exact_skip() ->
     assert "container-check.json" in workflow_text
 
 
+def test_rerun_without_sealed_identity_fails_closed_or_reseals_safely() -> None:
+    data = workflow("ci.yml")
+    resolve = data["jobs"]["resolve-release"]
+    assert resolve["outputs"]["resealed"] == "${{ steps.release.outputs.resealed }}"
+    release_step = next(step for step in resolve["steps"] if step.get("id") == "release")
+    script = release_step["run"]
+    # The silent `test -f` exit that failed run 40155406201 attempt #2 is gone.
+    assert "test -f .tmp/prior-release/source-identity.json" not in script
+    # A restored identity must still name exactly this run's SHA, or fail loudly.
+    assert "Restored source identity does not match" in script
+    assert "::error::" in script
+    # A missing artifact re-seals only when nothing was published/deployed.
+    assert "No sealed source identity artifact found" in script
+    assert "safely re-sealing the source identity" in script
+    assert "Rerun cannot safely re-seal the source identity" in script
+    assert "gh api" in script
+    assert "development-published-image-" in script
+    assert 'echo "resealed=true"' in script
+    assert 'echo "resealed=false"' in script
+    upload = next(
+        step
+        for step in resolve["steps"]
+        if step.get("name") == "Preserve the one sealed source identity"
+    )
+    assert "steps.release.outputs.resealed == 'true'" in upload["if"]
+    container = data["jobs"]["container"]
+    rejection = next(
+        step for step in container["steps"] if step.get("name", "").startswith("Reject")
+    )
+    assert "needs.resolve-release.outputs.resealed != 'true'" in rejection["if"]
+    assert "::error::" in rejection["run"]
+
+
+def test_ci_gate_reports_missing_verification_plan_without_traceback() -> None:
+    gate = workflow("ci.yml")["jobs"]["ci-gate"]
+    report_step = next(
+        step
+        for step in gate["steps"]
+        if step.get("name") == "Build the exhaustive verification report"
+    )
+    script = report_step["run"]
+    assert "verification-plan.json" in script
+    assert "resolve-release did not produce a verification plan" in script
+    assert "::error::" in script
+    # The guard must run before the Python report so a missing plan never
+    # reaches load_plan as a FileNotFoundError traceback.
+    assert script.index("::error::") < script.index("ci.verification report")
+
+
 def test_all_workflow_jobs_pin_reviewed_runner_labels() -> None:
     """Every workflow job pins a reviewed runner label so CI does not drift into Ubuntu 26."""
     allowed_labels = {"ubuntu-24.04", "ubuntu-24.04-arm"}

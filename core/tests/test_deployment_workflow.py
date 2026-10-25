@@ -371,14 +371,24 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         document = yaml.safe_load(workflow)
 
-        self.assertEqual(workflow.count("deploy.release_identity construct"), 1)
+        # Two construction sites: the first-attempt seal and the safe rerun
+        # re-seal when attempt 1 was cancelled before uploading the artifact.
+        # Both construct exactly one identity per run (either/or), never a
+        # second timestamp alongside a restored one.
+        self.assertEqual(workflow.count("deploy.release_identity construct"), 2)
         self.assertNotIn("get-download-url-for-layer", workflow)
         self.assertNotIn('--env "APP_VERSION=', workflow)
 
         resolve = document["jobs"]["resolve-release"]
         self.assertEqual(
             set(resolve["outputs"]),
-            {"release_sha", "version", "constructed_at", "identity_schema"},
+            {
+                "release_sha",
+                "version",
+                "constructed_at",
+                "identity_schema",
+                "resealed",
+            },
         )
         upload = next(
             step
@@ -387,6 +397,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         )
         self.assertEqual(upload["with"]["name"], "release-source-identity-${{ github.run_id }}")
         self.assertIn("github.run_attempt == 1", upload["if"])
+        self.assertIn("steps.release.outputs.resealed == 'true'", upload["if"])
 
         build = next(
             step
@@ -423,7 +434,33 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
     def test_automatic_rerun_restores_exact_sealed_identity_cache_and_can_never_rebuild(
         self,
     ) -> None:
-        document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        workflow_text = (ROOT / ".github/workflows/ci.yml").read_text()
+        document = yaml.safe_load(workflow_text)
+        # Rerun of a run whose first attempt never sealed the identity must
+        # not fail silently: it either re-seals safely for the same SHA or
+        # fails with an explicit ::error::. No bare `test -f` exit.
+        bare_restore = "\n              test -f .tmp/prior-release/source-identity.json\n"
+        self.assertNotIn(bare_restore, workflow_text)
+        self.assertIn("No sealed source identity artifact found", workflow_text)
+        self.assertIn("safely re-sealing the source identity", workflow_text)
+        self.assertIn(
+            "Rerun cannot safely re-seal the source identity",
+            workflow_text,
+        )
+        self.assertIn("Restored source identity does not match", workflow_text)
+        self.assertIn("::error::", workflow_text)
+        # The safe re-seal is allowed only when nothing was published/deployed
+        # by a prior attempt; otherwise the rerun fails closed.
+        self.assertIn("development-published-image-", workflow_text)
+        self.assertIn("release-image-", workflow_text)
+        resolve_run = next(
+            step
+            for step in document["jobs"]["resolve-release"]["steps"]
+            if step.get("id") == "release"
+        )["run"]
+        self.assertIn("if [[ -f .tmp/prior-release/source-identity.json ]]", resolve_run)
+        self.assertIn('echo "resealed=false"', resolve_run)
+        self.assertIn('echo "resealed=true"', resolve_run)
         steps = document["jobs"]["container"]["steps"]
         cache = next(step for step in steps if step.get("id") == "image-cache")
         self.assertEqual(cache["uses"], "actions/cache@v4")
@@ -437,6 +474,10 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         rejection = next(step for step in steps if step.get("name", "").startswith("Reject"))
         self.assertIn("github.run_attempt > 1", rejection["if"])
         self.assertIn("cache-hit != 'true'", rejection["if"])
+        # A safe re-seal (no prior publish/deploy) produces a fresh identity
+        # with a fresh cache key, so the rerun is allowed to build once.
+        self.assertIn("needs.resolve-release.outputs.resealed != 'true'", rejection["if"])
+        self.assertIn("::error::", rejection["run"])
         build = next(step for step in steps if "Build the production image" in step.get("name", ""))
         save = next(
             step for step in steps if "Preserve the one tested image" in step.get("name", "")

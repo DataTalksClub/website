@@ -84,6 +84,7 @@ jobs:
       version: ${{ steps.release.outputs.version }}
       constructed_at: ${{ steps.release.outputs.constructed_at }}
       identity_schema: ${{ steps.release.outputs.identity_schema }}
+      resealed: ${{ steps.release.outputs.resealed }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -127,6 +128,8 @@ jobs:
           RELEASE_B_SHA: e2b93beb1544170b6177ba55ea8fd6530b2e57a3
           DEVELOPMENT_REPOSITORY_URI: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_URI }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
+          RUN_ID: ${{ github.run_id }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
@@ -292,14 +295,35 @@ jobs:
           if [[ "$EVENT_NAME" != "workflow_dispatch" || "$INPUT_OPERATION" != "probe" ]]; then
             mkdir -p .tmp/release
             if (( RUN_ATTEMPT > 1 )); then
-              test -f .tmp/prior-release/source-identity.json
-              jq -e --arg sha "$candidate" '
-                type == "object" and
-                keys == ["constructed_at", "identity_schema", "source_sha", "version"] and
-                .source_sha == $sha and
-                (.identity_schema == 1 or .identity_schema == 2)
-              ' .tmp/prior-release/source-identity.json > /dev/null
-              cp .tmp/prior-release/source-identity.json .tmp/release/source-identity.json
+              if [[ -f .tmp/prior-release/source-identity.json ]]; then
+                if ! jq -e --arg sha "$candidate" '
+                  type == "object" and
+                  keys == ["constructed_at", "identity_schema", "source_sha", "version"] and
+                  .source_sha == $sha and
+                  (.identity_schema == 1 or .identity_schema == 2)
+                ' .tmp/prior-release/source-identity.json > /dev/null; then
+                  echo "::error::Restored source identity does not match this run's SHA $candidate. The sealed identity must name exactly the release SHA. Push a new commit or dispatch a fresh release instead of rerunning." >&2
+                  exit 1
+                fi
+                cp .tmp/prior-release/source-identity.json .tmp/release/source-identity.json
+                echo "resealed=false" >> "$GITHUB_OUTPUT"
+              else
+                echo "::warning::No sealed source identity artifact found for run $RUN_ID (attempt 1 was cancelled before sealing). Checking whether a prior attempt already published or deployed."
+                if ! prior_names="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/artifacts?per_page=100" --paginate -q '.artifacts[].name' 2>.tmp/gh-artifacts-error.txt)"; then
+                  echo "::error::Cannot list prior artifacts for run $RUN_ID to prove no publish/deploy happened; refusing to re-seal blindly. Push a new commit or dispatch a fresh release instead of rerunning." >&2
+                  cat .tmp/gh-artifacts-error.txt >&2 || true
+                  exit 1
+                fi
+                if printf '%s\n' "$prior_names" | grep -Eq '^(development-published-image-|release-image-|development-successful-release-|development-read-only-smoke-|development-recovery-checkpoint-)'; then
+                  echo "::error::Rerun cannot safely re-seal the source identity for $candidate: a prior attempt already published, captured, or deployed, so the immutable identity is already in use. Push a new commit or dispatch a fresh release instead of rerunning this run." >&2
+                  exit 1
+                fi
+                echo "::warning::No publish/deploy artifact found for run $RUN_ID; safely re-sealing the source identity for $candidate on attempt $RUN_ATTEMPT."
+                uv run --frozen python -m deploy.release_identity construct \
+                  --source-sha "$candidate" \
+                  --output .tmp/release/source-identity.json
+                echo "resealed=true" >> "$GITHUB_OUTPUT"
+              fi
             elif [[ "$EVENT_NAME" == "workflow_dispatch" && "$INPUT_REUSE_EXISTING_IMAGE" == "true" ]]; then
               printf '%s\n' "$INPUT_PUBLISHED_IMAGE_RECORD" > .tmp/release/input-published-image.json
               uv run --frozen python -m deploy.release_identity inspect-published \
@@ -321,10 +345,12 @@ jobs:
               jq -ceS '{identity_schema, version, source_sha, constructed_at}' \
                 .tmp/release/normalized-published-image.json \
                 > .tmp/release/source-identity.json
+              echo "resealed=false" >> "$GITHUB_OUTPUT"
             else
               uv run --frozen python -m deploy.release_identity construct \
                 --source-sha "$candidate" \
                 --output .tmp/release/source-identity.json
+              echo "resealed=false" >> "$GITHUB_OUTPUT"
             fi
             version="$(jq -er '.version' .tmp/release/source-identity.json)"
             constructed_at="$(jq -r '.constructed_at // ""' .tmp/release/source-identity.json)"
@@ -335,13 +361,14 @@ jobs:
           fi
           echo "release_sha=$candidate" >> "$GITHUB_OUTPUT"
       - name: Preserve the one sealed source identity
-        if: github.run_attempt == 1 && (github.event_name != 'workflow_dispatch' || inputs.operation != 'probe')
+        if: (github.run_attempt == 1 || steps.release.outputs.resealed == 'true') && (github.event_name != 'workflow_dispatch' || inputs.operation != 'probe')
         uses: actions/upload-artifact@v4
         with:
           name: release-source-identity-${{ github.run_id }}
           path: .tmp/release/source-identity.json
           if-no-files-found: error
           retention-days: 90
+          overwrite: true
 
   classification:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
@@ -997,10 +1024,11 @@ jobs:
       - name: Reject a rerun when its immutable image cache is missing
         if: >-
           github.run_attempt > 1 &&
+          needs.resolve-release.outputs.resealed != 'true' &&
           (github.event_name == 'push' || inputs.reuse_existing_image == false) &&
           steps.image-cache.outputs.cache-hit != 'true'
         run: |
-          echo "Automatic reruns may only restore and reverify the first attempt's tested image." >&2
+          echo "::error::Automatic reruns may only restore and reverify the first attempt's tested image. The sealed source identity was restored, but the tested-image cache is missing (first attempt never built it or the cache expired). Push a new commit or dispatch a fresh release instead of rerunning." >&2
           exit 1
       - name: Complete the container gate without Docker for immutable-image reuse
         if: github.event_name == 'workflow_dispatch' && inputs.reuse_existing_image == true
@@ -1324,6 +1352,10 @@ jobs:
           merge-multiple: true
       - name: Build the exhaustive verification report
         run: |
+          if [[ ! -f .tmp/verification-input/verification-plan.json ]]; then
+            echo "::error::resolve-release did not produce a verification plan (upstream resolve-release/classification failed, was cancelled, or the rerun never sealed a source identity); refusing to build a report from missing inputs." >&2
+            exit 1
+          fi
           uv run --frozen python -m ci.verification report \
             --plan .tmp/verification-input/verification-plan.json \
             --result-directory .tmp/verification-input \
