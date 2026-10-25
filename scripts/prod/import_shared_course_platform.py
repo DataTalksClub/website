@@ -1002,6 +1002,13 @@ def _mapping() -> dict[
             "prereq_http_apis": _STAYS,
             "prereq_cli": _STAYS,
             "status": _STAYS,
+            # Double opt-in (mirror of CMP c2f7d87): the confirmation
+            # lifecycle is website workflow state with no package columns.
+            "email_confirmed": _STAYS,
+            "email_confirmation_token": _STAYS,
+            "email_confirmation_sent_at": _STAYS,
+            "email_confirmation_confirmed_at": _STAYS,
+            "email_confirmation_resend_count": _STAYS,
             "created_at": "copied verbatim (decision 13)",
             "updated_at": "copied verbatim (decision 13)",
         },
