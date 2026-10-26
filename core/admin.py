@@ -31,10 +31,9 @@ class JobIntentAdmin(admin.ModelAdmin):
         "updated_at",
     )
 
+    @admin.display(description="ID")
     def short_id(self, obj):
         return str(obj.id)[:8]
-
-    short_id.short_description = "ID"
 
     def has_add_permission(self, request):
         return False
