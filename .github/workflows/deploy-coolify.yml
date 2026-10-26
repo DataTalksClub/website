@@ -171,13 +171,28 @@ jobs:
           # dev.datatalks.club/health/ready is Cache-Control private,no-store,
           # so polling it observes the live backend. Anything but the pushed
           # SHA (stale release, non-200, timeout) fails the deploy.
+          body_file="$(mktemp)"
+          trap 'rm -f "$body_file"' EXIT
           for _ in $(seq 1 60); do
-            served="$(curl --fail --show-error --silent --max-time 20 https://dev.datatalks.club/health/ready | jq -er .source_sha)" || served=""
+            # Capture the body first so a non-JSON answer (Traefik
+            # "no available server", an error page) is reported with its
+            # HTTP status and body head instead of a bare jq parse error.
+            http_status="$(curl --show-error --silent --max-time 20 \
+              -o "$body_file" -w '%{http_code}' \
+              https://dev.datatalks.club/health/ready)" || http_status="curl-error"
+            served=""
+            if [[ "$http_status" == "200" ]]; then
+              served="$(jq -er .source_sha < "$body_file" 2>/dev/null)" || served=""
+            fi
             if [[ "$served" == "$GITHUB_SHA" ]]; then
               echo "dev serves ${GITHUB_SHA}"
               exit 0
             fi
-            echo "dev serves ${served:-<unreachable>}; waiting for ${GITHUB_SHA}"
+            if [[ -z "$served" ]]; then
+              echo "dev health not usable: HTTP ${http_status} body-head: $(head -c 200 "$body_file" | tr '\n' ' '); waiting for ${GITHUB_SHA}"
+            else
+              echo "dev serves ${served}; waiting for ${GITHUB_SHA}"
+            fi
             sleep 15
           done
           echo "dev did not converge to ${GITHUB_SHA}" >&2
