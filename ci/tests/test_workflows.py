@@ -738,7 +738,5 @@ def test_release_advisory_newer_path_stays_green() -> None:
     )
     assert advisory["if"].strip() == "steps.compare.outputs.result == 'newer'"
     assert "failure()" not in advisory["if"]
-    already = next(
-        step for step in job["steps"] if step.get("name") == "Already latest"
-    )
+    already = next(step for step in job["steps"] if step.get("name") == "Already latest")
     assert already["if"].strip() == "steps.compare.outputs.result == 'already'"
