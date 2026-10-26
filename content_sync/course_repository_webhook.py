@@ -47,7 +47,8 @@ def parse_github_course_push(payload: object, *, event_type: str) -> GitHubCours
     sender-side changed paths) are ignored: the durable job re-fetches the exact
     commit archive from GitHub itself, so the webhook never needs file contents.
     A missing ``deleted`` key means "not deleted"; an explicit ``true`` (branch
-    deletion) is still refused.
+    deletion) is still refused, as is an all-zeros ``after`` SHA, which GitHub
+    only sends for deletions.
     """
 
     if event_type != "push":
@@ -96,7 +97,7 @@ def parse_github_course_push(payload: object, *, event_type: str) -> GitHubCours
         code="github_commit_invalid",
         pattern=SHA1_PATTERN,
     )
-    if payload.get("deleted", False) is not False:
+    if payload.get("deleted", False) is not False or commit_sha == "0" * 40:
         raise CourseRepositoryWebhookError("github_push_deleted")
 
     return GitHubCoursePush(

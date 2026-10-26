@@ -172,20 +172,50 @@ class CourseRepositoryWebhookTests(TestCase):
 
     @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
     def test_minimal_payload_with_deleted_true_is_rejected(self) -> None:
-        body = json.dumps(
-            {
-                "repository": {"full_name": "DataTalksClub/llm-zoomcamp"},
-                "ref": "refs/heads/main",
-                "before": "b" * 40,
-                "after": COMMIT_SHA,
-                "deleted": True,
-            },
-            separators=(",", ":"),
-        ).encode()
+        bodies = [
+            json.dumps(
+                {
+                    "repository": {"full_name": "DataTalksClub/llm-zoomcamp"},
+                    "ref": "refs/heads/main",
+                    "before": "b" * 40,
+                    "after": COMMIT_SHA,
+                    "deleted": True,
+                },
+                separators=(",", ":"),
+            ).encode(),
+            json.dumps(
+                {
+                    "repository": {"full_name": "DataTalksClub/llm-zoomcamp"},
+                    "ref": "refs/heads/main",
+                    "before": "b" * 40,
+                    "after": "0" * 40,
+                },
+                separators=(",", ":"),
+            ).encode(),
+        ]
+        for index, body in enumerate(bodies):
+            with self.subTest(index=index):
+                response = self.post(body, delivery_id=f"delivery-minimal-deleted-{index}")
+                self.assertEqual(response.status_code, 400)
+        self.assertEqual(JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).count(), 0)
 
-        response = self.post(body, delivery_id="delivery-minimal-deleted")
-
-        self.assertEqual(response.status_code, 400)
+    @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
+    def test_non_boolean_deleted_values_are_rejected(self) -> None:
+        """Only an absent key or an explicit false means "not deleted"."""
+        for index, deleted in enumerate((None, "false", 0, 1)):
+            with self.subTest(deleted=deleted):
+                body = json.dumps(
+                    {
+                        "repository": {"full_name": "DataTalksClub/llm-zoomcamp"},
+                        "ref": "refs/heads/main",
+                        "before": "b" * 40,
+                        "after": COMMIT_SHA,
+                        "deleted": deleted,
+                    },
+                    separators=(",", ":"),
+                ).encode()
+                response = self.post(body, delivery_id=f"delivery-minimal-deleted-type-{index}")
+                self.assertEqual(response.status_code, 400)
         self.assertEqual(JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).count(), 0)
 
     @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
