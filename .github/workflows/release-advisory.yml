@@ -2,11 +2,14 @@
 #
 # Read-only inspection: it compares the pinned tag with the latest upstream
 # release and opens exactly one deduplicated advisory issue when a newer
-# release exists. It never edits pyproject.toml or uv.lock, and it never
-# selects or applies an adoption decision — the advisory feeds the ordinary
-# PM / engineer / tester / PM-acceptance / local-merge pipeline. A lookup
-# failure fails the run loudly instead of silently skipping, because a quiet
-# skip would hide new releases forever.
+# release exists. Both the already-latest (exit 0) and the newer-release
+# (exit 2) paths end green — the advisory issue is the signal, not a job
+# failure, so a newer release never sends a false-failure email. It never
+# edits pyproject.toml or uv.lock, and it never selects or applies an
+# adoption decision — the advisory feeds the ordinary PM / engineer /
+# tester / PM-acceptance / local-merge pipeline. A lookup failure (any other
+# exit code) fails the run loudly instead of silently skipping, because a
+# quiet skip would hide new releases forever.
 name: Community-base Release Advisory
 
 on:
@@ -41,18 +44,22 @@ jobs:
           echo "$OUT"
           if [ "$STATUS" -eq 0 ]; then
             echo "result=already" >> "$GITHUB_OUTPUT"
+            exit 0
           elif [ "$STATUS" -eq 2 ]; then
             echo "result=newer" >> "$GITHUB_OUTPUT"
             echo "latest=$(echo "$OUT" | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+            exit 0
+          else
+            echo "::error::Release lookup failed (exit $STATUS); failing loudly so a silent skip never hides new releases."
+            exit $STATUS
           fi
-          exit $STATUS
 
       - name: Already latest
         if: steps.compare.outputs.result == 'already'
         run: echo "The pinned community-base release is the latest; nothing to advise."
 
       - name: Open or update the deduplicated advisory issue
-        if: failure() && steps.compare.outputs.result == 'newer'
+        if: steps.compare.outputs.result == 'newer'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

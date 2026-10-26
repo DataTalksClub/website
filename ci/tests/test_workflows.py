@@ -707,3 +707,38 @@ def test_all_workflow_jobs_pin_reviewed_runner_labels() -> None:
             assert runs_on in allowed_labels, (
                 f"Job {job_name!r} in {filename} has unreviewed runs-on label {runs_on!r}"
             )
+
+
+def test_release_advisory_newer_path_stays_green() -> None:
+    """The newer-release path (script exit 2) must end green; only lookup failures fail."""
+    data = workflow("release-advisory.yml")
+    job = data["jobs"]["inspect"]
+    by_id = {step.get("id"): step for step in job["steps"] if isinstance(step, dict)}
+    compare = by_id["compare"]
+    script = compare["run"]
+    # Exit 0 (already latest) ends green.
+    assert 'echo "result=already"' in script
+    # Exit 2 (newer release) also ends green after recording the advisory signal.
+    assert 'echo "result=newer"' in script
+    assert script.count("exit 0") >= 2
+    # Any other exit code (genuine lookup failure) still fails loudly.
+    assert "::error::" in script
+    assert "exit $STATUS" in script
+    # The only `exit $STATUS` must live in the final else branch (lookup failure),
+    # never as an unconditional tail that would turn exit 2 red.
+    head, _, tail = script.partition("else")
+    assert "exit $STATUS" not in head
+    assert "exit $STATUS" in tail
+    assert "exit 0" in head
+    # The advisory issue step runs on the green newer path, not on failure().
+    advisory = next(
+        step
+        for step in job["steps"]
+        if step.get("name") == "Open or update the deduplicated advisory issue"
+    )
+    assert advisory["if"].strip() == "steps.compare.outputs.result == 'newer'"
+    assert "failure()" not in advisory["if"]
+    already = next(
+        step for step in job["steps"] if step.get("name") == "Already latest"
+    )
+    assert already["if"].strip() == "steps.compare.outputs.result == 'already'"
