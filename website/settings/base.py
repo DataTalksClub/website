@@ -262,6 +262,17 @@ ACCOUNT_PREVENT_ENUMERATION = False
 # owner can turn it off on evidence rather than on argument, without a code
 # change.  Default on.
 REGISTRATION_REQUIRES_ACCOUNT = env_flag("REGISTRATION_REQUIRES_ACCOUNT", default=True)
+# Operator recipients for application-style registration notices (mirror of
+# CMP intake 4d0452a8): every new pending registration on a campaign with
+# ``requires_approval`` emails these addresses plus the default below via
+# the ``application-pending-operator`` package mail purpose. The service
+# normalizes, deduplicates and always retains the default. Admin-configurable
+# at runtime through the operator settings surface; the environment is the
+# boot-time value.
+APPLICATION_NOTIFICATION_OPERATORS = env_list(
+    "APPLICATION_NOTIFICATION_OPERATORS",
+    default="alexey@datatalks.club",
+)
 ACCOUNT_ADAPTER = "accounts.auth.AccountAdapter"
 SOCIALACCOUNT_ADAPTER = "accounts.auth.ConsolidatingSocialAccountAdapter"
 SOCIALACCOUNT_LOGIN_ON_GET = True

@@ -284,6 +284,8 @@ module = [
     "courses.registration_confirmation",
     "courses.views.registration_confirmation",
     "courses.tests.test_registration_email_confirmation",
+    "courses.services.application_notifications",
+    "courses.tests.test_application_notifications",
     "scripts.prod.import_production_ai_campaign",
 ]
 ignore_errors = false

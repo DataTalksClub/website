@@ -22,6 +22,7 @@ from courses.registration import (
     render_markdown,
     youtube_embed_url,
 )
+from courses.services.application_notifications import queue_operator_notification
 from courses.services.registration_counts import public_course_registration_count
 from courses.views.url_utils import canonical_cohort_url_kwargs
 
@@ -117,6 +118,12 @@ def _save_registration_if_valid(
         registration,
     )
     transaction.on_commit(email_callback)
+    # Application-style campaigns notify the operators once per pending
+    # registration (mirror of CMP intake 4d0452a8). The service is a
+    # no-op for open campaigns; resend/fix-email paths never create a
+    # registration, so they can never double-notify.
+    operator_callback = partial(queue_operator_notification, registration)
+    transaction.on_commit(operator_callback)
     return registration
 
 

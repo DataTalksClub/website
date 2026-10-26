@@ -17,6 +17,9 @@ from community_base.mail import send as package_send
 from django.db import transaction
 
 PURPOSE_REGISTRATION_CONFIRMATION = "course-registration-confirmation"
+PURPOSE_APPLICATION_PENDING_OPERATOR = "application-pending-operator"
+PURPOSE_APPLICATION_APPROVED = "application-approved"
+PURPOSE_APPLICATION_REJECTED = "application-rejected"
 PURPOSE_DEADLINE_REMINDER = "deadline-reminder"
 PURPOSE_ENROLLMENT_CONFIRMATION = "enrollment-confirmation"
 PURPOSE_CERTIFICATE_READY = "certificate-ready"
@@ -116,6 +119,14 @@ def send_registration_confirmation_mail(registration):
     Callers issue a fresh token before queueing the send (registration,
     resend, fix-email and public recovery all do): a tokenless send would
     carry an empty ``confirmation_url``, which the template requires.
+
+    Application-style campaigns (``requires_approval``) get the pending
+    paragraph: the email says the application waits for review and that
+    the applicant will get an email after review, instead of implying
+    acceptance. Open campaigns keep the current "you're registered"
+    wording. The ``requires_approval`` flag is block-tag-only context
+    (the template's ``{% if %}``), so the required placeholder set is
+    unchanged.
     """
 
     import hashlib
@@ -140,6 +151,8 @@ def send_registration_confirmation_mail(registration):
     if token:
         generation = hashlib.sha256(token.encode()).hexdigest()[:24]
         key_parts.append(generation)
+    from courses.views.registration_form import campaign_requires_approval
+
     return send_package_mail(
         purpose=PURPOSE_REGISTRATION_CONFIRMATION,
         to=email,
@@ -151,6 +164,7 @@ def send_registration_confirmation_mail(registration):
             "profile_url": urls["profile_url"],
             "confirmation_url": urls["confirmation_url"],
             "verify_email_prompt": _registration_verify_email_prompt(registration, email),
+            "requires_approval": campaign_requires_approval(campaign),
         },
         idempotency_key=mail_idempotency_key(*key_parts),
         category="email_course_updates",

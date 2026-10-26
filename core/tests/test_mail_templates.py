@@ -20,9 +20,13 @@ from django.test import SimpleTestCase
 
 from core import mail_templates
 
-#: The five DTC purposes the plan commits as the initial catalog.
+#: The five DTC purposes the plan commits as the initial catalog, plus the
+#: application-review purposes mirroring CMP intake 4d0452a8.
 EXPECTED_KEYS = frozenset(
     {
+        "application-approved",
+        "application-pending-operator",
+        "application-rejected",
         "certificate-ready",
         "course-announcement",
         "course-registration-confirmation",

@@ -8,7 +8,10 @@ Hi {{ user_name }},
 
 Thanks for registering for **{{ course_title }}**! Please click the confirmation link to complete
 your registration.
-
+{% if requires_approval %}
+Your application will then wait for review: acceptance is not automatic, and we will
+email you once it is approved.
+{% endif %}
 {% if confirmation_url %}[Confirm registration]({{ confirmation_url }})
 
 You MUST click this confirmation link to complete registration. The link expires after 7 days. If you did not register, ignore this email.

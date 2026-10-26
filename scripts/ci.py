@@ -227,6 +227,10 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/registration_confirmation.py",
     "courses/views/registration_confirmation.py",
     "courses/tests/test_registration_email_confirmation.py",
+    # Application notifications (mirror of CMP intake 4d0452a8): operator
+    # notice plus approve/reject applicant mail; new integration code.
+    "courses/services/application_notifications.py",
+    "courses/tests/test_application_notifications.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",

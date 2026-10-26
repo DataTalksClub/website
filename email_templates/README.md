@@ -22,8 +22,11 @@ the deploy step are never edited by hand.
 
 | Key | Purpose | Extra context |
 |---|---|---|
+| `application-pending-operator` | Operator notice for a new pending application (approval campaigns only) | `applicant_name`, `applicant_email`, `campaign_title`, `course_title`, `review_url`, `submitted_at` |
+| `application-approved` | Applicant accepted after operator review | `applicant_email`, `course_title`, `course_url` |
+| `application-rejected` | Applicant not offered a place after operator review | `course_title` |
 | `deadline-reminder` | Homework/deadline nudge for an enrolled learner | `course_title`, `course_url`, `deadline` |
-| `course-registration-confirmation` | Registration accepted for a course (double opt-in: the learner MUST click the confirmation link) | `course_title`, `course_url`, `confirmation_url` (required); `start_date`, `verify_email_prompt` (optional: empty unless a start date is announced / the registering account's email still needs verifying) |
+| `course-registration-confirmation` | Registration accepted for a course (double opt-in: the learner MUST click the confirmation link) | `course_title`, `course_url`, `confirmation_url` (required); `start_date`, `verify_email_prompt` (optional: empty unless a start date is announced / the registering account's email still needs verifying); `requires_approval` (block-tag-only flag: when true the body adds the "awaiting review, we will email you after review" paragraph instead of implying acceptance) |
 | `enrollment-confirmation` | Enrollment confirmed in a cohort | `course_title`, `course_url`, `cohort_name` |
 | `certificate-ready` | Completion certificate is available | `course_title`, `certificate_url` |
 | `slack-access` | Invitation to the course Slack community | `course_title`, `slack_url` |

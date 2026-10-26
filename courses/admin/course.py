@@ -443,13 +443,64 @@ class CourseRegistrationAdmin(ModelAdmin):
         ),
     ]
 
+    def save_model(self, request, obj, form, change):
+        # A single-object status edit is an operator review decision: save
+        # normally first, then route a changed decision through the review
+        # service so the applicant is notified once per decision, exactly
+        # like the bulk actions below.
+        from courses.services.application_notifications import review_registration
+
+        previous_status = None
+        if change:
+            previous_status = (
+                CourseRegistration.objects.filter(pk=obj.pk)
+                .values_list("status", flat=True)
+                .first()
+            )
+        super().save_model(request, obj, form, change)
+        if (
+            previous_status is not None
+            and previous_status != obj.status
+            and obj.status
+            in (
+                CourseRegistration.Status.APPROVED,
+                CourseRegistration.Status.REJECTED,
+            )
+        ):
+            review_registration(obj, obj.status)
+
     @admin.action(description="Approve selected applications")
     def approve_registrations(self, request, queryset):
-        queryset.update(status=CourseRegistration.Status.APPROVED)
+        # Per-object review decisions, not ``queryset.update``: a bulk SQL
+        # update bypasses model lifecycle and would skip the applicant
+        # email, so direct status writes stay unsuitable for decisions.
+        from courses.services.application_notifications import review_registration
+
+        approved = 0
+        for registration in queryset.iterator():
+            _, changed, _ = review_registration(
+                registration, CourseRegistration.Status.APPROVED
+            )
+            approved += 1 if changed else 0
+        self.message_user(
+            request,
+            f"Approved {approved} application(s); applicants were notified.",
+        )
 
     @admin.action(description="Reject selected applications")
     def reject_registrations(self, request, queryset):
-        queryset.update(status=CourseRegistration.Status.REJECTED)
+        from courses.services.application_notifications import review_registration
+
+        rejected = 0
+        for registration in queryset.iterator():
+            _, changed, _ = review_registration(
+                registration, CourseRegistration.Status.REJECTED
+            )
+            rejected += 1 if changed else 0
+        self.message_user(
+            request,
+            f"Rejected {rejected} application(s); applicants were notified.",
+        )
 
 
 @admin.register(LeaderboardComplaint)
