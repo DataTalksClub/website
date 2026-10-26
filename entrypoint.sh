@@ -15,7 +15,13 @@ case "${1:-web}" in
     if [ "${1:-web}" = web-migrate ]; then
       uv run --no-sync python manage.py db_preflight || exit 20
       uv run --no-sync python manage.py migrate --noinput || exit 21
-      uv run --no-sync python manage.py sync_relay_schedules || exit 22
+      # Dev/staging hosts must not register the production callback schedules
+      # in Relay (Relay rejects foreign origins and the boot would fail
+      # closed here): set RELAY_SYNC_SCHEDULES=false to skip the sync.
+      # Production leaves it unset and syncs.
+      if [ "${RELAY_SYNC_SCHEDULES:-true}" != false ]; then
+        uv run --no-sync python manage.py sync_relay_schedules || exit 22
+      fi
       uv run --no-sync python manage.py import_mail_templates || exit 23
     fi
     exec uv run --no-sync gunicorn website.wsgi:application --bind 0.0.0.0:8000 --workers "${WEB_CONCURRENCY:-2}" --timeout 90 --access-logfile - --access-logformat "$GUNICORN_ACCESS_LOG_FORMAT" --logger-class "$GUNICORN_LOGGER_CLASS" --error-logfile -
