@@ -371,6 +371,11 @@ class DeploymentTarget:
             "DATAMAILER_SYNC_ON_USER_CREATE": "0",
             "DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY": "0",
             "DATAMAILER_TRANSACTIONAL_DRY_RUN": "1",
+            # Package Relay sends have no backend-side dry-run: the site
+            # preference resolver suppresses every send while this is "1".
+            # Deployed environments boot suppressed until the live send
+            # policy and controlled recipient are approved.
+            "RELAY_TRANSACTIONAL_DRY_RUN": "1",
             "DATAMAILER_URL": "",
             "DATAMAILER_API_KEY": "",
         }

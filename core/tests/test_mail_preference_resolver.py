@@ -87,6 +87,30 @@ class MailPreferenceResolverTest(TestCase):
     def test_no_category_is_allowed(self):
         self.assertIs(self.resolve(category=""), True)
 
+    def test_transactional_dry_run_suppresses_every_send(self):
+        with self.settings(RELAY_TRANSACTIONAL_DRY_RUN=True):
+            from core.runtime_config import reset_runtime_settings_cache
+
+            reset_runtime_settings_cache()
+            try:
+                self.assertEqual(
+                    self.resolve(category="deadline-reminders"), "transactional_dry_run"
+                )
+                self.assertEqual(self.resolve(category="", user=None), "transactional_dry_run")
+                self.assertEqual(self.resolve(category="transactional"), "transactional_dry_run")
+            finally:
+                reset_runtime_settings_cache()
+
+    def test_live_sends_stay_allowed_when_dry_run_is_off(self):
+        with self.settings(RELAY_TRANSACTIONAL_DRY_RUN=False):
+            from core.runtime_config import reset_runtime_settings_cache
+
+            reset_runtime_settings_cache()
+            try:
+                self.assertIs(self.resolve(category="transactional"), True)
+            finally:
+                reset_runtime_settings_cache()
+
 
 class PackageSendDurableRecordTest(TestCase):
     def test_a_send_records_one_durable_delivery(self):

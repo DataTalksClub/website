@@ -1047,6 +1047,7 @@ class TaskDefinitionBuilderTests(SimpleTestCase):
             self.assertEqual(environment["SOURCE_SHA"], SHA_B)
             self.assertEqual(environment["IMAGE_DIGEST"], DIGEST_B)
             self.assertEqual(environment["DATAMAILER_TRANSACTIONAL_DRY_RUN"], "1")
+            self.assertEqual(environment["RELAY_TRANSACTIONAL_DRY_RUN"], "1")
 
     def test_builder_rejects_extra_environment_duplicate_secret_names_and_wrong_arns(self) -> None:
         mutations = ("extra_environment", "duplicate_name", "wrong_arn")

@@ -32,6 +32,7 @@ No secret values are recorded — this inventory is structural only.
 | `public_media.s3_region` | public_media | str | `''` | site callable | site adapter | `PUBLIC_MEDIA_S3_REGION` | `PUBLIC_MEDIA_S3_REGION` |
 | `public_media.s3_timeout_seconds` | public_media | int | `5` | site callable | site adapter | `PUBLIC_MEDIA_S3_TIMEOUT_SECONDS` | `PUBLIC_MEDIA_S3_TIMEOUT_SECONDS` |
 | `public_media.store_backend` | public_media | str | `'local'` | site callable | site adapter | `PUBLIC_MEDIA_STORE_BACKEND` | `PUBLIC_MEDIA_STORE_BACKEND` |
+| `relay.transactional_dry_run` | relay | bool | `False` | - | none needed | `RELAY_TRANSACTIONAL_DRY_RUN` | `RELAY_TRANSACTIONAL_DRY_RUN` |
 | `relay.link_bridge.base_url` | relay.link_bridge | str | `''` | site callable | site adapter | `RELAY_LINK_BRIDGE_BASE_URL` | `RELAY_LINK_BRIDGE_BASE_URL` |
 | `relay.link_bridge.click_timeout_seconds` | relay.link_bridge | int | `3` | site callable | site adapter | `RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS` | `RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS` |
 | `relay.link_bridge.open_timeout_seconds` | relay.link_bridge | int | `2` | site callable | site adapter | `RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS` | `RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS` |

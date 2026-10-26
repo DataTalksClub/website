@@ -58,6 +58,7 @@ from core.models import OperationalSetting
 OPERATIONAL_SETTINGS_DOCS_REFERENCE = "_docs/specs/01-platform-architecture.md"
 
 PUBLIC_MEDIA_GROUP = "public_media"
+RELAY_GROUP = "relay"
 OBSERVABILITY_GROUP = "observability"
 SITE_ORIGIN_GROUP = "site.origin"
 
@@ -333,6 +334,27 @@ PUBLIC_MEDIA_MAX_OBJECT_BYTES = _declare(
 )
 
 
+# -- transactional send policy ----------------------------------------------
+
+RELAY_TRANSACTIONAL_DRY_RUN = _declare(
+    key="relay.transactional_dry_run",
+    group=RELAY_GROUP,
+    label="Relay transactional dry run",
+    description=(
+        "When true, the site mail preference resolver suppresses every "
+        "package Relay send as transactional_dry_run (audited, no Relay "
+        "contact). Deployed environments boot true until the live send "
+        "policy and controlled recipient are approved."
+    ),
+    value_type=BOOLEAN,
+    default=False,
+    env_var="RELAY_TRANSACTIONAL_DRY_RUN",
+    settings_attr="RELAY_TRANSACTIONAL_DRY_RUN",
+    validation={},
+    validator=None,
+)
+
+
 # -- observability -----------------------------------------------------------
 
 CLOUDWATCH_APP_METRIC_NAMESPACE = _declare(
@@ -407,6 +429,7 @@ OPERATIONAL_SETTING_KEYS: tuple[str, ...] = (
     CLOUDWATCH_APP_METRIC_NAMESPACE.key,
     CLOUDWATCH_APP_METRIC_REGION.key,
     OBSERVABILITY_EVENT_SCHEMA_VERSION.key,
+    RELAY_TRANSACTIONAL_DRY_RUN.key,
     PUBLIC_MEDIA_MAX_OBJECT_BYTES.key,
     PUBLIC_MEDIA_S3_BUCKET.key,
     PUBLIC_MEDIA_S3_ENDPOINT_URL.key,
