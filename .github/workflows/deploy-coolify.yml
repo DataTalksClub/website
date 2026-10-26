@@ -177,6 +177,33 @@ jobs:
           body="$(curl --fail --show-error --silent --max-time 30 "https://dev.datatalks.club/courses/register/confirm/${token}/")"
           grep -qi "We could not find a registration for this confirmation link" <<< "$body"
           echo "dev confirm route responds with the invalid-link page"
+      - name: Point prod at the pushed release
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_SERVICE_UUID: ${{ secrets.COOLIFY_WEBSITE_SERVICE_UUID }}
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          # prod.datatalks.club/health/ready reports SOURCE_SHA, and the prod gate
+          # below compares exactly that — same contract as the staging pin above.
+          # The prod app builds its own image from git (not GHCR compose), so only
+          # the release identity is pinned here; IMAGE_DIGEST keeps Coolify's own
+          # build identity until prod moves to GHCR compose. The bulk PATCH merges
+          # keys, so DATABASE_URL and the other serving env are untouched.
+          jq -n \
+            --arg version "$IMAGE_TAG" \
+            --arg sha "$GITHUB_SHA" \
+            '{data: [{key: "VERSION", value: $version}, {key: "SOURCE_SHA", value: $sha}]}' \
+            > /tmp/prod-env.json
+          curl --fail --show-error --silent --request PATCH \
+            --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --header "Accept: application/json" \
+            --data @/tmp/prod-env.json \
+            "${COOLIFY_URL%/}/api/v1/applications/${COOLIFY_SERVICE_UUID}/envs/bulk"
+          echo
+          echo "Prod identity set to ${GITHUB_SHA} (${IMAGE_TAG})"
       - name: Trigger Coolify deploy
         env:
           COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
@@ -196,3 +223,22 @@ jobs:
           curl --fail --show-error --silent --request POST             --header "Authorization: Bearer ${COOLIFY_TOKEN}"             --header "Accept: application/json"             "${COOLIFY_URL%/}/api/v1/deploy?uuid=${COOLIFY_SERVICE_UUID}&force=true"
           echo
           echo "Triggered Coolify deploy for ${COOLIFY_SERVICE_UUID} (GHCR tag ${IMAGE_TAG} ready; app not yet on GHCR compose)"
+      - name: Wait for prod to serve the pushed SHA
+        run: |
+          set -euo pipefail
+          # Same gate as dev above, for the prod app: prod.datatalks.club/health/ready
+          # is Cache-Control private,no-store, so polling it observes the live
+          # backend. Anything but the pushed SHA (stale release, a container
+          # that failed its db_preflight/migrate/sync/import startup gate,
+          # non-200, timeout) fails the deploy.
+          for _ in $(seq 1 60); do
+            served="$(curl --show-error --silent --max-time 20 https://prod.datatalks.club/health/ready | jq -r .source_sha)" || true
+            if [[ "$served" == "$GITHUB_SHA" ]]; then
+              echo "prod serves ${GITHUB_SHA}"
+              exit 0
+            fi
+            echo "prod serves ${served:-<unreachable>}; waiting for ${GITHUB_SHA}"
+            sleep 15
+          done
+          echo "prod did not converge to ${GITHUB_SHA}" >&2
+          exit 1

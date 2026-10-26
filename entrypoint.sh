@@ -13,7 +13,10 @@ case "${1:-web}" in
     # before readiness can admit traffic or release the dependent worker.
     # Other deployment controllers continue to own their migration step.
     if [ "${1:-web}" = web-migrate ]; then
-      uv run --no-sync python manage.py migrate --noinput
+      uv run --no-sync python manage.py db_preflight || exit 20
+      uv run --no-sync python manage.py migrate --noinput || exit 21
+      uv run --no-sync python manage.py sync_relay_schedules || exit 22
+      uv run --no-sync python manage.py import_mail_templates || exit 23
     fi
     exec uv run --no-sync gunicorn website.wsgi:application --bind 0.0.0.0:8000 --workers "${WEB_CONCURRENCY:-2}" --timeout 90 --access-logfile - --access-logformat "$GUNICORN_ACCESS_LOG_FORMAT" --logger-class "$GUNICORN_LOGGER_CLASS" --error-logfile -
     ;;

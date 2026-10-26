@@ -32,14 +32,27 @@ class MailTemplate:
     body: str
     footer_note: str
     required_context: tuple[str, ...]
+    #: Placeholder names the send may leave empty. Relay rejects an empty
+    #: string for any name in ``required_context``, so a key that is
+    #: legitimately empty (no start date announced yet, no verify prompt
+    #: due) must be declared optional in the template frontmatter instead
+    #: of being passed as "". Never sent to Relay: optionality is a
+    #: property of the source file, the catalog only stores what is required.
+    optional_context: tuple[str, ...] = ()
 
     def draft(self) -> dict:
-        """The Relay catalog draft document for this template."""
+        """The Relay catalog draft document for this template.
+
+        Relay's transactional template API stores ``markdown_body`` (it is
+        what a send renders) and has no ``body`` key: sending ``body``
+        would persist an empty ``markdown_body`` and the stored draft
+        would differ forever, republishing on every import run.
+        """
 
         return {
             "name": self.name,
             "subject": self.subject,
-            "body": self.body,
+            "markdown_body": self.body,
             "required_context": list(self.required_context),
         }
 
@@ -58,6 +71,8 @@ def load_templates() -> list[MailTemplate]:
         post = frontmatter.load(path)
         subject = str(post.metadata.get("subject", ""))
         body = post.content
+        placeholders = _placeholders(subject, body)
+        optional = optional_context(post.metadata.get("optional_context", ()), placeholders, path)
         templates.append(
             MailTemplate(
                 key=path.stem,
@@ -65,18 +80,50 @@ def load_templates() -> list[MailTemplate]:
                 subject=subject,
                 body=body,
                 footer_note=str(post.metadata.get("footer_note", "")),
-                required_context=required_context(subject, body),
+                required_context=tuple(
+                    sorted(placeholders - set(BUILT_IN_CONTEXT) - set(optional))
+                ),
+                optional_context=optional,
             )
         )
     return templates
+
+
+def _placeholders(subject: str, body: str) -> set[str]:
+    """Every ``{{ name }}`` the subject and body contain, built-ins included."""
+
+    return {match.group(1) for match in PLACEHOLDER.finditer(f"{subject}\n{body}")}
+
+
+def optional_context(declared, placeholders: set[str], path) -> tuple[str, ...]:
+    """The frontmatter ``optional_context`` list, validated against the file.
+
+    An optional name that the template never uses is a typo that would
+    silently weaken the catalog, so it fails closed.
+    """
+
+    if declared is None:
+        return ()
+    if isinstance(declared, str):
+        declared = [declared]
+    try:
+        names = [str(name).strip() for name in declared]
+    except TypeError as exc:
+        raise ValueError(f"{path.name}: optional_context must be a list of names") from exc
+    optional = tuple(sorted(name for name in names if name))
+    unknown = [name for name in optional if name not in placeholders]
+    if unknown:
+        raise ValueError(f"{path.name}: optional_context names no placeholder: {unknown}")
+    return optional
 
 
 def required_context(subject: str, body: str) -> tuple[str, ...]:
     """Template variables the purpose must receive from its send call.
 
     The package's built-in context (user, site) is excluded: a send never
-    passes those, the package always does.
+    passes those, the package always does. ``load_templates`` additionally
+    subtracts the file's ``optional_context``; this helper reports the raw
+    placeholder set so the catalog derivation stays in one place.
     """
 
-    found = {match.group(1) for match in PLACEHOLDER.finditer(f"{subject}\n{body}")}
-    return tuple(sorted(found - set(BUILT_IN_CONTEXT)))
+    return tuple(sorted(_placeholders(subject, body) - set(BUILT_IN_CONTEXT)))

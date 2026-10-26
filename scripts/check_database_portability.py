@@ -102,6 +102,11 @@ BACKEND_PATTERN_EXCEPTIONS: dict[Path, frozenset[str]] = {
     # behavior stays portable and only the token is backend-specific.
     Path("courses/registration_confirmation.py"): frozenset({"select_for_update"}),
     Path("courses/views/registration_confirmation.py"): frozenset({"select_for_update"}),
+    # The Coolify deploy preflight audits catalog ownership as the
+    # migration role before any DDL. It refuses to run anywhere but the
+    # deployed engine, so the behavior is intentionally PostgreSQL-only
+    # and only the vendor token is backend-specific.
+    Path("core/management/commands/db_preflight.py"): frozenset({"connection.vendor"}),
 }
 DATABASE_REFERENCE = re.compile(
     r"\b(?:postgres(?:ql)?|psycopg|database_url)\b",

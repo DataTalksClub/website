@@ -7,8 +7,10 @@ website domains to `web` on port 8000 only. The readiness path is
 `/health/ready`, without a trailing slash.
 
 Compose starts web with `entrypoint.sh web-migrate`: it runs the new image's
-`manage.py migrate --noinput` before Gunicorn. A migration failure exits before
-the HTTP server starts. Keep the worker's `service_healthy` dependency: it
+`manage.py db_preflight` (migration role + catalog ownership, fail closed),
+then `manage.py migrate --noinput`, `sync_relay_schedules` and
+`import_mail_templates` before Gunicorn — exit codes 20/21/22/23. A failure
+in any of them exits before the HTTP server starts. Keep the worker's `service_healthy` dependency: it
 prevents jobs from executing against an unapplied schema. The ordinary `web`
 entrypoint stays available for controllers that run a separate migration task.
 Run only one web service with this startup migration owner; scaling web requires

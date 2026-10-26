@@ -111,6 +111,131 @@ class RegistrationConfirmationMailTest(TestCase):
         self.assertEqual(EmailDelivery.objects.count(), 1)
 
 
+class RegistrationConfirmationRelayContextTests(TestCase):
+    """Every confirmation send must satisfy Relay's required template context.
+
+    Relay rejects an empty string for any name in the template's
+    ``required_context`` (prod answered 400 validation_error on
+    ``context.start_date`` + ``context.verify_email_prompt`` for a cohort
+    with no start date and an anonymous registrant). These tests mirror
+    that rule against the committed template: with no course at all, and
+    with a course that announces no start date, the recorded delivery
+    context must still carry a non-empty value for every required name.
+    Only ``start_date`` and ``verify_email_prompt`` may stay empty, and
+    the template declares exactly those two optional.
+    """
+
+    @staticmethod
+    def _template():
+        from core import mail_templates
+
+        templates = {template.key: template for template in mail_templates.load_templates()}
+        return templates["course-registration-confirmation"]
+
+    def _assert_relay_accepts(self, delivery):
+        # Mirrors Relay's validate_context_requirements
+        # (relay mailing/services/transactional_catalog.py): every required
+        # name must be present and neither None nor "". Extra context keys
+        # the template never uses are ignored by that validator.
+        missing = [
+            name
+            for name in self._template().required_context
+            if not delivery.context_data.get(name)
+        ]
+        self.assertEqual(missing, [])
+
+    @override_settings(**FLOW_SETTINGS)
+    def test_optional_keys_are_exactly_start_date_and_verify_prompt(self):
+        template = self._template()
+        self.assertEqual(template.optional_context, ("start_date", "verify_email_prompt"))
+        self.assertNotIn("start_date", template.required_context)
+        self.assertNotIn("verify_email_prompt", template.required_context)
+
+    @override_settings(**FLOW_SETTINGS)
+    def test_registration_without_any_course_falls_back_to_campaign(self):
+        from courses.registration_confirmation import issue_confirmation_token
+
+        campaign = RegistrationCampaign.objects.create(
+            slug="future-camp",
+            title="Future Camp",
+        )
+        registration = CourseRegistration.objects.create(
+            campaign=campaign,
+            course=None,
+            email="future@example.com",
+            name="Future Learner",
+            country="Germany",
+            region="Europe",
+            role=CourseRegistration.Role.DATA_ENGINEER,
+            accepted_newsletter=True,
+        )
+        self.assertIsNone(registration.course)
+        issue_confirmation_token(registration)
+
+        delivery = send_registration_confirmation_mail(registration)
+
+        self.assertIsNotNone(delivery)
+        self.assertEqual(delivery.context_data["course_title"], "Future Camp")
+        self.assertTrue(delivery.context_data["course_url"])
+        self.assertTrue(delivery.context_data["confirmation_url"])
+        self.assertEqual(delivery.context_data["verify_email_prompt"], "")
+        self._assert_relay_accepts(delivery)
+
+    @override_settings(**FLOW_SETTINGS)
+    def test_registration_with_dateless_course_is_accepted(self):
+        from courses.registration_confirmation import issue_confirmation_token
+
+        cohort = create_cohort(start_date=None)
+        registration = create_registration(cohort)
+        issue_confirmation_token(registration)
+
+        delivery = send_registration_confirmation_mail(registration)
+
+        self.assertIsNotNone(delivery)
+        self.assertEqual(delivery.context_data["course_title"], cohort.title)
+        self.assertEqual(delivery.context_data["start_date"], "")
+        self.assertEqual(delivery.context_data["verify_email_prompt"], "")
+        self.assertTrue(delivery.context_data["confirmation_url"])
+        self._assert_relay_accepts(delivery)
+
+    @override_settings(**FLOW_SETTINGS)
+    def test_cleared_course_falls_back_to_campaign_current_course(self):
+        # The write-time backfill sets course from current_course, so a
+        # registration with no course but a promoting campaign only exists
+        # for rows cleared afterwards (legacy rows, rotation): the
+        # send-time fallback must still resolve the current course.
+        from courses.registration_confirmation import issue_confirmation_token
+
+        cohort = create_cohort(start_date=None)
+        campaign = RegistrationCampaign.objects.create(
+            slug="rotating-camp",
+            title="Rotating Camp",
+            current_course=cohort,
+        )
+        registration = CourseRegistration.objects.create(
+            campaign=campaign,
+            course=cohort,
+            email="rotating@example.com",
+            name="Rotating Learner",
+            country="Germany",
+            region="Europe",
+            role=CourseRegistration.Role.DATA_ENGINEER,
+            accepted_newsletter=True,
+        )
+        CourseRegistration.objects.filter(pk=registration.pk).update(course=None)
+        registration.refresh_from_db()
+        self.assertIsNone(registration.course)
+        issue_confirmation_token(registration)
+
+        delivery = send_registration_confirmation_mail(registration)
+
+        self.assertIsNotNone(delivery)
+        self.assertEqual(delivery.context_data["course_title"], cohort.title)
+        self.assertTrue(delivery.context_data["course_url"])
+        self.assertTrue(delivery.context_data["confirmation_url"])
+        self._assert_relay_accepts(delivery)
+
+
 def enrollment_confirmations():
     return EmailDelivery.objects.filter(purpose="enrollment-confirmation")
 

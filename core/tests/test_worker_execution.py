@@ -35,16 +35,29 @@ class WorkerSettingsTests(SimpleTestCase):
             uv = directory / "uv"
             uv.write_text(
                 '#!/bin/sh\nprintf "%s\\n" "$*" >> "$WORKER_TEST_OUTPUT"\n'
-                'case "$*" in *"manage.py migrate"*) exit "$MIGRATION_EXIT";; esac\n'
+                'case "$*" in *"manage.py db_preflight"*) exit "$PREFLIGHT_EXIT";;'
+                ' *"manage.py migrate"*) exit "$MIGRATION_EXIT";;'
+                ' *"manage.py sync_relay_schedules"*) exit "$SYNC_EXIT";;'
+                ' *"manage.py import_mail_templates"*) exit "$IMPORT_EXIT";; esac\n'
                 "exit 9\n"
             )
             uv.chmod(0o755)
-            for mode, migration_exit, expected_exit, migration_runs in (
-                ("web-migrate", "0", 9, True),
-                ("web-migrate", "23", 23, True),
-                ("web", "23", 9, False),
+            release = [
+                "run --no-sync python manage.py db_preflight",
+                "run --no-sync python manage.py migrate --noinput",
+                "run --no-sync python manage.py sync_relay_schedules",
+                "run --no-sync python manage.py import_mail_templates",
+            ]
+            gunicorn = "run --no-sync gunicorn "
+            for mode, exits, expected_exit, expected_commands in (
+                ("web-migrate", ("0", "0", "0", "0"), 9, [*release, gunicorn]),
+                ("web-migrate", ("20", "0", "0", "0"), 20, release[:1]),
+                ("web-migrate", ("0", "21", "0", "0"), 21, release[:2]),
+                ("web-migrate", ("0", "0", "22", "0"), 22, release[:3]),
+                ("web-migrate", ("0", "0", "0", "23"), 23, release),
+                ("web", ("0", "0", "0", "0"), 9, [gunicorn]),
             ):
-                with self.subTest(mode=mode, migration_exit=migration_exit):
+                with self.subTest(mode=mode, exits=exits):
                     output.write_text("")
                     result = subprocess.run(
                         ["/bin/sh", str(root / "entrypoint.sh"), mode],
@@ -52,7 +65,10 @@ class WorkerSettingsTests(SimpleTestCase):
                             **os.environ,
                             "PATH": str(directory),
                             "WORKER_TEST_OUTPUT": str(output),
-                            "MIGRATION_EXIT": migration_exit,
+                            "PREFLIGHT_EXIT": exits[0],
+                            "MIGRATION_EXIT": exits[1],
+                            "SYNC_EXIT": exits[2],
+                            "IMPORT_EXIT": exits[3],
                         },
                         capture_output=True,
                         text=True,
@@ -60,16 +76,9 @@ class WorkerSettingsTests(SimpleTestCase):
                     )
                     self.assertEqual(result.returncode, expected_exit, result.stderr)
                     commands = output.read_text().splitlines()
-                    if migration_runs:
-                        self.assertEqual(
-                            commands[0],
-                            "run --no-sync python manage.py migrate --noinput",
-                        )
-                    if mode == "web-migrate" and migration_exit != "0":
-                        self.assertEqual(len(commands), 1)
-                    else:
-                        self.assertEqual(len(commands), 2 if migration_runs else 1)
-                        self.assertTrue(commands[-1].startswith("run --no-sync gunicorn "))
+                    self.assertEqual(len(commands), len(expected_commands))
+                    for actual, expected in zip(commands, expected_commands, strict=True):
+                        self.assertTrue(actual.startswith(expected), actual)
 
     def test_entrypoint_preserves_other_worker_environments_and_executes_worker(self):
         root = Path(__file__).resolve().parents[2]

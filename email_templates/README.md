@@ -9,7 +9,9 @@ Bodies and subjects are Django templates. Every template receives
 `user_name`, `user_email`, `site_url` and `site_name` from the mail package,
 plus the purpose-specific context declared per template below. The deploy's
 `import_mail_templates` step derives `required_context` from the placeholders
-it finds, upserts the draft into the Relay catalog and publishes a new
+it finds, minus the file's `optional_context` frontmatter list (keys the send
+may legitimately leave empty — Relay rejects an empty string for any required
+key), upserts the draft into the Relay catalog and publishes a new
 version when the draft changed — a deploy with unchanged templates touches
 nothing.
 
@@ -21,7 +23,7 @@ the deploy step are never edited by hand.
 | Key | Purpose | Extra context |
 |---|---|---|
 | `deadline-reminder` | Homework/deadline nudge for an enrolled learner | `course_title`, `course_url`, `deadline` |
-| `course-registration-confirmation` | Registration accepted for a course (double opt-in: the learner MUST click the confirmation link) | `course_title`, `course_url`, `start_date`, `confirmation_url`, `verify_email_prompt` (empty unless the registering account's email still needs verifying) |
+| `course-registration-confirmation` | Registration accepted for a course (double opt-in: the learner MUST click the confirmation link) | `course_title`, `course_url`, `confirmation_url` (required); `start_date`, `verify_email_prompt` (optional: empty unless a start date is announced / the registering account's email still needs verifying) |
 | `enrollment-confirmation` | Enrollment confirmed in a cohort | `course_title`, `course_url`, `cohort_name` |
 | `certificate-ready` | Completion certificate is available | `course_title`, `certificate_url` |
 | `slack-access` | Invitation to the course Slack community | `course_title`, `slack_url` |

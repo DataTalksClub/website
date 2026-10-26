@@ -1,6 +1,7 @@
 ---
 name: Course registration confirmation
 subject: "Confirm your registration for {{ course_title }}"
+optional_context: [start_date, verify_email_prompt]
 ---
 
 Hi {{ user_name }},
@@ -12,7 +13,7 @@ your registration.
 
 You MUST click this confirmation link to complete registration. The link expires after 7 days. If you did not register, ignore this email.
 
-{% endif %}The course starts on {{ start_date }}. Everything you need lives on the
+{% endif %}{% if start_date %}The course starts on {{ start_date }}. {% endif %}Everything you need lives on the
 course page:
 
 [Open the course]({{ course_url }})

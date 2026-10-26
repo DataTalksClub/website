@@ -104,6 +104,18 @@ def send_registration_confirmation_mail(registration):
     so a resend/fix-email gets a fresh Relay delivery while retrying the
     same generation keeps its key; legacy tokenless deliveries keep the
     original key shape.
+
+    Relay rejects an empty string for any name in the template's
+    ``required_context``. A registration's ``course`` is nullable and its
+    cohort may announce no start date yet, so the course context falls
+    back to the campaign's ``current_course`` and then to the campaign
+    itself (title, registration page); only ``start_date`` and
+    ``verify_email_prompt`` may stay empty, and the template declares
+    exactly those two optional.
+
+    Callers issue a fresh token before queueing the send (registration,
+    resend, fix-email and public recovery all do): a tokenless send would
+    carry an empty ``confirmation_url``, which the template requires.
     """
 
     import hashlib
@@ -118,10 +130,12 @@ def send_registration_confirmation_mail(registration):
     if not email:
         return None
 
-    course = registration.course
+    campaign = registration.campaign
+    course = registration.course or campaign.current_course
     token = getattr(registration, "email_confirmation_token", "") or ""
-    urls = registration_confirmation_urls(registration.campaign, course, token=token)
+    urls = registration_confirmation_urls(campaign, course, token=token)
     course_context = registration_confirmation_course_context(course)
+    course_title = course_context["course_title"] or campaign.title or "DataTalks.Club course"
     key_parts = ["registration-confirmation", str(registration.pk)]
     if token:
         generation = hashlib.sha256(token.encode()).hexdigest()[:24]
@@ -130,10 +144,10 @@ def send_registration_confirmation_mail(registration):
         purpose=PURPOSE_REGISTRATION_CONFIRMATION,
         to=email,
         context={
-            "course_title": course_context["course_title"],
-            "course_url": urls["course_url"],
+            "course_title": course_title,
+            "course_url": urls["course_url"] or urls["registration_url"],
             "start_date": course_context["course_start_date"],
-            "campaign_title": registration.campaign.title,
+            "campaign_title": campaign.title,
             "profile_url": urls["profile_url"],
             "confirmation_url": urls["confirmation_url"],
             "verify_email_prompt": _registration_verify_email_prompt(registration, email),

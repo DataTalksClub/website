@@ -126,6 +126,52 @@ class ImportMailTemplatesTests(SimpleTestCase):
         for template in mail_templates.load_templates():
             self.assertIn(f"unchanged: {template.key}", output)
 
+    def test_draft_matches_the_relay_transactional_shape(self):
+        # Relay's transactional template API stores ``markdown_body`` (what
+        # a send renders) and has no ``body`` key. Sending ``body`` would
+        # blank every template and differ forever, republishing each run.
+        for template in mail_templates.load_templates():
+            with self.subTest(template=template.key):
+                draft = template.draft()
+                self.assertEqual(
+                    set(draft),
+                    {"name", "subject", "markdown_body", "required_context"},
+                )
+                self.assertEqual(draft["markdown_body"], template.body)
+
+    def test_mirror_is_stable_against_real_relay_stored_shape(self):
+        # The fake stores the PUT verbatim; real Relay answers with
+        # template_payload (extra keys, ``markdown_body``). Seed the real
+        # shape and require the mirror to publish nothing.
+        client, transport = self._client()
+        self._run(client)
+        for key, stored in transport.templates.items():
+            transport.templates[key] = {
+                "key": key,
+                "client": "website",
+                "name": stored["name"],
+                "description": "",
+                "subject": stored["subject"],
+                "html_body": "",
+                "text_body": "",
+                "markdown_body": stored["markdown_body"],
+                "category": "",
+                "required_context": stored["required_context"],
+                "example_context": {},
+                "default_sender_id": "",
+                "latest_version": 1,
+                "is_transactional": True,
+                "is_active": True,
+            }
+        puts_after_first = [call for call in transport.calls if call[0] == "PUT"]
+
+        output = self._run(client)
+
+        self.assertEqual([call for call in transport.calls if call[0] == "PUT"], puts_after_first)
+        self.assertNotIn("published:", output)
+        for template in mail_templates.load_templates():
+            self.assertIn(f"unchanged: {template.key}", output)
+
     def test_a_drifted_remote_draft_is_republished(self):
         client, transport = self._client()
         self._run(client)
