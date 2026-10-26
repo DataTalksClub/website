@@ -127,9 +127,15 @@ def confirm_registration_by_token(model_class, token, now=None):
     if not token:
         return None, "invalid"
     try:
+        # Lock the row without joining the nullable ``course`` relation:
+        # PostgreSQL rejects ``SELECT ... FOR UPDATE`` over the outer join
+        # that ``select_related("course")`` generates ("FOR UPDATE cannot be
+        # applied to the nullable side of an outer join"), while SQLite
+        # silently accepts it. ``campaign`` is non-nullable (inner join),
+        # so it stays prefetched; ``course`` loads lazily below instead.
         registration = (
             model_class.objects.select_for_update()
-            .select_related("campaign", "course")
+            .select_related("campaign")
             .get(email_confirmation_token=token)
         )
     except model_class.DoesNotExist:
@@ -159,8 +165,11 @@ def managed_registration(model_class, token):
     except (signing.BadSignature, ValueError, TypeError):
         return None
     return (
+        # Same FOR UPDATE/outer-join constraint as
+        # ``confirm_registration_by_token``: never ``select_related("course")``
+        # on a locked query; ``campaign`` is non-nullable and stays prefetched.
         model_class.objects.select_for_update()
-        .select_related("campaign", "course")
+        .select_related("campaign")
         .filter(pk=pk, email_normalized=email)
         .first()
     )

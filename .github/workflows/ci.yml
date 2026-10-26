@@ -774,6 +774,64 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+  postgres-confirm-regression:
+    # PostgreSQL-only regression for the registration confirm flow (bad token
+    # must render the invalid-link page, valid tokens must confirm). Ordinary
+    # CI stays on the owned SQLite harness -- SQLite silently accepts
+    # SELECT ... FOR UPDATE over an outer join while PostgreSQL raises
+    # NotSupportedError, which is exactly the prod 500 this guards. The
+    # database-portability policy forbids `services:`/postgres in the ordinary
+    # jobs, so this dedicated job starts its own throwaway PostgreSQL with
+    # `docker run` and runs the confirm-flow suite on it via
+    # website.settings.test_postgres.
+    if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
+    needs: [resolve-release]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DJANGO_SETTINGS_MODULE: website.settings.test_postgres
+      PUBLIC_MEDIA_STORE_BACKEND: memory
+      DTC_PG_HOST: 127.0.0.1
+      DTC_PG_PORT: "5432"
+      DTC_PG_USER: dtc
+      DTC_PG_DATABASE: dtc_test
+      DTC_PG_TEST_DATABASE: test_dtc_pg_confirm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-release.outputs.release_sha }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Start a throwaway PostgreSQL
+        env:
+          DTC_PG_PASSWORD: pg-confirm-regression
+        run: |
+          set -euo pipefail
+          docker run -d --rm --name dtc-pg-confirm \
+            -e POSTGRES_USER=dtc -e POSTGRES_PASSWORD="$DTC_PG_PASSWORD" \
+            -e POSTGRES_DB=dtc_test -p 127.0.0.1:5432:5432 postgres:16-alpine
+          for _ in $(seq 1 30); do
+            if docker exec dtc-pg-confirm pg_isready -U dtc -d dtc_test; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "PostgreSQL did not become ready" >&2
+          exit 1
+      - name: Run the confirm-flow suite on PostgreSQL
+        env:
+          DTC_PG_PASSWORD: pg-confirm-regression
+        run: |
+          set -euo pipefail
+          uv run --frozen python manage.py test \
+            courses.tests.test_registration_email_confirmation --noinput
+      - name: Remove the throwaway PostgreSQL
+        if: always()
+        run: docker rm -f dtc-pg-confirm
+
   playwright:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
