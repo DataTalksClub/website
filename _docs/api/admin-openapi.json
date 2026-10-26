@@ -1097,6 +1097,7 @@
             "enum": [
               "observability",
               "public_media",
+              "relay",
               "site.origin"
             ],
             "type": "string"
@@ -1107,6 +1108,7 @@
               "observability.cloudwatch_metric_namespace",
               "observability.cloudwatch_metric_region",
               "observability.event_schema_version",
+              "relay.transactional_dry_run",
               "public_media.max_object_bytes",
               "public_media.s3_bucket",
               "public_media.s3_endpoint_url",
@@ -1220,6 +1222,7 @@
             "enum": [
               "observability",
               "public_media",
+              "relay",
               "site.origin"
             ],
             "type": "string"
@@ -1230,6 +1233,7 @@
               "observability.cloudwatch_metric_namespace",
               "observability.cloudwatch_metric_region",
               "observability.event_schema_version",
+              "relay.transactional_dry_run",
               "public_media.max_object_bytes",
               "public_media.s3_bucket",
               "public_media.s3_endpoint_url",
@@ -1310,8 +1314,8 @@
             "items": {
               "$ref": "#/components/schemas/OperationalSetting"
             },
-            "maxItems": 11,
-            "minItems": 11,
+            "maxItems": 12,
+            "minItems": 12,
             "type": "array"
           }
         },
@@ -1337,6 +1341,7 @@
                     "observability.cloudwatch_metric_namespace",
                     "observability.cloudwatch_metric_region",
                     "observability.event_schema_version",
+                    "relay.transactional_dry_run",
                     "public_media.max_object_bytes",
                     "public_media.s3_bucket",
                     "public_media.s3_endpoint_url",
@@ -1362,7 +1367,7 @@
               ],
               "type": "object"
             },
-            "maxItems": 11,
+            "maxItems": 12,
             "minItems": 1,
             "type": "array"
           }
@@ -1382,7 +1387,7 @@
             "items": {
               "$ref": "#/components/schemas/OperationalSettingResult"
             },
-            "maxItems": 11,
+            "maxItems": 12,
             "minItems": 1,
             "type": "array"
           }
