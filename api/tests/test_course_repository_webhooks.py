@@ -125,6 +125,70 @@ class CourseRepositoryWebhookTests(TestCase):
         self.assertNotIn("DataTalksClub", json.dumps(job.payload))
 
     @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
+    def test_minimal_payload_without_deleted_is_accepted(self) -> None:
+        """The <2 KiB workflow body omits `deleted`; the job pulls from GitHub."""
+        body = json.dumps(
+            {
+                "repository": {"full_name": "DataTalksClub/llm-zoomcamp"},
+                "ref": "refs/heads/main",
+                "before": "b" * 40,
+                "after": COMMIT_SHA,
+            },
+            separators=(",", ":"),
+        ).encode()
+        self.assertLess(len(body), 2048)
+
+        response = self.post(body, delivery_id="delivery-minimal-1")
+
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.json()["outcome"], "accepted")
+        job = JobIntent.objects.get(handler=COURSE_REPOSITORY_JOB_HANDLER)
+        self.assertEqual(job.payload["commit_sha"], COMMIT_SHA)
+        self.assertEqual(job.payload["source_uuid"], str(self.source.id))
+
+    @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
+    def test_minimal_payload_with_wrong_signature_is_rejected(self) -> None:
+        body = json.dumps(
+            {
+                "repository": {"full_name": "DataTalksClub/llm-zoomcamp"},
+                "ref": "refs/heads/main",
+                "before": "b" * 40,
+                "after": COMMIT_SHA,
+            },
+            separators=(",", ":"),
+        ).encode()
+        response = self.client.post(
+            "/api/webhooks/github",
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_GITHUB_DELIVERY="delivery-minimal-bad-sig",
+            HTTP_X_HUB_SIGNATURE_256=signature(b"other-body"),
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()["error"], "github_signature_invalid")
+        self.assertEqual(JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).count(), 0)
+
+    @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
+    def test_minimal_payload_with_deleted_true_is_rejected(self) -> None:
+        body = json.dumps(
+            {
+                "repository": {"full_name": "DataTalksClub/llm-zoomcamp"},
+                "ref": "refs/heads/main",
+                "before": "b" * 40,
+                "after": COMMIT_SHA,
+                "deleted": True,
+            },
+            separators=(",", ":"),
+        ).encode()
+
+        response = self.post(body, delivery_id="delivery-minimal-deleted")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).count(), 0)
+
+    @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
     def test_exact_delivery_replay_does_not_create_a_second_job(self) -> None:
         first = self.post(github_payload())
         second = self.post(github_payload())

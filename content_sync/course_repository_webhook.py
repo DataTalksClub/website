@@ -39,7 +39,16 @@ def _required_text(value: Any, *, code: str, pattern: re.Pattern[str]) -> str:
 
 
 def parse_github_course_push(payload: object, *, event_type: str) -> GitHubCoursePush:
-    """Parse only the authenticated, branch-specific fields needed for a sync job."""
+    """Parse only the authenticated, branch-specific fields needed for a sync job.
+
+    Accepts both the full GitHub push event and the minimal signed payload the
+    course-repository workflows send (``repository.full_name``, ``ref``,
+    ``after``, plus ``before``). Extra keys (``before``, ``commits``, ``head_commit``,
+    sender-side changed paths) are ignored: the durable job re-fetches the exact
+    commit archive from GitHub itself, so the webhook never needs file contents.
+    A missing ``deleted`` key means "not deleted"; an explicit ``true`` (branch
+    deletion) is still refused.
+    """
 
     if event_type != "push":
         raise CourseRepositoryWebhookError("github_event_not_push")
@@ -87,7 +96,7 @@ def parse_github_course_push(payload: object, *, event_type: str) -> GitHubCours
         code="github_commit_invalid",
         pattern=SHA1_PATTERN,
     )
-    if payload.get("deleted") is not False:
+    if payload.get("deleted", False) is not False:
         raise CourseRepositoryWebhookError("github_push_deleted")
 
     return GitHubCoursePush(
