@@ -7,12 +7,13 @@ without a user row (guest registrations) and unset fields stay allowed;
 Relay-side global unsubscribe still applies on top.
 
 Transactional send policy: while ``relay.transactional_dry_run`` is true
-(``RELAY_TRANSACTIONAL_DRY_RUN=1`` in every deployed environment until the
-live send policy and controlled recipient are approved), every send is
+(``RELAY_TRANSACTIONAL_DRY_RUN=1``), each new package mail request is
 suppressed as ``transactional_dry_run`` -- an audited SUPPRESSED delivery
 with no Relay contact. The package Relay backend has no dry-run of its own
 (the legacy ``DATAMAILER_TRANSACTIONAL_DRY_RUN`` flag guards nothing since
-the Datamailer client was retired), so this resolver is the guard.
+the Datamailer client was retired), so this resolver is the enqueue guard.
+Already queued deliveries do not consult it again. The current per-environment
+policy and activation checks live in ``_docs/runbooks/transactional-send-policy.md``.
 """
 
 from __future__ import annotations

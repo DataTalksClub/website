@@ -320,12 +320,11 @@ DEFAULT_FROM_EMAIL = "DataTalks.Club <noreply@datatalks.club>"
 
 # Transactional send policy (RELAY_TRANSACTIONAL_DRY_RUN). The package Relay
 # mail backend has no dry-run of its own: when this is true the site
-# preference resolver suppresses every package send as "transactional_dry_run"
-# (audited SUPPRESSED delivery, no Relay contact), mirroring CMP's dry-run
-# payload flag. Deployed environments boot with "1" via
-# deploy.deployment_targets.safety_environment until the live send policy and
-# controlled recipient are approved; production delivers only after that
-# explicit activation flips it to "0".
+# preference resolver suppresses new package mail requests as "transactional_dry_run"
+# (audited SUPPRESSED delivery, no Relay contact). Existing queued deliveries are
+# not rechecked. Coolify must supply its own environment flag: dev stays "1",
+# while the approved production policy uses "0". ECS safety_environment still
+# boots suppressed. See _docs/runbooks/transactional-send-policy.md.
 RELAY_TRANSACTIONAL_DRY_RUN = env_flag("RELAY_TRANSACTIONAL_DRY_RUN", default=False)
 
 PUBLIC_BASE_URL = CANONICAL_ORIGIN

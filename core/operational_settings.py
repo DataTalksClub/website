@@ -341,10 +341,10 @@ RELAY_TRANSACTIONAL_DRY_RUN = _declare(
     group=RELAY_GROUP,
     label="Relay transactional dry run",
     description=(
-        "When true, the site mail preference resolver suppresses every "
-        "package Relay send as transactional_dry_run (audited, no Relay "
-        "contact). Deployed environments boot true until the live send "
-        "policy and controlled recipient are approved."
+        "When true, the site mail preference resolver suppresses new "
+        "package mail requests as transactional_dry_run (audited, no Relay "
+        "contact). Already queued deliveries are not rechecked. Development "
+        "keeps this enabled; production sends under its approved live policy."
     ),
     value_type=BOOLEAN,
     default=False,
