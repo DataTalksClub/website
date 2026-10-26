@@ -1,22 +1,18 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from unfold.admin import ModelAdmin
 
-from django.contrib import messages
-
+from courses.assignment_statistics import calculate_project_statistics
 from courses.models.project import (
     Project,
     ProjectCriteriaAssignment,
     ProjectState,
     ReviewCriteria,
 )
-
 from courses.project_assignment import (
-    assign_peer_reviews_for_project,
     ProjectActionStatus,
+    assign_peer_reviews_for_project,
 )
-from courses.project_scoring import score_project
-
-from courses.assignment_statistics import calculate_project_statistics
+from courses.scoring_jobs import enqueue_project_notify, enqueue_project_score
 
 
 def assign_peer_reviews_for_project_admin(
@@ -40,16 +36,19 @@ assign_peer_reviews_for_project_admin.short_description = (
 
 
 def score_projects_admin(modeladmin, request, queryset):
+    from django.db import transaction
+
+    count = 0
     for project in queryset:
-        status, message = score_project(project)
-        if status == ProjectActionStatus.OK:
-            modeladmin.message_user(
-                request, message, level=messages.SUCCESS
-            )
-        else:
-            modeladmin.message_user(
-                request, message, level=messages.WARNING
-            )
+        with transaction.atomic():
+            enqueue_project_score(project.id)
+            enqueue_project_notify(project.id)
+        count += 1
+    modeladmin.message_user(
+        request,
+        f"Scoring queued for {count} project(s). Track progress in Admin > Job intents.",
+        level=messages.SUCCESS,
+    )
 
 
 score_projects_admin.short_description = "Score projects"

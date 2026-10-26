@@ -34,6 +34,7 @@ services:
   worker:
     <<: *website
     command: [worker]
+    restart: unless-stopped
     environment:
       DJANGO_SETTINGS_MODULE: website.settings.worker
     mem_limit: 240m
@@ -42,7 +43,19 @@ services:
       web:
         condition: service_healthy
     healthcheck:
-      disable: true
+      test:
+        - CMD
+        - uv
+        - run
+        - --no-sync
+        - python
+        - manage.py
+        - jobs_worker
+        - --check
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
 networks:
   coolify:

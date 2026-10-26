@@ -9,17 +9,14 @@ from studio_courses.tests.project_view_base import ProjectStudioCoursesViewTestB
 
 
 class ProjectActionViewTests(ProjectStudioCoursesViewTestBase):
-    @patch("studio_courses.views.projects.send_project_score_notification")
-    @patch("studio_courses.views.projects.score_project")
-    def test_project_score_shows_message(
-        self,
-        score_project_mock,
-        send_score_notification,
-    ):
-        score_project_mock.return_value = (
-            ProjectActionStatus.OK,
-            "Project scored",
+    def test_project_score_queues_background_jobs(self):
+        from community_base.jobs.models import JobIntent
+
+        from courses.scoring_jobs import (
+            PROJECT_NOTIFY_HANDLER,
+            PROJECT_SCORE_HANDLER,
         )
+
         url = self.studio_courses_project_score_url()
         course_admin_url = self.studio_courses_course_url()
 
@@ -30,19 +27,19 @@ class ProjectActionViewTests(ProjectStudioCoursesViewTestBase):
         messages = list(response.context["messages"])
         message_count = len(messages)
         self.assertEqual(message_count, 1)
-        send_score_notification.assert_called_once_with(self.project)
-
-    @patch("studio_courses.views.projects.send_project_score_notification")
-    @patch("studio_courses.views.projects.score_project")
-    def test_project_score_can_redirect_back_to_project_submissions(
-        self,
-        score_project_mock,
-        send_score_notification,
-    ):
-        score_project_mock.return_value = (
-            ProjectActionStatus.OK,
-            "Project scored",
+        self.assertIn("queued", str(messages[0]).lower())
+        self.assertTrue(
+            JobIntent.objects.filter(handler=PROJECT_SCORE_HANDLER).exists()
         )
+        self.assertTrue(
+            JobIntent.objects.filter(handler=PROJECT_NOTIFY_HANDLER).exists()
+        )
+
+    def test_project_score_can_redirect_back_to_project_submissions(self):
+        from community_base.jobs.models import JobIntent
+
+        from courses.scoring_jobs import PROJECT_SCORE_HANDLER
+
         next_url = self.studio_courses_project_submissions_url()
         url = self.studio_courses_project_score_url()
 
@@ -52,12 +49,12 @@ class ProjectActionViewTests(ProjectStudioCoursesViewTestBase):
         )
 
         self.assertRedirects(response, next_url)
-        send_score_notification.assert_called_once_with(self.project)
+        self.assertTrue(
+            JobIntent.objects.filter(handler=PROJECT_SCORE_HANDLER).exists()
+        )
 
-    @patch("studio_courses.views.projects.send_project_score_notification")
     def test_project_assign_reviews_shows_message(
         self,
-        send_score_notification,
     ):
         url = self.studio_courses_project_assign_reviews_url()
         course_admin_url = self.studio_courses_course_url()
@@ -69,7 +66,6 @@ class ProjectActionViewTests(ProjectStudioCoursesViewTestBase):
         messages = list(response.context["messages"])
         message_count = len(messages)
         self.assertEqual(message_count, 1)
-        send_score_notification.assert_not_called()
 
     @patch(
         "studio_courses.views.projects.send_peer_review_assignment_notification"

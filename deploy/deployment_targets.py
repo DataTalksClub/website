@@ -208,6 +208,7 @@ class DeploymentTarget:
     resource_project_tag: str
     resource_environment_tag: str
     web_concurrency: str = "2"
+    web_threads: str = "4"
     #: A retired target keeps its reviewed values so recorded evidence still
     #: resolves, but can never be selected for a deployment.
     retired: bool = False
@@ -402,6 +403,7 @@ class DeploymentTarget:
             "DTC_ENVIRONMENT": self.dtc_environment,
             "OBSERVABILITY_EVENT_BACKENDS": "log",
             "WEB_CONCURRENCY": self.web_concurrency,
+            "WEB_THREADS": self.web_threads,
             "AWS_DEFAULT_REGION": self.aws_region,
             "AWS_REGION": self.aws_region,
             **self.public_media_environment,

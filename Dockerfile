@@ -26,7 +26,9 @@ ENV PATH="/app/.venv/bin:$PATH" \
     UV_CACHE_DIR=/app/.cache/uv \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DJANGO_SETTINGS_MODULE=website.settings.production
+    DJANGO_SETTINGS_MODULE=website.settings.production \
+    WEB_CONCURRENCY=2 \
+    WEB_THREADS=4
 RUN mkdir -p /app/.cache/uv \
     && DTC_ENVIRONMENT=local DJANGO_SETTINGS_MODULE=website.settings.collectstatic uv run --no-sync python manage.py collectstatic --noinput \
     && chown -R dtc:dtc /app/.cache

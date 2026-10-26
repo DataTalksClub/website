@@ -1,23 +1,22 @@
 from django.contrib import messages
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
+from courses.models.cohort import Cohort
+from courses.models.project import Project
 from courses.package_notifications import (
     send_peer_review_assignment_notification,
 )
-from courses.package_notifications import send_project_score_notification
-from courses.models.cohort import Cohort
-from courses.models.project import Project
 from courses.project_assignment import (
     ProjectActionStatus,
     assign_peer_reviews_for_project,
 )
-from courses.project_scoring import (
-    score_project,
-)
+from courses.scoring_jobs import enqueue_project_notify, enqueue_project_score
 from studio_courses.deadline_extension import (
     extend_deadlines,
     project_extension_plan,
 )
+
 from .helpers import (
     redirect_after_action,
     staff_required,
@@ -94,7 +93,7 @@ def project_assign_reviews(request, course_slug, project_slug):
 
 @staff_required
 def project_score(request, course_slug, project_slug):
-    """Score a project"""
+    """Queue project scoring plus notifications; returns immediately."""
     if request.method != "POST":
         response = redirect("studio_courses_course", course_slug=course_slug)
         return response
@@ -103,13 +102,14 @@ def project_score(request, course_slug, project_slug):
         Project, course=course, slug=project_slug
     )
 
-    status, message = score_project(project)
+    with transaction.atomic():
+        enqueue_project_score(project.id)
+        enqueue_project_notify(project.id)
 
-    if status == ProjectActionStatus.OK:
-        messages.success(request, message)
-        send_project_score_notification(project)
-    else:
-        messages.warning(request, message)
+    messages.success(
+        request,
+        f"Scoring queued for {project.title}. Track progress in Admin > Job intents.",
+    )
 
     return redirect_after_action(
         request, "studio_courses_course", course_slug=course_slug

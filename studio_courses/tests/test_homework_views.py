@@ -227,13 +227,12 @@ class HomeworkStudioCoursesSearchTests(HomeworkStudioCoursesViewTestBase):
 
 
 class HomeworkStudioCoursesScoringActionTests(HomeworkStudioCoursesViewTestBase):
-    @patch("studio_courses.views.homework.send_homework_score_notification")
-    def test_homework_score_shows_message_without_notifying(self, send_score_notification):
-        """Scoring shows a message but does not email students.
+    def test_homework_score_queues_background_job(self):
+        """Scoring returns immediately and queues a durable worker job."""
+        from community_base.jobs.models import JobIntent
 
-        Notifications are a separate action so a slow Datamailer send
-        cannot take the scoring request down with it.
-        """
+        from courses.scoring_jobs import HOMEWORK_SCORE_HANDLER
+
         self.homework.due_date = timezone.now() - timedelta(hours=1)
         self.homework.save(update_fields=["due_date"])
         self.client.login(username="admin@test.com", password="admin123")
@@ -254,11 +253,23 @@ class HomeworkStudioCoursesScoringActionTests(HomeworkStudioCoursesViewTestBase)
         messages = list(response.context["messages"])
         messages_count = len(messages)
         self.assertEqual(messages_count, 1)
-        send_score_notification.assert_not_called()
+        self.assertIn("queued", str(messages[0]).lower())
+        # The heavy work is a durable intent, not inline scoring.
+        self.assertTrue(
+            JobIntent.objects.filter(handler=HOMEWORK_SCORE_HANDLER).exists()
+        )
+        # State is unchanged until the worker runs.
+        self.homework.refresh_from_db()
+        self.assertNotEqual(
+            self.homework.state, HomeworkState.SCORED.value
+        )
 
-    @patch("studio_courses.views.homework.send_homework_score_notification")
-    def test_homework_notify_scores_sends_notification(self, send_score_notification):
-        """The notify action emails students for a scored homework."""
+    def test_homework_notify_scores_queues_background_job(self):
+        """The notify action queues mail fan-out instead of sending inline."""
+        from community_base.jobs.models import JobIntent
+
+        from courses.scoring_jobs import HOMEWORK_NOTIFY_HANDLER
+
         self.homework.state = HomeworkState.SCORED.value
         self.homework.save(update_fields=["state"])
         self.login_admin()
@@ -273,13 +284,18 @@ class HomeworkStudioCoursesScoringActionTests(HomeworkStudioCoursesViewTestBase)
         response = self.client.post(url, follow=True)
 
         self.assertRedirects(response, self.studio_courses_course_url())
-        send_score_notification.assert_called_once_with(self.homework)
+        self.assertTrue(
+            JobIntent.objects.filter(handler=HOMEWORK_NOTIFY_HANDLER).exists()
+        )
         messages = list(response.context["messages"])
         self.assertEqual(len(messages), 1)
 
-    @patch("studio_courses.views.homework.send_homework_score_notification")
-    def test_homework_notify_scores_requires_scored_homework(self, send_score_notification):
-        """Notifying an unscored homework warns and sends nothing."""
+    def test_homework_notify_scores_requires_scored_homework(self):
+        """Notifying an unscored homework warns and queues nothing."""
+        from community_base.jobs.models import JobIntent
+
+        from courses.scoring_jobs import HOMEWORK_NOTIFY_HANDLER
+
         self.homework.state = HomeworkState.OPEN.value
         self.homework.save(update_fields=["state"])
         self.login_admin()
@@ -294,7 +310,9 @@ class HomeworkStudioCoursesScoringActionTests(HomeworkStudioCoursesViewTestBase)
         response = self.client.post(url, follow=True)
 
         self.assertRedirects(response, self.studio_courses_course_url())
-        send_score_notification.assert_not_called()
+        self.assertFalse(
+            JobIntent.objects.filter(handler=HOMEWORK_NOTIFY_HANDLER).exists()
+        )
         messages = list(response.context["messages"])
         self.assertEqual(len(messages), 1)
 

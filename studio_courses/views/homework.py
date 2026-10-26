@@ -1,14 +1,17 @@
 from django.contrib import messages
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
-from courses.package_notifications import send_homework_score_notification
-from courses.models.cohort import Cohort
-from courses.models.homework import Homework, HomeworkState, Question
 from courses.homework_correct_answers import (
     clear_correct_answers,
     fill_correct_answers,
 )
-from courses.scoring import HomeworkScoringStatus, score_homework_submissions
+from courses.models.cohort import Cohort
+from courses.models.homework import Homework, HomeworkState, Question
+from courses.scoring_jobs import (
+    enqueue_homework_notify,
+    enqueue_homework_score,
+)
 from studio_courses.deadline_extension import extend_deadlines
 from studio_courses.views.homework_submission_edit import (
     homework_submission_edit_response,
@@ -18,6 +21,7 @@ from studio_courses.views.homework_submission_list import (
     homework_submissions_context,
     homework_submissions_queryset,
 )
+
 from .helpers import (
     paginate_queryset,
     redirect_after_action,
@@ -27,7 +31,7 @@ from .helpers import (
 
 @staff_required
 def homework_score(request, course_slug, homework_slug):
-    """Score a homework"""
+    """Queue homework scoring on the background worker; returns immediately."""
     if request.method != "POST":
         response = redirect("studio_courses_course", course_slug=course_slug)
         return response
@@ -36,12 +40,12 @@ def homework_score(request, course_slug, homework_slug):
         Homework, course=course, slug=homework_slug
     )
 
-    status, message = score_homework_submissions(homework.id)
-
-    if status == HomeworkScoringStatus.OK:
-        messages.success(request, message)
-    else:
-        messages.warning(request, message)
+    with transaction.atomic():
+        enqueue_homework_score(homework.id)
+    messages.success(
+        request,
+        f"Scoring queued for {homework.title}. Track progress in Admin > Job intents.",
+    )
 
     return redirect_after_action(
         request, "studio_courses_course", course_slug=course_slug
@@ -78,9 +82,10 @@ def homework_extend_deadline(request, course_slug, homework_slug):
 
 @staff_required
 def homework_rescore(request, course_slug, homework_slug):
-    """Re-score an already scored homework.
+    """Queue a re-score of an already scored homework.
 
-    Resets the homework to OPEN so the normal scoring logic applies.
+    Resets the homework to OPEN so the normal scoring logic applies,
+    then queues the work; the request returns immediately.
     """
     if request.method != "POST":
         return redirect("studio_courses_course", course_slug=course_slug)
@@ -99,15 +104,15 @@ def homework_rescore(request, course_slug, homework_slug):
             request, "studio_courses_course", course_slug=course_slug
         )
 
-    homework.state = HomeworkState.OPEN.value
-    homework.save(update_fields=["state"])
+    with transaction.atomic():
+        homework.state = HomeworkState.OPEN.value
+        homework.save(update_fields=["state"])
+        enqueue_homework_score(homework.id, force=True)
 
-    status, message = score_homework_submissions(homework.id)
-
-    if status == HomeworkScoringStatus.OK:
-        messages.success(request, message)
-    else:
-        messages.warning(request, message)
+    messages.success(
+        request,
+        f"Re-scoring queued for {homework.title}. Track progress in Admin > Job intents.",
+    )
 
     return redirect_after_action(
         request, "studio_courses_course", course_slug=course_slug
@@ -116,7 +121,7 @@ def homework_rescore(request, course_slug, homework_slug):
 
 @staff_required
 def homework_notify_scores(request, course_slug, homework_slug):
-    """Send score notification emails for an already-scored homework"""
+    """Queue score notification emails; returns immediately."""
     if request.method != "POST":
         response = redirect("studio_courses_course", course_slug=course_slug)
         return response
@@ -135,10 +140,11 @@ def homework_notify_scores(request, course_slug, homework_slug):
             request, "studio_courses_course", course_slug=course_slug
         )
 
-    send_homework_score_notification(homework)
+    with transaction.atomic():
+        enqueue_homework_notify(homework.id)
     messages.success(
         request,
-        f"Score notifications for {homework.title} sent to students.",
+        f"Score notifications for {homework.title} queued. Track progress in Admin > Job intents.",
     )
 
     return redirect_after_action(

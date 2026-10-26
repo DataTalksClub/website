@@ -1,21 +1,18 @@
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.widgets import (
-    UnfoldAdminTextInputWidget,
     UnfoldAdminTextareaWidget,
+    UnfoldAdminTextInputWidget,
 )
-from django.contrib import messages
-
-from courses.models.homework import Homework, HomeworkState, Question
 
 from courses.assignment_statistics import calculate_homework_statistics
 from courses.homework_correct_answers import (
     clear_correct_answers,
     fill_correct_answers,
 )
-from courses.scoring import score_homework_submissions
-
+from courses.models.homework import Homework, HomeworkState, Question
+from courses.scoring_jobs import enqueue_homework_score
 
 QUESTION_TEXT_WIDGET = UnfoldAdminTextInputWidget(attrs={"size": "60"})
 QUESTION_POSSIBLE_ANSWERS_WIDGET = UnfoldAdminTextareaWidget(
@@ -44,16 +41,18 @@ class QuestionInline(TabularInline):
 
 
 def score_selected_homeworks(modeladmin, request, queryset):
+    from django.db import transaction
+
+    count = 0
     for homework in queryset:
-        status, message = score_homework_submissions(homework.id)
-        if status:
-            modeladmin.message_user(
-                request, message, level=messages.SUCCESS
-            )
-        else:
-            modeladmin.message_user(
-                request, message, level=messages.WARNING
-            )
+        with transaction.atomic():
+            enqueue_homework_score(homework.id)
+        count += 1
+    modeladmin.message_user(
+        request,
+        f"Scoring queued for {count} homework(s). Track progress in Admin > Job intents.",
+        level=messages.SUCCESS,
+    )
 
 
 score_selected_homeworks.short_description = "Score selected homeworks"

@@ -24,7 +24,7 @@ case "${1:-web}" in
       fi
       uv run --no-sync python manage.py import_mail_templates || exit 23
     fi
-    exec uv run --no-sync gunicorn website.wsgi:application --bind 0.0.0.0:8000 --workers "${WEB_CONCURRENCY:-2}" --timeout 90 --access-logfile - --access-logformat "$GUNICORN_ACCESS_LOG_FORMAT" --logger-class "$GUNICORN_LOGGER_CLASS" --error-logfile -
+    exec uv run --no-sync gunicorn website.wsgi:application --config gunicorn.conf.py --bind 0.0.0.0:8000 --workers "${WEB_CONCURRENCY:-2}" --threads "${WEB_THREADS:-4}" --worker-class gthread --timeout 90 --access-logfile - --access-logformat "$GUNICORN_ACCESS_LOG_FORMAT" --logger-class "$GUNICORN_LOGGER_CLASS" --error-logfile -
     ;;
   worker)
     # The service selects its backend through DJANGO_SETTINGS_MODULE.
