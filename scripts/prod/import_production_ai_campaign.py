@@ -90,13 +90,13 @@ in which agents orchestrate GPU-powered image, video and audio models on Nebius 
 
 ### Program
 
-- **Week 1 - Make it work.** Generative media workloads: modalities and model
+- **Module 1 - Make it work.** Generative media workloads: modalities and model
   families, first GPU generation from script to container to GPU job,
   containers for generative AI, GPU engineering, jobs vs endpoints.
-- **Week 2 - Make it intelligent.** Agents that use GPUs: the agent loop,
+- **Module 2 - Make it intelligent.** Agents that use GPUs: the agent loop,
   tools and structured outputs, CPU agents with GPU tools, long-running tools.
-- **Week 3 - Make it scale.** Scaling, reliability and cost.
-- **Week 4 - Make it production-ready.** Evaluation, observability and production.
+- **Module 3 - Make it scale.** Scaling, reliability and cost.
+- **Module 4 - Make it production-ready.** Evaluation, observability and production.
 
 ### Who this is for
 
