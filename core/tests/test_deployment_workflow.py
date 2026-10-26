@@ -127,7 +127,9 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # Registration double opt-in (mirror of CMP c2f7d87) adds dnspython for MX
 # checks and enrolls the new confirmation modules in strict mypy; the
 # reviewed configuration-only seal tracks the pyproject bytes.
-STUDIO_COURSES_PYPROJECT_SHA256 = "ef40e24ea918de9a908859aba9ea613b208dc28ee545c532d71702312b36fd32"
+# Community-base v0.5.34 adopts the Relay mail recipient preservation
+# (46595f9b); the reviewed configuration-only seal tracks the pin bytes.
+STUDIO_COURSES_PYPROJECT_SHA256 = "95f10467e59788c5c28c5fc44812abe580a34e61fa2b8ac3cc4ac5ea432248dd"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
@@ -140,8 +142,10 @@ STUDIO_COURSES_PYPROJECT_SHA256 = "ef40e24ea918de9a908859aba9ea613b208dc28ee545c
 # reviewed lock seal tracks that entry's bytes.
 # Registration double opt-in adds dnspython 2.9.0 to the lock; the reviewed
 # lock seal tracks that entry's bytes.
+# Community-base v0.5.34 adopts the Relay mail recipient preservation
+# (46595f9b); the reviewed lock seal tracks the entry and pin reference bytes.
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "e74f8937f7228a4ad5744d42cdf01a80912a1525ec1e3a755ddd74580dba9b08"
+    "7a8b83b910872702679b41ec53103daf492a86c54f6c0966a6630bbd409c5321"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
