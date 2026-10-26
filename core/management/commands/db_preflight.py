@@ -7,7 +7,12 @@ expected migration role for the expected database, and every object in
 from ``entrypoint.sh web-migrate`` before ``migrate``; any mismatch fails
 the container start, so the dev served-SHA gate (and the prod one) fails
 the workflow instead of replacing serving containers with a release that
-cannot own its schema.
+cannot own its schema. The deploy workflow pins the expectation per app
+(``DEPLOY_EXPECTED_ROLE`` / ``DEPLOY_EXPECTED_DATABASE`` in the Coolify
+env, alongside VERSION/SOURCE_SHA): without the pin a prod container
+pointed at the dev database would pass, because the role matches the URL
+it was given. Explicit flags beat the pinned env, which beats the
+``DATABASE_URL``-derived map below.
 
 The 2026-10-26 dev restart loop (``must be owner of table
 courses_courseregistration`` on 0029) was the staging app connecting as
@@ -54,19 +59,25 @@ ORDER BY 1, 2
 """
 
 
-def resolve_expected(role_flag, database_flag, database_url):
+def resolve_expected(role_flag, database_flag, database_url, environment=None):
     """The (role, database) pair the container must connect as.
 
-    Explicit flags win. Otherwise the database name comes from
-    ``DATABASE_URL`` and the role from the fixed Coolify map above.
+    Precedence: explicit flags, then the deploy-pinned
+    ``DEPLOY_EXPECTED_ROLE`` / ``DEPLOY_EXPECTED_DATABASE`` environment
+    (the Coolify deploy workflow pins these per app, so a prod container
+    pointed at the dev database fails closed instead of silently serving
+    dev data), then the fixed Coolify map derived from ``DATABASE_URL``.
     Anything unrecognized fails closed: silently skipping the ownership
     check would re-admit the misconfiguration this command exists to
     catch.
     """
 
+    environment = {} if environment is None else environment
     if database_flag:
         database = database_flag
     else:
+        database = (environment.get("DEPLOY_EXPECTED_DATABASE") or "").strip()
+    if not database:
         if not database_url:
             raise CommandError(
                 "DB preflight needs --expected-database or DATABASE_URL; refusing to guess."
@@ -77,6 +88,8 @@ def resolve_expected(role_flag, database_flag, database_url):
     if role_flag:
         role = role_flag
     else:
+        role = (environment.get("DEPLOY_EXPECTED_ROLE") or "").strip()
+    if not role:
         role = ROLE_BY_DATABASE.get(database, "")
         if not role:
             raise CommandError(
@@ -103,6 +116,7 @@ class Command(BaseCommand):
             options["expected_role"],
             options["expected_database"],
             os.environ.get("DATABASE_URL", ""),
+            os.environ,
         )
         with connection.cursor() as cursor:
             cursor.execute("SELECT current_user, session_user, current_database()")

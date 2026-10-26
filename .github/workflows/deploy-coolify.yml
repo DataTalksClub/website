@@ -127,7 +127,7 @@ jobs:
             --arg version "$IMAGE_TAG" \
             --arg sha "$GITHUB_SHA" \
             --arg digest "$IMAGE_DIGEST" \
-            '{data: [{key: "VERSION", value: $version}, {key: "SOURCE_SHA", value: $sha}, {key: "IMAGE_DIGEST", value: $digest}]}' \
+            '{data: [{key: "VERSION", value: $version}, {key: "SOURCE_SHA", value: $sha}, {key: "IMAGE_DIGEST", value: $digest}, {key: "DEPLOY_EXPECTED_DATABASE", value: "website_dev"}, {key: "DEPLOY_EXPECTED_ROLE", value: "website_dev"}]}' \
             > /tmp/staging-env.json
           curl --fail --show-error --silent --request PATCH \
             --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
@@ -191,10 +191,13 @@ jobs:
           # the release identity is pinned here; IMAGE_DIGEST keeps Coolify's own
           # build identity until prod moves to GHCR compose. The bulk PATCH merges
           # keys, so DATABASE_URL and the other serving env are untouched.
+          # DEPLOY_EXPECTED_* pins the database the prod container must serve:
+          # db_preflight fails the boot when the container is pointed
+          # elsewhere, instead of silently serving another env's data.
           jq -n \
             --arg version "$IMAGE_TAG" \
             --arg sha "$GITHUB_SHA" \
-            '{data: [{key: "VERSION", value: $version}, {key: "SOURCE_SHA", value: $sha}]}' \
+            '{data: [{key: "VERSION", value: $version}, {key: "SOURCE_SHA", value: $sha}, {key: "DEPLOY_EXPECTED_DATABASE", value: "website"}, {key: "DEPLOY_EXPECTED_ROLE", value: "website_app"}]}' \
             > /tmp/prod-env.json
           curl --fail --show-error --silent --request PATCH \
             --header "Authorization: Bearer ${COOLIFY_TOKEN}" \

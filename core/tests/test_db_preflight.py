@@ -44,6 +44,40 @@ class ResolveExpectedTests(SimpleTestCase):
         with self.assertRaises(CommandError):
             resolve_expected("", "", "")
 
+    def test_pinned_environment_beats_url_derivation(self):
+        self.assertEqual(
+            resolve_expected(
+                "",
+                "",
+                "postgresql://role@host:5432/website_dev",
+                {"DEPLOY_EXPECTED_DATABASE": "website"},
+            ),
+            ("website_app", "website"),
+        )
+        self.assertEqual(
+            resolve_expected(
+                "",
+                "",
+                "postgresql://role@host:5432/website",
+                {"DEPLOY_EXPECTED_ROLE": "website_dev"},
+            ),
+            ("website_dev", "website"),
+        )
+
+    def test_explicit_flags_beat_pinned_environment(self):
+        self.assertEqual(
+            resolve_expected(
+                "website_dev",
+                "website_dev",
+                "postgresql://x@host:5432/website",
+                {
+                    "DEPLOY_EXPECTED_DATABASE": "website",
+                    "DEPLOY_EXPECTED_ROLE": "website_app",
+                },
+            ),
+            ("website_dev", "website_dev"),
+        )
+
 
 class DbPreflightCommandTests(SimpleTestCase):
     def _run(self, *arguments, cursor):
