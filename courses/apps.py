@@ -6,4 +6,4 @@ class CoursesConfig(AppConfig):
     name = "courses"
 
     def ready(self):
-        from courses import announcement_jobs  # noqa: F401
+        from courses import announcement_jobs, registration_jobs  # noqa: F401

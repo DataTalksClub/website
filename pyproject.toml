@@ -112,6 +112,9 @@ ignore_missing_imports = true
 # ci/tests/test_adoption_gate_coverage.py enforces that.
 [[tool.mypy.overrides]]
 module = [
+    "courses.registration_jobs",
+    "courses.services.registration_contacts",
+    "courses.tests.test_registration_contacts",
     "courses.models.homework_solution",
     "courses.tests.test_homework_solutions",
     "courses.views.homework_solution",

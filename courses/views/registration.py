@@ -10,10 +10,10 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from accounts.services.email_verification import is_account_email_verified
+from course_management.observability import record_event
 from course_management.package_mail import (
     send_registration_confirmation_mail,
 )
-from course_management.observability import record_event
 from courses.models.cohort import CourseRegistration, RegistrationCampaign
 from courses.models.homework import Homework
 from courses.models.project import Project
@@ -23,6 +23,7 @@ from courses.registration import (
     youtube_embed_url,
 )
 from courses.services.application_notifications import queue_operator_notification
+from courses.services.registration_contacts import queue_registration_contacts
 from courses.services.registration_counts import public_course_registration_count
 from courses.views.url_utils import canonical_cohort_url_kwargs
 
@@ -113,6 +114,7 @@ def _save_registration_if_valid(
     # New registrations start pending email confirmation: issue the
     # token now so the confirmation email carries the link.
     issue_confirmation_token(registration)
+    transaction.on_commit(partial(queue_registration_contacts, registration.pk))
     email_callback = partial(
         send_registration_confirmation_mail,
         registration,

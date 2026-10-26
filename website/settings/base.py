@@ -16,6 +16,12 @@ from core.runtime_identity import read_runtime_identity
 from website.loginas_policy import can_login_as
 
 from .announcements import announcement_configuration
+from .operator_alerts import (
+    OPERATOR_ALERT_TELEGRAM_BOT_TOKEN as OPERATOR_ALERT_TELEGRAM_BOT_TOKEN,
+)
+from .operator_alerts import (
+    OPERATOR_ALERT_TELEGRAM_CHAT_ID as OPERATOR_ALERT_TELEGRAM_CHAT_ID,
+)
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
