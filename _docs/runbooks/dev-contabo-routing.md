@@ -4,12 +4,16 @@
 
 `dev.datatalks.club` (via CloudFront) terminates on contabo-a traefik and
 routes to the Coolify **website-staging** app (`wodajblzizrjunwme3ossav3`),
-which Coolify rebuilds from `main` on every push. The routers are the ones
-Coolify generates from the app's domains (`custom_labels`, regenerated when
-empty); they carry no `X-Origin-Verify` check, so direct-to-origin requests
-reach the app. That is accepted for dev only: dev data is fake (D22), and
-prod/origin keep their file-provider origin enforcement untouched in
-`/data/coolify/proxy/dynamic/origin-enforce.yml`.
+which Coolify rebuilds from `main` on every push. The routers live in the
+file provider (`/data/coolify/proxy/dynamic/origin-enforce.yml`), keep the
+same `X-Origin-Verify` allow/deny contract as prod/origin, and point at
+the Coolify docker service
+`http-0-wodajblzizrjunwme3ossav3-web-2567@docker`. That service name is
+stable across deploys (it names the compose service and the port, not the
+timestamped containers), so no per-deploy proxy edit is needed.
+Direct-to-origin requests without the header still get 403. The
+Coolify-generated docker routers for the same host are shadow (lower
+priority) and stay as fallback.
 
 ## Push-to-dev contract (enforced in deploy-coolify.yml)
 
@@ -43,6 +47,11 @@ manual `website-dev` compose keeps working against the same database.
 - `website-dev-backend` service block in `origin-enforce.yml`: inert (no
   routers reference it). Keep until `website-dev-web` is retired.
 - `origin-enforce.yml.bak-pre-staging-cutover-20261026`: pre-cutover copy.
-- Staging `custom_labels` in Coolify: regenerated from the app's domains;
-  if routers ever go missing after a domain change, clear `custom_labels`
-  (Coolify UI or API) so the next deploy regenerates them.
+- Staging `RELAY_SYNC_SCHEDULES=false` Coolify env: the boot-time Relay
+  schedule sync registers production callback URLs and Relay rejects them
+  from dev (`origin_not_allowed`), so staging skips the sync while
+  production (flag unset) still fails closed on sync errors.
+- Staging `docker_compose_domains.web.domain=http://dev.datatalks.club`:
+  the source of the dev routers for this compose-pack app (the `fqdn`
+  field only drives Dockerfile-pack apps). The `custom_labels` value is
+  inert for this app; leave it alone.
