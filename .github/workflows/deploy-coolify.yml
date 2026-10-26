@@ -144,12 +144,27 @@ jobs:
         run: |
           set -euo pipefail
           STAGING_UUID="wodajblzizrjunwme3ossav3"
-          curl --fail --show-error --silent --request POST \
+          response="$(curl --fail --show-error --silent --max-time 30 --request POST \
             --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
             --header "Accept: application/json" \
-            "${COOLIFY_URL%/}/api/v1/deploy?uuid=${STAGING_UUID}&force=true"
-          echo
-          echo "Triggered staging deploy for ${STAGING_UUID}"
+            "${COOLIFY_URL%/}/api/v1/deploy?uuid=${STAGING_UUID}&force=true")"
+          deployment_uuid="$(jq -er --arg uuid "$STAGING_UUID" '.deployments[] | select(.resource_uuid == $uuid) | .deployment_uuid' <<< "$response")"
+          echo "Triggered staging deployment ${deployment_uuid}"
+          # A same-SHA backend can still be serving while this deployment fails.
+          # Require this exact deployment to finish before checking public health.
+          for _ in $(seq 1 120); do
+            status="$(curl --fail --show-error --silent --max-time 30 \
+              --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
+              --header "Accept: application/json" \
+              "${COOLIFY_URL%/}/api/v1/deployments/${deployment_uuid}" | jq -er .status)"
+            case "$status" in
+              finished) exit 0 ;;
+              failed|cancelled|cancelled-by-user) echo "Staging deployment ${deployment_uuid}: ${status}" >&2; exit 1 ;;
+            esac
+            sleep 5
+          done
+          echo "Staging deployment ${deployment_uuid} did not finish" >&2
+          exit 1
       - name: Wait for dev to serve the pushed SHA
         run: |
           set -euo pipefail
@@ -157,7 +172,7 @@ jobs:
           # so polling it observes the live backend. Anything but the pushed
           # SHA (stale release, non-200, timeout) fails the deploy.
           for _ in $(seq 1 60); do
-            served="$(curl --show-error --silent --max-time 20 https://dev.datatalks.club/health/ready | jq -r .source_sha)" || true
+            served="$(curl --fail --show-error --silent --max-time 20 https://dev.datatalks.club/health/ready | jq -er .source_sha)" || served=""
             if [[ "$served" == "$GITHUB_SHA" ]]; then
               echo "dev serves ${GITHUB_SHA}"
               exit 0
@@ -178,6 +193,11 @@ jobs:
           grep -qi "We could not find a registration for this confirmation link" <<< "$body"
           echo "dev confirm route responds with the invalid-link page"
       - name: Point prod at the pushed release
+        # Retired: this staging environment's legacy UUID secret points to staging.
+        # These steps overwrote its DB assertions and redeployed it a second time.
+        # Production promotion is owned by the health-gated rolling follower.
+        # Keep the legacy steps inert pending an operator-approved cleanup.
+        if: ${{ false }}
         env:
           COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
@@ -208,6 +228,7 @@ jobs:
           echo
           echo "Prod identity set to ${GITHUB_SHA} (${IMAGE_TAG})"
       - name: Trigger Coolify deploy
+        if: ${{ false }}
         env:
           COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
@@ -227,6 +248,7 @@ jobs:
           echo
           echo "Triggered Coolify deploy for ${COOLIFY_SERVICE_UUID} (GHCR tag ${IMAGE_TAG} ready; app not yet on GHCR compose)"
       - name: Wait for prod to serve the pushed SHA
+        if: ${{ false }}
         run: |
           set -euo pipefail
           # Same gate as dev above, for the prod app: prod.datatalks.club/health/ready
