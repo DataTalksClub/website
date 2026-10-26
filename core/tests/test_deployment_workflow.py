@@ -129,7 +129,10 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # reviewed configuration-only seal tracks the pyproject bytes.
 # Community-base v0.5.34 adopts the Relay mail recipient preservation
 # (46595f9b); the reviewed configuration-only seal tracks the pin bytes.
-STUDIO_COURSES_PYPROJECT_SHA256 = "95f10467e59788c5c28c5fc44812abe580a34e61fa2b8ac3cc4ac5ea432248dd"
+# Registration notices (912a3e6d) and contact sync (5c70f547) subsequently
+# enrolled five modules in strict mypy. Reseal those reviewed configuration
+# bytes only: d308a7fb already sealed v0.5.34 correctly, and uv.lock is unchanged.
+STUDIO_COURSES_PYPROJECT_SHA256 = "dcc741ee169a74e3a89b1e1a8a38525eb8d0c932a0ac77f3d4fc5bbed9de0b3c"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation

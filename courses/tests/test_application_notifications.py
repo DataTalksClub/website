@@ -6,6 +6,8 @@ approve/reject (single and bulk admin actions), idempotent per decision,
 pending vs approved confirmation copy, and a loud Relay failure path.
 """
 
+from typing import cast
+
 from community_base.mail.backends.ses_local import render_delivery
 from community_base.mail.models import EmailDelivery
 from community_base.mail.service import MailConflict, MailError
@@ -18,6 +20,7 @@ from course_management.package_mail import (
     send_package_mail,
     send_registration_confirmation_mail,
 )
+from courses.admin.course import CourseRegistrationAdmin
 from courses.models import CourseRegistration
 from courses.services.application_notifications import (
     DEFAULT_OPERATOR_EMAIL,
@@ -309,12 +312,12 @@ class ReviewDecisionTests(RegistrationCampaignBase):
             role=CourseRegistration.Role.ML_ENGINEER,
             status=CourseRegistration.Status.PENDING,
         )
-        model_admin = admin.site._registry[CourseRegistration]
+        model_admin = cast(CourseRegistrationAdmin, admin.site._registry[CourseRegistration])
         request = RequestFactory().post("/admin/")
         request._messages = CookieStorage(request)  # type: ignore[attr-defined]
 
         queryset = CourseRegistration.objects.filter(pk__in=[self.registration.pk, second.pk])
-        getattr(model_admin, "approve_registrations")(request, queryset)
+        model_admin.approve_registrations(request, queryset)
 
         self.assertEqual(
             CourseRegistration.objects.filter(status=CourseRegistration.Status.APPROVED).count(),
@@ -322,16 +325,16 @@ class ReviewDecisionTests(RegistrationCampaignBase):
         )
         self.assertEqual(approved_deliveries().count(), 2)
         # Re-running the bulk action replays instead of double-sending.
-        getattr(model_admin, "approve_registrations")(request, queryset)
+        model_admin.approve_registrations(request, queryset)
         self.assertEqual(approved_deliveries().count(), 2)
 
     @override_settings(PUBLIC_BASE_URL="https://courses.example.com")
     def test_admin_bulk_reject_notifies(self):
-        model_admin = admin.site._registry[CourseRegistration]
+        model_admin = cast(CourseRegistrationAdmin, admin.site._registry[CourseRegistration])
         request = RequestFactory().post("/admin/")
         request._messages = CookieStorage(request)  # type: ignore[attr-defined]
 
-        getattr(model_admin, "reject_registrations")(
+        model_admin.reject_registrations(
             request, CourseRegistration.objects.filter(pk=self.registration.pk)
         )
 

@@ -102,6 +102,12 @@ BACKEND_PATTERN_EXCEPTIONS: dict[Path, frozenset[str]] = {
     # behavior stays portable and only the token is backend-specific.
     Path("courses/registration_confirmation.py"): frozenset({"select_for_update"}),
     Path("courses/views/registration_confirmation.py"): frozenset({"select_for_update"}),
+    # Operator decisions use the same single-registration transaction as
+    # confirmation: serialize status changes with durable notification creation.
+    # PostgreSQL locks the row; SQLite serializes writes at database level.
+    # Keep the lock so concurrent approve/reject decisions cannot lose updates;
+    # application-notification tests cover replay and rollback of mail failures.
+    Path("courses/services/application_notifications.py"): frozenset({"select_for_update"}),
     # The Coolify deploy preflight audits catalog ownership as the
     # migration role before any DDL. It refuses to run anywhere but the
     # deployed engine, so the behavior is intentionally PostgreSQL-only
