@@ -1,5 +1,4 @@
 from datetime import timedelta
-from unittest.mock import patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -255,14 +254,10 @@ class HomeworkStudioCoursesScoringActionTests(HomeworkStudioCoursesViewTestBase)
         self.assertEqual(messages_count, 1)
         self.assertIn("queued", str(messages[0]).lower())
         # The heavy work is a durable intent, not inline scoring.
-        self.assertTrue(
-            JobIntent.objects.filter(handler=HOMEWORK_SCORE_HANDLER).exists()
-        )
+        self.assertTrue(JobIntent.objects.filter(handler=HOMEWORK_SCORE_HANDLER).exists())
         # State is unchanged until the worker runs.
         self.homework.refresh_from_db()
-        self.assertNotEqual(
-            self.homework.state, HomeworkState.SCORED.value
-        )
+        self.assertNotEqual(self.homework.state, HomeworkState.SCORED.value)
 
     def test_homework_notify_scores_queues_background_job(self):
         """The notify action queues mail fan-out instead of sending inline."""
@@ -284,9 +279,7 @@ class HomeworkStudioCoursesScoringActionTests(HomeworkStudioCoursesViewTestBase)
         response = self.client.post(url, follow=True)
 
         self.assertRedirects(response, self.studio_courses_course_url())
-        self.assertTrue(
-            JobIntent.objects.filter(handler=HOMEWORK_NOTIFY_HANDLER).exists()
-        )
+        self.assertTrue(JobIntent.objects.filter(handler=HOMEWORK_NOTIFY_HANDLER).exists())
         messages = list(response.context["messages"])
         self.assertEqual(len(messages), 1)
 
@@ -310,9 +303,7 @@ class HomeworkStudioCoursesScoringActionTests(HomeworkStudioCoursesViewTestBase)
         response = self.client.post(url, follow=True)
 
         self.assertRedirects(response, self.studio_courses_course_url())
-        self.assertFalse(
-            JobIntent.objects.filter(handler=HOMEWORK_NOTIFY_HANDLER).exists()
-        )
+        self.assertFalse(JobIntent.objects.filter(handler=HOMEWORK_NOTIFY_HANDLER).exists())
         messages = list(response.context["messages"])
         self.assertEqual(len(messages), 1)
 
@@ -432,7 +423,7 @@ class HomeworkStudioCoursesRescoreTests(HomeworkStudioCoursesViewTestBase):
         self.assertRedirects(response, course_url)
         messages = list(response.context["messages"])
         self.assertEqual(len(messages), 1)
-        self.assertIn("scored", messages[0].message.lower())
+        self.assertIn("queued", messages[0].message.lower())
 
     def test_rescore_warns_for_unscored_homework(self):
         self.homework.state = HomeworkState.OPEN.value

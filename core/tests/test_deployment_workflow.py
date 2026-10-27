@@ -132,7 +132,10 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # Registration notices (912a3e6d) and contact sync (5c70f547) subsequently
 # enrolled five modules in strict mypy. Reseal those reviewed configuration
 # bytes only: d308a7fb already sealed v0.5.34 correctly, and uv.lock is unchanged.
-STUDIO_COURSES_PYPROJECT_SHA256 = "dcc741ee169a74e3a89b1e1a8a38525eb8d0c932a0ac77f3d4fc5bbed9de0b3c"
+# Async scoring (intake 66c82804) enrolls courses.scoring_jobs and its test in
+# strict mypy; dependencies and the lock seal are unchanged. Reseal those
+# reviewed configuration bytes only.
+STUDIO_COURSES_PYPROJECT_SHA256 = "e4719dcc276eb3825ddf30f7c76243c5184eb7c563495f5216beceb6a9a92b0a"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
