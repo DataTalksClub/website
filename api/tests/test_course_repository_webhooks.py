@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 from uuid import UUID
 
+from community_base.jobs.models import JobIntent
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
@@ -24,7 +25,6 @@ from content_sync.course_repository_webhook import (
 )
 from core.models import IdempotencyRecord
 from courses.models import Cohort, Course, Module, Project
-from community_base.jobs.models import JobIntent
 
 SECRET = "test-course-repository-webhook-secret"
 COMMIT_SHA = "a" * 40
@@ -227,6 +227,72 @@ class CourseRepositoryWebhookTests(TestCase):
         self.assertEqual(second.status_code, 202)
         self.assertEqual(second.json()["outcome"], "replayed")
         self.assertEqual(JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).count(), 1)
+
+    @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
+    def test_same_commit_with_new_delivery_is_accepted_without_duplicate_job(self) -> None:
+        first = self.post(github_payload())
+        original = JobIntent.objects.get(handler=COURSE_REPOSITORY_JOB_HANDLER)
+        original_state = (original.payload, original.payload_hash, original.status)
+        second = self.post(github_payload(), delivery_id="delivery-course-rerun")
+
+        self.assertEqual(first.status_code, 202)
+        self.assertEqual(second.status_code, 202, second.content)
+        self.assertEqual(second.json()["outcome"], "accepted")
+        self.assertNotEqual(first.json()["delivery_record_id"], second.json()["delivery_record_id"])
+        self.assertEqual(JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).count(), 1)
+        original.refresh_from_db()
+        self.assertEqual(original.payload["delivery_record_id"], first.json()["delivery_record_id"])
+        self.assertEqual((original.payload, original.payload_hash, original.status), original_state)
+        self.assertEqual(
+            IdempotencyRecord.objects.filter(scope=COURSE_REPOSITORY_WEBHOOK_NAMESPACE).count(), 2
+        )
+        replay = self.post(github_payload(), delivery_id="delivery-course-rerun")
+        self.assertEqual(replay.status_code, 202)
+        self.assertEqual(replay.json()["outcome"], "replayed")
+
+    @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
+    def test_another_commit_creates_its_own_job(self) -> None:
+        self.assertEqual(self.post(github_payload()).status_code, 202)
+        changed = github_payload().replace(COMMIT_SHA.encode(), ("b" * 40).encode())
+        self.assertEqual(self.post(changed, delivery_id="delivery-another-commit").status_code, 202)
+        self.assertEqual(JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).count(), 2)
+
+    @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
+    def test_new_delivery_does_not_hide_incompatible_existing_job(self) -> None:
+        self.assertEqual(self.post(github_payload()).status_code, 202)
+        original = JobIntent.objects.get(handler=COURSE_REPOSITORY_JOB_HANDLER)
+        baseline = {
+            field: getattr(original, field)
+            for field in ("handler", "max_attempts", "payload_hash", "payload")
+        }
+        job_count = JobIntent.objects.count()
+        cases = [
+            {"handler": "unrelated.handler"},
+            {"max_attempts": 6},
+            {"payload_hash": "0" * 64},
+            {"payload": {**original.payload, "source_uuid": "wrong"}},
+            {"payload": {**original.payload, "commit_sha": "b" * 40}},
+            {"payload": {**original.payload, "extra": True}},
+            {"payload": {**original.payload, "delivery_record_id": "invalid"}},
+            {"payload": {**original.payload, "delivery_record_id": 123}},
+        ]
+        for index, changes in enumerate(cases):
+            with self.subTest(changes=changes):
+                for field, value in changes.items():
+                    setattr(original, field, value)
+                original.save(update_fields=list(changes))
+                response = self.post(github_payload(), delivery_id=f"incompatible-{index}")
+                self.assertEqual(response.status_code, 503)
+                self.assertEqual(response.json()["error"], "course_repository_enqueue_failed")
+                self.assertEqual(
+                    IdempotencyRecord.objects.filter(
+                        scope=COURSE_REPOSITORY_WEBHOOK_NAMESPACE
+                    ).count(),
+                    1,
+                )
+                self.assertEqual(JobIntent.objects.count(), job_count)
+                JobIntent.objects.filter(pk=original.pk).update(**baseline)
+                original.refresh_from_db()
 
     @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
     def test_delivery_id_conflict_does_not_enqueue_or_mutate(self) -> None:

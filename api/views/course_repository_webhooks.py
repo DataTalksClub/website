@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+from uuid import UUID
 
+from community_base.jobs.dispatch import DispatchConflict, dispatch_after_commit, hash_key
+from community_base.jobs.models import JobIntent
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -17,15 +20,14 @@ from content_sync.course_repository_webhook import (
     parse_github_course_push,
 )
 from content_sync.webhook_delivery import (
+    WebhookDeliveryCommandFailed,
     WebhookDeliveryConflict,
     WebhookDeliveryInProgress,
-    WebhookDeliveryCommandFailed,
     fence_webhook_delivery,
     verify_webhook_signature,
 )
 from core.idempotency import hash_idempotency_key
 from core.models import IdempotencyRecord
-from community_base.jobs.dispatch import dispatch_after_commit
 
 
 def _error(code: str, status: int) -> JsonResponse:
@@ -85,15 +87,34 @@ def github_course_repository_webhook(request):
 
     def enqueue_job() -> None:
         delivery_record_id = _delivery_record_id(delivery_id)
-        dispatch_after_commit(
-            COURSE_REPOSITORY_JOB_HANDLER,
-            f"course-source:{source.id}:{push.commit_sha}:{COURSE_REPOSITORY_PARSER_VERSION}",
-            payload={
-                "source_uuid": str(source.id),
-                "commit_sha": push.commit_sha,
-                "delivery_record_id": str(delivery_record_id),
-            },
-        )
+        key = f"course-source:{source.id}:{push.commit_sha}:{COURSE_REPOSITORY_PARSER_VERSION}"
+        payload = {
+            "source_uuid": str(source.id),
+            "commit_sha": push.commit_sha,
+            "delivery_record_id": str(delivery_record_id),
+        }
+        try:
+            dispatch_after_commit(COURSE_REPOSITORY_JOB_HANDLER, key, payload=payload)
+        except DispatchConflict:
+            # Separate authenticated deliveries can refer to the same commit.
+            # Keep the original job's delivery provenance and deduplicate the
+            # import, while still refusing incompatible durable jobs.
+            existing = JobIntent.objects.get(key_hash=hash_key(key))
+            original_payload = existing.payload
+            if (
+                not isinstance(original_payload, dict)
+                or set(original_payload) != set(payload)
+                or original_payload["source_uuid"] != payload["source_uuid"]
+                or original_payload["commit_sha"] != payload["commit_sha"]
+                or not isinstance(original_payload["delivery_record_id"], str)
+            ):
+                raise
+            try:
+                UUID(original_payload["delivery_record_id"])
+            except ValueError:
+                raise DispatchConflict("existing delivery provenance is invalid") from None
+            # Reuse the shared primitive to check handler, hash and retry policy.
+            dispatch_after_commit(COURSE_REPOSITORY_JOB_HANDLER, key, payload=original_payload)
 
     try:
         result = fence_webhook_delivery(
