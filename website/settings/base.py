@@ -210,6 +210,12 @@ MIDDLEWARE = [
     "core.middleware.ReadinessProbeCommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # Anonymous-only full-page cache for public GETs.  It sits inside the
+    # authentication middleware (so request.user is resolved and credentialed
+    # requests bypass) and inside ResponsePolicyMiddleware (so the outer
+    # privacy policy still classifies served hits against the live request).
+    # Disabled by default; production opts in explicitly.
+    "core.page_cache.AnonymousPageCacheMiddleware",
     "accounts.middleware.DurableAccountSessionMiddleware",
     # BE-01: production /admin/ passes only for a break-glass principal.
     "website.admin_gate.BreakGlassAdminGateMiddleware",
@@ -389,6 +395,11 @@ PUBLIC_MEDIA_MAX_OBJECT_BYTES = int(
 
 
 NOINDEX = False
+# Anonymous-only full-page cache for public GETs (core.page_cache).  Off by
+# default so tests, local development and management commands always render
+# live; production opts in explicitly.  Credentialed responses are never
+# stored or served regardless of this flag.
+ANONYMOUS_PAGE_CACHE_ENABLED = False
 COMPATIBILITY_CONTRACT_PATHS: dict[str, str] = {}
 REQUIRED_BOOTSTRAP_SETTINGS = ("SECRET_KEY", "ALLOWED_HOSTS", "DATABASES")
 

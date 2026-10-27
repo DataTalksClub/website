@@ -47,3 +47,12 @@ SECURE_HSTS_PRELOAD = True
 
 # Durable jobs run on Relay; the ingress at internal/jobs/run receives callbacks.
 COMMUNITY_BASE = {**COMMUNITY_BASE, "JOBS_BACKEND": "relay"}  # noqa: F405
+
+# Anonymous-only full-page cache for public GETs (core.page_cache): the first
+# anonymous render of a public page is stored for PAGE_CACHE_TTL_SECONDS and
+# later anonymous GETs are served with no database queries and no template
+# render.  Credentialed requests bypass lookup and store alike, and any
+# database write bumps the cache generation so the next anonymous request
+# after a content sync re-renders.  The origin still answers every edge
+# revalidation itself (views keep max-age=0), only much faster.
+ANONYMOUS_PAGE_CACHE_ENABLED = True
