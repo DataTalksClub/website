@@ -238,6 +238,8 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     # request path onto jobs_worker; new integration code.
     "courses/scoring_jobs.py",
     "courses/tests/test_scoring_async.py",
+    # Fast pages (intake bf001b67): the OAuth callback server-side budget.
+    "accounts/tests/test_oauth_callback_budget.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",

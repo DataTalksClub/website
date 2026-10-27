@@ -292,6 +292,8 @@ module = [
     "courses.scoring_jobs",
     "courses.tests.test_scoring_async",
     "scripts.prod.import_production_ai_campaign",
+    # Fast pages (intake bf001b67): the OAuth callback server-side budget.
+    "accounts.tests.test_oauth_callback_budget",
 ]
 ignore_errors = false
 
