@@ -59,7 +59,24 @@ class EventDateGroup:
 
 
 def event_groups(now: datetime | None = None) -> EventGroups:
-    """Split the published events into what is coming and what has happened."""
+    """Split the published events into what is coming and what has happened.
+
+    With no explicit ``now`` the grouping is memoized for the request: the
+    homepage, the hubs, the detail pages and the member home all group the
+    same published set, and regrouping it per caller only re-spent the same
+    read.  The frozen clock also keeps one request's surfaces consistent with
+    each other.  An explicit ``now`` (tests pinning the boundary) always
+    groups live.
+    """
+
+    if now is None:
+        from core.request_cache import memoized
+
+        return memoized("content.event_content.event_groups", lambda: _grouped(None))
+    return _grouped(now)
+
+
+def _grouped(now: datetime | None) -> EventGroups:
 
     current = now or timezone.now()
     if timezone.is_naive(current):

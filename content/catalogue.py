@@ -204,12 +204,24 @@ def synced_stamp(source_slug: str) -> tuple[int, str]:
     source's kinds, so a cached read follows a sync instead of outliving it. A
     database failure raises -- the synced readers refuse to let an outage enter
     the cache disguised as an empty catalogue (ARC-01).
+
+    Within one request the aggregate runs once per source: public pages fan
+    out to many readers that each re-resolve the same stamp, and the
+    per-request memo (``core.request_cache``, bound by
+    ``core.middleware.RequestCacheMiddleware``) collapses those duplicates.
+    Outside a request every call reads live, so a write followed by a read in
+    the same process still sees fresh data.
     """
 
-    stamp = SyncedDocument.objects.filter(
-        source__slug=source_slug, source__is_enabled=True
-    ).aggregate(total=Count("id"), latest=Max("updated_at"))
-    return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
+    from core.request_cache import memoized
+
+    def read() -> tuple[int, str]:
+        stamp = SyncedDocument.objects.filter(
+            source__slug=source_slug, source__is_enabled=True
+        ).aggregate(total=Count("id"), latest=Max("updated_at"))
+        return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
+
+    return memoized(("content.catalogue.synced_stamp", source_slug), read)
 
 
 @lru_cache(maxsize=16)
@@ -394,20 +406,29 @@ def _event_credit_stamp() -> tuple[int, str, int, str]:
     A database failure raises: the events are one of the authorities the
     profiles are derived from, and an outage must never enter the cache
     disguised as people with no talks (ARC-01).
+
+    Within one request the aggregate runs once: it is memoized through the
+    per-request memo (``core.request_cache``) like :func:`synced_stamp`.
+    Outside a request every call reads live.
     """
 
     from community_base.events.models import Event
 
-    # Identity and content are one shared row now (#412), so the events and
-    # content stamps are the same aggregate; the four-tuple stays because it is
-    # the cache key the callers hold.
-    events = Event.objects.aggregate(total=Count("id"), latest=Max("updated_at"))
-    return (
-        int(events["total"] or 0),
-        str(events["latest"] or ""),
-        int(events["total"] or 0),
-        str(events["latest"] or ""),
-    )
+    from core.request_cache import memoized
+
+    def read() -> tuple[int, str, int, str]:
+        # Identity and content are one shared row now (#412), so the events and
+        # content stamps are the same aggregate; the four-tuple stays because it is
+        # the cache key the callers hold.
+        events = Event.objects.aggregate(total=Count("id"), latest=Max("updated_at"))
+        return (
+            int(events["total"] or 0),
+            str(events["latest"] or ""),
+            int(events["total"] or 0),
+            str(events["latest"] or ""),
+        )
+
+    return memoized("content.catalogue.event_credit_stamp", read)
 
 
 def people() -> tuple[Record, ...]:

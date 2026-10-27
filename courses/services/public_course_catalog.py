@@ -24,7 +24,17 @@ from courses.models.cohort import Cohort, CohortBuildItem
 logger = logging.getLogger(__name__)
 
 
-def visible_course_list_queryset():
+def visible_course_list_queryset(*, prefetch_assignments: bool = True):
+    """The annotated visible cohorts with the relations public surfaces read.
+
+    ``homework_set``/``project_set`` feed the course list's assignment labels
+    (``courses.views.course_homepage.get_course_assignments``); the homepage
+    catalogue reads only the annotations and ``build_items``, so it opts out
+    with ``prefetch_assignments=False`` and skips two full-table prefetches
+    per render.  ``build_items`` stays prefetched in position order for every
+    caller: ``core.home_content`` reads the cached relation.
+    """
+
     courses = Cohort.objects.filter(visible=True, course__visible=True)
     homework_count = Count("homework", distinct=True)
     project_count = Count("project", distinct=True)
@@ -39,9 +49,10 @@ def visible_course_list_queryset():
         learner_count=learner_count,
         module_count=module_count,
     )
-    courses = courses.select_related("course").prefetch_related(
-        "homework_set",
-        "project_set",
+    courses = courses.select_related("course")
+    if prefetch_assignments:
+        courses = courses.prefetch_related("homework_set", "project_set")
+    courses = courses.prefetch_related(
         Prefetch(
             "build_items",
             queryset=CohortBuildItem.objects.order_by("position", "pk"),
@@ -62,16 +73,22 @@ def newest_cohort(cohorts: Iterable[Cohort]) -> Cohort | None:
     return max(cohorts, key=cohort_recency_key, default=None)
 
 
-def latest_visible_cohort_per_family() -> dict[str, Cohort]:
+def latest_visible_cohort_per_family(*, prefetch_assignments: bool = False) -> dict[str, Cohort]:
     """Map every visible course family slug to its newest visible cohort.
 
     Returns an empty mapping when the database is empty or unreachable; the callers
     are public pages that must still render.
+
+    The homepage catalogue (the only production caller, via
+    ``core.home_content.course_catalog``) reads the annotations and
+    ``build_items`` but never the assignment rows, so assignment prefetches
+    stay off by default.  Pass ``prefetch_assignments=True`` when the caller
+    reads ``homework_set``/``project_set`` (the course list does).
     """
 
     latest: dict[str, Cohort] = {}
     try:
-        cohorts = list(visible_course_list_queryset())
+        cohorts = list(visible_course_list_queryset(prefetch_assignments=prefetch_assignments))
     except DatabaseError:
         logger.warning("Course catalogue read failed; rendering an empty catalogue.")
         return {}
@@ -92,6 +109,4 @@ def latest_visible_cohort_for_families(family_slugs: Sequence[str]) -> Cohort | 
     """
 
     latest = latest_visible_cohort_per_family()
-    return newest_cohort(
-        cohort for slug, cohort in latest.items() if slug in set(family_slugs)
-    )
+    return newest_cohort(cohort for slug, cohort in latest.items() if slug in set(family_slugs))

@@ -195,6 +195,10 @@ MIDDLEWARE = [
     # This policy must wrap short-circuits from health, SecurityMiddleware,
     # WhiteNoise, URL resolution, and error handlers.
     "core.middleware.ResponsePolicyMiddleware",
+    # Per-request memo dict for catalogue stamps and derived reads.  It wraps
+    # everything below (including this policy's own downstream work) and
+    # resets at the end of the request, so entries never cross requests.
+    "core.middleware.RequestCacheMiddleware",
     # Bound request bodies before parsers, authentication, or domain services.
     "core.middleware.RequestBoundaryMiddleware",
     "management_api.middleware.AdminAPIResponseMiddleware",

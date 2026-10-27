@@ -785,6 +785,17 @@ class SyncedDocument(models.Model):
                 fields=("content_kind", "public_path"),
                 name="synced_document_kind_path",
             ),
+            # The catalogue's hot read path filters each collection by its
+            # source, kind and publish flag
+            # (``content.catalogue._synced_records``) and stamps each source
+            # with an aggregate over its rows (``synced_stamp``).  Both lead
+            # with the source, so one composite index serves the row reads and
+            # the per-source aggregates without a second maintenance cost on
+            # the sync write path.
+            models.Index(
+                fields=("source", "content_kind", "is_published"),
+                name="synced_document_src_kind_pub",
+            ),
         ]
 
     def __str__(self) -> str:

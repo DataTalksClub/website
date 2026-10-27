@@ -131,10 +131,19 @@ def docs_sync_stamp() -> tuple[int, str]:
     it changes exactly when a sync writes the documentation pages, so a cached read
     follows a sync instead of outliving it. A database failure raises, so an outage
     can never enter a cache below disguised as an empty corpus.
+
+    Within one request the aggregate runs once, memoized through the
+    per-request memo (``core.request_cache``); outside a request every call
+    reads live.
     """
 
-    stamp = _published_pages().aggregate(total=Count("id"), latest=Max("updated_at"))
-    return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
+    from core.request_cache import memoized
+
+    def read() -> tuple[int, str]:
+        stamp = _published_pages().aggregate(total=Count("id"), latest=Max("updated_at"))
+        return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
+
+    return memoized("content.docs_reader.docs_sync_stamp", read)
 
 
 def _published_pages():

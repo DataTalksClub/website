@@ -23,6 +23,7 @@ from core.context import (
     is_safe_external_context_id,
     reset_context,
 )
+from core.request_cache import bind_request_memo, reset_request_memo
 from core.security import MAX_REQUEST_BODY_BYTES
 from core.sensitive_query import has_sensitive_query_key
 
@@ -248,6 +249,31 @@ class ReadinessProbeCommonMiddleware(CommonMiddleware):
         if request.path_info == ALB_READINESS_PATH:
             return None
         return super().process_request(request)
+
+
+class RequestCacheMiddleware:
+    """Bind one memo dict for catalogue stamps and derived reads per request.
+
+    The readers (``content.catalogue.synced_stamp``,
+    ``content.wiki_reader.wiki_sync_stamp``, ``events.queries``,
+    ``content.event_content.event_groups``) collapse their repeated cheap
+    aggregates through ``core.request_cache.memoized``.  The dict lives on a
+    ``ContextVar`` bound here and reset here, so entries never cross
+    requests, threads, or async tasks.  Only stamps and small tuples derived
+    from already-cached rows are memoized -- never the records themselves --
+    so the stamp-keyed ``lru_cache`` invalidation contract is unchanged: a
+    sync moves the stamp and the next request rebuilds.
+    """
+
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
+        self.get_response = get_response
+
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        token = bind_request_memo()
+        try:
+            return self.get_response(request)
+        finally:
+            reset_request_memo(token)
 
 
 class RequestIdMiddleware:

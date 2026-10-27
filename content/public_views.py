@@ -408,7 +408,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
     grouped = event_groups()
     event = next(
         (
-            item
+            {**item}
             for item in (*grouped.upcoming, *grouped.recent)
             if item.get("identity_id") == str(identity.content_id)
         ),

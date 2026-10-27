@@ -115,9 +115,22 @@ def _published() -> Any:
 
 
 def published_event_records() -> tuple[dict[str, Any], ...]:
-    """Every published event, newest first, as the record the pages read."""
+    """Every published event, newest first, as the record the pages read.
 
-    return _cached_published_records(_published_records_stamp())
+    Within one request the records are read once: hub, detail and member-home
+    surfaces all fan out through here (directly and via
+    :func:`content.event_content.event_groups`), and the per-request memo
+    (``core.request_cache``) collapses those repeats.  The stamp-keyed
+    ``lru_cache`` below stays the cross-request authority, so a write still
+    rebuilds on the next request.  Outside a request every call reads live.
+    """
+
+    from core.request_cache import memoized
+
+    return memoized(
+        "events.queries.published_event_records",
+        lambda: _cached_published_records(_published_records_stamp()),
+    )
 
 
 def _stamp(model: Any, field: str) -> tuple[int, str]:
@@ -152,16 +165,22 @@ def _published_records_stamp() -> tuple[tuple[int, str], ...]:
     """
 
     from content.catalogue import PEOPLE_SOURCE_SLUG, synced_stamp
+    from core.request_cache import memoized
     from event_registrants.models import EventRegistration
 
-    return (
-        _stamp(Event, "updated_at"),
-        _stamp(Host, "updated_at"),
-        _stamp(EventHost, "id"),
-        _stamp(EventRegistration, "updated_at"),
-        _stamp(EventSource, "updated_at"),
-        synced_stamp(PEOPLE_SOURCE_SLUG),
-    )
+    def read() -> tuple[tuple[int, str], ...]:
+        return (
+            _stamp(Event, "updated_at"),
+            _stamp(Host, "updated_at"),
+            _stamp(EventHost, "id"),
+            _stamp(EventRegistration, "updated_at"),
+            _stamp(EventSource, "updated_at"),
+            synced_stamp(PEOPLE_SOURCE_SLUG),
+        )
+
+    # The six aggregates run once per request; the stamp-keyed ``lru_cache``
+    # on the records stays the cross-request authority.
+    return memoized("events.queries.published_records_stamp", read)
 
 
 @lru_cache(maxsize=8)
@@ -184,6 +203,19 @@ def _cached_published_records(
 def published_event_record(event_id: uuid.UUID | str) -> dict[str, Any] | None:
     """One published event's record, or ``None`` when it publishes none."""
 
+    from core.request_cache import current_memo
+
+    if current_memo() is not None:
+        # Inside a request the full published set is already memoized above
+        # (every detail page reads it first through ``event_groups``), so a
+        # second filtered table scan with the same annotation and prefetches
+        # would only re-read the same rows.  The lookup is over the same
+        # public-status set the filtered query would return.
+        wanted = str(event_id)
+        return next(
+            (record for record in published_event_records() if record.get("identity_id") == wanted),
+            None,
+        )
     event = _published().filter(content_id=event_id).first()
     return None if event is None else _record(event)
 
