@@ -240,6 +240,9 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/tests/test_scoring_async.py",
     # Fast pages (intake bf001b67): the OAuth callback server-side budget.
     "accounts/tests/test_oauth_callback_budget.py",
+    # Fast pages (intake bf001b67): warm query budgets for the logged-in
+    # account pages (member home is pinned with the public budgets).
+    "accounts/tests/test_logged_in_page_budgets.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",

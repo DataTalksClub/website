@@ -139,10 +139,13 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # accounts.tests.test_oauth_callback_budget in strict mypy (configuration
 # only); dependencies and the lock seal are unchanged. Reseal those reviewed
 # configuration bytes only.
+# Fast pages (intake bf001b67, this commit) enrolls
+# accounts.tests.test_logged_in_page_budgets the same way (configuration
+# only); dependencies and the lock seal are unchanged.
 # If this seal fails after editing pyproject.toml, review the diff, then reseal:
 #   sha256sum pyproject.toml
 # and update STUDIO_COURSES_PYPROJECT_SHA256 below with the reviewed bytes.
-STUDIO_COURSES_PYPROJECT_SHA256 = "58812b94bdb6c23428a71c357dedf123d780f45c53b7219a2a5fdb7a1890bad1"
+STUDIO_COURSES_PYPROJECT_SHA256 = "f18f2a5c96ce2a8f13eb0089845c8c36ea8af517dfefe8d5213f96c5d0d6d2f9"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
