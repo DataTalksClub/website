@@ -234,6 +234,10 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     # notice plus approve/reject applicant mail; new integration code.
     "courses/services/application_notifications.py",
     "courses/tests/test_application_notifications.py",
+    # Async scoring (intake 66c82804): scoring/notify handlers moved off the
+    # request path onto jobs_worker; new integration code.
+    "courses/scoring_jobs.py",
+    "courses/tests/test_scoring_async.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",

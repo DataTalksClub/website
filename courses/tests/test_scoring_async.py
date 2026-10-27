@@ -38,18 +38,14 @@ class ScoringEnqueueTests(TestCase):
             second, created = enqueue_homework_score(77)
         self.assertFalse(created)
         self.assertEqual(first.pk, second.pk)
-        self.assertEqual(
-            JobIntent.objects.filter(handler=HOMEWORK_SCORE_HANDLER).count(), 1
-        )
+        self.assertEqual(JobIntent.objects.filter(handler=HOMEWORK_SCORE_HANDLER).count(), 1)
 
     def test_project_score_enqueue_creates_two_intents(self):
         with transaction.atomic():
             enqueue_project_score(55)
             enqueue_project_notify(55)
         self.assertTrue(
-            JobIntent.objects.filter(
-                handler=PROJECT_SCORE_HANDLER, payload__project_id=55
-            ).exists()
+            JobIntent.objects.filter(handler=PROJECT_SCORE_HANDLER, payload__project_id=55).exists()
         )
         self.assertTrue(
             JobIntent.objects.filter(
@@ -78,9 +74,7 @@ class ScoringEnqueueTests(TestCase):
         with patch("courses.project_scoring.score_project") as scoring:
             # Handler resolves the project then scores; use a stub project id
             # with the lookup patched to avoid heavy fixtures.
-            with patch(
-                "courses.models.project.Project.objects.get"
-            ) as project_get:
+            with patch("courses.models.project.Project.objects.get") as project_get:
                 score_project_job(None, {"project_id": 42})
         project_get.assert_called_once_with(pk=42)
         scoring.assert_called_once_with(project_get.return_value)
