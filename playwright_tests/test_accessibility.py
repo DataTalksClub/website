@@ -480,6 +480,17 @@ def _visit_surface(
     name: str,
 ) -> None:
     surface = environment.surfaces[name]
+    if name == "credential-copy":
+        # Clipboard permission is evaluated against the Document at write time,
+        # and a grant issued after the document was created leaves the
+        # already-loaded document denied until the next navigation.  Granting
+        # before goto ensures the document created below inherits the grant,
+        # which is also the order the passing management-credential browser
+        # test uses (grant, goto, create, copy).
+        page.context.grant_permissions(
+            ["clipboard-read", "clipboard-write"],
+            origin=live_server.url,
+        )
     _cookie(page, live_server, environment.users.get(surface.actor))
     response = page.goto(f"{live_server.url}{surface.path}", wait_until="domcontentloaded")
     assert response is not None and response.status == surface.expected_status, name
@@ -496,10 +507,6 @@ def _visit_surface(
         page.get_by_role("button", name="Sign in").click()
         expect(page.get_by_role("alert")).to_be_visible()
     elif name == "credential-copy":
-        page.context.grant_permissions(
-            ["clipboard-read", "clipboard-write"],
-            origin=live_server.url,
-        )
         page.get_by_label("Service principal").select_option(environment.credential_target_id)
         page.get_by_role("button", name="Create credential").click()
         expect(page.get_by_role("heading", name="Copy this credential now")).to_be_visible()
@@ -521,9 +528,51 @@ def _capture_deterministic_screenshot(page: Page, path: Path) -> None:
     # scrolls the viewport; Chromium can otherwise rasterize fixed elements at
     # different subpixel offsets between consecutive captures. Preserve focus.
     page.evaluate("window.scrollTo({top: 0, left: 0, behavior: 'instant'})")
+    # The Unfold admin shell (admin-login surface) boots Alpine/theme and icon
+    # webfonts after load; under CI load the first capture can otherwise race
+    # theme init or a font swap, and a narrow mobile layout reflows when the
+    # swap lands, so consecutive full-page PNGs differ.  Settle the network,
+    # the Alpine cloak, the fonts and the layout before the discard capture.
+    # The byte-identical assertion below is unchanged: this only ensures the
+    # source is settled instead of screenshotting it mid-boot.
+    try:
+        page.wait_for_load_state("networkidle", timeout=10000)
+    except Exception:
+        pass
     page.evaluate(
         """async () => {
             await document.fonts.ready;
+            const alpine = window.Alpine;
+            if (alpine !== undefined) {
+                await new Promise(resolve => {
+                    if (!document.querySelector('[x-cloak]')) return resolve();
+                    const done = () => resolve();
+                    const timer = setTimeout(done, 5000);
+                    new MutationObserver((_records, observer) => {
+                        if (!document.querySelector('[x-cloak]')) {
+                            clearTimeout(timer);
+                            observer.disconnect();
+                            done();
+                        }
+                    }).observe(document.documentElement, {
+                        attributes: true,
+                        childList: true,
+                        subtree: true,
+                    });
+                });
+                await new Promise(resolve => requestAnimationFrame(() => resolve()));
+            }
+            await new Promise(resolve => {
+                const deadline = performance.now() + 5000;
+                let previous = -1;
+                function sample() {
+                    const height = document.documentElement.scrollHeight;
+                    if (height === previous || performance.now() > deadline) return resolve();
+                    previous = height;
+                    requestAnimationFrame(() => requestAnimationFrame(sample));
+                }
+                sample();
+            });
             // A below-the-fold `loading="lazy"` image never fires load or error
             // until it scrolls into view, and an <img> with no src never fires
             // either, so the wait below must not park on them: switching the
