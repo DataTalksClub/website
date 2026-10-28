@@ -10,6 +10,7 @@ from core.capabilities import (
     ConcurrencyPolicy,
     IdempotencyPolicy,
     ServiceKind,
+    staff_or_active_principal,
 )
 
 from .services import (
@@ -33,17 +34,6 @@ _REDACTED = (
     "text",
     "token",
 )
-
-
-def _policy(actor: object, evidence: object) -> bool:
-    del evidence
-    if hasattr(actor, "kind"):
-        return bool(getattr(actor, "is_active", False))
-    return bool(
-        getattr(actor, "is_authenticated", False)
-        and getattr(actor, "is_active", False)
-        and getattr(actor, "is_staff", False)
-    )
 
 
 def _factory() -> dict[str, Any]:
@@ -97,7 +87,7 @@ def _capability(
         audit_action=key.replace(".", "_") + ".audit",
         redacted_fields=_REDACTED,
         test_factory=_factory,
-        function_policy=_policy,
+        function_policy=staff_or_active_principal,
         field_policy=(lambda actor, field: field in fields) if command else None,
     )
 

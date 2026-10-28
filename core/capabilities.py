@@ -83,6 +83,19 @@ class Capability:
     test_only: bool = False
 
 
+def staff_or_active_principal(actor: object, evidence: object) -> bool:
+    """Allow an active API principal, or an authenticated, active staff user."""
+
+    del evidence
+    if hasattr(actor, "kind"):
+        return bool(getattr(actor, "is_active", False))
+    return bool(
+        getattr(actor, "is_authenticated", False)
+        and getattr(actor, "is_active", False)
+        and getattr(actor, "is_staff", False)
+    )
+
+
 class CapabilityRegistryError(ValueError):
     """Raised when a code-owned capability declaration is unsafe or incomplete."""
 

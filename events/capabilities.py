@@ -10,20 +10,10 @@ from core.capabilities import (
     ConcurrencyPolicy,
     IdempotencyPolicy,
     ServiceKind,
+    staff_or_active_principal,
 )
 
 from .identity import get_event_identity, list_event_identities
-
-
-def _policy(actor: object, evidence: object) -> bool:
-    del evidence
-    if hasattr(actor, "kind"):
-        return bool(getattr(actor, "is_active", False))
-    return bool(
-        getattr(actor, "is_authenticated", False)
-        and getattr(actor, "is_active", False)
-        and getattr(actor, "is_staff", False)
-    )
 
 
 def _factory() -> dict[str, Any]:
@@ -64,7 +54,7 @@ def _identity_capability(*, detail: bool) -> Capability:
         audit_action="events.identity.viewed",
         redacted_fields=("authorization", "cookie", "csrfmiddlewaretoken"),
         test_factory=_factory,
-        function_policy=_policy,
+        function_policy=staff_or_active_principal,
     )
 
 
