@@ -147,10 +147,12 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # dependencies and the lock seal are unchanged.
 # The same audit removes the unused django-q2 runtime and pandas dev
 # dependencies (no imports; JOBS_BACKEND is never django_q).
+# Cross-sell (t1841u, 2f423190) enrolls courses.services.cross_sell and its
+# tests in strict mypy (configuration only); the lock seal is unchanged.
 # If this seal fails after editing pyproject.toml, review the diff, then reseal:
 #   sha256sum pyproject.toml
 # and update STUDIO_COURSES_PYPROJECT_SHA256 below with the reviewed bytes.
-STUDIO_COURSES_PYPROJECT_SHA256 = "4c0c8c293f7e8af243e921320fd69434d2af5a5d760c94365b69c6033458214c"
+STUDIO_COURSES_PYPROJECT_SHA256 = "3e8da7e825613b7c3fdcbf4512c0f9d0d25570c60b6edb12ed56160b514731b3"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation

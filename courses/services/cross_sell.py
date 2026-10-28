@@ -16,6 +16,7 @@ registrations for chosen suggestions without asking for any data again.
 
 from dataclasses import dataclass
 from datetime import date
+from functools import partial
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -242,7 +243,7 @@ def register_suggested(source_registration, campaigns, request=None):
                 registration.save()
         except IntegrityError:
             continue
-        transaction.on_commit(lambda pk=registration.pk: queue_registration_contacts(pk))
+        transaction.on_commit(partial(queue_registration_contacts, registration.pk))
         created.append(registration)
         record_event(
             "cross_sell.registered",

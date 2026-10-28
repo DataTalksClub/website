@@ -112,6 +112,8 @@ ignore_missing_imports = true
 module = [
     "courses.registration_jobs",
     "courses.services.registration_contacts",
+    "courses.services.cross_sell",
+    "courses.tests.test_cross_sell",
     "courses.tests.test_registration_contacts",
     "courses.models.homework_solution",
     "courses.tests.test_homework_solutions",

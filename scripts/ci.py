@@ -49,6 +49,8 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/registration_jobs.py",
     "courses/services/registration_contacts.py",
     "courses/tests/test_registration_contacts.py",
+    "courses/services/cross_sell.py",
+    "courses/tests/test_cross_sell.py",
     "courses/models/homework_solution.py",
     "courses/tests/test_homework_solutions.py",
     "courses/views/homework_solution.py",
