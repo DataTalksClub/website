@@ -145,10 +145,12 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # The t1832u audit (intake cee97881) drops the deleted, unimported
 # course_management.audit_redaction from strict mypy (configuration only);
 # dependencies and the lock seal are unchanged.
+# The same audit removes the unused django-q2 runtime and pandas dev
+# dependencies (no imports; JOBS_BACKEND is never django_q).
 # If this seal fails after editing pyproject.toml, review the diff, then reseal:
 #   sha256sum pyproject.toml
 # and update STUDIO_COURSES_PYPROJECT_SHA256 below with the reviewed bytes.
-STUDIO_COURSES_PYPROJECT_SHA256 = "09bbaaedd60092d30aad73b7ced19f830fff821feb1ef24b4fbbf36c9a381d5a"
+STUDIO_COURSES_PYPROJECT_SHA256 = "4c0c8c293f7e8af243e921320fd69434d2af5a5d760c94365b69c6033458214c"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
@@ -163,8 +165,10 @@ STUDIO_COURSES_PYPROJECT_SHA256 = "09bbaaedd60092d30aad73b7ced19f830fff821feb1ef
 # lock seal tracks that entry's bytes.
 # Community-base v0.5.34 adopts the Relay mail recipient preservation
 # (46595f9b); the reviewed lock seal tracks the entry and pin reference bytes.
+# The t1832u audit (intake cee97881) drops django-q2 and pandas, removing
+# django-q2, django-picklefield, pandas and numpy from the lock.
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "7a8b83b910872702679b41ec53103daf492a86c54f6c0966a6630bbd409c5321"
+    "aa512817fdeac90077ab7b5e15b168229a15a5187df24a9828610a15623db8ff"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
