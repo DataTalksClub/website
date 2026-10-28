@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import itertools
 
+from community_base.kernel.services import ServiceContext
+
 from content.models import ContentRelease, ContentSource, expected_storage_prefix
 from content.services import (
     ActivateContentRelease,
@@ -23,7 +25,6 @@ from content.services import (
     prepare_asset,
     prepare_document,
 )
-from core.services import ServiceContext
 
 SHA256_A = "a" * 64
 SHA256_B = "b" * 64

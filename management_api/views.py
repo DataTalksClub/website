@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any
 
+from community_base.kernel.services import ServiceContext
 from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
 
@@ -12,7 +13,6 @@ from core.audit import AuditWriteContext, record_audit_event
 from core.idempotency import IdempotencyConflict, IdempotencyInProgress, execute_idempotent
 from core.models import AuditEvent, RevisionConflict
 from core.navigation import InvalidSiteNavigation, SiteNavigationRevisionConflict
-from core.services import ServiceContext
 from core.site_settings import InvalidSiteSettingsBatch, SiteSettingsRevisionConflict
 from core.sponsors import InvalidSponsor, SponsorNotFound, SponsorRevisionConflict
 from event_qna.errors import QnaError

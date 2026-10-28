@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from community_base.config.models import Setting as PackageSetting
+from community_base.kernel.services import ServiceContext, validate_actor_ref
 from django.db import IntegrityError, transaction
 
 from core.audit import AuditWriteContext, record_audit_event
@@ -42,7 +43,6 @@ from core.models import (
     OperationalSetting,
     RevisionConflict,
 )
-from core.services import ServiceContext, validate_actor_ref
 
 #: The two surfaces allowed to author a settings row.  ``code_default`` is not
 #: here: it is what a *missing* row resolves to, never something we store.

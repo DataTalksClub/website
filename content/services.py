@@ -12,6 +12,8 @@ from typing import Any
 
 from bleach import Cleaner  # type: ignore[import-untyped]
 from community_base.jobs.dispatch import dispatch_after_commit
+from community_base.kernel.redaction import redact_value
+from community_base.kernel.services import ServiceContext
 from django.db import IntegrityError, OperationalError, transaction
 from django.db.models import F, Max
 from django.utils import timezone
@@ -20,8 +22,6 @@ from core.audit import AuditWriteContext, record_audit_event
 from core.idempotency import JsonObject, canonical_json, canonical_json_object
 from core.models import AuditEvent, RevisionConflict
 from core.operations import lock_revisioned
-from core.redaction import redact_value
-from core.services import ServiceContext
 
 from .inventory import content_route_contracts
 from .jobs import CONTENT_RELEASE_INVALIDATION_VERSION, release_invalidation_prefixes

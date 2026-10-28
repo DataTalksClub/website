@@ -4,13 +4,14 @@ import re
 import uuid
 from typing import Any, cast
 
+from community_base.kernel.context import AuditContext as ExecutionAuditContext
+from community_base.kernel.context import current_context
+from community_base.kernel.redaction import redact_value
 from django.db import transaction
 from django.db.models import QuerySet
 from django.utils import timezone
 
 from core.audit import AuditWriteContext, record_audit_event
-from core.context import AuditContext as ExecutionAuditContext
-from core.context import current_context
 from core.idempotency import (
     JsonObject,
     canonical_json,
@@ -19,7 +20,6 @@ from core.idempotency import (
 )
 from core.limits import MAX_OPERATION_JSON_BYTES
 from core.models import AuditEvent, Operation, RevisionConflict, RevisionedModel
-from core.redaction import redact_value
 
 _OPERATION_KIND = re.compile(r"^[a-z][a-z0-9_.:-]{0,127}$")
 

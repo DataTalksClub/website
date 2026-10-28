@@ -20,11 +20,12 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from community_base.kernel.context import new_context_id
+from community_base.kernel.services import ServiceContext
+
 from content.models import ContentSource
 from content.services import CreateContentSource, create_content_source
 from content_sync.course_repository_webhook import COURSE_REPOSITORY_ADAPTER_TYPE
-from core.context import new_context_id
-from core.services import ServiceContext
 
 REGISTRATION_INPUT_PATH = Path(__file__).resolve().parent / "course_repository_sources.json"
 REGISTRATION_SCHEMA_VERSION = 1

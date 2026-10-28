@@ -3,9 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from community_base.kernel.services import ServiceContext
 from django.db.models import F
-
-from core.services import ServiceContext
 
 from .models import ContentAsset, ContentDocument, ContentRelease
 

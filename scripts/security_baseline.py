@@ -52,7 +52,6 @@ def run_security_baseline(repository: Path) -> dict[str, Any]:
         "Dockerfile",
         "core/security.py",
         "core/middleware.py",
-        "core/redaction.py",
         "scripts/security_artifact_scan.py",
         "scripts/security_canary_artifact.py",
         "scripts/security_vulnerability_scan.py",
@@ -99,7 +98,7 @@ def run_security_baseline(repository: Path) -> dict[str, Any]:
         "development_secure_session_cookie": "SESSION_COOKIE_SECURE = True" in development_settings,
         "development_secure_csrf_cookie": "CSRF_COOKIE_SECURE = True" in development_settings,
         "observability_uses_shared_redaction": (
-            "from core.redaction import" in observability and "redact(" in observability
+            "from community_base.kernel.redaction import" in observability and "redact(" in observability
         ),
         "locked_dependency_present": (repository / "uv.lock").stat().st_size > 0,
         "dependency_vulnerability_policy_is_fail_closed": (

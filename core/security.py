@@ -13,7 +13,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from core.redaction import redact
+from community_base.kernel.redaction import redact
 
 MAX_REQUEST_BODY_BYTES = 2 * 1024 * 1024
 MAX_WEBHOOK_BODY_BYTES = 256 * 1024

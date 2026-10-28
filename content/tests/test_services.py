@@ -4,6 +4,7 @@ import json
 from collections.abc import Callable
 from unittest.mock import patch
 
+from community_base.kernel.services import ServiceContext
 from django.test import TestCase
 
 from content.models import (
@@ -49,7 +50,6 @@ from content.services import (
     sanitize_rendered_html,
 )
 from core.models import AuditEvent, RevisionConflict
-from core.services import ServiceContext
 
 from .factories import CONTEXT, activate, make_ready_release, make_source
 

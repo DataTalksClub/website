@@ -23,11 +23,11 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from community_base.kernel.services import ServiceContext, validate_actor_ref
 from django.db import transaction
 
 from core.audit import AuditWriteContext, record_audit_event
 from core.models import AuditEvent
-from core.services import ServiceContext, validate_actor_ref
 from courses.models.cohort import Cohort, Course, RegistrationCampaign
 
 __all__ = [

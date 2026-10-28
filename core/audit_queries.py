@@ -15,18 +15,18 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from community_base.kernel.context import is_safe_external_context_id
+from community_base.kernel.redaction import is_sensitive_text, redact
+from community_base.kernel.services import ServiceContext, validate_actor_ref
 from django.conf import settings
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import QuerySet
 from django.http import QueryDict
 
 from core.audit import AuditWriteContext, record_audit_event
-from core.context import is_safe_external_context_id
 from core.idempotency import JsonObject, execute_idempotent, hash_idempotency_key
 from core.models import AuditEvent
-from core.redaction import is_sensitive_text, redact
 from core.security import neutralize_csv_formula
-from core.services import ServiceContext, validate_actor_ref
 
 AUDIT_FILTERS = frozenset({"action", "outcome", "target_type", "request_id", "correlation_id"})
 AUDIT_DISPLAY_FIELDS = (

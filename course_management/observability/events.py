@@ -2,9 +2,9 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from community_base.kernel.redaction import REDACTED, is_sensitive_field, redact
 from django.conf import settings
 
-from core.redaction import REDACTED, is_sensitive_field, redact
 from core.runtime_config import get_str_setting
 
 logger = logging.getLogger(__name__)

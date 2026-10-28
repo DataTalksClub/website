@@ -2,6 +2,13 @@ import json
 import os
 from collections.abc import Callable
 
+from community_base.kernel.context import (
+    CONTEXT_ID_PATTERN,
+    bind_context,
+    external_context_id_or_new,
+    is_safe_external_context_id,
+    reset_context,
+)
 from django.conf import settings
 from django.core.handlers.wsgi import LimitedStream
 from django.http import HttpRequest, HttpResponse, HttpResponsePermanentRedirect, JsonResponse
@@ -15,13 +22,6 @@ from core.cache_policy import (
     ROUTE_CACHE_CLASSES,
     SHAREABLE_CACHE_CLASSES,
     request_query_keys,
-)
-from core.context import (
-    CONTEXT_ID_PATTERN,
-    bind_context,
-    external_context_id_or_new,
-    is_safe_external_context_id,
-    reset_context,
 )
 from core.request_cache import bind_request_memo, reset_request_memo
 from core.security import MAX_REQUEST_BODY_BYTES

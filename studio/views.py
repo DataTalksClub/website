@@ -2,6 +2,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from community_base.kernel.services import ServiceContext
 from django.http import (
     HttpRequest,
     HttpResponse,
@@ -45,7 +46,6 @@ from core.navigation import (
     InvalidSiteNavigation,
     SiteNavigationRevisionConflict,
 )
-from core.services import ServiceContext
 from core.site_settings import (
     ANNOUNCEMENT_ENABLED_KEY,
     ANNOUNCEMENT_MESSAGE_KEY,

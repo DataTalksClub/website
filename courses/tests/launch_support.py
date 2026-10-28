@@ -3,9 +3,9 @@
 import uuid
 from datetime import timedelta
 
+from community_base.kernel.services import ServiceContext
 from django.utils import timezone
 
-from core.services import ServiceContext
 from courses.models import (
     Announcement,
     AnnouncementAssignment,

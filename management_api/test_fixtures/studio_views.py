@@ -4,6 +4,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from community_base.kernel.services import ServiceContext
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
@@ -21,7 +22,6 @@ from core.high_risk import (
 )
 from core.models import Operation
 from core.operations import finish_operation, start_operation
-from core.services import ServiceContext
 from management_api.operations import create_principal_operation
 from management_auth.models import APICredential, APIPrincipal
 from management_auth.services import (

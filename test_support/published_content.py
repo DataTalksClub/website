@@ -23,6 +23,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
 
+from community_base.kernel.services import ServiceContext
 from django.utils import timezone
 
 from content.catalogue import PUBLIC_CONTENT_STABLE_ID
@@ -36,7 +37,6 @@ from content.services import (
     begin_release_validation,
     mark_release_ready,
 )
-from core.services import ServiceContext
 
 
 @dataclass(frozen=True, slots=True)

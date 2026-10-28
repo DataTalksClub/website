@@ -1,9 +1,9 @@
 """Authenticated JSON adapter over the launch domain."""
 
+from community_base.kernel.services import ServiceContext
 from django.http import JsonResponse
 
 from core.idempotency import IdempotencyConflict, IdempotencyInProgress
-from core.services import ServiceContext
 from courses.services.launch_validation import LAUNCH_IDEMPOTENCY_KEY_MAX, LaunchError
 from management_api.concurrency import require_navigation_if_match
 from management_api.dispatch import admin_capability

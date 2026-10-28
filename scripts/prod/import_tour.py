@@ -73,6 +73,7 @@ def run(*, path: Path = REVIEWED_PATH, apply: bool = True) -> dict:
     if not apply:
         return {"applied": False, "validated": True}
 
+    from community_base.kernel.services import ServiceContext
     from django.db import transaction
 
     from content.models import ContentDocument
@@ -86,7 +87,6 @@ def run(*, path: Path = REVIEWED_PATH, apply: bool = True) -> dict:
         mark_release_ready,
     )
     from content.tour_content import TOUR_SOURCE_ID
-    from core.services import ServiceContext
     from scripts.prod.reviewed_release import canonical_digest, open_reviewed_release
 
     with transaction.atomic():

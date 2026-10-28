@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlsplit
 
+from community_base.kernel.services import ServiceContext, validate_actor_ref
 from django.db import DatabaseError, IntegrityError
 from django.db.models import Prefetch
 from django.urls import NoReverseMatch, reverse
@@ -35,7 +36,6 @@ from core.models import (
     SiteNavigationEntry,
     SiteNavigationMenu,
 )
-from core.services import ServiceContext, validate_actor_ref
 
 logger = logging.getLogger(__name__)
 

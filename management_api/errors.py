@@ -3,9 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from community_base.kernel.redaction import redact
 from django.http import HttpRequest, JsonResponse
-
-from core.redaction import redact
 
 
 @dataclass(slots=True)

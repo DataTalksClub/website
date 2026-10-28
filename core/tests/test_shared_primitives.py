@@ -3,6 +3,10 @@ from __future__ import annotations
 import json
 from unittest import mock
 
+from community_base.kernel.context import AuditContext as ExecutionAuditContext
+from community_base.kernel.context import context_scope, current_context
+from community_base.kernel.redaction import REDACTED
+from community_base.kernel.services import ServiceContext
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, connection, transaction
 from django.test import TestCase, TransactionTestCase
@@ -15,8 +19,6 @@ from core.configuration import (
     resolve_operational_setting,
     set_operational_setting,
 )
-from core.context import AuditContext as ExecutionAuditContext
-from core.context import context_scope, current_context
 from core.idempotency import (
     IdempotencyConflict,
     IdempotencyInProgress,
@@ -48,8 +50,6 @@ from core.operations import (
     start_operation,
     update_operation_progress,
 )
-from core.redaction import REDACTED
-from core.services import ServiceContext
 
 BOOLEAN_SETTING = register_operational_setting(
     OperationalSettingDefinition(

@@ -507,6 +507,8 @@ def _content(context: FactoryContext, state: str) -> dict[str, object]:
         size=1,
         checksum=canonical_sha256({"factory": asset_factory, "state": state}),
     )
+    from community_base.kernel.services import ServiceContext
+
     from content.services import (
         ActivateContentRelease,
         MarkReleaseReady,
@@ -517,7 +519,6 @@ def _content(context: FactoryContext, state: str) -> dict[str, object]:
         mark_release_ready,
     )
     from core.models import AuditEvent
-    from core.services import ServiceContext
 
     service_context = ServiceContext(
         correlation_id=f"factory-{_key(context, release_factory, state)}",

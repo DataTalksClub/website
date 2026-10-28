@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Any, TypedDict
 from urllib.parse import urlsplit
 
+from community_base.kernel.services import ServiceContext, validate_actor_ref
 from django.db import DatabaseError, IntegrityError, transaction
 from django.db.models import Prefetch
 from django.db.models.functions import Lower
@@ -58,7 +59,6 @@ from core.models import (
     SponsorPlacementAssignment,
 )
 from core.security import UnsafeInputError, neutralize_csv_formula, validate_url
-from core.services import ServiceContext, validate_actor_ref
 
 logger = logging.getLogger(__name__)
 

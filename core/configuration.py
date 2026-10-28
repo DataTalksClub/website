@@ -5,6 +5,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any, cast
 
+from community_base.kernel.redaction import is_sensitive_text
 from django.db import transaction
 
 from core.audit import AuditWriteContext, record_audit_event
@@ -14,7 +15,6 @@ from core.models import (
     OperationalSetting,
     RevisionConflict,
 )
-from core.redaction import is_sensitive_text
 
 _SETTING_KEY = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
 _SETTING_SOURCE = re.compile(r"^[a-z][a-z0-9_.:-]{0,63}$")
@@ -138,7 +138,7 @@ def _validate_no_secret_bearing_names(value: JsonValue, *, path: str) -> None:
     mutilated shape.  What each setting may hold is the business of its own
     validator in ``core.operational_settings``, which is strict about the shape
     it declares.  Keeping secrets out of the logs is the logging boundary's job
-    and stays with ``core.redaction``.
+    and stays with ``community_base.kernel.redaction``.
     """
 
     if isinstance(value, dict):

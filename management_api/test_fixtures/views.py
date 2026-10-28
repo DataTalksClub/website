@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import timedelta
 
+from community_base.kernel.services import ServiceContext
 from django.http import HttpRequest, JsonResponse
 
 from core.high_risk import (
@@ -14,7 +15,6 @@ from core.high_risk import (
 )
 from core.models import Operation, RevisionConflict, StaffSession
 from core.operations import finish_operation, start_operation
-from core.services import ServiceContext
 from management_api.bulk import bounded_bulk_errors, parse_bulk_items
 from management_api.concurrency import require_if_match
 from management_api.dispatch import admin_capability

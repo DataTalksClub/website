@@ -16,12 +16,12 @@ course-launch management permission. The site_admin role carries it;
 
 from __future__ import annotations
 
+from community_base.kernel.redaction import is_sensitive_text
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from accounts.identity_resolution import identity_state_eligible
 from accounts.studio_authorization import has_explicit_permission
-from core.redaction import is_sensitive_text
 from management_auth.constants import (
     DEFAULT_CREDENTIAL_LIFETIME,
     DIGEST_ALGORITHM,

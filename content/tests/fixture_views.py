@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from community_base.kernel.services import ServiceContext
 from django.http import HttpRequest, HttpResponse
 from django.template import Context, Engine
 
@@ -11,7 +12,6 @@ from content.queries import (
     resolve_public_asset,
     resolve_public_document,
 )
-from core.services import ServiceContext
 
 _CONTEXT = ServiceContext(correlation_id="content-browser-fixture")
 _TEMPLATE_DIRECTORY = Path(__file__).parent / "templates"

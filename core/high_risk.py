@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, NoReturn, Protocol
 
+from community_base.kernel.redaction import is_sensitive_text, redact
+from community_base.kernel.services import ServiceContext
 from django.conf import settings
 from django.utils import timezone
 
@@ -27,8 +29,6 @@ from core.idempotency import (
     hash_idempotency_key,
 )
 from core.models import AuditEvent
-from core.redaction import is_sensitive_text, redact
-from core.services import ServiceContext
 
 
 class HighRiskDenied(PermissionError):

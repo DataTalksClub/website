@@ -6,11 +6,12 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from core.context import AuditContext as ExecutionAuditContext
-from core.context import current_context, validate_context_id
+from community_base.kernel.context import AuditContext as ExecutionAuditContext
+from community_base.kernel.context import current_context, validate_context_id
+from community_base.kernel.services import ServiceContext, validate_actor_ref
+
 from core.idempotency import JsonObject, canonical_json_object
 from core.models import AuditEvent
-from core.services import ServiceContext, validate_actor_ref
 
 _AUDIT_IDENTIFIER = re.compile(r"^[a-z][a-z0-9_.:-]{0,127}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -75,15 +76,15 @@ class AuditWriteContext:
 
 def _redacted_json_object(value: Mapping[str, Any]) -> JsonObject:
     # Import lazily so audit persistence remains independent of request middleware.
-    # core.redaction is the single shared policy used by logs, jobs, and audit events.
-    from core.redaction import redact_value
+    # community_base.kernel.redaction is the single shared policy for logs, jobs, and audits.
+    from community_base.kernel.redaction import redact_value
 
     redacted = redact_value(value)
     return canonical_json_object(redacted)
 
 
 def _redacted_label(value: str) -> str:
-    from core.redaction import redact_value
+    from community_base.kernel.redaction import redact_value
 
     redacted = redact_value(value)
     if not isinstance(redacted, str):

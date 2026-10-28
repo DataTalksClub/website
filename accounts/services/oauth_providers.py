@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from allauth.socialaccount.models import SocialApp
+from community_base.kernel.services import ServiceContext, validate_actor_ref
 from django.conf import settings as django_settings
 from django.contrib.sites.models import Site
 from django.core.cache import cache
@@ -37,7 +38,6 @@ from core.audit import AuditWriteContext, record_audit_event
 from core.idempotency import JsonObject, JsonValue
 from core.models import AuditEvent
 from core.runtime_config import get_str_setting
-from core.services import ServiceContext, validate_actor_ref
 
 #: The three providers ``website.settings.base`` installs.  A provider that is
 #: not installed cannot be configured here: allauth would have no login view for
@@ -248,7 +248,7 @@ def set_oauth_provider(
             # Only the shape of the change is recorded: whether a client ID is
             # present, and whether the provider is now usable.  The secret never
             # reaches the trail, and neither does its length.  The field names
-            # avoid the word "secret" on purpose -- ``core.redaction`` would
+            # avoid the word "secret" on purpose -- ``community_base.kernel.redaction`` would
             # blank a field named for one, leaving a trail that records that
             # something changed without saying what.
             changes={

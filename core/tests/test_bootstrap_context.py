@@ -5,6 +5,24 @@ import sys
 from contextvars import copy_context
 from pathlib import Path
 
+from community_base.kernel.context import (
+    ContextIdError,
+    bind_context,
+    context_scope,
+    current_context,
+    external_context_id_or_new,
+    reset_context,
+    validate_context_id,
+)
+from community_base.kernel.redaction import (
+    CYCLE,
+    REDACTED,
+    TRUNCATED,
+    RedactionPolicy,
+    redact,
+    redact_value,
+)
+from community_base.kernel.services import ServiceContext
 from django.http import HttpRequest, HttpResponse
 from django.test import SimpleTestCase
 
@@ -19,18 +37,7 @@ from core.bootstrap import (
     parse_list,
     parse_secret,
 )
-from core.context import (
-    ContextIdError,
-    bind_context,
-    context_scope,
-    current_context,
-    external_context_id_or_new,
-    reset_context,
-    validate_context_id,
-)
 from core.middleware import RequestIdMiddleware
-from core.redaction import CYCLE, REDACTED, TRUNCATED, RedactionPolicy, redact, redact_value
-from core.services import ServiceContext
 
 
 class BootstrapParserTests(SimpleTestCase):

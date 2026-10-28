@@ -1,7 +1,7 @@
 """Stable deconstructible validators shared by current models and historical migrations.
 
 This module is deliberately self-contained.  Migrations serialize these import paths, so it
-must not depend on mutable application modules such as ``core.redaction``.
+must not depend on mutable application modules such as ``core.audit``.
 """
 
 from __future__ import annotations

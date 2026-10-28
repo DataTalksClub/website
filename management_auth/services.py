@@ -5,6 +5,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import timedelta
 
+from community_base.kernel.redaction import is_sensitive_text
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.db import IntegrityError, transaction
@@ -17,7 +18,6 @@ from core.audit import AuditWriteContext, record_audit_event
 from core.capabilities import Capability
 from core.idempotency import JsonObject, JsonValue
 from core.models import AuditEvent, RevisionConflict
-from core.redaction import is_sensitive_text
 
 from .constants import (
     DEFAULT_CREDENTIAL_LIFETIME,

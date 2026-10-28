@@ -20,6 +20,8 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from community_base.kernel.services import ServiceContext
+
 from core.capabilities import (
     AdapterMetadata,
     Capability,
@@ -31,7 +33,6 @@ from core.configuration import InvalidOperationalSetting
 from core.idempotency import JsonObject, JsonValue
 from core.operational_settings import OPERATIONAL_SETTING_KEYS
 from core.runtime_config import resolve_runtime_setting
-from core.services import ServiceContext
 from core.settings_batch import (
     SettingsBatchResult,
     SettingsScope,

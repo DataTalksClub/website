@@ -6,6 +6,7 @@ from datetime import timedelta
 from typing import Any, cast
 from unittest.mock import patch
 
+from community_base.kernel.services import ServiceContext
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import Resolver404, resolve
@@ -29,7 +30,6 @@ from core.high_risk import (
 )
 from core.idempotency import JsonObject
 from core.models import AuditEvent
-from core.services import ServiceContext
 
 
 class FixtureService:

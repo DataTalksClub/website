@@ -11,7 +11,7 @@ import argparse
 import json
 from pathlib import Path
 
-from core.redaction import redact
+from community_base.kernel.redaction import redact
 
 SECURITY_CANARIES = (
     "synthetic-secret-canary",

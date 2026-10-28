@@ -4,7 +4,7 @@
 and if not, why not?".  It used to answer that by freezing the whole Datamailer
 exchange: `str(exc)` verbatim, and `response_payload` verbatim.  That payload
 carries `message.email`, and on a dry-run send it carries `rendered.html_body`
-as well.  None of it passed through `core.redaction`, whose `_SENSITIVE_KEYS`
+as well.  None of it passed through `community_base.kernel.redaction`, whose `_SENSITIVE_KEYS`
 already classifies `body` and `emailbody` as sensitive — so the project's own
 policy was bypassed on exactly the path that handles member addresses.
 
@@ -19,7 +19,7 @@ So the row keeps what diagnoses a failure and drops what identifies a person:
 * `error` keeps its exception class and status code with the address, URL or
   token spans masked, plus a fingerprint of the original so two occurrences of
   the same failure can still be recognised as the same failure;
-* `response_payload` goes through `core.redaction`, which already knows that a
+* `response_payload` goes through `community_base.kernel.redaction`, which already knows that a
   `*_body` key and an address-shaped or URL-shaped string are sensitive;
 * the rendered subject and bodies survive only on a send that did not deliver.
 
@@ -37,7 +37,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from core.redaction import mask_sensitive_spans, redact
+from community_base.kernel.redaction import mask_sensitive_spans, redact
 
 # Kept verbatim on a dry-run send only.  Everything else in the payload is
 # redacted whether the send delivered or not.

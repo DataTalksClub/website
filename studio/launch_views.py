@@ -3,11 +3,11 @@
 import json
 import uuid
 
+from community_base.kernel.services import ServiceContext
 from django.contrib import messages
 from django.shortcuts import redirect, render
 
 from core.idempotency import IdempotencyConflict, IdempotencyInProgress
-from core.services import ServiceContext
 from courses.services.launch_validation import LaunchError
 from management_registry import CAPABILITY_REGISTRY
 from studio.auth import capability_required

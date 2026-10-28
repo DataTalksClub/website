@@ -23,7 +23,7 @@ its keep is the per-setting validator: an origin is https with no path, an
 endpoint is an absolute URL with no userinfo and no query string, and a sender
 is exactly one sender.  That refuses the thing the pattern was aimed at -- a
 credential smuggled through a URL -- while letting the ordinary value through.
-Keeping secrets out of logs remains ``core.redaction``'s job at the logging
+Keeping secrets out of logs remains ``community_base.kernel.redaction``'s job at the logging
 boundary, where it is unchanged.
 
 What is deliberately *not* here:
