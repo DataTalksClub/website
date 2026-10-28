@@ -296,7 +296,6 @@ courses/deadline_reminder_queries.py
 courses/deadline_reminder_specs.py
 courses/deadline_reminder_types.py
 courses/homework_answer_checks.py
-courses/homework_answer_crypto.py
 courses/homework_answer_resolution.py
 courses/homework_correct_answers.py
 courses/homework_question_stats.py
