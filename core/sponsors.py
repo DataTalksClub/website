@@ -1849,22 +1849,6 @@ def _export_factory() -> JsonObject:
     }
 
 
-def _sponsor_field_policy(_actor: object, field: str) -> bool:
-    return field in {
-        "key",
-        "name",
-        "url",
-        "tagline",
-        "lifecycle",
-        "assignments",
-        "expected_revision",
-        "confirmed",
-        "reason",
-        "placement",
-        "filters",
-    }
-
-
 def _sponsor_object_policy(_actor: object, _sponsor: object) -> bool:
     return True
 

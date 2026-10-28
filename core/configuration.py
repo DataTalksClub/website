@@ -439,19 +439,3 @@ def set_operational_setting(
             definition_version=definition.version,
             revision=setting.revision,
         )
-
-
-def operational_setting_snapshot(*, using: str = "default") -> JsonObject:
-    """Resolve every registered safe setting with its visible source and revision."""
-
-    return {
-        definition.key: {
-            "value": resolved.value,
-            "value_type": resolved.value_type,
-            "source": resolved.source,
-            "definition_version": resolved.definition_version,
-            "revision": resolved.revision,
-        }
-        for definition in registered_operational_settings()
-        for resolved in [resolve_operational_setting(definition.key, using=using)]
-    }

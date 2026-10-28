@@ -303,18 +303,6 @@ def _service_context(
     )
 
 
-def _confirmed_action_payload(request: HttpRequest) -> dict:
-    payload = parse_json_object(request)
-    _enforce_fields(
-        request,
-        payload,
-        required=frozenset({"confirmed", "reason_code"}),
-    )
-    if payload["confirmed"] is not True or not isinstance(payload["reason_code"], str):
-        raise APIError(400, "confirmation_required", "Explicit confirmation is required.")
-    return payload
-
-
 @admin_capability("studio.home.read")
 def admin_health(request: HttpRequest) -> JsonResponse:
     identity = request.api_identity  # type: ignore[attr-defined]

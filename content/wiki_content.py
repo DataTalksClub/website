@@ -514,12 +514,6 @@ def episode_graph(episode: dict[str, Any]) -> EpisodeGraph:
     )
 
 
-def podcast_episode_graph(episode: dict[str, Any]) -> EpisodeGraph:
-    """Descriptive alias for the episode graph resolver used by extensions."""
-
-    return episode_graph(episode)
-
-
 def _graph() -> dict[str, Any]:
     return catalogue.wiki_graph()
 

@@ -10,7 +10,6 @@ from django.contrib.auth.hashers import PBKDF2PasswordHasher
 
 from .constants import (
     DIGEST_ALGORITHM,
-    DIGEST_VERSION,
     PREFIX_BYTES,
     PREFIX_LENGTH,
     SECRET_BYTES,
@@ -92,7 +91,3 @@ def hasher_contract_is_valid() -> bool:
         )
     except (TypeError, ValueError):
         return False
-
-
-def digest_metadata() -> tuple[str, int]:
-    return DIGEST_ALGORITHM, DIGEST_VERSION

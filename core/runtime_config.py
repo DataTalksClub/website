@@ -120,10 +120,6 @@ SETTINGS_LAYER = "settings"
 DEFAULT_LAYER = "code_default"
 
 
-class RuntimeSettingUnavailable(RuntimeError):
-    """The registry declares the key, but no layer could produce a valid value."""
-
-
 @dataclass(frozen=True, slots=True)
 class RuntimeSettingResolution:
     """One resolved value and the layer that actually produced it."""

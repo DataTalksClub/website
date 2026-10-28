@@ -311,35 +311,6 @@ def _render_credentials(
     )
 
 
-def _event_actor(
-    request: HttpRequest,
-    capability_key: str,
-):
-    capability = CAPABILITY_REGISTRY.require(capability_key)
-    try:
-        principal = authorize_studio_request(
-            request_user=request.user,
-            session_reference=session_reference(request),
-            capability=capability,
-        )
-    except StudioAuthenticationRequired:
-        return HttpResponse("Studio authentication required", status=401)
-    except StudioAuthorizationDenied:
-        return HttpResponseForbidden("Studio access denied")
-    return principal
-
-
-def _studio_event_context(
-    request: HttpRequest,
-    *,
-    idempotency_key: str | None = None,
-) -> ServiceContext:
-    return ServiceContext.from_current(
-        actor_ref=f"user:{request.user.pk}",
-        idempotency_key=idempotency_key,
-    )
-
-
 @staff_required
 def home(request: HttpRequest) -> HttpResponse:
     principal = request.studio_principal  # type: ignore[attr-defined]

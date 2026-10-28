@@ -303,13 +303,6 @@ def _decorate_rows(submissions, family=None, cohort=None, project=None):
             submission.repository_url = enrichment.effective_url
 
 
-def cohort_gallery_url(cohort: Cohort) -> str:
-    """The sole public cohort-gallery location, using stable identities."""
-
-    query = urlencode({"course": cohort.course.slug, "cohort": cohort.identifier})
-    return f"{reverse('all_projects')}?{query}"
-
-
 def _one_query_value(request, name: str) -> str:
     values = request.GET.getlist(name)
     if len(values) > 1:

@@ -361,39 +361,6 @@ def _idempotency_scope(actor_ref: str) -> str:
     return scope
 
 
-def _entry_dicts(entries: object) -> list[JsonObject]:
-    items: list[JsonObject] = []
-    if not isinstance(entries, list):
-        return items
-    for item in entries:
-        if isinstance(item, NormalizedNavigationEntry):
-            items.append(item.as_dict())
-        elif isinstance(item, dict):
-            key = item.get("key")
-            label = item.get("label")
-            target = item.get("target")
-            position = item.get("position")
-            visible = item.get("visible")
-            if (
-                isinstance(key, str)
-                and isinstance(label, str)
-                and isinstance(target, str)
-                and isinstance(position, int)
-                and not isinstance(position, bool)
-                and isinstance(visible, bool)
-            ):
-                items.append(
-                    {
-                        "key": key,
-                        "label": label,
-                        "target": target,
-                        "position": position,
-                        "visible": visible,
-                    }
-                )
-    return items
-
-
 def serialize_navigation_menu(
     menu: SiteNavigationMenu,
     *,

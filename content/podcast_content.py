@@ -26,8 +26,6 @@ from django.core.exceptions import ImproperlyConfigured
 
 from . import catalogue
 from .podcast_resources import (
-    PodcastResourceError,
-    normalize_podcast_resource,
     normalize_podcast_resources,
 )
 from .podcast_routes import podcast_canonical_path
@@ -365,22 +363,6 @@ def _safe_external_url(value: Any, *, field: str, https_only: bool = False) -> s
         suffix = "https address" if https_only else "web address"
         raise ImproperlyConfigured(f"Public podcast {field} must be an {suffix}.")
     return value
-
-
-def _safe_resource_url(
-    value: Any,
-    *,
-    podcast_records: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
-) -> str:
-    """Validate one resource URL for callers that need strict composition."""
-
-    try:
-        return normalize_podcast_resource(
-            {"title": "Resource", "url": value},
-            records=podcast_records,
-        ).url
-    except PodcastResourceError as error:
-        raise ImproperlyConfigured("Public podcast resource URL is invalid.") from error
 
 
 def _person_summary(person: dict[str, Any]) -> str:

@@ -31,13 +31,6 @@ def _payload_int(payload: JobPayload, key: str) -> int:
     return value
 
 
-def _payload_bool(payload: JobPayload, key: str) -> bool:
-    value = payload.get(key)
-    if not isinstance(value, bool):
-        raise PermanentJobError(f"invalid_{key}")
-    return value
-
-
 @register_handler(HOMEWORK_SCORE_HANDLER)
 def score_homework_job(context: JobContext, payload: JobPayload) -> None:
     del context

@@ -412,10 +412,6 @@ def _pointer_join(pointer: str, part: str | int) -> str:
     return f"{pointer.rstrip('/')}/{value}"
 
 
-def _json_pointer(part: str | int) -> str:
-    return _pointer_join("/", part)
-
-
 def _is_known_yaml_tag(tag: str | None) -> bool:
     return tag in {
         _YAML_STR,
@@ -554,30 +550,6 @@ def _required_string(
         diagnostics.add("schema_limit_exceeded", source_path, child_pointer)
     if nonempty and not value:
         diagnostics.add("schema_required_value_missing", source_path, child_pointer)
-    return value
-
-
-def _optional_string(
-    mapping: Mapping[str, Node],
-    key: str,
-    *,
-    source_path: str,
-    pointer: str,
-    diagnostics: _Diagnostics,
-    maximum: int,
-    allow_timestamp: bool = False,
-) -> str | None:
-    if key not in mapping:
-        return None
-    value = _required_string(
-        mapping,
-        key,
-        source_path=source_path,
-        pointer=pointer,
-        diagnostics=diagnostics,
-        maximum=maximum,
-        allow_timestamp=allow_timestamp,
-    )
     return value
 
 

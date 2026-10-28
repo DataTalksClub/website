@@ -24,13 +24,10 @@ from core.idempotency import JsonObject, JsonValue
 from core.models import OperationalSetting
 from core.settings_batch import (
     InvalidSettingsBatch,
-    NormalizedSettingUpdate,
     SettingsBatchResult,
     SettingsRevisionConflict,
     SettingsScope,
-    normalize_updates,
     query_settings,
-    scope_definitions,
     scope_settings_factory,
     update_settings,
 )
@@ -122,14 +119,6 @@ SITE_SETTINGS_SCOPE = SettingsScope(
     audit_action_write=SITE_SETTINGS_AUDIT_WRITE,
     idempotency_prefix="site.settings.write",
 )
-
-
-def _site_definitions() -> tuple[OperationalSettingDefinition, ...]:
-    return scope_definitions(SITE_SETTINGS_SCOPE)
-
-
-def _normalize_updates(updates: object) -> tuple[NormalizedSettingUpdate, ...]:
-    return normalize_updates(SITE_SETTINGS_SCOPE, updates)
 
 
 def query_site_settings(

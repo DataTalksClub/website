@@ -82,17 +82,3 @@ def strip_leaked_target_attributes(
     if not published_body:
         return value
     return _replace_outside_code_spans(value, _LEAKED_TARGET_ATTRIBUTE_RE, "")
-
-
-def target_attribute_count(value: str) -> int:
-    """Count supported target metadata outside code spans, for the published-body canary."""
-
-    count = 0
-
-    def count_match(match: re.Match[str]) -> str:
-        nonlocal count
-        count += 1
-        return match.group(0)
-
-    _replace_outside_code_spans(value, _TARGET_ATTRIBUTE_RE, count_match)
-    return count

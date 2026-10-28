@@ -13,7 +13,6 @@ say so in the log instead of propagating.  Visibility is enforced in one place: 
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Sequence
 from datetime import date
 
 from django.db import DatabaseError
@@ -67,12 +66,6 @@ def cohort_recency_key(cohort: Cohort) -> tuple[int, date, int]:
     return (cohort.year, cohort.start_date or date.min, cohort.id)
 
 
-def newest_cohort(cohorts: Iterable[Cohort]) -> Cohort | None:
-    """Return the newest edition of the given cohorts, or ``None`` for none at all."""
-
-    return max(cohorts, key=cohort_recency_key, default=None)
-
-
 def latest_visible_cohort_per_family(*, prefetch_assignments: bool = False) -> dict[str, Cohort]:
     """Map every visible course family slug to its newest visible cohort.
 
@@ -98,15 +91,3 @@ def latest_visible_cohort_per_family(*, prefetch_assignments: bool = False) -> d
         if current is None or cohort_recency_key(cohort) > cohort_recency_key(current):
             latest[family_slug] = cohort
     return latest
-
-
-def latest_visible_cohort_for_families(family_slugs: Sequence[str]) -> Cohort | None:
-    """Return the newest visible cohort across the given family slugs.
-
-    A page that speaks about one course passes every family slug that course is
-    currently stored under, so a split family (issue #308) still resolves to its
-    newest edition instead of an older duplicate.
-    """
-
-    latest = latest_visible_cohort_per_family()
-    return newest_cohort(cohort for slug, cohort in latest.items() if slug in set(family_slugs))

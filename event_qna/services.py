@@ -13,7 +13,6 @@ import re
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from enum import StrEnum
 from typing import Any
 
 from community_base.events.models import Event
@@ -81,13 +80,6 @@ class EventQnaError(ValueError):
 
 class EventQnaNotFound(LookupError):
     """The requested Event does not exist."""
-
-
-class QnaProvisioningState(StrEnum):
-    PENDING = "pending"
-    RETRYING = "retrying"
-    READY = "ready"
-    BLOCKED = "blocked"
 
 
 @dataclass(frozen=True, slots=True)
@@ -246,23 +238,6 @@ def ensure_native_event_qna(
             session.backend_reference = result.backend_reference
             session.save(using=using, update_fields=("backend_reference", "updated_at"))
         return session
-
-
-def provisioning_state(session: EventQnaSession) -> QnaProvisioningState:
-    """Return a safe non-secret status for Studio/future management adapters."""
-
-    if session.provisioning_job_id is None:
-        return QnaProvisioningState.PENDING
-    job = session.provisioning_job
-    if job is None:
-        return QnaProvisioningState.PENDING
-    if job.status == JobIntent.Status.SUCCEEDED:
-        return QnaProvisioningState.READY
-    if job.status in JobIntent.TERMINAL_STATUSES:
-        return QnaProvisioningState.BLOCKED
-    # PENDING, SUBMITTED and FAILED-with-attempts-left are all re-claimable
-    # under the package runner, so the learner-visible state is "retrying".
-    return QnaProvisioningState.RETRYING
 
 
 def retry_event_qna_provision(
@@ -1072,45 +1047,6 @@ def revoke_cohost(
                 metadata={"invite_id": invite.invite_id},
                 using=using,
             )
-
-
-def bulk_moderate(
-    event_id: uuid.UUID | str | int,
-    *,
-    action: str,
-    question_ids: object,
-    using: str = DEFAULT_DB_ALIAS,
-    audit_context: AuditWriteContext | None = None,
-) -> list[dict[str, Any]]:
-    if not isinstance(question_ids, list) or not question_ids or len(question_ids) > 100:
-        raise QnaError(400, "invalid_question_ids", "question_ids must contain 1 to 100 IDs.")
-    mapping: dict[str, dict[str, Any]] = {
-        "answer": {"status": EventQnaQuestion.Status.ANSWERED},
-        "delete": {"status": EventQnaQuestion.Status.DELETED},
-        "pin": {"pinned": True},
-        "unpin": {"pinned": False},
-    }
-    if action not in mapping:
-        raise QnaError(400, "invalid_action", "The moderation action is invalid.")
-    results = []
-    for question_id in question_ids:
-        if not isinstance(question_id, str):
-            results.append({"question_id": None, "ok": False, "error": "invalid_id"})
-            continue
-        try:
-            update_question(
-                event_id,
-                question_id,
-                mapping[action],
-                moderator=True,
-                using=using,
-                audit_context=audit_context,
-            )
-        except QnaError as error:
-            results.append({"question_id": question_id, "ok": False, "error": error.code})
-        else:
-            results.append({"question_id": question_id, "ok": True})
-    return results
 
 
 def admit_rate(

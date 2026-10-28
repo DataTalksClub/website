@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import math
-import uuid
 from collections.abc import Callable
 
 from django.db import DatabaseError, transaction
@@ -124,10 +123,6 @@ def admit(
         raise
     except DatabaseError as error:
         raise RateLimitUnavailable("management API rate storage is unavailable") from error
-
-
-def principal_subject_hash(principal_id: uuid.UUID) -> str:
-    return _subject_hash("principal", str(principal_id))
 
 
 def verify_with_adaptive_limit(

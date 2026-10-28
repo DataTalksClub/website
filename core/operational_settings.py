@@ -97,8 +97,6 @@ def _trimmed(value: JsonValue) -> JsonValue:
 _HOST = re.compile(
     r"^(?:localhost|[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)+)(?::[0-9]{1,5})?$"
 )
-#: The local part of an address, and equally the whole of a named sender.
-_MAILBOX = re.compile(r"^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]{1,64}$")
 #: Exactly one ``mailbox@domain``.  One ``@``, no display name, no comma, no
 #: angle brackets -- a list of senders is not a sender.
 _EMAIL = re.compile(
@@ -167,35 +165,6 @@ def _url(*schemes: str) -> object:
         return f"{parsed.scheme}://{parsed.netloc.casefold()}{path}"
 
     return validate
-
-
-def _sender(value: JsonValue) -> JsonValue:
-    """One sender: a whole ``mailbox@domain``, or a named sender, or empty.
-
-    ``noreply@datatalks.club`` is the obvious form and is now stored as itself.
-    The bare form is not a leftover of the old split shape: Datamailer resolves
-    a *named* sender of its own -- this deployment configures ``courses`` --
-    and refusing it here would silently drop the sender every course mail is
-    sent from, because an unreadable layer falls through to the next one.
-
-    What is refused is anything that is not *one* sender: whitespace, a comma,
-    a display name in angle brackets, a second ``@``.  A header built from a
-    list is how an injected recipient gets in.
-    """
-
-    if not isinstance(value, str):
-        raise InvalidOperationalSetting("value must be a string")
-    normalized = value.strip()
-    if not normalized:
-        return ""
-    if ".." in normalized:
-        raise InvalidOperationalSetting("value must be one sender")
-    if "@" in normalized:
-        if not _EMAIL.fullmatch(normalized):
-            raise InvalidOperationalSetting("value must be one email address")
-    elif not _MAILBOX.fullmatch(normalized):
-        raise InvalidOperationalSetting("value must be one address or one named sender")
-    return normalized
 
 
 def _declare(

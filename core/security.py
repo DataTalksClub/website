@@ -13,8 +13,6 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from community_base.kernel.redaction import redact
-
 MAX_REQUEST_BODY_BYTES = 2 * 1024 * 1024
 MAX_WEBHOOK_BODY_BYTES = 256 * 1024
 MAX_JSON_DEPTH = 8
@@ -238,9 +236,3 @@ def neutralize_csv_formula(value: object) -> object:
     if stripped.startswith(("=", "+", "-", "@")):
         return "'" + value
     return value
-
-
-def safe_artifact(value: object) -> object:
-    """Apply the shared bounded redaction policy to logs/metrics/traces."""
-
-    return redact(value)
