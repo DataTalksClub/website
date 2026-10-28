@@ -9,10 +9,7 @@ on:
   push:
     branches: [main]
     paths-ignore:
-      - "docs/**"
       - "*.md"
-      - "deploy/coolify/**"
-      - ".github/workflows/deploy-development.yml"
       - ".github/workflows/deploy-prod.yml"
       - ".github/workflows/deploy-dev.yml"
 
