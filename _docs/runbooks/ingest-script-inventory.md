@@ -102,10 +102,9 @@ tree:
   description at all rather than an error.
 - Modules, units, homework, and projects, parsed from the repository's own
   directory structure (`cohorts/<year>/`, per-module folders). Snapshot
-  transport and draft-detection are shared via
-  [`content_sync/snapshot.py`](../../content_sync/snapshot.py) /
-  [`content_sync/drafts.py`](../../content_sync/drafts.py), not reimplemented
-  per source.
+  transport is shared via
+  [`content_sync/snapshot.py`](../../content_sync/snapshot.py), not
+  reimplemented per source.
 
 Destination: [`courses/models/`](../../courses/models) (`Cohort`, `Module`,
 `Unit`, `Homework`, `Project`), plus the course's description fields.

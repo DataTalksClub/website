@@ -31,9 +31,7 @@ PYPROJECT = ROOT / "pyproject.toml"
 #: code and must be strict.
 HISTORICAL_OPT_INS = frozenset(
     {
-        "accounts/managers.py",
         "accounts/tests/test_user.py",
-        "api/auth.py",
         "api/models.py",
         "api/tests/test_admin_health.py",
         "scripts/build_local_review_db.py",
