@@ -36,7 +36,7 @@ def _is_external(target: str) -> bool:
     )
 
 
-def _unit_url(unit: Unit) -> str:
+def unit_url(unit: Unit) -> str:
     cohort = unit.module.cohort
     return reverse(
         "cohort_unit",
@@ -156,7 +156,7 @@ def rewrite_unit_markdown_links(markdown: str, unit: Unit) -> str:
         if path_part.lower().endswith(".md"):
             target_unit = units_by_path.get(resolved_path)
             if target_unit is not None:
-                return f"{_unit_url(target_unit)}{suffix}"
+                return f"{unit_url(target_unit)}{suffix}"
 
             basename = posixpath.basename(resolved_path).casefold()
             if basename == "readme.md":

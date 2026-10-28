@@ -3,7 +3,6 @@ import re
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
-from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from courses.models import CurriculumFormat, Unit
@@ -13,22 +12,9 @@ from courses.services.unit_assets import (
     unit_code_links,
     unit_repository,
 )
-from courses.services.unit_links import rewrite_unit_markdown_links
+from courses.services.unit_links import rewrite_unit_markdown_links, unit_url
 from courses.views.module import module_rail_context
 from courses.views.url_utils import get_cohort_or_404
-
-
-def _unit_url(unit: Unit) -> str:
-    cohort = unit.module.cohort
-    return reverse(
-        "cohort_unit",
-        kwargs={
-            "course_slug": cohort.course.slug,
-            "cohort_identifier": cohort.identifier,
-            "module_slug": unit.module.slug,
-            "unit_slug": unit.slug,
-        },
-    )
 
 
 def unit_edit_on_github_url(unit: Unit) -> str:
@@ -115,7 +101,7 @@ def unit_view(
         slug=unit_slug,
     )
     previous_unit, next_unit = _adjacent_units(unit)
-    canonical_path = _unit_url(unit)
+    canonical_path = unit_url(unit)
     unit_body_markdown = _unit_content(unit.content_markdown, unit.title)
     unit_body_markdown = rewrite_unit_markdown_links(unit_body_markdown, unit)
     unit_body_markdown = rewrite_unit_image_sources(unit_body_markdown, unit)
