@@ -203,7 +203,6 @@ module = [
     "scripts.rebuild_gate",
     "scripts.tests.test_rebuild_gate",
     "accounts.email_preferences",
-    "course_management.audit_redaction",
     "course_management.mail_payloads",
     "course_management.mail_preferences",
     "course_management.package_mail",
