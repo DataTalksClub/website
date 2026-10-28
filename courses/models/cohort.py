@@ -10,14 +10,13 @@ from accounts.models import User
 from courses.curriculum_source_validators import validate_course_progression
 from courses.random_names import generate_random_name
 
-from .timing import TimingOwner
-
 from .curriculum_import import (
     SOURCE_STABLE_ID_PATTERN,
     SourceProvenanceModel,
     source_provenance_constraint,
     source_stable_id_validator,
 )
+from .timing import TimingOwner
 
 
 class CurriculumFormat(models.TextChoices):
@@ -584,6 +583,22 @@ class RegistrationCampaign(models.Model):
             "the campaign requires approval."
         ),
     )
+    suggested_campaigns = models.ManyToManyField(
+        "self",
+        symmetrical=False,
+        blank=True,
+        related_name="suggested_by",
+        help_text=(
+            "Other courses to suggest after someone registers here, "
+            "ahead of the automatic soonest-start fallback. See "
+            "_docs/runbooks/cross-sell.md."
+        ),
+    )
+    exclude_from_suggestions = models.BooleanField(
+        default=False,
+        db_default=False,
+        help_text="Never suggest this campaign after another registration.",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -726,6 +741,27 @@ class CourseRegistration(models.Model):
             "until an operator reviews them. Never auto-enrolls: enrollment "
             "is a separate row."
         ),
+    )
+
+    source = models.CharField(
+        max_length=32,
+        blank=True,
+        default="",
+        db_default="",
+        db_index=True,
+        help_text=(
+            "How the registration arrived: empty for the plain form, "
+            "'xsell' for a one-click suggestion, 'xsell-link'/'xsell-email' "
+            "for a suggestion link from the success page or email."
+        ),
+    )
+    referred_by = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="cross_sell_registrations",
+        help_text="The registration whose success page suggested this one.",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

@@ -189,6 +189,11 @@ urlpatterns = [
         registration.registration_campaign_view,
         name="registration_campaign",
     ),
+    path(
+        "register/<slug:campaign_slug>/also/",
+        registration.registration_cross_sell_view,
+        name="registration_cross_sell",
+    ),
     path("wrapped/<int:year>/", wrapped.wrapped_view, name="wrapped"),
     path("wrapped/<int:year>/<int:student_id>/", wrapped.user_wrapped_view, name="user_wrapped"),
     # The bare two-segment shape is ambiguous on its face -- its second

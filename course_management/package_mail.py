@@ -11,10 +11,13 @@ moved here.
 
 from __future__ import annotations
 
+import logging
 import re
 
 from community_base.mail import send as package_send
 from django.db import transaction
+
+logger = logging.getLogger(__name__)
 
 PURPOSE_REGISTRATION_CONFIRMATION = "course-registration-confirmation"
 PURPOSE_APPLICATION_PENDING_OPERATOR = "application-pending-operator"
@@ -97,6 +100,19 @@ def _registration_verify_email_prompt(registration, email: str) -> str:
     )
 
 
+def _registration_suggested_courses(registration):
+    """The "You might also like" markdown block; empty when none apply."""
+
+    from courses.services.cross_sell import email_suggestions_markdown
+
+    try:
+        return email_suggestions_markdown(registration)
+    except Exception:
+        # Suggestions are a bonus: never let them block the confirmation.
+        logger.exception("registration_suggestions_failed registration_id=%s", registration.pk)
+        return ""
+
+
 def send_registration_confirmation_mail(registration):
     """Confirm a course registration through the package (D1.2b).
 
@@ -165,6 +181,7 @@ def send_registration_confirmation_mail(registration):
             "confirmation_url": urls["confirmation_url"],
             "verify_email_prompt": _registration_verify_email_prompt(registration, email),
             "requires_approval": campaign_requires_approval(campaign),
+            "suggested_courses": _registration_suggested_courses(registration),
         },
         idempotency_key=mail_idempotency_key(*key_parts),
         category="email_course_updates",

@@ -272,6 +272,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "courses.views.project_submissions.project_submissions": PRIVATE_DYNAMIC,
     "courses.views.site_project_gallery.project_gallery_view": PRIVATE_DYNAMIC,
     "courses.views.registration.registration_campaign_view": PRIVATE_DYNAMIC,
+    "courses.views.registration.registration_cross_sell_view": PRIVATE_DYNAMIC,
     "courses.views.registration_confirmation.registration_confirm_view": (PRIVATE_DYNAMIC),
     "courses.views.registration_confirmation."
     "registration_confirmation_resend_view": PRIVATE_DYNAMIC,

@@ -423,6 +423,40 @@
         --row-cols: minmax(0, 1fr) auto;
       }
 
+      /* Cross-sell (_registration_cross_sell.html): the same row-list as the
+         next steps, with a checkbox leading each one-click row. */
+      .registration-cross-sell,
+      .registration-cross-sell-flash {
+        border-top: 2px dashed var(--line-soft);
+        display: grid;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+      }
+
+      .registration-cross-sell-flash ul {
+        margin: 0;
+        padding-left: 1.25rem;
+      }
+
+      .registration-cross-sell-main {
+        align-items: flex-start;
+        display: flex;
+        gap: 0.6rem;
+      }
+
+      .registration-cross-sell-main label {
+        cursor: pointer;
+        display: block;
+      }
+
+      .registration-cross-sell-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-top: 0.75rem;
+      }
+
       .registration-next-step-title {
         color: var(--ink);
         font-weight: 700;

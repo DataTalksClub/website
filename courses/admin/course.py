@@ -6,6 +6,7 @@ from django.utils import timezone
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.widgets import UnfoldAdminTextareaWidget, UnfoldAdminTextInputWidget
 
+from courses.leaderboard import update_leaderboard
 from courses.models.cohort import (
     Cohort,
     Course,
@@ -13,7 +14,6 @@ from courses.models.cohort import (
     LeaderboardComplaint,
     RegistrationCampaign,
 )
-from courses.leaderboard import update_leaderboard
 from courses.models.curriculum import CurriculumFlowItem, Module, Unit
 from courses.models.homework import Homework, Question
 from courses.models.project import (
@@ -25,7 +25,6 @@ from courses.models.project import (
 from courses.validators.criteria_validators import (
     validate_review_criteria_options,
 )
-
 
 CRITERIA_DESCRIPTION_WIDGET = UnfoldAdminTextInputWidget(
     attrs={"size": "60"}
@@ -340,8 +339,14 @@ class RegistrationCampaignAdmin(ModelAdmin):
         "requires_approval",
     ]
     search_fields = ["title", "slug"]
-    list_filter = ["is_active", "requires_approval", "current_course"]
+    list_filter = [
+        "is_active",
+        "requires_approval",
+        "exclude_from_suggestions",
+        "current_course",
+    ]
     readonly_fields = ["created_at", "updated_at"]
+    filter_horizontal = ["suggested_campaigns"]
     fieldsets = [
         (
             "Landing page",
@@ -359,6 +364,17 @@ class RegistrationCampaignAdmin(ModelAdmin):
                     "meta_description",
                     "marketing_markdown",
                 ]
+            },
+        ),
+        (
+            "Cross-sell",
+            {
+                "description": (
+                    "Courses suggested after someone registers here. Curated "
+                    "picks come first, then the soonest-starting open courses. "
+                    "See _docs/runbooks/cross-sell.md."
+                ),
+                "fields": ["suggested_campaigns", "exclude_from_suggestions"],
             },
         ),
         (
@@ -391,10 +407,12 @@ class CourseRegistrationAdmin(ModelAdmin):
         "region",
         "role",
         "status",
+        "source",
     ]
     actions = ["approve_registrations", "reject_registrations"]
     readonly_fields = [
         "email_normalized",
+        "referred_by",
         "created_at",
         "updated_at",
     ]
@@ -432,6 +450,12 @@ class CourseRegistrationAdmin(ModelAdmin):
             "Review",
             {
                 "fields": ["status"],
+            },
+        ),
+        (
+            "Source",
+            {
+                "fields": ["source", "referred_by"],
             },
         ),
         (

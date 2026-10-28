@@ -289,6 +289,11 @@ APPLICATION_NOTIFICATION_OPERATORS = env_list(
     "APPLICATION_NOTIFICATION_OPERATORS",
     default="alexey@datatalks.club",
 )
+# Cross-sell after registration (_docs/runbooks/cross-sell.md): how many
+# other courses the success page and confirmation email suggest, and campaign
+# slugs that are never suggested (in addition to the per-campaign flag).
+CROSS_SELL_MAX_SUGGESTIONS = int(os.getenv("CROSS_SELL_MAX_SUGGESTIONS", "3"))
+CROSS_SELL_EXCLUDED_CAMPAIGNS = env_list("CROSS_SELL_EXCLUDED_CAMPAIGNS")
 ACCOUNT_ADAPTER = "accounts.auth.AccountAdapter"
 SOCIALACCOUNT_ADAPTER = "accounts.auth.ConsolidatingSocialAccountAdapter"
 SOCIALACCOUNT_LOGIN_ON_GET = True

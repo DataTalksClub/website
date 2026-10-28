@@ -180,6 +180,7 @@ TARGET_ONLY_COLUMNS: dict[str, dict[str, object]] = {
         # copied values are the model's empty defaults.
         "requires_approval": False,
         "application_notice": "",
+        "exclude_from_suggestions": False,
     },
     "courses_wrappedstatistics": {"leaderboard": "[]"},
 }

@@ -1,7 +1,7 @@
 ---
 name: Course registration confirmation
 subject: "Confirm your registration for {{ course_title }}"
-optional_context: [start_date, verify_email_prompt]
+optional_context: [start_date, verify_email_prompt, suggested_courses]
 ---
 
 Hi {{ user_name }},
@@ -22,6 +22,8 @@ course page:
 [Open the course]({{ course_url }})
 
 {{ verify_email_prompt }}
+
+{{ suggested_courses }}
 
 See you there,
 

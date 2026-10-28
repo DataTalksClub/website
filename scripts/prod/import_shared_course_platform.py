@@ -967,6 +967,10 @@ def _mapping() -> dict[
             # no package columns; approval routing stays site-side.
             "requires_approval": _STAYS,
             "application_notice": _STAYS,
+            # Cross-sell curation (_docs/runbooks/cross-sell.md) is site
+            # marketing state with no package columns.
+            "suggested_campaigns": _STAYS,
+            "exclude_from_suggestions": _STAYS,
             "created_at": "copied verbatim (decision 13)",
             "updated_at": "copied verbatim (decision 13)",
         },
@@ -1009,6 +1013,9 @@ def _mapping() -> dict[
             "email_confirmation_sent_at": _STAYS,
             "email_confirmation_confirmed_at": _STAYS,
             "email_confirmation_resend_count": _STAYS,
+            # Cross-sell attribution is site funnel state.
+            "source": _STAYS,
+            "referred_by": _STAYS,
             "created_at": "copied verbatim (decision 13)",
             "updated_at": "copied verbatim (decision 13)",
         },

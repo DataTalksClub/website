@@ -248,6 +248,9 @@ def registration_confirmation_fix_email_view(request: HttpRequest) -> HttpRespon
             "email_normalized",
         ]
     )
+    from courses.services.cross_sell import follow_email_fix
+
+    follow_email_fix(registration)
     issue_confirmation_token(registration)
     _queue_confirmation_send(request, registration)
     record_event(

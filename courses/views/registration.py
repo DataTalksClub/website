@@ -8,6 +8,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django.views.decorators.http import require_POST
 
 from accounts.services.email_verification import is_account_email_verified
 from course_management.observability import record_event
@@ -22,6 +23,7 @@ from courses.registration import (
     render_markdown,
     youtube_embed_url,
 )
+from courses.services import cross_sell
 from courses.services.application_notifications import queue_operator_notification
 from courses.services.registration_contacts import queue_registration_contacts
 from courses.services.registration_counts import public_course_registration_count
@@ -223,7 +225,77 @@ def _registration_context(
         "missing_profile_fields": missing_profile_field_names(user),
         "registration_email_verified": _registration_email_verified(registration),
         "registration_share_text": _registration_share_text(campaign),
+        **_cross_sell_context(request, campaign, registration),
     }
+
+
+def _cross_sell_context(request, campaign, registration) -> dict:
+    """The success page's "You might also like" block (empty before signup)."""
+
+    registered_titles = request.session.pop(cross_sell.SESSION_FLASH_KEY, [])
+    if registration is None:
+        return {"cross_sell": [], "cross_sell_registered": registered_titles}
+    items = cross_sell.suggestions(
+        campaign,
+        user=request.user,
+        email=registration.email_normalized,
+    )
+    cross_sell.record_impression(request, campaign, items)
+    return {
+        "cross_sell": items,
+        "cross_sell_has_one_click": any(item.one_click for item in items),
+        "cross_sell_registered": registered_titles,
+    }
+
+
+def _cross_sell_source_registration(request, campaign) -> CourseRegistration | None:
+    """The visitor's own registration on ``campaign``, if they have one."""
+
+    if request.user.is_authenticated:
+        return _existing_user_registration(request, campaign)
+    if registration_is_gated(request):
+        return None
+    registration_id = request.session.get("registration_pending", {}).get(str(campaign.pk))
+    if not registration_id:
+        return None
+    return CourseRegistration.objects.filter(pk=registration_id, campaign=campaign).first()
+
+
+@require_POST
+def registration_cross_sell_view(request: HttpRequest, campaign_slug: str) -> HttpResponse:
+    """One-click registration for suggestions shown on the success page.
+
+    Reuses the visitor's registration on the source campaign, so nothing is
+    typed again. Only slugs from the freshly recomputed one-click
+    suggestions are honoured; anything else is ignored.
+    """
+
+    campaign = _active_registration_campaign(campaign_slug)
+    page_url = reverse("registration_campaign", kwargs={"campaign_slug": campaign.slug})
+    source = _cross_sell_source_registration(request, campaign)
+    if source is None:
+        if registration_is_gated(request):
+            login_url = reverse("login")
+            return redirect(f"{login_url}?next={quote(page_url)}")
+        return redirect(page_url)
+
+    wanted = set(request.POST.getlist("campaigns"))
+    single = request.POST.get("campaign")
+    if single:
+        wanted = {single}
+    allowed = {
+        item.campaign.slug: item.campaign
+        for item in cross_sell.suggestions(
+            campaign, user=request.user, email=source.email_normalized
+        )
+        if item.one_click
+    }
+    chosen = [allowed[slug] for slug in sorted(wanted) if slug in allowed]
+    with transaction.atomic():
+        created = cross_sell.register_suggested(source, chosen, request=request)
+    if created:
+        request.session[cross_sell.SESSION_FLASH_KEY] = [r.campaign.title for r in created]
+    return redirect(f"{page_url}#registration-form-heading")
 
 
 def registration_campaign_view(
@@ -231,6 +303,8 @@ def registration_campaign_view(
     campaign_slug: str,
 ) -> HttpResponse:
     campaign = _active_registration_campaign(campaign_slug)
+    if request.method == "GET":
+        cross_sell.remember_click(request, campaign)
 
     if registration_is_gated(request):
         # The gate holds both halves of the request, not only the rendered
@@ -245,6 +319,10 @@ def registration_campaign_view(
         return render(request, "courses/register.html", context)
 
     existing_registration = _existing_user_registration(request, campaign)
+    if existing_registration is None and cross_sell.SESSION_FLASH_KEY in request.session:
+        # Back from a one-click cross-sell POST: keep showing the success
+        # panel to the anonymous registrant whose session holds the source.
+        existing_registration = _cross_sell_source_registration(request, campaign)
     form = _registration_form(request, campaign)
 
     registration = None
@@ -252,6 +330,10 @@ def registration_campaign_view(
         registration = _save_registration_if_valid(form)
         saved_fresh = registration is not None
         if saved_fresh:
+            link_source = cross_sell.pop_link_source(request, campaign)
+            if link_source:
+                registration.source = link_source
+                registration.save(update_fields=["source"])
             pending = request.session.get("registration_pending", {})
             pending[str(campaign.pk)] = registration.pk
             request.session["registration_pending"] = pending

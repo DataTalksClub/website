@@ -147,7 +147,10 @@ class RegistrationConfirmationRelayContextTests(TestCase):
     @override_settings(**FLOW_SETTINGS)
     def test_optional_keys_are_exactly_start_date_and_verify_prompt(self):
         template = self._template()
-        self.assertEqual(template.optional_context, ("start_date", "verify_email_prompt"))
+        self.assertEqual(
+            template.optional_context,
+            ("start_date", "suggested_courses", "verify_email_prompt"),
+        )
         self.assertNotIn("start_date", template.required_context)
         self.assertNotIn("verify_email_prompt", template.required_context)
 

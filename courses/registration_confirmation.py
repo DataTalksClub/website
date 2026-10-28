@@ -145,6 +145,11 @@ def confirm_registration_by_token(model_class, token, now=None):
     if confirmation_token_expired(registration, now=now):
         return registration, "expired"
     mark_registration_confirmed(registration, now=now)
+    from courses.services.cross_sell import cascade_confirmation
+
+    # One-click suggestions taken on the success page share this address
+    # and send no email of their own: this link confirms them too.
+    cascade_confirmation(registration, now=now)
     return registration, "confirmed"
 
 

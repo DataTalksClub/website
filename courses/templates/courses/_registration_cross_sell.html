@@ -1,0 +1,76 @@
+{% comment %}
+  Cross-sell after registration (_docs/runbooks/cross-sell.md): up to three
+  other open courses from `courses.services.cross_sell.suggestions`, each
+  one click away. One-click rows reuse the registration above (nothing is
+  typed again); application-style campaigns only link to their own form.
+  The checkbox list registers several at once.
+{% endcomment %}
+{% if cross_sell_registered %}
+  <div class="registration-cross-sell-flash" role="status" data-cross-sell-registered>
+    <p class="registration-next-step-title">Also registered for:</p>
+    <ul>
+      {% for title in cross_sell_registered %}<li>{{ title }}</li>{% endfor %}
+    </ul>
+    {% if not registration.email_confirmed %}
+      <p class="registration-next-step-description">
+        The confirmation link we emailed you confirms these too.
+      </p>
+    {% endif %}
+  </div>
+{% endif %}
+{% if cross_sell %}
+  <div class="registration-cross-sell" data-cross-sell>
+    <p class="mono-label" id="registration-cross-sell-heading">You might also like</p>
+    <p class="registration-next-step-description">
+      Register with the same details — no new form to fill in.
+    </p>
+    <form method="post" action="{% url 'registration_cross_sell' campaign.slug %}" data-cross-sell-form>
+      {% csrf_token %}
+      <div class="row-list" aria-labelledby="registration-cross-sell-heading">
+        {% for item in cross_sell %}
+          <div class="list-row registration-next-step-row" data-cross-sell-row="{{ item.campaign.slug }}">
+            <div class="registration-cross-sell-main">
+              {% if item.one_click %}
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  name="campaigns"
+                  value="{{ item.campaign.slug }}"
+                  id="cross-sell-{{ item.campaign.slug }}"
+                >
+              {% endif %}
+              <div>
+                {% if item.one_click %}
+                  <label class="registration-next-step-title" for="cross-sell-{{ item.campaign.slug }}">{{ item.campaign.title }}</label>
+                {% else %}
+                  <p class="registration-next-step-title">{{ item.campaign.title }}</p>
+                {% endif %}
+                <p class="registration-next-step-description">
+                  {% if item.start_date %}Starts {{ item.start_date|date:"F j, Y" }}{% elif item.campaign.edition_label %}{{ item.campaign.edition_label }}{% else %}Next cohort{% endif %}{% if item.description %} · {{ item.description|truncatechars:140 }}{% endif %}
+                </p>
+              </div>
+            </div>
+            <div class="registration-next-step-actions">
+              {% if item.one_click %}
+                <button
+                  class="cta cta-compact cta-secondary interactive-lift"
+                  type="submit"
+                  name="campaign"
+                  value="{{ item.campaign.slug }}"
+                  aria-label="Register for {{ item.campaign.title }}"
+                >Register</button>
+              {% else %}
+                <a class="cta cta-compact cta-secondary interactive-lift" href="{{ item.url }}">Apply</a>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      {% if cross_sell_has_one_click %}
+        <div class="registration-cross-sell-actions">
+          <button class="cta cta-compact cta-primary interactive-lift" type="submit" data-cross-sell-submit-selected>Register for selected</button>
+        </div>
+      {% endif %}
+    </form>
+  </div>
+{% endif %}
