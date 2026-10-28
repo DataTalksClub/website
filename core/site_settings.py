@@ -23,10 +23,8 @@ from core.configuration import (
 from core.idempotency import JsonObject, JsonValue
 from core.models import OperationalSetting
 from core.settings_batch import (
-    SETTINGS_SOURCES,
     InvalidSettingsBatch,
     NormalizedSettingUpdate,
-    ResolvedSetting,
     SettingsBatchResult,
     SettingsRevisionConflict,
     SettingsScope,
@@ -36,9 +34,6 @@ from core.settings_batch import (
     scope_settings_factory,
     update_settings,
 )
-
-#: Kept under its announcement-era name for the adapters that import it.
-SITE_SETTINGS_SOURCES = SETTINGS_SOURCES
 
 ANNOUNCEMENT_ENABLED_KEY = "site.announcement.enabled"
 ANNOUNCEMENT_MESSAGE_KEY = "site.announcement.message"
@@ -54,8 +49,6 @@ SITE_SETTINGS_AUDIT_WRITE = "core.operational_settings.batch_updated"
 #: admin API import them; they are the shared errors from ``core.settings_batch``.
 InvalidSiteSettingsBatch = InvalidSettingsBatch
 SiteSettingsRevisionConflict = SettingsRevisionConflict
-ResolvedSiteSetting = ResolvedSetting
-NormalizedSiteSettingUpdate = NormalizedSettingUpdate
 SiteSettingsBatchResult = SettingsBatchResult
 
 

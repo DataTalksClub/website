@@ -288,9 +288,3 @@ def authenticate_and_fence_webhook_delivery(
         body_sha256=body_sha256,
         command=command,
     )
-
-
-# Explicit aliases keep the small boundary discoverable for future endpoint adapters while the
-# descriptive names above remain the canonical API.
-verify_and_fence_webhook_delivery = authenticate_and_fence_webhook_delivery
-record_webhook_delivery = fence_webhook_delivery

@@ -3,7 +3,6 @@ import os
 from collections.abc import Callable
 
 from community_base.kernel.context import (
-    CONTEXT_ID_PATTERN,
     bind_context,
     external_context_id_or_new,
     is_safe_external_context_id,
@@ -27,7 +26,6 @@ from core.request_cache import bind_request_memo, reset_request_memo
 from core.security import MAX_REQUEST_BODY_BYTES
 from core.sensitive_query import has_sensitive_query_key
 
-REQUEST_ID_PATTERN = CONTEXT_ID_PATTERN
 PRIVATE_PREFIXES = (
     "/accounts/",
     "/admin/",

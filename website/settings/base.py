@@ -405,7 +405,6 @@ NOINDEX = False
 # live; production opts in explicitly.  Credentialed responses are never
 # stored or served regardless of this flag.
 ANONYMOUS_PAGE_CACHE_ENABLED = False
-COMPATIBILITY_CONTRACT_PATHS: dict[str, str] = {}
 REQUIRED_BOOTSTRAP_SETTINGS = ("SECRET_KEY", "ALLOWED_HOSTS", "DATABASES")
 
 SECURE_CONTENT_TYPE_NOSNIFF = True

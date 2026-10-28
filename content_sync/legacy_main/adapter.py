@@ -2001,7 +2001,3 @@ def parse_legacy_main_checkout(
         raise LegacyMainValidationError(
             (LegacyMainDiagnostic("legacy_main_parser_failed", ".", "/"),)
         ) from None
-
-
-parse_legacy_main = parse_legacy_main_checkout
-adapt_legacy_main_checkout = parse_legacy_main_checkout

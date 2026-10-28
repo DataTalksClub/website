@@ -61,8 +61,6 @@ REMOTE_TARGET_POLICY = {
 # every deployable target in deploy.deployment_targets; core.tests
 # .test_development_target enforces that, together with the per-host policy.
 REMOTE_HOSTS = frozenset(REMOTE_TARGET_POLICY)
-#: Retained name for the same allowlist.
-DEVELOPMENT_HOSTS = REMOTE_HOSTS
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 _NAMESPACE_RE = re.compile(r"^[a-z0-9][a-z0-9-]{7,63}$")
 _RECIPIENT_REFERENCE_RE = re.compile(r"^[A-Z][A-Z0-9_]{7,63}$")

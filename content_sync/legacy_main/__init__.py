@@ -11,8 +11,6 @@ from .adapter import (
     TalkSourceRecord,
     ToolSourceRecord,
     TrackSourceRecord,
-    adapt_legacy_main_checkout,
-    parse_legacy_main,
     parse_legacy_main_checkout,
 )
 from .contract import (
@@ -45,7 +43,5 @@ __all__ = [
     "TalkSourceRecord",
     "ToolSourceRecord",
     "TrackSourceRecord",
-    "adapt_legacy_main_checkout",
-    "parse_legacy_main",
     "parse_legacy_main_checkout",
 ]

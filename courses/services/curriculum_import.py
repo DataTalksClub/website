@@ -1484,14 +1484,10 @@ def import_course_repository_curriculum(
         raise error from cause
 
 
-import_curriculum = import_course_repository_curriculum
-
-
 __all__ = (
     "CurriculumImportCommand",
     "CurriculumImportDiagnostic",
     "CurriculumImportError",
     "CurriculumImportResult",
     "import_course_repository_curriculum",
-    "import_curriculum",
 )
