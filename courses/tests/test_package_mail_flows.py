@@ -155,6 +155,45 @@ class RegistrationConfirmationRelayContextTests(TestCase):
         self.assertNotIn("verify_email_prompt", template.required_context)
 
     @override_settings(**FLOW_SETTINGS)
+    def test_send_pins_the_recorded_catalog_version(self):
+        # Relay validates a send's context against the version the delivery
+        # pins. Its first catalog versions still required start_date and
+        # verify_email_prompt, and prod answered 400 validation_error on
+        # them, so the send must resolve the version import_mail_templates
+        # recorded from the catalog instead of the package's unresolved
+        # default 1.
+        from core.models import MailTemplatePublication
+
+        MailTemplatePublication.objects.create(
+            key="course-registration-confirmation",
+            version=4,
+        )
+        cohort = create_cohort(start_date=None)
+        registration = create_registration(cohort)
+        from courses.registration_confirmation import issue_confirmation_token
+
+        issue_confirmation_token(registration)
+
+        delivery = send_registration_confirmation_mail(registration)
+
+        self.assertIsNotNone(delivery)
+        self.assertEqual(delivery.template_version, 4)
+        self._assert_relay_accepts(delivery)
+
+    @override_settings(**FLOW_SETTINGS)
+    def test_send_without_a_recorded_catalog_version_stays_at_the_package_default(self):
+        cohort = create_cohort(start_date=None)
+        registration = create_registration(cohort)
+        from courses.registration_confirmation import issue_confirmation_token
+
+        issue_confirmation_token(registration)
+
+        delivery = send_registration_confirmation_mail(registration)
+
+        self.assertIsNotNone(delivery)
+        self.assertEqual(delivery.template_version, 1)
+
+    @override_settings(**FLOW_SETTINGS)
     def test_registration_without_any_course_falls_back_to_campaign(self):
         from courses.registration_confirmation import issue_confirmation_token
 

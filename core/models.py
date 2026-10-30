@@ -631,3 +631,26 @@ class Operation(RevisionedModel):
 
     def __str__(self) -> str:
         return f"{self.kind}:{self.id}"
+
+
+class MailTemplatePublication(models.Model):
+    """The Relay catalog version each shipped mail purpose resolves to.
+
+    Relay assigns the version numbers at publish time; this site cannot
+    derive them from ``email_templates/``. ``import_mail_templates``
+    upserts one row per committed template after mirroring the catalog,
+    and ``MAIL_TEMPLATE_VERSION_RESOLVER`` reads it so a durable delivery
+    pins the exact published version instead of the unresolved default 1
+    (Relay validates a send's context against the pinned version, so a
+    stale pin republishes the old required-context contract).
+    """
+
+    key = models.CharField(max_length=128, unique=True)
+    version = models.PositiveIntegerField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("key",)
+
+    def __str__(self) -> str:
+        return f"{self.key}:v{self.version}"

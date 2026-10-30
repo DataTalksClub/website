@@ -459,6 +459,11 @@ COMMUNITY_BASE: dict[str, Any] = {
     # D1.2ca: the three category opt-outs are fields on the site user and
     # the resolver reads them directly; the remote Datamailer store is gone.
     "MAIL_PREFERENCE_RESOLVER": ("course_management.mail_preferences.resolve_mail_preference"),
+    # A durable delivery pins the catalog version it renders. Relay assigns
+    # the numbers at publish time, so import_mail_templates records them and
+    # this resolver reads its rows; without it every send pins the package's
+    # unresolved default 1 and Relay validates against a retired template.
+    "MAIL_TEMPLATE_VERSION_RESOLVER": "core.mail_templates.published_version",
     "RELAY_BASE_URL": os.getenv("RELAY_BASE_URL", ""),
     "RELAY_API_KEY": os.getenv("RELAY_API_KEY", ""),
     "RELAY_WEBHOOK_SECRET": os.getenv("RELAY_WEBHOOK_SECRET", ""),

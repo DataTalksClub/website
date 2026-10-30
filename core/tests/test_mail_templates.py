@@ -15,10 +15,11 @@ from community_base.mail.backends.ses_local import TEMPLATE_KEY_PATTERN, render_
 from community_base.mail.models import EmailDelivery
 from community_base.mail.relay import RelayMailClient
 from community_base.testing import FakeRelay
-from django.core.management import call_command
-from django.test import SimpleTestCase
+from django.core.management import CommandError, call_command
+from django.test import SimpleTestCase, TestCase
 
 from core import mail_templates
+from core.models import MailTemplatePublication
 
 #: The five DTC purposes the plan commits as the initial catalog, plus the
 #: application-review purposes mirroring CMP intake 4d0452a8.
@@ -89,7 +90,7 @@ class RenderTests(SimpleTestCase):
                 self.assertIn("DataTalks.Club", rendered.html)
 
 
-class ImportMailTemplatesTests(SimpleTestCase):
+class ImportMailTemplatesTests(TestCase):
     def _client(self):
         transport = FakeRelay()
         client = RelayMailClient("https://relay.example.com", "relay-test-key", transport=transport)
@@ -104,6 +105,25 @@ class ImportMailTemplatesTests(SimpleTestCase):
             call_command("import_mail_templates", *arguments, stdout=output)
         return output.getvalue()
 
+    @staticmethod
+    def _seed_published_content(client, transport):
+        # Real Relay stores each published version with its rendered
+        # contract; the fake's publish only bumps the number. Seed the real
+        # shape so the unchanged check compares published content.
+        drafts = {template.key: template.draft() for template in mail_templates.load_templates()}
+        for key, draft in drafts.items():
+            stored = transport.templates[key]
+            stored["versions"] = [
+                {
+                    "template_key": key,
+                    "version": stored["latest_version"],
+                    "status": "published",
+                    "subject": draft["subject"],
+                    "markdown_body": draft["markdown_body"],
+                    "required_context": draft["required_context"],
+                }
+            ]
+
     def test_first_mirror_publishes_every_purpose(self):
         client, _ = self._client()
         output = self._run(client)
@@ -117,10 +137,18 @@ class ImportMailTemplatesTests(SimpleTestCase):
                 self.assertEqual(stored[field], value)
         published = client.template_versions("deadline-reminder")
         self.assertEqual(published[0]["version"], 1)
+        # The catalog answers with the versions it assigned; the mirror
+        # records one row per shipped purpose so durable sends pin exactly
+        # what a Relay render will validate against.
+        self.assertEqual(
+            {row.key: row.version for row in MailTemplatePublication.objects.all()},
+            {key: 1 for key in EXPECTED_KEYS},
+        )
 
     def test_second_mirror_publishes_nothing(self):
         client, transport = self._client()
         self._run(client)
+        self._seed_published_content(client, transport)
         puts_after_first = [call for call in transport.calls if call[0] == "PUT"]
 
         output = self._run(client)
@@ -129,6 +157,10 @@ class ImportMailTemplatesTests(SimpleTestCase):
         self.assertNotIn("published:", output)
         for template in mail_templates.load_templates():
             self.assertIn(f"unchanged: {template.key}", output)
+        self.assertEqual(
+            {row.key: row.version for row in MailTemplatePublication.objects.all()},
+            {key: 1 for key in EXPECTED_KEYS},
+        )
 
     def test_draft_matches_the_relay_transactional_shape(self):
         # Relay's transactional template API stores ``markdown_body`` (what
@@ -167,6 +199,7 @@ class ImportMailTemplatesTests(SimpleTestCase):
                 "is_transactional": True,
                 "is_active": True,
             }
+        self._seed_published_content(client, transport)
         puts_after_first = [call for call in transport.calls if call[0] == "PUT"]
 
         output = self._run(client)
@@ -179,6 +212,7 @@ class ImportMailTemplatesTests(SimpleTestCase):
     def test_a_drifted_remote_draft_is_republished(self):
         client, transport = self._client()
         self._run(client)
+        self._seed_published_content(client, transport)
         transport.templates["slack-access"]["subject"] = "stale subject"
 
         output = self._run(client)
@@ -187,6 +221,18 @@ class ImportMailTemplatesTests(SimpleTestCase):
         stored = {template["key"]: template for template in client.templates()}
         self.assertNotEqual(stored["slack-access"]["subject"], "stale subject")
         self.assertIn("unchanged: deadline-reminder", output)
+        # The republished purpose resolves to the new catalog version; the
+        # purposes the mirror left untouched keep their recorded versions.
+        self.assertEqual(
+            {row.key: row.version for row in MailTemplatePublication.objects.all()}["slack-access"],
+            2,
+        )
+        self.assertEqual(
+            {row.key: row.version for row in MailTemplatePublication.objects.all()}[
+                "deadline-reminder"
+            ],
+            1,
+        )
 
     def test_dry_run_never_contacts_relay(self):
         client, transport = self._client()
@@ -195,3 +241,47 @@ class ImportMailTemplatesTests(SimpleTestCase):
         self.assertEqual(transport.calls, [])
         for template in mail_templates.load_templates():
             self.assertIn(f"would mirror: {template.key}", output)
+
+    def test_a_matching_draft_over_a_stale_published_version_is_republished(self):
+        # A run that died between PUT and publish leaves a draft matching
+        # the shipped file over a published version carrying the retired
+        # contract. The next run must republish from the published
+        # snapshot's mismatch, not from the draft's, or sends keep pinning
+        # the retired required-context forever.
+        client, transport = self._client()
+        self._run(client)
+        self._seed_published_content(client, transport)
+        transport.templates["slack-access"]["versions"][0]["required_context"] = [
+            "start_date",
+            "verify_email_prompt",
+        ]
+
+        output = self._run(client)
+
+        self.assertIn("published: slack-access", output)
+        self.assertEqual(
+            {row.key: row.version for row in MailTemplatePublication.objects.all()}["slack-access"],
+            2,
+        )
+
+    def test_a_shipped_purpose_missing_from_the_catalog_fails_the_import(self):
+        # A shipped purpose the catalog listing never answers for has no
+        # version a send could pin. The import must fail the deploy (exit
+        # 23) instead of silently leaving sends on the unresolved default.
+        client, transport = self._client()
+        self._run(client)
+        real_templates = client.templates
+
+        def catalog_without_slack_access():
+            return tuple(row for row in real_templates() if row["key"] != "slack-access")
+
+        with mock.patch.object(client, "templates", catalog_without_slack_access):
+            with self.assertRaises(CommandError):
+                self._run(client)
+        # The failed import recorded nothing new: the row is the successful
+        # first import's, and the deploy stays failed until Relay answers
+        # for every shipped purpose.
+        self.assertEqual(
+            {row.key: row.version for row in MailTemplatePublication.objects.all()}["slack-access"],
+            1,
+        )

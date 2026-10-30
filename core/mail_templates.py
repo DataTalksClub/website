@@ -127,3 +127,17 @@ def required_context(subject: str, body: str) -> tuple[str, ...]:
     """
 
     return tuple(sorted(_placeholders(subject, body) - set(BUILT_IN_CONTEXT)))
+
+
+def published_version(template_key: str) -> int:
+    """``MAIL_TEMPLATE_VERSION_RESOLVER``: the catalog version to pin.
+
+    ``import_mail_templates`` records what Relay answered per purpose
+    (``core.MailTemplatePublication``); an unknown key keeps the package's
+    unresolved default 1 instead of guessing.
+    """
+
+    from core.models import MailTemplatePublication
+
+    row = MailTemplatePublication.objects.filter(key=template_key).only("version").first()
+    return row.version if row is not None else 1
