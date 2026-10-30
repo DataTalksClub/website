@@ -78,8 +78,8 @@ class AnonymousPageCacheTests(TestCase):
         self.assertEqual(caches_setting["anonymous_pages"]["LOCATION"], PAGE_CACHE_TABLE)
         migration_source = (
             pathlib.Path(core_migrations.__file__).parent / "0011_anonymous_page_cache_table.py"
-        )
-        self.assertIn("from core.page_cache import PAGE_CACHE_TABLE", migration_source.read_text())
+        ).read_text()
+        self.assertIn(f'TABLE_NAME = "{PAGE_CACHE_TABLE}"', migration_source)
 
     def test_every_key_page_view_is_cache_eligible(self) -> None:
         for _budget_key, path in _key_pages():

@@ -1,4 +1,4 @@
-{% load accessibility socialaccount static %}
+{% load accessibility cache socialaccount static %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -497,7 +497,17 @@
                   <label class="field-label" for="{{ form.preferred_timezone.id_for_label }}">
                     {{ form.preferred_timezone.label }}
                   </label>
-                  {% accessible_widget form.preferred_timezone %}
+                  {# The ~500-option select is identical for every viewer except #}
+                  {# the selected value, so its markup is fragment-cached per  #}
+                  {# value; the error path below stays uncached because errors  #}
+                  {# change the widget's aria attributes.                       #}
+                  {% if form.preferred_timezone.errors %}
+                    {% accessible_widget form.preferred_timezone %}
+                  {% else %}
+                    {% cache 3600 timezone_select form.preferred_timezone.value %}
+                      {% accessible_widget form.preferred_timezone %}
+                    {% endcache %}
+                  {% endif %}
                   <p
                     class="field-hint"
                     id="timezone-preference-status"

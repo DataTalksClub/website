@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from functools import lru_cache
 from urllib.parse import unquote
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
@@ -55,7 +56,23 @@ def browser_timezone_name(viewer) -> str:
 
 
 def build_timezone_options() -> list[TimezoneOption]:
-    """Return IANA timezones labeled with current GMT offset, west to east."""
+    """Return IANA timezones labeled with current GMT offset, west to east.
+
+    The per-zone offset math costs tens of milliseconds for the full IANA
+    list, and the result only changes when some zone's offset changes — at a
+    DST transition.  Building is cached per UTC hour, so a steady request
+    rate never repeats the math and a DST flip is reflected within the hour
+    it happens in (the label is cosmetic; the stored value stays the IANA
+    name and is validated separately).
+    """
+
+    now_utc = timezone.now().astimezone(UTC)
+    return list(_build_timezone_options_for_hour(int(now_utc.timestamp() // 3600)))
+
+
+@lru_cache(maxsize=2)
+def _build_timezone_options_for_hour(hour_bucket: int) -> tuple[TimezoneOption, ...]:
+    del hour_bucket
     now_utc = timezone.now().astimezone(UTC)
     options = []
     timezone_names = available_timezones()
@@ -72,7 +89,7 @@ def build_timezone_options() -> list[TimezoneOption]:
             offset_minutes=offset_minutes,
         )
         options.append(option)
-    return sorted(options, key=timezone_option_sort_key)
+    return tuple(sorted(options, key=timezone_option_sort_key))
 
 
 def timezone_option_sort_key(option: TimezoneOption):
