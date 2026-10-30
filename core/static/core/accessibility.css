@@ -30,6 +30,29 @@ body {
   transform: translateY(0);
 }
 
+/*
+ * Unfold's unauthenticated shell (`templates/unfold/layouts/unauthenticated.html`)
+ * renders `<footer class="sr-only">` outside `#page.min-h-screen` and loads this
+ * stylesheet without `_design_system.html` or a Tailwind runtime; Unfold's own
+ * compiled CSS does not define `.sr-only`. Without this rule (and `margin: -1px`
+ * to pull the 1px box inside the preceding `100vh` container), the footer
+ * renders as a 20px block below the fold (`864px` vs `844px` on mobile), which
+ * causes full-page screenshots to resize across `844 <-> 864` and alternate
+ * subpixel anti-aliasing on the half-pixel-centered password input corners.
+ */
+.sr-only {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 html body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: 3px solid var(--focus-ring, #315f8f) !important;
   outline-offset: 3px !important;

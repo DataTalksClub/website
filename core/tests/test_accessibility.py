@@ -48,6 +48,8 @@ class FocusStyleContractTests(SimpleTestCase):
         )
 
         self.assertIn(".skip-link:focus {", stylesheet)
+        self.assertIn(".sr-only {", stylesheet)
+        self.assertIn("margin: -1px;", stylesheet)
         self.assertIn("#main-content:focus {", stylesheet)
         self.assertIn("outline: 0 !important;", stylesheet)
 

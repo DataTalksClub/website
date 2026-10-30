@@ -541,6 +541,7 @@ def _capture_deterministic_screenshot(page: Page, path: Path) -> None:
         pass
     page.evaluate(
         """async () => {
+            document.body?.offsetHeight;
             await document.fonts.ready;
             const alpine = window.Alpine;
             if (alpine !== undefined) {
@@ -592,6 +593,10 @@ def _capture_deterministic_screenshot(page: Page, path: Path) -> None:
                         image.addEventListener('error', resolve, {once: true});
                     });
                 })
+            );
+            await document.fonts.ready;
+            await new Promise(resolve =>
+                requestAnimationFrame(() => requestAnimationFrame(resolve))
             );
         }"""
     )
