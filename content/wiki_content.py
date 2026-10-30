@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -417,6 +418,29 @@ def unavailable_episode_graph(episode: dict[str, Any]) -> EpisodeGraph:
         )
 
 
+@lru_cache(maxsize=2)
+def _published_episode_graph_index(
+    wiki_stamp: tuple[int, str],
+    editorial_stamp: tuple[int, str],
+    people_stamp: tuple[int, str],
+) -> tuple[dict[str, dict[str, str]], dict[str, tuple[dict[str, Any], ...]]]:
+    held_graph = catalogue._synced_records(wiki_stamp, catalogue.WIKI_SOURCE_SLUG, "wiki_graph")
+    graph = held_graph[0] if held_graph else {}
+    podcasts = catalogue._synced_editorial("podcast", editorial_stamp, people_stamp)
+    podcast_records = {item["slug"]: item for item in podcasts if "slug" in item}
+    nodes = _episode_graph_nodes(graph, podcast_records=podcast_records)
+    links = _episode_graph_links(graph, nodes)
+    incident: dict[str, list[dict[str, Any]]] = {}
+    for link in links:
+        source = link["source"]
+        target = link["target"]
+        if source == target:
+            continue
+        incident.setdefault(source, []).append(link)
+        incident.setdefault(target, []).append(link)
+    return nodes, {node_id: tuple(items) for node_id, items in incident.items()}
+
+
 def episode_graph(episode: dict[str, Any]) -> EpisodeGraph:
     """Resolve one episode against its exact typed public graph node.
 
@@ -427,11 +451,31 @@ def episode_graph(episode: dict[str, Any]) -> EpisodeGraph:
     """
 
     graph = catalogue.wiki_graph()
+    podcasts = catalogue.podcasts()
     shell = _episode_graph_shell(episode, state="no_data")
     episode_public_path = episode["public_path"]
-    podcast_records = {item["slug"]: item for item in catalogue.podcasts() if "slug" in item}
-    nodes = _episode_graph_nodes(graph, podcast_records=podcast_records)
-    links = _episode_graph_links(graph, nodes)
+    incident_by_node: dict[str, tuple[dict[str, Any], ...]] | None = None
+    if isinstance(podcasts, tuple):
+        wiki_stamp = catalogue.synced_stamp(catalogue.WIKI_SOURCE_SLUG)
+        editorial_stamp = catalogue.synced_stamp(catalogue.EDITORIAL_SOURCE_SLUG)
+        people_stamp = catalogue.synced_stamp(catalogue.PEOPLE_SOURCE_SLUG)
+        held_graph = (
+            catalogue._synced_records(wiki_stamp, catalogue.WIKI_SOURCE_SLUG, "wiki_graph")
+            if wiki_stamp[0]
+            else ()
+        )
+        if (
+            held_graph
+            and held_graph[0] is graph
+            and catalogue._synced_editorial("podcast", editorial_stamp, people_stamp) is podcasts
+        ):
+            nodes, incident_by_node = _published_episode_graph_index(
+                wiki_stamp, editorial_stamp, people_stamp
+            )
+    if incident_by_node is None:
+        podcast_records = {item["slug"]: item for item in podcasts if "slug" in item}
+        nodes = _episode_graph_nodes(graph, podcast_records=podcast_records)
+        links = _episode_graph_links(graph, nodes)
     episode_slug = episode.get("slug")
     episode_node_id = (
         f"podcast:{episode_slug}" if isinstance(episode_slug, str) and episode_slug else ""
@@ -447,9 +491,10 @@ def episode_graph(episode: dict[str, Any]) -> EpisodeGraph:
     if len(matches) != 1:
         raise ImproperlyConfigured("The public graph has duplicate episode identities.")
     hub = matches[0]
+    candidate_links = incident_by_node.get(hub["id"], ()) if incident_by_node is not None else links
     aggregate: dict[str, dict[str, Any]] = {}
     raw_incident_links = 0
-    for link in links:
+    for link in candidate_links:
         if link["source"] != hub["id"] and link["target"] != hub["id"]:
             continue
         if link["source"] == link["target"]:

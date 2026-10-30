@@ -8,7 +8,12 @@ ASSIGNMENT_TYPE_ORDER = {
     "peer_review": 3,
 }
 
-def add_course_homepage_info(course: Cohort, now) -> None:
+def add_course_homepage_info(
+    course: Cohort,
+    now,
+    *,
+    include_assignments: bool = True,
+) -> None:
     today = timezone.localdate(now)
 
     course.home_outcome = get_course_outcome(course)
@@ -19,10 +24,14 @@ def add_course_homepage_info(course: Cohort, now) -> None:
         and bool(course.start_date)
         and today < course.start_date
     )
-    (
-        course.home_current_assignment_label,
-        course.home_current_assignment,
-    ) = current_assignment_info(course, now)
+    if include_assignments:
+        (
+            course.home_current_assignment_label,
+            course.home_current_assignment,
+        ) = current_assignment_info(course, now)
+    else:
+        course.home_current_assignment_label = "Current assignment"
+        course.home_current_assignment = None
 
 
 def get_course_outcome(course: Cohort) -> str:

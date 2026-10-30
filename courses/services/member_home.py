@@ -304,7 +304,11 @@ def _finished_cohort_card(user, cohort: Cohort, has_enrollment: bool) -> CohortC
 def discover_cards(user, exclude_family_ids: set, limit: int) -> list[DiscoverCard]:
     """Catalogue cards for families the user has no cohort in (§5): active first, then open."""
 
-    course_groups = prepare_course_list_courses(user)
+    course_groups = prepare_course_list_courses(
+        user,
+        prefetch_assignments=False,
+        include_user_state=False,
+    )
     cards = course_family_cards(course_groups)
     ordered = [card for card in cards if card.status in ("active", "open_registration")]
     ordered.sort(key=lambda card: 0 if card.status == "active" else 1)
@@ -348,8 +352,13 @@ class ChecklistItem:
     skip_key: str | None = None
 
 
-def checklist_items(user, dismissals: dict) -> list[ChecklistItem]:
-    course_complete = bool(my_cohorts(user))
+def checklist_items(
+    user,
+    dismissals: dict,
+    *,
+    has_cohorts: bool | None = None,
+) -> list[ChecklistItem]:
+    course_complete = bool(my_cohorts(user)) if has_cohorts is None else has_cohorts
     slack_complete = bool(
         dismissals.get(CHECKLIST_SLACK_DONE) or dismissals.get(CHECKLIST_SKIP_SLACK)
     )
@@ -439,7 +448,7 @@ def build_member_home_context(request) -> dict:
     discover_limit = DISCOVER_CAP_STATE_1 if state == "state_1" else DISCOVER_CAP_OTHER_STATES
     discover = discover_cards(user, family_ids, discover_limit)
 
-    checklist = checklist_items(user, dismissals)
+    checklist = checklist_items(user, dismissals, has_cohorts=bool(cohorts))
     checklist_complete = all(item.complete for item in checklist)
     checklist_dismissed = bool(dismissals.get(CHECKLIST_DISMISSED))
 

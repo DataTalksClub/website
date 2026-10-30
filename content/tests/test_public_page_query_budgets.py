@@ -25,7 +25,7 @@ from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 
-from content import catalogue, wiki_reader
+from content import catalogue, podcast_content, wiki_content, wiki_reader
 from events.queries import published_event_records
 
 #: Warm (second render, catalogue already held) query budgets per page.
@@ -33,7 +33,7 @@ from events.queries import published_event_records
 #: bounded navigational reads; a new per-item query (an N+1) blows past
 #: these by the size of the collection, not by one.
 WARM_BUDGETS = {
-    "/": 30,
+    "/": 20,
     "/blog": 12,
     "/podcast": 12,
     "/books": 12,
@@ -41,7 +41,7 @@ WARM_BUDGETS = {
     "/events/past": 16,
     "/wiki": 8,
     "/sponsors": 8,
-    "/tour": 30,
+    "/tour": 20,
     "/courses": 8,
     "article": 12,
     "podcast_episode": 12,
@@ -57,7 +57,7 @@ WARM_BUDGETS = {
 #: keeps a post-deploy or post-sync cold start from becoming a full scan
 #: per item.
 COLD_BUDGETS = {
-    "/": 40,
+    "/": 32,
     "/blog": 26,
     "/podcast": 24,
     "/books": 22,
@@ -65,7 +65,7 @@ COLD_BUDGETS = {
     "/events/past": 22,
     "/wiki": 8,
     "/sponsors": 8,
-    "/tour": 42,
+    "/tour": 34,
     "/courses": 8,
     "article": 24,
     "podcast_episode": 24,
@@ -87,6 +87,8 @@ def _drop_process_caches() -> None:
         catalogue._synced_media,
         catalogue._synced_courses,
         catalogue._media_index,
+        podcast_content._ordered_published_podcasts,
+        wiki_content._published_episode_graph_index,
         wiki_reader._wiki_state,
     ):
         cached.cache_clear()
@@ -230,4 +232,4 @@ class MemberHomeQueryBudgetTests(TestCase):
         with CaptureQueriesContext(connection) as captured:
             response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertLessEqual(len(captured), 24)
+        self.assertLessEqual(len(captured), 16)

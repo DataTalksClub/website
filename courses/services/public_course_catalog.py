@@ -15,12 +15,30 @@ from __future__ import annotations
 import logging
 from datetime import date
 
-from django.db import DatabaseError
-from django.db.models import Count, Prefetch
+from django.db import DatabaseError, models
+from django.db.models import Count, IntegerField, OuterRef, Prefetch, Subquery
+from django.db.models.functions import Coalesce
 
-from courses.models.cohort import Cohort, CohortBuildItem
+from courses.models.cohort import Cohort, CohortBuildItem, Enrollment
+from courses.models.curriculum import Module
+from courses.models.homework import Homework
+from courses.models.project import Project
 
 logger = logging.getLogger(__name__)
+
+
+def _cohort_relation_count(model: type[models.Model], fk_field: str) -> Coalesce:
+    return Coalesce(
+        Subquery(
+            model.objects.filter(**{fk_field: OuterRef("pk")})
+            .order_by()
+            .values(fk_field)
+            .annotate(total=Count("pk"))
+            .values("total"),
+            output_field=IntegerField(),
+        ),
+        0,
+    )
 
 
 def visible_course_list_queryset(*, prefetch_assignments: bool = True):
@@ -35,18 +53,13 @@ def visible_course_list_queryset(*, prefetch_assignments: bool = True):
     """
 
     courses = Cohort.objects.filter(visible=True, course__visible=True)
-    homework_count = Count("homework", distinct=True)
-    project_count = Count("project", distinct=True)
-    learner_count = Count("enrollment", distinct=True)
-    # The cohort's own module rows, imported from its curriculum source.  A public page
-    # that says how many modules a cohort has must read it here: editorial copy carrying a
-    # hand-written module count is how the homepage came to advertise the 2025 curriculum.
-    module_count = Count("modules", distinct=True)
+    # Correlated subqueries avoid the 4-way LEFT OUTER JOIN Cartesian product
+    # across homework x project x enrollment x modules on every catalogue read.
     courses = courses.annotate(
-        homework_count=homework_count,
-        project_count=project_count,
-        learner_count=learner_count,
-        module_count=module_count,
+        homework_count=_cohort_relation_count(Homework, "course"),
+        project_count=_cohort_relation_count(Project, "course"),
+        learner_count=_cohort_relation_count(Enrollment, "course"),
+        module_count=_cohort_relation_count(Module, "cohort"),
     )
     courses = courses.select_related("course")
     if prefetch_assignments:

@@ -196,6 +196,17 @@ def records(kind: str) -> tuple[Record, ...]:
     return _synced_editorial(kind, synced_stamp(source_slug), synced_stamp(PEOPLE_SOURCE_SLUG))
 
 
+def _request_synced_stamps() -> dict[str, tuple[int, str]]:
+    rows = (
+        SyncedDocument.objects.filter(source__is_enabled=True)
+        .values("source__slug")
+        .annotate(total=Count("id"), latest=Max("updated_at"))
+    )
+    return {
+        str(row["source__slug"]): (int(row["total"] or 0), str(row["latest"] or "")) for row in rows
+    }
+
+
 def synced_stamp(source_slug: str) -> tuple[int, str]:
     """A cheap stamp that moves whenever one source's synced rows could have.
 
@@ -205,23 +216,25 @@ def synced_stamp(source_slug: str) -> tuple[int, str]:
     database failure raises -- the synced readers refuse to let an outage enter
     the cache disguised as an empty catalogue (ARC-01).
 
-    Within one request the aggregate runs once per source: public pages fan
-    out to many readers that each re-resolve the same stamp, and the
-    per-request memo (``core.request_cache``, bound by
-    ``core.middleware.RequestCacheMiddleware``) collapses those duplicates.
-    Outside a request every call reads live, so a write followed by a read in
-    the same process still sees fresh data.
+    Within one request the aggregate runs once across all enabled sources:
+    public pages fan out to many readers that each re-resolve the same stamps,
+    and the per-request memo (``core.request_cache``, bound by
+    ``core.middleware.RequestCacheMiddleware``) collapses those into one
+    grouped query. Outside a request every call reads live, so a write followed
+    by a read in the same process still sees fresh data.
     """
 
-    from core.request_cache import memoized
+    from core.request_cache import current_memo, memoized
 
-    def read() -> tuple[int, str]:
-        stamp = SyncedDocument.objects.filter(
-            source__slug=source_slug, source__is_enabled=True
-        ).aggregate(total=Count("id"), latest=Max("updated_at"))
-        return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
+    if current_memo() is not None:
+        return memoized("content.catalogue.synced_stamps", _request_synced_stamps).get(
+            source_slug, (0, "")
+        )
 
-    return memoized(("content.catalogue.synced_stamp", source_slug), read)
+    stamp = SyncedDocument.objects.filter(
+        source__slug=source_slug, source__is_enabled=True
+    ).aggregate(total=Count("id"), latest=Max("updated_at"))
+    return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
 
 
 @lru_cache(maxsize=16)
@@ -270,6 +283,9 @@ def _synced_records(stamp: tuple[int, str], source_slug: str, kind: str) -> tupl
                 str(record.get("slug", "")),
             )
         )
+    elif kind == "wiki_graph":
+        for record in held:
+            validate_wiki_graph(record)
     return tuple(held)
 
 
@@ -573,16 +589,13 @@ def wiki_graph() -> Record:
     """The wiki knowledge graph, checked before it can reach a page.
 
     The graph is drawn as links a reader can follow, so its destinations are
-    validated where they are read: a stored graph that breaks the contract is a
-    refusal rather than something the page renders and hopes about. An
-    un-ingested database publishes no graph, and an empty mapping passes
-    validation as the absence it is.
+    validated when ``_synced_records`` loads the row: a stored graph that
+    breaks the contract is a refusal rather than something the page renders and
+    hopes about. An un-ingested database publishes no graph, and an empty
+    mapping passes validation as the absence it is.
     """
 
-    graph = singleton("wiki_graph")
-    if graph:
-        validate_wiki_graph(graph)
-    return graph
+    return singleton("wiki_graph")
 
 
 def wiki_search() -> Record:

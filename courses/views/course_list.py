@@ -141,7 +141,7 @@ def catalog_card_kind(card: CourseFamilyCard) -> tuple[str, object]:
         return "active", None
     if card.status == "open_registration":
         return "open_dated", None
-    registration = family_registration(card.family)
+    registration = family_registration(card.family, editions=card.cohorts)
     if registration.campaign is not None:
         return "open_undated", registration.campaign
     return "archived", None
@@ -202,14 +202,14 @@ def course_catalog_cards(family_cards: list[CourseFamilyCard]) -> list[CatalogCa
 # still imported above, so callers that have always read it from here keep working.
 
 
-def split_courses_by_status(courses, now):
+def split_courses_by_status(courses, now, *, include_assignments: bool = True):
     active_courses = []
     open_registration_courses = []
     finished_courses = []
     archive_courses_by_year = defaultdict(list)
 
     for course in courses:
-        add_course_homepage_info(course, now)
+        add_course_homepage_info(course, now, include_assignments=include_assignments)
 
         if course.finished:
             finished_courses.append(course)
@@ -361,15 +361,25 @@ def course_family_archive_groups(cards):
     return course_archive_groups(archive_courses_by_year)
 
 
-def prepare_course_list_courses(user):
-    visible_courses = visible_course_list_queryset()
+def prepare_course_list_courses(
+    user,
+    *,
+    prefetch_assignments: bool = True,
+    include_user_state: bool = True,
+):
+    visible_courses = visible_course_list_queryset(prefetch_assignments=prefetch_assignments)
     courses = list(visible_courses)
     now = timezone.now()
-    course_groups = split_courses_by_status(courses, now)
+    course_groups = split_courses_by_status(
+        courses,
+        now,
+        include_assignments=prefetch_assignments,
+    )
 
-    mark_enrolled_courses(course_groups.courses, user)
-    attach_registration_campaigns(course_groups.courses)
-    mark_registered_courses(course_groups.courses, user)
+    if include_user_state:
+        mark_enrolled_courses(course_groups.courses, user)
+        attach_registration_campaigns(course_groups.courses)
+        mark_registered_courses(course_groups.courses, user)
 
     return course_groups
 

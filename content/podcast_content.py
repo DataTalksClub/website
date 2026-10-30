@@ -19,6 +19,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import date
+from functools import lru_cache
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -97,12 +98,10 @@ def _podcast_number(record: dict[str, Any], field: str) -> int:
     return value
 
 
-def ordered_podcasts(
-    records: tuple[dict[str, Any], ...] | None = None,
+def _sort_podcast_records(
+    records: tuple[dict[str, Any], ...] | list[dict[str, Any]],
 ) -> tuple[dict[str, Any], ...]:
-    """Return the listing order without mutating the catalogue's own order."""
-
-    selected = list(catalogue.podcasts() if records is None else records)
+    selected = list(records)
     for record in selected:
         _podcast_number(record, "season")
         _podcast_number(record, "episode")
@@ -116,6 +115,33 @@ def ordered_podcasts(
     selected.sort(key=lambda record: record["episode"], reverse=True)
     selected.sort(key=lambda record: record["season"], reverse=True)
     return tuple(selected)
+
+
+@lru_cache(maxsize=2)
+def _ordered_published_podcasts(
+    editorial_stamp: tuple[int, str],
+    people_stamp: tuple[int, str],
+) -> tuple[dict[str, Any], ...]:
+    return _sort_podcast_records(
+        catalogue._synced_editorial("podcast", editorial_stamp, people_stamp)
+    )
+
+
+def ordered_podcasts(
+    records: tuple[dict[str, Any], ...] | None = None,
+) -> tuple[dict[str, Any], ...]:
+    """Return the listing order without mutating the catalogue's own order."""
+
+    source = catalogue.podcasts() if records is None else records
+    if isinstance(source, tuple):
+        editorial_stamp = catalogue.synced_stamp(catalogue.EDITORIAL_SOURCE_SLUG)
+        people_stamp = catalogue.synced_stamp(catalogue.PEOPLE_SOURCE_SLUG)
+        if (
+            editorial_stamp[0]
+            and catalogue._synced_editorial("podcast", editorial_stamp, people_stamp) is source
+        ):
+            return _ordered_published_podcasts(editorial_stamp, people_stamp)
+    return _sort_podcast_records(source)
 
 
 def podcast_seasons(
@@ -810,12 +836,13 @@ def episode_view(
     *,
     people_by_slug: dict[str, dict[str, Any]] | None = None,
     resource_podcast_records: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
+    include_transcript: bool = True,
 ) -> Episode:
     """Return one catalogue record as the value both podcast templates render."""
 
     published = str(record.get("published") or "")
     watch_url, watch_label = _watch_destination(record)
-    transcript = _transcript(record, watch_url)
+    transcript = _transcript(record, watch_url) if include_transcript else ()
     return Episode(
         title=_required_text(record, "title"),
         description=_required_text(record, "description"),
@@ -836,7 +863,7 @@ def episode_view(
         video=_video_embed(record),
         spotify=_spotify_embed(record),
         transcript=transcript,
-        timestamp_entries=_timestamp_entries(transcript),
+        timestamp_entries=_timestamp_entries(transcript) if transcript else (),
     )
 
 
@@ -873,6 +900,7 @@ def episode_navigation(
                 item,
                 people_by_slug=people_by_slug,
                 resource_podcast_records=records,
+                include_transcript=False,
             )
             if item is not None
             else None
@@ -886,6 +914,7 @@ def episode_navigation(
                 item,
                 people_by_slug=people_by_slug,
                 resource_podcast_records=records,
+                include_transcript=False,
             )
             for item in related
         ),
@@ -925,4 +954,4 @@ def season_episodes(records: tuple[dict[str, Any], ...]) -> tuple[Episode, ...]:
     # one season, so it cannot resolve a legacy resource that names another season.
     # Detail/navigation composition receives the complete catalogue and performs
     # canonical resource normalization there.
-    return tuple(episode_view(record) for record in records)
+    return tuple(episode_view(record, include_transcript=False) for record in records)

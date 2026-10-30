@@ -21,10 +21,12 @@ case -- finished, with no successor and no campaign -- and it must stay silent.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from community_base.kernel.services import ServiceContext, validate_actor_ref
 from django.db import transaction
+from django.db.models import Q
 
 from core.audit import AuditWriteContext, record_audit_event
 from core.models import AuditEvent
@@ -101,17 +103,48 @@ class FamilyRegistration:
         return self.campaign is not None
 
 
-def family_registration(family: Course) -> FamilyRegistration:
+def family_registration(
+    family: Course,
+    *,
+    editions: Sequence[Cohort] | None = None,
+) -> FamilyRegistration:
     """Return the registration a course family offers, newest edition first."""
 
-    editions = list(family.cohorts.filter(visible=True).order_by("-year", "-id"))
-    for cohort in editions:
-        campaign = active_campaign_for_cohort(cohort)
+    ordered_editions = (
+        sorted(editions, key=lambda cohort: (cohort.year, cohort.id), reverse=True)
+        if editions is not None
+        else list(family.cohorts.filter(visible=True).order_by("-year", "-id"))
+    )
+    if not ordered_editions:
+        return FamilyRegistration()
+    edition_ids = [cohort.id for cohort in ordered_editions]
+    slugs_by_cohort_id = {
+        cohort.id: campaign_slug_in_registration_url(cohort.registration_url)
+        for cohort in ordered_editions
+    }
+    slugs = {slug for slug in slugs_by_cohort_id.values() if slug}
+    campaigns = list(
+        RegistrationCampaign.objects.filter(
+            Q(current_course_id__in=edition_ids) | Q(slug__in=slugs),
+            is_active=True,
+        ).order_by("id")
+    )
+    active_by_course_id: dict[int, RegistrationCampaign] = {}
+    active_by_slug: dict[str, RegistrationCampaign] = {}
+    for campaign in campaigns:
+        if campaign.current_course_id is not None:
+            active_by_course_id.setdefault(campaign.current_course_id, campaign)
+        active_by_slug.setdefault(campaign.slug, campaign)
+    for cohort in ordered_editions:
+        campaign = active_by_course_id.get(cohort.id)
         if campaign is not None:
             return FamilyRegistration(campaign=campaign, cohort=cohort)
-    for cohort in editions:
-        campaign = next_edition_campaign_for_cohort(cohort)
-        if campaign is not None:
+    for cohort in ordered_editions:
+        slug = slugs_by_cohort_id[cohort.id]
+        if not slug:
+            continue
+        campaign = active_by_slug.get(slug)
+        if campaign is not None and campaign.current_course_id != cohort.id:
             return FamilyRegistration(campaign=campaign)
     return FamilyRegistration()
 
