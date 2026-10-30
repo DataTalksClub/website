@@ -24,5 +24,11 @@ worker_class = "gthread"
 timeout = 90
 bind = "0.0.0.0:8000"
 keepalive = 5
-max_requests = 1000
-max_requests_jitter = 100
+# Recycling a worker drops its compiled templates, catalogue stamps and
+# database connection, so its next request re-renders from scratch (measured
+# 0.9-2.9 s per page on prod).  /health/ready probes count towards
+# max_requests, so 1000 recycled both workers roughly every half hour on
+# health checks alone, and those cold renders dominated real-traffic p95.
+# 20000 keeps the leak-hedge recycle at a few-times-a-day cadence instead.
+max_requests = 20000
+max_requests_jitter = 2000

@@ -405,6 +405,20 @@ NOINDEX = False
 # live; production opts in explicitly.  Credentialed responses are never
 # stored or served regardless of this flag.
 ANONYMOUS_PAGE_CACHE_ENABLED = False
+# The stored pages and their invalidation generation live in a shared
+# database-backed cache so a gunicorn worker recycle (max_requests) or a
+# container restart cannot drop them: prod gunicorn recycles workers on a
+# schedule, and a process-local cache turns every recycle into a cold render
+# of each first-requested page (measured 0.9-2.9 s).  The table is created by
+# a core migration (0011) and must match CACHES["anonymous_pages"]["LOCATION"].
+CACHES = {
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    "anonymous_pages": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "django_anonymous_page_cache",
+        "OPTIONS": {"max_entries": 2000, "CULL_FREQUENCY": 3},
+    },
+}
 REQUIRED_BOOTSTRAP_SETTINGS = ("SECRET_KEY", "ALLOWED_HOSTS", "DATABASES")
 
 SECURE_CONTENT_TYPE_NOSNIFF = True

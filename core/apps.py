@@ -38,13 +38,13 @@ class CoreConfig(AppConfig):
         from core import operational_settings, site_settings  # noqa: F401
         from core.page_cache import _handle_model_write
 
-        # The anonymous page cache keys carry no content stamp (a hit costs no
-        # database round trip), so any database write must orphan the stored
-        # pages instead: the receiver is global on purpose, so a future
-        # content-owned model cannot silently fall outside a curated list.
-        # The handler early-returns wherever the cache flag is off (tests,
-        # local development), and serving a public page performs no writes,
-        # so ordinary anonymous traffic never churns the cache.
+        # The anonymous page cache keys carry no content stamp (a hit costs
+        # only its two cache-table reads), so any database write must orphan
+        # the stored pages instead: the receiver is global on purpose, so a
+        # future content-owned model cannot silently fall outside a curated
+        # list. The handler early-returns wherever the cache flag is off
+        # (tests, local development), and serving a public page performs no
+        # writes, so ordinary anonymous traffic never churns the cache.
         post_save.connect(
             _handle_model_write,
             dispatch_uid="core.page_cache.invalidate_on_write",

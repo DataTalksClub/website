@@ -2,15 +2,17 @@
 
 Public pages must stay fast for logged-out readers without ever serving one
 viewer's bytes to another: the first anonymous ``GET`` renders normally and
-the second one is served from the page cache with zero database queries and
-no template render, while logged-in requests bypass lookup and store alike
-and keep their ``private, no-store`` directives.  Any database write orphans
-the stored pages, so content published between two requests is visible on the
+the second one is served from the shared page cache with two cache-table
+reads (generation token + page entry) and no template render, while
+logged-in requests bypass lookup and store alike and keep their ``private,
+no-store`` directives.  Any database write bumps the shared generation once
+it commits, so content published between two requests is visible on the
 next one.
 """
 
 from __future__ import annotations
 
+import pathlib
 from typing import Any
 
 from django.contrib.auth import get_user_model
@@ -20,6 +22,7 @@ from django.test.utils import CaptureQueriesContext
 
 from content import catalogue
 from content.tests.test_public_page_query_budgets import _drop_process_caches, _key_pages
+from core import migrations as core_migrations
 from core.page_cache import (
     CACHEABLE_VIEWS,
     cache_generation,
@@ -46,10 +49,13 @@ class AnonymousPageCacheTests(TestCase):
             second = self.client.get(path)
         self.assertEqual(second.status_code, 200, path)
         self.assertEqual(second.headers.get("X-Page-Cache"), "HIT", path)
-        self.assertEqual(len(captured), 0, f"{path} hit spent {len(captured)} queries")
+        # A hit reads the shared generation token and the page entry from the
+        # cache table and nothing else: the cap proves no page-level query
+        # (stamps, catalogue, events) runs on the served path.
+        self.assertLessEqual(len(captured), 2, f"{path} hit spent {len(captured)} queries")
         return first, second
 
-    def test_key_pages_serve_the_second_anonymous_hit_with_zero_queries(self) -> None:
+    def test_key_pages_serve_the_second_anonymous_hit_from_two_cache_reads(self) -> None:
         for _key, path in _key_pages():
             with self.subTest(page=path):
                 first, second = self._miss_then_hit(path)
@@ -60,6 +66,20 @@ class AnonymousPageCacheTests(TestCase):
                     path,
                 )
                 self.assertIn("Cookie", second.headers.get("Vary", ""), path)
+
+    def test_shared_backend_table_names_agree(self) -> None:
+        """The settings alias, the module constant and the migration are one table."""
+
+        from django.conf import settings
+
+        from core.page_cache import PAGE_CACHE_TABLE
+
+        caches_setting: dict[str, Any] = settings.CACHES
+        self.assertEqual(caches_setting["anonymous_pages"]["LOCATION"], PAGE_CACHE_TABLE)
+        migration_source = (
+            pathlib.Path(core_migrations.__file__).parent / "0011_anonymous_page_cache_table.py"
+        )
+        self.assertIn("from core.page_cache import PAGE_CACHE_TABLE", migration_source.read_text())
 
     def test_every_key_page_view_is_cache_eligible(self) -> None:
         for _budget_key, path in _key_pages():
@@ -164,23 +184,27 @@ class AnonymousPageCacheTests(TestCase):
             "title": "Fast pages cache probe",
             "public_path": "/blog/zzz-fast-pages-cache-probe.html",
         }
-        SyncedDocument.objects.create(
-            source=source,
-            content_kind="article",
-            stable_key="zzz-fast-pages-cache-probe",
-            slug="zzz-fast-pages-cache-probe",
-            title="Fast pages cache probe",
-            summary="A probe, published.",
-            public_path="/blog/zzz-fast-pages-cache-probe.html",
-            source_path="probe/article.md",
-            checksum="1" * 64,
-            record=probe_record,
-            is_published=True,
-        )
+        # The invalidation waits for the write to commit (transaction.on_commit),
+        # so the test replays the commit through the capture helper.
+        with self.captureOnCommitCallbacks(execute=True):
+            SyncedDocument.objects.create(
+                source=source,
+                content_kind="article",
+                stable_key="zzz-fast-pages-cache-probe",
+                slug="zzz-fast-pages-cache-probe",
+                title="Fast pages cache probe",
+                summary="A probe, published.",
+                public_path="/blog/zzz-fast-pages-cache-probe.html",
+                source_path="probe/article.md",
+                checksum="1" * 64,
+                record=probe_record,
+                is_published=True,
+            )
         try:
-            # The write orphaned the stored page on this worker, so the next
+            # The committed write orphaned the stored page, so the next
             # request re-renders and sees the probe instead of the stale bytes.
-            self.assertGreater(cache_generation(), generation)
+            self.assertIsNotNone(cache_generation())
+            self.assertNotEqual(cache_generation(), generation)
             after = self.client.get("/blog")
             self.assertNotIn("X-Page-Cache", after.headers)
             self.assertContains(after, "Fast pages cache probe", status_code=200)

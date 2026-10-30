@@ -19,12 +19,22 @@ trip.
 Freshness comes from two bounds, documented here because the shape is
 deliberate:
 
-* any database write bumps a process-local generation counter, and the key
-  names the generation, so the next anonymous request after a content sync,
-  an event import, an admin edit or a settings change re-renders instead of
-  serving the previous bytes on the worker that took the write;
-* every entry carries a short TTL (60 s), which bounds staleness on the
-  workers that did not take the write.
+* any database write bumps an invalidation generation that is stored next to
+  the pages themselves (see below), so the next anonymous request after a
+  content sync, an event import, an admin edit or a settings change
+  re-renders instead of serving the previous bytes — on every worker and in
+  the worker container alike, because they all reach the same backend;
+* every entry also carries a TTL, which is only the backstop for a backend
+  that missed the generation bump.
+
+The backend is deliberately the shared database cache
+(``CACHES["anonymous_pages"]``), not process-local memory: production
+gunicorn recycles workers (``max_requests``), and a process-local cache
+turned every recycle into a fresh cold render of whichever page each new
+worker was first asked for — measured at 0.9-2.9 s per render and the
+dominant part of real-traffic p95.  A hit now costs two indexed reads of the
+cache table (generation token, then the page entry) and no template render;
+the read path fails open to a normal render on any backend error.
 
 The invalidation receiver is intentionally global (``post_save`` /
 ``post_delete`` with no sender): a curated model list would silently go stale
@@ -32,6 +42,9 @@ whenever a new content-owned model is added, while over-invalidation only
 costs a re-render and this site's write traffic is tiny next to its anonymous
 reads.  Serving a public page performs no writes (the warm query budgets pin
 read-only renders), so ordinary anonymous traffic never churns the cache.
+The bump runs in ``transaction.on_commit``, so a write that rolls back never
+orphanes the stored pages and a late commit orphans them exactly when it
+becomes visible.
 
 What is never cached, by construction:
 
@@ -53,31 +66,43 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import threading
+import uuid
 from typing import Any
 
 from django.conf import settings
-from django.core.cache import cache
+from django.core.cache import caches
 from django.http import HttpRequest, HttpResponse
 
 from core.cache_policy import QUERY_ALLOWLISTS, request_query_keys
 
 logger = logging.getLogger(__name__)
 
-#: How long a stored anonymous page may be served, in seconds.  The bound is
-#: for the workers that did not take the invalidating write; the worker that
-#: took it re-renders on its next request via the generation bump below.
-PAGE_CACHE_TTL_SECONDS = 60
+#: How long a stored anonymous page may be served, in seconds.  Correctness
+#: does not rest on this bound — the shared generation bump orphans pages as
+#: soon as their invalidating write commits — so the TTL only caps the damage
+#: of a backend that somehow missed a bump.  One hour keeps that worst case
+#: tolerable while making TTL-driven re-renders rare enough that real traffic
+#: is served mostly from stored pages.
+PAGE_CACHE_TTL_SECONDS = 3600
+
+#: The shared generation entry lives twice as long as a page so a quiet site
+#: never expires its generation while pages are still valid.
+_GENERATION_TTL_SECONDS = 2 * PAGE_CACHE_TTL_SECONDS
 
 #: Code-owned key version.  Bump when the stored entry shape changes so older
 #: entries (which carry a different version in their key) stop matching.
-PAGE_CACHE_KEY_VERSION = 1
+PAGE_CACHE_KEY_VERSION = 2
 
 #: Largest body kept.  The biggest public page is a few hundred kilobytes;
 #: anything larger re-renders rather than risking cache-memory pressure.
 PAGE_CACHE_MAX_BODY_BYTES = 2 * 1024 * 1024
 
 _CACHE_KEY_PREFIX = "anon-page"
+_GENERATION_KEY = f"{_CACHE_KEY_PREFIX}:generation"
+
+#: The cache table this module uses; the name is duplicated by the migration
+#: that creates it (core.migrations.0011) and pinned together by a test.
+PAGE_CACHE_TABLE = "django_anonymous_page_cache"
 
 #: Views whose anonymous ``GET`` responses may be stored and served.  This is
 #: deliberately explicit rather than "every shareable registry class": feeds,
@@ -120,8 +145,11 @@ CACHEABLE_VIEWS = frozenset(
     }
 )
 
-_lock = threading.Lock()
-_generation = 1
+
+def _backend() -> Any:
+    """The shared cache backend that stores pages and the generation."""
+
+    return caches["anonymous_pages"]
 
 
 def _enabled() -> bool:
@@ -130,33 +158,52 @@ def _enabled() -> bool:
     return bool(getattr(settings, "ANONYMOUS_PAGE_CACHE_ENABLED", False))
 
 
-def cache_generation() -> int:
-    """The current invalidation generation (tests may read it)."""
+def cache_generation() -> str | None:
+    """The shared invalidation generation, creating one on first use.
 
-    with _lock:
-        return _generation
+    ``add`` only writes when the key is absent, so concurrent workers seed
+    one token and a loser of that race simply re-renders once its differently
+    stamped entry misses the shared token.  ``None`` means the backend is
+    failing right now; callers treat that as "do not trust stored pages".
+    """
+
+    backend = _backend()
+    try:
+        existing = backend.get(_GENERATION_KEY)
+        if existing:
+            return existing
+        seeded = uuid.uuid4().hex
+        backend.add(_GENERATION_KEY, seeded, _GENERATION_TTL_SECONDS)
+        stored = backend.get(_GENERATION_KEY)
+        return stored or seeded
+    except Exception:  # A cache backend outage renders normally.
+        return None
 
 
 def reset_page_cache_state() -> None:
-    """Restore the initial generation and drop stored pages (tests only)."""
+    """Drop stored pages and the generation (tests only)."""
 
-    global _generation
-    with _lock:
-        _generation = 1
-    cache.clear()
+    try:
+        _backend().clear()
+    except Exception:
+        pass
 
 
 def invalidate_anonymous_page_cache() -> None:
     """Orphan every stored anonymous page so the next lookup re-renders.
 
-    Old generations expire by TTL; the bump itself is one locked integer, so
-    a content sync that writes hundreds of rows only churns the cache once
-    per worker instead of serving any of the pre-sync bytes afterwards.
+    Stored pages are keyed by path, so orphaning means replacing the shared
+    generation token their entries carry: every worker (and the worker
+    container) reads the same token from the same backend, so the very next
+    request anywhere re-renders.  The bump itself is one cache write, so a
+    content sync that writes hundreds of rows churns the cache once per
+    commit instead of serving any of the pre-sync bytes afterwards.
     """
 
-    global _generation
-    with _lock:
-        _generation += 1
+    try:
+        _backend().set(_GENERATION_KEY, uuid.uuid4().hex, _GENERATION_TTL_SECONDS)
+    except Exception:  # A cache backend outage must never fail the writer.
+        logger.warning("anonymous page cache invalidation failed", exc_info=True)
 
 
 def _handle_model_write(**kwargs: Any) -> None:
@@ -166,13 +213,17 @@ def _handle_model_write(**kwargs: Any) -> None:
     writes, so bumping on every write cannot churn the cache under anonymous
     traffic; logins, registrations and syncs are rare by comparison.  The
     early return keeps the receiver a no-op in tests and in environments
-    where the flag is off.
+    where the flag is off, and the bump waits for the surrounding
+    transaction to commit so a rolled-back write leaves the stored pages —
+    which never saw the write's data — alone.
     """
 
     del kwargs
     if not _enabled():
         return
-    invalidate_anonymous_page_cache()
+    from django.db import transaction
+
+    transaction.get_connection().on_commit(invalidate_anonymous_page_cache)
 
 
 def _resolved_view_path(request: HttpRequest) -> str | None:
@@ -241,9 +292,13 @@ def lookup_key(request: HttpRequest) -> str | None:
     if not _query_is_cacheable(view_path, raw_query):
         return None
     query_hash = hashlib.sha256(raw_query.encode("utf-8")).hexdigest()
+    # The key carries no generation: invalidation is decided by comparing the
+    # entry's stored generation against the shared token, so a bump orphans
+    # every stored page without touching each key (see invalidate_anonymous_
+    # page_cache).
     return (
         f"{_CACHE_KEY_PREFIX}:v{PAGE_CACHE_KEY_VERSION}"
-        f":g{cache_generation()}:{view_path}:{request.path_info}:{query_hash}"
+        f":{view_path}:{request.path_info}:{query_hash}"
     )
 
 
@@ -271,14 +326,21 @@ def store_response(key: str, response: HttpResponse) -> None:
 
     if not _enabled() or not _storable_response(response):
         return
+    generation = cache_generation()
+    if generation is None:
+        # A backend that cannot even hold the generation token cannot be
+        # relied on to serve a consistent page either; skip storing so the
+        # next request tries again from scratch.
+        return
     entry = {
+        "generation": generation,
         "status": response.status_code,
         "body": bytes(response.content),
         "content_type": response.get("Content-Type", "text/html; charset=utf-8"),
         "cache_control": response.get("Cache-Control", ""),
     }
     try:
-        cache.set(key, entry, PAGE_CACHE_TTL_SECONDS)
+        _backend().set(key, entry, PAGE_CACHE_TTL_SECONDS)
     except Exception:  # A cache backend outage must never fail a page.
         logger.warning("anonymous page cache store failed", exc_info=True)
 
@@ -287,11 +349,15 @@ def cached_response(key: str) -> HttpResponse | None:
     """Rebuild a stored anonymous page, or ``None`` on a miss or outage."""
 
     try:
-        entry = cache.get(key)
+        entry = _backend().get(key)
     except Exception:  # A cache backend outage renders normally.
         logger.warning("anonymous page cache lookup failed", exc_info=True)
         return None
     if not isinstance(entry, dict):
+        return None
+    # An entry written before the latest generation bump (a committed write
+    # anywhere) is stale by construction and must re-render.
+    if entry.get("generation") != cache_generation():
         return None
     try:
         body = entry["body"]
