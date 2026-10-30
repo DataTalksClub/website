@@ -127,8 +127,8 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # Registration double opt-in (mirror of CMP c2f7d87) adds dnspython for MX
 # checks and enrolls the new confirmation modules in strict mypy; the
 # reviewed configuration-only seal tracks the pyproject bytes.
-# Community-base v0.5.34 adopts the Relay mail recipient preservation
-# (46595f9b); the reviewed configuration-only seal tracks the pin bytes.
+# Community-base v0.5.35 adopts the immutable template version selection
+# (2ec90c67); the reviewed configuration-only seal tracks the pin bytes.
 # Registration notices (912a3e6d) and contact sync (5c70f547) subsequently
 # enrolled five modules in strict mypy. Reseal those reviewed configuration
 # bytes only: d308a7fb already sealed v0.5.34 correctly, and uv.lock is unchanged.
@@ -152,7 +152,7 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # If this seal fails after editing pyproject.toml, review the diff, then reseal:
 #   sha256sum pyproject.toml
 # and update STUDIO_COURSES_PYPROJECT_SHA256 below with the reviewed bytes.
-STUDIO_COURSES_PYPROJECT_SHA256 = "3e8da7e825613b7c3fdcbf4512c0f9d0d25570c60b6edb12ed56160b514731b3"
+STUDIO_COURSES_PYPROJECT_SHA256 = "12cb1c409d5ea16c2cff2021210976c52b0a363d32dd2440d2b01e7b2f98e552"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
@@ -169,8 +169,10 @@ STUDIO_COURSES_PYPROJECT_SHA256 = "3e8da7e825613b7c3fdcbf4512c0f9d0d25570c60b6ed
 # (46595f9b); the reviewed lock seal tracks the entry and pin reference bytes.
 # The t1832u audit (intake cee97881) drops django-q2 and pandas, removing
 # django-q2, django-picklefield, pandas and numpy from the lock.
+# Community-base v0.5.35 adopts the immutable template version selection
+# (2ec90c67); the reviewed lock seal tracks the entry and pin reference bytes.
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "aa512817fdeac90077ab7b5e15b168229a15a5187df24a9828610a15623db8ff"
+    "b05fa1b9177c12c2d80b8403b148851287f989e8d3b3039b721730e2a57bba25"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
