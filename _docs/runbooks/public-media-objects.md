@@ -1,7 +1,7 @@
 # Public projection media objects
 
 The 1,253 public projection images (`/images/...`, about 154 MB) are **not** carried in the git
-working tree. `content/public_projection/media/` (the local hydration root) is gitignored and
+working tree. `.local-media/public/` (the local hydration root) is gitignored and
 excluded from the container build context. Django resolves each request against
 `~/prod/dtc-data/content-staging/public_projection/media.json` (the reviewed records, outside this
 repository) and then reads the object through a pluggable media store.
@@ -17,7 +17,7 @@ Selected by `PUBLIC_MEDIA_STORE_BACKEND`.
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | `PUBLIC_MEDIA_STORE_BACKEND` | `local` | `local`, `memory`, or `s3` |
-| `PUBLIC_MEDIA_LOCAL_ROOT` | `content/public_projection/media` | filesystem root for `local` |
+| `PUBLIC_MEDIA_LOCAL_ROOT` | `.local-media/public` | filesystem root for `local` |
 | `PUBLIC_MEDIA_S3_BUCKET` | `""` | bucket name for `s3` |
 | `PUBLIC_MEDIA_S3_PREFIX` | `public-projection` | key prefix for `s3` |
 | `PUBLIC_MEDIA_S3_REGION` | `""` | region for `s3` |
@@ -94,10 +94,10 @@ uv run --frozen python scripts/prod/sync_public_media_hydrate.py \
   --checkout DataTalksClub/datatalksclub.github.io=/path/to/datatalksclub.github.io
 
 # from an already hydrated peer checkout or the configured object store
-PUBLIC_MEDIA_LOCAL_ROOT=/path/to/other/checkout/content/public_projection/media \
+PUBLIC_MEDIA_LOCAL_ROOT=/path/to/other/checkout/.local-media/public \
   uv run --frozen python scripts/prod/sync_public_media_hydrate.py \
   --database .tmp/local.sqlite3 --source store \
-  --destination content/public_projection/media
+  --destination .local-media/public
 
 # last resort: the pinned upstream revisions over the network, legacy repository included
 uv run --frozen python scripts/prod/sync_public_media_hydrate.py \
@@ -186,7 +186,7 @@ the records are that database's synced media rows (`content.catalogue.media()`),
 ones the `/images/` route serves, and a database with none exits `2` with
 `no_synced_media_records`.
 
-Run these from a checkout whose `content/public_projection/media/` is hydrated — that tree is the
+Run these from a checkout whose `.local-media/public/` is hydrated — that tree is the
 publish source. `sync_public_media_verify.py` exits non-zero unless every one of the 1,253 records is
 present with a matching checksum and the store holds no unrecorded object.
 

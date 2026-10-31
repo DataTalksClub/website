@@ -145,7 +145,7 @@ uv run --frozen python scripts/production_data.py verify --database <root>/datas
 ```
 
 `<root>` is `PRODUCTION_PREP_DATASET_ROOT` (default `.tmp/production-prep-dataset`). Both commands
-use the store `PUBLIC_MEDIA_LOCAL_ROOT` names (default `content/public_projection/media`), so give
+use the store `PUBLIC_MEDIA_LOCAL_ROOT` names (default `.local-media/public`), so give
 them, and `run`, the same value.
 
 Artifacts land under `.tmp/production-prep-dataset/`: `course-sources/` (one checkout per

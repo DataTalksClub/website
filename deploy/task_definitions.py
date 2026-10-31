@@ -28,8 +28,8 @@ REGISTERABLE_FIELDS = {
     "volumes",
 }
 SAFETY_ENVIRONMENT = SELECTED_TARGET.safety_environment
-# The release image deliberately excludes content/public_projection/media (see
-# .dockerignore), so a deployed workload cannot serve the projection images from its own
+# The release image deliberately excludes .local-media (see .dockerignore), so
+# a deployed workload cannot serve the projection images from its own
 # filesystem.  It reads them from the published object store instead, at unchanged public
 # /images/... URLs.  The CloudFront distribution in front of the bucket is an origin/edge
 # detail: Django is the origin for /images/..., so no public URL moves to a CDN hostname.

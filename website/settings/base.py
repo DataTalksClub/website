@@ -376,7 +376,7 @@ CLOUDWATCH_APP_METRIC_REGION = os.getenv("CLOUDWATCH_APP_METRIC_REGION", "")
 # ``s3`` and is checked for it under production settings.
 PUBLIC_MEDIA_STORE_BACKEND = os.getenv("PUBLIC_MEDIA_STORE_BACKEND", "local").strip().lower()
 PUBLIC_MEDIA_LOCAL_ROOT = Path(
-    os.getenv("PUBLIC_MEDIA_LOCAL_ROOT") or (BASE_DIR / "content" / "public_projection" / "media")
+    os.getenv("PUBLIC_MEDIA_LOCAL_ROOT") or (BASE_DIR / ".local-media" / "public")
 )
 PUBLIC_MEDIA_S3_BUCKET = os.getenv("PUBLIC_MEDIA_S3_BUCKET", "").strip()
 # The media objects sit at the bucket root under ``images/``, which is already the

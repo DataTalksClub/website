@@ -400,14 +400,12 @@ class MediaToolingReachabilityTests(TestCase):
                     continue
                 self.assertNotIn("public_media", match.func.__module__)
 
-    def test_the_local_root_default_is_the_historic_projection_tree(self) -> None:
+    def test_the_local_root_default_is_outside_the_source_tree(self) -> None:
         from django.conf import settings
 
         configured = os.getenv("PUBLIC_MEDIA_LOCAL_ROOT")
         expected = (
-            Path(configured)
-            if configured
-            else Path(settings.BASE_DIR) / "content" / "public_projection" / "media"
+            Path(configured) if configured else Path(settings.BASE_DIR) / ".local-media" / "public"
         )
         self.assertEqual(local_media_root(), expected)
 

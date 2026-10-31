@@ -25,6 +25,7 @@ CSRF_TRUSTED_ORIGINS = env_list(  # noqa: F405
 # exist, so the default database path below would fail with "unable to open
 # database file"; /app is owned by the runtime user, so creating it here works.
 (BASE_DIR / ".tmp").mkdir(parents=True, exist_ok=True)
+PUBLIC_MEDIA_LOCAL_ROOT.mkdir(parents=True, exist_ok=True)  # noqa: F405
 DATABASES = {
     "default": sqlite_database_from_environment(  # noqa: F405
         environment=RuntimeEnvironment.LOCAL,  # noqa: F405

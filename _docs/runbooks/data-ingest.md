@@ -345,7 +345,7 @@ Reads that **take content** (fate required):
 | a6 | `build_public_projection.py:1385, 1541, 1556, 1641, 3078` | `_posts`, `_podcast`, `_books`, `images/**` | articles, podcasts, books, media — **`--mode fallback` only** | Nothing. Fallback is not accepted |
 
 **a5 is the only read that still wants the legacy repository at run time**, and
-`content/public_projection/media/` is gitignored (`.gitignore:23`, `git ls-files`
+`.local-media/public/` is gitignored (`.gitignore`, `git ls-files`
 returns 0 files). 438 of the 997 media records carry
 `"repository": "DataTalksClub/datatalksclub.github.io"` in their provenance.
 
@@ -577,7 +577,7 @@ to trip over.
 Settled by the owner: **images go to the CDN**, not into the content repository.
 
 The mechanism already exists and is landed — issue #301,
-`_docs/runbooks/public-media-objects.md`. `content/public_projection/media/` (the local hydration
+`_docs/runbooks/public-media-objects.md`. `.local-media/public/` (the local hydration
 root) is gitignored; Django resolves `/images/<path>` against the synced media rows
 (`content.catalogue.media()` — `SyncedDocument(content_kind="media")` of `dtc-content`
 and `dtc-main-site`, written by `manage.py sync_content`) and reads the object through a
@@ -1161,7 +1161,7 @@ uv run --frozen python scripts/production_data.py verify --database <root>/datas
 ```
 
 `<root>` is `PRODUCTION_PREP_DATASET_ROOT`. Both commands write and read the store that
-`PUBLIC_MEDIA_LOCAL_ROOT` names (default `content/public_projection/media`), so give them the same
+`PUBLIC_MEDIA_LOCAL_ROOT` names (default `.local-media/public`), so give them the same
 value. Those two `--checkout` repositories are the only ones the synced media records name.
 
 The same order, by hand:
