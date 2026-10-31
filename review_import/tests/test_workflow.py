@@ -1062,7 +1062,7 @@ from review_import.environment import LOCAL_REVIEW_PROVIDER_ENVIRONMENT
 
 if not settings.LOCAL_REVIEW_OUTBOUND_NETWORK_DISABLED:
     raise SystemExit(30)
-if settings.CLOUDWATCH_APP_METRIC_REGION or settings.AWS_REGION or settings.AWS_DEFAULT_REGION:
+if settings.CLOUDWATCH_APP_METRIC_REGION:
     raise SystemExit(31)
 for name, expected in LOCAL_REVIEW_PROVIDER_ENVIRONMENT.items():
     if os.environ.get(name) != expected:

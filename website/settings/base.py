@@ -366,9 +366,7 @@ OBSERVABILITY_EVENT_BACKENDS = ["log"]
 CLOUDWATCH_APP_METRIC_NAMESPACE = os.getenv(
     "CLOUDWATCH_APP_METRIC_NAMESPACE", "CourseManagement/App"
 )
-CLOUDWATCH_APP_METRIC_REGION = os.getenv(
-    "CLOUDWATCH_APP_METRIC_REGION", os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", ""))
-)
+CLOUDWATCH_APP_METRIC_REGION = os.getenv("CLOUDWATCH_APP_METRIC_REGION", "")
 
 # Public projection media objects are read through a pluggable store so the 1,253
 # release images do not have to be carried in the git working tree.  The default is the

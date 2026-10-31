@@ -7,6 +7,7 @@ from django.urls import reverse
 from accounts.studio_test_support import grant_studio_role
 from course_management.observability.cloudwatch_dashboard import (
     cloudwatch_dashboard_context,
+    cloudwatch_region,
 )
 from courses.models import Cohort, User
 
@@ -157,3 +158,11 @@ class CloudWatchDashboardContextTests(TestCase):
             ],
         )
         now_mock.assert_called()
+
+    @override_settings(
+        CLOUDWATCH_APP_METRIC_REGION="",
+        AWS_REGION="eu-west-1",
+        AWS_DEFAULT_REGION="us-east-1",
+    )
+    def test_cloudwatch_region_reads_only_cloudwatch_app_metric_region(self):
+        self.assertEqual(cloudwatch_region(), "")

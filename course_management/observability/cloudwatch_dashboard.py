@@ -5,7 +5,6 @@ from math import floor
 import boto3
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
-from django.conf import settings
 from django.utils import timezone
 
 from course_management.observability.cloudwatch import METRIC_NAME
@@ -145,18 +144,9 @@ def cloudwatch_client():
 
 
 def cloudwatch_region() -> str:
-    """The metric region.  The AWS fallbacks stay environment-only on purpose.
+    """Return the configured CloudWatch metric region."""
 
-    ``AWS_REGION`` and ``AWS_DEFAULT_REGION`` are read by every AWS client in
-    the process, including the one that would have to reach the database to read
-    a row, so they cannot live behind it.
-    """
-
-    return (
-        get_str_setting("observability.cloudwatch_metric_region")
-        or getattr(settings, "AWS_REGION", "")
-        or getattr(settings, "AWS_DEFAULT_REGION", "")
-    ).strip()
+    return get_str_setting("observability.cloudwatch_metric_region").strip()
 
 
 def normalized_hours(hours: int) -> int:

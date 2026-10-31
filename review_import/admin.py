@@ -32,14 +32,7 @@ def _assert_side_effects_disabled() -> None:
         raise RuntimeError("local review background jobs are not on the sync backend")
     if not getattr(settings, "LOCAL_REVIEW_OUTBOUND_NETWORK_DISABLED", False):
         raise RuntimeError("local review outbound network is not disabled")
-    if any(
-        getattr(settings, name, "")
-        for name in (
-            "CLOUDWATCH_APP_METRIC_REGION",
-            "AWS_REGION",
-            "AWS_DEFAULT_REGION",
-        )
-    ):
+    if getattr(settings, "CLOUDWATCH_APP_METRIC_REGION", ""):
         raise RuntimeError("local review AWS settings are not disabled")
 
 

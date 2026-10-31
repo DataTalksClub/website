@@ -35,8 +35,6 @@ DATAMAILER_IMPORT_URL_EXPIRES_SECONDS = 0
 DATAMAILER_IMPORT_S3_REGION = ""
 DATAMAILER_SYNC_ON_USER_CREATE = False
 CLOUDWATCH_APP_METRIC_REGION = ""
-AWS_REGION = ""
-AWS_DEFAULT_REGION = ""
 # Django's test client browses as host "testserver", and the workstation `.env`
 # loaded by `website.settings.local` supplies a deploy-oriented host list without
 # it. Pin the canonical local list so review browsing ignores both the shell and
