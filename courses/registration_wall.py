@@ -6,13 +6,14 @@ campaign cannot unlock an earlier cohort. This mirrors CMP's registration wall.
 
 from django.core.exceptions import PermissionDenied
 
+from course_management.mail_payloads import normalized_user_email
 from courses.models.cohort import CourseRegistration
 
 
 def registration_wall_status_for_user(cohort, user):
     if not user.is_authenticated:
         return None
-    email = (user.email or "").strip().lower()
+    email = normalized_user_email(user)
     if not email:
         return None
     return (
@@ -28,7 +29,7 @@ def registration_wall_blocks_user(cohort, user):
         return False
     if not user.is_authenticated:
         return True
-    email = (user.email or "").strip().lower()
+    email = normalized_user_email(user)
     return (
         not email
         or not CourseRegistration.objects.filter(

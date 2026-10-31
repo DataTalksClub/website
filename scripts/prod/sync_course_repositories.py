@@ -44,6 +44,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
+from scripts.verify_course_platform_adoption import run_git_process  # noqa: E402
 
 SYNC_MODEL = "git-synchronized"
 # It owns module and unit curricula: given at least one registered source and a
@@ -166,11 +167,10 @@ def checkout_plan(
 
 def _git(root: Path, *arguments: str) -> str:
     try:
-        completed = subprocess.run(
-            ["git", "-C", str(root), *arguments],
+        completed = run_git_process(
+            root,
+            *arguments,
             check=False,
-            capture_output=True,
-            text=True,
             timeout=GIT_TIMEOUT_SECONDS,
         )
     except (OSError, subprocess.SubprocessError) as error:

@@ -25,6 +25,7 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 
+from course_management.mail_payloads import normalized_email, normalized_user_email
 from course_management.observability import record_event
 from courses.models.cohort import CourseRegistration, Enrollment, RegistrationCampaign
 from courses.services.registration_contacts import queue_registration_contacts
@@ -106,13 +107,14 @@ def _taken_campaign_ids(user, email: str) -> tuple[set[int], set[int]]:
     """Campaigns already registered for, and cohorts already enrolled in."""
 
     identity = Q(pk__in=[])
-    email_normalized = (email or "").strip().lower()
+    email_normalized = normalized_email(email)
     if email_normalized:
         identity |= Q(email_normalized=email_normalized)
     if user is not None and user.is_authenticated:
         identity |= Q(user=user)
-        if user.email:
-            identity |= Q(email_normalized=user.email.strip().lower())
+        user_email = normalized_user_email(user)
+        if user_email:
+            identity |= Q(email_normalized=user_email)
     registered = set(
         CourseRegistration.objects.filter(identity).values_list("campaign_id", flat=True)
     )

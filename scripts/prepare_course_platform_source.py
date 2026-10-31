@@ -12,17 +12,11 @@ from pathlib import Path
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from scripts.verify_course_platform_adoption import SOURCE_PIN
+from scripts.verify_course_platform_adoption import SOURCE_PIN, run_git
 
 
 def _git(path: Path, *args: str) -> str:
-    result = subprocess.run(
-        ["git", "-C", str(path), *args],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip()
+    return run_git(path, *args).strip()
 
 
 def _metadata(repo: Path) -> tuple[str, str, Path]:

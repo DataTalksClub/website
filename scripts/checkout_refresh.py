@@ -42,6 +42,11 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from scripts.verify_course_platform_adoption import run_git_process  # noqa: E402
+
 SCRATCH_ROOT = PROJECT_ROOT / ".tmp"
 
 #: Written inside ``.git`` at clone time.  It lives under ``.git`` deliberately:
@@ -61,12 +66,7 @@ def _refuse(code: str) -> None:
 
 
 def _git(checkout: Path, *arguments: str) -> str:
-    completed = subprocess.run(
-        ["git", "-C", str(checkout), *arguments],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    completed = run_git_process(checkout, *arguments, check=False)
     if completed.returncode != 0:
         _refuse(f"git-{arguments[0]}-failed")
     return completed.stdout.strip()

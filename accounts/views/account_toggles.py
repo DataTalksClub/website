@@ -9,10 +9,13 @@ from courses.models.learner_profile import (
     profile_field_default,
 )
 
-
 LOCAL_ACCOUNT_TOGGLE_FIELDS = {
     "dark_mode",
 }
+
+
+def parse_truthy_post_flag(value: str | None) -> bool:
+    return (value or "").lower() in {"1", "true", "yes", "on"}
 
 
 def _toggle_value(user, field: str) -> bool:
@@ -54,7 +57,7 @@ def update_account_toggle(request):
         )
         return response
 
-    enabled = value.lower() in {"1", "true", "yes", "on"}
+    enabled = parse_truthy_post_flag(value)
     profile = ensure_learner_profile(request.user)
     setattr(profile, field, enabled)
     profile.save(update_fields=[field])

@@ -47,6 +47,7 @@ from scripts.verify_course_platform_adoption import (
     read_patch_manifest,
     read_target_integration_manifest,
     render_manifest,
+    run_git_process,
 )
 from scripts.verify_course_platform_adoption import (
     SOURCE_CHECKOUT as LEGACY_SOURCE_CHECKOUT,
@@ -183,13 +184,7 @@ class SyncPlan:
 
 
 def _git(source: Path, *args: str, text: bool = True) -> str | bytes:
-    result = subprocess.run(
-        ["git", "-C", str(source), *args],
-        check=True,
-        capture_output=True,
-        text=text,
-    )
-    return result.stdout
+    return run_git_process(source, *args, text=text).stdout
 
 
 def _git_text(source: Path, *args: str) -> str:
@@ -205,12 +200,7 @@ def _git_bytes(source: Path, *args: str) -> bytes:
 
 
 def _git_checked(source: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", "-C", str(source), *args],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+    return run_git_process(source, *args)
 
 
 def _require_sha(value: str, label: str) -> str:

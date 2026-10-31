@@ -9,6 +9,9 @@ The context assembly ports the pure builders the Datamailer payloads used.
 from __future__ import annotations
 
 from accounts.services.timezones import format_deadline_for_user
+from course_management.mail_payloads import (
+    normalized_user_email as _normalized_email,
+)
 from course_management.public_urls import (
     cohort_route_kwargs,
     public_route_url,
@@ -18,10 +21,6 @@ from courses.models.project import PeerReview
 SUBMISSION_RESULTS_CATEGORY = "submission-results"
 
 ASSIGNED_REVIEWS_ATTR = "assigned_reviews"
-
-
-def _normalized_email(user) -> str:
-    return (user.email or "").strip().lower()
 
 
 def latest_submissions_per_student(submissions):

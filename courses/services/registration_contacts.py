@@ -11,6 +11,7 @@ from community_base.mail.relay_contacts import configured_contacts_client
 from django.db import transaction
 
 from core.operator_alerts import notify_operator_alert
+from course_management.mail_payloads import registration_email
 from courses.models.cohort import CourseRegistration
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ def sync_registration_to_relay(registration_id: int) -> None:
             f"course-cohort-{registration.course.slug}",
         ]
     configured_contacts_client(RELAY_CLIENT).upsert_contact(
-        (registration.email_normalized or registration.email).strip().lower(),
+        registration_email(registration),
         RELAY_AUDIENCE,
         status="subscribed",
         verified=True,

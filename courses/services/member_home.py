@@ -31,6 +31,7 @@ from accounts.home_dismissals import (
 )
 from content.event_content import event_groups
 from core.home_content import event_time_display
+from course_management.mail_payloads import normalized_user_email
 from courses.course_page_content import course_modules, submission_progress
 from courses.models.cohort import Cohort, CourseRegistration, CurriculumFormat, Enrollment
 from courses.models.curriculum import Unit, UnitReadState
@@ -40,7 +41,7 @@ from courses.services.registration_campaigns import next_edition_campaign_for_co
 from courses.views.course_homeworks import get_homeworks_for_course
 from courses.views.course_list import course_family_cards, prepare_course_list_courses
 from courses.views.course_projects import get_projects_for_course
-from courses.views.url_utils import cohort_url, canonical_cohort_url_kwargs
+from courses.views.url_utils import canonical_cohort_url_kwargs, cohort_url
 
 # The onboarding checklist's server-persisted keys are owned by ``accounts``
 # (``accounts/home_dismissals.py``), since ``home_dismissals`` is an accounts
@@ -124,7 +125,7 @@ def classify_cohort(cohort: Cohort, today) -> str:
 def my_cohorts(user) -> list[Cohort]:
     """The union of enrolled and registered cohorts (§4): neither alone is enough."""
 
-    email_normalized = (user.email or "").strip().lower()
+    email_normalized = normalized_user_email(user)
     enrolled_ids = Enrollment.objects.filter(student=user).values("course_id")
     registered_ids = CourseRegistration.objects.filter(
         Q(user=user) | Q(email_normalized=email_normalized)
@@ -237,7 +238,9 @@ def deadline_items_for_cohort(user, cohort: Cohort, now) -> list[DeadlineItem]:
             DeadlineItem(
                 due=project.peer_review_due_date,
                 title=project.title,
-                url=reverse("cohort_projects_eval", kwargs={**kwargs, "project_slug": project.slug}),
+                url=reverse(
+                    "cohort_projects_eval", kwargs={**kwargs, "project_slug": project.slug}
+                ),
                 cohort_title=cohort.title,
             )
         )
@@ -458,9 +461,7 @@ def build_member_home_context(request) -> dict:
     # state-4 lede and is honest whether there is one upcoming cohort or five.
     next_upcoming_cohort = None
     if not active_cards and upcoming_cards:
-        next_upcoming_cohort = min(
-            upcoming_cards, key=lambda card: card.cohort.start_date
-        )
+        next_upcoming_cohort = min(upcoming_cards, key=lambda card: card.cohort.start_date)
 
     your_courses_variant = "row_list" if len(active_cards) >= 4 else "cards"
 

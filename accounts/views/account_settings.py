@@ -1,11 +1,12 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 
+from accounts.email_preferences import EMAIL_PREFERENCE_CATEGORIES
 from accounts.forms import AccountSettingsForm
 from accounts.services.social_connections import list_social_connections
 from accounts.services.timezones import browser_timezone_name, get_timezone_label
 from accounts.views.account_toggles import LOCAL_ACCOUNT_TOGGLE_FIELDS
-from accounts.email_preferences import EMAIL_PREFERENCE_CATEGORIES
+from course_management.mail_payloads import normalized_user_email
 from courses.models import CourseRegistration, Enrollment
 
 
@@ -52,9 +53,7 @@ def _preserve_local_account_toggles(data, user):
 
     profile = learner_profile_for(user)
     for field in LOCAL_ACCOUNT_TOGGLE_FIELDS:
-        value = (
-            getattr(profile, field) if profile is not None else profile_field_default(field)
-        )
+        value = getattr(profile, field) if profile is not None else profile_field_default(field)
         if value:
             data[field] = "on"
         else:
@@ -63,9 +62,7 @@ def _preserve_local_account_toggles(data, user):
 
 def _account_settings_context(request, user, form):
     enrollments = (
-        Enrollment.objects.filter(student=user)
-        .select_related("course")
-        .order_by("course__title")
+        Enrollment.objects.filter(student=user).select_related("course").order_by("course__title")
     )
     preferred_timezone_label = get_timezone_label(user.preferred_timezone)
     browser_timezone_label = _browser_timezone_label(request, user)
@@ -85,7 +82,7 @@ def _account_settings_context(request, user, form):
 def _user_course_registrations(user):
     from django.db.models import Q
 
-    email_normalized = (user.email or "").strip().lower()
+    email_normalized = normalized_user_email(user)
     filters = Q(user=user)
     if email_normalized:
         filters = filters | Q(email_normalized=email_normalized)

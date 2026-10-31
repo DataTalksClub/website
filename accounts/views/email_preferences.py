@@ -12,6 +12,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
 from accounts.email_preferences import EMAIL_PREFERENCE_FIELDS
+from accounts.views.account_toggles import parse_truthy_post_flag
 from course_management.observability import record_event
 
 
@@ -31,10 +32,7 @@ def account_email_preferences(request):
 
 
 def _stored_preferences(user) -> dict[str, bool]:
-    return {
-        field: getattr(user, field) is not False
-        for field in sorted(EMAIL_PREFERENCE_FIELDS)
-    }
+    return {field: getattr(user, field) is not False for field in sorted(EMAIL_PREFERENCE_FIELDS)}
 
 
 def _account_email_preferences_get_response(user):
@@ -52,7 +50,7 @@ def _email_preference_update_payload(request):
         )
         return None, response
 
-    enabled = value.lower() in {"1", "true", "yes", "on"}
+    enabled = parse_truthy_post_flag(value)
     update = EmailPreferenceUpdate(field, enabled)
     return update, None
 

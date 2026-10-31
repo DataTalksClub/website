@@ -10,6 +10,7 @@ import subprocess
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 SOURCE_COMMIT = "98a235283904b4ef9ad29e196298540756cf1bcc"
 SOURCE_CHECKOUT = Path(".tmp/cmp-source-98a2352")
@@ -115,14 +116,24 @@ def retired_adoption_destinations(repo: Path, destinations: Iterable[str]) -> se
     }
 
 
-def run_git(source: Path, *args: str) -> str:
-    result = subprocess.run(
+def run_git_process(
+    source: Path,
+    *args: str,
+    text: bool = True,
+    check: bool = True,
+    timeout: int | None = None,
+) -> subprocess.CompletedProcess[Any]:
+    return subprocess.run(
         ["git", "-C", str(source), *args],
-        check=True,
+        check=check,
         capture_output=True,
-        text=True,
+        text=text,
+        timeout=timeout,
     )
-    return result.stdout
+
+
+def run_git(source: Path, *args: str) -> str:
+    return run_git_process(source, *args).stdout
 
 
 def digest(path: Path) -> str:

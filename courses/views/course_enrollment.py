@@ -5,10 +5,11 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from accounts.views.account_toggles import parse_truthy_post_flag
 from course_management.observability import record_event
 from courses.models.cohort import Cohort, Enrollment
-from courses.services.enrollment import confirm_new_enrollment
 from courses.registration_wall import require_registration_approval
+from courses.services.enrollment import confirm_new_enrollment
 from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
 from .course_leaderboard_data import invalidate_leaderboard_cache
@@ -84,7 +85,7 @@ def enrollment_toggle_input_from_post(request):
         return None
 
     value = request.POST.get("value", "")
-    enabled = value.lower() in {"1", "true", "yes", "on"}
+    enabled = parse_truthy_post_flag(value)
     return field, enabled
 
 

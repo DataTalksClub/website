@@ -16,9 +16,16 @@ from course_management.public_urls import (
 )
 
 
+def normalized_email(value: str | None) -> str:
+    return (value or "").strip().lower()
+
+
+def normalized_user_email(user) -> str:
+    return normalized_email(getattr(user, "email", None))
+
+
 def registration_email(registration) -> str:
-    email = registration.email_normalized or registration.email or ""
-    return email.strip().lower()
+    return normalized_email(registration.email_normalized or registration.email)
 
 
 def registration_confirmation_urls(campaign, course, token="") -> dict[str, str]:

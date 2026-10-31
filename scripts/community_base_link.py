@@ -44,6 +44,12 @@ def repo_root_from_script() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
+if str(repo_root_from_script()) not in sys.path:
+    sys.path.insert(0, str(repo_root_from_script()))
+
+from scripts.verify_course_platform_adoption import run_git_process  # noqa: E402
+
+
 def snapshot_dir(repo: Path) -> Path:
     return repo / SNAPSHOT_DIRNAME
 
@@ -53,11 +59,7 @@ def dependency_paths(repo: Path) -> dict[str, Path]:
 
 
 def git(args: list[str], repo: Path) -> str:
-    result = subprocess.run(
-        ["git", "-C", str(repo), *args],
-        capture_output=True,
-        text=True,
-    )
+    result = run_git_process(repo, *args, check=False)
     if result.returncode != 0:
         raise LinkError(f"git {' '.join(args)} failed: {result.stderr.strip()}")
     return result.stdout
@@ -65,11 +67,7 @@ def git(args: list[str], repo: Path) -> str:
 
 def assert_dependency_files_clean(repo: Path) -> None:
     for staged_args in (["diff", "--quiet", "--"], ["diff", "--cached", "--quiet", "--"]):
-        result = subprocess.run(
-            ["git", "-C", str(repo), *staged_args, *DEPENDENCY_FILES],
-            capture_output=True,
-            text=True,
-        )
+        result = run_git_process(repo, *staged_args, *DEPENDENCY_FILES, check=False)
         if result.returncode != 0:
             raise LinkError(
                 "pyproject.toml/uv.lock have uncommitted changes. "
