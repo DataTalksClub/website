@@ -68,6 +68,7 @@ from typing import Any, NoReturn
 from django.db import transaction
 from django.db.models.deletion import ProtectedError
 
+from accounts.services.cmp_learner_import import _readonly
 from courses.models import (
     Answer,
     Cohort,
@@ -321,16 +322,6 @@ def _refuse(code: str) -> NoReturn:
     raise CmpContentImportError(code)
 
 
-def _readonly(source_db: Path) -> sqlite3.Connection:
-    try:
-        resolved = source_db.expanduser().resolve(strict=True)
-    except OSError:
-        _refuse("source-unreadable")
-    connection = sqlite3.connect(f"file:{resolved}?mode=ro", uri=True)
-    connection.row_factory = sqlite3.Row
-    return connection
-
-
 def _assert_content_only(connection: sqlite3.Connection) -> None:
     """Refuse a source whose learner tables would be read by this importer.
 
@@ -442,7 +433,7 @@ def import_cmp_course_content(
     course slug, valued by a ``{repository_slug: cmp_slug}`` mapping.
     """
 
-    connection = _readonly(source_db)
+    connection = _readonly(source_db, error_cls=CmpContentImportError)
     try:
         _assert_content_only(connection)
         source_cohorts = _rows(connection, "SELECT * FROM courses_course ORDER BY slug")

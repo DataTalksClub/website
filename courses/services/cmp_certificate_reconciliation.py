@@ -13,7 +13,6 @@ counts only; learner identifiers and URLs never leave the service.
 
 from __future__ import annotations
 
-import hashlib
 import sqlite3
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -21,6 +20,7 @@ from typing import NoReturn
 
 from django.db import transaction
 
+from accounts.services.cmp_learner_import import _source_digest
 from courses.models import Cohort, Enrollment
 from courses.models.cmp_import import CmpHistoryClaim, CmpHistoryImportBinding
 from courses.services.cmp_learner_history_import import BINDING_KIND
@@ -48,17 +48,6 @@ def _refuse(code: str) -> NoReturn:
     raise CmpCertificateReconciliationError(code)
 
 
-def _source_digest(path: Path) -> str:
-    digest = hashlib.sha256()
-    try:
-        with path.open("rb") as handle:
-            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                digest.update(chunk)
-    except OSError:
-        _refuse("source-unreadable")
-    return digest.hexdigest()
-
-
 def _refuse_source_sidecars(path: Path) -> None:
     """Require one standalone SQLite file, not a live WAL-backed database.
 
@@ -78,7 +67,7 @@ def _refuse_source_sidecars(path: Path) -> None:
 
 def _bound_source(path: Path) -> tuple[int, str]:
     _refuse_source_sidecars(path)
-    digest = _source_digest(path)
+    digest = _source_digest(path, error_cls=CmpCertificateReconciliationError)
     try:
         binding = CmpHistoryImportBinding.objects.get(kind=BINDING_KIND)
     except CmpHistoryImportBinding.DoesNotExist:
@@ -266,7 +255,7 @@ def reconcile_cmp_enrollment_certificates(
         )
 
     _refuse_source_sidecars(source)
-    if _source_digest(source) != expected_digest:
+    if _source_digest(source, error_cls=CmpCertificateReconciliationError) != expected_digest:
         _refuse("source-changed-during-reconciliation")
     with transaction.atomic():
         matched, already_current, updates_required = _locked_apply(

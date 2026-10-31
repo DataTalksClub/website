@@ -108,7 +108,6 @@ is copied as the export has it.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import sqlite3
 from collections import Counter
@@ -123,6 +122,12 @@ from django.db import models, transaction
 from django.utils.dateparse import parse_datetime
 
 from accounts.models import User
+from accounts.services.cmp_learner_import import (
+    _assert_forbidden_tables_untouched,
+    _get_progress,
+    _open_run_binding,
+    _readonly,
+)
 from courses.models import (
     Answer,
     CmpHistoryClaim,
@@ -296,21 +301,6 @@ class CmpHistoryClaims:
 
     def counts(self) -> dict[str, int]:
         return {table: len(self.table(table)) for table in TABLE_ORDER}
-
-
-def _readonly(source_db: Path) -> sqlite3.Connection:
-    try:
-        resolved = source_db.expanduser().resolve(strict=True)
-    except OSError:
-        _refuse("source-unreadable")
-    connection = sqlite3.connect(f"file:{resolved}?mode=ro", uri=True)
-    connection.row_factory = sqlite3.Row
-    return connection
-
-
-def _assert_forbidden_tables_untouched() -> None:
-    if READ_TABLES & FORBIDDEN_TABLES:  # pragma: no cover - a code-shape guard
-        _refuse("forbidden-table-boundary-violated")
 
 
 def _rows(
@@ -1056,11 +1046,6 @@ class HistoryImportResult:
         }
 
 
-def _get_progress(table: str) -> CmpHistoryImportProgress:
-    progress, _ = CmpHistoryImportProgress.objects.get_or_create(table=table)
-    return progress
-
-
 def _save_progress(progress: CmpHistoryImportProgress) -> None:
     progress.save(
         update_fields=[
@@ -1168,7 +1153,7 @@ def _import_table(
     resolution: Resolution,
 ) -> TableReport:
     source_total = _count(connection, plan.table)
-    progress = _get_progress(plan.table)
+    progress = _get_progress(plan.table, progress_model=CmpHistoryImportProgress)
     claimed = claims.table(plan.table)
     while not progress.completed:
         rows = _rows(
@@ -1244,43 +1229,6 @@ def _import_table(
     return _report(progress, source_total)
 
 
-def _source_digest(source: Path) -> str:
-    digest = hashlib.sha256()
-    try:
-        with source.open("rb") as handle:
-            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                digest.update(chunk)
-    except OSError:
-        _refuse("source-unreadable")
-    return digest.hexdigest()
-
-
-def _open_run_binding(source: Path) -> None:
-    """Bind this run to the exact export, or refuse before any write.
-
-    The first run records the export's digest and this importer's versions;
-    every later run -- a resume included -- must present the same triple.  The
-    binding row carries a per-database UUID, so two databases can never share
-    one, and a rebuilt database (no row) can only start fresh (audit REL-03).
-    """
-
-    digest = _source_digest(source)
-    binding, created = CmpHistoryImportBinding.objects.get_or_create(
-        kind=BINDING_KIND,
-        defaults={
-            "schema_version": SCHEMA_VERSION,
-            "importer_version": IMPORTER_VERSION,
-            "source_sha256": digest,
-        },
-    )
-    if created:
-        return
-    if binding.schema_version != SCHEMA_VERSION or (binding.importer_version != IMPORTER_VERSION):
-        _refuse("run-bound-to-different-importer-version")
-    if binding.source_sha256 != digest:
-        _refuse("run-bound-to-different-source")
-
-
 def _existing_user_claims(user_claims: Mapping[int, int]) -> dict[int, int]:
     """Keep only claimed target pks that exist in this database.
 
@@ -1320,15 +1268,26 @@ def import_cmp_learner_history(
     see ``_cohort_map``.
     """
 
-    _assert_forbidden_tables_untouched()
-    _open_run_binding(source)
+    _assert_forbidden_tables_untouched(
+        READ_TABLES,
+        FORBIDDEN_TABLES,
+        error_cls=CmpHistoryImportError,
+    )
+    _open_run_binding(
+        source,
+        binding_model=CmpHistoryImportBinding,
+        binding_kind=BINDING_KIND,
+        schema_version=SCHEMA_VERSION,
+        importer_version=IMPORTER_VERSION,
+        error_cls=CmpHistoryImportError,
+    )
     wanted = set(tables) if tables is not None else set(TABLE_ORDER)
     unknown = wanted - LEARNER_TABLES
     if unknown:
         _refuse("table-not-in-this-import")
     claims = CmpHistoryClaims.load()
     user_claims = _existing_user_claims(user_claims)
-    connection = _readonly(source)
+    connection = _readonly(source, error_cls=CmpHistoryImportError)
     try:
         resolution = _build_resolution(
             connection,
@@ -1355,9 +1314,13 @@ def import_cmp_learner_history(
 def dry_run_counts(source: Path) -> dict[str, Any]:
     """Report source and already-claimed counts. Writes nothing."""
 
-    _assert_forbidden_tables_untouched()
+    _assert_forbidden_tables_untouched(
+        READ_TABLES,
+        FORBIDDEN_TABLES,
+        error_cls=CmpHistoryImportError,
+    )
     claims = CmpHistoryClaims.load()
-    connection = _readonly(source)
+    connection = _readonly(source, error_cls=CmpHistoryImportError)
     try:
         rows = {table: _count(connection, table) for table in TABLE_ORDER}
     finally:

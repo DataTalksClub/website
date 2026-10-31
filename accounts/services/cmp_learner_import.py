@@ -333,18 +333,30 @@ class CmpClaimsStore:
         return len(self._cache)
 
 
-def _source_digest(source: Path) -> str:
+def _source_digest(
+    source: Path,
+    *,
+    error_cls: type[Exception] = CmpLearnerImportError,
+) -> str:
     digest = hashlib.sha256()
     try:
         with source.open("rb") as handle:
             for chunk in iter(lambda: handle.read(1024 * 1024), b""):
                 digest.update(chunk)
     except OSError:
-        _refuse("source-unreadable")
+        raise error_cls("source-unreadable") from None
     return digest.hexdigest()
 
 
-def _open_run_binding(source: Path) -> None:
+def _open_run_binding(
+    source: Path,
+    *,
+    binding_model: type[Any] = CmpLearnerImportBinding,
+    binding_kind: str = BINDING_KIND,
+    schema_version: int = SCHEMA_VERSION,
+    importer_version: str = IMPORTER_VERSION,
+    error_cls: type[Exception] = CmpLearnerImportError,
+) -> None:
     """Bind this run to the exact export, or refuse before any write.
 
     The first run records the export's digest and this importer's versions;
@@ -354,36 +366,45 @@ def _open_run_binding(source: Path) -> None:
     REL-03).
     """
 
-    digest = _source_digest(source)
-    binding, created = CmpLearnerImportBinding.objects.get_or_create(
-        kind=BINDING_KIND,
+    digest = _source_digest(source, error_cls=error_cls)
+    binding, created = binding_model.objects.get_or_create(
+        kind=binding_kind,
         defaults={
-            "schema_version": SCHEMA_VERSION,
-            "importer_version": IMPORTER_VERSION,
+            "schema_version": schema_version,
+            "importer_version": importer_version,
             "source_sha256": digest,
         },
     )
     if created:
         return
-    if binding.schema_version != SCHEMA_VERSION or (binding.importer_version != IMPORTER_VERSION):
-        _refuse("run-bound-to-different-importer-version")
+    if binding.schema_version != schema_version or (binding.importer_version != importer_version):
+        raise error_cls("run-bound-to-different-importer-version")
     if binding.source_sha256 != digest:
-        _refuse("run-bound-to-different-source")
+        raise error_cls("run-bound-to-different-source")
 
 
-def _readonly(source_db: Path) -> sqlite3.Connection:
+def _readonly(
+    source_db: Path,
+    *,
+    error_cls: type[Exception] = CmpLearnerImportError,
+) -> sqlite3.Connection:
     try:
         resolved = source_db.expanduser().resolve(strict=True)
     except OSError:
-        _refuse("source-unreadable")
+        raise error_cls("source-unreadable") from None
     connection = sqlite3.connect(f"file:{resolved}?mode=ro", uri=True)
     connection.row_factory = sqlite3.Row
     return connection
 
 
-def _assert_forbidden_tables_untouched() -> None:
-    if READ_TABLES & FORBIDDEN_TABLES:  # pragma: no cover - a code-shape guard
-        _refuse("forbidden-table-boundary-violated")
+def _assert_forbidden_tables_untouched(
+    read_tables: frozenset[str] = READ_TABLES,
+    forbidden_tables: frozenset[str] = FORBIDDEN_TABLES,
+    *,
+    error_cls: type[Exception] = CmpLearnerImportError,
+) -> None:
+    if read_tables & forbidden_tables:  # pragma: no cover - a code-shape guard
+        raise error_cls("forbidden-table-boundary-violated")
 
 
 def _count(connection: sqlite3.Connection, table: str) -> int:
@@ -434,8 +455,12 @@ class LearnerImportResult:
         }
 
 
-def _get_progress(table: str) -> CmpLearnerImportProgress:
-    progress, _ = CmpLearnerImportProgress.objects.get_or_create(table=table)
+def _get_progress(
+    table: str,
+    *,
+    progress_model: type[Any] = CmpLearnerImportProgress,
+) -> Any:
+    progress, _ = progress_model.objects.get_or_create(table=table)
     return progress
 
 
@@ -600,9 +625,7 @@ def _find_cross_source_match(email: str, *, claims: CmpClaimsStore) -> User | No
     normalized = normalize_account_email(email)
     if not normalized:
         return None
-    for candidate in User.objects.filter(
-        identity__normalized_email=normalized
-    ).order_by("pk"):
+    for candidate in User.objects.filter(identity__normalized_email=normalized).order_by("pk"):
         if not claims.is_claimed_user(candidate.pk):
             return candidate
     return None
