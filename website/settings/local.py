@@ -1,3 +1,4 @@
+import contextlib
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -23,9 +24,12 @@ CSRF_TRUSTED_ORIGINS = env_list(  # noqa: F405
 # SQLite cannot create parent directories. These settings also boot inside a bare
 # container (the scheduled image smoke test) where the gitignored `.tmp/` does not
 # exist, so the default database path below would fail with "unable to open
-# database file"; /app is owned by the runtime user, so creating it here works.
+# database file"; /app/.tmp is mounted writable in the container smoke test, while
+# /app itself is root-owned, so PUBLIC_MEDIA_LOCAL_ROOT creation suppresses
+# PermissionError inside the container.
 (BASE_DIR / ".tmp").mkdir(parents=True, exist_ok=True)
-PUBLIC_MEDIA_LOCAL_ROOT.mkdir(parents=True, exist_ok=True)  # noqa: F405
+with contextlib.suppress(PermissionError):
+    PUBLIC_MEDIA_LOCAL_ROOT.mkdir(parents=True, exist_ok=True)  # noqa: F405
 DATABASES = {
     "default": sqlite_database_from_environment(  # noqa: F405
         environment=RuntimeEnvironment.LOCAL,  # noqa: F405
