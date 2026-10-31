@@ -82,6 +82,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import subprocess
 from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -299,6 +300,40 @@ def configure_target(
     return target
 
 
+def reviewed_file_parser(
+    description: str | None,
+    default_reviewed_path: Path,
+) -> argparse.ArgumentParser:
+    """Build the standard CLI parser for a reviewed JSON file importer."""
+
+    parser = argparse.ArgumentParser(description=description)
+    add_target_arguments(parser)
+    parser.add_argument("--reviewed-file", type=Path, default=default_reviewed_path)
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate the reviewed file and write nothing.",
+    )
+    return parser
+
+
+def main_checkout_root(cwd: Path, *, error_cls: type[Exception]) -> Path:
+    """Return the main git checkout root (not a linked worktree)."""
+
+    try:
+        common_dir = subprocess.run(
+            ("git", "rev-parse", "--path-format=absolute", "--git-common-dir"),
+            check=True,
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+            timeout=10,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError) as error:
+        raise error_cls("git_common_directory_unavailable") from error
+    return Path(common_dir).resolve().parent
+
+
 __all__ = [
     "DEPLOYED_ENVIRONMENTS",
     "DEPLOYED_SETTINGS_MODULES",
@@ -310,6 +345,8 @@ __all__ = [
     "WriteTarget",
     "add_target_arguments",
     "configure_target",
+    "main_checkout_root",
     "require_scratch_database",
     "resolve_target",
+    "reviewed_file_parser",
 ]

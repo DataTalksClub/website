@@ -50,12 +50,14 @@ def _python(script: str, *arguments: str) -> tuple[str, ...]:
 def _run(
     command: tuple[str, ...],
     *,
+    environment: dict[str, str] | None = None,
     input_text: str | None = None,
     capture_output: bool = False,
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
         cwd=PROJECT_ROOT,
+        env=environment,
         check=True,
         input=input_text,
         capture_output=capture_output,

@@ -114,19 +114,11 @@ def _event_import_refusals() -> Iterator[None]:
         raise LocalPreparationError(str(error)) from error
 
 
+from scripts.prod.target import main_checkout_root  # noqa: E402
+
+
 def _main_checkout_root() -> Path:
-    try:
-        common_dir = subprocess.run(
-            ("git", "rev-parse", "--path-format=absolute", "--git-common-dir"),
-            check=True,
-            capture_output=True,
-            text=True,
-            cwd=PROJECT_ROOT,
-            timeout=10,
-        ).stdout.strip()
-    except (OSError, subprocess.SubprocessError) as error:
-        raise LocalPreparationError("git_common_directory_unavailable") from error
-    return Path(common_dir).resolve().parent
+    return main_checkout_root(PROJECT_ROOT, error_cls=LocalPreparationError)
 
 
 def _local_database_path(value: str | Path) -> Path:

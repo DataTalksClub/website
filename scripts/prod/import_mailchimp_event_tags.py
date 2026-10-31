@@ -41,7 +41,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -49,6 +48,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.prod.import_mailchimp_subscriptions import (  # noqa: E402
+    _resolve_subscribed_file as _resolve_mailchimp_subscribed_file,
+)
 from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
 
 SYNC_MODEL = "one-time"
@@ -58,29 +60,16 @@ SYNC_MODEL = "one-time"
 # import_event_registrants.py does. Never bootstraps an empty database.
 BOOTSTRAPS_EMPTY_DATABASE = False
 
-# The only file this script ever opens. Mailchimp's export also carries
-# unsubscribed/cleaned CSVs alongside this one in the same directory -- they
-# are never globbed for or read, same as import_mailchimp_subscriptions.py.
-_SUBSCRIBED_PREFIX = "subscribed_email_audience_export_"
-
 
 class MailchimpEventTagImportFailure(RuntimeError):
     """A safe refusal that carries a condition code, never a source value."""
 
 
 def _resolve_subscribed_file(export_dir: Path) -> Path:
-    """Find the subscribed export CSV in ``export_dir`` by its fixed prefix.
-
-    Mailchimp appends a per-export hash to the filename (e.g.
-    ``subscribed_email_audience_export_ed9afb9406.csv``), so this globs by
-    prefix rather than requiring an exact name -- same convention as
-    ``import_mailchimp_subscriptions.py``.
-    """
-
-    matches = sorted(export_dir.glob(f"{_SUBSCRIBED_PREFIX}*.csv"))
-    if len(matches) != 1:
-        raise MailchimpEventTagImportFailure("export-dir-ambiguous-subscribed")
-    return matches[0]
+    return _resolve_mailchimp_subscribed_file(
+        export_dir,
+        error_cls=MailchimpEventTagImportFailure,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

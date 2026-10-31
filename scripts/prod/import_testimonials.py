@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -36,7 +35,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
+from scripts.prod.target import configure_target, reviewed_file_parser  # noqa: E402
 
 SYNC_MODEL = "one-time"
 BOOTSTRAPS_EMPTY_DATABASE = True
@@ -73,15 +72,7 @@ def run(*, path: Path | None = None, apply: bool = True) -> dict[str, Any]:
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
-    add_target_arguments(parser)
-    parser.add_argument("--reviewed-file", type=Path, default=REVIEWED_PATH)
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Validate the reviewed file and write nothing.",
-    )
-    return parser
+    return reviewed_file_parser(__doc__, REVIEWED_PATH)
 
 
 def main(argv: list[str] | None = None) -> int:

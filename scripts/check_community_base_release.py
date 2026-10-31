@@ -25,19 +25,18 @@ import tomllib
 import urllib.request
 from pathlib import Path
 
-PACKAGE_NAME = "community-base"
-GITHUB_SLUG = "datatalksclub/community-base"
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+from check_community_base_source import GITHUB_SLUG, PACKAGE_NAME, fail  # noqa: E402
+
 DEFAULT_RELEASES_URL = f"https://api.github.com/repos/{GITHUB_SLUG}/releases/latest"
 PIN_RE = re.compile(
     rf"^{PACKAGE_NAME}\s*@\s*git\+https://github\.com/{GITHUB_SLUG}@(v\d+[0-9A-Za-z.\-]*)$",
     re.IGNORECASE,
 )
 VERSION_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
-
-
-def fail(message: str) -> int:
-    print(f"error: {message}", file=sys.stderr)
-    return 1
 
 
 def pinned_tag(repo: Path) -> str:

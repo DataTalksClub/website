@@ -24,7 +24,11 @@ from pathlib import Path
 from typing import Final
 
 PROJECT_ROOT: Final = Path(__file__).resolve().parents[1]
-UV: Final = ("uv", "run", "--frozen", "python")
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from scripts.content import _python, _run  # noqa: E402
+
 DEFAULT_DATASET_ROOT: Final = ".tmp/production-prep-dataset"
 #: The commands ``dataset`` issues, in order.  ``prepare_local_data.STEP_ORDER``
 #: lists what the middle one does; the runbook's step table shows both.
@@ -33,14 +37,6 @@ DATASET_STEPS: Final = (
     "scripts/prepare_local_data.py",
     "scripts/verify_local_dataset.py",
 )
-
-
-def _python(script: str, *arguments: str) -> tuple[str, ...]:
-    return (*UV, script, *arguments)
-
-
-def _run(command: tuple[str, ...], *, environment: dict[str, str] | None = None) -> None:
-    subprocess.run(command, cwd=PROJECT_ROOT, env=environment, check=True)
 
 
 def _local_environment(database: Path) -> dict[str, str]:

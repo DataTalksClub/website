@@ -46,7 +46,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -55,6 +54,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
+from scripts.prod.target import main_checkout_root  # noqa: E402
 from scripts.staging.luma_event_descriptions import (  # noqa: E402
     ARTIFACT_PATH,
     DEFAULT_DESCRIPTION_ROOT,
@@ -73,18 +73,7 @@ from scripts.staging.luma_event_descriptions import (  # noqa: E402
 def _main_checkout_root() -> Path:
     """The main checkout, where the protected export lives. A worktree has no copy."""
 
-    try:
-        common_dir = subprocess.run(
-            ("git", "rev-parse", "--path-format=absolute", "--git-common-dir"),
-            check=True,
-            capture_output=True,
-            text=True,
-            cwd=REPOSITORY_ROOT,
-            timeout=10,
-        ).stdout.strip()
-    except (OSError, subprocess.SubprocessError) as error:
-        raise LumaDescriptionError("git_common_directory_unavailable") from error
-    return Path(common_dir).resolve().parent
+    return main_checkout_root(REPOSITORY_ROOT, error_cls=LumaDescriptionError)
 
 
 def _configure(database: Path) -> None:
@@ -223,9 +212,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"error": str(error)}, indent=2))
         return 1
     print(json.dumps(report, indent=2, sort_keys=True))
-    waiting = (
-        report["no_identity_yet"] or report["no_reviewed_type"] or report["needs_link_review"]
-    )
+    waiting = report["no_identity_yet"] or report["no_reviewed_type"] or report["needs_link_review"]
     # A distinct exit code, so an operator scripting this can tell "nothing to do"
     # from "somebody has to decide something".
     return 2 if waiting else 0

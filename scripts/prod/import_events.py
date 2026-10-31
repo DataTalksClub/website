@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -49,25 +48,18 @@ EVENTBRITE_DESCRIPTIONS_PATH = (
     / "eventbrite_descriptions.json"
 )
 
+
 class EventImportError(RuntimeError):
     """A safe refusal that carries a condition code, never a source value."""
+
+
+from scripts.prod.target import main_checkout_root  # noqa: E402
 
 
 def _main_checkout_root() -> Path:
     """The main checkout, where the protected registration exports live."""
 
-    try:
-        common_dir = subprocess.run(
-            ("git", "rev-parse", "--path-format=absolute", "--git-common-dir"),
-            check=True,
-            capture_output=True,
-            text=True,
-            cwd=PROJECT_ROOT,
-            timeout=10,
-        ).stdout.strip()
-    except (OSError, subprocess.SubprocessError) as error:
-        raise EventImportError("git_common_directory_unavailable") from error
-    return Path(common_dir).resolve().parent
+    return main_checkout_root(PROJECT_ROOT, error_cls=EventImportError)
 
 
 # --------------------------------------------------------------------------
@@ -500,9 +492,9 @@ def reconcile_duplicate_provider_identities(
     already have.  Anything less exact is not reported as a duplicate at all.
     """
 
+    from community_base.events.models import Event
     from django.db import transaction
 
-    from community_base.events.models import Event
     from events.identity import (
         EventIdentityNotFound,
         canonical_detail_path,

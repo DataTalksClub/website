@@ -64,7 +64,11 @@ class MailchimpImportFailure(RuntimeError):
     """A safe refusal that carries a condition code, never a source value."""
 
 
-def _resolve_subscribed_file(export_dir: Path) -> Path:
+def _resolve_subscribed_file(
+    export_dir: Path,
+    *,
+    error_cls: type[Exception] = MailchimpImportFailure,
+) -> Path:
     """Find the subscribed export CSV in ``export_dir`` by its fixed prefix.
 
     Mailchimp appends a per-export hash to the filename (e.g.
@@ -74,7 +78,7 @@ def _resolve_subscribed_file(export_dir: Path) -> Path:
 
     matches = sorted(export_dir.glob(f"{_SUBSCRIBED_PREFIX}*.csv"))
     if len(matches) != 1:
-        raise MailchimpImportFailure("export-dir-ambiguous-subscribed")
+        raise error_cls("export-dir-ambiguous-subscribed")
     return matches[0]
 
 
