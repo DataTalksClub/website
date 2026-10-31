@@ -22,14 +22,13 @@ import io
 import json
 import logging
 import re
-import unicodedata
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, TypedDict
 from urllib.parse import urlsplit
 
-from community_base.kernel.services import ServiceContext, validate_actor_ref
+from community_base.kernel.services import ServiceContext
 from django.db import DatabaseError, IntegrityError, transaction
 from django.db.models import Prefetch
 from django.db.models.functions import Lower
@@ -57,6 +56,19 @@ from core.models import (
     RevisionConflict,
     Sponsor,
     SponsorPlacementAssignment,
+)
+from core.navigation import (
+    BASE_WRITE_REDACTED,
+    _reject_control_and_markup,
+)
+from core.navigation import (
+    _idempotency_scope as _build_idempotency_scope,
+)
+from core.navigation import (
+    _require_actor_ref as _validate_command_actor_ref,
+)
+from core.navigation import (
+    _require_source as _validate_command_source,
 )
 from core.security import UnsafeInputError, neutralize_csv_formula, validate_url
 
@@ -98,24 +110,18 @@ SPONSOR_EXPORT_COLUMNS = (
     "updated_at",
 )
 _WRITE_REDACTED = (
-    "authorization",
-    "body",
-    "cookie",
-    "csrfmiddlewaretoken",
+    *BASE_WRITE_REDACTED[:4],
     "name",
     "tagline",
-    "token",
+    BASE_WRITE_REDACTED[4],
     "url",
 )
 _EXPORT_REDACTED = (
-    "authorization",
-    "body",
-    "cookie",
-    "csrfmiddlewaretoken",
+    *BASE_WRITE_REDACTED[:4],
     "csv",
     "name",
     "tagline",
-    "token",
+    BASE_WRITE_REDACTED[4],
     "url",
 )
 
@@ -203,25 +209,6 @@ class SponsorExportResult:
         }
 
 
-def _reject_control_and_markup(value: str, *, field: str) -> str:
-    if any(
-        character in "\r\n\t"
-        or unicodedata.category(character).startswith("C")
-        or unicodedata.category(character) in {"Zl", "Zp"}
-        for character in value
-    ):
-        raise InvalidSponsor(
-            f"{field} must be one safe line",
-            fields={field: f"Enter one plain-text {field}."},
-        )
-    if "<" in value or ">" in value:
-        raise InvalidSponsor(
-            f"{field} cannot contain markup",
-            fields={field: f"Enter plain text without markup in {field}."},
-        )
-    return value
-
-
 def _normalize_plain_text(
     value: object,
     *,
@@ -234,7 +221,7 @@ def _normalize_plain_text(
             f"{field} must be a string",
             fields={field: f"Enter a valid {field}."},
         )
-    normalized = _reject_control_and_markup(value, field=field).strip()
+    normalized = _reject_control_and_markup(value, field=field, error_cls=InvalidSponsor).strip()
     if len(normalized) < minimum or len(normalized) > maximum:
         raise InvalidSponsor(
             f"{field} length is invalid",
@@ -1060,28 +1047,30 @@ def import_public_sponsor_directory(path: Path) -> SponsorDirectoryImportReport:
 
 
 def _idempotency_scope(capability_key: str, actor_ref: str) -> str:
-    scope = f"{capability_key}:{actor_ref}"
-    if len(scope) > 128:
-        raise InvalidSponsor("sponsor actor scope is invalid")
-    return scope
+    return _build_idempotency_scope(
+        actor_ref,
+        capability_key=capability_key,
+        noun="sponsor",
+        error_cls=InvalidSponsor,
+    )
 
 
 def _require_source(source: object) -> str:
-    if source not in SPONSOR_SOURCES:
-        raise InvalidSponsor("sponsor source is invalid")
-    return str(source)
+    return _validate_command_source(
+        source,
+        allowed=SPONSOR_SOURCES,
+        noun="sponsor",
+        error_cls=InvalidSponsor,
+    )
 
 
 def _require_actor_ref(actor_ref: object, context: ServiceContext | None) -> str:
-    if not isinstance(actor_ref, str) or not actor_ref:
-        raise InvalidSponsor("sponsor actor is invalid")
-    try:
-        validate_actor_ref(actor_ref)
-    except ValueError as error:
-        raise InvalidSponsor("sponsor actor is invalid") from error
-    if context is not None and context.actor_ref != actor_ref:
-        raise InvalidSponsor("sponsor actor context is invalid")
-    return actor_ref
+    return _validate_command_actor_ref(
+        actor_ref,
+        context,
+        noun="sponsor",
+        error_cls=InvalidSponsor,
+    )
 
 
 def _require_confirmation(value: object) -> None:

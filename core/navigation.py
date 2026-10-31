@@ -86,14 +86,18 @@ DEFAULT_PRIMARY_NAVIGATION: tuple[tuple[str, str, str, int, bool], ...] = (
     ("sponsors", "Sponsors", "sponsors", 8, True),
     ("slack", "Slack", "slack", 9, True),
 )
-_WRITE_REDACTED = (
+BASE_WRITE_REDACTED = (
     "authorization",
     "body",
     "cookie",
     "csrfmiddlewaretoken",
+    "token",
+)
+_WRITE_REDACTED = (
+    *BASE_WRITE_REDACTED[:4],
     "entries",
     "label",
-    "token",
+    BASE_WRITE_REDACTED[4],
 )
 _UNSAFE_TARGET_MARKERS = ("://", "//", "\\", "..", "?", "#", "@")
 
@@ -179,19 +183,24 @@ def resolve_navigation_target(target: str) -> str:
         return ""
 
 
-def _reject_control_and_markup(value: str, *, field: str) -> str:
+def _reject_control_and_markup(
+    value: str,
+    *,
+    field: str,
+    error_cls: type[Any] = InvalidSiteNavigation,
+) -> str:
     if any(
         character in "\r\n\t"
         or unicodedata.category(character).startswith("C")
         or unicodedata.category(character) in {"Zl", "Zp"}
         for character in value
     ):
-        raise InvalidSiteNavigation(
+        raise error_cls(
             f"{field} must be one safe line",
             fields={field: f"Enter one plain-text {field}."},
         )
     if "<" in value or ">" in value:
-        raise InvalidSiteNavigation(
+        raise error_cls(
             f"{field} cannot contain markup",
             fields={field: f"Enter plain text without markup in {field}."},
         )
@@ -336,28 +345,46 @@ def _normalize_expected_revision(value: object) -> int:
     return value
 
 
-def _require_source(source: object) -> str:
-    if source not in NAVIGATION_SOURCES:
-        raise InvalidSiteNavigation("navigation source is invalid")
+def _require_source(
+    source: object,
+    *,
+    allowed: frozenset[str] = NAVIGATION_SOURCES,
+    noun: str = "navigation",
+    error_cls: type[ValueError] = InvalidSiteNavigation,
+) -> str:
+    if source not in allowed:
+        raise error_cls(f"{noun} source is invalid")
     return str(source)
 
 
-def _require_actor_ref(actor_ref: object, context: ServiceContext | None) -> str:
+def _require_actor_ref(
+    actor_ref: object,
+    context: ServiceContext | None,
+    *,
+    noun: str = "navigation",
+    error_cls: type[ValueError] = InvalidSiteNavigation,
+) -> str:
     if not isinstance(actor_ref, str) or not actor_ref:
-        raise InvalidSiteNavigation("navigation actor is invalid")
+        raise error_cls(f"{noun} actor is invalid")
     try:
         validate_actor_ref(actor_ref)
     except ValueError as error:
-        raise InvalidSiteNavigation("navigation actor is invalid") from error
+        raise error_cls(f"{noun} actor is invalid") from error
     if context is not None and context.actor_ref != actor_ref:
-        raise InvalidSiteNavigation("navigation actor context is invalid")
+        raise error_cls(f"{noun} actor context is invalid")
     return actor_ref
 
 
-def _idempotency_scope(actor_ref: str) -> str:
-    scope = f"site.navigation.write:{actor_ref}"
+def _idempotency_scope(
+    actor_ref: str,
+    *,
+    capability_key: str = "site.navigation.write",
+    noun: str = "navigation",
+    error_cls: type[ValueError] = InvalidSiteNavigation,
+) -> str:
+    scope = f"{capability_key}:{actor_ref}"
     if len(scope) > 128:
-        raise InvalidSiteNavigation("navigation actor scope is invalid")
+        raise error_cls(f"{noun} actor scope is invalid")
     return scope
 
 
