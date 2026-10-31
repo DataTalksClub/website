@@ -118,7 +118,6 @@ are never opened here.
 
 from __future__ import annotations
 
-import csv
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -126,6 +125,14 @@ from typing import Any
 
 from accounts.identity_values import normalize_account_email
 from accounts.models import User
+from accounts.services.mailchimp_subscription_import import (
+    EMAIL_COLUMN,
+    TAGS_COLUMN,
+    parse_mailchimp_tags,
+)
+from accounts.services.mailchimp_subscription_import import (
+    _rows as _mailchimp_rows,
+)
 from courses.models import Cohort, Enrollment
 
 __all__ = [
@@ -137,12 +144,6 @@ __all__ = [
     "parse_mailchimp_tags",
     "import_mailchimp_course_tags",
 ]
-
-# The two columns this importer ever reads. Every other column Mailchimp's
-# export carries (OPTIN_IP, CONFIRM_IP, NOTES, MEMBER_RATING, and the rest) is
-# never opened here -- same minimization default as the sibling importers.
-EMAIL_COLUMN = "Email Address"
-TAGS_COLUMN = "TAGS"
 
 # The settled tag -> (course-family slug, cohort year) table. See the module
 # docstring for the full source and reasoning -- transcribed from
@@ -178,37 +179,13 @@ class MailchimpCourseTagImportError(RuntimeError):
     """A fail-closed refusal that never carries a source value."""
 
 
-def parse_mailchimp_tags(raw: str) -> tuple[str, ...]:
-    """Split one row's ``TAGS`` cell into its individual tag strings.
-
-    Mailchimp's export nests each tag in its own double quotes *inside* the
-    cell, rather than emitting a plain comma list -- a raw ``TAGS`` value
-    reads literally as ``"event","de-zoomcamp-2026"`` (quote characters
-    included, as row data, not CSV structure). Splitting on ``,`` and
-    stripping one layer of surrounding double quotes (plus incidental
-    whitespace) from each piece recovers the clean tag strings. Duplicated
-    from ``events.mailchimp_tag_import.parse_mailchimp_tags`` rather than
-    imported -- see the module docstring for why ``courses`` does not import
-    ``events``.
-    """
-
-    if not raw:
-        return ()
-    pieces = (segment.strip().strip('"').strip() for segment in raw.split(","))
-    return tuple(piece for piece in pieces if piece)
-
-
 def _rows(path: Path) -> Iterator[dict[str, str]]:
-    try:
-        resolved = path.expanduser().resolve(strict=True)
-    except OSError:
-        raise MailchimpCourseTagImportError("source-unreadable") from None
-    with resolved.open("r", encoding="utf-8-sig", newline="") as stream:
-        reader = csv.DictReader(stream)
-        fieldnames = reader.fieldnames
-        if fieldnames is None or EMAIL_COLUMN not in fieldnames or TAGS_COLUMN not in fieldnames:
-            raise MailchimpCourseTagImportError("source-missing-required-column")
-        yield from reader
+    return _mailchimp_rows(
+        path,
+        error_cls=MailchimpCourseTagImportError,
+        required_columns=(EMAIL_COLUMN, TAGS_COLUMN),
+        missing_column_reason="source-missing-required-column",
+    )
 
 
 @dataclass(frozen=True, slots=True)

@@ -97,15 +97,17 @@ def placeholder_client_id(provider: str) -> str:
     return f"local-development-{PLACEHOLDER_MARKER}-{provider}-client-id"
 
 
-def assert_local_database() -> None:
+def assert_local_database(
+    error_cls: type[Exception] = LocalProviderSeedError,
+) -> None:
     """Refuse to touch anything but a local/test SQLite database."""
 
     environment = getattr(settings, "RUNTIME_ENVIRONMENT", None)
     if environment not in ALLOWED_ENVIRONMENTS:
-        raise LocalProviderSeedError("environment-not-local")
-    engine = settings.DATABASES["default"].get("ENGINE")
+        raise error_cls("environment-not-local")
+    engine = settings.DATABASES.get("default", {}).get("ENGINE")
     if engine != SQLITE_ENGINE:
-        raise LocalProviderSeedError("database-not-local-sqlite")
+        raise error_cls("database-not-local-sqlite")
 
 
 def assert_providers_installed() -> None:

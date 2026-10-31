@@ -39,6 +39,18 @@ def error_response(message, code, status=400, details=None):
     return response
 
 
+def validation_error_response(exc, message="Course validation failed"):
+    if hasattr(exc, "message_dict"):
+        details = exc.message_dict
+    else:
+        details = {"errors": exc.messages}
+    return error_response(
+        message,
+        "validation_error",
+        details=details,
+    )
+
+
 def require_staff_token(request):
     """Require course-operations authority from a scoped management credential.
 

@@ -3,7 +3,12 @@ from dataclasses import dataclass
 from courses.models.cohort import Cohort
 from courses.models.project import Project, ProjectSubmission
 from courses.views.project_confirmation_fields import project_submission_fields
-from courses.views.submission_formatting import format_submission_lines
+from courses.views.submission_formatting import (
+    format_submission_lines,
+)
+from courses.views.submission_formatting import (
+    submission_confirmation_notification_context as project_confirmation_notification_context,
+)
 
 
 @dataclass(frozen=True)
@@ -34,21 +39,6 @@ def project_confirmation_metadata(
     }
 
 
-def project_confirmation_notification_context(profile_url: str) -> dict:
-    return {
-        "notification_category": "homework and project submissions",
-        "notification_footer": (
-            "You are receiving this because homework and project "
-            "submission emails are enabled in your profile."
-        ),
-        "notification_footer_text": (
-            "If you don't want to receive these emails, you can turn "
-            "off homework and project submission emails in your "
-            f"profile: {profile_url}"
-        ),
-    }
-
-
 def project_confirmation_message_context(
     data: ProjectConfirmationData,
 ) -> dict:
@@ -59,12 +49,10 @@ def project_confirmation_message_context(
             "submitted and update it while the project is open."
         ),
         "intro_text": (
-            f"Your project submission for {data.project.title} in "
-            f"{data.course.title} was saved."
+            f"Your project submission for {data.project.title} in {data.course.title} was saved."
         ),
         "update_text": (
-            "You can update your submission while the project "
-            f"is open: {data.update_url}"
+            f"You can update your submission while the project is open: {data.update_url}"
         ),
     }
 
@@ -78,9 +66,7 @@ def project_confirmation_context(
     )
     submitted_fields_text = format_submission_lines(submission_fields)
     metadata = project_confirmation_metadata(data)
-    notification_context = project_confirmation_notification_context(
-        data.profile_url
-    )
+    notification_context = project_confirmation_notification_context(data.profile_url)
     message_context = project_confirmation_message_context(data)
 
     context = {}

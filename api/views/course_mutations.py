@@ -1,7 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.utils.dateparse import parse_date
 
-from api.safety import error_response
+from api.safety import error_response, validation_error_response
 from api.utils import parse_json_object
 from courses.models.cohort import Cohort
 
@@ -121,19 +121,6 @@ def normalize_course_data(data):
         result[field] = parsed
 
     return result, None
-
-
-def validation_error_response(exc):
-    if hasattr(exc, "message_dict"):
-        details = exc.message_dict
-    else:
-        details = {"errors": exc.messages}
-
-    return error_response(
-        "Course validation failed",
-        "validation_error",
-        details=details,
-    )
 
 
 def missing_course_create_fields(data):

@@ -3,13 +3,16 @@ from dataclasses import dataclass
 from courses.models.cohort import Cohort, Enrollment, User
 from courses.models.project import (
     Project,
-    ProjectSubmission,
     ProjectState,
+    ProjectSubmission,
 )
+from courses.registration_wall import registration_wall_blocks_user, registration_wall_context
 from courses.services.enrollment import enroll_learner
-from courses.services.registration_campaigns import active_campaign_for_cohort
-from courses.registration_wall import registration_wall_context, registration_wall_blocks_user
 from courses.services.project_form_adapter import build_project_submission_form
+from courses.services.registration_campaigns import active_campaign_for_cohort
+from courses.views.homework_context import (
+    learning_in_public_disabled as project_learning_in_public_disabled,
+)
 
 
 @dataclass(frozen=True)
@@ -28,9 +31,7 @@ def project_build_context(request, course: Cohort, project: Project) -> dict:
         user_details = project_context_user_details(user, course, project)
     else:
         user_details = ProjectContextUserDetails(None, None, None)
-    disable_learning_in_public = project_learning_in_public_disabled(
-        user_details.enrollment
-    )
+    disable_learning_in_public = project_learning_in_public_disabled(user_details.enrollment)
 
     return {
         "course": course,
@@ -98,11 +99,3 @@ def project_context_certificate_name(
     if certificate_name:
         return certificate_name
     return enrollment.display_name if enrollment else ""
-
-
-def project_learning_in_public_disabled(
-    enrollment: Enrollment | None,
-) -> bool:
-    if enrollment is None:
-        return False
-    return enrollment.disable_learning_in_public

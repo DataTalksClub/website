@@ -33,26 +33,29 @@ django.setup()
 from django.core.cache import cache
 from django.utils.text import slugify
 
-from courses.models import (
-    Cohort,
-    Enrollment,
-    Homework,
-    HomeworkState,
-    Question,
-    QuestionTypes,
-    AnswerTypes,
-    Project,
-    ProjectState,
-    ProjectSubmission,
-    Submission,
-    User,
-)
 from courses.assignment_statistics import (
     calculate_homework_statistics,
     calculate_project_statistics,
 )
 from courses.leaderboard import update_leaderboard
-
+from courses.models import (
+    AnswerTypes,
+    Cohort,
+    Enrollment,
+    Homework,
+    HomeworkState,
+    Project,
+    ProjectState,
+    ProjectSubmission,
+    Question,
+    QuestionTypes,
+    Submission,
+    User,
+)
+from courses.services.local_course_seed import (
+    course_description,
+    homework_description,
+)
 
 USER_PREFIX = "production-like-user"
 
@@ -191,9 +194,7 @@ class GeneratedProjectSubmissionValues:
     passed: bool
 
 
-COURSE_SPECS_PATH = Path(__file__).with_name(
-    "production_like_course_specs.json"
-)
+COURSE_SPECS_PATH = Path(__file__).with_name("production_like_course_specs.json")
 
 
 def load_course_specs():
@@ -211,23 +212,6 @@ def parse_date(value):
 
 def stable_slug(prefix, title, index):
     return f"{prefix}-{index:02d}-{slugify(title)[:45]}"
-
-
-def course_description(spec):
-    parts = [
-        "Free course with practical lessons",
-        f"{len(spec['homeworks'])} homework assignments",
-    ]
-    if spec["projects"]:
-        parts.append(f"{len(spec['projects'])} project attempts")
-    return f"{', '.join(parts)} for {spec['title']}."
-
-
-def homework_description(title):
-    return (
-        f"Practice assignment for {title}. "
-        "Use it to check your understanding before moving to the next module."
-    )
 
 
 def homework_question_specs(homework):
@@ -540,21 +524,15 @@ def homework_faq_url(student_index, homework_index, faq_score):
     if not faq_score:
         return ""
     return (
-        "https://github.com/DataTalksClub/faq/issues/"
-        f"{10000 + student_index * 10 + homework_index}"
+        f"https://github.com/DataTalksClub/faq/issues/{10000 + student_index * 10 + homework_index}"
     )
 
 
 def generated_homework_links(data):
-    base_url = (
-        f"https://example.com/{data.course.slug}/"
-        f"{data.student_index:04d}"
-    )
+    base_url = f"https://example.com/{data.course.slug}/{data.student_index:04d}"
     return GeneratedHomeworkLinks(
         homework_link=f"{base_url}/homework-{data.item_index}",
-        learning_in_public_link=(
-            f"{base_url}/notes/homework-{data.item_index}"
-        ),
+        learning_in_public_link=(f"{base_url}/notes/homework-{data.item_index}"),
     )
 
 
@@ -641,10 +619,7 @@ def project_scores(student_index, count, project_index):
 def project_faq_url(student_index, project_index, project_faq_score):
     if not project_faq_score:
         return ""
-    return (
-        "https://github.com/DataTalksClub/faq/pull/"
-        f"{20000 + student_index * 10 + project_index}"
-    )
+    return f"https://github.com/DataTalksClub/faq/pull/{20000 + student_index * 10 + project_index}"
 
 
 def project_github_link(data):
@@ -712,9 +687,7 @@ def build_project_submission(data):
         project_faq_score=values.scores.project_faq_score,
         project_learning_in_public_score=values.scores.project_lip_score,
         peer_review_score=values.scores.peer_review_score,
-        peer_review_learning_in_public_score=(
-            values.scores.peer_review_lip_score
-        ),
+        peer_review_learning_in_public_score=(values.scores.peer_review_lip_score),
         total_score=values.scores.total_score,
         reviewed_enough_peers=values.reviewed_enough_peers,
         passed=values.passed,
@@ -799,9 +772,7 @@ def persist_generated_submissions(materials, enrollment_result, count):
         projects=materials.projects,
         count=count,
     )
-    homework_submissions, project_submissions = (
-        build_generated_submissions(generated_data)
-    )
+    homework_submissions, project_submissions = build_generated_submissions(generated_data)
     Submission.objects.bulk_create(homework_submissions, batch_size=1000)
     ProjectSubmission.objects.bulk_create(project_submissions, batch_size=1000)
     return GeneratedSubmissionResult(

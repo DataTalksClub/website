@@ -21,10 +21,7 @@ def format_answer_lines(answers: list[dict[str, Any]]) -> str:
     lines = []
     for answer in answers:
         submitted_answer = format_submitted_value(answer["answer"])
-        line = (
-            f"{answer['question']}: "
-            f"{submitted_answer}"
-        )
+        line = f"{answer['question']}: {submitted_answer}"
         lines.append(line)
     return "\n".join(lines)
 
@@ -72,13 +69,10 @@ def parse_time_spent_hours(
     parsed = tryparsefloat(normalized_value)
     if parsed is None or not math.isfinite(parsed):
         raise ValidationError(
-            f"Please enter a valid number of hours for {field_label} "
-            "(for example, 2 or 2.5)."
+            f"Please enter a valid number of hours for {field_label} (for example, 2 or 2.5)."
         )
     if parsed < 0:
-        raise ValidationError(
-            f"Hours for {field_label} cannot be negative."
-        )
+        raise ValidationError(f"Hours for {field_label} cannot be negative.")
     return parsed
 
 
@@ -96,3 +90,20 @@ def build_account_settings_url(base_url: str) -> str:
         normalized_path = path.lstrip("/")
         return urljoin(base_url_with_slash, normalized_path)
     return path
+
+
+def submission_confirmation_notification_context(
+    profile_url: str,
+) -> dict[str, str]:
+    return {
+        "notification_category": "homework and project submissions",
+        "notification_footer": (
+            "You are receiving this because homework and project "
+            "submission emails are enabled in your profile."
+        ),
+        "notification_footer_text": (
+            "If you don't want to receive these emails, you can turn "
+            "off homework and project submission emails in your "
+            f"profile: {profile_url}"
+        ),
+    }

@@ -14,6 +14,9 @@ from courses.views.submission_formatting import (
     build_account_settings_url,
     request_base_url,
 )
+from courses.views.submission_formatting import (
+    submission_confirmation_notification_context as homework_confirmation_notification_context,
+)
 from courses.views.url_utils import absolute_url_with_fallback, canonical_cohort_url_kwargs
 
 
@@ -54,42 +57,21 @@ def homework_confirmation_metadata(
     }
 
 
-def homework_confirmation_notification_context(
-    profile_url: str,
-) -> dict[str, str]:
-    return {
-        "notification_category": "homework and project submissions",
-        "notification_footer": (
-            "You are receiving this because homework and project "
-            "submission emails are enabled in your profile."
-        ),
-        "notification_footer_text": (
-            "If you don't want to receive these emails, you can turn "
-            "off homework and project submission emails in your "
-            f"profile: {profile_url}"
-        ),
-    }
-
-
 def homework_confirmation_message_context(
     data: HomeworkConfirmationData,
 ) -> dict[str, str]:
     return {
-        "email_subject": (
-            f"Homework submission saved: {data.homework.title}"
-        ),
+        "email_subject": (f"Homework submission saved: {data.homework.title}"),
         "email_preview": (
             "Your homework submission was saved. "
             "Review what you submitted and update it while the "
             "homework is open."
         ),
         "intro_text": (
-            f"Your homework submission for {data.homework.title} in "
-            f"{data.course.title} was saved."
+            f"Your homework submission for {data.homework.title} in {data.course.title} was saved."
         ),
         "update_text": (
-            "You can update your submission while the homework "
-            f"is open: {data.update_url}"
+            f"You can update your submission while the homework is open: {data.update_url}"
         ),
     }
 
@@ -103,9 +85,7 @@ def homework_confirmation_context(
         data.submission,
     )
     metadata = homework_confirmation_metadata(data)
-    notification_context = homework_confirmation_notification_context(
-        data.profile_url
-    )
+    notification_context = homework_confirmation_notification_context(data.profile_url)
     message_context = homework_confirmation_message_context(data)
     submitted_context = {
         "submission_fields": submitted_content.fields,

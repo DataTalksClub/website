@@ -5,9 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from django.conf import settings
 from django.db import transaction
 
+from accounts.services.local_provider_seed import (
+    assert_local_database as _assert_local_database,
+)
 from core.bootstrap import RuntimeEnvironment
 from courses.models import (
     QUESTION_ANSWER_DELIMITER,
@@ -235,12 +237,7 @@ LEGACY_FALLBACK_QUESTION_SPECS = tuple(LOCAL_QUESTION_SPECS[:3])
 def assert_local_database() -> None:
     """Refuse to touch anything but a local/test SQLite database."""
 
-    environment = getattr(settings, "RUNTIME_ENVIRONMENT", None)
-    if environment not in ALLOWED_ENVIRONMENTS:
-        raise LocalQuestionSeedError("environment-not-local")
-    engine = settings.DATABASES.get("default", {}).get("ENGINE")
-    if engine != SQLITE_ENGINE:
-        raise LocalQuestionSeedError("database-not-local-sqlite")
+    _assert_local_database(error_cls=LocalQuestionSeedError)
 
 
 def _validate_question_spec(spec: LocalQuestionSpec) -> None:

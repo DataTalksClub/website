@@ -81,23 +81,24 @@ from __future__ import annotations
 import csv
 import hashlib
 import uuid
+from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from collections.abc import Iterator
 from typing import Any
 
 from accounts.identity_values import normalize_account_email
 from accounts.models import MailchimpSubscriptionImportRun, User
-from accounts_ext.models import IdentityState
 
 __all__ = [
     "DEFAULT_BATCH_SIZE",
     "EMAIL_COLUMN",
+    "TAGS_COLUMN",
     "MailchimpFileReport",
     "MailchimpImportError",
     "MailchimpSubscriptionImportResult",
     "import_mailchimp_subscriptions",
+    "parse_mailchimp_tags",
 ]
 
 DEFAULT_BATCH_SIZE = 2000
@@ -106,10 +107,28 @@ DEFAULT_BATCH_SIZE = 2000
 # else -- OPTIN_IP, CONFIRM_IP, NOTES, TAGS, MEMBER_RATING, and the rest --
 # is deliberately never looked at; see the module docstring.
 EMAIL_COLUMN = "Email Address"
+TAGS_COLUMN = "TAGS"
 
 
 class MailchimpImportError(RuntimeError):
     """A fail-closed refusal that never carries a source value."""
+
+
+def parse_mailchimp_tags(raw: str) -> tuple[str, ...]:
+    """Split one row's ``TAGS`` cell into its individual tag strings.
+
+    Mailchimp's export nests each tag in its own double quotes *inside* the
+    cell, rather than emitting a plain comma list -- a raw ``TAGS`` value
+    reads literally as ``"event","de-zoomcamp-2026"`` (quote characters
+    included, as row data, not CSV structure). Splitting on ``,`` and
+    stripping one layer of surrounding double quotes (plus incidental
+    whitespace) from each piece recovers the clean tag strings.
+    """
+
+    if not raw:
+        return ()
+    pieces = (segment.strip().strip('"').strip() for segment in raw.split(","))
+    return tuple(piece for piece in pieces if piece)
 
 
 @dataclass(frozen=True, slots=True)
@@ -146,15 +165,22 @@ class MailchimpSubscriptionImportResult:
         }
 
 
-def _rows(path: Path) -> Iterator[dict[str, str]]:
+def _rows(
+    path: Path,
+    *,
+    error_cls: type[Exception] = MailchimpImportError,
+    required_columns: tuple[str, ...] = (EMAIL_COLUMN,),
+    missing_column_reason: str = "source-missing-email-column",
+) -> Iterator[dict[str, str]]:
     try:
         resolved = path.expanduser().resolve(strict=True)
     except OSError:
-        raise MailchimpImportError("source-unreadable") from None
+        raise error_cls("source-unreadable") from None
     with resolved.open("r", encoding="utf-8-sig", newline="") as stream:
         reader = csv.DictReader(stream)
-        if reader.fieldnames is None or EMAIL_COLUMN not in reader.fieldnames:
-            raise MailchimpImportError("source-missing-email-column")
+        fieldnames = reader.fieldnames
+        if fieldnames is None or any(column not in fieldnames for column in required_columns):
+            raise error_cls(missing_column_reason)
         yield from reader
 
 

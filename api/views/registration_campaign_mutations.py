@@ -1,6 +1,11 @@
 from django.core.exceptions import ValidationError
 
-from api.safety import error_response
+from api.safety import (
+    error_response,
+)
+from api.safety import (
+    validation_error_response as _validation_error_response,
+)
 from api.utils import parse_json_object
 from courses.models.cohort import Cohort, RegistrationCampaign
 from courses.services.registration_campaigns import (
@@ -8,7 +13,6 @@ from courses.services.registration_campaigns import (
     open_new_cohort,
     stop_registration,
 )
-
 
 CAMPAIGN_FIELDS = {
     "slug",
@@ -56,7 +60,10 @@ def created_campaign(data, *, actor_ref, actor_id):
     # naming one at creation time is always a same-direction "open new cohort" -- there is
     # nothing to stop first. Routing it through the guarded service still gets it an audit
     # trail, which the old direct constructor write never had.
-    if requested_current_course is not None and requested_current_course is not _CURRENT_COURSE_UNSET:
+    if (
+        requested_current_course is not None
+        and requested_current_course is not _CURRENT_COURSE_UNSET
+    ):
         error = _open_cohort(
             campaign,
             requested_current_course,
@@ -167,14 +174,9 @@ def save_campaign(campaign):
 
 
 def validation_error_response(exc):
-    if hasattr(exc, "message_dict"):
-        details = exc.message_dict
-    else:
-        details = {"errors": exc.messages}
-    return error_response(
-        "Registration campaign validation failed",
-        "validation_error",
-        details=details,
+    return _validation_error_response(
+        exc,
+        message="Registration campaign validation failed",
     )
 
 

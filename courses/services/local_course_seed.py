@@ -45,16 +45,14 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
-from core.bootstrap import RuntimeEnvironment
-from courses.services.course_family_identity import (
-    family_and_year_from_edition_slug,
-    family_title_from_edition_title,
+from accounts.services.local_provider_seed import (
+    assert_local_database as _assert_local_database,
 )
+from core.bootstrap import RuntimeEnvironment
 from courses.models import (
     Cohort,
     Course,
@@ -62,6 +60,10 @@ from courses.models import (
     HomeworkState,
     Project,
     ProjectState,
+)
+from courses.services.course_family_identity import (
+    family_and_year_from_edition_slug,
+    family_title_from_edition_title,
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -92,6 +94,7 @@ _FAMILY_SLUG_OVERRIDES = {"ai-dev-tools": "ai-dev-tools-zoomcamp"}
 def _family_and_year(edition_slug: str) -> tuple[str, int]:
     family_slug, year = family_and_year_from_edition_slug(edition_slug)
     return _FAMILY_SLUG_OVERRIDES.get(family_slug, family_slug), year
+
 
 ALLOWED_ENVIRONMENTS = frozenset({RuntimeEnvironment.LOCAL, RuntimeEnvironment.TEST})
 SQLITE_ENGINE = "django.db.backends.sqlite3"
@@ -161,12 +164,7 @@ class LocalCourseSeedResult:
 def assert_local_database() -> None:
     """Refuse to touch anything but a local/test SQLite database."""
 
-    environment = getattr(settings, "RUNTIME_ENVIRONMENT", None)
-    if environment not in ALLOWED_ENVIRONMENTS:
-        raise LocalCourseSeedError("environment-not-local")
-    engine = settings.DATABASES["default"].get("ENGINE")
-    if engine != SQLITE_ENGINE:
-        raise LocalCourseSeedError("database-not-local-sqlite")
+    _assert_local_database(error_cls=LocalCourseSeedError)
 
 
 def _sha256_file(path: Path) -> str:
@@ -310,9 +308,9 @@ def _seed_course(spec: dict[str, Any], now: datetime) -> SeededCourse:
     start_date, end_date = course_bounds(spec)
     slug = str(spec["slug"])
     family_slug, year = _family_and_year(slug)
-    family_title = family_title_from_edition_title(str(spec["title"])) or family_slug.replace(
-        "-", " "
-    ).title()
+    family_title = (
+        family_title_from_edition_title(str(spec["title"])) or family_slug.replace("-", " ").title()
+    )
     family, _ = Course.objects.update_or_create(
         slug=family_slug,
         defaults={
