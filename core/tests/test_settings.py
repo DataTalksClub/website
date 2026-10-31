@@ -99,8 +99,8 @@ class ProductionSettingsTests(SimpleTestCase):
         environment.update(
             {
                 "DATABASE_URL": "postgresql://check:check@127.0.0.1:5432/check",
-                "DJANGO_ALLOWED_HOSTS": "web.dtcdev.click",
-                "DJANGO_CSRF_TRUSTED_ORIGINS": "https://web.dtcdev.click",
+                "DJANGO_ALLOWED_HOSTS": "dev.datatalks.club",
+                "DJANGO_CSRF_TRUSTED_ORIGINS": "https://dev.datatalks.club",
                 "DJANGO_SECRET_KEY": secrets.token_urlsafe(64),
             }
         )
@@ -157,8 +157,8 @@ class ProductionSettingsTests(SimpleTestCase):
         )
         accepted_environment = {
             **base_environment,
-            "DJANGO_ALLOWED_HOSTS": "web.dtcdev.click",
-            "DJANGO_CSRF_TRUSTED_ORIGINS": "https://web.dtcdev.click",
+            "DJANGO_ALLOWED_HOSTS": "dev.datatalks.club",
+            "DJANGO_CSRF_TRUSTED_ORIGINS": "https://dev.datatalks.club",
         }
         accepted = subprocess.run(
             [sys.executable, "-c", command],
@@ -172,14 +172,14 @@ class ProductionSettingsTests(SimpleTestCase):
         self.assertEqual(
             json.loads(accepted.stdout),
             [
-                ["web.dtcdev.click"],
-                ["https://web.dtcdev.click"],
+                ["dev.datatalks.club"],
+                ["https://dev.datatalks.club"],
                 ["HTTP_X_FORWARDED_PROTO", "https"],
             ],
         )
 
         for name, value in (
-            ("DJANGO_ALLOWED_HOSTS", "web.dtcdev.click,unrelated.invalid"),
+            ("DJANGO_ALLOWED_HOSTS", "dev.datatalks.club,unrelated.invalid"),
             ("DJANGO_CSRF_TRUSTED_ORIGINS", "https://unrelated.invalid"),
         ):
             with self.subTest(name=name):

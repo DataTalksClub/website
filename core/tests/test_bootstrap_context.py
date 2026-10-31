@@ -69,10 +69,10 @@ class BootstrapParserTests(SimpleTestCase):
             {
                 "DATABASE_URL": "postgresql://check:check@127.0.0.1:5432/check",
                 "DJANGO_ALLOWED_HOSTS": (
-                    "web.dtcdev.click" if module == "development" else "example.invalid"
+                    "dev.datatalks.club" if module == "development" else "example.invalid"
                 ),
                 "DJANGO_CSRF_TRUSTED_ORIGINS": (
-                    "https://web.dtcdev.click"
+                    "https://dev.datatalks.club"
                     if module == "development"
                     else "https://example.invalid"
                 ),

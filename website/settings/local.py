@@ -15,10 +15,10 @@ DEBUG = True
 DEVELOPMENT_OWNER_LOGIN_ENABLED = True
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", LOCAL_DEVELOPMENT_SECRET_KEY)  # noqa: F405
 ALLOWED_HOSTS = env_list(  # noqa: F405
-    "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1],testserver,web.dtcdev.click"
+    "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1],testserver,dev.datatalks.club"
 )
 CSRF_TRUSTED_ORIGINS = env_list(  # noqa: F405
-    "DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:8000,https://web.dtcdev.click"
+    "DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:8000,https://dev.datatalks.club"
 )
 # SQLite cannot create parent directories. These settings also boot inside a bare
 # container (the scheduled image smoke test) where the gitignored `.tmp/` does not

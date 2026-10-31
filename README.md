@@ -20,7 +20,7 @@ make data
 make run
 ```
 
-The local site is served at `http://localhost:8000`. Local development uses the gitignored `.tmp/local.sqlite3` database by default. Set `DTC_SQLITE_PATH` to use another SQLite file; relative paths resolve from the repository root. No development host is deployed at the moment: the `web.dtcdev.click` stack was decommissioned on 2026-09-02 and its replacement `dev.datatalks.club` is not built yet. `deploy/development_target.py` holds the reviewed development hostnames and selects one from `DTC_DEVELOPMENT_HOSTNAME`; a deployed development host is always marked `noindex, nofollow`.
+The local site is served at `http://localhost:8000`. Local development uses the gitignored `.tmp/local.sqlite3` database by default. Set `DTC_SQLITE_PATH` to use another SQLite file; relative paths resolve from the repository root. The development deployment is served at `https://dev.datatalks.club`; `deploy/development_target.py` holds the reviewed development hostname and selects it from `DTC_DEVELOPMENT_HOSTNAME`; a deployed development host is always marked `noindex, nofollow`.
 
 ### Local administrator
 

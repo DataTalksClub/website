@@ -26,7 +26,7 @@ def _development_seo_fixture_settings():
     with override_settings(
         ROOT_URLCONF="core.tests.seo_fixture_urls",
         APPEND_SLASH=False,
-        ALLOWED_HOSTS=["localhost", "127.0.0.1", "web.dtcdev.click"],
+        ALLOWED_HOSTS=["localhost", "127.0.0.1", "dev.datatalks.club"],
         NOINDEX=True,
     ):
         yield
@@ -101,7 +101,7 @@ def test_explicit_and_unmapped_canonical_browser_contract(
 
     host_response = page.request.get(
         f"{live_server.url}/Fixture/Unmapped.html",
-        headers={"Host": "web.dtcdev.click"},
+        headers={"Host": "dev.datatalks.club"},
     )
     assert host_response.status == 200
     assert host_response.headers["x-robots-tag"] == ROBOTS_VALUE

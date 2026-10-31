@@ -30,20 +30,15 @@ class RemoteTargetPolicy:
     permitted_markers: frozenset[str]
 
 
-#: The one reviewed policy per remote origin.  ``web.dtcdev.click`` and
-#: ``dev.datatalks.club`` are disposable development stacks whose synthetic
-#: namespaces own what they touch.  ``prod.datatalks.club`` shares the
-#: production deployment stack (it is the reviewed staging hostname,
-#: non-indexable, per ``deploy.deployment_targets``): shared infrastructure is
-#: not isolation, so it is classified ``production_stack_staging`` and
-#: permitted read-only diagnostics only.  Granting it any further marker
-#: requires a reviewed owner decision recorded here, not an environment
-#: variable.
+#: The one reviewed policy per remote origin.  ``dev.datatalks.club`` is the
+#: disposable development stack whose synthetic namespaces own what they touch.
+#: ``prod.datatalks.club`` shares the production deployment stack (it is the
+#: reviewed staging hostname, non-indexable, per ``deploy.deployment_targets``):
+#: shared infrastructure is not isolation, so it is classified
+#: ``production_stack_staging`` and permitted read-only diagnostics only.
+#: Granting it any further marker requires a reviewed owner decision recorded
+#: here, not an environment variable.
 REMOTE_TARGET_POLICY = {
-    "web.dtcdev.click": RemoteTargetPolicy(
-        isolation_class="isolated_development",
-        permitted_markers=SAFETY_MARKERS,
-    ),
     "dev.datatalks.club": RemoteTargetPolicy(
         isolation_class="isolated_development",
         permitted_markers=SAFETY_MARKERS,

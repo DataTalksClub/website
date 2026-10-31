@@ -618,7 +618,7 @@ def page():
         "issue_121_marker_plugin",
         label=f"dynamic-{hook_order}",
         environment_updates={
-            "DTC_TEST_BASE_URL": "https://web.dtcdev.click",
+            "DTC_TEST_BASE_URL": "https://dev.datatalks.club",
             "DTC_TEST_REMOTE_NAMESPACE": "issue-121-dynamic-marker",
             "DTC_TEST_SAFETY_COMMAND": "remote_readonly",
             "DTC_TEST_TARGET_CLASS": "isolated_development",

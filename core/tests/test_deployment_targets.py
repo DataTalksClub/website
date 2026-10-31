@@ -351,7 +351,7 @@ class DeploymentTargetCoherenceTests(SimpleTestCase):
 
     def test_a_development_settings_target_names_a_reviewed_development_host(self) -> None:
         for target in DEPLOYMENT_TARGETS.values():
-            if target.settings_module == "website.settings.development":
+            if not target.retired and target.settings_module == "website.settings.development":
                 with self.subTest(target=target.name):
                     self.assertIn(target.hostname, PERMITTED_DEVELOPMENT_HOSTNAMES)
 

@@ -10,7 +10,7 @@ def public_media_store_check(app_configs, **kwargs):
     A *deployed* environment must read the published objects from the object store: the
     container image no longer carries them, so a deployed workload left on the filesystem
     backend would answer every recorded image with a fail-closed 502.  Both deployed
-    environments are covered, not only production, because ``web.dtcdev.click`` runs the
+    environments are covered, not only production, because ``dev.datatalks.club`` runs the
     same image from the same build context.  A local checkout keeps the credential-free
     filesystem backend and is only *warned* when the root has not been hydrated, so a
     fresh clone is told which command to run instead of silently rendering broken images.

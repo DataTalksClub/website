@@ -33,6 +33,7 @@ class DevelopmentTargetSelectionTests(SimpleTestCase):
     def test_an_unreviewed_hostname_fails_closed(self) -> None:
         for value in (
             "datatalks.club",
+            "web.dtcdev.click",
             "example.invalid",
             "https://dev.datatalks.club",
             "dev.datatalks.club:8443",

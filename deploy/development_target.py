@@ -25,16 +25,11 @@ import os
 from collections.abc import Mapping
 
 DEVELOPMENT_HOSTNAME_VARIABLE = "DTC_DEVELOPMENT_HOSTNAME"
-#: The historical development host.  Its stack has been decommissioned; the
-#: default stays until the replacement service below is built, so that nothing
-#: silently retargets at a hostname that does not resolve yet.
-DEFAULT_DEVELOPMENT_HOSTNAME = "web.dtcdev.click"
-#: Reviewed development hosts.  ``dev.datatalks.club`` is the planned
-#: replacement and is listed so the move is a variable change; it is not the
-#: default because the service behind it does not exist yet.
+#: The reviewed development host served by Coolify staging.
+DEFAULT_DEVELOPMENT_HOSTNAME = "dev.datatalks.club"
+#: Reviewed development hosts.
 PERMITTED_DEVELOPMENT_HOSTNAMES = frozenset(
     {
-        "web.dtcdev.click",
         "dev.datatalks.club",
     }
 )

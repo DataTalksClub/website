@@ -4,7 +4,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 ALB_READINESS_SECURITY_SETTINGS = {
-    "ALLOWED_HOSTS": ["web.dtcdev.click"],
+    "ALLOWED_HOSTS": ["dev.datatalks.club"],
     "SECURE_SSL_REDIRECT": True,
     "SECURE_PROXY_SSL_HEADER": ("HTTP_X_FORWARDED_PROTO", "https"),
     "SECURE_REDIRECT_EXEMPT": [r"^health/ready$"],
@@ -13,12 +13,12 @@ ALB_READINESS_SECURITY_SETTINGS = {
 
 class HealthTests(TestCase):
     @override_settings(
-        ALLOWED_HOSTS=["web.dtcdev.click"],
+        ALLOWED_HOSTS=["dev.datatalks.club"],
         NOINDEX=True,
         CANONICAL_ORIGIN="https://datatalks.club",
     )
     def test_development_hostname_is_allowed_noindex_and_uses_explicit_canonical(self) -> None:
-        response = self.client.get("/unified/", headers={"host": "web.dtcdev.click"})
+        response = self.client.get("/unified/", headers={"host": "dev.datatalks.club"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
         self.assertContains(response, '<link rel="canonical" href="https://datatalks.club/">')
@@ -85,12 +85,12 @@ class HealthTests(TestCase):
                 response = self.client.get(
                     path,
                     headers={
-                        "host": "web.dtcdev.click",
+                        "host": "dev.datatalks.club",
                         "x-forwarded-proto": "http",
                     },
                 )
                 self.assertEqual(response.status_code, 301)
-                self.assertEqual(response.headers["Location"], f"https://web.dtcdev.click{path}")
+                self.assertEqual(response.headers["Location"], f"https://dev.datatalks.club{path}")
 
     @override_settings(**ALB_READINESS_SECURITY_SETTINGS)
     def test_unrelated_hosts_are_not_allowed_outside_exact_readiness_path(self) -> None:
@@ -114,7 +114,7 @@ class HealthTests(TestCase):
                 response = self.client.get(
                     path,
                     headers={
-                        "host": "web.dtcdev.click",
+                        "host": "dev.datatalks.club",
                         "x-forwarded-proto": "https",
                     },
                 )

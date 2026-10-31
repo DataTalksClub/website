@@ -79,7 +79,7 @@ def test_deployed_missing_page_expectations_are_exact_and_cdn_masking_is_removed
     for path in expected_paths:
         assert _expected_local_response(test_name, 404, path)
         assert not _expected_local_response(test_name, 200, path)
-        assert _expected_local_request_failure(test_name, f"https://web.dtcdev.click{path}")
+        assert _expected_local_request_failure(test_name, f"https://dev.datatalks.club{path}")
 
     rejected_paths = (
         "/courses/__dtc_deployed_smoke_missing_course__/",
@@ -89,7 +89,7 @@ def test_deployed_missing_page_expectations_are_exact_and_cdn_masking_is_removed
     )
     for path in rejected_paths:
         assert not _expected_local_response(test_name, 404, path)
-        assert not _expected_local_request_failure(test_name, f"https://web.dtcdev.click{path}")
+        assert not _expected_local_request_failure(test_name, f"https://dev.datatalks.club{path}")
 
     assert not _expected_local_response("another_test", 404, "/__dtc_deployed_smoke_missing__")
     assert not _expected_local_response(
@@ -551,7 +551,7 @@ def test_shell_true_cannot_hide_a_network_command() -> None:
 
 def _safe_environment(marker: str) -> dict[str, str]:
     return {
-        "DTC_TEST_BASE_URL": "https://web.dtcdev.click",
+        "DTC_TEST_BASE_URL": "https://dev.datatalks.club",
         "DTC_TEST_REMOTE_NAMESPACE": "synthetic-run-75",
         "DTC_TEST_SAFETY_COMMAND": marker,
         "DTC_TEST_TARGET_CLASS": "isolated_development",
@@ -587,7 +587,8 @@ def test_every_safety_class_requires_its_own_exact_command_before_connection(
         ("DTC_TEST_SAFETY_COMMAND", "remote_mutation"),
         ("DTC_TEST_TARGET_CLASS", "production"),
         ("DTC_TEST_REMOTE_NAMESPACE", "bad"),
-        ("DTC_TEST_BASE_URL", "http://web.dtcdev.click"),
+        ("DTC_TEST_BASE_URL", "http://dev.datatalks.club"),
+        ("DTC_TEST_BASE_URL", "https://web.dtcdev.click"),
         ("DTC_TEST_BASE_URL", "https://127.0.0.1"),
         ("DTC_TEST_BASE_URL", "https://datatalks.club"),
     ],
@@ -615,9 +616,9 @@ def test_remote_readonly_fails_before_connection_for_every_wrong_authority(
 def test_remote_readonly_allows_only_safe_methods_on_exact_origin() -> None:
     with patch.dict(os.environ, _safe_environment("remote_readonly"), clear=True):
         authorization = authorize_from_environment("remote_readonly")
-    authorization.authorize_request("GET", "https://web.dtcdev.click/health/live")
+    authorization.authorize_request("GET", "https://dev.datatalks.club/health/live")
     with pytest.raises(TestSafetyError, match="state-changing"):
-        authorization.authorize_request("POST", "https://web.dtcdev.click/synthetic")
+        authorization.authorize_request("POST", "https://dev.datatalks.club/synthetic")
     with pytest.raises(TestSafetyError, match="allowlist|exact approved origin"):
         authorization.authorize_request("GET", "https://other.example.invalid/")
 
