@@ -420,12 +420,24 @@ class GitHubActionsClient:
             raise HistoryUnavailable("GitHub Actions history request failed") from exc
 
     def _headers(self) -> dict[str, str]:
-        return {
-            "Accept": "application/vnd.github+json",
-            "Authorization": f"Bearer {self.token}",
-            "User-Agent": "DataTalksClub-website-scheduled-regression",
-            "X-GitHub-Api-Version": GITHUB_API_VERSION,
-        }
+        return github_api_headers(
+            self.token,
+            user_agent="DataTalksClub-website-scheduled-regression",
+        )
+
+
+def github_api_headers(
+    token: str,
+    *,
+    user_agent: str,
+    api_version: str = GITHUB_API_VERSION,
+) -> dict[str, str]:
+    return {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {token}",
+        "User-Agent": user_agent,
+        "X-GitHub-Api-Version": api_version,
+    }
 
 
 def _state_from_archive(body: bytes) -> dict[str, Any]:
@@ -488,19 +500,32 @@ def _bounded_page(
     return items
 
 
-def _fetch_json(url: str, headers: Mapping[str, str]) -> object:
-    return json.loads(_fetch_bytes(url, headers))
-
-
-def _fetch_bytes(url: str, headers: Mapping[str, str]) -> bytes:
+def _fetch_bytes(
+    url: str,
+    headers: Mapping[str, str],
+    *,
+    max_bytes: int = MAX_API_RESPONSE_BYTES,
+    error_cls: type[Exception] = HistoryUnavailable,
+    status_error_message: str = "GitHub Actions history returned an error",
+    size_error_message: str = "GitHub Actions history response is too large",
+) -> bytes:
     request = urllib.request.Request(url, headers=dict(headers))
     with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
         if response.status != 200:
-            raise HistoryUnavailable("GitHub Actions history returned an error")
-        body = response.read(MAX_API_RESPONSE_BYTES + 1)
-        if len(body) > MAX_API_RESPONSE_BYTES:
-            raise HistoryUnavailable("GitHub Actions history response is too large")
+            raise error_cls(status_error_message)
+        body = response.read(max_bytes + 1)
+    if len(body) > max_bytes:
+        raise error_cls(size_error_message)
     return body
+
+
+def _fetch_json(
+    url: str,
+    headers: Mapping[str, str],
+    *,
+    fetch_bytes: Callable[[str, Mapping[str, str]], bytes] = _fetch_bytes,
+) -> object:
+    return json.loads(fetch_bytes(url, headers))
 
 
 def _relevant_runs(runs: Sequence[object], *, current_run_id: int) -> list[dict[str, Any]]:

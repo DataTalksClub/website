@@ -17,8 +17,20 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ci.evidence import MAX_EVIDENCE_BYTES
+from ci.schedule import (
+    KNOWN_CONCLUSIONS as CONCLUSIONS,
+)
+from ci.schedule import (
+    REPOSITORY_RE,
+    github_api_headers,
+)
+from ci.schedule import (
+    _fetch_bytes as _schedule_fetch_bytes,
+)
+from ci.schedule import (
+    _fetch_json as _schedule_fetch_json,
+)
 
-GITHUB_API_VERSION = "2026-03-10"
 MAX_RUNS = 20
 MAX_ARCHIVE_BYTES = 64 * 1024 * 1024
 MAX_ARCHIVE_FILES = 1000
@@ -26,26 +38,12 @@ MAX_REPORT_ARCHIVE_BYTES = 8 * 1024 * 1024
 MAX_REPORT_JSON_BYTES = 512 * 1024
 MAX_REPORT_COMPONENTS = 64
 SELECTION_REPORT_SCHEMA_VERSION = 1
-REPOSITORY_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 REPORT_REASON_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 REPORT_PROFILES = ("focused", "full")
 PLAN_PROFILES = frozenset({"documentation", "focused", "full"})
 REPORT_DISPOSITIONS = ("not_applicable", "rerun", "reused")
 REPORT_STATUSES = frozenset({"complete", "empty", "unavailable"})
-CONCLUSIONS = frozenset(
-    {
-        "action_required",
-        "cancelled",
-        "failure",
-        "neutral",
-        "skipped",
-        "stale",
-        "startup_failure",
-        "success",
-        "timed_out",
-    }
-)
 
 
 class EvidenceHistoryError(ValueError):
@@ -565,12 +563,10 @@ class GitHubEvidenceClient:
         return body
 
     def _headers(self) -> dict[str, str]:
-        return {
-            "Accept": "application/vnd.github+json",
-            "Authorization": f"Bearer {self.token}",
-            "User-Agent": "DataTalksClub-website-verification-evidence",
-            "X-GitHub-Api-Version": GITHUB_API_VERSION,
-        }
+        return github_api_headers(
+            self.token,
+            user_agent="DataTalksClub-website-verification-evidence",
+        )
 
 
 def _selection_record_from_archive(body: bytes) -> dict[str, Any]:
@@ -756,19 +752,19 @@ def _extract_archive(body: bytes, destination: Path) -> None:
             shutil.copyfileobj(source, output)
 
 
-def _fetch_json(url: str, headers: Mapping[str, str]) -> object:
-    return json.loads(_fetch_bytes(url, headers))
-
-
 def _fetch_bytes(url: str, headers: Mapping[str, str]) -> bytes:
-    request = urllib.request.Request(url, headers=dict(headers))
-    with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
-        if response.status != 200:
-            raise EvidenceHistoryError("GitHub API returned a non-success response")
-        body = response.read(MAX_ARCHIVE_BYTES + 1)
-    if len(body) > MAX_ARCHIVE_BYTES:
-        raise EvidenceHistoryError("GitHub API response is too large")
-    return body
+    return _schedule_fetch_bytes(
+        url,
+        headers,
+        max_bytes=MAX_ARCHIVE_BYTES,
+        error_cls=EvidenceHistoryError,
+        status_error_message="GitHub API returned a non-success response",
+        size_error_message="GitHub API response is too large",
+    )
+
+
+def _fetch_json(url: str, headers: Mapping[str, str]) -> object:
+    return _schedule_fetch_json(url, headers, fetch_bytes=_fetch_bytes)
 
 
 def main() -> None:
