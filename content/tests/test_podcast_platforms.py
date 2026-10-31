@@ -9,8 +9,8 @@ from typing import Any
 from django.test import TestCase
 
 from content import catalogue
+from content import projection_helpers as builder
 from content.podcast_content import podcast_platform_links
-from scripts import build_public_projection as builder
 
 
 def _episode(slug: str) -> dict[str, Any]:

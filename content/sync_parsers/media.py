@@ -22,7 +22,7 @@ from typing import Any
 from community_base.content_sync.orchestration import UpsertResult
 from community_base.content_sync.parsers import SourceItem, register_parser
 
-from scripts import build_public_projection as builder
+from content import projection_helpers as builder
 
 from . import base
 

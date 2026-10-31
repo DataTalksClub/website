@@ -23,8 +23,8 @@ from pathlib import PurePosixPath
 from community_base.content_sync.orchestration import UpsertResult
 from community_base.content_sync.parsers import SourceItem, register_parser
 
+from content import projection_helpers as builder
 from content.course_catalog import parse_course_catalog
-from scripts import build_public_projection as builder
 
 from . import base
 

@@ -4,8 +4,8 @@ from django.contrib.staticfiles import finders
 from django.test import TestCase
 
 from content import catalogue, wiki_reader
+from content import projection_helpers as builder
 from content.public_graph import safe_public_graph_url
-from scripts import build_public_projection as builder
 
 
 class SponsorArticleChartTests(TestCase):

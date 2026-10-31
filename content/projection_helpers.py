@@ -11,9 +11,8 @@ and JSON-writing code are gone now that nothing reads that tree (the three
 What is left is a genuinely reusable library: the record-shape validation,
 Markdown/HTML body parsing, and URL/link normalization that
 ``content/sync_parsers/*.py`` -- the live ``community_base.content_sync`` parsers
--- import directly (``from scripts import build_public_projection as builder``),
-plus ``content/public_records.py``.  The import path is unchanged on purpose:
-it is what those modules already spell.
+-- import directly (``from content import projection_helpers as builder``),
+plus ``content/public_records.py``.
 """
 
 from __future__ import annotations

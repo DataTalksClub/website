@@ -40,8 +40,8 @@ from community_base.content_sync.parsers import SourceItem, register_parser
 from community_base.knowledge_base import sync as knowledge_base_sync
 from community_base.knowledge_base.models import SECTION_WIKI
 
+from content import projection_helpers as builder
 from content.models import SyncedDocument
-from scripts import build_public_projection as builder
 
 from . import base
 

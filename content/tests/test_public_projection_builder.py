@@ -6,11 +6,11 @@ from pathlib import Path
 from django.conf import settings
 from django.test import TestCase
 
+from content import projection_helpers as builder
 from content.public_text import (
     strip_leaked_target_attributes,
     strip_target_attributes_from_links,
 )
-from scripts import build_public_projection as builder
 
 
 class PublicProjectionBuilderTests(TestCase):

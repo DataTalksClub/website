@@ -13,10 +13,10 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import Resolver404, resolve
 
 from content import catalogue, wiki_reader
+from content import projection_helpers as projection_builder
 from content.event_content import event_groups
 from courses.models.cohort import Cohort
 from events.queries import published_event_records
-from scripts import build_public_projection as projection_builder
 from test_support.content_state import requires_media_bytes
 
 from .pagination_support import catalogue_body

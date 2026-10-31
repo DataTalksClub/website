@@ -19,7 +19,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from scripts.build_public_projection import _podcast_event_lineage
+from content.projection_helpers import _podcast_event_lineage
 
 #: One byline credit, as templates draw it: the source key, the display name
 #: and, when the people records place it, the profile link.

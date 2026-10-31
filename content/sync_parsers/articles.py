@@ -13,8 +13,8 @@ from pathlib import PurePosixPath
 from community_base.content_sync.orchestration import UpsertResult
 from community_base.content_sync.parsers import SourceItem, register_parser
 
+from content import projection_helpers as builder
 from content.article_faq_format import ArticleFaqFormatError, validate_faq_pairs
-from scripts import build_public_projection as builder
 
 from . import base
 

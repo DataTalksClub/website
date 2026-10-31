@@ -14,8 +14,8 @@ from typing import Any
 
 from django.test import TestCase
 
+from content.projection_helpers import ProjectionBuildError
 from content.public_records import person_record, person_relationships
-from scripts.build_public_projection import ProjectionBuildError
 
 _EPISODE_YOUTUBE = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 

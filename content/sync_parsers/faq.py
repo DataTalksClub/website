@@ -16,8 +16,8 @@ from pathlib import Path, PurePosixPath
 from community_base.content_sync.orchestration import UpsertResult
 from community_base.content_sync.parsers import SourceItem, register_parser
 
+from content import projection_helpers as builder
 from content.faq_data import _QUESTION_ID, _faq_question_slug
-from scripts import build_public_projection as builder
 
 from . import base
 

@@ -1,9 +1,9 @@
+# (ci/tests/test_adoption_gate_coverage.py enforces both directions).
+# Make's ADOPTION_INTEGRATION_PYTHON / PRODUCTION_IMPORT_PYTHON.  A NEW
 # Reviewed adoption baseline at the BE-16 decision (git 39844ab8).
 # These files under the ruff-excluded app trees are historical adopted
-# source: they are NOT linted/typechecked unless separately listed in
-# Make's ADOPTION_INTEGRATION_PYTHON / PRODUCTION_IMPORT_PYTHON.  A NEW
 # file must never be added here -- add it to scripts/ci.py instead
-# (ci/tests/test_adoption_gate_coverage.py enforces both directions).
+# source: they are NOT linted/typechecked unless separately listed in
 accounts/__init__.py
 accounts/admin.py
 accounts/api.py
@@ -87,29 +87,47 @@ api/openapi/schemas.py
 api/openapi/spec.py
 api/tests/__init__.py
 api/tests/course_api_base.py
+api/tests/course_criteria_base.py
+api/tests/enrollment_base.py
 api/tests/enrollment_exports_base.py
+api/tests/enrollment_passed_base.py
 api/tests/homework_api_base.py
+api/tests/leaderboard_base.py
 api/tests/project_api_base.py
 api/tests/question_api_base.py
 api/tests/registration_campaign_base.py
+api/tests/test_course.py
 api/tests/test_course_auth.py
 api/tests/test_course_creation.py
+api/tests/test_course_criteria_yaml_edges.py
 api/tests/test_course_detail.py
 api/tests/test_course_identifiers.py
 api/tests/test_course_repository_webhooks.py
 api/tests/test_course_updates.py
 api/tests/test_courses.py
+api/tests/test_enrollment.py
+api/tests/test_enrollment_certificate_notifications.py
+api/tests/test_enrollment_certificates.py
 api/tests/test_enrollment_export_auth.py
 api/tests/test_enrollment_export_errors.py
 api/tests/test_enrollment_exports.py
+api/tests/test_enrollment_passed.py
 api/tests/test_health.py
+api/tests/test_homework.py
 api/tests/test_homework_auth.py
 api/tests/test_homework_deletion.py
 api/tests/test_homework_mutations.py
 api/tests/test_homework_scoring.py
 api/tests/test_homework_upserts.py
 api/tests/test_homeworks.py
+api/tests/test_leaderboard.py
+api/tests/test_leaderboard_cache.py
+api/tests/test_leaderboard_homework.py
+api/tests/test_leaderboard_pagination.py
+api/tests/test_leaderboard_projects.py
+api/tests/test_method_restrictions.py
 api/tests/test_openapi.py
+api/tests/test_project.py
 api/tests/test_project_actions.py
 api/tests/test_project_auth.py
 api/tests/test_project_creation.py
@@ -124,24 +142,6 @@ api/tests/test_question_updates.py
 api/tests/test_questions.py
 api/tests/test_registration_campaign_auth.py
 api/tests/test_registration_campaigns.py
-api/tests/course_criteria_base.py
-api/tests/enrollment_base.py
-api/tests/enrollment_passed_base.py
-api/tests/leaderboard_base.py
-api/tests/test_course.py
-api/tests/test_course_criteria_yaml_edges.py
-api/tests/test_enrollment.py
-api/tests/test_enrollment_certificate_notifications.py
-api/tests/test_enrollment_certificates.py
-api/tests/test_enrollment_passed.py
-api/tests/test_homework.py
-api/tests/test_leaderboard.py
-api/tests/test_leaderboard_cache.py
-api/tests/test_leaderboard_homework.py
-api/tests/test_leaderboard_pagination.py
-api/tests/test_leaderboard_projects.py
-api/tests/test_method_restrictions.py
-api/tests/test_project.py
 api/urls.py
 api/views/__init__.py
 api/views/course_exports.py
@@ -569,7 +569,6 @@ scripts/add_user.py
 scripts/analyze_scoring_bug.py
 scripts/build_event_description_bridge.py
 scripts/build_luma_event_descriptions.py
-scripts/build_public_projection.py
 scripts/build_synthetic_design_review_db.py
 scripts/check_community_base_release.py
 scripts/check_community_base_source.py
@@ -609,6 +608,7 @@ scripts/prod/registration_sources/__init__.py
 scripts/prod/registration_sources/eventbrite_registrants.py
 scripts/prod/registration_sources/luma_registrants.py
 scripts/prod/registration_sources/safety.py
+scripts/prod/reviewed_release.py
 scripts/prod/sync_course_repositories.py
 scripts/prod/sync_course_repository_sources.py
 scripts/prod/sync_public_media_hydrate.py
@@ -694,4 +694,3 @@ studio_courses/views/project_submission_edit.py
 studio_courses/views/project_submission_list.py
 studio_courses/views/projects.py
 studio_courses/views/view_models.py
-scripts/prod/reviewed_release.py

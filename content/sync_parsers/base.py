@@ -2,13 +2,12 @@
 
 The package orchestration calls, per registered parser, ``discover`` then
 ``upsert`` per item then ``soft_delete_missing``.  The record JSON these
-parsers build is the same projection shape ``scripts/build_public_projection.py``
+parsers build is the same projection shape ``content/projection_helpers.py``
 emits, so the staged catalogue and the synced rows stay structurally comparable
 and the D2.2c cutover reads the rows without a second translation.
 
-The record helpers are imported from the projection builder instead of copied:
-it is the reviewed definition of these record shapes and it stays in the
-repository for the staged pipeline.
+The record helpers are imported from ``content.projection_helpers`` instead of
+copied: it is the reviewed definition of these record shapes.
 """
 
 from contextvars import ContextVar
@@ -16,8 +15,8 @@ from typing import NoReturn
 
 from community_base.content_sync.checkout import ImmutableCheckout
 
+from content import projection_helpers as builder
 from content.models import SyncedDocument
-from scripts import build_public_projection as builder
 
 _active_checkout: ContextVar[ImmutableCheckout | None] = ContextVar(
     "content_sync_active_checkout", default=None
