@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -12,6 +11,7 @@ from django.utils import timezone
 
 from core.idempotency import (
     JsonObject,
+    _fenced_hash,
     canonical_json_bytes,
     canonical_json_object,
 )
@@ -52,15 +52,6 @@ def credential_idempotency_operation(capability_key: str) -> str:
         return _CREDENTIAL_OPERATIONS[capability_key]
     except KeyError as error:
         raise ValueError("credential capability has no idempotency operation") from error
-
-
-def _fenced_hash(fence: bytes, *parts: bytes) -> str:
-    digest = hashlib.sha256()
-    digest.update(fence)
-    for part in parts:
-        digest.update(len(part).to_bytes(8, "big"))
-        digest.update(part)
-    return digest.hexdigest()
 
 
 def hash_management_idempotency_key(
