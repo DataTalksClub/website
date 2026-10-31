@@ -1,5 +1,6 @@
 from django.core.exceptions import ImproperlyConfigured
 
+from test_support.parallelism import apply_default_test_processes
 from test_support.runtime import current_worker_id, get_test_runtime
 
 from .base import *  # noqa: F403
@@ -29,6 +30,9 @@ DATABASES = {
     }
 }
 TEST_RUNNER = "test_support.django_runner.IsolatedDiscoverRunner"
+# A bare ``--parallel`` forks one ~250 MiB worker per core; cap it by the
+# memory actually available (see test_support/parallelism.py).
+apply_default_test_processes()
 
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 EMAIL_BACKEND = "test_support.email_backend.SyntheticCaptureEmailBackend"
