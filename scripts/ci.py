@@ -242,6 +242,11 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     # Fast pages (intake bf001b67): warm query budgets for the logged-in
     # account pages (member home is pinned with the public budgets).
     "accounts/tests/test_logged_in_page_budgets.py",
+    # Intake 81995d56 (t1832u follow-up): counts-only usage measurement for
+    # the retirement surfaces is new integration code, so lint, format, and
+    # typecheck must reach it.
+    "scripts/measure_retirement_surfaces.py",
+    "scripts/tests/test_measure_retirement_surfaces.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",
