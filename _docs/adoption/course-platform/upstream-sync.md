@@ -2,9 +2,15 @@
 
 Issue: [#145](https://github.com/DataTalksClub/website/issues/145)
 
-The website adopts the Course Management Platform (CMP) by literal copy. It is
-not a Git mirror and CMP changes are never deployed automatically. A sync is a
-reviewed, source-pinned change to this repository.
+The website adopted the Course Management Platform (CMP) at the initial literal-copy
+pin (`98a235283904b4ef9ad29e196298540756cf1bcc`). Since that initial adoption, shared
+domain and coursework primitives have been extracted into `community-base` and
+post-pin CMP changes are ported selectively as reviewed target-owned integration
+overlays rather than advancing a blanket literal-copy pin. Paths that the unified
+website has deliberately retired are listed in `RETIRED_ADOPTION_DESTINATIONS` in
+`scripts/verify_course_platform_adoption.py`; the literal-copy contract is retired
+for those destinations and `scripts/sync_course_platform.py` treats them as
+excluded if the sync helper is ever run for inspection.
 
 The website's read-only [content-update lane](../../runbooks/content-update.md) checks the pinned
 public course projection and course-repository adapter tests after such a change. It does not

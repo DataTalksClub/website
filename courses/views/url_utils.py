@@ -39,22 +39,6 @@ def shared_module_url(module) -> str:
     )
 
 
-def shared_lesson_url(lesson, *, cohort: Cohort | None = None) -> str:
-    """The canonical shared lesson path, with optional explicit context."""
-
-    path = reverse(
-        "shared_lesson",
-        kwargs={
-            "course_slug": lesson.module.curriculum.course.slug,
-            "module_slug": lesson.module.slug,
-            "lesson_slug": lesson.slug,
-        },
-    )
-    if cohort is not None:
-        return f"{path}?cohort={cohort.identifier}"
-    return path
-
-
 def cohort_url(cohort: Cohort, route_name: str = "cohort", **kwargs) -> str:
     """Build a canonical flat ``<family>/<identifier>`` public URL for a cohort.
 

@@ -28,17 +28,6 @@ def deadline_send_payload(
     }
 
 
-def transient_recipient_list_send_payload(event):
-    return event.send_payload | {
-        "list": {
-            "key": event.list_key,
-            "name": event.list_name,
-            "metadata": event.list_metadata,
-        },
-        "members": event.members,
-    }
-
-
 def base_context(data):
     formatted_deadline = format_deadline_for_user(data.item.deadline)
     deadline_summary = formatted_deadline["deadline_summary"]

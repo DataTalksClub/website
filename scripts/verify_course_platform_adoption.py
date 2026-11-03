@@ -90,14 +90,90 @@ class IntegrationPatchEntry:
 # ``courses/templates/projects/site_gallery.html`` and
 # ``courses.views.site_project_gallery.project_gallery_view``, so the adopted
 # per-assignment and course-wide list pages have no route left to serve.
+RETIRED_ADOPTION_PREFIXES = (
+    "accounts/migrations/",
+    "course_management/datamailer/",
+    "course_management/datamailer_templates/",
+    "courses/migrations/",
+    "courses/tests/datamailer_client_cases/",
+    "data/",
+)
+
 RETIRED_ADOPTION_DESTINATIONS = frozenset(
     {
+        "api/tests/test_datamailer_send_audits.py",
+        "api/views/datamailer_send_audits.py",
+        "api/views/datamailer_webhook_validation.py",
+        "api/views/webhooks.py",
+        "course_management/datamailer_outbox.py",
+        "course_management/datamailer_outbox_dispatch.py",
+        "course_management/datamailer_outbox_retry.py",
+        "course_management/datamailer_outbox_runs.py",
+        "course_management/datamailer_outbox_senders.py",
+        "course_management/datamailer_outbox_status.py",
+        "course_management/email_templates.py",
+        "courses/management/commands/audit_datamailer_recipient_lists.py",
+        "courses/management/commands/datamailer_campaign.py",
+        "courses/management/commands/datamailer_status.py",
+        "courses/management/commands/sync_datamailer_contacts.py",
+        "courses/management/commands/sync_datamailer_recipient_lists.py",
+        "courses/management/commands/upsert_datamailer_templates.py",
         "courses/models/course.py",
+        "courses/signals.py",
+        "courses/templates/homework/submissions.html",
         "courses/templates/projects/list.html",
         "courses/templates/projects/list_all.html",
+        "courses/templates/projects/submissions.html",
+        "courses/tests/datamailer_contact_base.py",
+        "courses/tests/datamailer_homework_score_base.py",
+        "courses/tests/datamailer_membership_base.py",
+        "courses/tests/datamailer_outbox_base.py",
+        "courses/tests/datamailer_project_score_base.py",
+        "courses/tests/datamailer_recipient_lists_base.py",
+        "courses/tests/datamailer_settings.py",
+        "courses/tests/test_datamailer_campaign_command.py",
+        "courses/tests/test_datamailer_certificates.py",
+        "courses/tests/test_datamailer_client.py",
+        "courses/tests/test_datamailer_contact.py",
+        "courses/tests/test_datamailer_contact_backfill.py",
+        "courses/tests/test_datamailer_homework_score_send.py",
+        "courses/tests/test_datamailer_homework_scores.py",
+        "courses/tests/test_datamailer_membership.py",
+        "courses/tests/test_datamailer_membership_outcomes.py",
+        "courses/tests/test_datamailer_membership_removals.py",
+        "courses/tests/test_datamailer_outbox.py",
+        "courses/tests/test_datamailer_outbox_contacts.py",
+        "courses/tests/test_datamailer_outbox_memberships.py",
+        "courses/tests/test_datamailer_outbox_status_commands.py",
+        "courses/tests/test_datamailer_peer_review.py",
+        "courses/tests/test_datamailer_preferences.py",
+        "courses/tests/test_datamailer_project_outcomes.py",
+        "courses/tests/test_datamailer_project_scores.py",
+        "courses/tests/test_datamailer_public_url.py",
+        "courses/tests/test_datamailer_recipient_list_audit.py",
+        "courses/tests/test_datamailer_recipient_list_imports.py",
+        "courses/tests/test_datamailer_recipient_lists.py",
+        "courses/tests/test_datamailer_registration.py",
+        "courses/tests/test_datamailer_send_counts.py",
+        "courses/tests/test_datamailer_signals.py",
+        "courses/tests/test_datamailer_status.py",
+        "courses/tests/test_datamailer_sync_status.py",
+        "courses/tests/test_datamailer_templates.py",
+        "courses/tests/test_datamailer_transactional.py",
         "courses/tests/test_load_rds_export_script.py",
         "courses/views/course_project_submissions.py",
+        "e2e/tests/test_06_send_audit_client.py",
         "scripts/load_rds_export.py",
+        "studio_courses/templates/studio_courses/datamailer_events.html",
+        "studio_courses/templates/studio_courses/datamailer_operations.html",
+        "studio_courses/tests/test_campaign_datamailer_views.py",
+        "studio_courses/tests/test_datamailer_views.py",
+        "studio_courses/views/campaign_datamailer.py",
+        "studio_courses/views/datamailer.py",
+        "studio_courses/views/datamailer_events.py",
+        "studio_courses/views/datamailer_operations.py",
+        "studio_courses/views/datamailer_outbox_operations.py",
+        "studio_courses/views/datamailer_send_audits.py",
     }
 )
 
@@ -110,7 +186,7 @@ def retired_adoption_destinations(repo: Path, destinations: Iterable[str]) -> se
         for destination in destinations
         if not (repo / destination).is_file()
         and (
-            destination.startswith("courses/migrations/")
+            destination.startswith(RETIRED_ADOPTION_PREFIXES)
             or destination in RETIRED_ADOPTION_DESTINATIONS
         )
     }

@@ -5,6 +5,12 @@ from courses.models.project import ProjectSubmission
 from courses.leaderboard import update_leaderboard
 
 
+def learning_in_public_disabled(enrollment) -> bool:
+    if enrollment is None:
+        return False
+    return bool(enrollment.disable_learning_in_public)
+
+
 @transaction.atomic
 def set_learning_in_public_disabled(enrollment, disabled: bool):
     enrollment.disable_learning_in_public = disabled

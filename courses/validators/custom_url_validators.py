@@ -24,8 +24,6 @@ from __future__ import annotations
 
 import importlib
 
-from django.core.validators import URLValidator
-
 
 def _transport():
     # A deferred, dynamic import (by name, not an ``import`` statement) so
@@ -39,8 +37,3 @@ def _transport():
 def validate_url_200(url, get_method=None, code=None, params=None):
     return _transport().check_url_status(url, get_method=get_method, code=code, params=params)
 
-
-class Status200UrlValidator(URLValidator):
-    def __call__(self, value):
-        super().__call__(value)
-        validate_url_200(value, code=self.code, params={"value": value})

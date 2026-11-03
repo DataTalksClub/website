@@ -19,6 +19,7 @@ from courses.views.url_utils import cohort_url
 from courses.models.shared_curriculum import CohortSharedModule, SharedLesson
 from courses.services.course_context import context_query
 from courses.services.enrollment import enroll_learner
+from courses.services.enrollment_flags import learning_in_public_disabled
 from courses.services.registration_campaigns import active_campaign_for_cohort
 from courses.registration_wall import registration_wall_context
 from courses.views.homework_answers import process_question_options
@@ -214,14 +215,6 @@ def question_answers_for_submission(
         question_answers.append(question_answer)
 
     return question_answers
-
-
-def learning_in_public_disabled(
-    enrollment: Enrollment | None,
-) -> bool:
-    if enrollment is None:
-        return False
-    return enrollment.disable_learning_in_public
 
 
 def homework_detail_build_context_authenticated(data) -> dict:
