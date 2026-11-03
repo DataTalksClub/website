@@ -47,6 +47,7 @@ from scripts.verify_course_platform_adoption import (
     read_patch_manifest,
     read_target_integration_manifest,
     render_manifest,
+    retired_adoption_destinations,
     run_git_process,
 )
 from scripts.verify_course_platform_adoption import (
@@ -349,13 +350,21 @@ def _read_current_state(
         raise SyncFailure(
             "integration patch is not an allowlisted copy: " + ", ".join(unknown_patches)
         )
+    retired = retired_adoption_destinations(repo, (entry.destination for entry in current_manifest))
+    active_patches = {
+        destination: patch
+        for destination, patch in patch_entries.items()
+        if destination not in retired
+    }
     for entry in current_manifest:
+        if entry.destination in retired:
+            continue
         destination = repo / entry.destination
         if not destination.is_file() or destination.is_symlink():
             raise SyncFailure(f"missing or unsafe copied destination: {entry.destination}")
         actual_sha = digest(destination)
         actual_size = destination.stat().st_size
-        patch = patch_entries.get(entry.destination)
+        patch = active_patches.get(entry.destination)
         expected_sha = patch.sha256 if patch else entry.sha256
         expected_size = patch.size if patch else entry.size
         if (actual_size, actual_sha) != (expected_size, expected_sha):
@@ -372,7 +381,7 @@ def _read_current_state(
             }
         except (OSError, ValueError, SystemExit) as exc:
             raise SyncFailure(f"cannot read target-owned compatibility manifest: {exc}") from exc
-    return current_manifest, patch_entries, target_owned
+    return current_manifest, active_patches, target_owned
 
 
 def _parse_diff(
@@ -464,6 +473,13 @@ def build_plan(
     target_entries = entries_at_commit(source, target_commit)
     old_by_source = {entry.source: entry for entry in current_manifest}
     new_by_source = {entry.source: entry for entry in target_entries}
+    retired = retired_adoption_destinations(
+        repo,
+        (
+            *(entry.destination for entry in current_manifest),
+            *(entry.destination for entry in target_entries),
+        ),
+    )
     patch_destinations = set(patches)
 
     plan = SyncPlan(
@@ -476,13 +492,25 @@ def build_plan(
     )
 
     for status, old_path, new_path in _parse_diff(source, current_commit, target_commit):
-        old_allowlisted = _is_allowlisted_path(old_path, old_by_source)
-        new_allowlisted = _is_allowlisted_path(new_path, new_by_source)
+        old_allowlisted = (
+            _is_allowlisted_path(old_path, old_by_source)
+            and destination_for(old_path) not in retired
+            if old_path is not None
+            else False
+        )
+        new_allowlisted = (
+            _is_allowlisted_path(new_path, new_by_source)
+            and destination_for(new_path) not in retired
+            if new_path is not None
+            else False
+        )
         allowlisted = old_allowlisted or new_allowlisted
         destination: str | None = None
         candidate = new_path if new_allowlisted else old_path
         if candidate is not None and new_allowlisted:
             destination = new_by_source[candidate].destination
+        elif candidate is not None and _is_allowlisted_path(candidate, old_by_source | new_by_source):
+            destination = destination_for(candidate)
         changed = ChangedPath(
             status=status,
             old_path=old_path,
@@ -550,7 +578,11 @@ def build_plan(
 
     # Compare manifests independently of Git's rename heuristics.  This catches
     # mode-only changes, unusual diff records, and a stale allowlist early.
-    removed = sorted(set(old_by_source) - set(new_by_source))
+    removed = sorted(
+        source_path
+        for source_path in set(old_by_source) - set(new_by_source)
+        if old_by_source[source_path].destination not in retired
+    )
     for source_path in removed:
         if source_path not in {
             path.old_path
@@ -561,9 +593,11 @@ def build_plan(
     if removed:
         plan.required_follow_up.append("restore deleted or renamed allowlisted source files")
 
-    # Every existing copied destination must remain present.  A destination
-    # disappearing due to a source-side rename/deletion is never removed here.
+    # Every existing copied destination must remain present unless retired.
+    # A destination disappearing due to a source-side rename/deletion is never removed here.
     for old_entry in current_manifest:
+        if old_entry.destination in retired:
+            continue
         if old_entry.source not in new_by_source:
             continue
         if not (repo / old_entry.destination).is_file():

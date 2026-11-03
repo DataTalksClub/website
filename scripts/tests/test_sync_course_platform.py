@@ -252,3 +252,27 @@ def test_migration_rewrite_is_fail_closed(tmp_path: Path) -> None:
 
     assert any("migration replacement" in error for error in plan.fatal_errors)
     assert plan.copy_entries == []
+
+
+def test_retired_destination_is_excluded_from_literal_copy_contract(tmp_path: Path) -> None:
+    source, current = _source(tmp_path)
+    target = _target(tmp_path, source, current)
+    (target / "courses/migrations/0001_initial.py").unlink()
+    target_commit = _commit_change(
+        source, "courses/migrations/0001_initial.py", "rewritten\n", "rewrite retired migration"
+    )
+    _git(source, "checkout", "--detach", target_commit)
+
+    plan = build_plan(
+        repo=target,
+        source=source,
+        current_pin=SourcePin(str(source), current, ".tmp/cmp-source-sync"),
+        target_commit=target_commit,
+    )
+
+    assert not plan.fatal_errors
+    assert plan.copy_entries == []
+    assert [path.new_path for path in plan.excluded_paths] == [
+        "courses/migrations/0001_initial.py"
+    ]
+

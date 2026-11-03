@@ -88,8 +88,14 @@ uv run python scripts/verify_course_platform_adoption.py
 ```
 
 The verifier checks the source commit and clean status, recomputes the Git-tracked allowlist and
-manifest, detects omitted allowlisted files, and proves every unpatched copied destination remains
-byte-identical to the pinned source. Every deliberate target integration change is listed in
+manifest, detects omitted allowlisted files, and proves every unpatched active copied destination
+remains byte-identical to the pinned source. Copied destinations that the unified site has
+deliberately retired (such as the legacy standalone `course_management` settings/WSGI/ASGI module,
+superseded one-off CMP scripts, and unreferenced legacy templates/helpers) stay recorded in the
+historical `copied-files.tsv` provenance manifest and are listed in
+`RETIRED_ADOPTION_DESTINATIONS` in `scripts/verify_course_platform_adoption.py`, which retires the
+literal-copy contract for those paths in both `verify_course_platform_adoption.py` and
+`sync_course_platform.py`. Every deliberate target integration change is listed in
 `integration-patches.md`; copied business behavior is retained and characterized rather than
 reimplemented.
 

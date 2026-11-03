@@ -100,11 +100,6 @@ class Project(TimingOwner, models.Model):
 
         return criteria_for_project(self)
 
-    def get_review_criteria(self):
-        """Compatibility-friendly alias for :meth:`criteria_for_project`."""
-
-        return self.criteria_for_project()
-
     class Meta:
         unique_together = ("course", "slug")
 
@@ -289,12 +284,6 @@ class ProjectCriteriaAssignment(models.Model):
     @classmethod
     def for_project(cls, project):
         return cls.objects.filter(project=project).order_by("position", "id")
-
-    @property
-    def criterion(self):
-        """Singular compatibility alias for the assigned criterion."""
-
-        return self.criteria
 
     @property
     def review_criteria(self):

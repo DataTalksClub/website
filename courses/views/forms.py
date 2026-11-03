@@ -4,7 +4,6 @@ from courses.models.cohort import (
     Enrollment,
     LeaderboardComplaint,
 )
-from courses.models.homework import Answer
 
 CERTIFICATE_NAME_WIDGET = forms.TextInput(
     attrs={
@@ -32,12 +31,6 @@ COMPLAINT_DESCRIPTION_WIDGET = forms.Textarea(
         ),
     }
 )
-
-
-class AnswerForm(forms.ModelForm):
-    class Meta:
-        model = Answer
-        fields = ["answer_text"]
 
 
 class EnrollmentForm(forms.ModelForm):

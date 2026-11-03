@@ -3,11 +3,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from course_management.observability import record_event
-from courses.models.learner_profile import (
-    ensure_learner_profile,
-    learner_profile_for,
-    profile_field_default,
-)
+from courses.models.learner_profile import ensure_learner_profile
 
 LOCAL_ACCOUNT_TOGGLE_FIELDS = {
     "dark_mode",
@@ -16,12 +12,6 @@ LOCAL_ACCOUNT_TOGGLE_FIELDS = {
 
 def parse_truthy_post_flag(value: str | None) -> bool:
     return (value or "").lower() in {"1", "true", "yes", "on"}
-
-
-def _toggle_value(user, field: str) -> bool:
-    profile = learner_profile_for(user)
-    value = getattr(profile, field) if profile is not None else profile_field_default(field)
-    return bool(value)
 
 
 @login_required
