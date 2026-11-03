@@ -185,7 +185,6 @@ api/views/registration_campaign_serializers.py
 api/views/registration_campaigns.py
 api/views/serializer_counts.py
 course_management/__init__.py
-course_management/asgi.py
 course_management/context_processors.py
 course_management/deadlines.py
 course_management/middleware.py
@@ -193,9 +192,7 @@ course_management/observability/__init__.py
 course_management/observability/cloudwatch.py
 course_management/observability/cloudwatch_dashboard.py
 course_management/observability/events.py
-course_management/settings.py
 course_management/urls.py
-course_management/wsgi.py
 courses/__init__.py
 courses/admin/__init__.py
 courses/admin/course.py
@@ -241,7 +238,6 @@ courses/models/curriculum_import.py
 courses/models/homework.py
 courses/models/project.py
 courses/models/shared_curriculum.py
-courses/models/stat_display.py
 courses/models/testimonial.py
 courses/models/wrapped.py
 courses/project_assignment.py
@@ -393,7 +389,6 @@ courses/tests/test_leaderboard_current_student.py
 courses/tests/test_leaderboard_pagination.py
 courses/tests/test_leaderboard_score_breakdown_admin.py
 courses/tests/test_lesson_content.py
-courses/tests/test_load_project_data_script.py
 courses/tests/test_local_cmp_content_import.py
 courses/tests/test_local_course_seed.py
 courses/tests/test_local_project_review_seed.py
@@ -470,7 +465,6 @@ courses/validators/__init__.py
 courses/validators/criteria_validators.py
 courses/validators/custom_url_validators.py
 courses/validators/url_status_transport.py
-courses/validators/validating_json_field.py
 courses/views/__init__.py
 courses/views/calendar_ics.py
 courses/views/course.py
@@ -564,9 +558,6 @@ e2e/tests/test_07_browser_helpers.py
 e2e/tests/test_99_teardown.py
 scripts/__init__.py
 scripts/add_data.py
-scripts/add_more_test_data.py
-scripts/add_user.py
-scripts/analyze_scoring_bug.py
 scripts/build_event_description_bridge.py
 scripts/build_luma_event_descriptions.py
 scripts/build_synthetic_design_review_db.py
@@ -574,12 +565,8 @@ scripts/check_community_base_release.py
 scripts/check_community_base_source.py
 scripts/community_base_link.py
 scripts/create_local_admin.py
-scripts/create_superuser.py
-scripts/debug_score_project.py
 scripts/finish_illustration_key.py
 scripts/generate_production_like_leaderboard_data.py
-scripts/load_project_data.py
-scripts/move_criteria.py
 scripts/prepare_local_data.py
 scripts/prod/__init__.py
 scripts/prod/account_reconciliation/__init__.py
@@ -615,9 +602,7 @@ scripts/prod/sync_public_media_hydrate.py
 scripts/prod/sync_public_media_publish.py
 scripts/prod/sync_public_media_verify.py
 scripts/prod/target/__init__.py
-scripts/pull_project_data.py
 scripts/score_project.py
-scripts/score_project_dev.py
 scripts/security_artifact_scan.py
 scripts/security_baseline.py
 scripts/security_canary_artifact.py
@@ -646,7 +631,6 @@ scripts/verify_course_platform_vendor_assets.py
 scripts/verify_course_repository_curriculum.py
 scripts/verify_development_seo_terraform.py
 scripts/verify_static_manifest.py
-scripts/wrapped.py
 studio_courses/__init__.py
 studio_courses/admin.py
 studio_courses/apps.py

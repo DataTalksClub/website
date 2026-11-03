@@ -180,10 +180,11 @@ overlays:
   parsing or path access and directs operators to the target-owned, allowlisted local review-data
   workflow; copied helper internals remain available for characterization and are not an approved
   operational import path;
-- `scripts/generate_production_like_leaderboard_data.py` and `scripts/score_project_dev.py`: issue
+- `scripts/generate_production_like_leaderboard_data.py` and `scripts/score_project.py`: issue
   #98 selects the unified local SQLite settings and removes copied backend-specific SQL, lock
   retries, credential-file loading, and direct-SQL operator guidance while preserving catalog
-  generation and project-scoring behavior through the copied ORM services;
+  generation and project-scoring behavior through the copied ORM services (`scripts/add_data.py`
+  likewise defaults `DJANGO_SETTINGS_MODULE` to `website.settings.local`);
 - target scaffold Django and Playwright tests/configuration where the adopted `accounts.CustomUser`,
   course homepage, and source sign-in surface supersede placeholder scaffold contracts; issue #128
   makes the copied course list and detail views the only `/courses` implementation and removes the

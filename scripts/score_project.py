@@ -1,18 +1,17 @@
 #!/usr/bin/env python
-"""
-Script to score a project and display the results.
-
-This script runs the score_project() function on a specified project
-and displays detailed results including any scoring issues.
+"""Score a project in the local SQLite development database.
 
 Usage:
-    python scripts/score_project.py --course-slug ml-zoomcamp-2025 --project-slug midterm
+    uv run python scripts/score_project.py --course-slug ml-zoomcamp-2025 --project-slug midterm
 """
 
+import argparse
 import os
 import sys
-import argparse
+import time
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 # Add parent directory to path so Django can find course_management module.
 project_root = Path(__file__).resolve().parent.parent
@@ -20,14 +19,20 @@ project_root_path = str(project_root)
 sys.path.insert(0, project_root_path)
 
 # Setup Django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "course_management.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
 
 import django
-
 django.setup()
 
 from courses.models import Project, ProjectSubmission
 from courses.project_scoring import score_project
+
+
+@dataclass(frozen=True)
+class ProjectScoringResult:
+    status: Any
+    message: str
+    elapsed: float
 
 
 def get_project(course_slug, project_slug):
@@ -43,7 +48,7 @@ def get_project(course_slug, project_slug):
 
 def print_project_header(project):
     print("=" * 80)
-    print(f"SCORING PROJECT: {project.course.slug}/{project.slug}")
+    print(f"SCORING PROJECT (LOCAL): {project.course.slug}/{project.slug}")
     print("=" * 80)
     print()
 
@@ -57,6 +62,17 @@ def print_project_details(project):
     print()
 
 
+def confirm_peer_review_state(project):
+    if project.state != "PR":
+        print(f"⚠ WARNING: Project state is '{project.state}', should be 'PR' (PEER_REVIEWING)")
+        print("  Change the project state through Studio before scoring if needed.")
+        print()
+        response = input("Continue anyway? (y/n): ")
+        if response.lower() != 'y':
+            return False
+    return True
+
+
 def print_submission_count(project):
     submissions = ProjectSubmission.objects.filter(project=project)
     print(f"Total submissions: {submissions.count()}")
@@ -66,15 +82,25 @@ def print_submission_count(project):
 def run_project_scoring(project):
     print("Running score_project()...")
     print("-" * 80)
+
+    start_time = time.time()
     status, message = score_project(project)
+    end_time = time.time()
+
     print("-" * 80)
     print()
-    return status, message
+    elapsed = end_time - start_time
+    return ProjectScoringResult(
+        status=status,
+        message=message,
+        elapsed=elapsed,
+    )
 
 
-def print_scoring_status(status, message):
-    print(f"Status: {status.value}")
-    print(f"Message: {message}")
+def print_scoring_status(result):
+    print(f"Status: {result.status.value}")
+    print(f"Message: {result.message}")
+    print(f"Time taken: {result.elapsed:.2f} seconds")
     print()
 
 
@@ -140,7 +166,7 @@ def print_scoring_results(project):
 
 def score_and_display(course_slug, project_slug):
     """
-    Score a project and display detailed results
+    Score a project and display detailed results with timing
     """
     project = get_project(course_slug, project_slug)
     if project is None:
@@ -148,14 +174,17 @@ def score_and_display(course_slug, project_slug):
 
     print_project_header(project)
     print_project_details(project)
+    if not confirm_peer_review_state(project):
+        return
+
     print_submission_count(project)
-    status, message = run_project_scoring(project)
-    print_scoring_status(status, message)
+    result = run_project_scoring(project)
+    print_scoring_status(result)
     print_scoring_results(project)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Score a project and display results")
+    parser = argparse.ArgumentParser(description="Score a project in the local database")
     parser.add_argument(
         "--course-slug", required=True, help="Course slug (e.g., 'ml-zoomcamp-2025')"
     )
@@ -164,6 +193,9 @@ def main():
     )
 
     args = parser.parse_args()
+
+    print("Using the local Django database...")
+    print()
 
     score_and_display(course_slug=args.course_slug, project_slug=args.project_slug)
 

@@ -10,7 +10,7 @@ project_root_path = str(project_root)
 sys.path.insert(0, project_root_path)
 
 os.environ.setdefault(
-    "DJANGO_SETTINGS_MODULE", "course_management.settings"
+    "DJANGO_SETTINGS_MODULE", "website.settings.local"
 )
 django.setup()
 

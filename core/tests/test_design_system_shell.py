@@ -76,7 +76,6 @@ DESIGN_SYSTEM_TEMPLATES = (
     "courses/register.html",
     "courses/wrapped.html",
     "courses/user_wrapped.html",
-    "index.html",
     # The scoring and submission surfaces below a course: the leaderboard, one
     # student's score breakdown, the form that flags a leaderboard record, one
     # homework, its public statistics and its submissions list.  Learner
