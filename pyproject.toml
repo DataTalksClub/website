@@ -292,6 +292,9 @@ module = [
     "courses.tests.test_application_notifications",
     "courses.scoring_jobs",
     "courses.tests.test_scoring_async",
+    "courses.genmedia_policy",
+    "courses.genmedia_approval",
+    "courses.tests.test_genmedia_approval",
     "scripts.prod.import_production_ai_campaign",
     # Fast pages (intake bf001b67): the OAuth callback server-side budget.
     "accounts.tests.test_oauth_callback_budget",
