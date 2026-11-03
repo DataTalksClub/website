@@ -243,6 +243,10 @@ module = [
     "courses.views.site_project_gallery",
     "scripts.dev.check_course_illustrations",
     "scripts.tests.test_check_course_illustrations",
+    # Intake 81995d56 (t1832u follow-up): counts-only usage measurement for
+    # the retirement surfaces, so lint, format, and typecheck must reach it.
+    "scripts.measure_retirement_surfaces",
+    "scripts.tests.test_measure_retirement_surfaces",
     "courses.services.cmp_certificate_reconciliation",
     "courses.tests.test_cmp_certificate_reconciliation",
     "courses.tests.test_course_list_projects_section",
