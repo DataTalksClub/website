@@ -149,10 +149,13 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # dependencies (no imports; JOBS_BACKEND is never django_q).
 # Cross-sell (t1841u, 2f423190) enrolls courses.services.cross_sell and its
 # tests in strict mypy (configuration only); the lock seal is unchanged.
+# Intake 623a5c59 (t1832u follow-up) drops the unused python-json-logger
+# runtime dependency and tqdm dev dependency after retiring
+# course_management/settings.py and scripts/load_project_data.py.
 # If this seal fails after editing pyproject.toml, review the diff, then reseal:
 #   sha256sum pyproject.toml
 # and update STUDIO_COURSES_PYPROJECT_SHA256 below with the reviewed bytes.
-STUDIO_COURSES_PYPROJECT_SHA256 = "12cb1c409d5ea16c2cff2021210976c52b0a363d32dd2440d2b01e7b2f98e552"
+STUDIO_COURSES_PYPROJECT_SHA256 = "48d3a3ba5ff2d8a9f5d83f61115a6c8b2106ab105d1de6d386137ae89c32751d"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
@@ -171,8 +174,9 @@ STUDIO_COURSES_PYPROJECT_SHA256 = "12cb1c409d5ea16c2cff2021210976c52b0a363d32dd2
 # django-q2, django-picklefield, pandas and numpy from the lock.
 # Community-base v0.5.35 adopts the immutable template version selection
 # (2ec90c67); the reviewed lock seal tracks the entry and pin reference bytes.
+# Intake 623a5c59 drops python-json-logger and tqdm from the lock.
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "b05fa1b9177c12c2d80b8403b148851287f989e8d3b3039b721730e2a57bba25"
+    "1a79eeb51c5a21d2891569e48c7482562b50f5f7db2225215efcf67123c54e39"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
