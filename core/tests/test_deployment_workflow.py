@@ -158,7 +158,10 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # Intake 81995d56 enrolls the retirement-surface measurement script and its
 # test in strict mypy (configuration only, no dependency change); the
 # pyproject seal moves with that reviewed pyproject.
-STUDIO_COURSES_PYPROJECT_SHA256 = "70566ed07e1eb62d1d46c1f7cccc964c8801ea333cee1cfbb3d81cec5c85b383"
+# Intake baa84282 enrolls the GenMedia eligibility and approval integration
+# in strict mypy (configuration only, no dependency change); the pyproject
+# seal moves with that reviewed pyproject.
+STUDIO_COURSES_PYPROJECT_SHA256 = "84359de76ccd45ade93704f1aec936209fcf616267c7c5f3db276b1993a0e6b8"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
