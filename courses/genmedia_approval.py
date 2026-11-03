@@ -49,16 +49,13 @@ def approve_pending_registrations(*, now=None, output_path=None):
 
     with transaction.atomic():
         campaign = (
-            RegistrationCampaign.objects.select_for_update()
-            .filter(slug=CAMPAIGN_SLUG)
-            .first()
+            RegistrationCampaign.objects.filter(slug=CAMPAIGN_SLUG).first()
         )
         if campaign is None:
             return {"approved": 0, "excluded": 0, "stopped_at_limit": False, "path": None}
 
         registrations = list(
-            CourseRegistration.objects.select_for_update()
-            .filter(
+            CourseRegistration.objects.filter(
                 campaign=campaign,
                 course_id=campaign.current_course_id,
                 status=CourseRegistration.Status.PENDING,
