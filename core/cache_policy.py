@@ -248,6 +248,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "community_base.mail.views.public_unsubscribe": PRIVATE_DYNAMIC,
     "core.views.liveness": PRIVATE_DYNAMIC,
     "core.views.readiness": PRIVATE_DYNAMIC,
+    "courses.admin.course.genmedia_approval_preview": PRIVATE_DYNAMIC,
     "courses.views.course.course_view": PRIVATE_DYNAMIC,
     "courses.views.course_calendar.course_calendar_view": PRIVATE_DYNAMIC,
     "courses.views.course_enrollment.enrollment_view": PRIVATE_DYNAMIC,
