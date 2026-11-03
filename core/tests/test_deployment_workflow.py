@@ -155,7 +155,10 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # If this seal fails after editing pyproject.toml, review the diff, then reseal:
 #   sha256sum pyproject.toml
 # and update STUDIO_COURSES_PYPROJECT_SHA256 below with the reviewed bytes.
-STUDIO_COURSES_PYPROJECT_SHA256 = "48d3a3ba5ff2d8a9f5d83f61115a6c8b2106ab105d1de6d386137ae89c32751d"
+# Intake 81995d56 enrolls the retirement-surface measurement script and its
+# test in strict mypy (configuration only, no dependency change); the
+# pyproject seal moves with that reviewed pyproject.
+STUDIO_COURSES_PYPROJECT_SHA256 = "70566ed07e1eb62d1d46c1f7cccc964c8801ea333cee1cfbb3d81cec5c85b383"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
