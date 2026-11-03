@@ -64,9 +64,7 @@ class GenmediaPolicyTests(RegistrationCampaignBase):
             "",
         )
         self.assertEqual(
-            excluded_reason(
-                SimpleNamespace(country="Ukraine", ukraine_region="donetsk_occupied")
-            ),
+            excluded_reason(SimpleNamespace(country="Ukraine", ukraine_region="donetsk_occupied")),
             "Ukraine region",
         )
         self.assertEqual(
@@ -140,9 +138,9 @@ class GenmediaNightlyApprovalTests(RegistrationCampaignBase):
 
     def test_limit_stops_approval_and_preserves_pending_rows(self):
         pending = self.registration(email="pending@example.test", country="Germany")
-        self.registration(email="already@example.test", country="Germany").status = (
-            CourseRegistration.Status.APPROVED
-        )
+        self.registration(
+            email="already@example.test", country="Germany"
+        ).status = CourseRegistration.Status.APPROVED
         CourseRegistration.objects.filter(email_normalized="already@example.test").update(
             status=CourseRegistration.Status.APPROVED
         )
@@ -175,7 +173,5 @@ class GenmediaNightlyApprovalTests(RegistrationCampaignBase):
         csv_response = self.client.get(url, {"format": "csv"})
         self.assertEqual(csv_response.status_code, 200)
         self.assertIn("approved@example.test", csv_response.content.decode("utf-8"))
-        changelist = self.client.get(
-            reverse("admin:courses_courseregistration_changelist")
-        )
+        changelist = self.client.get(reverse("admin:courses_courseregistration_changelist"))
         self.assertContains(changelist, "Preview latest nightly approvals")

@@ -48,9 +48,7 @@ def approve_pending_registrations(*, now=None, output_path=None):
     destination = Path(output_path) if output_path else preview_path(local_now.date())
 
     with transaction.atomic():
-        campaign = (
-            RegistrationCampaign.objects.filter(slug=CAMPAIGN_SLUG).first()
-        )
+        campaign = RegistrationCampaign.objects.filter(slug=CAMPAIGN_SLUG).first()
         if campaign is None:
             return {"approved": 0, "excluded": 0, "stopped_at_limit": False, "path": None}
 
@@ -59,8 +57,7 @@ def approve_pending_registrations(*, now=None, output_path=None):
                 campaign=campaign,
                 course_id=campaign.current_course_id,
                 status=CourseRegistration.Status.PENDING,
-            )
-            .order_by("created_at", "pk")
+            ).order_by("created_at", "pk")
         )
         total = CourseRegistration.objects.filter(
             campaign=campaign, course_id=campaign.current_course_id

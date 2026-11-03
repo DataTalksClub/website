@@ -26,9 +26,7 @@ RESTRICTED_ENTRIES = (
     "Pakistan",
     "Russia",
 )
-RESTRICTED_COUNTRIES = frozenset(
-    entry for entry in RESTRICTED_ENTRIES if "(Ukraine)" not in entry
-)
+RESTRICTED_COUNTRIES = frozenset(entry for entry in RESTRICTED_ENTRIES if "(Ukraine)" not in entry)
 
 UKRAINE_REGIONS = (
     ("crimea", "Crimea"),
@@ -61,9 +59,7 @@ UKRAINE_REGIONS = (
     ("chernihiv", "Chernihiv Oblast"),
 )
 UKRAINE_REGION_CHOICES = (("", "Select your region or oblast"), *UKRAINE_REGIONS)
-EXCLUDED_UKRAINE_REGIONS = frozenset(
-    {"crimea", "donetsk_occupied", "luhansk_occupied"}
-)
+EXCLUDED_UKRAINE_REGIONS = frozenset({"crimea", "donetsk_occupied", "luhansk_occupied"})
 
 
 def normalize_country(country: str) -> str:
