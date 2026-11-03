@@ -1,5 +1,6 @@
 from django.test import override_settings
 
+from courses.genmedia_policy import CAMPAIGN_SLUG
 from courses.models import (
     CourseRegistration,
     Enrollment,
@@ -148,6 +149,36 @@ class RegistrationApplicationGateTests(RegistrationCampaignBase):
 
         registration = CourseRegistration.objects.get()
         self.assertEqual(Enrollment.objects.filter(course=registration.course).count(), 0)
+
+    def test_ukraine_region_is_required_and_persisted_for_genmedia_campaign(self):
+        self.campaign.slug = CAMPAIGN_SLUG
+        self.campaign.save(update_fields=["slug"])
+        payload = self.application_payload(country="Ukraine")
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(self.campaign_url(), payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(CourseRegistration.objects.count(), 0)
+        self.assertContains(response, "Select your region or oblast.")
+
+        payload["ukraine_region"] = "lviv"
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(self.campaign_url(), payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(CourseRegistration.objects.count(), 1)
+        self.assertEqual(CourseRegistration.objects.get().ukraine_region, "lviv")
+
+    def test_region_question_is_only_rendered_for_genmedia_campaign(self):
+        response = self.client.get(self.campaign_url())
+        self.assertNotContains(response, "Which part of Ukraine do you live in?")
+
+        self.campaign.slug = CAMPAIGN_SLUG
+        self.campaign.save(update_fields=["slug"])
+        response = self.client.get(self.campaign_url())
+        self.assertContains(response, "Which part of Ukraine do you live in?")
+        self.assertContains(response, "Donetsk Oblast (DPR-occupied)")
 
     def test_open_campaign_keeps_experience_optional_and_approves(self):
         self.campaign.requires_approval = False

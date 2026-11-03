@@ -8,6 +8,7 @@ from django.db.models import Q
 
 from accounts.models import User
 from courses.curriculum_source_validators import validate_course_progression
+from courses.genmedia_policy import UKRAINE_REGION_CHOICES
 from courses.random_names import generate_random_name
 
 from .curriculum_import import (
@@ -670,6 +671,13 @@ class CourseRegistration(models.Model):
     company_name = models.CharField(max_length=255, blank=True)
     country = models.CharField(max_length=100)
     region = models.CharField(max_length=100)
+    ukraine_region = models.CharField(
+        max_length=32,
+        choices=UKRAINE_REGION_CHOICES,
+        blank=True,
+        default="",
+        help_text="Region selected when applying from Ukraine for the generative media course.",
+    )
     role = models.CharField(max_length=40, choices=Role.choices)
     experience = models.TextField(blank=True, default="")
     years_experience = models.CharField(
@@ -741,6 +749,11 @@ class CourseRegistration(models.Model):
             "until an operator reviews them. Never auto-enrolls: enrollment "
             "is a separate row."
         ),
+    )
+    auto_approved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When nightly policy auto-approved this registration.",
     )
 
     source = models.CharField(

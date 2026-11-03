@@ -1,0 +1,42 @@
+name: Pull request verification
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pull-request-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verification:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      PUBLIC_MEDIA_STORE_BACKEND: memory
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - name: Set up the locked project and browser environment
+        run: uv run --frozen python scripts/ci.py setup
+      - name: Run quality contracts
+        run: uv run --frozen python scripts/ci.py verification-quality
+      - name: Run factory and migration coverage
+        run: |
+          uv run --frozen python scripts/ci.py test-factories
+          uv run --frozen python scripts/ci.py test-migrations
+      - name: Run the full Django suite
+        run: uv run --frozen python scripts/ci.py test-django-full
+      - name: Run the full browser suite
+        run: uv run --frozen python scripts/ci.py test-playwright --profile full

@@ -1,7 +1,14 @@
+import csv
+from datetime import datetime, time, timedelta
+from zoneinfo import ZoneInfo
+
 from django import forms
 from django.contrib import admin, messages
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.http import HttpResponse
+from django.shortcuts import render
+from django.urls import path
 from django.utils import timezone
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.widgets import UnfoldAdminTextareaWidget, UnfoldAdminTextInputWidget
@@ -389,15 +396,19 @@ class RegistrationCampaignAdmin(ModelAdmin):
 
 @admin.register(CourseRegistration)
 class CourseRegistrationAdmin(ModelAdmin):
+    change_list_template = "admin/courses/courseregistration/change_list.html"
     list_display = [
         "email_normalized",
         "campaign",
         "course",
         "company_name",
         "country",
+        "ukraine_region",
+        "automation_exclusion",
         "region",
         "role",
         "status",
+        "auto_approved_at",
         "created_at",
     ]
     search_fields = ["email", "email_normalized", "name", "company_name"]
@@ -405,6 +416,7 @@ class CourseRegistrationAdmin(ModelAdmin):
         "campaign",
         "course",
         "region",
+        "ukraine_region",
         "role",
         "status",
         "source",
@@ -415,6 +427,7 @@ class CourseRegistrationAdmin(ModelAdmin):
         "referred_by",
         "created_at",
         "updated_at",
+        "auto_approved_at",
     ]
     fieldsets = [
         (
@@ -429,6 +442,7 @@ class CourseRegistrationAdmin(ModelAdmin):
                     "name",
                     "company_name",
                     "country",
+                    "ukraine_region",
                     "region",
                     "role",
                     "experience",
@@ -462,10 +476,90 @@ class CourseRegistrationAdmin(ModelAdmin):
             "Timestamps",
             {
                 "classes": ["collapse"],
-                "fields": ["created_at", "updated_at"],
+                "fields": ["created_at", "updated_at", "auto_approved_at"],
             },
         ),
     ]
+
+    @admin.display(description="Automation exclusion", empty_value="—")
+    def automation_exclusion(self, obj):
+        from courses.genmedia_policy import CAMPAIGN_SLUG, excluded_reason
+
+        if obj.campaign_id and obj.campaign.slug == CAMPAIGN_SLUG:
+            reason = excluded_reason(obj)
+            return f"excluded: {reason}" if reason else ""
+        return ""
+
+    def get_urls(self):
+        return [
+            path(
+                "genmedia-approval-preview/",
+                self.admin_site.admin_view(self.genmedia_approval_preview),
+                name="genmedia_approval_preview",
+            ),
+            *super().get_urls(),
+        ]
+
+    def genmedia_approval_preview(self, request):
+        from courses.genmedia_policy import AUTO_APPROVAL_TIMEZONE, CAMPAIGN_SLUG
+
+        if not self.has_view_permission(request):
+            raise PermissionDenied
+        campaign = RegistrationCampaign.objects.filter(slug=CAMPAIGN_SLUG).first()
+        registrations = CourseRegistration.objects.none()
+        latest_at = None
+        local_date = None
+        if campaign is not None:
+            registrations = CourseRegistration.objects.filter(
+                campaign=campaign,
+                course_id=campaign.current_course_id,
+                auto_approved_at__isnull=False,
+            )
+            latest = registrations.order_by("-auto_approved_at").first()
+            if latest is not None:
+                zone = ZoneInfo(AUTO_APPROVAL_TIMEZONE)
+                latest_at = latest.auto_approved_at
+                local_date = timezone.localtime(latest_at, zone).date()
+                local_start = timezone.make_aware(
+                    datetime.combine(local_date, time.min), zone
+                )
+                local_end = timezone.make_aware(
+                    datetime.combine(local_date + timedelta(days=1), time.min), zone
+                )
+                registrations = registrations.filter(
+                    auto_approved_at__gte=local_start,
+                    auto_approved_at__lt=local_end,
+                ).order_by("auto_approved_at", "pk")
+
+        if request.GET.get("format") == "csv":
+            response = HttpResponse(content_type="text/csv; charset=utf-8")
+            filename_date = local_date.isoformat() if local_date else "empty"
+            response["Content-Disposition"] = (
+                f'attachment; filename="genmedia-approved-{filename_date}.csv"'
+            )
+            writer = csv.writer(response)
+            writer.writerow(("name", "email", "country", "ukraine_region", "approved_at"))
+            zone = ZoneInfo(AUTO_APPROVAL_TIMEZONE)
+            for registration in registrations:
+                writer.writerow(
+                    (
+                        registration.name,
+                        registration.email,
+                        registration.country,
+                        registration.get_ukraine_region_display(),
+                        timezone.localtime(registration.auto_approved_at, zone).isoformat(),
+                    )
+                )
+            return response
+
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": self.model._meta,
+            "registrations": registrations,
+            "latest_at": latest_at,
+            "local_date": local_date,
+        }
+        return render(request, "admin/courses/courseregistration/genmedia_preview.html", context)
 
     def save_model(self, request, obj, form, change):
         # A single-object status edit is an operator review decision: save

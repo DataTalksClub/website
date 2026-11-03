@@ -237,6 +237,10 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     # request path onto jobs_worker; new integration code.
     "courses/scoring_jobs.py",
     "courses/tests/test_scoring_async.py",
+    # Intake baa84282: configured eligibility, nightly approval, and preview.
+    "courses/genmedia_policy.py",
+    "courses/genmedia_approval.py",
+    "courses/tests/test_genmedia_approval.py",
     # Fast pages (intake bf001b67): the OAuth callback server-side budget.
     "accounts/tests/test_oauth_callback_budget.py",
     # Fast pages (intake bf001b67): warm query budgets for the logged-in
