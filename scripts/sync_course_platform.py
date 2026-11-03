@@ -509,7 +509,9 @@ def build_plan(
         candidate = new_path if new_allowlisted else old_path
         if candidate is not None and new_allowlisted:
             destination = new_by_source[candidate].destination
-        elif candidate is not None and _is_allowlisted_path(candidate, old_by_source | new_by_source):
+        elif candidate is not None and _is_allowlisted_path(
+            candidate, old_by_source | new_by_source
+        ):
             destination = destination_for(candidate)
         changed = ChangedPath(
             status=status,
