@@ -44,6 +44,30 @@ def verification_invocations(job: dict[str, Any], subcommand: str) -> list[str]:
     return [command for command in logical_shell_commands(job) if marker in command]
 
 
+def test_pull_request_verification_runs_full_checks_without_release_actions() -> None:
+    data = workflow("pull-request-ci.yml")
+    assert data["on"] == {
+        "pull_request": {
+            "branches": ["main"],
+            "types": ["opened", "synchronize", "reopened", "ready_for_review"],
+        }
+    }
+    assert data["permissions"] == {"contents": "read"}
+    assert "workflow_dispatch" not in data["on"]
+    assert "push" not in data["on"]
+    assert list(data["jobs"]) == ["verification"]
+
+    job = data["jobs"]["verification"]
+    commands = logical_shell_commands(job)
+    assert any("scripts/ci.py setup" in command for command in commands)
+    assert any("scripts/ci.py verification-quality" in command for command in commands)
+    assert any("scripts/ci.py test-factories" in command for command in commands)
+    assert any("scripts/ci.py test-migrations" in command for command in commands)
+    assert any("scripts/ci.py test-django-full" in command for command in commands)
+    assert any("scripts/ci.py test-playwright --profile full" in command for command in commands)
+    assert not any("deploy" in command or "publish" in command for command in commands)
+
+
 def test_normal_workflow_keeps_release_concurrency_and_exact_base_contract() -> None:
     data = workflow("ci.yml")
     concurrency = data["concurrency"]
