@@ -28,6 +28,8 @@ core/tests/test_development_seo.py	legacy contract test	seo	Remove the noindex/p
 course_management/urls.py	legacy URL adapter	courses	Remove the source-project compatibility mount when no characterization uses the wrapper and the traffic gate passes.
 playwright_tests/test_accessibility.py	legacy contract test	accessibility	Remove the redirect accessibility scenario only when the legacy route adapter is deleted.
 review_import/tests/test_workflow.py	legacy contract test	courses	Remove the offline legacy browsing probes only when the legacy route adapter is deleted.
+scripts/measure_retirement_surfaces.py	retirement measurement	courses	Remove when the measured compatibility surfaces are retired and no surface remains to count.
+scripts/tests/test_measure_retirement_surfaces.py	retirement measurement test	testing	Remove when the measured compatibility surfaces are retired and the measurement script is deleted.
 scripts/sync_course_platform.py	adoption provenance	courses	Retain controlled upstream mapping and conflict detection while CMP is adopted by literal copy.
 scripts/tests/test_sync_course_platform.py	adoption provenance test	courses	Retain sync safety coverage while CMP is adopted by literal copy.
 scripts/verify_course_platform_adoption.py	adoption provenance	courses	Retain the source-root mapping while pinned CMP checksums are verified.
