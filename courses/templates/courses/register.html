@@ -663,6 +663,26 @@
 
 {% block page_scripts %}
     <script src="{% static 'country_combobox.js' %}"></script>
+    {% if campaign.slug == 'production-ai-agents-generative-media' %}
+    <script>
+      (function () {
+        const country = document.querySelector("[data-country-combobox-input]");
+        const region = document.querySelector("[data-ukraine-region-input]");
+        const regionField = region && region.closest("[data-registration-field]");
+        if (!country || !region || !regionField) return;
+        function updateUkraineRegion() {
+          const isUkraine = country.value.trim().toLowerCase() === "ukraine";
+          regionField.hidden = !isUkraine;
+          region.required = isUkraine;
+          region.setAttribute("aria-required", isUkraine ? "true" : "false");
+          if (!isUkraine) region.value = "";
+        }
+        country.addEventListener("input", updateUkraineRegion);
+        country.addEventListener("change", updateUkraineRegion);
+        updateUkraineRegion();
+      })();
+    </script>
+    {% endif %}
     <script>
       /* Client-side "did you mean ...?" hint for common email domain typos
          (mirror of CMP). Non-blocking: the server still validates. */

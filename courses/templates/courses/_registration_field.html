@@ -13,6 +13,7 @@
 {% accessibility_help_id field as help_id %}
 {% accessibility_error_id field as error_id %}
 <div
+  data-registration-field="{{ field.name }}"
   {% if field.name == 'country' %}
     class="country-combobox-field"
   {% endif %}
