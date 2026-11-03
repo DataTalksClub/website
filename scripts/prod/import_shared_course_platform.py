@@ -1016,6 +1016,10 @@ def _mapping() -> dict[
             # Cross-sell attribution is site funnel state.
             "source": _STAYS,
             "referred_by": _STAYS,
+            # GenMedia approval and regional eligibility are site workflow
+            # state with no shared-package columns.
+            "auto_approved_at": _STAYS,
+            "ukraine_region": _STAYS,
             "created_at": "copied verbatim (decision 13)",
             "updated_at": "copied verbatim (decision 13)",
         },
