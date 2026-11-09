@@ -49,6 +49,10 @@ from playwright_tests.accessibility_support import (
     target_size_issues,
     text_spacing_issues,
 )
+from playwright_tests.credential_clipboard import (
+    assert_credential_was_copied,
+    install_credential_clipboard,
+)
 from test_support.factories import FactoryContext, create_current_scenario
 from test_support.runtime import DEFAULT_FROZEN_AT, current_worker_id
 
@@ -481,16 +485,7 @@ def _visit_surface(
 ) -> None:
     surface = environment.surfaces[name]
     if name == "credential-copy":
-        # Clipboard permission is evaluated against the Document at write time,
-        # and a grant issued after the document was created leaves the
-        # already-loaded document denied until the next navigation.  Granting
-        # before goto ensures the document created below inherits the grant,
-        # which is also the order the passing management-credential browser
-        # test uses (grant, goto, create, copy).
-        page.context.grant_permissions(
-            ["clipboard-read", "clipboard-write"],
-            origin=live_server.url,
-        )
+        install_credential_clipboard(page)
     _cookie(page, live_server, environment.users.get(surface.actor))
     response = page.goto(f"{live_server.url}{surface.path}", wait_until="domcontentloaded")
     assert response is not None and response.status == surface.expected_status, name
@@ -1443,7 +1438,7 @@ def test_keyboard_focus_status_and_form_error_contracts(
 
     _visit_surface(page, live_server, accessibility_environment, "credential-copy")
     page.get_by_role("button", name="Copy credential").click()
-    expect(page.locator("#copy-status")).to_contain_text("Credential copied")
+    assert_credential_was_copied(page)
 
     _visit_surface(page, live_server, accessibility_environment, "registration-error")
     assert (

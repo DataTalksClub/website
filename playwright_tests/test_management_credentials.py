@@ -13,6 +13,10 @@ from playwright.sync_api import Page, expect
 from accounts.studio_sessions import SESSION_REFERENCE_KEY
 from management_auth.models import APIPrincipal
 from management_auth.services import create_principal
+from playwright_tests.credential_clipboard import (
+    assert_credential_was_copied,
+    install_credential_clipboard,
+)
 
 pytestmark = [
     pytest.mark.full,
@@ -93,10 +97,7 @@ def test_one_time_credential_lifecycle_is_accessible_and_nonpersistent(
         permissions=(access,),
     )
     _authenticated_cookie(page, live_server, user)
-    page.context.grant_permissions(
-        ["clipboard-read", "clipboard-write"],
-        origin=live_server.url,
-    )
+    install_credential_clipboard(page)
 
     fixture_url = f"{live_server.url}/studio/_fixtures/credentials/"
     loaded = page.goto(fixture_url)
@@ -115,7 +116,7 @@ def test_one_time_credential_lifecycle_is_accessible_and_nonpersistent(
     token = page.get_by_test_id("one-time-token").inner_text()
     assert token.startswith("dtca_v1_")
     page.get_by_role("button", name="Copy credential").click()
-    expect(page.get_by_text("Credential copied", exact=True)).to_be_visible()
+    assert_credential_was_copied(page)
 
     reloaded = page.reload()
     assert reloaded is not None and reloaded.status == 200
