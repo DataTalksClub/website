@@ -350,7 +350,7 @@ def test_sign_in_methods_moved_out_of_the_account_menu_into_settings(
     expect(section.locator(".connection-name")).to_have_text("GitHub")
     expect(section.locator(".connection-address")).to_have_text("student")
     expect(section.get_by_role("button", name="Disconnect GitHub")).to_be_visible()
-    expect(section.get_by_role("button", name="Connect GitHub")).to_be_visible()
+    expect(section.get_by_role("button", name="Connect GitHub", exact=True)).to_be_visible()
     _screenshot(page, "sign-in-methods", suffix)
 
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
