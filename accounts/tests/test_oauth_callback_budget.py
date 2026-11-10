@@ -47,7 +47,7 @@ class OAuthCallbackBudgetTests(ImportedAccountSignInTestCase):
     def test_google_callback_completes_its_own_work_within_budget(self) -> None:
         user = self.imported_user(email="callback.budget@example.invalid")
         client: Client = Client()
-        start = client.get("/accounts/google/login/")
+        start = client.post("/accounts/google/login/")
         self.assertEqual(start.status_code, 302)
         state = parse_qs(urlsplit(start.headers["Location"]).query)["state"][0]
         routes = self.google_routes(
