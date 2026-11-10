@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import call, patch
 
+from django.core.management import call_command as real_call_command
 from django.core.management.base import CommandError
 from django.test import SimpleTestCase
 
@@ -48,7 +49,7 @@ class WebBootstrapTests(SimpleTestCase):
             call_command.call_args_list[-1],
             call(
                 "migrate",
-                noinput=True,
+                interactive=False,
                 skip_checks=True,
                 stdout=command.stdout,
                 stderr=command.stderr,
@@ -70,3 +71,22 @@ class WebBootstrapTests(SimpleTestCase):
             [item.args[0] for item in call_command.call_args_list],
             ["check", "db_preflight"],
         )
+
+    @patch("django.core.management.commands.migrate.Command.handle", return_value="")
+    @patch("core.management.commands.web_bootstrap.connections")
+    def test_migrate_accepts_the_options_bootstrap_passes(self, connections, migrate) -> None:
+        database = connections.__getitem__.return_value
+        database.vendor = "postgresql"
+        database.settings_dict = {"OPTIONS": {}}
+
+        def dispatch(name, *args, **kwargs):
+            # Only migrate runs for real, so Django validates its option names.
+            if name == "migrate":
+                return real_call_command(name, *args, **kwargs)
+            return None
+
+        with patch("core.management.commands.web_bootstrap.call_command", side_effect=dispatch):
+            Command().handle(noinput=True)
+
+        migrate.assert_called_once()
+        self.assertFalse(migrate.call_args.kwargs["interactive"])

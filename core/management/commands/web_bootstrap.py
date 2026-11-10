@@ -48,7 +48,8 @@ class Command(BaseCommand):
 
         call_command(
             "migrate",
-            noinput=options["noinput"],
+            # call_command takes the dest name; migrate has no "noinput" option.
+            interactive=not options["noinput"],
             skip_checks=True,
             stdout=self.stdout,
             stderr=self.stderr,
