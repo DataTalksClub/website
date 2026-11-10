@@ -1,10 +1,16 @@
 """Poll durable jobs without bootstrapping Django again on every empty tick."""
 
+import logging
 import time
 
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import close_old_connections, connection
+
+from core.safe_logging import safe_traceback
+from core.worker_healthcheck import touch_worker_heartbeat
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -24,6 +30,7 @@ class Command(BaseCommand):
             return
         while True:
             close_old_connections()
+            touch_worker_heartbeat()
             for name in ("jobs_run_due", "jobs_sweep"):
                 try:
                     call_command(
@@ -34,9 +41,20 @@ class Command(BaseCommand):
                         stderr=self.stderr,
                     )
                 except Exception as error:
-                    # Preserve the former shell loop's per-command retry. Do
-                    # not include exception text, which may hold job data.
-                    self.stderr.write(f"{name} failed ({type(error).__name__}); retry next poll")
+                    # Preserve the former shell loop's per-command retry.
+                    # Safe frame locations help diagnose it without logging
+                    # exception text, which may hold job data or credentials.
+                    logger.error(
+                        "%s failed (%s); retry next poll",
+                        name,
+                        type(error).__name__,
+                        extra={
+                            "exception_type": type(error).__name__,
+                            "traceback": safe_traceback(
+                                (type(error), error, error.__traceback__)
+                            ),
+                        },
+                    )
             time.sleep(10)
 
     def _check(self):

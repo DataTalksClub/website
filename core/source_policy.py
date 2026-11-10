@@ -27,7 +27,7 @@ _GUNICORN_WEB_CASE = re.compile(
     r"(?ms)^[ \t]*web(?:\|web-migrate)?\)[ \t]*\n(?P<body>.*?)(?=^[ \t]*;;[ \t]*$)"
 )
 _GUNICORN_COMMAND = re.compile(
-    r"^[ \t]*exec[ \t]+uv[ \t]+run[ \t]+--no-sync[ \t]+gunicorn(?:[ \t]+.*)?$"
+    r"^[ \t]*exec[ \t]+gunicorn(?:[ \t]+.*)?$"
 )
 
 

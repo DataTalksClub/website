@@ -4,7 +4,8 @@ Mirrors Relay's ``db_preflight`` (relay commit c9253d7,
 ``docs/database-ownership.md``): the candidate image connects as the
 expected migration role for the expected database, and every object in
 ``public`` must already be owned by that role. A Coolify deploy runs this
-from ``entrypoint.sh web-migrate`` before ``migrate``; any mismatch fails
+from the ``web_bootstrap`` command in ``entrypoint.sh web-migrate`` before
+``migrate``; any mismatch fails
 the container start, so the dev served-SHA gate (and the prod one) fails
 the workflow instead of replacing serving containers with a release that
 cannot own its schema. The deploy workflow pins the expectation per app

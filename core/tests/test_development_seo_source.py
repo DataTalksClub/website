@@ -13,6 +13,7 @@ from gunicorn.config import Config  # type: ignore[import-untyped]
 from gunicorn.glogging import Logger  # type: ignore[import-untyped]
 
 from content_sync.course_repository_sync import REQUEST_TIMEOUT_SECONDS
+from core.gunicorn_logging import RecipientTokenSafeLogger
 from core.source_policy import (
     GUNICORN_ACCESS_LOG_FORMAT,
     GUNICORN_WEB_TIMEOUT_SECONDS,
@@ -194,7 +195,7 @@ class ApplicationSourcePolicyTests(SimpleTestCase):
     def test_gunicorn_policy_rejects_missing_or_ambiguous_web_command(self) -> None:
         source = (ROOT / "entrypoint.sh").read_text(encoding="utf-8")
         command = next(
-            line for line in source.splitlines() if "exec uv run --no-sync gunicorn " in line
+            line for line in source.splitlines() if "exec gunicorn " in line
         )
         mutations = {
             "migration_only": source.replace("\n  web|web-migrate)\n", "\n  web-migrate)\n"),
@@ -216,7 +217,7 @@ class ApplicationSourcePolicyTests(SimpleTestCase):
         gunicorn_line = next(
             line
             for line in source.splitlines()
-            if line.strip().startswith("exec uv run --no-sync gunicorn")
+            if line.strip().startswith("exec gunicorn")
         )
         gunicorn_command_without_timeout = gunicorn_line.split("--timeout", 1)[0].rstrip()
 
@@ -286,6 +287,30 @@ class ApplicationSourcePolicyTests(SimpleTestCase):
         self.assertIn('"GET /private/preview/ HTTP/1.1" 400 24 42', output)
         self.assertIn('request_id="request-safe"', output)
         self.assertIn('correlation_id="correlation-safe"', output)
+
+    def test_gunicorn_does_not_access_log_health_probes(self) -> None:
+        config = Config()
+        config.set("accesslog", "-")
+        logger = RecipientTokenSafeLogger(config)
+        stream = StringIO()
+        handler = logging.StreamHandler(stream)
+        access_logger = logging.Logger("health-probe-access")
+        access_logger.addHandler(handler)
+        access_logger.propagate = False
+        logger.access_log = access_logger
+        response = SimpleNamespace(status="200 OK", sent=0, headers=[])
+        request = SimpleNamespace(headers=[])
+
+        for path in ("/health/live", "/health/ready"):
+            with self.subTest(path=path):
+                logger.access(
+                    response,
+                    request,
+                    {"PATH_INFO": path},
+                    timedelta(microseconds=42),
+                )
+
+        self.assertEqual(stream.getvalue(), "")
 
     def test_application_events_are_query_safe(self) -> None:
         canary = "event-query-canary-36"

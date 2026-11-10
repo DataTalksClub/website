@@ -56,6 +56,12 @@ PRODUCTION_ROBOTS_BODY = (
 ROBOTS_CONTENT_TYPE = "text/plain; charset=utf-8"
 ROBOTS_ALLOWED_METHODS = ("GET", "HEAD")
 
+# A successful migration verdict is stable for this immutable web process: the
+# deployment runs migrations before starting Gunicorn. Database connectivity
+# is still checked on every readiness request, while the migration graph is
+# read once per process instead of once per probe.
+_MIGRATIONS_VERIFIED = False
+
 
 def management_slash_redirect(request: HttpRequest) -> HttpResponse:
     """Canonicalize only safe slashless management requests in one hop."""
@@ -246,6 +252,9 @@ def _database_status() -> tuple[str, str | None]:
 
 
 def _migration_status() -> tuple[str, str | None]:
+    global _MIGRATIONS_VERIFIED
+    if _MIGRATIONS_VERIFIED:
+        return "ok", None
     try:
         executor = MigrationExecutor(connection)
         targets = executor.loader.graph.leaf_nodes()
@@ -253,6 +262,7 @@ def _migration_status() -> tuple[str, str | None]:
             return "error", "unapplied migrations"
     except Exception:
         return "error", "migration state unavailable"
+    _MIGRATIONS_VERIFIED = True
     return "ok", None
 
 

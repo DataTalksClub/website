@@ -13,25 +13,27 @@ case "${1:-web}" in
     # before readiness can admit traffic or release the dependent worker.
     # Other deployment controllers continue to own their migration step.
     if [ "${1:-web}" = web-migrate ]; then
-      uv run --no-sync python manage.py db_preflight || exit 20
-      uv run --no-sync python manage.py migrate --noinput || exit 21
-      # Dev/staging hosts must not register the production callback schedules
-      # in Relay (Relay rejects foreign origins and the boot would fail
-      # closed here): set RELAY_SYNC_SCHEDULES=false to skip the sync.
-      # Production leaves it unset and syncs.
+      python manage.py web_bootstrap --noinput || exit 21
+      # Relay-owned schedules and mail templates are maintained out of band.
+      # A transient Relay outage must not keep the web process from serving;
+      # failures remain visible so an operator can retry the command.
       if [ "${RELAY_SYNC_SCHEDULES:-true}" != false ]; then
-        uv run --no-sync python manage.py sync_relay_schedules || exit 22
+        if ! python manage.py sync_relay_schedules; then
+          echo "Relay schedule sync failed; web startup continues; retry manage.py sync_relay_schedules after Relay recovers." >&2
+        fi
       fi
-      uv run --no-sync python manage.py import_mail_templates || exit 23
+      if ! python manage.py import_mail_templates; then
+        echo "Relay mail-template import failed; web startup continues; retry manage.py import_mail_templates after Relay recovers." >&2
+      fi
     fi
-    exec uv run --no-sync gunicorn website.wsgi:application --config gunicorn.conf.py --bind 0.0.0.0:8000 --workers "${WEB_CONCURRENCY:-2}" --threads "${WEB_THREADS:-4}" --worker-class gthread --timeout 90 --access-logfile - --access-logformat "$GUNICORN_ACCESS_LOG_FORMAT" --logger-class "$GUNICORN_LOGGER_CLASS" --error-logfile -
+    exec gunicorn website.wsgi:application --config gunicorn.conf.py --bind 0.0.0.0:8000 --workers "${WEB_CONCURRENCY:-2}" --threads "${WEB_THREADS:-4}" --worker-class gthread --timeout 90 --access-logfile - --access-logformat "$GUNICORN_ACCESS_LOG_FORMAT" --logger-class "$GUNICORN_LOGGER_CLASS" --error-logfile -
     ;;
   worker)
     # The service selects its backend through DJANGO_SETTINGS_MODULE.
     # Coolify's worker profile executes domain jobs locally with the database
     # runner's leases and retries; Relay remains the email transport.
     # Bootstrap Django once; the persistent loop skips per-poll system checks.
-    exec uv run --no-sync python manage.py jobs_worker
+    exec python manage.py jobs_worker
     ;;
   *)
     echo "Usage: entrypoint.sh [web|web-migrate|worker]" >&2

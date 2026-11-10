@@ -3,6 +3,8 @@ from unittest.mock import Mock, patch
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from core import views as core_views
+
 ALB_READINESS_SECURITY_SETTINGS = {
     "ALLOWED_HOSTS": ["dev.datatalks.club"],
     "SECURE_SSL_REDIRECT": True,
@@ -12,6 +14,14 @@ ALB_READINESS_SECURITY_SETTINGS = {
 
 
 class HealthTests(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        core_views._MIGRATIONS_VERIFIED = False
+
+    def tearDown(self) -> None:
+        core_views._MIGRATIONS_VERIFIED = False
+        super().tearDown()
+
     @override_settings(
         ALLOWED_HOSTS=["dev.datatalks.club"],
         NOINDEX=True,
@@ -139,6 +149,17 @@ class HealthTests(TestCase):
             response = self.client.get(reverse("health-ready"))
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json()["checks"]["migrations"]["message"], "unapplied migrations")
+
+    def test_migration_verdict_is_cached_only_after_a_successful_plan(self) -> None:
+        executor = Mock()
+        executor.loader.graph.leaf_nodes.return_value = [("accounts", "0001_initial")]
+        executor.migration_plan.side_effect = [[("pending", False)], []]
+        with patch("core.views.MigrationExecutor", return_value=executor) as create_executor:
+            self.assertEqual(core_views._migration_status(), ("error", "unapplied migrations"))
+            self.assertEqual(core_views._migration_status(), ("ok", None))
+            self.assertEqual(core_views._migration_status(), ("ok", None))
+        self.assertEqual(create_executor.call_count, 2)
+        self.assertEqual(executor.migration_plan.call_count, 2)
 
     @override_settings(REQUIRED_BOOTSTRAP_SETTINGS=("NOT_CONFIGURED",))
     def test_readiness_fails_when_bootstrap_configuration_is_missing(self) -> None:
