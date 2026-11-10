@@ -117,7 +117,7 @@ def verify_container(repository: Path, revision: str) -> dict[str, Any]:
         "--env",
         "DJANGO_SETTINGS_MODULE=website.settings.collectstatic",
     ]
-    verifier = [image, "-c", "uv run --no-sync python -m scripts.verify_static_manifest"]
+    verifier = [image, "-c", "python -m scripts.verify_static_manifest"]
     _run([*static_command, *verifier], cwd=repository)
     for mount in (
         f"type=bind,source={absent},target=/app/staticfiles,readonly",
@@ -134,8 +134,7 @@ def verify_container(repository: Path, revision: str) -> dict[str, Any]:
             *static_command,
             image,
             "-c",
-            "uv run --no-sync python -m scripts.verify_static_manifest "
-            "--incompatible-storage-fixture",
+            "python -m scripts.verify_static_manifest --incompatible-storage-fixture",
         ],
         cwd=repository,
         capture=True,
@@ -164,11 +163,8 @@ def verify_container(repository: Path, revision: str) -> dict[str, Any]:
             "--mount",
             runtime_mount,
             "--entrypoint",
-            "uv",
-            image,
-            "run",
-            "--no-sync",
             "python",
+            image,
             "manage.py",
             "migrate",
             "--noinput",

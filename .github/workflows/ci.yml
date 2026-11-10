@@ -86,7 +86,7 @@ jobs:
       identity_schema: ${{ steps.release.outputs.identity_schema }}
       resealed: ${{ steps.release.outputs.resealed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - name: Check community-base dependency source
@@ -95,7 +95,7 @@ jobs:
         # local path, editable, or branch source would ship unreviewed
         # package code). Stdlib-only; runs with the runner's python3.
         run: python3 scripts/check_community_base_source.py
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -105,7 +105,7 @@ jobs:
         name: Restore the sealed source identity on a workflow rerun
         if: github.run_attempt > 1 && (github.event_name != 'workflow_dispatch' || inputs.operation != 'probe')
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: release-source-identity-${{ github.run_id }}
           path: .tmp/prior-release
@@ -362,7 +362,7 @@ jobs:
           echo "release_sha=$candidate" >> "$GITHUB_OUTPUT"
       - name: Preserve the one sealed source identity
         if: (github.run_attempt == 1 || steps.release.outputs.resealed == 'true') && (github.event_name != 'workflow_dispatch' || inputs.operation != 'probe')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-source-identity-${{ github.run_id }}
           path: .tmp/release/source-identity.json
@@ -395,16 +395,16 @@ jobs:
       run:
         working-directory: .tmp/ci-controller
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           path: .tmp/ci-controller
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.resolve-release.outputs.release_sha }}
           path: .tmp/release-source
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -495,7 +495,7 @@ jobs:
             --evidence-directory .tmp/prior-evidence \
             --output-directory .tmp/ci-selection/components-reused
       - name: Preserve the machine-readable CI selection and plan
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/ci-controller/.tmp/ci-selection
@@ -520,20 +520,20 @@ jobs:
       run:
         working-directory: .tmp/release-source
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.resolve-release.outputs.release_sha }}
           path: .tmp/release-source
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           path: .tmp/ci-controller
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
       - name: Restore the reviewed verification plan
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/ci-controller/.tmp/verification-input
@@ -597,7 +597,7 @@ jobs:
           done
       - name: Preserve quality evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: verification-component-quality-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/ci-controller/.tmp/components-quality
@@ -621,21 +621,21 @@ jobs:
       run:
         working-directory: .tmp/release-source
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.resolve-release.outputs.release_sha }}
           path: .tmp/release-source
           fetch-depth: 0
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           path: .tmp/ci-controller
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
       - name: Restore the reviewed verification plan
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/ci-controller/.tmp/verification-input
@@ -644,14 +644,14 @@ jobs:
       - run: uv lock --check
         if: needs.classification.outputs.django_mode == 'rerun'
       - name: Restore the reviewed CI selection
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         continue-on-error: true
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/release-source/.tmp/ci-selection/current
       - name: Restore attempt-one selection only for a reused classifier
         if: github.run_attempt > 1 && needs.classification.outputs.created_attempt == '1'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         continue-on-error: true
         with:
           name: ci-selection-${{ github.run_id }}-attempt-1
@@ -767,7 +767,7 @@ jobs:
             --output .tmp/components-django/django-evidence.json
       - name: Preserve Django evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: verification-component-django-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/ci-controller/.tmp/components-django
@@ -797,10 +797,10 @@ jobs:
       DTC_PG_DATABASE: dtc_test
       DTC_PG_TEST_DATABASE: test_dtc_pg_confirm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.resolve-release.outputs.release_sha }}
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -852,21 +852,21 @@ jobs:
       run:
         working-directory: .tmp/release-source
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         if: needs.classification.outputs.playwright_mode == 'rerun'
         with:
           ref: ${{ needs.resolve-release.outputs.release_sha }}
           path: .tmp/release-source
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           path: .tmp/ci-controller
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
       - name: Restore the reviewed verification plan
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/ci-controller/.tmp/verification-input
@@ -924,7 +924,7 @@ jobs:
             --output .tmp/components-playwright/playwright-evidence.json
       - name: Preserve Playwright evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: verification-component-playwright-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/ci-controller/.tmp/components-playwright
@@ -946,20 +946,20 @@ jobs:
       run:
         working-directory: .tmp/release-source
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.resolve-release.outputs.release_sha }}
           path: .tmp/release-source
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           path: .tmp/ci-controller
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
       - name: Restore the reviewed verification plan
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/ci-controller/.tmp/verification-input
@@ -1032,7 +1032,7 @@ jobs:
         run: echo "No render-impact changes; screenshot evidence is not applicable."
       - name: Preserve screenshot evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: verification-component-screenshots-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/ci-controller/.tmp/components-screenshots
@@ -1053,11 +1053,11 @@ jobs:
     # target's runner_label; a workflow contract test fails if it drifts.
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           path: .tmp/ci-controller
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -1068,14 +1068,14 @@ jobs:
         working-directory: .tmp/ci-controller
         run: uv lock --check
       - name: Restore the reviewed verification plan
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/ci-controller/.tmp/verification-input
       - id: image-cache
         name: Restore the immutable tested-image cache for an automatic rerun
         if: github.event_name == 'push' || inputs.reuse_existing_image == false
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .tmp/release-image.tar
           key: tested-release-image-${{ needs.resolve-release.outputs.identity_schema }}-${{ needs.resolve-release.outputs.release_sha }}-${{ needs.resolve-release.outputs.version }}-${{ needs.resolve-release.outputs.constructed_at }}
@@ -1098,7 +1098,7 @@ jobs:
           mkdir -p .tmp/ci-controller/.tmp/components-container
           printf '%s\n' published_image_record_supplied immutable_image_reuse_selected >> \
             .tmp/ci-controller/.tmp/components-container/container-assertions.txt
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         if: >-
           (github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false) &&
           steps.image-cache.outputs.cache-hit != 'true'
@@ -1175,7 +1175,7 @@ jobs:
               --entrypoint sh \
               --env "DJANGO_SETTINGS_MODULE=$settings_module" \
               "$@" \
-              "$image" -c 'uv run --no-sync python -m scripts.verify_static_manifest'
+              "$image" -c 'python -m scripts.verify_static_manifest'
           }
 
           verify_manifest website.settings.collectstatic
@@ -1201,7 +1201,7 @@ jobs:
               --entrypoint sh \
               --env "DJANGO_SETTINGS_MODULE=website.settings.collectstatic" \
               "$image" -c \
-              'uv run --no-sync python -m scripts.verify_static_manifest --incompatible-storage-fixture' \
+              'python -m scripts.verify_static_manifest --incompatible-storage-fixture' \
               2>&1
           )"
           incompatible_status=$?
@@ -1251,7 +1251,7 @@ jobs:
               # smoke gives its throwaway sqlite file a schema before serving.
               # This orchestrates the smoke container only; the serving entrypoint
               # still never runs migrations.
-              docker exec dtc-web uv run --no-sync python manage.py migrate --noinput
+              docker exec dtc-web python manage.py migrate --noinput
               curl --fail --silent --output /dev/null http://127.0.0.1:8000/unified/
               printf '%s\n' health_live_exact_release_identity unified_route_responds >> \
                 .tmp/ci-controller/.tmp/components-container/container-assertions.txt
@@ -1267,7 +1267,7 @@ jobs:
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
         run: docker image save --output .tmp/release-image.tar "dtc-website:$RELEASE_SHA"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false
         with:
           name: release-image-${{ needs.resolve-release.outputs.release_sha }}
@@ -1316,7 +1316,7 @@ jobs:
             --output .tmp/components-container/container-evidence.json
       - name: Preserve production-container evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: verification-component-container-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/ci-controller/.tmp/components-container
@@ -1332,21 +1332,21 @@ jobs:
     needs: [resolve-release, classification, quality, django, playwright, container, screenshots]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
       - id: selection-download
         name: Restore classifier plan and evidence for aggregate validation
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/verification-input
       - name: Restore attempt-one selection only for a reused classifier
         if: github.run_attempt > 1 && needs.classification.outputs.created_attempt == '1'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         continue-on-error: true
         with:
           name: ci-selection-${{ github.run_id }}-attempt-1
@@ -1403,7 +1403,7 @@ jobs:
           --rejection-output .tmp/ci-selection/resolved/ci-selection-resolution.json
       - name: Restore fresh component evidence for aggregate validation
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: verification-component-*-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/verification-input/components
@@ -1466,7 +1466,7 @@ jobs:
             --summary "$GITHUB_STEP_SUMMARY"
       - name: Preserve aggregate CI evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: verification-evidence-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: |
@@ -1499,10 +1499,10 @@ jobs:
       before_oidc_at: ${{ steps.capture-before-oidc.outputs.verified_at }}
       before_capture_at: ${{ steps.capture-before-read.outputs.verified_at }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -1542,7 +1542,7 @@ jobs:
           test "$GITHUB_SHA" = "$RELEASE_SHA"
           test "$(git rev-parse refs/remotes/origin/main)" = "$RELEASE_SHA"
           echo "verified_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ vars.DEVELOPMENT_DEPLOYER_ROLE_ARN }}
           aws-region: ${{ vars.DEVELOPMENT_AWS_REGION }}
@@ -1618,7 +1618,7 @@ jobs:
           echo "active_service_pair=$pair" >> "$GITHUB_OUTPUT"
       - name: Preserve redacted automatic capture evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: development-capture-evidence-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/deployment/capture-evidence.json
@@ -1644,21 +1644,21 @@ jobs:
       before_oidc_at: ${{ steps.publisher-before-oidc.outputs.verified_at }}
       before_publish_at: ${{ steps.publisher-before-write.outputs.verified_at }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
       - run: uv sync --locked
       - run: uv lock --check
       - name: Restore the sealed source identity
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: release-source-identity-${{ github.run_id }}
           path: .tmp/release
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         if: github.event_name == 'push' || inputs.reuse_existing_image == false
         with:
           name: release-image-${{ needs.resolve-release.outputs.release_sha }}
@@ -1692,7 +1692,7 @@ jobs:
             test "$GITHUB_SHA" = "$RELEASE_SHA"
           fi
           echo "verified_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ vars.DEVELOPMENT_PUBLISHER_ROLE_ARN }}
           aws-region: ${{ vars.DEVELOPMENT_AWS_REGION }}
@@ -1863,7 +1863,7 @@ jobs:
           image_digest="$(jq -er '.image_digest | select(test("^sha256:[0-9a-f]{64}$"))' .tmp/published-image.json)"
           echo "image_digest=$image_digest" >> "$GITHUB_OUTPUT"
       - name: Preserve the published-image record independently of deployment
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: development-published-image-${{ needs.resolve-release.outputs.release_sha }}-attempt-${{ github.run_attempt }}
           path: .tmp/published-image.json
@@ -1891,10 +1891,10 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -1954,7 +1954,7 @@ jobs:
           fi
           mkdir -p .tmp/deployment
           date -u +%Y-%m-%dT%H:%M:%SZ > .tmp/deployment/current-main-before-oidc
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ vars.DEVELOPMENT_DEPLOYER_ROLE_ARN }}
           aws-region: ${{ vars.DEVELOPMENT_AWS_REGION }}
@@ -2044,7 +2044,7 @@ jobs:
             --evidence-path .tmp/deployment/controller-evidence.json
       - name: Preserve the exact pre-mutation incident checkpoint
         timeout-minutes: 2
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: development-recovery-checkpoint-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/deployment/pre-mutation-recovery-context.json
@@ -2293,7 +2293,7 @@ jobs:
         if: always() && steps.evidence_builder.outcome == 'success'
         continue-on-error: true
         timeout-minutes: 2
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: development-deployment-evidence-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/deployment/deployment-evidence.json
@@ -2304,7 +2304,7 @@ jobs:
         if: always() && steps.release.outcome == 'success'
         continue-on-error: true
         timeout-minutes: 2
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: development-read-only-smoke-${{ needs.resolve-release.outputs.release_sha }}-attempt-${{ github.run_attempt }}
           path: .tmp/deployed-smoke
@@ -2319,7 +2319,7 @@ jobs:
           steps.smoke_upload.outcome == 'success'
         continue-on-error: true
         timeout-minutes: 2
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: development-successful-release-${{ needs.resolve-release.outputs.release_sha }}-attempt-${{ github.run_attempt }}
           path: .tmp/deployment/successful-release.json
@@ -2383,7 +2383,7 @@ jobs:
         if: always() && steps.finalization_recovery.outcome != 'skipped'
         continue-on-error: true
         timeout-minutes: 2
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: development-deployment-finalization-failure-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/deployment/deployment-evidence.json
@@ -2405,10 +2405,10 @@ jobs:
     needs: resolve-release
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -2439,10 +2439,10 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -2466,7 +2466,7 @@ jobs:
           controller="$(git rev-parse HEAD)"
           test "$controller" = "$(git rev-parse refs/remotes/origin/main)"
           test "$RELEASE_SHA" = "$controller"
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ vars.DEVELOPMENT_PUBLISHER_ROLE_ARN }}
           aws-region: ${{ vars.DEVELOPMENT_AWS_REGION }}
@@ -2504,10 +2504,10 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -2538,7 +2538,7 @@ jobs:
           controller="$(git rev-parse HEAD)"
           test "$controller" = "$(git rev-parse refs/remotes/origin/main)"
           test "$RELEASE_SHA" = "$controller"
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ vars.DEVELOPMENT_DEPLOYER_ROLE_ARN }}
           aws-region: ${{ vars.DEVELOPMENT_AWS_REGION }}
@@ -2590,10 +2590,10 @@ jobs:
       AWS_EC2_METADATA_DISABLED: true
       PUBLISHER_ROLE_ARN: ${{ vars.DEVELOPMENT_PUBLISHER_ROLE_ARN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -2658,10 +2658,10 @@ jobs:
       AWS_EC2_METADATA_DISABLED: true
       PUBLISHER_ROLE_ARN: ${{ vars.DEVELOPMENT_PUBLISHER_ROLE_ARN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true

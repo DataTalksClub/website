@@ -8,6 +8,8 @@ from typing import Any
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
+CHECKOUT_V4 = "actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+UPLOAD_ARTIFACT_V4 = "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
 
 
 def workflow(name: str) -> dict[str, Any]:
@@ -98,7 +100,7 @@ def test_normal_workflow_keeps_release_concurrency_and_exact_base_contract() -> 
     assert '--source-before-sha "$EVENT_BEFORE"' in script
     assert '--source-after-sha "$EVENT_AFTER"' in script
     assert "--find-renames" not in script  # Git parsing is code-owned, not inline shell.
-    checkouts = [step for step in classifier["steps"] if step.get("uses") == "actions/checkout@v4"]
+    checkouts = [step for step in classifier["steps"] if step.get("uses") == CHECKOUT_V4]
     assert checkouts[0]["with"]["ref"] == "${{ github.sha }}"
     assert checkouts[1]["with"]["fetch-depth"] == "0"
     assert "--repository ../release-source" in script
@@ -193,7 +195,7 @@ def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() 
 
 # Release-consuming jobs that are deliberately hard-disabled rather than gated.
 # `auto-capture-prior` is the legacy production capture path; application delivery moved to
-# deploy-dev.yml and production promotion is manual-only in deploy-prod.yml, so a push to main
+# deploy-dev.yml and the legacy AWS production workflow is statically disabled, so a push to main
 # must never reach it. Naming it here keeps the "off" deliberate and reviewed instead of
 # letting any release job silently opt out of the aggregate gate.
 PERMANENTLY_DISABLED_RELEASE_JOBS = frozenset({"auto-capture-prior"})
@@ -506,9 +508,7 @@ def test_scheduled_workflow_has_no_mutation_or_aws_jobs_and_checks_exact_sha() -
     assert not any("services" in job for job in jobs.values())
     assert '--current-ref "$GITHUB_REF"' in runs(jobs["selector"])
     for job in jobs.values():
-        checkout_steps = [
-            step for step in job["steps"] if step.get("uses") == "actions/checkout@v4"
-        ]
+        checkout_steps = [step for step in job["steps"] if step.get("uses") == CHECKOUT_V4]
         assert checkout_steps
         assert all(
             step["with"]
@@ -532,9 +532,7 @@ def test_scheduled_selector_emits_bounded_selection_observability() -> None:
     assert '--summary "$GITHUB_STEP_SUMMARY"' in script
     assert script.index("ci.verification plan") < script.index("ci.history")
 
-    upload = next(
-        step for step in selector["steps"] if step.get("uses") == "actions/upload-artifact@v4"
-    )
+    upload = next(step for step in selector["steps"] if step.get("uses") == UPLOAD_ARTIFACT_V4)
     assert upload["with"]["path"] == ".tmp/scheduled"
     assert upload["with"]["retention-days"] == "30"
 
@@ -731,6 +729,19 @@ def test_all_workflow_jobs_pin_reviewed_runner_labels() -> None:
             assert runs_on in allowed_labels, (
                 f"Job {job_name!r} in {filename} has unreviewed runs-on label {runs_on!r}"
             )
+
+
+def test_external_workflow_actions_pin_full_commit_shas() -> None:
+    for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        data = workflow(path.name)
+        for job_name, job in data.get("jobs", {}).items():
+            for step in job.get("steps", []):
+                if not isinstance(step, dict) or "uses" not in step:
+                    continue
+                assert re.fullmatch(r"[^@]+@[0-9a-f]{40}", step["uses"]), (
+                    f"Action {step['uses']!r} in {job_name!r} of {path.name} "
+                    "must use a full commit SHA"
+                )
 
 
 def test_release_advisory_newer_path_stays_green() -> None:

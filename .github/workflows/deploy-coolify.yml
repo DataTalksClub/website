@@ -17,10 +17,6 @@ concurrency:
   group: website-coolify
   cancel-in-progress: false
 
-permissions:
-  contents: read
-  packages: write
-
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: datatalksclub/website
@@ -28,12 +24,14 @@ env:
 jobs:
   test:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     env:
       DJANGO_SETTINGS_MODULE: website.settings.test
       PUBLIC_MEDIA_STORE_BACKEND: memory
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
       - name: Install dependencies
         run: uv sync --frozen --dev
       - name: Lint and Django checks
@@ -45,11 +43,14 @@ jobs:
   build-and-push:
     needs: test
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
     outputs:
       image_tag: ${{ steps.identity.outputs.version }}
       image_digest: ${{ steps.push.outputs.digest }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Construct release identity (exact ECR tag format)
         id: identity
@@ -63,7 +64,7 @@ jobs:
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -71,7 +72,7 @@ jobs:
 
       - name: Docker metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           # Exact ECR production tag only (YYYYMMDD-HHMMSS-<7>). Never :latest. Never sha-<…>.
@@ -79,11 +80,11 @@ jobs:
             type=raw,value=${{ steps.identity.outputs.version }}
 
       - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Build and push (linux/amd64)
         id: push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: Dockerfile
@@ -102,9 +103,28 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
     # Staging Contabo Coolify only — production AWS workflows stay separate.
     environment: coolify-staging
     steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          enable-cache: true
+      - name: Require the full CI verdict for this source SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          uv sync --frozen --no-dev
+          uv run --frozen python -m deploy.ci_verdict require \
+            --workflow ci.yml \
+            --repository "$GITHUB_REPOSITORY" \
+            --sha "$GITHUB_SHA" \
+            --timeout-seconds 1800 \
+            --interval-seconds 30
       - name: Point staging at the pushed release
         env:
           COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
@@ -204,78 +224,3 @@ jobs:
           body="$(curl --fail --show-error --silent --max-time 30 "https://dev.datatalks.club/courses/register/confirm/${token}/")"
           grep -qi "We could not find a registration for this confirmation link" <<< "$body"
           echo "dev confirm route responds with the invalid-link page"
-      - name: Point prod at the pushed release
-        # Retired: this staging environment's legacy UUID secret points to staging.
-        # These steps overwrote its DB assertions and redeployed it a second time.
-        # Production promotion is owned by the health-gated rolling follower.
-        # Keep the legacy steps inert pending an operator-approved cleanup.
-        if: ${{ false }}
-        env:
-          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-          COOLIFY_SERVICE_UUID: ${{ secrets.COOLIFY_WEBSITE_SERVICE_UUID }}
-          IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
-        run: |
-          set -euo pipefail
-          # prod.datatalks.club/health/ready reports SOURCE_SHA, and the prod gate
-          # below compares exactly that — same contract as the staging pin above.
-          # The prod app builds its own image from git (not GHCR compose), so only
-          # the release identity is pinned here; IMAGE_DIGEST keeps Coolify's own
-          # build identity until prod moves to GHCR compose. The bulk PATCH merges
-          # keys, so DATABASE_URL and the other serving env are untouched.
-          # DEPLOY_EXPECTED_* pins the database the prod container must serve:
-          # db_preflight fails the boot when the container is pointed
-          # elsewhere, instead of silently serving another env's data.
-          jq -n \
-            --arg version "$IMAGE_TAG" \
-            --arg sha "$GITHUB_SHA" \
-            '{data: [{key: "VERSION", value: $version}, {key: "SOURCE_SHA", value: $sha}, {key: "DEPLOY_EXPECTED_DATABASE", value: "website"}, {key: "DEPLOY_EXPECTED_ROLE", value: "website_app"}]}' \
-            > /tmp/prod-env.json
-          curl --fail --show-error --silent --request PATCH \
-            --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
-            --header "Content-Type: application/json" \
-            --header "Accept: application/json" \
-            --data @/tmp/prod-env.json \
-            "${COOLIFY_URL%/}/api/v1/applications/${COOLIFY_SERVICE_UUID}/envs/bulk"
-          echo
-          echo "Prod identity set to ${GITHUB_SHA} (${IMAGE_TAG})"
-      - name: Trigger Coolify deploy
-        if: ${{ false }}
-        env:
-          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-          COOLIFY_SERVICE_UUID: ${{ secrets.COOLIFY_WEBSITE_SERVICE_UUID }}
-          IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
-        run: |
-          set -euo pipefail
-          if [[ -z "${COOLIFY_URL:-}" || -z "${COOLIFY_TOKEN:-}" || -z "${COOLIFY_SERVICE_UUID:-}" ]]; then
-            echo "Missing Coolify secrets: COOLIFY_URL, COOLIFY_TOKEN, COOLIFY_WEBSITE_SERVICE_UUID" >&2
-            exit 1
-          fi
-          # Website Contabo app is still Coolify Dockerfile/git today (not a GHCR compose
-          # service). GHCR receives exact ECR-format tags YYYYMMDD-HHMMSS-<7> (no :latest).
-          # When website-staging is converted to Docker Image/compose like Relay, reuse
-          # Relay's Pin Coolify compose step to set image to that ECR tag.
-          curl --fail --show-error --silent --request POST             --header "Authorization: Bearer ${COOLIFY_TOKEN}"             --header "Accept: application/json"             "${COOLIFY_URL%/}/api/v1/deploy?uuid=${COOLIFY_SERVICE_UUID}&force=true"
-          echo
-          echo "Triggered Coolify deploy for ${COOLIFY_SERVICE_UUID} (GHCR tag ${IMAGE_TAG} ready; app not yet on GHCR compose)"
-      - name: Wait for prod to serve the pushed SHA
-        if: ${{ false }}
-        run: |
-          set -euo pipefail
-          # Same gate as dev above, for the prod app: prod.datatalks.club/health/ready
-          # is Cache-Control private,no-store, so polling it observes the live
-          # backend. Anything but the pushed SHA (stale release, a container
-          # that failed its db_preflight/migrate/sync/import startup gate,
-          # non-200, timeout) fails the deploy.
-          for _ in $(seq 1 60); do
-            served="$(curl --show-error --silent --max-time 20 https://prod.datatalks.club/health/ready | jq -r .source_sha)" || true
-            if [[ "$served" == "$GITHUB_SHA" ]]; then
-              echo "prod serves ${GITHUB_SHA}"
-              exit 0
-            fi
-            echo "prod serves ${served:-<unreachable>}; waiting for ${GITHUB_SHA}"
-            sleep 15
-          done
-          echo "prod did not converge to ${GITHUB_SHA}" >&2
-          exit 1

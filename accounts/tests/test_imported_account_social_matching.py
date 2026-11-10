@@ -33,6 +33,7 @@ from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialAccount, SocialApp
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from django.conf import settings
+from django.contrib.sessions.models import Session
 from django.contrib.sites.models import Site
 from django.db.models.signals import post_init
 from django.test import Client, TestCase, override_settings
@@ -43,13 +44,13 @@ from accounts.auth import (
     ConsolidatingSocialAccountAdapter,
     _has_unresolved_email_collision,
 )
+from accounts.models import (
+    User,
+)
 from accounts_ext.models import (
     AccountIdentityAlias,
     AccountIdentityQuarantine,
     IdentityState,
-)
-from accounts.models import (
-    User,
 )
 from courses.models import (
     Answer,
@@ -306,7 +307,7 @@ class ImportedAccountSignInTestCase(TestCase):
         """Drive ``/accounts/<provider>/login/`` through to the callback."""
 
         client = client or Client()
-        start = client.get(f"/accounts/{provider}/login/")
+        start = client.post(f"/accounts/{provider}/login/")
         self.assertEqual(
             start.status_code,
             302,
@@ -480,6 +481,59 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
         self.assert_signed_in_as(client, user)
         self.assertEqual(User.objects.count(), 1)
         self.assert_history_is_visible(client, history)
+
+    def test_unverified_password_account_cannot_be_claimed_by_social_login(self) -> None:
+        email = "unverified.password.account@example.invalid"
+        user = User.objects.create_user(
+            username=email,
+            email=email,
+            password="synthetic-password-not-a-secret",
+        )
+        EmailAddress.objects.create(
+            user=user,
+            email=email,
+            verified=False,
+            primary=True,
+        )
+
+        client, response = self.sign_in(
+            provider="google",
+            routes=self.google_routes(uid="google-uid-unverified-password", email=email),
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assert_not_signed_in(client)
+        self.assertFalse(SocialAccount.objects.filter(user=user).exists())
+        self.assertTrue(user.has_usable_password())
+
+    def test_first_social_link_revokes_only_that_users_existing_sessions(self) -> None:
+        user = self.imported_user(email="session.owner@example.invalid")
+        unrelated_user = self.imported_user(email="session.unrelated@example.invalid")
+        target_client = Client()
+        target_client.force_login(user)
+        target_session_key = target_client.session.session_key
+        unrelated_client = Client()
+        unrelated_client.force_login(unrelated_user)
+        unrelated_session_key = unrelated_client.session.session_key
+        self.assertTrue(Session.objects.filter(session_key=target_session_key).exists())
+        self.assertTrue(Session.objects.filter(session_key=unrelated_session_key).exists())
+
+        client, response = self.sign_in(
+            provider="google",
+            routes=self.google_routes(
+                uid="google-uid-session-owner",
+                email="session.owner@example.invalid",
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assert_signed_in_as(client, user)
+        self.assertFalse(Session.objects.filter(session_key=target_session_key).exists())
+        self.assertTrue(Session.objects.filter(session_key=unrelated_session_key).exists())
+        self.assertEqual(
+            unrelated_client.get("/api/v1/account/identity/").status_code,
+            200,
+        )
 
     def test_a_row_less_account_also_matches_a_second_provider_later(self) -> None:
         """``connect()`` writes no ``EmailAddress`` row, so the next provider

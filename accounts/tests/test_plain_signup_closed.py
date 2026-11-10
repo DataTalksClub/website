@@ -1,15 +1,9 @@
-"""Plain email/password signup is open; a matching email is refused plainly.
+"""Plain password signup is local-only and production refuses new accounts.
 
-`accounts.auth.AccountAdapter` (registered as `ACCOUNT_ADAPTER`) and
-`ConsolidatingSocialAccountAdapter` (`SOCIALACCOUNT_ADAPTER`) both answer
-`is_open_for_signup` with `True` — a genuinely new email creates a real
-account through `/accounts/signup/`. Most members already have a
-CMP-imported identity, so the common case at this form is a returning
-member, not a stranger: `ACCOUNT_PREVENT_ENUMERATION = False`
-(`website/settings/base.py`) makes a signup attempt with an email that
-already has an account fail with a plain "an account already exists" error
-instead of allauth's default silent no-op, and it creates no second,
-conflicting row — the original risk `AccountAdapter` closed against.
+Local signup remains open. Production closes plain password signup because
+the production site does not use password login, and an unverified password
+account must not be claimed later by social login through an email match.
+Duplicate-email checks still provide the local existing-account message.
 
 `accounts/tests/test_imported_account_social_matching.py` covers the social
 sign-in path, where a matching, provider-verified email resolves and
@@ -20,7 +14,9 @@ whether signup is open (`accounts.auth.ConsolidatingSocialAccountAdapter`).
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
+
+from accounts.auth import AccountAdapter
 
 User = get_user_model()
 
@@ -35,7 +31,7 @@ def _signup_payload(email: str) -> dict[str, str]:
     }
 
 
-class PlainSignupIsOpenTests(TestCase):
+class PlainSignupPolicyTests(TestCase):
     def test_a_signup_post_with_a_fresh_email_creates_an_account(self) -> None:
         self.assertFalse(User.objects.filter(email=FRESH_EMAIL).exists())
 
@@ -78,3 +74,12 @@ class PlainSignupIsOpenTests(TestCase):
         self.assertTrue(
             self.client.login(username=existing.email, password="not-the-password-being-guessed")
         )
+
+    @override_settings(ENVIRONMENT="production")
+    def test_production_plain_signup_is_closed(self) -> None:
+        self.assertFalse(AccountAdapter().is_open_for_signup(None))
+
+        self.client.post("/accounts/signup/", _signup_payload(FRESH_EMAIL))
+
+        self.assertFalse(User.objects.filter(email=FRESH_EMAIL).exists())
+        self.assertNotIn("_auth_user_id", self.client.session)
