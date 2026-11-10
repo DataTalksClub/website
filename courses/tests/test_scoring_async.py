@@ -117,8 +117,10 @@ class ServingConfigTests(SimpleTestCase):
         self.assertEqual(worker["restart"], "unless-stopped")
         healthcheck = worker["healthcheck"]
         self.assertNotIn("disable", healthcheck)
-        self.assertIn("jobs_worker", " ".join(map(str, healthcheck["test"])))
-        self.assertIn("--check", " ".join(map(str, healthcheck["test"])))
+        self.assertEqual(
+            healthcheck["test"],
+            ["CMD", "/app/.venv/bin/python", "-S", "-m", "core.worker_healthcheck"],
+        )
 
     def test_deployment_target_pins_threads(self):
         from deploy.deployment_targets import SELECTED_TARGET
