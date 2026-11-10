@@ -1450,14 +1450,19 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         dockerfile = (ROOT / "Dockerfile").read_text()
 
         # Coolify change (sibling intake f06eef16, landed as 5133ed83):
-        # the default `web` serving path still never auto-migrates; only
-        # the explicit `web-migrate` mode runs `migrate`, guarded by an
-        # argument check so plain serving stays migration-free.
+        # the default `web` serving path still never auto-migrates; only the
+        # explicit `web-migrate` mode runs the combined preflight/migration
+        # command, guarded so plain serving stays migration-free.
         lines = entrypoint.splitlines()
-        migrate_indexes = [index for index, line in enumerate(lines) if "manage.py migrate" in line]
-        self.assertEqual(len(migrate_indexes), 1)
-        guard_window = "\n".join(lines[max(0, migrate_indexes[0] - 2) : migrate_indexes[0]])
-        self.assertIn("web-migrate", guard_window)
+        bootstrap_indexes = [
+            index for index, line in enumerate(lines) if "manage.py web_bootstrap" in line
+        ]
+        self.assertEqual(len(bootstrap_indexes), 1)
+        self.assertIn('if [ "${1:-web}" = web-migrate ]; then', entrypoint)
+        self.assertLess(
+            entrypoint.index("web-migrate)"),
+            entrypoint.index("manage.py web_bootstrap"),
+        )
         self.assertIn("USER 10001:10001", dockerfile)
         self.assertNotIn("APP_VERSION", dockerfile)
         self.assertNotIn("SOURCE_SHA", dockerfile)
