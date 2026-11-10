@@ -38,10 +38,10 @@ class RequestContextFilter(logging.Filter):
         return True
 
 
-def safe_traceback(exc_info: tuple[Any, BaseException, Any] | None) -> list[dict[str, Any]]:
+def safe_traceback(exc_info: tuple[Any, BaseException | None, Any] | None) -> list[dict[str, Any]]:
     """Return bounded frame locations without source lines, locals, or values."""
 
-    if not exc_info:
+    if not exc_info or exc_info[1] is None:
         return []
 
     traceback = exc_info[2]

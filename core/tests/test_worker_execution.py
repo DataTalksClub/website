@@ -31,8 +31,8 @@ class WorkerSettingsTests(SimpleTestCase):
             "website_gunicorn_config",
             root / "gunicorn.conf.py",
         )
-        self.assertIsNotNone(spec)
-        self.assertIsNotNone(spec.loader)
+        assert spec is not None
+        assert spec.loader is not None
         config = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(config)
 
@@ -218,8 +218,9 @@ class WorkerLoopTests(SimpleTestCase):
         )
         self.assertIn("jobs_run_due failed (RuntimeError)", logs.output[0])
         self.assertNotIn("private job data", logs.output[0])
-        self.assertTrue(logs.records[0].traceback)
-        self.assertEqual(logs.records[0].exception_type, "RuntimeError")
+        extra = logs.records[0].__dict__
+        self.assertTrue(extra["traceback"])
+        self.assertEqual(extra["exception_type"], "RuntimeError")
 
     def test_compose_worker_healthcheck_runs_stdlib_only_and_detects_stale_heartbeat(self):
         root = Path(__file__).resolve().parents[2]
