@@ -194,9 +194,7 @@ class ApplicationSourcePolicyTests(SimpleTestCase):
 
     def test_gunicorn_policy_rejects_missing_or_ambiguous_web_command(self) -> None:
         source = (ROOT / "entrypoint.sh").read_text(encoding="utf-8")
-        command = next(
-            line for line in source.splitlines() if "exec gunicorn " in line
-        )
+        command = next(line for line in source.splitlines() if "exec gunicorn " in line)
         mutations = {
             "migration_only": source.replace("\n  web|web-migrate)\n", "\n  web-migrate)\n"),
             "worker_only": source.replace("\n  web|web-migrate)\n", "\n  worker)\n"),
@@ -215,9 +213,7 @@ class ApplicationSourcePolicyTests(SimpleTestCase):
     def test_entrypoint_timeout_is_explicit_and_covers_reviewed_client_bounds(self) -> None:
         source = (ROOT / "entrypoint.sh").read_text(encoding="utf-8")
         gunicorn_line = next(
-            line
-            for line in source.splitlines()
-            if line.strip().startswith("exec gunicorn")
+            line for line in source.splitlines() if line.strip().startswith("exec gunicorn")
         )
         gunicorn_command_without_timeout = gunicorn_line.split("--timeout", 1)[0].rstrip()
 

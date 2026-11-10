@@ -83,9 +83,7 @@ class WorkerSettingsTests(SimpleTestCase):
             )
             python.chmod(0o755)
             gunicorn = directory / "gunicorn"
-            gunicorn.write_text(
-                '#!/bin/sh\nprintf "%s\\n" "$*" >> "$WORKER_TEST_OUTPUT"\nexit 9\n'
-            )
+            gunicorn.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$WORKER_TEST_OUTPUT"\nexit 9\n')
             gunicorn.chmod(0o755)
             release = [
                 "manage.py web_bootstrap --noinput",

@@ -50,9 +50,7 @@ class Command(BaseCommand):
                         type(error).__name__,
                         extra={
                             "exception_type": type(error).__name__,
-                            "traceback": safe_traceback(
-                                (type(error), error, error.__traceback__)
-                            ),
+                            "traceback": safe_traceback((type(error), error, error.__traceback__)),
                         },
                     )
             time.sleep(10)
