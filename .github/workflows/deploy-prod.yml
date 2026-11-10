@@ -27,11 +27,14 @@ concurrency:
 
 jobs:
   deploy:
+    # Retired: the live website production application is owned by the Coolify
+    # rolling follower. Keep this workflow inert so a manual dispatch cannot
+    # mutate the legacy AWS service.
     # REL-07: production promotion runs only from main, so the deployment code
     # driving the mutation is the reviewed controller -- a dispatch from a
     # stale or foreign ref can never steer a production release.  The
     # controller checkout SHA is recorded into the receipt.
-    if: inputs.confirm_production == true && github.ref == 'refs/heads/main'
+    if: inputs.confirm_production == true && github.ref == 'refs/heads/main' && false
     runs-on: ubuntu-24.04
     environment:
       name: production
@@ -44,8 +47,8 @@ jobs:
       ECS_CLUSTER_NAME: ${{ vars.ECS_CLUSTER_NAME }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -75,7 +78,7 @@ jobs:
           source_sha="$(jq -er '.head_sha' .tmp/run.json)"
           echo "run_id=${run_id}" >> "$GITHUB_OUTPUT"
           echo "source_sha=${source_sha}" >> "$GITHUB_OUTPUT"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           github-token: ${{ github.token }}
           run-id: ${{ steps.dev-run.outputs.run_id }}
@@ -129,7 +132,7 @@ jobs:
           --sha "$EXPECTED_SOURCE_SHA"
           --timeout-seconds 600
           --interval-seconds 30
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: arn:aws:iam::387546586013:role/website-production-github-deployer
           aws-region: eu-west-1
@@ -150,7 +153,7 @@ jobs:
         # REL-02, same contract as the dev workflow: durable, redacted
         # pre-mutation service state plus the recovery outcome on failure.
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: deploy-recovery-receipts-production-${{ github.run_id }}
           path: .tmp/deploy-receipts/

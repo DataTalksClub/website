@@ -21,9 +21,12 @@ being open in the first place.
 from __future__ import annotations
 
 import re
+from urllib.parse import urlencode
 
+from django.conf import settings
+from django.middleware.csrf import get_token
 from django.template import Context, Template
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 
 STYLE_ELEMENT = re.compile(r"<style\b")
 STYLESHEET_LINK = re.compile(r'<link[^>]+rel="stylesheet"')
@@ -110,42 +113,73 @@ class SignupPageTests(TestCase):
 
 
 class SignupProviderChoiceTests(TestCase):
-    """What is still this class's to check.
+    """Provider choices submit safely while retaining the selected flow URL."""
 
-    Deeper coverage that used to live here — named controls, correct
-    destinations and `next` propagation, decorative brand marks, ordering
-    ahead of the email form, and the `SocialApp`/`Site` fixtures they alone
-    needed — was retired when signup briefly closed and is not rebuilt here
-    now that it is open again.
+    def test_allauth_social_login_requires_post(self) -> None:
+        self.assertFalse(settings.SOCIALACCOUNT_LOGIN_ON_GET)
 
-    `test_the_provider_partial_accepts_links_from_another_template` below
-    never depended on the signup route being open — it renders
-    `account/_social_provider_choices.html` directly from a template string
-    with a hand-built provider list, exercising the reusable partial on its
-    own terms. It is untouched.
-    """
-
-    def test_the_provider_partial_accepts_links_from_another_template(self) -> None:
+    def test_the_provider_partial_posts_with_csrf_and_preserves_next(self) -> None:
+        request = RequestFactory().get("/accounts/login/?next=%2Fcommunity%2F")
         body = Template(
             '{% include "account/_social_provider_choices.html" '
             'with provider_list=providers provider_url_mode="provided" %}'
         ).render(
             Context(
                 {
+                    "request": request,
+                    "csrf_token": get_token(request),
                     "providers": [
                         {
                             "id": "github",
                             "name": "GitHub",
                             "login_url": "/accounts/github/login/?next=%2Fcommunity%2F",
                         }
-                    ]
+                    ],
                 }
             )
         )
 
         self.assertIn("Continue with GitHub", body)
         self.assertIn(
-            'href="/accounts/github/login/?next=%2Fcommunity%2F"',
+            'method="post"',
             body,
         )
+        self.assertIn(
+            'action="/accounts/github/login/?next=%2Fcommunity%2F"',
+            body,
+        )
+        self.assertRegex(
+            body,
+            r'<input type="hidden" name="csrfmiddlewaretoken" value="[^"]+">',
+        )
+        self.assertIn('type="submit"', body)
         self.assertIn('<svg class="provider-mark"', body)
+
+    def test_allauth_provider_flow_is_kept_in_the_post_action(self) -> None:
+        class Provider:
+            id = "github"
+            name = "GitHub"
+
+            def get_login_url(self, _request, **params) -> str:
+                return f"/accounts/github/login/?{urlencode(params)}"
+
+        request = RequestFactory().get("/accounts/login/?next=%2Fcommunity%2F")
+        body = Template(
+            '{% include "account/_social_provider_choices.html" '
+            'with provider_list=providers provider_url_mode="allauth" '
+            'provider_process="connect" provider_action="Connect" %}'
+        ).render(
+            Context(
+                {
+                    "request": request,
+                    "csrf_token": get_token(request),
+                    "providers": [Provider()],
+                }
+            )
+        )
+
+        self.assertIn(
+            'action="/accounts/github/login/?process=connect&amp;next=%2Fcommunity%2F"',
+            body,
+        )
+        self.assertIn("Connect GitHub", body)

@@ -1,8 +1,15 @@
-<a
-  class="cta cta-secondary interactive-lift {{ provider_item_class|default:'provider-choice' }}"
-  href="{{ provider_url }}"
+<form
+  class="provider-choice-form"
+  method="post"
+  action="{{ provider_url }}"
 >
-  {% include "account/_provider_mark.html" with provider_id=provider.id only %}
-  {# "Continue with" on the way in; account settings passes "Connect". #}
-  {{ provider_action|default:"Continue with" }} {{ provider.name }}
-</a>
+  {% csrf_token %}
+  <button
+    class="cta cta-secondary interactive-lift {{ provider_item_class|default:'provider-choice' }}"
+    type="submit"
+  >
+    {% include "account/_provider_mark.html" with provider_id=provider.id only %}
+    {# "Continue with" on the way in; account settings passes "Connect". #}
+    {{ provider_action|default:"Continue with" }} {{ provider.name }}
+  </button>
+</form>

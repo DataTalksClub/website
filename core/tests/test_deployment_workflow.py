@@ -62,6 +62,14 @@ from deploy.task_definitions import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
+CHECKOUT_V4 = "actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+SETUP_UV_V6 = "astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e"
+CACHE_V4 = "actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+UPLOAD_ARTIFACT_V4 = "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+DOWNLOAD_ARTIFACT_V4 = "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093"
+AWS_CREDENTIALS_V4 = (
+    "aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a"
+)
 HISTORICAL_WORKFLOW_COMMIT = "91490f0d3f172327a400c9edf5b441265890f897"
 HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334caf42f9b2524850d"
 # Issue #116 mechanically moves the copied legacy package and therefore retargets only
@@ -213,9 +221,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
     def test_django_gate_fetches_history_for_frozen_evidence_tests(self) -> None:
         document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         checkout = next(
-            step
-            for step in document["jobs"]["django"]["steps"]
-            if step.get("uses") == "actions/checkout@v4"
+            step for step in document["jobs"]["django"]["steps"] if step.get("uses") == CHECKOUT_V4
         )
         self.assertEqual(checkout["with"]["fetch-depth"], 0)
         self.assertEqual(checkout["with"]["path"], ".tmp/release-source")
@@ -253,9 +259,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         )
         validation_index = steps.index(validation)
         oidc_index = next(
-            index
-            for index, step in enumerate(steps)
-            if step.get("uses") == "aws-actions/configure-aws-credentials@v4"
+            index for index, step in enumerate(steps) if step.get("uses") == AWS_CREDENTIALS_V4
         )
         self.assertLess(validation_index, oidc_index)
 
@@ -292,11 +296,11 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
                 validators += 1
                 prior = steps[:index]
                 self.assertTrue(
-                    any(item.get("uses") == "actions/checkout@v4" for item in prior),
+                    any(item.get("uses") == CHECKOUT_V4 for item in prior),
                     job_name,
                 )
                 self.assertTrue(
-                    any(item.get("uses") == "astral-sh/setup-uv@v6" for item in prior),
+                    any(item.get("uses") == SETUP_UV_V6 for item in prior),
                     job_name,
                 )
                 self.assertTrue(
@@ -511,7 +515,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn('echo "resealed=true"', resolve_run)
         steps = document["jobs"]["container"]["steps"]
         cache = next(step for step in steps if step.get("id") == "image-cache")
-        self.assertEqual(cache["uses"], "actions/cache@v4")
+        self.assertEqual(cache["uses"], CACHE_V4)
         self.assertEqual(
             cache["with"]["key"],
             "tested-release-image-${{ needs.resolve-release.outputs.identity_schema }}-"
@@ -536,7 +540,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             step for step in steps if "Load the immutable tested image" in step.get("name", "")
         )
         self.assertIn("cache-hit == 'true'", load["if"])
-        handoff = next(step for step in steps if step.get("uses") == "actions/upload-artifact@v4")
+        handoff = next(step for step in steps if step.get("uses") == UPLOAD_ARTIFACT_V4)
         self.assertEqual(
             handoff["with"]["name"],
             "release-image-${{ needs.resolve-release.outputs.release_sha }}",
@@ -546,7 +550,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         download = next(
             step
             for step in publish_steps
-            if step.get("uses") == "actions/download-artifact@v4"
+            if step.get("uses") == DOWNLOAD_ARTIFACT_V4
             and step.get("with", {}).get("name", "").startswith("release-image-")
         )
         self.assertEqual(download["with"]["name"], handoff["with"]["name"])
@@ -596,20 +600,23 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertLess(deploy_steps.index(checkpoint_upload), deploy_steps.index(release))
         self.assertNotIn("continue-on-error", checkpoint_upload)
 
-    def test_workflow_uses_uv_for_every_python_command(self) -> None:
+    def test_workflow_uses_uv_on_runner_and_direct_python_in_image(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         for line in workflow.splitlines():
             if "python " in line or line.rstrip().endswith("python - <<'PY'"):
-                self.assertIn("uv run", line, line)
+                if (
+                    '"$image" -c ' in line
+                    or "docker exec dtc-web " in line
+                    or "scripts.verify_static_manifest" in line
+                ):
+                    self.assertNotIn("uv run", line, line)
+                else:
+                    self.assertIn("uv run", line, line)
 
     def test_deployer_session_preserves_a_bounded_recovery_reserve(self) -> None:
         document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         deploy_steps = document["jobs"]["deploy"]["steps"]
-        assume = next(
-            step
-            for step in deploy_steps
-            if step.get("uses") == "aws-actions/configure-aws-credentials@v4"
-        )
+        assume = next(step for step in deploy_steps if step.get("uses") == AWS_CREDENTIALS_V4)
         self.assertEqual(assume["with"]["role-duration-seconds"], 3600)
         release = next(step for step in deploy_steps if step.get("id") == "release")
         self.assertIn("--timeout-seconds 180", release["run"])
@@ -714,7 +721,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             (deploy, "Verify current-main controller immediately before deployer OIDC"),
         ):
             stale = section.index(label)
-            assume = section.index("- uses: aws-actions/configure-aws-credentials@v4")
+            assume = section.index(f"- uses: {AWS_CREDENTIALS_V4}")
             self.assertLess(stale, assume)
             between = section[stale:assume]
             self.assertIn("refs/remotes/origin/main", between)
@@ -782,9 +789,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         for job_name in configured_jobs:
             steps = jobs[job_name]["steps"]
             assume_indexes = [
-                index
-                for index, step in enumerate(steps)
-                if step.get("uses") == "aws-actions/configure-aws-credentials@v4"
+                index for index, step in enumerate(steps) if step.get("uses") == AWS_CREDENTIALS_V4
             ]
             self.assertEqual(len(assume_indexes), 1)
             previous = steps[assume_indexes[0] - 1]
@@ -812,7 +817,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         )[0]
         validation = deployer_probe.split(
             "- name: Validate exact deployer probe inputs", maxsplit=1
-        )[1].split("- uses: aws-actions/configure-aws-credentials@v4", maxsplit=1)[0]
+        )[1].split(f"- uses: {AWS_CREDENTIALS_V4}", maxsplit=1)[0]
 
         self.assertIn(
             "deploy.legacy_development_compatibility deployer-probe",
@@ -836,9 +841,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
                 step for step in steps if step.get("name") == f"Validate exact {role} probe inputs"
             )
             credential_index = next(
-                index
-                for index, step in enumerate(steps)
-                if step.get("uses") == "aws-actions/configure-aws-credentials@v4"
+                index for index, step in enumerate(steps) if step.get("uses") == AWS_CREDENTIALS_V4
             )
             self.assertLess(steps.index(validation), credential_index)
             self.assertEqual(validation["env"]["HOSTED_ZONE_ID"], variable_expression)
@@ -877,7 +880,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
                 credential_index = next(
                     index
                     for index, step in enumerate(steps)
-                    if step.get("uses") == "aws-actions/configure-aws-credentials@v4"
+                    if step.get("uses") == AWS_CREDENTIALS_V4
                 )
                 self.assertLess(steps.index(validation), credential_index)
                 self.assertEqual(validation["env"]["KMS_KEY_ARN"], variable_expression)
@@ -1089,7 +1092,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         )
         self.assertGreaterEqual(workflow.count("path: .tmp/release-source"), 4)
         deploy_section = workflow.split("\n  deploy:\n", maxsplit=1)[1]
-        self.assertIn("- uses: actions/checkout@v4", deploy_section)
+        self.assertIn(f"- uses: {CHECKOUT_V4}", deploy_section)
         self.assertNotIn("path: .tmp/release-source", deploy_section)
 
     def test_one_image_is_built_tested_and_published_only_after_all_gates(self) -> None:
@@ -1444,6 +1447,22 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             "curl --fail --silent --output /dev/null http://127.0.0.1:8000/unified/",
             workflow,
         )
+
+    def test_runtime_image_inputs_are_digest_pinned_and_do_not_ship_uv(self) -> None:
+        dockerfile = (ROOT / "Dockerfile").read_text()
+        dockerignore = (ROOT / ".dockerignore").read_text().splitlines()
+        image_inputs = [line for line in dockerfile.splitlines() if line.startswith("FROM ")]
+        self.assertEqual(len(image_inputs), 3)
+        for image_input in image_inputs:
+            with self.subTest(image=image_input):
+                self.assertRegex(image_input, r"@sha256:[0-9a-f]{64}(?: AS \w+)?$")
+
+        runtime_stage = dockerfile.split(" AS runtime", maxsplit=1)[1]
+        self.assertNotIn("COPY --from=uv", runtime_stage)
+        self.assertNotIn("uv run", runtime_stage)
+        self.assertIn("deploy", dockerignore)
+        self.assertIn("!deploy/release_identity.py", dockerignore)
+        self.assertIn("!deploy/development_target.py", dockerignore)
 
     def test_serving_entrypoint_never_runs_migrations(self) -> None:
         entrypoint = (ROOT / "entrypoint.sh").read_text()

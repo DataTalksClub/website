@@ -1,8 +1,16 @@
 # Release deployments
 
-Current as of 2026-09-09. This is the **supported** deployment path; the older
+> **Live-host note (2026-11-10):** the production website currently runs on
+> Coolify/Contabo and is promoted by the rolling follower in
+> `alexeygrigorev/machine-management`. This document records the repository's
+> AWS release controller; it does not deploy the live Coolify application.
+> Follow [`coolify-production-deployments.md`](coolify-production-deployments.md)
+> for live production ownership, verification and rollback. Do not dispatch
+> for the Coolify application.
+
+Current as of 2026-09-09 for the AWS-managed deployment target. The older
 runbooks in this directory are archived evidence (see their banners). The
-audit findings REL-01/02/06/08/19 describe why the path looks this way.
+audit findings REL-01/02/06/08/19 describe why that controller looks this way.
 
 ## One controller, one target-definition owner
 
@@ -57,11 +65,15 @@ order:
    dev-proven release record — and the recovery receipts, both with 90-day
    retention.
 
-### 2. Dispatch Deploy Prod
+### 2. Legacy AWS production workflow (disabled)
 
-`.github/workflows/deploy-prod.yml` is dispatch-only from `main` and gated on
-the `confirm_production` input plus the `production` environment's protection
-rules. It:
+`.github/workflows/deploy-prod.yml` is retained for history but its deploy job
+is statically disabled. The live website production application is deployed by
+the Coolify rolling follower described in
+[`coolify-production-deployments.md`](coolify-production-deployments.md). Do not
+dispatch or re-enable the AWS workflow for `prod.datatalks.club`.
+
+The inactive workflow previously:
 
 1. selects the latest **successful** `deploy-dev.yml` run on `main` — or, when
    the optional `dev_run_id` input names an earlier run, exactly that run,
@@ -250,7 +262,7 @@ Every supported entry point, its owner and the tests that pin it:
 | Entry point | Role | Tests |
 | --- | --- | --- |
 | `.github/workflows/deploy-dev.yml` | dev pipeline (test → verify-ci → publish → deploy) | `ci/tests/test_workflows.py`, `core/tests/test_cmp_style_deployment.py`, `core/tests/test_deployment_workflow.py` |
-| `.github/workflows/deploy-prod.yml` | production promotion (dev-proven release only) | `ci/tests/test_workflows.py`, `core/tests/test_cmp_style_deployment.py` |
+| `.github/workflows/deploy-prod.yml` | retired AWS production path; statically disabled | `ci/tests/test_workflows.py`, `core/tests/test_cmp_style_deployment.py`, `ci/tests/test_deploy_ci_gate.py` |
 | `deploy/deploy_dev.sh` / `deploy/deploy_prod.sh` | transport wrappers around the controller | `ci/tests/test_deploy_release_verification.py::test_the_promotion_flow_wires_the_new_checks_into_both_workflows` |
 | `deploy/deploy_website.sh` | release controller | `ci/tests/test_deploy_release_verification.py`, `ci/tests/test_deploy_recovery_receipt.py` |
 | `deploy/deployment_targets.py` (`profile`, `architecture`, role profiles, `release-record`) | target-definition owner | `core/tests/test_cmp_style_deployment.py::TargetRegistryProfileTests`, `core/tests/test_deployment_workflow.py`, `scripts/tests/test_prod_write_target.py` |

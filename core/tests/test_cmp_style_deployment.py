@@ -29,6 +29,7 @@ class CmpStyleDeploymentWorkflowTests(TestCase):
         prod = (ROOT / ".github" / "workflows" / "deploy-prod.yml").read_text(encoding="utf-8")
         self.assertNotIn("push:", dev)
         self.assertIn("workflow_dispatch:", dev)
+        self.assertIn("&& false", prod)
         self.assertIn("name: development", dev)
         self.assertIn("https://dev.datatalks.club", dev)
         self.assertIn("Test the deployment contract", dev)

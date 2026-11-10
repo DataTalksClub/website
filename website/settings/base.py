@@ -292,15 +292,12 @@ ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USER_MODEL_EMAIL_FIELD = "email"
-# Signup is open (`accounts.auth.AccountAdapter`/
-# `ConsolidatingSocialAccountAdapter` both answer `is_open_for_signup` with
-# `True`). Most members already have a CMP-imported identity, so a duplicate
-# email on plain signup is the common case, not the exception — surface it
-# plainly rather than silently, hence `PREVENT_ENUMERATION = False`: a plain
-# signup with an email that already has an account gets a real "an account
-# already exists" error (custom wording in `AccountAdapter`) instead of
-# allauth's default silent no-op-and-email behavior, and never creates a
-# second, conflicting account.
+# Plain password signup remains available for local development and tests;
+# `AccountAdapter` closes it in production. Most members already have a
+# CMP-imported identity, so local duplicate-email attempts should surface a
+# clear error rather than allauth's default silent no-op-and-email behavior.
+# The production signup closure also prevents an unverified password account
+# from being planted before a member's first social sign-in.
 ACCOUNT_PREVENT_ENUMERATION = False
 
 # Course registration is account-owned (`_docs/specs/open-decisions.md` §6,
@@ -328,7 +325,9 @@ CROSS_SELL_MAX_SUGGESTIONS = int(os.getenv("CROSS_SELL_MAX_SUGGESTIONS", "3"))
 CROSS_SELL_EXCLUDED_CAMPAIGNS = env_list("CROSS_SELL_EXCLUDED_CAMPAIGNS")
 ACCOUNT_ADAPTER = "accounts.auth.AccountAdapter"
 SOCIALACCOUNT_ADAPTER = "accounts.auth.ConsolidatingSocialAccountAdapter"
-SOCIALACCOUNT_LOGIN_ON_GET = True
+# Starting OAuth from a POST form prevents another site from silently
+# initiating a sign-in or account-linking flow in the user's browser.
+SOCIALACCOUNT_LOGIN_ON_GET = False
 # `user:email` is what makes GitHub return the address list with its own
 # per-address `verified` flag, which is the only ownership evidence
 # `ConsolidatingSocialAccountAdapter` will act on.

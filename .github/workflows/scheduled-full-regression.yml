@@ -34,11 +34,11 @@ jobs:
       decision: ${{ steps.history.outputs.decision }}
       reason: ${{ steps.history.outputs.reason }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -93,7 +93,7 @@ jobs:
             --machine-output .tmp/scheduled/verification-plan.json \
             --output .tmp/scheduled/selector-evidence.json
       - name: Preserve the scheduled decision and shared plan
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/scheduled
@@ -110,15 +110,15 @@ jobs:
       # the deterministic offline fixture store.
       PUBLIC_MEDIA_STORE_BACKEND: memory
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/input
@@ -158,7 +158,7 @@ jobs:
               --machine-output .tmp/evidence/quality-output.log \
               --output ".tmp/evidence/$component-evidence.json"
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: verification-component-quality-${{ github.run_id }}-attempt-${{ github.run_attempt }}
@@ -173,11 +173,11 @@ jobs:
     env:
       PUBLIC_MEDIA_STORE_BACKEND: memory
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -192,11 +192,11 @@ jobs:
     env:
       PUBLIC_MEDIA_STORE_BACKEND: memory
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -213,15 +213,15 @@ jobs:
       DJANGO_SETTINGS_MODULE: website.settings.test
       PUBLIC_MEDIA_STORE_BACKEND: memory
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/input
@@ -257,7 +257,7 @@ jobs:
             --allow-hosted-runner-drift \
             --machine-output .tmp/evidence/django-output.log \
             --output .tmp/evidence/django-evidence.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: verification-component-django-${{ github.run_id }}-attempt-${{ github.run_attempt }}
@@ -280,15 +280,15 @@ jobs:
       DJANGO_SETTINGS_MODULE: website.settings.test
       PUBLIC_MEDIA_STORE_BACKEND: memory
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/input
@@ -324,7 +324,7 @@ jobs:
             --allow-hosted-runner-drift \
             --machine-output .tmp/evidence/playwright-output.log \
             --output .tmp/evidence/playwright-evidence.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: verification-component-playwright-${{ github.run_id }}-attempt-${{ github.run_attempt }}
@@ -343,11 +343,11 @@ jobs:
       DJANGO_SETTINGS_MODULE: website.settings.test
       PUBLIC_MEDIA_STORE_BACKEND: memory
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -373,7 +373,7 @@ jobs:
             --exit-code "$(cat .tmp/evidence/playwright-quarantine-exit-code)" \
             --output .tmp/evidence/playwright-quarantine-report.json \
             --summary "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: playwright-quarantine-${{ github.run_id }}-attempt-${{ github.run_attempt }}
@@ -388,11 +388,11 @@ jobs:
     # the image it builds, and emulating it is far too slow to finish.
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
@@ -400,7 +400,7 @@ jobs:
         run: uv sync --locked
       - name: Verify the verification lockfile
         run: uv lock --check
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/input
@@ -452,7 +452,7 @@ jobs:
               --entrypoint sh \
               --env "DJANGO_SETTINGS_MODULE=$settings_module" \
               "$@" \
-              "$image" -c 'uv run --no-sync python -m scripts.verify_static_manifest'
+              "$image" -c 'python -m scripts.verify_static_manifest'
           }
 
           verify_manifest website.settings.collectstatic
@@ -477,7 +477,7 @@ jobs:
               --entrypoint sh \
               --env "DJANGO_SETTINGS_MODULE=website.settings.collectstatic" \
               "$image" -c \
-              'uv run --no-sync python -m scripts.verify_static_manifest --incompatible-storage-fixture' \
+              'python -m scripts.verify_static_manifest --incompatible-storage-fixture' \
               2>&1
           )"
           incompatible_status=$?
@@ -500,14 +500,14 @@ jobs:
           # /unified/ is database-backed, so image liveness needs a migrated SQLite
           # database. The gitignored `.tmp/` is not in the image and a fresh volume
           # mount is root-owned: chown it as root, then migrate as the runtime user
-          # so every file uv and Django write keeps the dtc ownership.
+          # so every file Django writes keeps the dtc ownership.
           docker run --rm --entrypoint sh --user 0:0 \
             --volume dtc-web-scheduled-data:/app/.tmp \
             "dtc-website:${{ github.sha }}" -c 'chown 10001:10001 /app/.tmp'
           docker run --rm --entrypoint sh --user 10001:10001 \
             --env DJANGO_SETTINGS_MODULE=website.settings.local \
             --volume dtc-web-scheduled-data:/app/.tmp \
-            "dtc-website:${{ github.sha }}" -c 'uv run --no-sync python manage.py migrate --noinput'
+            "dtc-website:${{ github.sha }}" -c 'python manage.py migrate --noinput'
           docker run --detach --name dtc-web-scheduled \
             --env DJANGO_SETTINGS_MODULE=website.settings.local \
             --volume dtc-web-scheduled-data:/app/.tmp \
@@ -555,7 +555,7 @@ jobs:
             --allow-hosted-runner-drift \
             --machine-output .tmp/evidence/container-check.json \
             --output .tmp/evidence/container-evidence.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: verification-component-container-${{ github.run_id }}-attempt-${{ github.run_attempt }}
@@ -572,21 +572,21 @@ jobs:
     needs: [selector, quality, factories, migrations, django, playwright, container]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
       - name: Restore scheduled plan and selector evidence
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/input
       - name: Restore all fresh component evidence
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: verification-component-*-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/evidence
@@ -626,7 +626,7 @@ jobs:
             --allow-hosted-runner-drift \
             --output .tmp/scheduled-state.json
       - name: Preserve the complete aggregate scheduled evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: verification-evidence-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: |
@@ -643,17 +643,17 @@ jobs:
     needs: [selector, quality, factories, migrations, django, playwright, container, full-regression]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.10.11"
           enable-cache: true
       - name: Restore scheduled selection evidence
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/scheduled-selection
@@ -682,7 +682,7 @@ jobs:
             --summary "$GITHUB_STEP_SUMMARY"
       - name: Preserve scheduled aggregate evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: scheduled-gate-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/scheduled-gate.json

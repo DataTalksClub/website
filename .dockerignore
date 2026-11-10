@@ -2,6 +2,23 @@
 .github
 .tmp
 .venv
+.aplexer-tasks
+# Verification, authoring and release-control material is not part of the
+# runtime image. Django source and migrations remain in the build context.
+**/tests
+tests_ci
+ci
+playwright_tests
+test_support
+_docs
+.agents
+# Release tooling includes account ids, role ARNs, and inactive ECS commands.
+# Keep only the two safe value modules still imported by the Django runtime.
+deploy
+!deploy/
+!deploy/__init__.py
+!deploy/release_identity.py
+!deploy/development_target.py
 # Recursive, not root-only.  A bare `.env` excludes only the one at the root,
 # so `e2e/.env` — which e2e/.env.example tells developers to create, holding an
 # API token and an admin password — was copied into the image by the Dockerfile's

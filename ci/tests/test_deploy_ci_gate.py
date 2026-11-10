@@ -1,10 +1,11 @@
 """The deploy workflows depend on the real CI verdict, fail closed (REL-01).
 
-Two layers are pinned here.  The parsed-workflow tests assert that automatic
-delivery (``deploy-dev.yml``) and manual production promotion
-(``deploy-prod.yml``) both route through ``deploy.ci_verdict require`` for an
-exact source SHA, with the dependencies, permissions, ordering, and release
-binding that make the gate load-bearing.  The behavior tests drive the
+Two layers are pinned here. The parsed-workflow tests assert that active
+delivery (``deploy-dev.yml``) and Coolify staging (``deploy-coolify.yml``)
+route through ``deploy.ci_verdict require`` for an exact source SHA. The
+legacy AWS production workflow remains covered as historical code, but its
+deploy job is disabled because live production is owned by the Coolify rolling
+follower. The behavior tests drive the
 code-owned decision logic in ``deploy/ci_verdict.py`` with synthetic GitHub API
 payloads: a failed, canceled, pending, or missing verdict never authorizes a
 release, a green verdict for a different SHA authorizes nothing, and only a
@@ -82,9 +83,33 @@ def test_dev_publish_depends_on_the_ci_verdict_gate() -> None:
     assert "--timeout-seconds" in script
 
 
-def test_prod_revalidates_the_verdict_for_the_selected_dev_source() -> None:
+def test_coolify_staging_requires_full_ci_and_scopes_package_write() -> None:
+    coolify = workflow("deploy-coolify.yml")
+    jobs = coolify["jobs"]
+    build = jobs["build-and-push"]
+    deploy = jobs["deploy"]
+
+    assert build["permissions"].get("packages") == "write"
+    assert deploy["permissions"].get("packages") is None
+    assert deploy["permissions"].get("actions") == "read"
+    gate = run_step(deploy, "Require the full CI verdict for this source SHA")
+    assert gate["env"]["GH_TOKEN"] == "${{ github.token }}"
+    assert "deploy.ci_verdict require" in gate["run"]
+    assert "--workflow ci.yml" in gate["run"]
+    assert '--repository "$GITHUB_REPOSITORY"' in gate["run"]
+    assert '--sha "$GITHUB_SHA"' in gate["run"]
+    assert "--timeout-seconds" in gate["run"]
+
+    deploy_run = runs(deploy)
+    assert "COOLIFY_WEBSITE_SERVICE_UUID" not in deploy_run
+    assert "deploy/prod" not in deploy_run
+
+
+def test_retired_aws_prod_workflow_stays_disabled_and_keeps_its_ci_gate() -> None:
     prod = workflow("deploy-prod.yml")
     deploy = prod["jobs"]["deploy"]
+
+    assert deploy["if"].endswith("&& false")
 
     gate_step = next(
         step

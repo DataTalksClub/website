@@ -9,11 +9,14 @@ from allauth.account.models import EmailAddress
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialAccount
-from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.contrib.auth import SESSION_KEY, get_user_model
+from django.contrib.sessions.models import Session
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.utils import timezone
 
 from accounts.identity_resolution import (
     identity_state_eligible,
@@ -222,13 +225,11 @@ def _candidate_users_for_verified_email(email: str) -> tuple[Any, ...]:
     unverified row.  Matching only on that row would have locked those members
     out of every enrollment, submission, score and certificate they own.
 
-    The account's own ``email`` column is the second.  CMP obtained it from a
-    provider at signup, ``/accounts/email/`` is disabled here so no member can
-    add an address to an account, and the account settings form does not
-    expose ``email`` — nobody can point an account at an address they do not
-    already hold.  Unverified ``EmailAddress`` rows are deliberately *not*
-    read: they would be a second, weaker claim surface for no gain, since
-    every such row in the export duplicates its account's ``email`` anyway.
+    An account-column match is usable only when that account cannot authenticate
+    with a password. This preserves imported accounts without verified address
+    rows while refusing an unverified password account that may have been
+    created with someone else's email. Unverified ``EmailAddress`` rows are
+    deliberately not read: they are not proof of ownership.
     """
 
     verified_row_ids = set(
@@ -246,10 +247,33 @@ def _candidate_users_for_verified_email(email: str) -> tuple[Any, ...]:
     )
     users = User.objects.filter(pk__in=verified_row_ids | account_column_ids).order_by("pk")
     # `email__iexact` is a superset of the normalized comparison the rest of
-    # this module makes, so the account-column hits are re-checked exactly.
+    # this module makes, so account-column hits are re-checked exactly. A
+    # password-bearing account needs its own verified address row before the
+    # provider can attach to it.
     return tuple(
-        user for user in users if user.pk in verified_row_ids or _account_email(user) == email
+        user
+        for user in users
+        if user.pk in verified_row_ids
+        or (_account_email(user) == email and not user.has_usable_password())
     )
+
+
+def _flush_other_user_sessions(request: Any, user: Any) -> None:
+    """Revoke existing database sessions for the account before first link."""
+
+    session = getattr(request, "session", None)
+    if session is None:
+        return
+    current_session_key = getattr(session, "session_key", None)
+    user_id = str(user.pk)
+    session_keys = []
+    for existing in Session.objects.filter(expire_date__gt=timezone.now()).iterator():
+        if existing.session_key == current_session_key:
+            continue
+        if existing.get_decoded().get(SESSION_KEY) == user_id:
+            session_keys.append(existing.session_key)
+    if session_keys:
+        Session.objects.filter(session_key__in=session_keys).delete()
 
 
 def _has_unresolved_email_collision(*, email: str, user_id: int) -> bool:
@@ -344,7 +368,7 @@ def _provider_uid_conflicts(sociallogin: object, user: Any) -> bool:
 
 
 class AccountAdapter(DefaultAccountAdapter):
-    """Plain email/password signup, open, with duplicate emails surfaced plainly.
+    """Keep plain signup available locally and closed on production hosts.
 
     Most members already have a CMP-imported identity, so a plain signup with
     an email that matches one is the common case, not the exception.  Rather
@@ -356,7 +380,8 @@ class AccountAdapter(DefaultAccountAdapter):
     their existing account: social sign-in (see
     ``ConsolidatingSocialAccountAdapter`` for how that safely resolves to the
     right account) or a password reset.  A genuinely new email signs up
-    normally with no gate at all.
+    normally in local and test environments; production disables password
+    signup because production members use social sign-in.
     """
 
     error_messages = {
@@ -369,7 +394,7 @@ class AccountAdapter(DefaultAccountAdapter):
 
     def is_open_for_signup(self, request):
         del request
-        return True
+        return getattr(settings, "ENVIRONMENT", "local") != "production"
 
 
 class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):
@@ -499,7 +524,9 @@ class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):
                 reason="normalized_email_conflict",
                 user_ids=(resolved_user.pk,),
             )
-        sociallogin.connect(request, resolved_user)
+        with transaction.atomic():
+            sociallogin.connect(request, resolved_user)
+            _flush_other_user_sessions(request, resolved_user)
         provider = _provider_key(sociallogin)
         _audit_identity_outcome(
             action="accounts.identity.link_succeeded",

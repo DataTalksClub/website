@@ -60,14 +60,11 @@ def test_the_runbook_names_one_owner_per_concern() -> None:
     assert "**not** the supported deployment path" in flattened
 
 
-def test_the_runbook_documents_both_workflows_and_the_dev_then_prod_order() -> None:
+def test_the_runbook_marks_the_legacy_aws_production_workflow_inactive() -> None:
     text = runbook_text()
     assert "deploy-dev.yml" in text
     assert "deploy-prod.yml" in text
-    assert "confirm_production" in text
-    dev = text.index("deploy-dev.yml")
-    prod = text.index("deploy-prod.yml")
-    assert dev < prod, "the supported order is dev first, then production"
+    assert "statically disabled" in text
 
 
 def test_archived_runbooks_are_labelled_as_evidence() -> None:
