@@ -7,9 +7,7 @@ import sys
 import time
 from pathlib import Path
 
-HEARTBEAT_FILE = Path(
-    os.environ.get("JOBS_WORKER_HEARTBEAT_PATH", "/tmp/jobs-worker.heartbeat")
-)
+HEARTBEAT_FILE = Path(os.environ.get("JOBS_WORKER_HEARTBEAT_PATH", "/tmp/jobs-worker.heartbeat"))
 HEARTBEAT_MAX_AGE_SECONDS = 90
 
 

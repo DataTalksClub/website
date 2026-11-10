@@ -255,10 +255,10 @@ def database_configuration(
             allow_sqlite=environment in {RuntimeEnvironment.LOCAL, RuntimeEnvironment.TEST},
             conn_max_age=conn_max_age,
         )
-        if (
-            database.get("ENGINE") == "django.db.backends.postgresql"
-            and environment in {RuntimeEnvironment.DEVELOPMENT, RuntimeEnvironment.PRODUCTION}
-        ):
+        if database.get("ENGINE") == "django.db.backends.postgresql" and environment in {
+            RuntimeEnvironment.DEVELOPMENT,
+            RuntimeEnvironment.PRODUCTION,
+        }:
             options = database.setdefault("OPTIONS", {})
             if not isinstance(options, dict):
                 _fail(name, "invalid-database-options")

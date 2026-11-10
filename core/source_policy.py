@@ -26,9 +26,7 @@ _CANONICAL_REL = re.compile(
 _GUNICORN_WEB_CASE = re.compile(
     r"(?ms)^[ \t]*web(?:\|web-migrate)?\)[ \t]*\n(?P<body>.*?)(?=^[ \t]*;;[ \t]*$)"
 )
-_GUNICORN_COMMAND = re.compile(
-    r"^[ \t]*exec[ \t]+gunicorn(?:[ \t]+.*)?$"
-)
+_GUNICORN_COMMAND = re.compile(r"^[ \t]*exec[ \t]+gunicorn(?:[ \t]+.*)?$")
 
 
 class SourcePolicyError(ValueError):

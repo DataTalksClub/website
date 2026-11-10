@@ -111,9 +111,7 @@ class SafeJsonFormatter(logging.Formatter):
 
         if record.exc_info:
             exception_type = record.exc_info[0]
-            payload["exception_type"] = redact(
-                getattr(exception_type, "__name__", "Exception")
-            )
+            payload["exception_type"] = redact(getattr(exception_type, "__name__", "Exception"))
             payload["traceback"] = safe_traceback(record.exc_info)
 
         return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
