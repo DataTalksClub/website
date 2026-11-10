@@ -7,6 +7,7 @@ stays byte-stable; this file is the in-repo canonical record the deploy files
 mirror.
 """
 
+import logging
 import os
 
 
@@ -22,6 +23,7 @@ workers = _int_env("WEB_CONCURRENCY", 2, 2)
 threads = _int_env("WEB_THREADS", 4, 2)
 worker_class = "gthread"
 timeout = 90
+graceful_timeout = 30
 bind = "0.0.0.0:8000"
 keepalive = 5
 # Recycling a worker drops its compiled templates, catalogue stamps and
@@ -59,8 +61,9 @@ def post_worker_init(worker) -> None:  # noqa: ARG001
     Every fresh or recycled worker otherwise compiles the large design-system
     templates and populates ``content.catalogue``, ``content.event_content``,
     ``content.wiki_reader``, ``content.docs_reader``, and timezone options on
-    its first live request.  Any failure here is ignored so worker boot never
-    fails closed on an empty or migrating database.
+    its first live request.  A failure is reported without logging exception
+    text, then worker boot continues so an empty or migrating database does
+    not prevent the app from starting.
     """
 
     try:
@@ -95,5 +98,9 @@ def post_worker_init(worker) -> None:  # noqa: ARG001
             tour_content.tour_page()
         finally:
             reset_request_memo(token)
-    except Exception:
+    except Exception as error:
+        logging.getLogger("gunicorn.error").warning(
+            "gunicorn_warmup_failed exception_type=%s",
+            type(error).__name__,
+        )
         return

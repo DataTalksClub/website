@@ -1,7 +1,14 @@
+import json
+import logging
 from unittest.mock import patch
 
+from community_base.kernel.context import context_scope
 from django.test import RequestFactory, SimpleTestCase, override_settings
 
+from core.safe_logging import (
+    RequestContextFilter,
+    SafeJsonFormatter,
+)
 from course_management.middleware import ObservabilityExceptionMiddleware
 from course_management.observability import record_event
 from course_management.observability.cloudwatch import (
@@ -28,6 +35,10 @@ class ObservabilityEventTests(SimpleTestCase):
                 "course_slug": "mlops",
                 "event": "custom",
                 "name": "unsafe-log-record-name",
+                "level": "spoofed-level",
+                "timestamp": "spoofed-timestamp",
+                "logger": "spoofed-logger",
+                "message": "spoofed-message",
             },
         )
 
@@ -45,6 +56,10 @@ class ObservabilityEventTests(SimpleTestCase):
             properties["app_name"],
             "unsafe-log-record-name",
         )
+        self.assertEqual(properties["app_level"], "spoofed-level")
+        self.assertEqual(properties["app_timestamp"], "spoofed-timestamp")
+        self.assertEqual(properties["app_logger"], "spoofed-logger")
+        self.assertEqual(properties["app_message"], "spoofed-message")
 
     @override_settings(OBSERVABILITY_EVENT_BACKENDS=["log"])
     def test_record_event_logs_without_external_keys(self):
@@ -135,15 +150,110 @@ class ObservabilityExceptionMiddlewareTests(SimpleTestCase):
             properties={"source": "django.request"},
         )
 
+    def test_raising_view_logs_scrubbed_traceback_with_request_id(self):
+        request = RequestFactory().get("/broken")
+
+        def failing_view(_request):
+            raise ValueError("Bearer token-canary alice@example.com")
+
+        middleware = ObservabilityExceptionMiddleware(failing_view)
+        with context_scope(
+            request_id="request-view-1",
+            correlation_id="correlation-view-1",
+        ):
+            with self.assertLogs(
+                "course_management.observability.events",
+                level="ERROR",
+            ) as logs:
+                try:
+                    middleware(request)
+                except ValueError as exception:
+                    middleware.process_exception(request, exception)
+
+            record = logs.records[0]
+            RequestContextFilter().filter(record)
+            payload = json.loads(SafeJsonFormatter().format(record))
+
+        self.assertEqual(payload["request_id"], "request-view-1")
+        self.assertEqual(payload["correlation_id"], "correlation-view-1")
+        self.assertEqual(payload["exception_type"], "ValueError")
+        self.assertTrue(payload["traceback"])
+        self.assertNotIn("token-canary", json.dumps(payload))
+        self.assertNotIn("alice@example.com", json.dumps(payload))
+
     @patch("course_management.observability.events.logger")
     def test_report_exception_sanitizes_log_record_fields(self, logger_mock):
         from course_management.observability.events import report_exception
 
-        exception = ValueError("boom")
+        exception = ValueError("Bearer token-canary alice@example.com")
+        try:
+            raise exception
+        except ValueError as caught:
+            report_exception(caught, properties={"name": "unsafe"})
 
-        report_exception(exception, properties={"name": "unsafe"})
+        logger_mock.error.assert_called_once()
+        args, kwargs = logger_mock.error.call_args
+        self.assertEqual(args[0], "observability exception reported type=%s")
+        self.assertEqual(args[1], "ValueError")
+        self.assertEqual(kwargs["extra"]["app_name"], "unsafe")
+        self.assertEqual(kwargs["extra"]["exception_type"], "ValueError")
+        self.assertTrue(kwargs["extra"]["traceback"])
+        self.assertNotIn("token-canary", str(kwargs["extra"]))
+        self.assertNotIn("alice@example.com", str(kwargs["extra"]))
 
-        self.assertEqual(
-            logger_mock.exception.call_args.kwargs["extra"],
-            {"app_name": "unsafe"},
+
+class SafeJsonLoggingTests(SimpleTestCase):
+    def test_event_extras_cannot_overwrite_formatter_owned_fields(self):
+        record = logging.LogRecord(
+            name="django.request",
+            level=logging.ERROR,
+            pathname=__file__,
+            lineno=1,
+            msg="request failed",
+            args=(),
+            exc_info=None,
         )
+        record.level = "spoofed-level"
+        record.timestamp = "spoofed-timestamp"
+        record.logger = "spoofed-logger"
+
+        payload = json.loads(SafeJsonFormatter().format(record))
+
+        self.assertEqual(payload["level"], "ERROR")
+        self.assertEqual(payload["logger"], "django.request")
+        self.assertEqual(payload["message"], "request failed")
+        self.assertTrue(payload["timestamp"].endswith("+00:00"))
+        self.assertEqual(payload["app_level"], "spoofed-level")
+        self.assertEqual(payload["app_timestamp"], "spoofed-timestamp")
+        self.assertEqual(payload["app_logger"], "spoofed-logger")
+
+    def test_django_exception_records_include_safe_frames_and_request_ids(self):
+        try:
+            raise ValueError("Bearer token-canary alice@example.com")
+        except ValueError as exception:
+            exc_info = (type(exception), exception, exception.__traceback__)
+
+        record = logging.LogRecord(
+            name="django.request",
+            level=logging.ERROR,
+            pathname=__file__,
+            lineno=1,
+            msg="Internal Server Error: /broken",
+            args=(),
+            exc_info=exc_info,
+        )
+        with context_scope(
+            request_id="request-safe",
+            correlation_id="correlation-safe",
+        ):
+            RequestContextFilter().filter(record)
+
+        rendered = SafeJsonFormatter().format(record)
+        payload = json.loads(rendered)
+
+        self.assertEqual(payload["request_id"], "request-safe")
+        self.assertEqual(payload["correlation_id"], "correlation-safe")
+        self.assertEqual(payload["exception_type"], "ValueError")
+        self.assertTrue(payload["traceback"])
+        self.assertNotIn("token-canary", rendered)
+        self.assertNotIn("alice@example.com", rendered)

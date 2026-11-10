@@ -6,9 +6,11 @@ from community_base.kernel.redaction import REDACTED, is_sensitive_field, redact
 from django.conf import settings
 
 from core.runtime_config import get_str_setting
+from core.safe_logging import safe_traceback
 
 logger = logging.getLogger(__name__)
 
+JSON_FORMATTER_PROPERTY_KEYS = {"timestamp", "level", "logger", "message"}
 LOG_RECORD_PROPERTY_KEYS = set(
     logging.LogRecord(
         name="observability",
@@ -19,7 +21,7 @@ LOG_RECORD_PROPERTY_KEYS = set(
         args=(),
         exc_info=None,
     ).__dict__
-) | {"asctime", "message"}
+) | {"asctime", "message"} | JSON_FORMATTER_PROPERTY_KEYS
 
 RESERVED_PROPERTY_KEYS = {
     "event",
@@ -116,15 +118,17 @@ def report_exception(
         user=user,
         properties=properties,
     )
-    # Exception text/provider payloads are untrusted.  Keep the type for
-    # diagnostics while omitting the message and traceback from structured
-    # output; the bounded event above carries only redacted context.
-    safe_exception = RuntimeError("redacted exception")
-    logger.exception(
+    # Exception values can contain credentials, email addresses, request
+    # bodies, or provider responses. Keep the exception class and safe frame
+    # locations while omitting values and source lines.
+    logger.error(
         "observability exception reported type=%s",
         type(exc).__name__,
-        exc_info=(type(safe_exception), safe_exception, None),
-        extra=safe_logging_extra(properties or {}),
+        extra={
+            **safe_logging_extra(properties or {}),
+            "exception_type": type(exc).__name__,
+            "traceback": safe_traceback((type(exc), exc, exc.__traceback__)),
+        },
     )
 
 

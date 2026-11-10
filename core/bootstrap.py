@@ -248,13 +248,28 @@ def database_configuration(
     """Build a database setting while keeping SQLite an explicit local/test choice."""
 
     if database_url is not None:
-        return parse_database_url(
+        database = parse_database_url(
             name,
             database_url,
             environment=environment,
             allow_sqlite=environment in {RuntimeEnvironment.LOCAL, RuntimeEnvironment.TEST},
             conn_max_age=conn_max_age,
         )
+        if (
+            database.get("ENGINE") == "django.db.backends.postgresql"
+            and environment in {RuntimeEnvironment.DEVELOPMENT, RuntimeEnvironment.PRODUCTION}
+        ):
+            options = database.setdefault("OPTIONS", {})
+            if not isinstance(options, dict):
+                _fail(name, "invalid-database-options")
+            options.setdefault("connect_timeout", 5)
+            options.setdefault(
+                "options",
+                "-c statement_timeout=30000 "
+                "-c lock_timeout=5000 "
+                "-c idle_in_transaction_session_timeout=60000",
+            )
+        return database
     if environment not in {RuntimeEnvironment.LOCAL, RuntimeEnvironment.TEST}:
         _fail(name, "missing")
     if sqlite_fallback is None:

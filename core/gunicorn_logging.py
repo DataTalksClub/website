@@ -54,12 +54,20 @@ def is_token_bearing_path(path: object) -> bool:
 class RecipientTokenSafeLogger(Logger):
     """Gunicorn access logger that never writes a recipient token.
 
+    High-frequency readiness and liveness probes are omitted from the access
+    log so they do not crowd user requests out of the bounded retention window.
+
     Gunicorn builds an atom for every request header, response header and WSGI
     environment variable, so the path appears under several keys, not only the
     one the deployed format uses.  Redacting every string atom of a recipient
     request keeps a future format change from reintroducing the leak, and the
     single cheap path test keeps that work off the other 99% of requests.
     """
+
+    def access(self, resp, req, environ, request_time):  # type: ignore[no-untyped-def]
+        if environ.get("PATH_INFO") in {"/health/live", "/health/ready"}:
+            return
+        super().access(resp, req, environ, request_time)
 
     def atoms(self, resp, req, environ, request_time):  # type: ignore[no-untyped-def]
         values = super().atoms(resp, req, environ, request_time)
