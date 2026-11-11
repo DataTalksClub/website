@@ -33,6 +33,10 @@ jobs:
     outputs:
       decision: ${{ steps.history.outputs.decision }}
       reason: ${{ steps.history.outputs.reason }}
+      # The attempt that created the shared plan. A rerun of failed jobs does
+      # not rerun this job, so its consumers must download the artifact this
+      # attempt uploaded rather than one named after their own run_attempt.
+      selection_artifact: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -103,6 +107,8 @@ jobs:
   quality:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
+    outputs:
+      evidence_artifact: verification-component-quality-${{ github.run_id }}-attempt-${{ github.run_attempt }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -120,7 +126,7 @@ jobs:
           enable-cache: true
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: ${{ needs.selector.outputs.selection_artifact }}
           path: .tmp/input
       - run: uv sync --locked
       - run: uv lock --check
@@ -207,6 +213,8 @@ jobs:
   django:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
+    outputs:
+      evidence_artifact: verification-component-django-${{ github.run_id }}-attempt-${{ github.run_attempt }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -223,7 +231,7 @@ jobs:
           enable-cache: true
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: ${{ needs.selector.outputs.selection_artifact }}
           path: .tmp/input
       - run: uv sync --locked
       - run: uv lock --check
@@ -268,6 +276,8 @@ jobs:
   playwright:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
+    outputs:
+      evidence_artifact: verification-component-playwright-${{ github.run_id }}-attempt-${{ github.run_attempt }}
     runs-on: ubuntu-24.04
     # The verified full-profile suite currently takes ~49-52m on the hosted
     # runner (issue #206; ci.yml keeps the same reserve on its Playwright
@@ -290,7 +300,7 @@ jobs:
           enable-cache: true
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: ${{ needs.selector.outputs.selection_artifact }}
           path: .tmp/input
       - run: uv sync --locked
       - run: uv lock --check
@@ -422,6 +432,8 @@ jobs:
   container:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
+    outputs:
+      evidence_artifact: verification-component-container-${{ github.run_id }}-attempt-${{ github.run_attempt }}
     # Native runner for the deployment target's architecture: this job also runs
     # the image it builds, and emulating it is far too slow to finish.
     runs-on: ubuntu-24.04-arm
@@ -440,7 +452,7 @@ jobs:
         run: uv lock --check
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: ${{ needs.selector.outputs.selection_artifact }}
           path: .tmp/input
       - name: Build the exact scheduled production image
         env:
@@ -621,14 +633,32 @@ jobs:
       - name: Restore scheduled plan and selector evidence
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: ${{ needs.selector.outputs.selection_artifact }}
           path: .tmp/input
-      - name: Restore all fresh component evidence
+      - name: Restore quality evidence from the attempt that ran it
+        if: needs.quality.outputs.evidence_artifact != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          pattern: verification-component-*-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: ${{ needs.quality.outputs.evidence_artifact }}
           path: .tmp/evidence
-          merge-multiple: true
+      - name: Restore django evidence from the attempt that ran it
+        if: needs.django.outputs.evidence_artifact != ''
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ${{ needs.django.outputs.evidence_artifact }}
+          path: .tmp/evidence
+      - name: Restore playwright evidence from the attempt that ran it
+        if: needs.playwright.outputs.evidence_artifact != ''
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ${{ needs.playwright.outputs.evidence_artifact }}
+          path: .tmp/evidence
+      - name: Restore container evidence from the attempt that ran it
+        if: needs.container.outputs.evidence_artifact != ''
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ${{ needs.container.outputs.evidence_artifact }}
+          path: .tmp/evidence
       - name: Require every selected full-regression component
         env:
           QUALITY_RESULT: ${{ needs.quality.result }}
@@ -690,10 +720,11 @@ jobs:
           version: "0.10.11"
           enable-cache: true
       - name: Restore scheduled selection evidence
+        if: needs.selector.outputs.selection_artifact != ''
         continue-on-error: true
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: ${{ needs.selector.outputs.selection_artifact }}
           path: .tmp/scheduled-selection
       - name: Validate the scheduled decision and all component outcomes
         env:
