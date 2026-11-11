@@ -775,3 +775,16 @@ def test_release_advisory_newer_path_stays_green() -> None:
     assert "failure()" not in advisory["if"]
     already = next(step for step in job["steps"] if step.get("name") == "Already latest")
     assert already["if"].strip() == "steps.compare.outputs.result == 'already'"
+
+
+def test_playwright_installs_retry_transient_apt_failures_without_retrying_tests() -> None:
+    for name in ("ci.yml", "scheduled-full-regression.yml"):
+        for job_name, job in workflow(name)["jobs"].items():
+            for step in job["steps"]:
+                script = step.get("run", "")
+                if "playwright install --with-deps chromium" not in script:
+                    continue
+                assert 'Acquire::Retries "5";' in script, (name, job_name)
+                assert "for delay in 0 15 30 60 120; do" in script, (name, job_name)
+                assert step["timeout-minutes"] == "20", (name, job_name)
+                assert "scripts/ci.py" not in script, (name, job_name)

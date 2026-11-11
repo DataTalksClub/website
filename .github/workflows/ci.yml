@@ -874,8 +874,27 @@ jobs:
         if: needs.classification.outputs.playwright_mode == 'rerun'
       - run: uv lock --check
         if: needs.classification.outputs.playwright_mode == 'rerun'
-      - run: uv run playwright install --with-deps chromium
+      # Runner apt mirrors and DNS fail transiently (Temporary failure
+      # resolving azure.archive.ubuntu.com, apt exit 100). apt retries each
+      # fetch and the whole install is retried with backoff; only this setup
+      # step is retried, never the tests that follow.
+      - name: Install Playwright Chromium with retries
         if: needs.classification.outputs.playwright_mode == 'rerun'
+        timeout-minutes: 20
+        run: |
+          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/80-ci-retries >/dev/null
+          for delay in 0 15 30 60 120; do
+            if (( delay > 0 )); then
+              echo "::warning::Playwright install failed; retrying in ${delay}s"
+              sleep "$delay"
+            fi
+            if uv run playwright install --with-deps chromium; then
+              exit 0
+            fi
+          done
+          echo "::error::Playwright install failed after 5 attempts"
+          exit 1
       - name: Run the selected browser profile
         if: needs.classification.outputs.playwright_mode == 'rerun'
         env:
@@ -975,10 +994,28 @@ jobs:
         run: |
           uv lock --check
           (cd ../ci-controller && uv lock --check)
+      # Runner apt mirrors and DNS fail transiently (Temporary failure
+      # resolving azure.archive.ubuntu.com, apt exit 100). apt retries each
+      # fetch and the whole install is retried with backoff; only this setup
+      # step is retried, never the tests that follow.
       - name: Install the pinned Chromium browser
         if: needs.classification.outputs.screenshots_mode == 'rerun'
         working-directory: .tmp/ci-controller
-        run: uv run --frozen playwright install --with-deps chromium
+        timeout-minutes: 20
+        run: |
+          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/80-ci-retries >/dev/null
+          for delay in 0 15 30 60 120; do
+            if (( delay > 0 )); then
+              echo "::warning::Playwright install failed; retrying in ${delay}s"
+              sleep "$delay"
+            fi
+            if uv run --frozen playwright install --with-deps chromium; then
+              exit 0
+            fi
+          done
+          echo "::error::Playwright install failed after 5 attempts"
+          exit 1
       - name: Migrate and capture with one owned SQLite runtime
         if: needs.classification.outputs.screenshots_mode == 'rerun'
         run: |
@@ -1900,7 +1937,26 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - run: uv lock --check
-      - run: uv run playwright install --with-deps chromium
+      # Runner apt mirrors and DNS fail transiently (Temporary failure
+      # resolving azure.archive.ubuntu.com, apt exit 100). apt retries each
+      # fetch and the whole install is retried with backoff; only this setup
+      # step is retried, never the tests that follow.
+      - name: Install Playwright Chromium with retries
+        timeout-minutes: 20
+        run: |
+          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/80-ci-retries >/dev/null
+          for delay in 0 15 30 60 120; do
+            if (( delay > 0 )); then
+              echo "::warning::Playwright install failed; retrying in ${delay}s"
+              sleep "$delay"
+            fi
+            if uv run playwright install --with-deps chromium; then
+              exit 0
+            fi
+          done
+          echo "::error::Playwright install failed after 5 attempts"
+          exit 1
       - name: Validate deployer configuration before assuming AWS
         env:
           AWS_REGION: ${{ vars.DEVELOPMENT_AWS_REGION }}
