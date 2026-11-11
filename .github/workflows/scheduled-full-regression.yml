@@ -294,7 +294,26 @@ jobs:
           path: .tmp/input
       - run: uv sync --locked
       - run: uv lock --check
-      - run: uv run playwright install --with-deps chromium
+      # Runner apt mirrors and DNS fail transiently (Temporary failure
+      # resolving azure.archive.ubuntu.com, apt exit 100). apt retries each
+      # fetch and the whole install is retried with backoff; only this setup
+      # step is retried, never the tests that follow.
+      - name: Install Playwright Chromium with retries
+        timeout-minutes: 20
+        run: |
+          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/80-ci-retries >/dev/null
+          for delay in 0 15 30 60 120; do
+            if (( delay > 0 )); then
+              echo "::warning::Playwright install failed; retrying in ${delay}s"
+              sleep "$delay"
+            fi
+            if uv run playwright install --with-deps chromium; then
+              exit 0
+            fi
+          done
+          echo "::error::Playwright install failed after 5 attempts"
+          exit 1
       - name: Run and retain the complete Playwright output
         run: |
           set -euo pipefail
@@ -353,7 +372,26 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - run: uv lock --check
-      - run: uv run playwright install --with-deps chromium
+      # Runner apt mirrors and DNS fail transiently (Temporary failure
+      # resolving azure.archive.ubuntu.com, apt exit 100). apt retries each
+      # fetch and the whole install is retried with backoff; only this setup
+      # step is retried, never the tests that follow.
+      - name: Install Playwright Chromium with retries
+        timeout-minutes: 20
+        run: |
+          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/80-ci-retries >/dev/null
+          for delay in 0 15 30 60 120; do
+            if (( delay > 0 )); then
+              echo "::warning::Playwright install failed; retrying in ${delay}s"
+              sleep "$delay"
+            fi
+            if uv run playwright install --with-deps chromium; then
+              exit 0
+            fi
+          done
+          echo "::error::Playwright install failed after 5 attempts"
+          exit 1
       - name: Run quarantined Playwright tests without blocking full regression
         id: quarantine
         continue-on-error: true
