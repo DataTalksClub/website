@@ -777,6 +777,51 @@ def test_release_advisory_newer_path_stays_green() -> None:
     assert already["if"].strip() == "steps.compare.outputs.result == 'already'"
 
 
+def test_scheduled_rerun_restores_artifacts_from_the_attempt_that_produced_them() -> None:
+    # Run 43056250477 attempt 2 failed because playwright, full-regression and
+    # scheduled-gate asked for ci-selection-<run>-attempt-2, but the selector
+    # succeeded in attempt 1 and a rerun of failed jobs did not rerun it.
+    jobs = workflow("scheduled-full-regression.yml")["jobs"]
+    selection = "ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}"
+    assert jobs["selector"]["outputs"]["selection_artifact"] == selection
+    upload = next(
+        step for step in jobs["selector"]["steps"] if step.get("uses") == UPLOAD_ARTIFACT_V4
+    )
+    assert upload["with"]["name"] == selection
+    for name, job in jobs.items():
+        if name == "selector":
+            continue
+        for step in job["steps"]:
+            if not step.get("uses", "").startswith("actions/download-artifact@"):
+                continue
+            assert "github.run_attempt" not in str(step["with"]), (name, step)
+            assert "pattern" not in step["with"], (name, step)
+    for name in ("quality", "django", "playwright", "container", "full-regression"):
+        assert "${{ needs.selector.outputs.selection_artifact }}" in str(jobs[name]["steps"])
+    gate_restore = next(
+        step
+        for step in jobs["scheduled-gate"]["steps"]
+        if step.get("name") == "Restore scheduled selection evidence"
+    )
+    assert gate_restore["if"] == "needs.selector.outputs.selection_artifact != ''"
+    for component in ("quality", "django", "playwright", "container"):
+        artifact = (
+            f"verification-component-{component}-"
+            "${{ github.run_id }}-attempt-${{ github.run_attempt }}"
+        )
+        assert jobs[component]["outputs"]["evidence_artifact"] == artifact
+        component_upload = next(
+            step
+            for step in jobs[component]["steps"]
+            if step.get("uses") == UPLOAD_ARTIFACT_V4
+            and step["with"]["name"].startswith("verification-component-")
+        )
+        assert component_upload["with"]["name"] == artifact
+        assert f"${{{{ needs.{component}.outputs.evidence_artifact }}}}" in str(
+            jobs["full-regression"]["steps"]
+        )
+
+
 def test_playwright_installs_retry_transient_apt_failures_without_retrying_tests() -> None:
     for name in ("ci.yml", "scheduled-full-regression.yml"):
         for job_name, job in workflow(name)["jobs"].items():
