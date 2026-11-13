@@ -535,7 +535,7 @@ jobs:
       - name: Restore the reviewed verification plan
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: ${{ needs.classification.outputs.artifact_name || format('ci-selection-{0}-attempt-{1}', github.run_id, github.run_attempt) }}
           path: .tmp/ci-controller/.tmp/verification-input
       - run: uv sync --locked
       - run: uv lock --check
@@ -637,7 +637,7 @@ jobs:
       - name: Restore the reviewed verification plan
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: ${{ needs.classification.outputs.artifact_name || format('ci-selection-{0}-attempt-{1}', github.run_id, github.run_attempt) }}
           path: .tmp/ci-controller/.tmp/verification-input
       - run: uv sync --locked
         if: needs.classification.outputs.django_mode == 'rerun'
@@ -868,7 +868,7 @@ jobs:
       - name: Restore the reviewed verification plan
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: ${{ needs.classification.outputs.artifact_name || format('ci-selection-{0}-attempt-{1}', github.run_id, github.run_attempt) }}
           path: .tmp/ci-controller/.tmp/verification-input
       - run: uv sync --locked
         if: needs.classification.outputs.playwright_mode == 'rerun'
@@ -980,7 +980,7 @@ jobs:
       - name: Restore the reviewed verification plan
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: ${{ needs.classification.outputs.artifact_name || format('ci-selection-{0}-attempt-{1}', github.run_id, github.run_attempt) }}
           path: .tmp/ci-controller/.tmp/verification-input
       - name: Establish the release application environment
         if: needs.classification.outputs.screenshots_mode == 'rerun'
@@ -1107,7 +1107,7 @@ jobs:
       - name: Restore the reviewed verification plan
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: ${{ needs.classification.outputs.artifact_name || format('ci-selection-{0}-attempt-{1}', github.run_id, github.run_attempt) }}
           path: .tmp/ci-controller/.tmp/verification-input
       - id: image-cache
         name: Restore the immutable tested-image cache for an automatic rerun
@@ -1408,6 +1408,18 @@ jobs:
           isolate_payload \
             .tmp/verification-input-attempt-1 \
             .tmp/ci-selection/attempt-1-payload
+      - name: Restore the verification plan from the attempt that produced it
+        # "Re-run failed jobs" does not rerun a successful classification, so its plan
+        # lives only in the artifact of the attempt that created it.  A missing plan
+        # is still reported loudly by the report step below.
+        run: |
+          set -euo pipefail
+          plan=.tmp/verification-input/verification-plan.json
+          earlier=.tmp/verification-input-attempt-1/verification-plan.json
+          if [[ ! -f "$plan" && -f "$earlier" ]]; then
+            mkdir -p .tmp/verification-input
+            cp "$earlier" "$plan"
+          fi
       - name: Resolve same-run classifier evidence
         continue-on-error: true
         env:

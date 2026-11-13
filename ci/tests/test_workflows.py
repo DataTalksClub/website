@@ -833,3 +833,29 @@ def test_playwright_installs_retry_transient_apt_failures_without_retrying_tests
                 assert "for delay in 0 15 30 60 120; do" in script, (name, job_name)
                 assert step["timeout-minutes"] == "20", (name, job_name)
                 assert "scripts/ci.py" not in script, (name, job_name)
+
+
+def test_ci_rerun_restores_the_verification_plan_from_the_attempt_that_produced_it() -> None:
+    # Run 43459715354 attempt 2 ("re-run failed jobs") failed because playwright and
+    # ci-gate asked for ci-selection-<run>-attempt-2 while classification, which
+    # succeeded in attempt 1, was not rerun.
+    jobs = workflow("ci.yml")["jobs"]
+    resolved = (
+        "${{ needs.classification.outputs.artifact_name || "
+        "format('ci-selection-{0}-attempt-{1}', github.run_id, github.run_attempt) }}"
+    )
+    for name in ("quality", "django", "playwright", "screenshots", "container"):
+        restore = next(
+            step
+            for step in jobs[name]["steps"]
+            if step.get("name") == "Restore the reviewed verification plan"
+        )
+        assert restore["with"]["name"] == resolved, name
+        assert restore["with"]["path"].endswith(".tmp/verification-input"), name
+    gate_steps = {step.get("name"): step for step in jobs["ci-gate"]["steps"]}
+    copy = gate_steps["Restore the verification plan from the attempt that produced it"]
+    assert "verification-input-attempt-1/verification-plan.json" in copy["run"]
+    # A missing plan must still fail loudly in the report step.
+    assert "refusing to build a report from missing inputs" in str(
+        gate_steps["Build the exhaustive verification report"]["run"]
+    )
