@@ -56,25 +56,19 @@ def create_project_submission_reminder_fixture(test_case, now):
     create_project(project_day)
 
 
-def assert_project_reminder_deliveries(test_case):
-    from community_base.mail.models import EmailDelivery
-
-    rows = list(EmailDelivery.objects.filter(purpose="deadline-reminder"))
-    test_case.assertEqual(
-        len(rows),
-        4,
-        f"actual keys: {sorted(row.idempotency_key for row in rows)}",
-    )
-    recipients = {row.recipient_email for row in rows}
-    test_case.assertEqual(
-        recipients,
-        {"student@example.com", "opted-out@example.com"},
-    )
-    reminder_keys = {row.idempotency_key.split(":")[3] for row in rows}
+def assert_project_reminder_deliveries(test_case, submit_mock):
+    test_case.assertEqual(submit_mock.call_count, 2)
+    list_keys = [call.kwargs["list_key"] for call in submit_mock.call_args_list]
+    reminder_keys = {key.split(":")[4] for key in list_keys}
     test_case.assertEqual(reminder_keys, {"24h", "7d"})
-    for row in rows:
-        test_case.assertEqual(row.category, "email_deadline_reminders")
+    for call in submit_mock.call_args_list:
+        kwargs = call.kwargs
+        test_case.assertEqual(kwargs["category"], "email_deadline_reminders")
         test_case.assertTrue(
-            row.idempotency_key.startswith("deadline-reminder:project:"),
+            kwargs["list_key"].startswith("deadline-reminders:project-submission:"),
         )
-        test_case.assertIn("enrollment:", row.idempotency_key)
+        recipients = {m["email"] for m in kwargs["members"]}
+        test_case.assertEqual(
+            recipients,
+            {"student@example.com", "opted-out@example.com"},
+        )

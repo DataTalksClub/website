@@ -172,26 +172,20 @@ def create_pending_peer_review(author_submission, reviewer):
     )
 
 
-def assert_peer_review_reminder_deliveries(test_case, expectation):
-    from courses.tests.deadline_reminder_base import deliveries_for_purpose
-
-    deliveries = deliveries_for_purpose(test_case, "deadline-reminder")
+def assert_peer_review_reminder_deliveries(test_case, expectation, submit_mock):
+    submit_mock.assert_called_once()
+    kwargs = submit_mock.call_args.kwargs
+    test_case.assertEqual(kwargs["category"], "email_deadline_reminders")
+    members = {m["email"]: m for m in kwargs["members"]}
     test_case.assertEqual(
-        set(deliveries),
+        set(members),
         {
             "reviewer@example.com",
             "opted-out-reviewer@example.com",
         },
     )
-    reviewer = deliveries["reviewer@example.com"]
+    reviewer = members["reviewer@example.com"]
     test_case.assertEqual(
-        reviewer.idempotency_key,
-        (
-            f"deadline-reminder:peer-review:{expectation.project.pk}:24h"
-            f":project-submission:{expectation.reviewer_submission.pk}"
-        ),
-    )
-    test_case.assertEqual(
-        reviewer.context_data["course_url"],
+        reviewer["metadata"]["course_url"],
         "https://courses.example.com/courses/ml-zoomcamp/2026/project/project-1/eval",
     )

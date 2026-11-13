@@ -7,9 +7,9 @@ instead of duplicating mail.
 
 from datetime import timedelta
 from io import StringIO
+from unittest.mock import patch
 
 from community_base.mail.models import EmailDelivery
-from community_base.testing import mail_outbox
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -128,38 +128,40 @@ class HomeworkScoreNotificationTest(PackageNotificationBase):
     def test_score_run_sends_one_delivery_per_latest_submission(self):
         homework, submissions, resubmission = self.create_scored_homework()
 
-        with mail_outbox() as outbox:
-            with self.captureOnCommitCallbacks(execute=True):
-                sent = send_homework_score_notification(homework)
+        with patch("course_management.relay_campaigns.submit_transient_list") as submit_mock:
+            sent = send_homework_score_notification(homework)
 
-            self.assertEqual(sent, 2)
-            self.assertEqual(len(outbox), 2)
-            latest = EmailDelivery.objects.get(
-                idempotency_key=(f"homework-score:ml-zoomcamp-2026:homework-1:{resubmission.pk}"),
-            )
-        self.assertEqual(latest.purpose, "homework-score-notification")
-        self.assertEqual(latest.category, "submission-results")
-        self.assertEqual(latest.context_data["total_score"], 8)
+        self.assertEqual(sent, 2)
+        submit_mock.assert_called_once()
+        kwargs = submit_mock.call_args.kwargs
+        self.assertEqual(kwargs["template_key"], "homework-score-notification")
+        self.assertEqual(kwargs["category"], "submission-results")
         self.assertEqual(
-            latest.context_data["scores_url"],
+            kwargs["idempotency_key"],
+            "homework-score:ml-zoomcamp-2026:homework-1",
+        )
+        members_by_email = {m["email"]: m for m in kwargs["members"]}
+        self.assertEqual(set(members_by_email), {"scored@example.com", "also-scored@example.com"})
+        latest = members_by_email["scored@example.com"]
+        self.assertEqual(latest["source_object_key"], f"submission-{resubmission.pk}")
+        self.assertEqual(latest["metadata"]["total_score"], 8)
+        self.assertEqual(
+            kwargs["context"]["scores_url"],
             "https://courses.example.com/courses/ml-zoomcamp/2026/homework/homework-1",
         )
-        stale = EmailDelivery.objects.filter(
-            recipient_email="scored@example.com",
-        )
-        self.assertEqual(stale.count(), 1)
 
     @override_settings(PUBLIC_BASE_URL="https://courses.example.com")
     def test_score_run_replays_instead_of_duplicating(self):
         homework, _submissions, _resubmission = self.create_scored_homework()
 
-        with mail_outbox() as outbox:
-            with self.captureOnCommitCallbacks(execute=True):
-                send_homework_score_notification(homework)
-                send_homework_score_notification(homework)
+        with patch("course_management.relay_campaigns.submit_transient_list") as submit_mock:
+            send_homework_score_notification(homework)
+            send_homework_score_notification(homework)
 
-            self.assertEqual(len(outbox), 2)
-            self.assertEqual(EmailDelivery.objects.count(), 2)
+        self.assertEqual(submit_mock.call_count, 2)
+        first_key = submit_mock.call_args_list[0].kwargs["idempotency_key"]
+        second_key = submit_mock.call_args_list[1].kwargs["idempotency_key"]
+        self.assertEqual(first_key, second_key)
 
     def test_a_zero_score_submission_is_still_notified(self):
         course = self.create_course()
@@ -178,14 +180,14 @@ class HomeworkScoreNotificationTest(PackageNotificationBase):
             submitted_at=timezone.now(),
         )
 
-        with mail_outbox() as outbox:
-            with self.captureOnCommitCallbacks(execute=True):
-                sent = send_homework_score_notification(homework)
+        with patch("course_management.relay_campaigns.submit_transient_list") as submit_mock:
+            sent = send_homework_score_notification(homework)
 
-            self.assertEqual(sent, 1)
-            self.assertEqual(len(outbox), 1)
-            delivery = EmailDelivery.objects.get()
-            self.assertEqual(delivery.context_data["total_score"], 0)
+        self.assertEqual(sent, 1)
+        submit_mock.assert_called_once()
+        members = submit_mock.call_args.kwargs["members"]
+        self.assertEqual(len(members), 1)
+        self.assertEqual(members[0]["metadata"]["total_score"], 0)
 
 
 class ProjectScoreNotificationTest(PackageNotificationBase):
@@ -225,23 +227,23 @@ class ProjectScoreNotificationTest(PackageNotificationBase):
 
         project, submission = self.create_scored_project()
 
-        with mail_outbox() as outbox:
-            with self.captureOnCommitCallbacks(execute=True):
-                sent = send_project_score_notification(project)
+        with patch("course_management.relay_campaigns.submit_transient_list") as submit_mock:
+            sent = send_project_score_notification(project)
 
-            self.assertEqual(sent, 1)
-            self.assertEqual(len(outbox), 1)
-            delivery = EmailDelivery.objects.get()
-        self.assertEqual(delivery.purpose, "project-score-notification")
+        self.assertEqual(sent, 1)
+        submit_mock.assert_called_once()
+        kwargs = submit_mock.call_args.kwargs
+        self.assertEqual(kwargs["template_key"], "project-score-notification")
         self.assertEqual(
-            delivery.idempotency_key,
-            f"project-score:ml-zoomcamp-2026:midterm:{submission.pk}",
+            kwargs["idempotency_key"],
+            "project-score:ml-zoomcamp-2026:midterm",
         )
-        context = delivery.context_data
-        self.assertEqual(context["total_score"], 98)
-        self.assertEqual(context["github_link"], "https://github.com/example/project")
+        member = kwargs["members"][0]
+        self.assertEqual(member["source_object_key"], f"project-submission-{submission.pk}")
+        self.assertEqual(member["metadata"]["total_score"], 98)
+        self.assertEqual(member["metadata"]["github_link"], "https://github.com/example/project")
         self.assertEqual(
-            context["scores_url"],
+            kwargs["context"]["scores_url"],
             "https://courses.example.com/courses/ml-zoomcamp/2026/project/midterm/results",
         )
 
@@ -255,35 +257,28 @@ class PeerReviewAssignmentNotificationTest(PackageNotificationBase):
 
         project, reviewer_submission = self.create_review_assignment()
 
-        with mail_outbox() as outbox:
-            with self.captureOnCommitCallbacks(execute=True):
-                sent = send_peer_review_assignment_notification(project)
+        with patch("course_management.relay_campaigns.submit_transient_list") as submit_mock:
+            sent = send_peer_review_assignment_notification(project)
 
-            # Every submitter is notified with their own review list; the
-            # author's list is empty because this fixture assigned one review.
-            self.assertEqual(sent, 2)
-            self.assertEqual(len(outbox), 2)
-            reviewer_delivery = EmailDelivery.objects.get(
-                idempotency_key=(
-                    f"peer-review-assignment:ml-zoomcamp-2026:capstone:{reviewer_submission.pk}"
-                ),
-            )
-            self.assertEqual(
-                reviewer_delivery.purpose,
-                "peer-review-assignment",
-            )
-            context = reviewer_delivery.context_data
-            self.assertEqual(context["number_of_peers_to_evaluate"], 2)
-            self.assertEqual(len(context["assigned_reviews"]), 1)
-            self.assertIn("/eval", context["assigned_reviews"][0]["eval_url"])
-            self.assertIn("deadline_summary", context)
-            author_delivery = EmailDelivery.objects.exclude(
-                pk=reviewer_delivery.pk,
-            ).get()
-            self.assertEqual(
-                author_delivery.context_data["assigned_reviews"],
-                [],
-            )
+        self.assertEqual(sent, 2)
+        submit_mock.assert_called_once()
+        kwargs = submit_mock.call_args.kwargs
+        self.assertEqual(kwargs["template_key"], "peer-review-assignment")
+        self.assertEqual(
+            kwargs["idempotency_key"],
+            "peer-review-assignment:ml-zoomcamp-2026:capstone",
+        )
+        by_key = {m["source_object_key"]: m for m in kwargs["members"]}
+        reviewer_member = by_key[f"peer-review-{reviewer_submission.pk}"]
+        context = reviewer_member["metadata"]
+        self.assertEqual(context["number_of_peers_to_evaluate"], 2)
+        self.assertEqual(len(context["assigned_reviews"]), 1)
+        self.assertIn("/eval", context["assigned_reviews"][0]["eval_url"])
+        self.assertIn("deadline_summary", context)
+        author_member = next(
+            m for k, m in by_key.items() if k != f"peer-review-{reviewer_submission.pk}"
+        )
+        self.assertEqual(author_member["metadata"]["assigned_reviews"], [])
 
 
 class PreviewCommandTest(PackageNotificationBase):

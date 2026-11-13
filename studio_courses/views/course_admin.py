@@ -121,11 +121,29 @@ def course_registration_metrics(course):
 
 
 def course_admin_context(course):
+    from course_management.relay_campaigns import get_campaign_status
+    from courses.models import Announcement
+
     context = course_registration_metrics(course)
     homeworks = course_homeworks_for_admin(course)
     projects = course_projects_for_admin(course)
     total_enrollments = course.enrollment_set.count()
     support_metrics = course_support_metrics(course)
+    announcements = Announcement.objects.filter(
+        cohort=course,
+        channel="email",
+        status__in=("submitted", "sent"),
+    ).order_by("-id")[:10]
+    announcement_relay_statuses = []
+    for announcement in announcements:
+        relay_status = get_campaign_status(f"announcement-{announcement.pk}")
+        if relay_status is not None:
+            announcement_relay_statuses.append(
+                {
+                    "announcement": announcement,
+                    **relay_status,
+                }
+            )
     context.update(
         {
             "course": course,
@@ -134,6 +152,7 @@ def course_admin_context(course):
             "total_enrollments": total_enrollments,
             "support_metrics": support_metrics,
             "extension_options": EXTENSION_OPTIONS,
+            "announcement_relay_statuses": announcement_relay_statuses,
         }
     )
     return context

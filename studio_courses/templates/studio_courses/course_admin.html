@@ -352,4 +352,24 @@
       <p class="admin-empty">No projects found for this course.</p>
     {% endif %}
   </section>
+
+  {% if announcement_relay_statuses %}
+    <section class="admin-section" data-relay-campaign-status>
+      <div class="admin-section-header">
+        <h2>Relay Campaign Status</h2>
+      </div>
+      <div class="admin-cards">
+        {% for item in announcement_relay_statuses %}
+          <article class="admin-card">
+            <div class="admin-card-header">
+              <div>
+                <h3 class="admin-card-title">{{ item.external_key }}</h3>
+                <p class="admin-card-meta">Status: {{ item.status }} · Sent: {{ item.sent_count }} · Delivered: {{ item.delivered_count }} · Pending: {{ item.pending_count }}</p>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
 {% endblock %}

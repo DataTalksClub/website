@@ -119,7 +119,9 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "scripts/tests/test_scoring_import_submitted_at.py",
     "course_management/mail_preferences.py",
     "course_management/package_mail.py",
+    "course_management/relay_campaigns.py",
     "courses/tests/test_package_mail_flows.py",
+    "courses/tests/test_relay_client_contract.py",
     # D1.2ca: the modules that replaced the retired Datamailer client.
     "accounts/email_preferences.py",
     "course_management/mail_payloads.py",

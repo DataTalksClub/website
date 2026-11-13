@@ -2,7 +2,7 @@ from datetime import timedelta
 from io import StringIO
 from unittest.mock import patch
 
-from community_base.mail.service import MailError
+from course_management.relay_campaigns import RelayCampaignError
 from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 
@@ -14,7 +14,7 @@ from courses.tests.deadline_reminder_base import (
 )
 
 
-SEND_TARGET = "courses.management.commands.send_deadline_reminders.send_deadline_reminder_mail"
+SEND_TARGET = "courses.management.commands.send_deadline_reminders.submit_transient_list"
 
 
 class DeadlineReminderFailureIsolationTest(DeadlineReminderTestBase):
@@ -53,7 +53,7 @@ class DeadlineReminderFailureIsolationTest(DeadlineReminderTestBase):
         self.create_two_homeworks(course, now)
 
         send_mail.side_effect = [
-            MailError("recipient rejected"),
+            RelayCampaignError("recipient rejected"),
             None,
         ]
 
@@ -82,7 +82,7 @@ class DeadlineReminderFailureIsolationTest(DeadlineReminderTestBase):
             due_date=now + timedelta(days=1, hours=14),
         )
 
-        send_mail.side_effect = MailError("idempotency conflict")
+        send_mail.side_effect = RelayCampaignError("idempotency conflict")
 
         err = StringIO()
         with self.assertRaises(CommandError):

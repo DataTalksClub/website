@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.test import override_settings
 
 from courses.tests.deadline_reminder_base import (
@@ -23,6 +25,9 @@ class PeerReviewDeadlineReminderCommandTest(DeadlineReminderTestBase):
         now = self.reminder_run_time()
         fixture = create_peer_review_reminder_fixture(self, now)
 
-        self.run_deadline_reminders(now)
+        with patch(
+            "courses.management.commands.send_deadline_reminders.submit_transient_list"
+        ) as submit_mock:
+            self.run_deadline_reminders(now)
 
-        assert_peer_review_reminder_deliveries(self, fixture)
+        assert_peer_review_reminder_deliveries(self, fixture, submit_mock)
