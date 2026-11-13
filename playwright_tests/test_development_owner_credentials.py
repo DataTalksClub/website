@@ -270,6 +270,9 @@ def test_owner_login_distinct_surfaces_and_credential_lifecycle(
 
     page.goto(f"{live_server.url}/studio/")
     page.get_by_role("button", name="Sign out").click()
+    # The sign-out POST redirects asynchronously; going back before it commits would
+    # step from /studio/ to the earlier revoke POST (a 401 replay) instead.
+    page.wait_for_url(lambda url: "/studio/" not in url)
     back = page.go_back()
     assert back is not None and back.status == 200
     assert_private(back)
