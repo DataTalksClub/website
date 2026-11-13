@@ -1450,13 +1450,37 @@ jobs:
           --expected-selection-sha256 "$SELECTION_SHA256"
           --output-directory .tmp/ci-selection/resolved
           --rejection-output .tmp/ci-selection/resolved/ci-selection-resolution.json
-      - name: Restore fresh component evidence for aggregate validation
+      - name: Download component evidence from every attempt of this run
         continue-on-error: true
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          pattern: verification-component-*-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-          path: .tmp/verification-input/components
-          merge-multiple: true
+          pattern: verification-component-*-${{ github.run_id }}-attempt-*
+          path: .tmp/component-artifacts
+          merge-multiple: false
+      - name: Restore component evidence from the latest attempt that produced it
+        # "Re-run failed jobs" reruns only the failed components, so the evidence of
+        # the components that already passed lives in an earlier attempt's artifact.
+        # The newest attempt wins; a component with no evidence anywhere stays
+        # missing and the report below fails it loudly.
+        env:
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/verification-input/components
+          shopt -s nullglob
+          declare -A newest
+          for directory in .tmp/component-artifacts/verification-component-*-"$RUN_ID"-attempt-*; do
+            name="${directory##*/verification-component-}"
+            component="${name%-"$RUN_ID"-attempt-*}"
+            attempt="${name##*-attempt-}"
+            if [[ -z "${newest[$component]:-}" || "$attempt" -gt "${newest[$component]}" ]]; then
+              newest[$component]="$attempt"
+            fi
+          done
+          for component in "${!newest[@]}"; do
+            cp -R ".tmp/component-artifacts/verification-component-$component-$RUN_ID-attempt-${newest[$component]}/." \
+              .tmp/verification-input/components/
+          done
       - name: Build the exhaustive verification report
         run: |
           if [[ ! -f .tmp/verification-input/verification-plan.json ]]; then

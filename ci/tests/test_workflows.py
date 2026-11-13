@@ -859,3 +859,17 @@ def test_ci_rerun_restores_the_verification_plan_from_the_attempt_that_produced_
     assert "refusing to build a report from missing inputs" in str(
         gate_steps["Build the exhaustive verification report"]["run"]
     )
+
+
+def test_ci_rerun_restores_component_evidence_from_the_newest_attempt_that_produced_it() -> None:
+    # Run 43472301440 attempt 2 (only playwright rerun) failed the gate with
+    # required_result_missing for every component whose evidence lived in attempt 1.
+    gate_steps = {step.get("name"): step for step in workflow("ci.yml")["jobs"]["ci-gate"]["steps"]}
+    download = gate_steps["Download component evidence from every attempt of this run"]
+    assert download["with"]["pattern"] == (
+        "verification-component-*-${{ github.run_id }}-attempt-*"
+    )
+    assert str(download["with"]["merge-multiple"]).lower() == "false"
+    restore = gate_steps["Restore component evidence from the latest attempt that produced it"]
+    assert 'attempt" -gt "${newest[$component]}"' in restore["run"]
+    assert ".tmp/verification-input/components/" in restore["run"]
