@@ -3,8 +3,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from community_base.mail.service import MailError
-from course_management.package_mail import send_deadline_reminder_mail
+from course_management.package_mail import PURPOSE_DEADLINE_REMINDER
+from course_management.relay_campaigns import RelayCampaignError, submit_transient_list
 from courses.deadline_reminder_events import (
     build_reminder_events,
     reminder_event_member_count,
@@ -47,22 +47,44 @@ def reminder_users(events):
     return {user.pk: user for user in users}
 
 
-def send_reminder_event(event, users):
-    """Send one reminder event, one package delivery per member.
+def send_reminder_event(event, users=None):
+    """Submit one reminder event in ONE request to Relay."""
+    del users
+    if not event.members:
+        return []
 
-    Returns the list of ``(member, error)`` failures. A failed member is
-    returned rather than raised so one bad recipient cannot cancel the
-    reminders queued behind it -- see ``Command.send_events``.
-    """
-
-    failures = []
+    context = event.send_payload["context"]
+    members = []
     for member in event.members:
-        user_id = (member.get("metadata") or {}).get("user_id")
-        try:
-            send_deadline_reminder_mail(event, member, users.get(user_id))
-        except MailError as error:
-            failures.append((member, str(error)))
-    return failures
+        metadata = member.get("metadata") or {}
+        members.append(
+            {
+                "source_object_key": member.get("source_object_key", ""),
+                "email": member["email"],
+                "metadata": {
+                    "course_title": context["course_title"],
+                    "course_url": context["action_url"],
+                    "deadline": metadata.get("deadline_at") or context["deadline_at"],
+                },
+            }
+        )
+    try:
+        submit_transient_list(
+            list_key=event.list_key,
+            name=event.list_name,
+            template_key=PURPOSE_DEADLINE_REMINDER,
+            idempotency_key=event.key,
+            context={
+                "course_title": context["course_title"],
+                "course_url": context["action_url"],
+                "deadline": context["deadline_at"],
+            },
+            members=members,
+            category="email_deadline_reminders",
+        )
+    except RelayCampaignError as error:
+        return [(member, str(error)) for member in event.members]
+    return []
 
 
 class Command(BaseCommand):

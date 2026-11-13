@@ -1,10 +1,10 @@
 """Thin transport boundaries with simulation as the deployment default."""
 
 import requests
-from community_base.mail import send
 from django.conf import settings
 from django.db import transaction
 
+from course_management.relay_campaigns import submit_campaign
 from courses.models import Announcement, AnnouncementAssignment, AnnouncementDelivery, Enrollment
 from courses.services.launch_context import preview
 from courses.services.launch_validation import serialize_rows
@@ -22,36 +22,47 @@ def submit_email(row):
     content = preview(row)
     mode = transport_mode()
     enrollments = Enrollment.objects.filter(course=row.cohort).select_related("student")
+    live_recipients = []
     for enrollment in enrollments.iterator(chunk_size=100):
-        submit_recipient(row, enrollment.student, content, mode)
+        user = enrollment.student
+        recipient = submit_recipient(row, user, content, mode)
+        if recipient is not None:
+            live_recipients.append(recipient)
+    if mode == "live" and live_recipients:
+        submit_campaign(
+            f"announcement-{row.pk}",
+            subject=content["subject"],
+            template_key="course-announcement",
+            context={
+                "announcement_subject": content["subject"],
+                "announcement_body": content["body"],
+            },
+            recipients=live_recipients,
+            category_tag="course-updates",
+            sender_id="courses",
+        )
 
 
 def submit_recipient(row, user, content, mode):
+    del content
     with transaction.atomic():
         delivery, created = AnnouncementDelivery.objects.get_or_create(
             announcement=row, recipient_key=f"user:{user.pk}"
         )
         if not created:
-            return
+            return None
         delivery.state = "simulated"
+        recipient = None
         if user.email_course_updates is False:
             delivery.state = "suppressed"
         elif mode == "live":
-            delivery.email_delivery = send(
-                purpose="course-announcement",
-                to=user.email,
-                context={
-                    "announcement_subject": content["subject"],
-                    "announcement_body": content["body"],
-                },
-                idempotency_key=f"announcement:{row.pk}:user:{user.pk}",
-                category="course-updates",
-                sender="courses",
-                user=user,
-                related=row,
-            )
             delivery.state = "submitted"
+            recipient = {
+                "source_object_key": f"user:{user.pk}",
+                "email": user.email,
+            }
         delivery.save()
+        return recipient
 
 
 def submit_telegram(row):

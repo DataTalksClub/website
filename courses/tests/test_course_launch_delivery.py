@@ -43,26 +43,31 @@ class CourseLaunchDeliveryTests(TestCase):
 
     @override_settings(COURSE_ANNOUNCEMENTS_ENABLED=True, ENVIRONMENT="production")
     def test_email_is_one_logical_relay_intent_and_honors_preference(self):
-        submit_email(self.row)
-        submit_email(self.row)
-        delivery = EmailDelivery.objects.get(related_object_id=str(self.row.pk))
-        self.assertEqual(delivery.sender_id, "courses")
-        self.assertEqual(delivery.category, "course-updates")
+        with patch("courses.services.launch_transport.submit_campaign") as submit_mock:
+            submit_email(self.row)
+            submit_email(self.row)
+        submit_mock.assert_called_once()
+        _, kwargs = submit_mock.call_args
+        self.assertEqual(kwargs["sender_id"], "courses")
+        self.assertEqual(kwargs["category_tag"], "course-updates")
         self.assertEqual(
-            delivery.idempotency_key, f"announcement:{self.row.pk}:user:{self.user.pk}"
+            kwargs["recipients"],
+            [{"source_object_key": f"user:{self.user.pk}", "email": self.user.email}],
         )
         self.assertEqual(AnnouncementDelivery.objects.filter(announcement=self.row).count(), 1)
+        self.assertEqual(self.row.deliveries.get().state, "submitted")
         self.user.email_course_updates = False
         self.user.save()
         self.row.pk = None
         self.row.save()
-        submit_email(self.row)
+        with patch("courses.services.launch_transport.submit_campaign") as submit_mock:
+            submit_email(self.row)
+        submit_mock.assert_not_called()
         self.assertEqual(self.row.deliveries.get().state, "suppressed")
-        self.assertEqual(EmailDelivery.objects.count(), 1)
 
     @override_settings(COURSE_ANNOUNCEMENTS_ENABLED=True, ENVIRONMENT="development")
     def test_development_remains_simulated_even_when_enabled(self):
-        with patch("courses.services.launch_transport.send") as provider:
+        with patch("courses.services.launch_transport.submit_campaign") as provider:
             submit_email(self.row)
         provider.assert_not_called()
         self.assertEqual(self.row.deliveries.get().state, "simulated")

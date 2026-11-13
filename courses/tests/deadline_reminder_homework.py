@@ -104,42 +104,28 @@ def create_homework_reminder_fixture(test_case, now):
     )
 
 
-def assert_homework_reminder_deliveries(test_case, expectation):
-    from courses.tests.deadline_reminder_base import deliveries_for_purpose
-
-    deliveries = deliveries_for_purpose(test_case, "deadline-reminder")
+def assert_homework_reminder_deliveries(test_case, expectation, submit_mock):
+    submit_mock.assert_called_once()
+    kwargs = submit_mock.call_args.kwargs
+    test_case.assertEqual(kwargs["category"], "email_deadline_reminders")
+    members = {m["email"]: m for m in kwargs["members"]}
     test_case.assertEqual(
-        set(deliveries),
+        set(members),
         {"eligible@example.com", "opted-out@example.com"},
     )
-    eligible = deliveries["eligible@example.com"]
-    opted_out = deliveries["opted-out@example.com"]
-    test_case.assertEqual(
-        eligible.idempotency_key,
-        (
-            f"deadline-reminder:homework:{expectation.homework.pk}:24h"
-            f":enrollment:{expectation.eligible_enrollment.pk}"
-        ),
-    )
-    test_case.assertEqual(
-        opted_out.idempotency_key,
-        (
-            f"deadline-reminder:homework:{expectation.homework.pk}:24h"
-            f":enrollment:{expectation.opted_out_enrollment.pk}"
-        ),
-    )
+    eligible = members["eligible@example.com"]
+    opted_out = members["opted-out@example.com"]
     for row in (eligible, opted_out):
-        test_case.assertEqual(row.category, "email_deadline_reminders")
-        test_case.assertEqual(row.context_data["course_title"], "ML Zoomcamp 2026")
+        test_case.assertEqual(row["metadata"]["course_title"], "ML Zoomcamp 2026")
         test_case.assertEqual(
-            row.context_data["course_url"],
+            row["metadata"]["course_url"],
             "https://courses.example.com/courses/ml-zoomcamp/2026/homework/homework-1",
         )
     test_case.assertEqual(
-        eligible.context_data["deadline"],
+        eligible["metadata"]["deadline"],
         "Thursday, 18 June 2026, 01:00 Europe/Berlin",
     )
     test_case.assertEqual(
-        opted_out.context_data["deadline"],
+        opted_out["metadata"]["deadline"],
         "Wednesday, 17 June 2026, 23:00 UTC",
     )

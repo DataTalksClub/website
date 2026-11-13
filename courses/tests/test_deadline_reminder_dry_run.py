@@ -18,7 +18,7 @@ class DeadlineReminderDryRunCommandTest(DeadlineReminderTestBase):
         **NO_PREFERENCE_LOOKUP,
         PUBLIC_BASE_URL="https://courses.example.com",
     )
-    @patch("courses.management.commands.send_deadline_reminders.send_deadline_reminder_mail")
+    @patch("courses.management.commands.send_deadline_reminders.submit_transient_list")
     def test_deadline_reminder_dry_run_does_not_send(self, send_mail):
         now = self.reminder_run_time()
         course = self.create_course()

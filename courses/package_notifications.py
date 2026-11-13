@@ -107,27 +107,42 @@ def homework_score_shared_context(homework) -> dict:
 
 
 def send_homework_score_notification(homework) -> int:
+    from course_management.relay_campaigns import submit_transient_list
+
     context = homework_score_shared_context(homework)
-    sent = 0
     submissions = homework.submission_set.select_related(
         "student",
         "homework__course",
     )
+    members = []
     for submission in latest_submissions_per_student(submissions):
-        learner_context = context | {
-            "questions_score": submission.questions_score,
-            "learning_in_public_score": submission.learning_in_public_score,
-            "faq_score": submission.faq_score,
-            "total_score": submission.total_score,
-        }
-        if _send_notification(
-            purpose="homework-score-notification",
-            submission=submission,
-            context=learner_context,
-            key_suffix=f"homework-score:{homework.course.slug}:{homework.slug}",
-        ):
-            sent += 1
-    return sent
+        email = _normalized_email(submission.student)
+        if not email:
+            continue
+        members.append(
+            {
+                "source_object_key": f"submission-{submission.pk}",
+                "email": email,
+                "metadata": {
+                    "questions_score": submission.questions_score,
+                    "learning_in_public_score": submission.learning_in_public_score,
+                    "faq_score": submission.faq_score,
+                    "total_score": submission.total_score,
+                },
+            }
+        )
+    if not members:
+        return 0
+    submit_transient_list(
+        list_key=f"homework-score-{homework.course.slug}-{homework.slug}",
+        name=f"Homework score: {homework.title}",
+        template_key="homework-score-notification",
+        idempotency_key=f"homework-score:{homework.course.slug}:{homework.slug}",
+        context=context,
+        members=members,
+        category=SUBMISSION_RESULTS_CATEGORY,
+    )
+    return len(members)
 
 
 def project_score_shared_context(project) -> dict:
@@ -159,33 +174,50 @@ def project_score_shared_context(project) -> dict:
 
 
 def send_project_score_notification(project) -> int:
+    from course_management.relay_campaigns import submit_transient_list
+
     context = project_score_shared_context(project)
-    sent = 0
     submissions = project.projectsubmission_set.select_related(
         "student",
         "project__course",
     )
+    members = []
     for submission in latest_submissions_per_student(submissions):
-        learner_context = context | {
-            "project_score": submission.project_score,
-            "project_learning_in_public_score": (submission.project_learning_in_public_score),
-            "project_faq_score": submission.project_faq_score,
-            "peer_review_score": submission.peer_review_score,
-            "peer_review_learning_in_public_score": (
-                submission.peer_review_learning_in_public_score
-            ),
-            "total_score": submission.total_score,
-            "github_link": getattr(submission, "github_link", "") or "",
-            "commit_id": getattr(submission, "commit_id", "") or "",
-        }
-        if _send_notification(
-            purpose="project-score-notification",
-            submission=submission,
-            context=learner_context,
-            key_suffix=f"project-score:{project.course.slug}:{project.slug}",
-        ):
-            sent += 1
-    return sent
+        email = _normalized_email(submission.student)
+        if not email:
+            continue
+        members.append(
+            {
+                "source_object_key": f"project-submission-{submission.pk}",
+                "email": email,
+                "metadata": {
+                    "project_score": submission.project_score,
+                    "project_learning_in_public_score": (
+                        submission.project_learning_in_public_score
+                    ),
+                    "project_faq_score": submission.project_faq_score,
+                    "peer_review_score": submission.peer_review_score,
+                    "peer_review_learning_in_public_score": (
+                        submission.peer_review_learning_in_public_score
+                    ),
+                    "total_score": submission.total_score,
+                    "github_link": getattr(submission, "github_link", "") or "",
+                    "commit_id": getattr(submission, "commit_id", "") or "",
+                },
+            }
+        )
+    if not members:
+        return 0
+    submit_transient_list(
+        list_key=f"project-score-{project.course.slug}-{project.slug}",
+        name=f"Project score: {project.title}",
+        template_key="project-score-notification",
+        idempotency_key=f"project-score:{project.course.slug}:{project.slug}",
+        context=context,
+        members=members,
+        category=SUBMISSION_RESULTS_CATEGORY,
+    )
+    return len(members)
 
 
 def _assigned_reviews(submission):
@@ -276,17 +308,33 @@ def peer_review_assignment_context(submission) -> dict:
 
 
 def send_peer_review_assignment_notification(project) -> int:
-    sent = 0
+    from course_management.relay_campaigns import submit_transient_list
+
     submissions = project.projectsubmission_set.select_related(
         "student",
         "project__course",
     ).prefetch_related(assigned_reviews_prefetch())
+    members = []
     for submission in latest_submissions_per_student(submissions):
-        if _send_notification(
-            purpose="peer-review-assignment",
-            submission=submission,
-            context=peer_review_assignment_context(submission),
-            key_suffix=f"peer-review-assignment:{project.course.slug}:{project.slug}",
-        ):
-            sent += 1
-    return sent
+        email = _normalized_email(submission.student)
+        if not email:
+            continue
+        members.append(
+            {
+                "source_object_key": f"peer-review-{submission.pk}",
+                "email": email,
+                "metadata": peer_review_assignment_context(submission),
+            }
+        )
+    if not members:
+        return 0
+    submit_transient_list(
+        list_key=f"peer-review-assignment-{project.course.slug}-{project.slug}",
+        name=f"Peer review open: {project.title}",
+        template_key="peer-review-assignment",
+        idempotency_key=f"peer-review-assignment:{project.course.slug}:{project.slug}",
+        context={},
+        members=members,
+        category=SUBMISSION_RESULTS_CATEGORY,
+    )
+    return len(members)
