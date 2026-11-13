@@ -40,9 +40,7 @@ class RelayClientContractTest(TestCase):
             username="u2", email="u2@example.com", password="x"
         )
         course = Course.objects.create(slug="ml", title="ML")
-        cohort = Cohort.objects.create(
-            course=course, slug="ml-2026", title="ML 2026"
-        )
+        cohort = Cohort.objects.create(course=course, slug="ml-2026", title="ML 2026")
         Enrollment.objects.create(course=cohort, student=user1)
         Enrollment.objects.create(course=cohort, student=user2)
         announcement = Announcement.objects.create(
@@ -56,9 +54,7 @@ class RelayClientContractTest(TestCase):
                 "courses.services.launch_transport.preview",
                 return_value={"subject": "Welcome", "body": "Hello"},
             ),
-            patch(
-                "courses.services.launch_transport.submit_campaign"
-            ) as mock_submit,
+            patch("courses.services.launch_transport.submit_campaign") as mock_submit,
         ):
             submit_email(announcement)
 
@@ -84,9 +80,7 @@ class RelayClientContractTest(TestCase):
         staff.user_permissions.add(studio_perm)
         self.client.force_login(staff)
         course = Course.objects.create(slug="de", title="DE")
-        cohort = Cohort.objects.create(
-            course=course, slug="de-2026", title="DE 2026"
-        )
+        cohort = Cohort.objects.create(course=course, slug="de-2026", title="DE 2026")
         announcement = Announcement.objects.create(
             cohort=cohort,
             channel="email",

@@ -4,7 +4,6 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import requests
-from community_base.mail.models import EmailDelivery
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.utils import timezone

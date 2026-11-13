@@ -10,7 +10,6 @@ from io import StringIO
 from unittest.mock import patch
 
 from community_base.mail.models import EmailDelivery
-from community_base.testing import mail_outbox
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -129,9 +128,7 @@ class HomeworkScoreNotificationTest(PackageNotificationBase):
     def test_score_run_sends_one_delivery_per_latest_submission(self):
         homework, submissions, resubmission = self.create_scored_homework()
 
-        with patch(
-            "course_management.relay_campaigns.submit_transient_list"
-        ) as submit_mock:
+        with patch("course_management.relay_campaigns.submit_transient_list") as submit_mock:
             sent = send_homework_score_notification(homework)
 
         self.assertEqual(sent, 2)
@@ -157,9 +154,7 @@ class HomeworkScoreNotificationTest(PackageNotificationBase):
     def test_score_run_replays_instead_of_duplicating(self):
         homework, _submissions, _resubmission = self.create_scored_homework()
 
-        with patch(
-            "course_management.relay_campaigns.submit_transient_list"
-        ) as submit_mock:
+        with patch("course_management.relay_campaigns.submit_transient_list") as submit_mock:
             send_homework_score_notification(homework)
             send_homework_score_notification(homework)
 
@@ -185,9 +180,7 @@ class HomeworkScoreNotificationTest(PackageNotificationBase):
             submitted_at=timezone.now(),
         )
 
-        with patch(
-            "course_management.relay_campaigns.submit_transient_list"
-        ) as submit_mock:
+        with patch("course_management.relay_campaigns.submit_transient_list") as submit_mock:
             sent = send_homework_score_notification(homework)
 
         self.assertEqual(sent, 1)
@@ -234,9 +227,7 @@ class ProjectScoreNotificationTest(PackageNotificationBase):
 
         project, submission = self.create_scored_project()
 
-        with patch(
-            "course_management.relay_campaigns.submit_transient_list"
-        ) as submit_mock:
+        with patch("course_management.relay_campaigns.submit_transient_list") as submit_mock:
             sent = send_project_score_notification(project)
 
         self.assertEqual(sent, 1)
@@ -250,9 +241,7 @@ class ProjectScoreNotificationTest(PackageNotificationBase):
         member = kwargs["members"][0]
         self.assertEqual(member["source_object_key"], f"project-submission-{submission.pk}")
         self.assertEqual(member["metadata"]["total_score"], 98)
-        self.assertEqual(
-            member["metadata"]["github_link"], "https://github.com/example/project"
-        )
+        self.assertEqual(member["metadata"]["github_link"], "https://github.com/example/project")
         self.assertEqual(
             kwargs["context"]["scores_url"],
             "https://courses.example.com/courses/ml-zoomcamp/2026/project/midterm/results",
@@ -268,9 +257,7 @@ class PeerReviewAssignmentNotificationTest(PackageNotificationBase):
 
         project, reviewer_submission = self.create_review_assignment()
 
-        with patch(
-            "course_management.relay_campaigns.submit_transient_list"
-        ) as submit_mock:
+        with patch("course_management.relay_campaigns.submit_transient_list") as submit_mock:
             sent = send_peer_review_assignment_notification(project)
 
         self.assertEqual(sent, 2)
