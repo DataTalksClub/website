@@ -192,7 +192,7 @@ STUDIO_COURSES_PYPROJECT_SHA256 = "43e091186a3a9f83475071919cb3d56ca4f5670b48165
 # Community-base v0.5.35 adopts the immutable template version selection
 # (2ec90c67); the reviewed lock seal tracks the entry and pin reference bytes.
 # Intake 623a5c59 drops python-json-logger and tqdm from the lock.
-# Intake 86a643e5 bumps dnspython 2.9.0 -> 2.9.2 (CVE-2026-128089); the lock diff is that entry only.
+# Intake 86a643e5 bumps dnspython 2.9.0 -> 2.9.2 (CVE-2026-128089) in the lock.
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
     "ca628f31d4bef8d3f21e216355f9e0b907ca8f88f3d2dbc83ad041927e7f6865"
 )
