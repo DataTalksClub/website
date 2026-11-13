@@ -193,7 +193,7 @@ STUDIO_COURSES_PYPROJECT_SHA256 = "43e091186a3a9f83475071919cb3d56ca4f5670b48165
 # (2ec90c67); the reviewed lock seal tracks the entry and pin reference bytes.
 # Intake 623a5c59 drops python-json-logger and tqdm from the lock.
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "1a79eeb51c5a21d2891569e48c7482562b50f5f7db2225215efcf67123c54e39"
+    "ca628f31d4bef8d3f21e216355f9e0b907ca8f88f3d2dbc83ad041927e7f6865"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
