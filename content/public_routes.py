@@ -22,6 +22,7 @@ FIXED_PATHS = frozenset(
         "/blog",
         "/podcast",
         "/books",
+        "/people",
         "/events",
         "/events/past",
         "/courses",

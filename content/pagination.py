@@ -30,7 +30,7 @@ PUBLIC_MAX_PAGE = 999
 # The reviewed clean base paths a public page query may be built for.  A path that is
 # not on this list cannot become a paginated URL, so a new catalogue is a decision made
 # here (and in `core.seo`) rather than a string assembled at a call site.
-PUBLIC_PAGINATION_PATHS = frozenset({"/blog", "/books", "/events/past", "/wiki"})
+PUBLIC_PAGINATION_PATHS = frozenset({"/blog", "/books", "/events/past", "/people", "/wiki"})
 
 _PAGE_QUERY = re.compile(r"page=([1-9][0-9]{0,2})\Z", re.ASCII)
 _MAX_RAW_QUERY_LENGTH = len("page=999")

@@ -524,6 +524,16 @@ COLLECTION_HUBS = {
         ),
         catalogue.books,
     ),
+    "people": (
+        "People",
+        "/people",
+        "People pages",
+        (
+            "Meet the authors, speakers, podcast guests, and community contributors of "
+            "DataTalks.Club."
+        ),
+        catalogue.people,
+    ),
 }
 
 
@@ -1253,7 +1263,9 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
             (record["public_path"], record["published"][:10]) for record in catalogue.books()
         )
     if section == "people":
-        return tuple((record["public_path"], "") for record in catalogue.people())
+        return (("/people", ""),) + tuple(
+            (record["public_path"], "") for record in catalogue.people()
+        )
     if section == "events":
         return (("/events", ""), ("/events/past", "")) + tuple(
             (record["public_path"], record["starts_at"][:10])

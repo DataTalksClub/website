@@ -121,6 +121,10 @@
             <p class="mono-label mono-label-indigo">
               podcast · {{ collection_total }} episodes
             </p>
+          {% elif collection == "people" %}
+            <p class="mono-label mono-label-indigo">
+              people · {{ collection_total }} profiles
+            </p>
           {% else %}
             <p class="mono-label mono-label-indigo">
               books · {{ collection_total }} in the archive
@@ -130,10 +134,12 @@
             <h1 id="collection-heading">Latest Articles</h1>
           {% elif collection == "podcasts" %}
             <h1 id="collection-heading">Podcast</h1>
+          {% elif collection == "people" %}
+            <h1 id="collection-heading">People</h1>
           {% else %}
             <h1 id="collection-heading">Book of the Week</h1>
           {% endif %}
-          {% if collection == "articles" %}
+          {% if collection == "articles" or collection == "people" %}
             {% comment %}
               The blog hub has never carried a visible lede.  Rather than write a
               new claim about the writing, the hero shows the description this
@@ -211,6 +217,8 @@
                 <h2 id="collection-list-heading">All articles</h2>
               {% elif collection == "podcasts" %}
                 <h2 id="collection-list-heading">All episodes</h2>
+              {% elif collection == "people" %}
+                <h2 id="collection-list-heading">All people</h2>
               {% else %}
                 <h2 id="collection-list-heading">Archive</h2>
               {% endif %}
@@ -231,13 +239,19 @@
                 foot and with no "By": a face beside a name under a title is
                 already read as the person who wrote it.
               {% endcomment %}
-              {% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_date=record.published row_pill=record.archive|counted:"question" row_summary=record.description row_credits=record.author_profiles row_class="record-row" only %}
+              {% if collection == "people" %}
+                {% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_eyebrow=record.roles|join:" · " row_summary=record.summary row_class="record-row" only %}
+              {% else %}
+                {% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_date=record.published row_pill=record.archive|counted:"question" row_summary=record.description row_credits=record.author_profiles row_class="record-row" only %}
+              {% endif %}
             {% empty %}
               <p class="collection-empty">
                 {% if collection == "articles" %}
                   No articles yet.
                 {% elif collection == "podcasts" %}
                   No episodes yet.
+                {% elif collection == "people" %}
+                  No people profiles are available yet.
                 {% else %}
                   No books are available yet.
                 {% endif %}

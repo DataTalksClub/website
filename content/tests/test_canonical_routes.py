@@ -96,27 +96,31 @@ class CanonicalRouteTests(TestCase):
 
     def test_slack_guidelines_alias_matches_the_slack_html_alias_contract(self) -> None:
         query = "x=%2F&x=&q=A+B&q=A%20B"
-        legacy = self.client.get(f"/slack/guidelines.html?{query}", follow=False)
-        self.assertEqual(legacy.status_code, 301)
-        self.assertEqual(legacy["Location"], f"/slack?{query}")
-        self.assertEqual(legacy["Cache-Control"], "public, max-age=300")
-        head = self.client.head(f"/slack/guidelines.html?{query}", follow=False)
-        self.assertEqual(head.status_code, 301)
-        self.assertEqual(head["Location"], f"/slack?{query}")
-        self.assertEqual(head.content, b"")
-        final = self.client.get(f"/slack/guidelines.html?{query}", follow=True)
-        self.assertEqual(final.status_code, 200)
-        self.assertEqual(final.redirect_chain, [(f"/slack?{query}", 301)])
-        self.assertContains(final, '<link rel="canonical" href="https://datatalks.club/slack">')
+        for alias in ("/slack/guidelines.html", "/slack/guidelines", "/slack/guidelines/"):
+            with self.subTest(alias=alias):
+                legacy = self.client.get(f"{alias}?{query}", follow=False)
+                self.assertEqual(legacy.status_code, 301)
+                self.assertEqual(legacy["Location"], f"/slack?{query}")
+                self.assertEqual(legacy["Cache-Control"], "public, max-age=300")
+                head = self.client.head(f"{alias}?{query}", follow=False)
+                self.assertEqual(head.status_code, 301)
+                self.assertEqual(head["Location"], f"/slack?{query}")
+                self.assertEqual(head.content, b"")
+                final = self.client.get(f"{alias}?{query}", follow=True)
+                self.assertEqual(final.status_code, 200)
+                self.assertEqual(final.redirect_chain, [(f"/slack?{query}", 301)])
+                self.assertContains(
+                    final, '<link rel="canonical" href="https://datatalks.club/slack">'
+                )
 
-        response = self.client.post("/slack/guidelines.html")
-        self.assertEqual(response.status_code, 405)
-        self.assertEqual(response["Allow"], "GET, HEAD")
-        self.assertEqual(response["Cache-Control"], "no-store, max-age=0")
-        self.assertEqual(response.content, b"")
+                response = self.client.post(alias)
+                self.assertEqual(response.status_code, 405)
+                self.assertEqual(response["Allow"], "GET, HEAD")
+                self.assertEqual(response["Cache-Control"], "no-store, max-age=0")
+                self.assertEqual(response.content, b"")
 
         # The alias is exact, not a catch-all: unlisted Slack paths stay real 404s.
-        for path in ("/slack/guidelines", "/slack/other.html", "/slack/guidelines.html/"):
+        for path in ("/slack/other.html", "/slack/guidelines.html/"):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 404)
 

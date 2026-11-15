@@ -179,17 +179,46 @@ class PublicRouteAndSeoTests(TestCase):
                 self.assertEqual(response.status_code, 404)
                 self.assertNotIn("Location", response.headers)
 
-    def test_people_catalogue_paths_are_unavailable_without_redirects_or_canonicals(self) -> None:
-        for path in ("/people", "/people/", "/people.html"):
+    def test_people_hub_and_legacy_redirects_are_live(self) -> None:
+        response = self.client.get("/people", follow=False)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<link rel="canonical" href="https://datatalks.club/people">')
+        self.assertContains(response, '<h1 id="collection-heading">People</h1>')
+        for path in ("/people/", "/people.html"):
             with self.subTest(path=path):
                 for method in (self.client.get, self.client.head):
-                    response = method(path, follow=False)
-                    self.assertEqual(response.status_code, 404)
-                    self.assertNotIn("Location", response.headers)
-                    self.assertNotContains(response, 'rel="canonical"', status_code=404)
+                    redirect = method(path, follow=False)
+                    self.assertEqual(redirect.status_code, 301)
+                    self.assertEqual(redirect["Location"], "/people")
         canonical_inventory = set(public_paths())
-        self.assertNotIn("/people", canonical_inventory)
+        self.assertIn("/people", canonical_inventory)
         self.assertTrue(set(catalogue.people_by_path()).issubset(canonical_inventory))
+
+    def test_legacy_static_301_redirects_are_one_hop(self) -> None:
+        redirects = (
+            ("/courses.html", "/courses"),
+            ("/articles", "/blog"),
+            ("/articles/", "/blog"),
+            ("/slack/guidelines", "/slack"),
+            ("/slack/guidelines/", "/slack"),
+            ("/slack/guidelines.html", "/slack"),
+            ("/tools", "/wiki"),
+            ("/tools/", "/wiki"),
+            ("/tools/modelstore.html", "/wiki"),
+            ("/tools/obsei.html", "/wiki"),
+            ("/conferences/2021-feb.html", "/events/past"),
+            ("/conferences/2021-summer-marathon.html", "/events/past"),
+            ("/support", "/slack"),
+            ("/support/", "/slack"),
+        )
+        for source, target in redirects:
+            with self.subTest(source=source):
+                response = self.client.get(source, follow=False)
+                self.assertEqual(response.status_code, 301)
+                self.assertEqual(response["Location"], target)
+                queried = self.client.get(f"{source}?utm_source=audit", follow=False)
+                self.assertEqual(queried.status_code, 301)
+                self.assertEqual(queried["Location"], f"{target}?utm_source=audit")
 
     def test_projected_courses_do_not_claim_database_backed_course_routes(self) -> None:
         projected_paths = {record["public_path"] for record in catalogue.courses()}
@@ -363,4 +392,4 @@ class PublicRouteAndSeoTests(TestCase):
         }
         expected.update(path for path in catalogue.people_by_path())
         self.assertTrue(expected.issubset(seen))
-        self.assertNotIn("/people", seen)
+        self.assertIn("/people", seen)
