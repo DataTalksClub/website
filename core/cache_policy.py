@@ -142,6 +142,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "content.public_views.editorial_detail_alias_redirect": PERMANENT_REDIRECT,
     "content.public_views.legacy_events_redirect": PERMANENT_REDIRECT,
     "content.public_views.permanent_public_redirect": PERMANENT_REDIRECT,
+    "content.public_views.podwiki_redirect": PERMANENT_REDIRECT,
     "core.views.management_slash_redirect": PERMANENT_REDIRECT,
     "courses.views.course_aliases.legacy_course_redirect": PERMANENT_REDIRECT,
     # The former family/cohort gallery paths. Spec 02 keeps them as GET/HEAD

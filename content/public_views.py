@@ -218,6 +218,48 @@ def editorial_detail_alias_redirect(
     return permanent_public_redirect(request, target=target)
 
 
+_PODWIKI_EXACT_REDIRECTS = {
+    "": "/wiki",
+    "wiki": "/wiki",
+    "course-wiki": "/wiki",
+    "search": "/wiki",
+    "graph": "/wiki/graph",
+    "graph/graph.json": "/wiki/graph/graph.json",
+    "search/search-corpus.json": "/wiki/search-corpus.json",
+    "feed.xml": "/wiki/feed.xml",
+    "sitemap.xml": "/wiki/sitemap.xml",
+    "robots.txt": "/wiki/robots.txt",
+    "special-pages": "/wiki/special-pages",
+}
+
+
+@csrf_exempt
+def podwiki_redirect(request: HttpRequest, rest: str = "") -> HttpResponse:
+    """Redirect legacy ``/podwiki/*`` URLs to ``/wiki/*`` (or ``/wiki`` for retired pages)."""
+
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    normalized = rest.strip("/")
+    target = _PODWIKI_EXACT_REDIRECTS.get(normalized)
+    if target is None:
+        if normalized.startswith("special-pages/"):
+            category = normalized.removeprefix("special-pages/")
+            target = (
+                f"/wiki/special-pages/{category}"
+                if category in WIKI_SPECIAL_CATEGORIES
+                else "/wiki/special-pages"
+            )
+        else:
+            slug = normalized
+            for prefix in ("wiki/", "course-wiki/"):
+                if normalized.startswith(prefix):
+                    slug = normalized.removeprefix(prefix)
+                    break
+            page = wiki_reader.wiki_page(slug)
+            target = page["public_path"] if page is not None else "/wiki"
+    return permanent_public_redirect(request, target=target)
+
+
 @require_safe
 def legacy_events_redirect(request: HttpRequest) -> HttpResponse:
     """Redirect the legacy event hub directly to its canonical filter path."""

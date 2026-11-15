@@ -472,10 +472,9 @@ def test_wiki_search_graph_and_removed_mount(page: Page, live_server) -> None:
     expect(page.locator("main a").first).to_be_visible()
 
     response = page.goto(f"{origin}/podwiki")
-    assert response is not None and response.status == 404
-    expect(page.get_by_role("heading", name="Page not found")).to_be_visible()
-    expect(page).to_have_url(f"{origin}/podwiki")
-    _shot(page, "podwiki-404-desktop.png")
+    assert response is not None and response.status == 200
+    expect(page).to_have_url(f"{origin}/wiki")
+    expect(page.get_by_label("Search the Wiki")).to_be_visible()
 
 
 def test_mobile_keyboard_navigation_and_no_results(page: Page, live_server) -> None:

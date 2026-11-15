@@ -366,12 +366,18 @@ class PublishedCatalogueTests(TestCase):
             if url.startswith("/wiki/"):
                 self.assertNotIn("/wiki/wiki/", url)
 
-    def test_podwiki_family_is_an_ordinary_real_404(self) -> None:
-        for path in ("/podwiki", "/podwiki/", "/podwiki/wiki/a-a-testing/"):
-            response = self.client.get(path)
-            self.assertEqual(response.status_code, 404)
-            self.assertNotIn("Location", response.headers)
-            self.assertContains(response, "Page not found", status_code=404)
+    def test_podwiki_family_redirects_permanently_to_wiki(self) -> None:
+        cases = (
+            ("/podwiki", "/wiki"),
+            ("/podwiki/", "/wiki"),
+            ("/podwiki/wiki/a-a-testing/", "/wiki/a-a-testing"),
+        )
+        for path, expected_target in cases:
+            with self.subTest(path=path):
+                response = self.client.get(path, follow=False)
+                self.assertEqual(response.status_code, 301)
+                self.assertEqual(response.headers["Location"], expected_target)
+                self.assertEqual(self.client.get(expected_target, follow=False).status_code, 200)
 
     def test_a_media_path_outside_the_catalogue_is_not_served(self) -> None:
         self.assertEqual(self.client.get("/images/../../manage.py").status_code, 404)
