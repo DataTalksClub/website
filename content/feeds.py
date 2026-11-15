@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from django.http import HttpRequest, HttpResponse
 from django.template.loader import render_to_string
 from django.utils.feedgenerator import Atom1Feed
+from django.views.decorators.cache import cache_control
 from django.views.decorators.http import require_safe
 
 from core.runtime_config import get_str_setting
@@ -20,6 +21,7 @@ class ArticleAtomFeed(Atom1Feed):
 
 
 @require_safe
+@cache_control(max_age=0, must_revalidate=True)
 def site_feed(request: HttpRequest) -> HttpResponse:
     origin = get_str_setting("site.origin.canonical").rstrip("/")
     feed = ArticleAtomFeed(

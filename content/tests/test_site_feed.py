@@ -95,3 +95,12 @@ class SiteFeedTests(TestCase):
     def test_head_and_method_contract(self):
         self.assertEqual(self.client.head("/feed.xml").status_code, 200)
         self.assertEqual(self.client.post("/feed.xml").status_code, 405)
+
+    def test_clean_feed_is_shareable_but_query_variants_are_private(self):
+        clean = self.client.get("/feed.xml")
+        self.assertIn("max-age=0", clean["Cache-Control"])
+        self.assertIn("must-revalidate", clean["Cache-Control"])
+        self.assertNotIn("private", clean["Cache-Control"])
+        variant = self.client.get("/feed.xml?preview=1")
+        self.assertIn("no-store", variant["Cache-Control"])
+        self.assertNotIn("public", variant["Cache-Control"])
