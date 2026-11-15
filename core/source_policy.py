@@ -16,6 +16,25 @@ GUNICORN_LOGGER_CLASS = "core.gunicorn_logging.RecipientTokenSafeLogger"
 GUNICORN_WEB_TIMEOUT_SECONDS = 90
 ANALYTICS_HOSTS = ("googletagmanager.com", "google-analytics.com")
 ANALYTICS_COOKIE_PREFIXES = ("_ga", "_gid", "_gat", "_gcl_")
+# Public deployment configuration, not a credential. This website is registered
+# in DTC's existing self-hosted Umami service on Contabo.
+UMAMI_ORIGIN = "https://umami.169.58.119.163.sslip.io"
+UMAMI_WEBSITE_ID = "be4f7959-6ac3-4ce0-bec8-a316aad65d1f"
+UMAMI_HOSTS = frozenset({"datatalks.club", "www.datatalks.club", "prod.datatalks.club"})
+_UMAMI_PUBLIC_PATH = re.compile(
+    r"/(?:|blog|podcast|books|events|courses|wiki|faq|docs|slack|privacy|terms|impressum)"
+    r"/?$|/(?:blog|books|podcast|people|faq)/[a-z0-9][a-z0-9_-]*\.html$"
+    r"|/podcast/s[0-9]+e[0-9]+/[a-z0-9][a-z0-9_-]*/?$"
+    r"|/(?:wiki|courses)/[a-z0-9][a-z0-9_-]*/?$"
+    r"|/events/[1-9][0-9]*/[a-z0-9][a-z0-9_-]*/?$"
+)
+
+
+def umami_public_path(path: str) -> bool:
+    """Fail closed outside editorial routes; never measure private learning flows."""
+    return _UMAMI_PUBLIC_PATH.fullmatch(path) is not None
+
+
 _ANALYTICS_ID = re.compile(r"(?:GTM-[A-Z0-9]{6,}|G-[A-Z0-9]{8,}|UA-[0-9]+-[0-9]+)")
 _RETIRED_HOST = re.compile(r"(?<![A-Za-z0-9.-])dev\.dtcdev\.click(?![A-Za-z0-9.-])")
 _LINK_TAG = re.compile(r"<link\b[^>]{0,4096}>", re.IGNORECASE)

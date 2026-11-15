@@ -7,7 +7,9 @@ from django.http import HttpRequest
 
 from core.configuration import InvalidOperationalSetting
 from core.navigation import public_primary_navigation
+from core.sensitive_query import has_sensitive_query_key
 from core.site_settings import public_announcement
+from core.source_policy import UMAMI_HOSTS, UMAMI_ORIGIN, UMAMI_WEBSITE_ID, umami_public_path
 from courses.models import Cohort, Course
 
 logger = logging.getLogger(__name__)
@@ -133,6 +135,16 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
         if campaign_slug:
             canonical_url = f"https://datatalks.club/register/{campaign_slug}"
     return {
+        "umami_script_url": (
+            f"{UMAMI_ORIGIN}/script.js"
+            if request.get_host() in UMAMI_HOSTS
+            and not getattr(getattr(request, "user", None), "is_authenticated", False)
+            and umami_public_path(request.path)
+            and not has_sensitive_query_key(request)
+            else ""
+        ),
+        "umami_website_id": UMAMI_WEBSITE_ID,
+        "umami_page_path": request.path,
         "brand_name": settings.SITE_NAME,
         "VERSION": settings.VERSION,
         "app_version": settings.APP_VERSION,

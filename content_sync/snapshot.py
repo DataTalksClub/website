@@ -543,7 +543,7 @@ def run_git_archive(
                 detail=(
                     f"git archive {commit_sha} failed in {root}: "
                     f"{reason[0][:200] if reason else returncode}"
-                ),
+                )[:400],
             )
         return bytes(collected)
     finally:
