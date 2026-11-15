@@ -9,6 +9,7 @@ from accounts.views.impersonation import admin_impersonation_exit
 from cadmin.legacy_urls import legacy_course_list_redirect
 from content import public_views, review_views
 from content.feeds import site_feed
+from core import academy_proxy
 from core import views as core_views
 from courses import urls as course_urls
 from courses.views import course_aliases, course_list, site_project_gallery
@@ -92,6 +93,8 @@ urlpatterns = [
         {"target": MEDIA_KIT_URL},
         name="media-kit-slash-redirect",
     ),
+    path("academy", academy_proxy.academy_proxy, name="academy-root"),
+    re_path(r"^academy/(?P<academy_path>.*)$", academy_proxy.academy_proxy, name="academy-proxy"),
     path("", include("content.public_urls")),
     # Managed shared-curriculum lesson assets (schema-2 imports).  The path is
     # content-addressed, so the row lookup plus the managed store are the only

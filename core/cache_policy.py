@@ -127,6 +127,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "content.public_views.wiki_sitemap": PUBLIC_HUB_FEED,
     "content.review_views.faq_course_json": PUBLIC_HUB_FEED,
     "content.review_views.faq_courses_json": PUBLIC_HUB_FEED,
+    "core.academy_proxy.academy_proxy": PUBLIC_HUB_FEED,
     "core.views.home": PUBLIC_HUB_FEED,
     "core.views.robots": PUBLIC_HUB_FEED,
     "core.views.sitemap": PUBLIC_HUB_FEED,
