@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 from django.conf import settings
@@ -12,6 +13,7 @@ from django.http import (
     JsonResponse,
 )
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_safe
 
 from content import catalogue
@@ -30,6 +32,7 @@ from core.home_content import (
     wiki_graph,
     wiki_topics,
 )
+from core.newsletter import subscribe_to_newsletter
 from core.sponsors import public_home_sponsors, public_sponsors, public_supporter_history
 from courses.services.member_home import build_member_home_context
 from courses.services.testimonials import homepage_testimonials, tour_testimonials
@@ -293,3 +296,74 @@ def readiness(request: HttpRequest) -> JsonResponse:
     )
     payload["checks"] = checks
     return JsonResponse(payload, status=200 if ready else 503)
+
+
+def _wants_json_response(request: HttpRequest) -> bool:
+    if request.content_type == "application/json":
+        return True
+    accept = request.headers.get("Accept", "")
+    return "application/json" in accept
+
+
+@csrf_exempt
+def newsletter(request: HttpRequest) -> HttpResponse:
+    if request.method not in {"GET", "HEAD", "POST"}:
+        response = HttpResponseNotAllowed(("GET", "HEAD", "POST"))
+        response["Cache-Control"] = "private, no-store, max-age=0"
+        return response
+
+    context: dict[str, Any] = {
+        "canonical_url": "https://datatalks.club/newsletter",
+        "seo_title": "Newsletter — DataTalks.Club",
+        "seo_description": (
+            "Subscribe to our weekly newsletter and join our Slack community for events, "
+            "articles, and free courses."
+        ),
+    }
+
+    if request.method in {"GET", "HEAD"}:
+        return render(request, "core/newsletter.html", context)
+
+    wants_json = _wants_json_response(request)
+    if request.content_type == "application/json":
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "status": "invalid_email",
+                    "message": "Please enter a valid email address.",
+                },
+                status=400,
+            )
+        if not isinstance(payload, dict):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "status": "invalid_email",
+                    "message": "Please enter a valid email address.",
+                },
+                status=400,
+            )
+        raw_email = payload.get("email")
+        raw_company = payload.get("company")
+        raw_page = payload.get("page")
+        email = raw_email if isinstance(raw_email, str) else ""
+        company = raw_company if isinstance(raw_company, str) else ""
+        page = raw_page if isinstance(raw_page, str) else request.build_absolute_uri()
+    else:
+        email = str(request.POST.get("email") or "")
+        company = str(request.POST.get("company") or "")
+        page = str(request.POST.get("page") or request.build_absolute_uri())
+
+    result = subscribe_to_newsletter(email, company=company, page=page)
+    if wants_json:
+        return JsonResponse(
+            {"ok": result.ok, "status": result.status, "message": result.message},
+            status=result.http_status,
+        )
+
+    context["newsletter_result"] = result
+    context["submitted_email"] = "" if result.ok else email
+    return render(request, "core/newsletter.html", context, status=result.http_status)

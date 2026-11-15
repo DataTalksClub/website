@@ -1,0 +1,34 @@
+{% url 'newsletter' as newsletter_url %}
+<div class="newsletter-signup">
+  <form
+    class="newsletter-form"
+    method="post"
+    action="{{ newsletter_url|default:'/newsletter' }}"
+    data-relay-signup
+    novalidate
+  >
+    <div class="newsletter-form-row">
+      <label class="sr-only" for="{{ input_id|default:'newsletter-email' }}">Email address</label>
+      <input
+        id="{{ input_id|default:'newsletter-email' }}"
+        type="email"
+        name="email"
+        class="field-input newsletter-email-input"
+        placeholder="Email address"
+        autocomplete="email"
+        value="{{ submitted_email|default:'' }}"
+        required
+      >
+      <div class="newsletter-honeypot" aria-hidden="true">
+        <input type="text" name="company" tabindex="-1" autocomplete="off" value="">
+      </div>
+      <button type="submit" class="cta cta-primary interactive-lift">Join newsletter</button>
+    </div>
+  </form>
+  <p
+    class="newsletter-status{% if newsletter_result %} {% if newsletter_result.ok %}is-success{% else %}is-error{% endif %}{% endif %}"
+    role="status"
+    aria-live="polite"
+    {% if not newsletter_result %}hidden{% endif %}
+  >{% if newsletter_result %}{{ newsletter_result.message }}{% endif %}</p>
+</div>

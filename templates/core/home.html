@@ -1297,6 +1297,25 @@
         </section>
       {% endif %}
 
+      <section class="band band-mint" aria-labelledby="newsletter-heading">
+        <div class="shell newsletter-panel">
+          <div>
+            <p class="mono-label mono-label-indigo">Newsletter</p>
+            <h2 id="newsletter-heading">Get the weekly DataTalks.Club digest</h2>
+            <p>
+              Subscribe to our weekly newsletter and join our Slack. We'll keep you informed
+              about our events, articles, courses, and everything else happening in the Club.
+            </p>
+            <p class="band-more">
+              <a class="band-link" href="{% url 'newsletter' %}">or open the newsletter page →</a>
+            </p>
+          </div>
+          <div class="newsletter-card">
+            {% include "core/_newsletter_signup_form.html" with input_id="home-newsletter-email" %}
+          </div>
+        </div>
+      </section>
+
       <section class="band band-ink" aria-labelledby="closing-heading">
         <div class="shell closing">
           <div>
@@ -1319,6 +1338,7 @@
     </main>
     {% include "core/_site_shell_foot.html" %}
     <script src="{% static 'core/home_graph.js' %}"></script>
+    <script src="{% static 'core/newsletter_signup.js' %}" defer></script>
     <script>
       (function () {
         // Both horizontal strips (the course catalogue and member stories) share
