@@ -97,6 +97,11 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "content.public_views.podcast_detail_by_id": EDITORIAL_DETAIL,
     "content.public_views.podcast_detail_by_id_without_slug": EDITORIAL_DETAIL,
     "content.public_views.wiki_detail": EDITORIAL_DETAIL,
+    "academy.views.agentic_engineering": EDITORIAL_DETAIL,
+    "academy.views.ai_engineering": EDITORIAL_DETAIL,
+    "academy.views.home": EDITORIAL_DETAIL,
+    "academy.views.sessions": EDITORIAL_DETAIL,
+    "academy.views.sessions_materials": EDITORIAL_DETAIL,
     "content.public_views.wiki_graph": EDITORIAL_DETAIL,
     "content.public_views.wiki_special": EDITORIAL_DETAIL,
     "content.review_views.docs_home": EDITORIAL_DETAIL,
@@ -109,6 +114,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "courses.views.course.course_family_view": EDITORIAL_DETAIL,
     # -- Public: hubs, feeds, sitemaps (registered selectors only, via
     # QUERY_ALLOWLISTS).
+    "academy.views.session_ics": PUBLIC_HUB_FEED,
     "content.public_views.collection_hub": PUBLIC_HUB_FEED,
     "content.public_views.event_detail": PUBLIC_HUB_FEED,
     "content.public_views.event_detail_without_slug": PUBLIC_HUB_FEED,
@@ -136,6 +142,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "courses.views.wrapped.wrapped_view": PUBLIC_CATALOG_DETAIL,
     # -- Public: code-owned permanent redirects (query follows the redirect
     # contract).
+    "academy.views.layoff_proof_redirect": PERMANENT_REDIRECT,
     "cadmin.legacy_urls.redirect_to_studio": PERMANENT_REDIRECT,
     "content.public_views.editorial_detail_alias_redirect": PERMANENT_REDIRECT,
     "content.public_views.legacy_events_redirect": PERMANENT_REDIRECT,
@@ -162,6 +169,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     # -- Private/dynamic: everything else, listed explicitly.  Registration,
     # capability-bearing URLs (unsubscribe tokens), participant/live Q&A,
     # cohort-scoped learner surfaces, accounts, Studio, admin, and APIs.
+    "academy.views.confirm": PRIVATE_DYNAMIC,
     "accounts.api.compatibility_account_identity": PRIVATE_DYNAMIC,
     "accounts.api.current_account_identity": PRIVATE_DYNAMIC,
     "accounts.views.account_settings.account_settings": PRIVATE_DYNAMIC,

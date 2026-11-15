@@ -131,6 +131,7 @@ INSTALLED_APPS = [
     "loginas",
     "management_auth.apps.ManagementAuthConfig",
     "core.apps.CoreConfig",
+    "academy.apps.AcademyConfig",
     "website.apps.WebsiteConfig",
     "accounts.apps.AccountsConfig",
     # D3.1a: the site-owned accounts extension app. It carries the identity
@@ -554,3 +555,10 @@ COMMUNITY_BASE: dict[str, Any] = {
     COURSE_TELEGRAM_BOT_TOKEN,
     COURSE_TELEGRAM_DESTINATIONS,
 ) = announcement_configuration(os.environ)
+
+ACADEMY_API_URL = os.getenv(
+    "ACADEMY_API_URL",
+    "https://augldvp3omxdxz3irqsmmxc25e0blpxx.lambda-url.eu-west-1.on.aws",
+).strip()
+ACADEMY_UMAMI_SCRIPT_URL = os.getenv("ACADEMY_UMAMI_SCRIPT_URL", "").strip()
+ACADEMY_UMAMI_WEBSITE_ID = os.getenv("ACADEMY_UMAMI_WEBSITE_ID", "").strip()

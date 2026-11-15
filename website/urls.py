@@ -77,6 +77,7 @@ urlpatterns = [
         {"target": MEDIA_KIT_URL},
         name="media-kit-slash-redirect",
     ),
+    path("", include("academy.urls")),
     path("", include("content.public_urls")),
     # Managed shared-curriculum lesson assets (schema-2 imports).  The path is
     # content-addressed, so the row lookup plus the managed store are the only

@@ -1,0 +1,27 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//DataTalks.Club//Hireable with AI//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:session-1@hireable-with-ai.academy.datatalks.club
+DTSTAMP:20261114T120000Z
+DTSTART:20261123T160000Z
+DTEND:20261123T170000Z
+SUMMARY:Hireable with AI #1: AI Engineering vs Agentic Engineering
+DESCRIPTION:AI Engineering vs Agentic Engineering\n\nZoom link: https://us0
+ 6web.zoom.us/j/84099607571?pwd=afNorKbnnXre2oWcsOpmrPWWKZEiHj.1\n\nFree on
+ line session with Alexey Grigorev. Everyone who registers gets the recordi
+ ng.
+LOCATION:https://us06web.zoom.us/j/84099607571?pwd=afNorKbnnXre2oWcsOpmrPWW
+ KZEiHj.1
+URL:https://us06web.zoom.us/j/84099607571?pwd=afNorKbnnXre2oWcsOpmrPWWKZEiH
+ j.1
+STATUS:CONFIRMED
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Starting in 15 minutes: AI Engineering vs Agentic Engineering
+TRIGGER:-PT15M
+END:VALARM
+END:VEVENT
+END:VCALENDAR
