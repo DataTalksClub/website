@@ -172,6 +172,8 @@ urlpatterns = [
         public_views.permanent_public_redirect,
         {"target": "/events/past"},
     ),
+    path("conferences", public_views.permanent_public_redirect, {"target": "/events/past"}),
+    path("conferences/", public_views.permanent_public_redirect, {"target": "/events/past"}),
     path("support", public_views.permanent_public_redirect, {"target": "/slack"}),
     path("support/", public_views.permanent_public_redirect, {"target": "/slack"}),
     path("podwiki", public_views.podwiki_redirect, name="podwiki-home-redirect"),
