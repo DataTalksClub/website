@@ -118,6 +118,16 @@ urlpatterns = [
         name="public-event-qna-qr",
     ),
     re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/banner$",
+        public_views.event_banner,
+        name="public-event-banner",
+    ),
+    re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)/register$",
+        public_views.event_register,
+        name="public-event-register",
+    ),
+    re_path(
         r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)$",
         public_views.event_detail,
         name="public-event",

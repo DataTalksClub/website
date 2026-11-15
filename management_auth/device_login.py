@@ -41,14 +41,35 @@ LAUNCH_SCOPES = (
     "courses.launch.write",
     "courses.launch.send",
 )
+EVENT_SCOPES = (
+    "events.manage.list",
+    "events.manage.detail",
+    "events.manage.create",
+    "events.manage.update",
+    "events.manage.publish",
+    "events.manage.cancel",
+    "events.manage.complete",
+    "events.manage.banner",
+    "events.manage.registrants.export",
+    "events.manage.attendance.import",
+    "events.manage.message",
+    "events.manage.reminders",
+    "events.manage.speakers.list",
+    "events.manage.speakers.create",
+)
+DEVICE_LOGIN_SCOPES = (*LAUNCH_SCOPES, *EVENT_SCOPES)
 _LAUNCH_MANAGE_PERMISSION = "courses.manage_course_launch"
+_EVENT_MANAGE_PERMISSION = "event_registrants.manage_events"
 
 
 def is_device_login_admin(user) -> bool:
     return bool(
         getattr(user, "is_active", False)
         and identity_state_eligible(user)
-        and has_explicit_permission(user, _LAUNCH_MANAGE_PERMISSION)
+        and (
+            has_explicit_permission(user, _LAUNCH_MANAGE_PERMISSION)
+            or has_explicit_permission(user, _EVENT_MANAGE_PERMISSION)
+        )
     )
 
 
@@ -92,7 +113,7 @@ def mint_device_credential(*, user, label: str, request) -> dict:
     # the same authority the user already holds. Human checks always
     # re-verify the live user grant, so later revocation still fails closed.
     entitled = []
-    for scope in LAUNCH_SCOPES:
+    for scope in DEVICE_LOGIN_SCOPES:
         capability = CAPABILITY_REGISTRY.get(scope)
         if capability is None:
             raise ValueError(f"unknown credential scope: {scope}")
@@ -106,8 +127,8 @@ def mint_device_credential(*, user, label: str, request) -> dict:
             continue
         principal.permissions.add(permission)
         entitled.append(scope)
-    if "courses.launch.read" not in entitled:
-        raise ValueError("approver needs course launch read access")
+    if "courses.launch.read" not in entitled and "events.manage.list" not in entitled:
+        raise ValueError("approver needs course launch or event management read access")
     scopes = normalize_scopes(entitled, principal=principal)
     name = _credential_name(label)
     expires_at = timezone.now() + DEFAULT_CREDENTIAL_LIFETIME

@@ -29,6 +29,7 @@ from core.site_settings import SITE_SETTING_CAPABILITIES
 from core.sponsors import SPONSOR_CAPABILITIES
 from courses.launch_capabilities import LAUNCH_CAPABILITIES
 from event_qna.capabilities import QNA_CAPABILITIES
+from events.admin_capabilities import EVENT_ADMIN_CAPABILITIES
 from events.capabilities import EVENT_IDENTITY_CAPABILITIES
 from management_auth.fixture_capabilities import CREDENTIAL_FIXTURE_CAPABILITIES
 from management_auth.policies import (
@@ -185,6 +186,7 @@ CAPABILITY_REGISTRY = CapabilityRegistry(
         *SPONSOR_CAPABILITIES,
         *CREDENTIAL_RUNTIME_CAPABILITIES,
         *EVENT_IDENTITY_CAPABILITIES,
+        *EVENT_ADMIN_CAPABILITIES,
         *QNA_CAPABILITIES,
         *CREDENTIAL_FIXTURE_CAPABILITIES,
     ),

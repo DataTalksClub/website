@@ -23,6 +23,10 @@ SPONSORS_WRITE = "core.change_sponsors"
 SPONSORS_EXPORT = "core.export_sponsors"
 EVENT_QNA_VIEW = "event_qna.view_event_qna"
 EVENT_QNA_MANAGE = "event_qna.manage_event_qna"
+EVENT_ADMIN_VIEW = "event_registrants.view_event_admin"
+EVENT_MANAGE = "event_registrants.manage_events"
+EVENT_REGISTRANTS_EXPORT = "event_registrants.export_event_registrants"
+EVENT_REGISTRANTS_MESSAGE = "event_registrants.message_event_registrants"
 
 _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
     {
@@ -37,6 +41,10 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
                 "courses.send_course_launch",
                 EVENT_QNA_VIEW,
                 EVENT_QNA_MANAGE,
+                EVENT_ADMIN_VIEW,
+                EVENT_MANAGE,
+                EVENT_REGISTRANTS_EXPORT,
+                EVENT_REGISTRANTS_MESSAGE,
                 SITE_SETTINGS_READ,
                 SITE_SETTINGS_WRITE,
                 SITE_NAVIGATION_READ,
@@ -58,21 +66,30 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
                 SPONSORS_EXPORT,
             }
         ),
-        "course_operator": frozenset({STUDIO_ACCESS, "courses.read_course_launch", "courses.manage_course_launch"}),
+        "course_operator": frozenset(
+            {STUDIO_ACCESS, "courses.read_course_launch", "courses.manage_course_launch"}
+        ),
         "event_operator": frozenset(
             {
                 STUDIO_ACCESS,
                 EVENT_QNA_VIEW,
                 EVENT_QNA_MANAGE,
+                EVENT_ADMIN_VIEW,
+                EVENT_MANAGE,
+                EVENT_REGISTRANTS_EXPORT,
+                EVENT_REGISTRANTS_MESSAGE,
             }
         ),
-        "email_operator": frozenset({STUDIO_ACCESS, "courses.read_course_launch", "courses.send_course_launch"}),
+        "email_operator": frozenset(
+            {STUDIO_ACCESS, "courses.read_course_launch", "courses.send_course_launch"}
+        ),
         "support_operator": frozenset({STUDIO_ACCESS}),
         "auditor": frozenset(
             {
                 STUDIO_ACCESS,
                 AUDIT_BROWSE,
                 AUDIT_EXPORT,
+                EVENT_ADMIN_VIEW,
                 SITE_SETTINGS_READ,
                 SITE_NAVIGATION_READ,
                 SPONSORS_READ,

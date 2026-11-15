@@ -79,6 +79,10 @@ class DevelopmentOwnerBootstrapTests(TestCase):
                 ("core", "read_sponsors"),
                 ("core", "change_sponsors"),
                 ("core", "export_sponsors"),
+                ("event_registrants", "view_event_admin"),
+                ("event_registrants", "manage_events"),
+                ("event_registrants", "message_event_registrants"),
+                ("event_registrants", "export_event_registrants"),
             },
         )
 

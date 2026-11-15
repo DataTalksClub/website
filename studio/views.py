@@ -100,6 +100,8 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
                 "studio.home.read",
                 "studio.audit.detail",
                 "events.identity.detail",
+                "events.manage.detail",
+                "events.manage.registrants.export",
                 "events.qna.read",
                 "site.sponsors.detail",
             }

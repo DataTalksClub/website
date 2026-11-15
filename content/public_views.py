@@ -559,6 +559,97 @@ def event_detail_without_slug(request: HttpRequest, event_id: str) -> HttpRespon
     return permanent_public_redirect(request, target=target)
 
 
+@_public_event_route
+def event_banner(request: HttpRequest, event_id: str) -> HttpResponse:
+    from event_registrants.models import EventOperatorConfig
+
+    try:
+        identity = resolve_public_id(event_id)
+    except EventIdentityNotFound as exc:
+        raise Http404 from exc
+    config = EventOperatorConfig.objects.filter(event=identity).first()
+    if config is None or not config.banner_image:
+        raise Http404
+    content_type = config.banner_content_type or "image/png"
+    response = HttpResponse(bytes(config.banner_image), content_type=content_type)
+    response["Cache-Control"] = "public, max-age=300"
+    return response
+
+
+def event_register(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
+    from community_base.events.models import EventRegistration
+    from django.core.exceptions import ValidationError
+    from django.core.validators import validate_email
+    from django.shortcuts import redirect
+    from django.utils import timezone
+
+    from event_registrants.models import EventOperatorConfig, EventRegistrationMeta
+
+    if request.method != "POST":
+        return redirect(canonical_detail_path(resolve_public_id(event_id).content_id))
+    try:
+        identity = resolve_public_id(event_id)
+    except EventIdentityNotFound as exc:
+        raise Http404 from exc
+    canonical = canonical_detail_path(identity.content_id)
+    if identity.status != "upcoming" or not identity.is_upcoming:
+        return redirect(f"{canonical}?registered=closed")
+
+    email = str(request.POST.get("email") or "").strip()
+    normalized_email = email.lower()
+    try:
+        validate_email(normalized_email)
+    except ValidationError:
+        return redirect(f"{canonical}?registered=invalid_email")
+
+    display_name = str(request.POST.get("display_name") or "").strip()[:200]
+    newsletter_consent = request.POST.get("newsletter_consent") in {"on", "true", "1", "yes"}
+    company = str(request.POST.get("company") or "").strip()[:200]
+    config = EventOperatorConfig.objects.filter(event=identity).first()
+    sponsor_consent = (
+        request.POST.get("sponsor_sharing_consent") in {"on", "true", "1", "yes"}
+        if (config is not None and config.sponsor_sharing_enabled)
+        else None
+    )
+
+    now = timezone.now()
+    registration, created = EventRegistration.objects.get_or_create(
+        event=identity,
+        normalized_email=normalized_email,
+        defaults={
+            "original_email": email,
+            "display_name": display_name,
+            "status": EventRegistration.Status.CONFIRMED,
+            "verified_at": now,
+            "newsletter_consent": newsletter_consent,
+            "newsletter_consent_source": "event-registration",
+            "newsletter_consented_at": now if newsletter_consent else None,
+        },
+    )
+    if not created and registration.status in {
+        EventRegistration.Status.CANCELLED,
+        EventRegistration.Status.EXPIRED,
+    }:
+        registration.version += 1
+        registration.status = EventRegistration.Status.CONFIRMED
+        registration.display_name = display_name
+        registration.cancelled_at = None
+        registration.verified_at = now
+        registration.newsletter_consent = newsletter_consent
+        registration.newsletter_consented_at = now if newsletter_consent else None
+        registration.save()
+
+    EventRegistrationMeta.objects.update_or_create(
+        registration=registration,
+        defaults={
+            "company": company if (config is not None and config.collect_company) else "",
+            "sponsor_sharing_consent": sponsor_consent,
+            "sponsor_sharing_consented_at": now if sponsor_consent is not None else None,
+        },
+    )
+    return redirect(f"{canonical}?registered=ok")
+
+
 # The two collections behind `public/collection_hub.html`.  Both are dated archives
 # that grew past one screen — 55 articles, 98 books — so both page, through the one
 # shared paginator (issues #174, #178).  Each entry is the hub's heading, its clean
