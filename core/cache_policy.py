@@ -69,6 +69,8 @@ QUERY_ALLOWLISTS: dict[str, frozenset[str]] = {
 #: classified`` — and the private/dynamic block is the explicit, reviewed
 #: complement of the shareable classes above, not a default.
 ROUTE_CACHE_CLASSES: dict[str, str] = {
+    # Academy resources carry confirmation tokens in queries: never shareable.
+    "academy.views.resource": PRIVATE_DYNAMIC,
     "management_api.launch_views.launch_read": PRIVATE_DYNAMIC,
     "management_api.launch_views.launch_write": PRIVATE_DYNAMIC,
     "management_api.launch_views.launch_send": PRIVATE_DYNAMIC,

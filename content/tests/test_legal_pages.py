@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from xml.etree import ElementTree
 
+from django.template.loader import render_to_string
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -268,6 +269,7 @@ class LegalContentTests(TestCase):
     def test_legal_templates_are_source_reviewed_readable_html(self) -> None:
         for relative in (
             "templates/core/_site_footer.html",
+            "templates/core/_analytics_preferences.html",
             "templates/public/text_page.html",
             "templates/public/legal/base.html",
             "templates/public/legal/terms.html",
@@ -380,6 +382,6 @@ class SharedLegalFooterTests(TestCase):
         self.assertIn("Domain=datatalks.club", script)
 
     def test_initial_consent_prompt_has_no_competing_status_role(self) -> None:
-        footer = (ROOT / "templates/core/_site_footer.html").read_text(encoding="utf-8")
+        footer = render_to_string("core/_site_footer.html")
         self.assertNotIn('role="status"', footer)
         self.assertIn('aria-live="polite"', footer)

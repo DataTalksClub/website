@@ -131,6 +131,7 @@ INSTALLED_APPS = [
     "loginas",
     "management_auth.apps.ManagementAuthConfig",
     "core.apps.CoreConfig",
+    "academy.apps.AcademyConfig",
     "website.apps.WebsiteConfig",
     "accounts.apps.AccountsConfig",
     # D3.1a: the site-owned accounts extension app. It carries the identity

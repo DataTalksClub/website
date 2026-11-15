@@ -384,6 +384,29 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertNotContains(response, "This page is maintained on")
 
     def test_every_section_sitemap_entry_is_a_unique_canonical_public_200(self) -> None:
+        from academy.models import PublishedResource
+
+        # Academy is published independently of the main content fixture.
+        for path, body, content_type in (
+            (
+                "",
+                b'<link rel="canonical" href="https://datatalks.club/academy/">',
+                "text/html",
+            ),
+            (
+                "sitemap.xml",
+                b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+                b"<url><loc>https://datatalks.club/academy/</loc></url></urlset>",
+                "application/xml",
+            ),
+        ):
+            PublishedResource.objects.create(
+                path=path,
+                content=body,
+                content_type=content_type,
+                source_commit="a" * 40,
+                sha256="b" * 64,
+            )
         root = self.client.get("/sitemap.xml")
         self.assertEqual(root.status_code, 200)
         index = ElementTree.fromstring(root.content)

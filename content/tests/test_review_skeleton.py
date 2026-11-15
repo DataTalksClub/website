@@ -462,9 +462,6 @@ class PublishedCatalogueTests(TestCase):
                     continue
                 if not parsed.path or parsed.path.startswith("/static/"):
                     continue
-                # /academy/ is proxied at the edge to the Academy site, not routed by Django.
-                if parsed.path == "/academy" or parsed.path.startswith("/academy/"):
-                    continue
                 try:
                     resolve(parsed.path)
                 except Resolver404 as exc:

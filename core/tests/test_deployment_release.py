@@ -2830,7 +2830,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             )
             self.assertFalse(sitemap_check["empty"])
             self.assertEqual(sitemap_check["kind"], "sitemap_index")
-            self.assertEqual(sitemap_check["section_count"], 10)
+            self.assertEqual(sitemap_check["section_count"], 11)
             self.assertTrue(sitemap_check["canonical_production_locations"])
             self.assertTrue(sitemap_check["unique_locations"])
             self.assertEqual(evidence["checks"][-1]["runtime_group"], "analytics")

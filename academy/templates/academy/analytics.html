@@ -1,0 +1,49 @@
+{% load static %}
+<style>
+  /* Academy keeps its source typography and palette around shared controls. */
+  .analytics-preferences {
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 0;
+    box-shadow: var(--shadow-sm);
+    color: var(--ink);
+    margin: auto;
+    max-height: calc(100dvh - 2rem);
+    max-width: min(30rem, calc(100vw - 2rem));
+    overflow: auto;
+    padding: 0;
+    width: 100%;
+  }
+  .analytics-preferences[open]:not(:modal) {
+    margin: 1rem auto;
+    max-height: none;
+    position: static;
+  }
+  .analytics-preferences::backdrop { background: rgb(0 0 0 / 48%); }
+  .analytics-preferences-content { display: grid; gap: 0.9rem; padding: 1.25rem; }
+  .analytics-preferences-content p { margin: 0; }
+  .analytics-preferences-content h2 { font-size: 1.35rem; }
+  .analytics-preferences-eyebrow { font-size: 0.75rem; text-transform: uppercase; }
+  .analytics-preferences-status { font-weight: 600; }
+  .analytics-preferences-actions { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+  .analytics-preferences-actions button {
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 0;
+    color: var(--ink);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.9rem;
+    min-height: 2.75rem;
+    padding: 0.65rem 0.85rem;
+  }
+  .analytics-preferences-actions .analytics-preferences-allow { background: var(--mint); }
+  .analytics-preferences-detail { font-size: 0.85rem; }
+  /* Long German labels must fit the source's single-column mobile grid. */
+  @media (max-width: 767px) {
+    .program-cards[class] { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+{% include "core/_analytics_preferences.html" %}
+<div class="wrap" style="padding: 0 0 24px"><button type="button" class="btn btn--outline" data-analytics-preferences-open>Analytics preferences</button></div>
+<script defer src="{% static 'core/analytics_preferences.js' %}"></script>

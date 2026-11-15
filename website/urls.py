@@ -52,6 +52,8 @@ namespaced_course_patterns.append(
 )
 
 urlpatterns = [
+    path("academy/", include("academy.urls")),
+    path("sitemaps/academy.xml", include("academy.sitemap_urls")),
     path("feed.xml", site_feed, name="site-feed"),
     path("robots.txt", core_views.robots, name="development-robots"),
     path("sitemap.xml", core_views.sitemap, name="development-sitemap"),

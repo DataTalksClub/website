@@ -25,6 +25,7 @@ _UMAMI_PUBLIC_PATH = re.compile(
     r"/(?:|blog|podcast|books|events|courses|wiki|faq|docs|slack|privacy|terms|impressum)"
     r"/?$|/(?:blog|books|podcast|people|faq)/[a-z0-9][a-z0-9_-]*\.html$"
     r"|/podcast/s[0-9]+e[0-9]+/[a-z0-9][a-z0-9_-]*/?$"
+    r"|/academy/(?:|agentic-engineering/|ai-engineering/|sessions/|bildungsgutschein/|faq/|privacy/|impressum/)"
     r"|/(?:wiki|courses)/[a-z0-9][a-z0-9_-]*/?$"
     r"|/events/[1-9][0-9]*/[a-z0-9][a-z0-9_-]*/?$"
 )
