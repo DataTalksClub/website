@@ -24,7 +24,7 @@ from dtc_cli.output import emit
 
 def _poll_device_flow(base_url: str, label: str) -> str:
     with httpx.Client(base_url=base_url, timeout=30.0, follow_redirects=False) as http:
-        start_resp = http.post("/api/auth/device/start", json={"label": label})
+        start_resp = http.post("/api/auth/device", json={"label": label})
         if start_resp.status_code >= 400:
             raise APIError(f"Device login start failed (HTTP {start_resp.status_code}).")
         start = start_resp.json()
@@ -40,7 +40,7 @@ def _poll_device_flow(base_url: str, label: str) -> str:
         deadline = time.monotonic() + expires_in
         while time.monotonic() < deadline:
             time.sleep(interval)
-            poll_resp = http.post("/api/auth/device/poll", json={"device_code": device_code})
+            poll_resp = http.post("/api/auth/device/token", json={"device_code": device_code})
             data = poll_resp.json()
             if poll_resp.status_code == 200 and data.get("token"):
                 return str(data["token"])

@@ -92,3 +92,40 @@ def test_events_export_registrants_csv(tmp_path) -> None:
     assert "a@example.com" in content
     assert "Acme" in content
     assert json.loads(result.output)["exported"] == 1
+
+
+def test_device_login_uses_server_routes() -> None:
+    """The CLI must hit the community_base device routes (slashless, /token to poll)."""
+    import httpx
+    from dtc_cli.commands import auth
+
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        if request.url.path == "/api/auth/device":
+            return httpx.Response(
+                200,
+                json={
+                    "device_code": "dc",
+                    "user_code": "ABCD-EFGH",
+                    "verification_uri": "https://x/device",
+                    "expires_in": 600,
+                    "interval": 1,
+                },
+            )
+        if request.url.path == "/api/auth/device/token":
+            return httpx.Response(200, json={"token": "tok"})
+        return httpx.Response(404)
+
+    real_client = httpx.Client
+    with (
+        patch.object(auth.time, "sleep", lambda _s: None),
+        patch.object(
+            auth.httpx,
+            "Client",
+            lambda **kw: real_client(transport=httpx.MockTransport(handler), **kw),
+        ),
+    ):
+        assert auth._poll_device_flow("https://x", "t") == "tok"
+    assert seen == ["/api/auth/device", "/api/auth/device/token"]
