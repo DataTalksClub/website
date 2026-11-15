@@ -1,6 +1,7 @@
 from django.core.exceptions import ImproperlyConfigured
 
 from core.bootstrap import require_environment
+from core.seo_cutover import noindex_for_apex_cutover
 
 from .base import *  # noqa: F403
 
@@ -28,8 +29,9 @@ ACCOUNT_CANONICAL_ORIGIN = CSRF_TRUSTED_ORIGINS[0]
 # (_docs/runbooks/production-hosting-and-dns-migration.md section 9.3).  This is the
 # application half of the contract; robots_header_value is the edge half.  Both flip
 # together, under review, at the stage-2 apex swap and never before, which is why
-# the safe value is written here rather than read from the environment.
-NOINDEX = True
+# the safe value remains the default. Set DTC_APEX_CUTOVER=true only during
+# the reviewed apex swap, together with the edge robots policy.
+NOINDEX = noindex_for_apex_cutover(os.getenv("DTC_APEX_CUTOVER"))  # noqa: F405
 DATABASES = {
     "default": database_from_environment(  # noqa: F405
         environment=RuntimeEnvironment.PRODUCTION,  # noqa: F405
