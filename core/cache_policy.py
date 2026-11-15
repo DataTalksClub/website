@@ -110,6 +110,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "courses.views.course.course_family_view": EDITORIAL_DETAIL,
     # -- Public: hubs, feeds, sitemaps (registered selectors only, via
     # QUERY_ALLOWLISTS).
+    "content.feeds.site_feed": PUBLIC_HUB_FEED,
     "content.public_views.collection_hub": PUBLIC_HUB_FEED,
     "content.public_views.event_detail": PUBLIC_HUB_FEED,
     "content.public_views.event_detail_without_slug": PUBLIC_HUB_FEED,
