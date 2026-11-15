@@ -253,6 +253,8 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     # typecheck must reach it.
     "scripts/measure_retirement_surfaces.py",
     "scripts/tests/test_measure_retirement_surfaces.py",
+    "scripts/cutover_parity_crawl.py",
+    "scripts/tests/test_cutover_parity_crawl.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",
