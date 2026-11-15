@@ -104,6 +104,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "content.review_views.faq_course": EDITORIAL_DETAIL,
     "content.review_views.faq_home": EDITORIAL_DETAIL,
     "content.review_views.slack": EDITORIAL_DETAIL,
+    "core.views.newsletter": EDITORIAL_DETAIL,
     "core.views.sponsors": EDITORIAL_DETAIL,
     "core.views.tour": EDITORIAL_DETAIL,
     "courses.views.course.course_family_view": EDITORIAL_DETAIL,

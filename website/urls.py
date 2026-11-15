@@ -59,6 +59,19 @@ urlpatterns = [
         name="section-sitemap",
     ),
     path("", core_views.home, name="home"),
+    path("newsletter", core_views.newsletter, name="newsletter"),
+    path(
+        "newsletter/",
+        public_views.permanent_public_redirect,
+        {"target": "/newsletter"},
+        name="newsletter-slash-redirect",
+    ),
+    path(
+        "newsletter.html",
+        public_views.permanent_public_redirect,
+        {"target": "/newsletter"},
+        name="newsletter-html-redirect",
+    ),
     path("sponsors", core_views.sponsors, name="sponsors"),
     path("tour", core_views.tour, name="tour"),
     # The media kit is not a page of this site. Keeping a second copy here
