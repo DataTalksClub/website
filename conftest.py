@@ -73,7 +73,6 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
         (re.compile(r"^/private/preview/$"), 400),
         (re.compile(r"^/deliberate-missing$"), 404),
     ),
-    "test_wiki_search_graph_and_removed_mount": ((re.compile(r"^/podwiki$"), 404),),
     # UX-02: the failed-toggle scenarios deliberately refuse the toggle POST
     # so the page's own failure status region is what the member sees.
     "test_a_rejected_privacy_save_reverts_and_says_what_still_holds": (
