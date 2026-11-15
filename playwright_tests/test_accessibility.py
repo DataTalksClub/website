@@ -889,8 +889,8 @@ def _no_javascript_public_policy_issues(
 
     policy_ids = tuple(NO_JAVASCRIPT_PUBLIC_STATE_IDS)
     issues: list[str] = []
-    if len(policy_ids) != 26:
-        issues.append(f"policy must contain exactly 26 IDs, found {len(policy_ids)}")
+    if len(policy_ids) != 27:
+        issues.append(f"policy must contain exactly 27 IDs, found {len(policy_ids)}")
     duplicate_policy_ids = sorted(
         identifier for identifier in set(policy_ids) if policy_ids.count(identifier) > 1
     )
