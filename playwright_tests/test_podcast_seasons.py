@@ -535,7 +535,7 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
 
 
 @pytest.mark.core
-def test_genai_pilots_has_only_the_hierarchical_public_episode_url(page: Page, live_server) -> None:
+def test_genai_pilots_html_alias_reaches_hierarchical_episode(page: Page, live_server) -> None:
     origin = live_server.url
     canonical_path = "/podcast/s24e04/from-genai-pilots-to-production"
 
@@ -552,8 +552,16 @@ def test_genai_pilots_has_only_the_hierarchical_public_episode_url(page: Page, l
     )
 
     legacy = "/podcast/s24e04-from-genai-pilots-to-production.html"
+    query = "utm_source=legacy%2Btest&x=a%2Fb&blank="
+    for method in (page.request.get, page.request.head):
+        redirect = method(f"{origin}{legacy}?{query}", max_redirects=0)
+        assert redirect.status == 301
+        assert redirect.headers["location"] == f"{canonical_path}?{query}"
+    final = page.goto(f"{origin}{legacy}?{query}", wait_until="networkidle")
+    assert final is not None and final.status == 200
+    expect(page).to_have_url(f"{origin}{canonical_path}?{query}")
     clean_legacy = legacy.removesuffix(".html")
-    for unavailable_path in (legacy, clean_legacy, f"{clean_legacy}/"):
+    for unavailable_path in (clean_legacy, f"{clean_legacy}/"):
         for method in (page.request.get, page.request.head):
             unavailable = method(f"{origin}{unavailable_path}", max_redirects=0)
             assert unavailable.status == 404
