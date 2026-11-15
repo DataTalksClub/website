@@ -70,6 +70,12 @@ class EditorialRouteMigrationContractTests(TestCase):
 
     def test_seo_policy_has_named_owners_baseline_windows_and_exact_thresholds(self) -> None:
         self.assertEqual(self.policy["schema_version"], 1)
+        self.assertEqual(self.policy["manifest"]["required_finals"], 794)
+        self.assertEqual(self.policy["manifest"]["required_aliases"], 1586)
+        self.assertEqual(
+            self.policy["manifest"]["required_content_sha256"],
+            "5a115e21f0f0974b69068db0f52e3ae616793f6ffc58e1aef8b72a06ff2f1813",
+        )
         self.assertEqual(
             self.policy["owner"],
             {
