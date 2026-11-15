@@ -1013,3 +1013,43 @@ class HomeQueryBudgetTests(TestCase):
 
         self.assertEqual(len(large), len(small))
         self.assertLessEqual(len(small), 60)
+
+
+class AcademyLinkTests(TestCase):
+    """The public homepage and footer link to the Academy under /academy/.
+
+    Edge proxy/rewrites for /academy/ are handled outside this repo, so the
+    homepage and shared footer link directly to /academy/ and /academy/sessions/
+    with the Title Case wording from the Academy copy bank.
+    """
+
+    ACADEMY_LINKS = (
+        ("/academy/", "DataTalks.Club Academy"),
+        ("/academy/sessions/", "Hireable With AI: Free Sessions"),
+    )
+
+    def test_home_band_and_footer_link_to_academy(self) -> None:
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        band = re.search(r'<p class="band-more academy-links"[^>]*>(.*?)</p>', body, re.S)
+        self.assertIsNotNone(band, "homepage is missing the Academy links row")
+        footer = re.search(
+            r'<nav class="site-footer-legal site-footer-academy"[^>]*>(.*?)</nav>',
+            body,
+            re.S,
+        )
+        self.assertIsNotNone(footer, "footer is missing the Academy links row")
+        for href, label in self.ACADEMY_LINKS:
+            self.assertRegex(
+                band.group(1),
+                rf'href="{re.escape(href)}">{re.escape(label)} →</a>',
+            )
+            self.assertRegex(
+                footer.group(1),
+                rf'href="{re.escape(href)}">\s*{re.escape(label)}\s*</a>',
+            )
+
+    def test_academy_is_not_redirected_from_main_domain(self) -> None:
+        response = self.client.get("/academy/")
+        self.assertNotIn(response.status_code, (301, 308))
