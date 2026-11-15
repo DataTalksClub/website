@@ -19,8 +19,7 @@ def emit(data: Any, fmt: str = "json", *, columns: list[str] | None = None) -> N
         str_rows = []
         for row in data:
             str_row = {
-                col: str(row.get(col, "") if row.get(col) is not None else "")
-                for col in columns
+                col: str(row.get(col, "") if row.get(col) is not None else "") for col in columns
             }
             for col in columns:
                 widths[col] = max(widths[col], len(str_row[col]))

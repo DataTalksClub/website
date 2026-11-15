@@ -42,7 +42,9 @@ class EventAdminAPITests(TestCase):
             user=self.operator,
             created_by=self.operator,
         )
-        self.principal.permissions.set(self.operator.groups.first().permissions.all())
+        group = self.operator.groups.first()
+        assert group is not None
+        self.principal.permissions.set(group.permissions.all())
         scopes = [
             "events.manage.list",
             "events.manage.detail",
@@ -72,7 +74,7 @@ class EventAdminAPITests(TestCase):
             created_by=self.operator,
         )
         self.token = generated.raw
-        self.auth = {"HTTP_AUTHORIZATION": f"Bearer {self.token}"}
+        self.auth_headers = {"Authorization": f"Bearer {self.token}"}
         self.client = Client()
 
     def test_full_event_lifecycle_speakers_banner_registrants_and_reminders(self) -> None:
@@ -83,7 +85,7 @@ class EventAdminAPITests(TestCase):
                 {"short": "alexeygrigorev", "name": "Alexey Grigorev", "title": "Founder"}
             ),
             content_type="application/json",
-            **self.auth,
+            headers=self.auth_headers,
         )
         self.assertEqual(resp.status_code, 201, resp.content)
         self.assertEqual(resp.json()["speaker"]["short"], "alexeygrigorev")
@@ -112,7 +114,7 @@ class EventAdminAPITests(TestCase):
                 }
             ),
             content_type="application/json",
-            **self.auth,
+            headers=self.auth_headers,
         )
         self.assertEqual(resp.status_code, 201, resp.content)
         event_data = resp.json()["event"]
@@ -134,7 +136,7 @@ class EventAdminAPITests(TestCase):
                 }
             ),
             content_type="application/json",
-            **self.auth,
+            headers=self.auth_headers,
         )
         self.assertEqual(resp.status_code, 200, resp.content)
         banner_resp = self.client.get(f"/events/{public_id}/banner")
@@ -158,7 +160,7 @@ class EventAdminAPITests(TestCase):
         # 5. Export registrants
         export_resp = self.client.get(
             f"/api/v1/admin/events/{event_uuid}/registrants",
-            **self.auth,
+            headers=self.auth_headers,
         )
         self.assertEqual(export_resp.status_code, 200)
         items = export_resp.json()["items"]
@@ -173,7 +175,7 @@ class EventAdminAPITests(TestCase):
             f"/api/v1/admin/events/{event_uuid}/attendance",
             data=json.dumps({"emails": ["dev+test@dtcdev.click"], "status": "attended"}),
             content_type="application/json",
-            **self.auth,
+            headers=self.auth_headers,
         )
         self.assertEqual(att_resp.status_code, 200)
         self.assertEqual(att_resp.json()["updated"], 1)
@@ -183,7 +185,7 @@ class EventAdminAPITests(TestCase):
             f"/api/v1/admin/events/{event_uuid}/message",
             data=json.dumps({"subject": "Hi", "body": "Body", "dry_run": True}),
             content_type="application/json",
-            **self.auth,
+            headers=self.auth_headers,
         )
         self.assertEqual(msg_dry.status_code, 200)
         self.assertEqual(msg_dry.json()["recipient_count"], 1)
@@ -194,7 +196,7 @@ class EventAdminAPITests(TestCase):
                 f"/api/v1/admin/events/{event_uuid}/message",
                 data=json.dumps({"subject": "Hi", "body": "Body", "dry_run": False}),
                 content_type="application/json",
-                **self.auth,
+                headers=self.auth_headers,
             )
             self.assertEqual(msg_live.status_code, 200)
             self.assertEqual(msg_live.json()["sent"], 1)
@@ -205,7 +207,7 @@ class EventAdminAPITests(TestCase):
             f"/api/v1/admin/events/{event_uuid}/reminders",
             data=json.dumps({"reminder_intervals": "24h,20m"}),
             content_type="application/json",
-            **self.auth,
+            headers=self.auth_headers,
         )
         self.assertEqual(rem_resp.status_code, 200)
         self.assertEqual(rem_resp.json()["reminder_intervals"], ["24h", "20m"])
@@ -215,7 +217,7 @@ class EventAdminAPITests(TestCase):
             f"/api/v1/admin/events/{event_uuid}/cancel",
             data=json.dumps({"reason": "Test complete"}),
             content_type="application/json",
-            **self.auth,
+            headers=self.auth_headers,
         )
         self.assertEqual(cancel_resp.status_code, 200)
         self.assertEqual(cancel_resp.json()["event"]["status"], "cancelled")
@@ -235,7 +237,7 @@ class EventAdminAPITests(TestCase):
                 }
             ),
             content_type="application/json",
-            **self.auth,
+            headers=self.auth_headers,
         )
         self.assertEqual(resp.status_code, 201)
         event_uuid = resp.json()["event"]["id"]
@@ -245,7 +247,7 @@ class EventAdminAPITests(TestCase):
             f"/api/v1/admin/events/{event_uuid}/publish",
             data="{}",
             content_type="application/json",
-            **self.auth,
+            headers=self.auth_headers,
         )
         self.assertEqual(pub_resp.status_code, 200, pub_resp.content)
         self.assertEqual(pub_resp.json()["event"]["status"], "upcoming")
@@ -254,7 +256,7 @@ class EventAdminAPITests(TestCase):
             f"/api/v1/admin/events/{event_uuid}/complete",
             data=json.dumps({"recording_url": "https://youtube.com/watch?v=abc"}),
             content_type="application/json",
-            **self.auth,
+            headers=self.auth_headers,
         )
         self.assertEqual(comp_resp.status_code, 200)
         self.assertEqual(comp_resp.json()["event"]["status"], "completed")

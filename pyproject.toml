@@ -313,6 +313,7 @@ django_settings_module = "website.settings.test"
 DJANGO_SETTINGS_MODULE = "website.settings.test"
 python_files = ["test_*.py"]
 pythonpath = ["."]
+norecursedirs = [".*", "build", "dist", "dtc_cli"]
 addopts = "--strict-markers -p no:cacheprovider -p test_support.root_pytest_guard"
 markers = [
     "accessibility: deterministic WCAG A/AA route and state coverage",
