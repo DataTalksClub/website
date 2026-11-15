@@ -253,6 +253,9 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     # typecheck must reach it.
     "scripts/measure_retirement_surfaces.py",
     "scripts/tests/test_measure_retirement_surfaces.py",
+    # Intake 1a849b81: the banner generator that renders the event banners and
+    # the wiki OG image in the site design system.
+    "scripts/banners/render.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",

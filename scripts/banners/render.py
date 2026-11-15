@@ -94,11 +94,13 @@ def page_html(spec: dict) -> str:
     if spec.get("person"):
         footer = (
             f'<footer><div class="person"><b>{esc(spec["person"])}</b>'
-            f'<span>{esc(spec["role"])}</span></div>'
+            f"<span>{esc(spec['role'])}</span></div>"
             f'<div class="when"><i>{esc(spec["date"])}</i><b>{esc(spec["time"])}</b>'
-            f'<span>{esc(spec["note"])}</span></div></footer>'
+            f"<span>{esc(spec['note'])}</span></div></footer>"
         )
-    badge = "" if spec["badge"] == spec["title"] else f'<div class="badge">{esc(spec["badge"])}</div>'
+    badge = (
+        "" if spec["badge"] == spec["title"] else f'<div class="badge">{esc(spec["badge"])}</div>'
+    )
     return (
         f"<!doctype html><meta charset=utf-8><style>{css}</style><div class=blob></div>"
         f'<header><img class="logo" alt="DataTalks.Club" src="data:image/svg+xml;base64,{logo}">'
@@ -110,7 +112,9 @@ def page_html(spec: dict) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--out-dir", type=Path, help="write flat PNG copies here instead of the repo paths")
+    parser.add_argument(
+        "--out-dir", type=Path, help="write flat PNG copies here instead of the repo paths"
+    )
     args = parser.parse_args()
     specs = json.loads(SPECS.read_text())
     with sync_playwright() as playwright:
