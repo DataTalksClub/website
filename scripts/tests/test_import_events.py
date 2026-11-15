@@ -689,3 +689,62 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
         self.assertEqual(report["duplicate_total"], 0)
         self.assertEqual(report["removed_total"], 0)
         self.assertTrue(Event.objects.filter(pk=created.id).exists())
+
+
+class EventsYamlImportTests(TestCase):
+    """Importing new events from _data/events.yaml without duplicating existing rows."""
+
+    def test_dry_run_and_apply_and_replay(self) -> None:
+        from community_base.events.models import Event
+
+        from scripts.prod.import_events import import_events_yaml
+
+        before = Event.objects.count()
+        with tempfile.TemporaryDirectory() as tmp:
+            yaml_path = Path(tmp) / "events.yaml"
+            yaml_path.write_text(
+                "- time: 2099-11-16 17:00:00\n"
+                "  title: 'Future Luma Webinar'\n"
+                "  speakers: [alexeygrigorev]\n"
+                "  type: webinar\n"
+                "  link: https://luma.com/future-webinar\n"
+                "- time: 2026-01-10 17:00:00\n"
+                "  title: 'Past Podcast Episode'\n"
+                "  speakers: [janedoe]\n"
+                "  type: podcast\n"
+                "  link: https://luma.com/past-podcast\n"
+                "  youtube: https://www.youtube.com/watch?v=abc123\n"
+                "  season: 12\n"
+                "  episode: 5\n",
+                encoding="utf-8",
+            )
+
+            dry = import_events_yaml(path=yaml_path, revision="abc123", apply=False)
+            self.assertFalse(dry["applied"])
+            self.assertEqual(dry["created_total"], 2)
+            self.assertEqual(Event.objects.count(), before)
+
+            applied = import_events_yaml(path=yaml_path, revision="abc123", apply=True)
+            self.assertTrue(applied["applied"])
+            self.assertEqual(applied["created_total"], 2)
+            self.assertEqual(Event.objects.count(), before + 2)
+
+            upcoming = Event.objects.get(title="Future Luma Webinar")
+            self.assertEqual(upcoming.status, "upcoming")
+            self.assertEqual(
+                upcoming.materials,
+                [{"label": "Register on Luma", "url": "https://luma.com/future-webinar"}],
+            )
+            self.assertEqual(
+                list(upcoming.hosts.values_list("external_ref", flat=True)),
+                ["alexeygrigorev"],
+            )
+
+            past = Event.objects.get(title="Past Podcast Episode")
+            self.assertEqual(past.status, "completed")
+            self.assertEqual(len(past.materials), 2)
+
+            replay = import_events_yaml(path=yaml_path, revision="def456", apply=True)
+            self.assertEqual(replay["created_total"], 0)
+            self.assertEqual(replay["existing_event_total"], 2)
+            self.assertEqual(Event.objects.count(), before + 2)
