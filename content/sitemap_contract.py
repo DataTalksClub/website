@@ -6,6 +6,7 @@ from xml.etree import ElementTree
 PRODUCTION_ORIGIN = "https://datatalks.club"
 SITEMAP_NAMESPACE = "http://www.sitemaps.org/schemas/sitemap/0.9"
 SITEMAP_SECTIONS = (
+    "academy",
     "main",
     "blog",
     "podcast",

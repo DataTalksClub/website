@@ -91,7 +91,7 @@ def test_production_robots_and_sitemap_request_matrix(page: Page, live_server) -
     assert sitemap.headers.get("x-robots-tag") is None
     assert sitemap.headers.get("location") is None
     assert validate_sitemap_index(sitemap.body()) == EXPECTED_SITEMAP_LOCATIONS
-    assert len(EXPECTED_SITEMAP_LOCATIONS) == 10
+    assert len(EXPECTED_SITEMAP_LOCATIONS) == 11
     assert not any(marker in sitemap.body() for marker in FORBIDDEN_MARKERS)
 
     sitemap_head = page.request.head(f"{origin}/sitemap.xml", max_redirects=0)

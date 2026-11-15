@@ -1018,9 +1018,8 @@ class HomeQueryBudgetTests(TestCase):
 class AcademyLinkTests(TestCase):
     """The public homepage and footer link to the Academy under /academy/.
 
-    Edge proxy/rewrites for /academy/ are handled outside this repo, so the
-    homepage and shared footer link directly to /academy/ and /academy/sessions/
-    with the Title Case wording from the Academy copy bank.
+    Academy is a separate Django app. Homepage and shared footer links
+    resolve locally against database-owned published Academy content.
     """
 
     ACADEMY_LINKS = (
@@ -1050,6 +1049,16 @@ class AcademyLinkTests(TestCase):
                 rf'href="{re.escape(href)}">\s*{re.escape(label)}\s*</a>',
             )
 
-    def test_academy_is_not_redirected_from_main_domain(self) -> None:
+    def test_academy_is_served_by_its_django_app(self) -> None:
+        from academy.models import PublishedResource
+
+        PublishedResource.objects.create(
+            path="",
+            content=b"Academy published home",
+            content_type="text/html",
+            sha256="a" * 64,
+            source_commit="b" * 40,
+        )
         response = self.client.get("/academy/")
-        self.assertNotIn(response.status_code, (301, 308))
+        self.assertContains(response, "Academy published home")
+        self.assertEqual(response.resolver_match.app_name, "academy")
