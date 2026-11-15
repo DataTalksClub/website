@@ -1033,13 +1033,13 @@ class AcademyLinkTests(TestCase):
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
         band = re.search(r'<p class="band-more academy-links"[^>]*>(.*?)</p>', body, re.S)
-        self.assertIsNotNone(band, "homepage is missing the Academy links row")
+        assert band is not None, "homepage is missing the Academy links row"
         footer = re.search(
             r'<nav class="site-footer-legal site-footer-academy"[^>]*>(.*?)</nav>',
             body,
             re.S,
         )
-        self.assertIsNotNone(footer, "footer is missing the Academy links row")
+        assert footer is not None, "footer is missing the Academy links row"
         for href, label in self.ACADEMY_LINKS:
             self.assertRegex(
                 band.group(1),
