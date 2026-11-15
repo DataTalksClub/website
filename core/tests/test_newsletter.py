@@ -129,9 +129,7 @@ class NewsletterSignupTests(TestCase):
         mock_request.assert_not_called()
 
     @patch("community_base.mail.relay.RequestsTransport.request")
-    def test_invalid_email_rejected_locally_without_calling_relay(
-        self, mock_request: Mock
-    ) -> None:
+    def test_invalid_email_rejected_locally_without_calling_relay(self, mock_request: Mock) -> None:
         for bad_email in ("", "   ", "not-an-email"):
             with self.subTest(bad_email=bad_email):
                 response = self.client.post(

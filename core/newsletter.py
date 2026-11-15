@@ -34,8 +34,7 @@ MESSAGES: dict[str, str] = {
         f"Please try again, or email {NEWSLETTER_CONTACT_EMAIL}."
     ),
     "timeout": (
-        "The request took too long. "
-        f"Please try again, or email {NEWSLETTER_CONTACT_EMAIL}."
+        f"The request took too long. Please try again, or email {NEWSLETTER_CONTACT_EMAIL}."
     ),
 }
 
@@ -55,11 +54,7 @@ def map_relay_outcome(status_code: int, body: object) -> NewsletterSubscribeResu
 
     if status_code == 200 and isinstance(body, dict):
         relay_status = body.get("status")
-        if (
-            isinstance(relay_status, str)
-            and relay_status in MESSAGES
-            and relay_status != "failed"
-        ):
+        if isinstance(relay_status, str) and relay_status in MESSAGES and relay_status != "failed":
             return NewsletterSubscribeResult(
                 ok=True,
                 status=relay_status,
