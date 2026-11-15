@@ -12,7 +12,7 @@ _PUBLIC_PAGE_QUERY = re.compile(r"page=([1-9][0-9]{0,2})\Z", re.ASCII)
 # imported from `content.pagination` so the canonical validator stays a leaf with no
 # application dependency; `content/tests/test_public_pagination.py` pins the two lists
 # to each other.
-_PUBLIC_PAGINATION_PATHS = frozenset({"/blog", "/books", "/events/past", "/wiki"})
+_PUBLIC_PAGINATION_PATHS = frozenset({"/blog", "/books", "/events/past", "/people", "/wiki"})
 
 
 def _is_normalized_podcast_season(path: str, query: str) -> bool:

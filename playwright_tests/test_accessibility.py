@@ -172,6 +172,7 @@ def _public_rendered_states(
         PublicRenderedState("public.blog-hub", "blog", "Latest Articles"),
         PublicRenderedState("public.podcast-hub", "podcast", "Podcast"),
         PublicRenderedState("public.books-hub", "books", "Book of the Week"),
+        PublicRenderedState("public.people-hub", "people", "All people"),
         # The design system events index (issue #179, mockup 6c) leads with the mockup's
         # headline; "Events" survives only as the navigation label and the page title.
         PublicRenderedState("public.events-hub", "events", "Something happening every week"),
@@ -336,6 +337,7 @@ def accessibility_environment() -> AccessibilityEnvironment:
         "blog": Surface("/blog"),
         "podcast": Surface("/podcast"),
         "books": Surface("/books"),
+        "people": Surface("/people"),
         "events": Surface("/events"),
         "courses": Surface("/courses"),
         "wiki": Surface("/wiki"),
@@ -859,14 +861,10 @@ def _public_scenario(recorder: ScenarioRecorder) -> set[str]:
         recorder.scan(state.identifier, state.surface, text=state.marker)
 
     for state, path in (
-        ("public.people-removed", "/people"),
-        ("public.people-slash-removed", "/people/"),
-        ("public.people-html-removed", "/people.html"),
+        ("public.people-slash-redirect", "/people/"),
+        ("public.people-html-redirect", "/people.html"),
     ):
-        recorder.contract(state, path, 404)
-        response = recorder.page.goto(f"{recorder.live_server.url}{path}")
-        assert response is not None and response.status == 404
-        expect(recorder.page.get_by_role("heading", name="Page not found")).to_be_visible()
+        recorder.contract(state, path, 301, location="/people")
 
     redirect = recorder.page.request.get(
         f"{recorder.live_server.url}/articles.html?source=accessibility",
@@ -891,8 +889,8 @@ def _no_javascript_public_policy_issues(
 
     policy_ids = tuple(NO_JAVASCRIPT_PUBLIC_STATE_IDS)
     issues: list[str] = []
-    if len(policy_ids) != 26:
-        issues.append(f"policy must contain exactly 26 IDs, found {len(policy_ids)}")
+    if len(policy_ids) != 27:
+        issues.append(f"policy must contain exactly 27 IDs, found {len(policy_ids)}")
     duplicate_policy_ids = sorted(
         identifier for identifier in set(policy_ids) if policy_ids.count(identifier) > 1
     )

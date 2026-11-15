@@ -130,6 +130,16 @@ urlpatterns = [
     path("slack", review_views.slack, name="slack"),
     path("slack.html", public_views.permanent_public_redirect, {"target": "/slack"}),
     path(
+        "slack/guidelines",
+        public_views.permanent_public_redirect,
+        {"target": "/slack"},
+    ),
+    path(
+        "slack/guidelines/",
+        public_views.permanent_public_redirect,
+        {"target": "/slack"},
+    ),
+    path(
         "slack/guidelines.html",
         public_views.permanent_public_redirect,
         {"target": "/slack"},
@@ -201,6 +211,11 @@ urlpatterns = [
     ),
     path("cadmin/", include("cadmin.legacy_urls")),
     path("courses", course_list.course_list, name="course_list"),
+    path(
+        "courses.html",
+        public_views.permanent_public_redirect,
+        {"target": "/courses"},
+    ),
     path(
         "courses/",
         public_views.permanent_public_redirect,

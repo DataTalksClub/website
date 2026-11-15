@@ -326,15 +326,31 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
     book_target = catalogue.books()[0]["public_path"]
     book_alias = book_target.removesuffix(".html")
     aliases = {
+        "/articles": "/blog",
+        "/articles/": "/blog",
         "/articles.html": "/blog",
         "/blog/": "/blog",
         "/podcast.html": "/podcast",
         "/podcast/": "/podcast",
         "/books.html": "/books",
         "/books/": "/books",
+        "/people/": "/people",
+        "/people.html": "/people",
         "/events.html": "/events",
         "/events/": "/events",
+        "/courses.html": "/courses",
         "/courses/": "/courses",
+        "/slack/guidelines": "/slack",
+        "/slack/guidelines/": "/slack",
+        "/slack/guidelines.html": "/slack",
+        "/tools": "/wiki",
+        "/tools/": "/wiki",
+        "/tools/modelstore.html": "/wiki",
+        "/tools/obsei.html": "/wiki",
+        "/conferences/2021-feb.html": "/events/past",
+        "/conferences/2021-summer-marathon.html": "/events/past",
+        "/support": "/slack",
+        "/support/": "/slack",
         "/wiki/": "/wiki",
         article_alias: article_target,
         f"{article_alias}/": article_target,
@@ -364,7 +380,11 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
             if source in {"/events.html", "/events/"} and query == "filter=past"
             else target
         )
-        expected_query = "" if expected_target == "/events/past" else query
+        expected_query = (
+            ""
+            if source in {"/events.html", "/events/"} and expected_target == "/events/past"
+            else query
+        )
         assert response.status == 301
         expected_location = (
             f"{expected_target}?{expected_query}" if expected_query else expected_target
@@ -380,11 +400,6 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
         expect(page).to_have_url(expected_url)
         assert navigation.request.redirected_from is not None
         assert navigation.request.redirected_from.redirected_from is None
-
-    for path in ("/people", "/people/", "/people.html"):
-        response = page.request.get(f"{origin}{path}", max_redirects=0)
-        assert response.status == 404
-        assert "location" not in response.headers
 
 
 def test_public_pages_remain_meaningful_without_javascript(
