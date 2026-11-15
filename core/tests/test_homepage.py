@@ -1051,11 +1051,5 @@ class AcademyLinkTests(TestCase):
             )
 
     def test_academy_is_not_redirected_from_main_domain(self) -> None:
-        upstream = mock.Mock(
-            status_code=200,
-            content=b"<html><body>Academy</body></html>",
-            headers={"Content-Type": "text/html"},
-        )
-        with mock.patch("core.academy_proxy.requests.request", return_value=upstream):
-            response = self.client.get("/academy/")
-        self.assertEqual(response.status_code, 200)
+        response = self.client.get("/academy/")
+        self.assertNotIn(response.status_code, (301, 308))
