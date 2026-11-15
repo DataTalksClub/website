@@ -173,3 +173,19 @@ class PublishedEventRecordTests(TestCase):
         Event.objects.all().delete()
 
         self.assertEqual(published_event_records(), ())
+
+    def test_display_tags_round_trip_without_metadata_prefixes(self) -> None:
+        from events.identity import decode_display_tags, encode_event_tags
+
+        self.event.tags = encode_event_tags(
+            event_type="webinar",
+            season=24,
+            episode=6,
+            display_tags=["Академия", "  Академия  ", "dtc-type:ignored", ""],
+        )
+        self.event.save()
+
+        self.assertEqual(decode_display_tags(self.event.tags), ("Академия",))
+        record = published_event_record(self.event.content_id)
+        assert record is not None
+        self.assertEqual(record["tags"], ["Академия"])

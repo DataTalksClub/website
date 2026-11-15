@@ -66,7 +66,12 @@ from django.db import transaction
 
 from content.models import EventSource
 
-from .identity import decode_event_tags, encode_event_tags, package_kind_for_type
+from .identity import (
+    decode_display_tags,
+    decode_event_tags,
+    encode_event_tags,
+    package_kind_for_type,
+)
 
 #: The record shape this module reads. Version 2 is the reviewed-description
 #: shape: every record carries ``description_html``/``description_text`` and a
@@ -416,7 +421,10 @@ def _apply(event: Event, record: ReviewedEventContent | NewEventContent) -> None
     event.description = record.description_text
     event.kind = package_kind_for_type(record.type)
     event.tags = encode_event_tags(
-        event_type=record.type, season=record.season, episode=record.episode
+        event_type=record.type,
+        season=record.season,
+        episode=record.episode,
+        display_tags=decode_display_tags(event.tags),
     )
     event.materials = [{"label": link.label, "url": link.url} for link in record.links]
     event.save(
