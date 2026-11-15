@@ -9,10 +9,14 @@ database rows directly.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
+from datetime import UTC, date, datetime, time
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
+from zoneinfo import ZoneInfo
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -592,6 +596,227 @@ def reconcile_duplicate_luma_identities(
     )
 
 
+LEGACY_EVENTS_YAML_REPOSITORY = "DataTalksClub/datatalksclub.github.io"
+LEGACY_EVENTS_YAML_PATH = "_data/events.yaml"
+
+
+def _parse_events_yaml_timestamp(value: Any) -> datetime:
+    berlin = ZoneInfo("Europe/Berlin")
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, date):
+        parsed = datetime.combine(value, time.min)
+    elif isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.strip())
+        except ValueError as error:
+            raise EventImportError("events_yaml_timestamp_invalid") from error
+    else:
+        raise EventImportError("events_yaml_timestamp_invalid")
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=berlin)
+    return parsed.astimezone(UTC)
+
+
+def _events_yaml_materials(entry: dict[str, Any]) -> list[dict[str, str]]:
+    materials: list[dict[str, str]] = []
+    candidates = (
+        (entry.get("link"), None),
+        (entry.get("youtube") or entry.get("Youtube"), "Watch on YouTube"),
+        (entry.get("anchor"), "Listen on Anchor"),
+    )
+    for raw_url, fixed_label in candidates:
+        if not isinstance(raw_url, str):
+            continue
+        url = raw_url.strip()
+        if not url:
+            continue
+        split = urlsplit(url)
+        if split.scheme not in {"http", "https"} or not split.netloc:
+            continue
+        if fixed_label is not None:
+            label = fixed_label
+        elif "luma.com" in split.netloc or "lu.ma" in split.netloc:
+            label = "Register on Luma"
+        else:
+            label = "Event link"
+        materials.append({"label": label, "url": url})
+    return materials
+
+
+def import_events_yaml(
+    *,
+    path: Path,
+    revision: str = "HEAD",
+    apply: bool = True,
+) -> dict[str, Any]:
+    """Import new events from a legacy ``_data/events.yaml`` file.
+
+    Existing events (matched by ``EventSource`` or calendar date + exact
+    normalized title) are skipped without modification so reviewed descriptions
+    and provider-linked rows are never overwritten.
+    """
+
+    import yaml
+    from community_base.events.models import EventHost, Host
+    from django.db import transaction
+    from django.utils import timezone
+
+    from content.models import EventSource, SyncedDocument
+    from events.identity import EventIdentityError, canonical_detail_path, create_event_identity
+    from events.slugs import event_title_slug
+    from scripts.prod.registrant_import import (
+        EXISTING_EVENT_AMBIGUOUS,
+        EXISTING_EVENT_MATCHED,
+        ExistingEventIndex,
+    )
+
+    try:
+        raw_bytes = path.read_bytes()
+        entries = yaml.safe_load(raw_bytes.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as error:
+        raise EventImportError("events_yaml_unreadable") from error
+
+    if not isinstance(entries, list):
+        raise EventImportError("events_yaml_invalid")
+
+    checksum = hashlib.sha256(raw_bytes).hexdigest()
+    berlin = ZoneInfo("Europe/Berlin")
+    now = timezone.now()
+
+    people_names = dict(
+        SyncedDocument.objects.filter(
+            source__slug="dtc-main-site",
+            content_kind="people",
+        ).values_list("slug", "title")
+    )
+
+    def _apply() -> dict[str, Any]:
+        index = ExistingEventIndex()
+        created: list[dict[str, Any]] = []
+        existing_count = 0
+        ambiguous: list[dict[str, Any]] = []
+        skipped_invalid = 0
+
+        for entry in entries:
+            if not isinstance(entry, dict):
+                skipped_invalid += 1
+                continue
+            title = str(entry.get("title") or "").strip()
+            if not title or entry.get("time") is None:
+                skipped_invalid += 1
+                continue
+
+            starts_at = _parse_events_yaml_timestamp(entry["time"])
+            ends_at = _parse_events_yaml_timestamp(entry["end"]) if entry.get("end") else None
+            local_date = starts_at.astimezone(berlin).date().isoformat()
+            source_key = f"{local_date}-{event_title_slug(title)}"
+
+            if EventSource.objects.filter(
+                repository=LEGACY_EVENTS_YAML_REPOSITORY,
+                source_key=source_key,
+            ).exists():
+                existing_count += 1
+                continue
+
+            match = index.match(title=title, start_at=starts_at.isoformat())
+            if match.outcome == EXISTING_EVENT_MATCHED:
+                existing_count += 1
+                continue
+            if match.outcome == EXISTING_EVENT_AMBIGUOUS:
+                ambiguous.append({"title": title, "date": local_date})
+                continue
+
+            event_type = str(entry.get("type") or "").strip() or None
+            season = int(entry["season"]) if entry.get("season") is not None else None
+            episode = int(entry["episode"]) if entry.get("episode") is not None else None
+            status = "upcoming" if starts_at >= now else "completed"
+            materials = _events_yaml_materials(entry)
+            speaker_keys = [
+                str(s).strip() for s in (entry.get("speakers") or []) if str(s).strip()
+            ]
+
+            if not apply:
+                created.append(
+                    {
+                        "title": title,
+                        "starts_at": starts_at.isoformat(),
+                        "status": status,
+                        "public_id": None,
+                        "canonical_path": None,
+                        "dry_run": True,
+                    }
+                )
+                continue
+
+            try:
+                event = create_event_identity(
+                    title=title,
+                    starts_at=starts_at,
+                    ends_at=ends_at,
+                    source_repository=LEGACY_EVENTS_YAML_REPOSITORY,
+                    source_revision=revision,
+                    source_key=source_key,
+                    source_path=LEGACY_EVENTS_YAML_PATH,
+                    source_checksum=checksum,
+                    event_type=event_type,
+                    season=season,
+                    episode=episode,
+                    status=status,
+                )
+            except EventIdentityError as error:
+                raise EventImportError("events_yaml_identity_invalid") from error
+
+            event.timezone = "Europe/Berlin"
+            event.materials = materials
+            event.save(update_fields=["timezone", "materials"])
+
+            for order, speaker_key in enumerate(speaker_keys):
+                speaker_name = people_names.get(speaker_key) or speaker_key
+                host, _ = Host.objects.get_or_create(
+                    slug=speaker_key,
+                    defaults={
+                        "name": speaker_name,
+                        "kind": "speaker",
+                        "external_ref": speaker_key,
+                    },
+                )
+                EventHost.objects.get_or_create(
+                    event=event,
+                    host=host,
+                    role="speaker",
+                    defaults={"position": order},
+                )
+
+            created.append(
+                {
+                    "title": title,
+                    "starts_at": starts_at.isoformat(),
+                    "status": status,
+                    "public_id": event.public_id,
+                    "canonical_path": canonical_detail_path(event.content_id),
+                }
+            )
+
+        return {
+            "source": str(path),
+            "revision": revision,
+            "total": len(entries),
+            "existing_event_total": existing_count,
+            "ambiguous_total": len(ambiguous),
+            "ambiguous_events": ambiguous,
+            "skipped_invalid_total": skipped_invalid,
+            "created_total": len(created),
+            "created_events": created,
+            "applied": apply,
+        }
+
+    if apply:
+        with transaction.atomic():
+            return _apply()
+    return _apply()
+
+
 def run(
     *,
     identity_manifest: Path | None = None,
@@ -729,6 +954,20 @@ def _parser() -> argparse.ArgumentParser:
             "Any duplicate with dependent rows is reported and kept."
         ),
     )
+    parser.add_argument(
+        "--events-yaml",
+        type=Path,
+        default=None,
+        help=(
+            "Import new events from a legacy _data/events.yaml file. "
+            "Existing events are skipped without modification."
+        ),
+    )
+    parser.add_argument(
+        "--events-yaml-revision",
+        default="HEAD",
+        help="Git revision to record on EventSource rows created from --events-yaml.",
+    )
     return parser
 
 
@@ -736,15 +975,24 @@ def main(argv: list[str] | None = None) -> int:
     try:
         parser = _parser()
         args = parser.parse_args(argv)
-        if args.dry_run and not args.discover_new_events_only:
+        if args.dry_run and not (args.discover_new_events_only or args.events_yaml is not None):
             # The complete content import is transactional; discovery is the
             # only mode with a useful read-only plan.
-            parser.error("--dry-run applies to --discover-new-events-only")
+            parser.error("--dry-run applies to --discover-new-events-only or --events-yaml")
         configure_target(parser, args)
-        if args.report_duplicate_identities or args.remove_duplicate_identities:
+        report: dict[str, Any]
+        if args.events_yaml is not None:
+            report = {
+                "events_yaml": import_events_yaml(
+                    path=args.events_yaml.resolve(),
+                    revision=args.events_yaml_revision,
+                    apply=not args.dry_run,
+                )
+            }
+        elif args.report_duplicate_identities or args.remove_duplicate_identities:
             if not args.luma_source.resolve().is_dir():
                 raise EventImportError("registration_source_unavailable")
-            report: dict[str, Any] = {
+            report = {
                 "duplicate_event_identities": {
                     "luma": reconcile_duplicate_luma_identities(
                         luma_source=args.luma_source.resolve(),
