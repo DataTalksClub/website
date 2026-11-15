@@ -234,6 +234,8 @@ class PublicRouteAndSeoTests(TestCase):
             ("/tools/", "/wiki"),
             ("/tools/modelstore.html", "/wiki"),
             ("/tools/obsei.html", "/wiki"),
+            ("/conferences", "/events/past"),
+            ("/conferences/", "/events/past"),
             ("/conferences/2021-feb.html", "/events/past"),
             ("/conferences/2021-summer-marathon.html", "/events/past"),
             ("/support", "/slack"),
