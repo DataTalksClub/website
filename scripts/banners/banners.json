@@ -1,0 +1,17 @@
+[
+  {"output": "core/static/core/event-banners/ai-dev-tools-zoomcamp-2026-course-launch.png", "size": [1000, 1000], "ground": "cream", "badge": "Webinar", "badge_tone": "bubble",
+   "eyebrow": "Next session · Live online", "eyebrow_tone": "indigo", "title": "AI Dev Tools<br>Zoomcamp 2026<br>Course Launch",
+   "lede": "Start the cohort with a clear workflow for choosing, extending, and shipping with AI developer tools.",
+   "person": "Alexey Grigorev", "role": "Course creator · DataTalks.Club", "date": "Mon 31 Aug", "time": "17:00 CEST", "note": "Free · Online"},
+  {"output": "core/static/core/event-banners/engineering-your-own-ai-assistant.png", "size": [1000, 1000], "ground": "cream", "badge": "Podcast · #214", "badge_tone": "gold",
+   "eyebrow": "Live conversation · No slides", "eyebrow_tone": "green", "title": "Engineering<br>Your Own<br>AI Assistant",
+   "lede": "A live conversation about the systems, trade-offs, and practical lessons behind a useful AI assistant.",
+   "person": "Paul Iusztin", "role": "Guest · DataTalks.Club", "date": "Tue 21 Jul", "time": "17:00 CEST", "note": "Live · Free"},
+  {"output": "core/static/core/event-banners/running-durable-agents-in-production.png", "size": [1000, 1000], "ground": "mint", "badge": "Workshop", "badge_tone": "green",
+   "eyebrow": "Hands-on · Bring a laptop", "eyebrow_tone": "green", "title": "Running Durable<br>Agents in Production",
+   "lede": "A practical workshop on building agent workflows that can be observed, recovered, and shipped safely.",
+   "person": "Nicholas Lotz", "role": "Instructor · DataTalks.Club", "date": "Tue 18 Aug", "time": "17:00 CEST", "note": "Online workshop"},
+  {"output": "content/wiki_assets/og-default.png", "size": [1200, 630], "ground": "lavender", "badge": "Podcast Wiki", "badge_tone": "bubble",
+   "eyebrow": "DataTalks.Club", "eyebrow_tone": "green", "title": "Podcast Wiki",
+   "lede": "Topic hubs · guides · people · exploration search for the DataTalks.Club podcast archive"}
+]
