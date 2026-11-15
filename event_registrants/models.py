@@ -248,3 +248,60 @@ class EventRegistrantImportProgress(models.Model):
 
     def __str__(self) -> str:
         return f"registrant-import-progress:{self.provider}:{self.external_event_identifier}"
+
+
+class EventOperatorConfig(models.Model):
+    """Site-side operator configuration and uploaded banner for an ``events.Event``.
+
+    Extends ``community_base.events.Event`` without modifying the shared package
+    schema: per-event reminder intervals, sponsor-sharing / company-collection
+    flags, and operator-uploaded 1000x1000 banner bytes.
+    """
+
+    event = models.OneToOneField(
+        "events.Event",
+        on_delete=models.CASCADE,
+        related_name="operator_config",
+    )
+    reminders_enabled = models.BooleanField(default=True)
+    reminder_intervals = models.JSONField(default=list, blank=True)
+    sponsor_sharing_enabled = models.BooleanField(default=False)
+    collect_company = models.BooleanField(default=False)
+    sponsor_name = models.CharField(max_length=200, blank=True, default="")
+    banner_image = models.BinaryField(null=True, blank=True)
+    banner_content_type = models.CharField(max_length=64, blank=True, default="")
+    banner_updated_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        permissions = [
+            ("view_event_admin", "View events in Studio and admin API"),
+            ("manage_events", "Create, edit, publish, cancel, and complete events"),
+            ("export_event_registrants", "Export event registrants"),
+            ("message_event_registrants", "Message event registrants"),
+        ]
+
+    def __str__(self) -> str:
+        return f"event-operator-config:{self.event_id}"
+
+
+class EventRegistrationMeta(models.Model):
+    """Site-side registration metadata (company and sponsor-sharing consent).
+
+    Linked 1:1 to ``community_base.events.EventRegistration`` (app label ``events``).
+    """
+
+    registration = models.OneToOneField(
+        "events.EventRegistration",
+        on_delete=models.CASCADE,
+        related_name="meta",
+    )
+    company = models.CharField(max_length=200, blank=True, default="")
+    sponsor_sharing_consent = models.BooleanField(null=True, blank=True)
+    sponsor_sharing_consented_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"event-registration-meta:{self.registration_id}"

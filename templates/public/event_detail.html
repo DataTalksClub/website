@@ -317,6 +317,55 @@
         </section>
       {% endif %}
 
+      {% if event_state == "upcoming" %}
+        <section class="band band-cream event-register-band" aria-labelledby="event-register-heading">
+          <div class="shell event-shell">
+            <div class="band-head">
+              <div>
+                <h2 id="event-register-heading">Register</h2>
+              </div>
+            </div>
+            {% if request.GET.registered == "ok" %}
+              <p class="mono-note" role="status">You are registered for this event.</p>
+            {% elif request.GET.registered == "invalid_email" %}
+              <p class="mono-note" role="alert">Please enter a valid email address.</p>
+            {% endif %}
+            <form method="post" action="{{ event.public_path }}/register" class="event-register-form">
+              {% csrf_token %}
+              <p>
+                <label for="id_reg_email">Email</label><br>
+                <input id="id_reg_email" type="email" name="email" required autocomplete="email">
+              </p>
+              <p>
+                <label for="id_reg_name">Name (optional)</label><br>
+                <input id="id_reg_name" type="text" name="display_name" autocomplete="name">
+              </p>
+              {% if event.collect_company %}
+                <p>
+                  <label for="id_reg_company">Company</label><br>
+                  <input id="id_reg_company" type="text" name="company" autocomplete="organization">
+                </p>
+              {% endif %}
+              <p>
+                <label>
+                  <input type="checkbox" name="newsletter_consent" value="true">
+                  Subscribe to the DataTalks.Club newsletter
+                </label>
+              </p>
+              {% if event.sponsor_sharing_enabled %}
+                <p>
+                  <label>
+                    <input type="checkbox" name="sponsor_sharing_consent" value="true">
+                    Share my email with the event sponsor{% if event.sponsor_name %} ({{ event.sponsor_name }}){% endif %}
+                  </label>
+                </p>
+              {% endif %}
+              <button type="submit" class="cta cta-primary interactive-lift">Register</button>
+            </form>
+          </div>
+        </section>
+      {% endif %}
+
       {% if event.speakers %}
         <section class="band band-lavender speaker-band" aria-labelledby="event-speakers-heading">
           <div class="shell event-shell">

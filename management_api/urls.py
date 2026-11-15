@@ -1,7 +1,7 @@
 from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
 
-from . import launch_views, views
+from . import event_views, launch_views, views
 
 
 @csrf_exempt
@@ -150,7 +150,83 @@ event_qna_collection.management_capability_views = {  # type: ignore[attr-define
 }
 
 
+@csrf_exempt
+def events_collection(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return event_views.event_list(request, *args, **kwargs)
+    return event_views.event_create(request, *args, **kwargs)
+
+
+events_collection.management_capability_keys = (  # type: ignore[attr-defined]
+    "events.manage.list",
+    "events.manage.create",
+)
+events_collection.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": event_views.event_list,
+    "POST": event_views.event_create,
+}
+
+
+@csrf_exempt
+def event_item(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return event_views.event_detail(request, *args, **kwargs)
+    return event_views.event_update(request, *args, **kwargs)
+
+
+event_item.management_capability_keys = (  # type: ignore[attr-defined]
+    "events.manage.detail",
+    "events.manage.update",
+)
+event_item.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": event_views.event_detail,
+    "PATCH": event_views.event_update,
+}
+
+
+@csrf_exempt
+def speakers_collection(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return event_views.speaker_list(request, *args, **kwargs)
+    return event_views.speaker_create(request, *args, **kwargs)
+
+
+speakers_collection.management_capability_keys = (  # type: ignore[attr-defined]
+    "events.manage.speakers.list",
+    "events.manage.speakers.create",
+)
+speakers_collection.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": event_views.speaker_list,
+    "POST": event_views.speaker_create,
+}
+
+
 urlpatterns = [
+    path("events", events_collection, name="admin-event-list"),
+    path("events/speakers", speakers_collection, name="admin-event-speaker-list"),
+    path("events/<uuid:event_id>", event_item, name="admin-event-detail"),
+    path("events/<uuid:event_id>/publish", event_views.event_publish, name="admin-event-publish"),
+    path("events/<uuid:event_id>/cancel", event_views.event_cancel, name="admin-event-cancel"),
+    path(
+        "events/<uuid:event_id>/complete", event_views.event_complete, name="admin-event-complete"
+    ),
+    path("events/<uuid:event_id>/banner", event_views.event_banner, name="admin-event-banner"),
+    path(
+        "events/<uuid:event_id>/registrants",
+        event_views.event_registrants,
+        name="admin-event-registrants",
+    ),
+    path(
+        "events/<uuid:event_id>/attendance",
+        event_views.event_attendance,
+        name="admin-event-attendance",
+    ),
+    path("events/<uuid:event_id>/message", event_views.event_message, name="admin-event-message"),
+    path(
+        "events/<uuid:event_id>/reminders",
+        event_views.event_reminders,
+        name="admin-event-reminders",
+    ),
     path("course-launch", launch_views.launch_read, name="course-launch-read"),
     path("course-launch/commands", launch_views.launch_write, name="course-launch-write"),
     path("course-launch/dispatch", launch_views.launch_send, name="course-launch-send"),

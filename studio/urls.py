@@ -2,7 +2,7 @@ from django.urls import path
 
 from event_qna import studio_views as qna_views
 
-from . import launch_views, views
+from . import event_views, launch_views, views
 
 app_name = "studio"
 
@@ -40,6 +40,28 @@ urlpatterns = [
     path("audit/", views.audit_list, name="audit-list"),
     path("audit/export/", views.audit_export, name="audit-export"),
     path("audit/<uuid:event_id>/", views.audit_detail, name="audit-detail"),
+    path("events/", event_views.event_list, name="event-list"),
+    path("events/create/", event_views.event_create, name="event-create"),
+    path("events/speakers/", event_views.speaker_list, name="event-speaker-list"),
+    path("events/speakers/create/", event_views.speaker_create, name="event-speaker-create"),
+    path("events/<uuid:event_id>/", event_views.event_detail, name="event-detail"),
+    path("events/<uuid:event_id>/update/", event_views.event_update, name="event-update"),
+    path("events/<uuid:event_id>/publish/", event_views.event_publish, name="event-publish"),
+    path("events/<uuid:event_id>/cancel/", event_views.event_cancel, name="event-cancel"),
+    path("events/<uuid:event_id>/complete/", event_views.event_complete, name="event-complete"),
+    path("events/<uuid:event_id>/banner/", event_views.event_banner, name="event-banner"),
+    path(
+        "events/<uuid:event_id>/registrants/",
+        event_registrants_view := event_views.event_registrants,
+        name="event-registrants",
+    ),
+    path(
+        "events/<uuid:event_id>/attendance/",
+        event_views.event_attendance,
+        name="event-attendance",
+    ),
+    path("events/<uuid:event_id>/message/", event_views.event_message, name="event-message"),
+    path("events/<uuid:event_id>/reminders/", event_views.event_reminders, name="event-reminders"),
     path("events/identities/", views.event_identity_list, name="event-identity-list"),
     path(
         "events/identities/<uuid:event_id>/",

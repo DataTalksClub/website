@@ -25,6 +25,7 @@ from community_base.events.models import Event, EventHost, Host
 from django.db.models import Count, Max, Prefetch, Q
 
 from content.models import EventSource
+from event_registrants.models import EventOperatorConfig
 
 from .identity import EventIdentityNotFound, decode_event_tags, host_profile_url
 
@@ -33,9 +34,17 @@ from .identity import EventIdentityNotFound, decode_event_tags, host_profile_url
 PUBLIC_STATUSES = ("upcoming", "completed")
 
 
+def _operator_config(event: Event) -> EventOperatorConfig | None:
+    try:
+        return event.operator_config
+    except EventOperatorConfig.DoesNotExist:
+        return None
+
+
 def _record(event: Event) -> dict[str, Any]:
     event_type, season, episode = decode_event_tags(event.tags)
     public_path = f"/events/{event.public_id}/{event.slug}" if event.public_id is not None else ""
+    config = _operator_config(event)
     return {
         "identity_id": str(event.content_id),
         "public_id": event.public_id,
@@ -52,6 +61,10 @@ def _record(event: Event) -> dict[str, Any]:
         "description_html": event.description_html,
         "description_text": event.description,
         "registration_count": event.registration_count,
+        "has_uploaded_banner": bool(config is not None and config.banner_image),
+        "collect_company": bool(config is not None and config.collect_company),
+        "sponsor_sharing_enabled": bool(config is not None and config.sponsor_sharing_enabled),
+        "sponsor_name": config.sponsor_name if config is not None else "",
         "speakers": [
             {
                 "key": link.host.external_ref,
@@ -104,7 +117,7 @@ def _published() -> Any:
                 ),
             )
         )
-        .select_related("source_identity")
+        .select_related("source_identity", "operator_config")
         .prefetch_related(
             Prefetch(
                 "event_host_links",
@@ -175,6 +188,7 @@ def _published_records_stamp() -> tuple[tuple[int, str], ...]:
             _stamp(EventHost, "id"),
             _stamp(EventRegistration, "updated_at"),
             _stamp(EventSource, "updated_at"),
+            _stamp(EventOperatorConfig, "updated_at"),
             synced_stamp(PEOPLE_SOURCE_SLUG),
         )
 

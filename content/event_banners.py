@@ -30,6 +30,8 @@ def event_banner_url(event: Mapping[str, Any]) -> str:
     the stable unhashed URL instead of turning a public event page into a 500.
     """
 
+    if event.get("has_uploaded_banner") and event.get("public_id"):
+        return f"/events/{event['public_id']}/banner"
     identity_id = event.get("identity_id")
     if not isinstance(identity_id, str):
         return ""
