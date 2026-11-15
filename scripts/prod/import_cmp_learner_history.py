@@ -69,6 +69,10 @@ FAMILY_SLUG_OVERRIDES: dict[str, str] = {
     "ai-dev-tools": "ai-dev-tools-zoomcamp",
 }
 
+COHORT_SLUG_OVERRIDES: dict[str, str] = {
+    "production-ai-agents-generative-media": "production-ai-agents-generative-media-2026",
+}
+
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -140,6 +144,7 @@ def main(argv: list[str] | None = None) -> int:
                 batch_size=args.batch_size or DEFAULT_BATCH_SIZE,
                 tables=args.table,
                 family_slug_overrides=FAMILY_SLUG_OVERRIDES,
+                cohort_slug_overrides=COHORT_SLUG_OVERRIDES,
             )
             report = result.summary()
     except (CmpHistoryImportError, CmpLearnerImportError) as error:

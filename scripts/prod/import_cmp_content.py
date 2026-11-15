@@ -44,6 +44,13 @@ FAMILY_SLUG_OVERRIDES: dict[str, str] = {
     "ai-dev-tools": "ai-dev-tools-zoomcamp",
 }
 
+# CMP exports the 2026 Generative Media cohort under the un-suffixed slug
+# "production-ai-agents-generative-media", whereas the site's cohort slug is
+# "production-ai-agents-generative-media-2026".
+COHORT_SLUG_OVERRIDES: dict[str, str] = {
+    "production-ai-agents-generative-media": "production-ai-agents-generative-media-2026",
+}
+
 # A reviewed correction: ai-dev-tools-zoomcamp's own repository still declares
 # modules 3 and 4's homework files under a zero-padded slug ("hw03"/"hw04",
 # left over from before the assignments were finalized and re-titled for CMP)
@@ -84,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
             args.source,
             cohort_slugs=args.cohort,
             family_slug_overrides=FAMILY_SLUG_OVERRIDES,
+            cohort_slug_overrides=COHORT_SLUG_OVERRIDES,
             homework_slug_overrides=HOMEWORK_SLUG_OVERRIDES,
         )
     except CmpContentImportError as error:

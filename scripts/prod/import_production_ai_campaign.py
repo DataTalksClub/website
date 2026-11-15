@@ -42,7 +42,7 @@ COHORT_SLUG = "production-ai-agents-generative-media-2026"
 CAMPAIGN_SLUG = "production-ai-agents-generative-media"
 COHORT_YEAR = 2026
 COURSE_TITLE = "Production AI Agents for Generative Media"
-MATERIALS_REPOSITORY = "https://github.com/DataTalksClub/open-source-llm-zoomcamp"
+MATERIALS_REPOSITORY = "https://github.com/DataTalksClub/production-ai-agents-for-media-generation"
 
 COURSE_DESCRIPTION = (
     "A 4-week, project-based course on building production AI systems in "

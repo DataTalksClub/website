@@ -454,6 +454,7 @@ class Resolution:
 def _cohort_map(
     connection: sqlite3.Connection,
     family_slug_overrides: Mapping[str, str] = MappingProxyType({}),
+    cohort_slug_overrides: Mapping[str, str] = MappingProxyType({}),
 ) -> dict[int, int]:
     """Source ``courses_course`` id -> target Cohort pk, by slug.
 
@@ -468,7 +469,8 @@ def _cohort_map(
     local = dict(Cohort.objects.values_list("slug", "pk"))
     resolved = {}
     for row in _rows(connection, "courses_course", "select id, slug from courses_course"):
-        slug = str(row["slug"])
+        raw_slug = str(row["slug"])
+        slug = cohort_slug_overrides.get(raw_slug, raw_slug)
         target = local.get(slug)
         if target is None:
             try:
@@ -643,8 +645,9 @@ def _build_resolution(
     users: Mapping[int, int],
     claims: CmpHistoryClaims,
     family_slug_overrides: Mapping[str, str] = MappingProxyType({}),
+    cohort_slug_overrides: Mapping[str, str] = MappingProxyType({}),
 ) -> Resolution:
-    cohorts = _cohort_map(connection, family_slug_overrides)
+    cohorts = _cohort_map(connection, family_slug_overrides, cohort_slug_overrides)
     homework = _homework_map(connection, cohorts)
     return Resolution(
         users=users,
@@ -671,6 +674,44 @@ def _course_registration(row: Any, resolution: Resolution) -> CourseRegistration
     """
 
     email = _text(row["email"])
+    keys = set(row.keys())
+    extra: dict[str, Any] = {}
+    for col, attr in (
+        ("ukraine_region", "ukraine_region"),
+        ("years_experience", "years_experience"),
+        ("experience", "experience"),
+        ("linkedin_url", "linkedin_url"),
+        ("github_url", "github_url"),
+        ("status", "status"),
+        ("source", "source"),
+        ("referred_by", "referred_by"),
+    ):
+        if col in keys:
+            extra[attr] = _text(row[col])
+    if "why_join" in keys:
+        extra["motivation"] = _text(row["why_join"])
+    elif "motivation" in keys:
+        extra["motivation"] = _text(row["motivation"])
+    for col, attr in (
+        ("accepted_nebius_sharing", "accepted_nebius_sharing"),
+        ("email_confirmed", "email_confirmed"),
+        ("prereq_python", "prereq_python"),
+        ("prereq_docker", "prereq_docker"),
+        ("prereq_cli", "prereq_cli"),
+    ):
+        if col in keys:
+            extra[attr] = bool(row[col])
+    if "prereq_http" in keys:
+        extra["prereq_http_apis"] = bool(row["prereq_http"])
+    elif "prereq_http_apis" in keys:
+        extra["prereq_http_apis"] = bool(row["prereq_http_apis"])
+    for col, attr in (
+        ("email_confirmation_confirmed_at", "email_confirmation_confirmed_at"),
+        ("auto_approved_at", "auto_approved_at"),
+    ):
+        if col in keys and row[col] is not None:
+            extra[attr] = _moment(row[col])
+
     return CourseRegistration(
         campaign_id=resolution.campaign(row["campaign_id"]),
         course_id=None if row["course_id"] is None else resolution.cohort(row["course_id"]),
@@ -686,6 +727,7 @@ def _course_registration(row: Any, resolution: Resolution) -> CourseRegistration
         accepted_newsletter=bool(row["accepted_newsletter"]),
         created_at=_moment(row["created_at"]),
         updated_at=_moment(row["updated_at"]),
+        **extra,
     )
 
 
@@ -1255,6 +1297,7 @@ def import_cmp_learner_history(
     batch_size: int = DEFAULT_BATCH_SIZE,
     tables: Iterable[str] | None = None,
     family_slug_overrides: Mapping[str, str] = MappingProxyType({}),
+    cohort_slug_overrides: Mapping[str, str] = MappingProxyType({}),
 ) -> HistoryImportResult:
     """Import the CMP export's learner history. Safe to kill and re-run.
 
@@ -1294,6 +1337,7 @@ def import_cmp_learner_history(
             users=user_claims,
             claims=claims,
             family_slug_overrides=family_slug_overrides,
+            cohort_slug_overrides=cohort_slug_overrides,
         )
         reports = [
             _import_table(

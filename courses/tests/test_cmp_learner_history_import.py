@@ -1054,3 +1054,52 @@ class UserWrappedStatisticsImportTests(HistoryImportFixture):
         self.assertNotIn("enrollment_id", entries[1])
         self.assertEqual(entries[1]["score"], 4)
         self.assertNotIn("enrollment_id", entries[2])
+
+
+class CohortSlugOverrideHistoryImportTests(HistoryImportFixture):
+    def test_cohort_slug_override_maps_unsuffixed_cmp_course_registrations_and_enrollments(
+        self,
+    ) -> None:
+        family = Course.objects.create(
+            slug="production-ai-agents-generative-media",
+            title="Production AI Agents for Generative Media",
+        )
+        cohort = Cohort.objects.create(
+            course=family,
+            slug="production-ai-agents-generative-media-2026",
+            identifier="2026",
+            year=2026,
+            title="Production AI Agents for Generative Media 2026",
+            curriculum_format=Cohort.CurriculumFormat.LEGACY,
+        )
+        campaign = RegistrationCampaign.objects.create(
+            slug="production-ai-agents-generative-media",
+            title="Production AI Agents for Generative Media",
+            current_course=cohort,
+        )
+        source = self.source(
+            courses_course=[(1, "de-zoomcamp-2025"), (2, "production-ai-agents-generative-media")],
+            courses_registrationcampaign=[
+                (1, "de-zoomcamp", 1),
+                (2, "production-ai-agents-generative-media", 2),
+            ],
+            courses_courseregistration=[
+                registration_row(1, campaign_id=2, course_id=2, email="genmedia@example.invalid")
+            ],
+            courses_enrollment=[enrollment_row(1, course_id=2)],
+        )
+
+        result = import_cmp_learner_history(
+            source,
+            user_claims=self.user_claims,
+            cohort_slug_overrides={
+                "production-ai-agents-generative-media": "production-ai-agents-generative-media-2026"
+            },
+        )
+
+        self.assertEqual(self.report(result, "courses_courseregistration")["created"], 1)
+        self.assertEqual(self.report(result, "courses_enrollment")["created"], 1)
+        registration = CourseRegistration.objects.get(campaign=campaign)
+        self.assertEqual(registration.course, cohort)
+        enrollment = Enrollment.objects.get(course=cohort)
+        self.assertEqual(enrollment.student, self.learner)

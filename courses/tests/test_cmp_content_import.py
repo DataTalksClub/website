@@ -784,3 +784,32 @@ class CmpRegistrationCampaignImportTests(CmpContentImportTests):
         import_cmp_course_content(self.source)
 
         self.assertEqual(CourseRegistration.objects.count(), 0)
+
+    def test_cohort_slug_override_maps_unsuffixed_cmp_course_to_cohort(self) -> None:
+        _build_source(
+            self.source,
+            cohort_slugs=("production-ai-agents-generative-media",),
+            campaigns=(
+                (
+                    "production-ai-agents-generative-media",
+                    "production-ai-agents-generative-media",
+                ),
+            ),
+        )
+
+        result = import_cmp_course_content(
+            self.source,
+            cohort_slugs=("production-ai-agents-generative-media",),
+            cohort_slug_overrides={
+                "production-ai-agents-generative-media": "production-ai-agents-generative-media-2026"
+            },
+        )
+
+        cohort = Cohort.objects.get(slug="production-ai-agents-generative-media-2026")
+        self.assertEqual(cohort.course.slug, "production-ai-agents-generative-media")
+        self.assertEqual(cohort.curriculum_format, Cohort.CurriculumFormat.LEGACY)
+        self.assertEqual(cohort.homework_set.count(), 1)
+        self.assertEqual(cohort.project_set.count(), 1)
+        campaign = RegistrationCampaign.objects.get(slug="production-ai-agents-generative-media")
+        self.assertEqual(campaign.current_course, cohort)
+        self.assertEqual(result.summary()["cohorts_imported"], 1)

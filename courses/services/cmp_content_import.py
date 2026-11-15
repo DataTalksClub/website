@@ -417,6 +417,7 @@ def import_cmp_course_content(
     *,
     cohort_slugs: Sequence[str] | None = None,
     family_slug_overrides: Mapping[str, str] = MappingProxyType({}),
+    cohort_slug_overrides: Mapping[str, str] = MappingProxyType({}),
     homework_slug_overrides: Mapping[str, Mapping[str, str]] = MappingProxyType({}),
 ) -> CmpContentImportResult:
     """Copy real CMP content onto the local catalogue's existing legacy cohorts.
@@ -448,16 +449,22 @@ def import_cmp_course_content(
         dependent: dict[str, int] = {}
 
         for row in source_cohorts:
-            slug = str(row["slug"])
-            if cohort_slugs is not None and slug not in cohort_slugs:
+            raw_slug = str(row["slug"])
+            slug = cohort_slug_overrides.get(raw_slug, raw_slug)
+            if (
+                cohort_slugs is not None
+                and raw_slug not in cohort_slugs
+                and slug not in cohort_slugs
+            ):
                 continue
-            if slug in FIXTURE_COHORTS:
-                fixture.append(slug)
-                dependent[slug] = _dependent_row_total(connection, row["id"])
+            if raw_slug in FIXTURE_COHORTS or slug in FIXTURE_COHORTS:
+                fixture.append(raw_slug)
+                dependent[raw_slug] = _dependent_row_total(connection, row["id"])
                 continue
-            if slug in SKIPPED_COHORTS:
-                by_owner.append((slug, SKIPPED_COHORTS[slug]))
-                dependent[slug] = _dependent_row_total(connection, row["id"])
+            if raw_slug in SKIPPED_COHORTS or slug in SKIPPED_COHORTS:
+                reason = SKIPPED_COHORTS.get(raw_slug) or SKIPPED_COHORTS[slug]
+                by_owner.append((raw_slug, reason))
+                dependent[raw_slug] = _dependent_row_total(connection, row["id"])
                 continue
             identity = _family_and_year(slug, family_slug_overrides)
             cohort = local.get(slug)
@@ -473,11 +480,12 @@ def import_cmp_course_content(
                     slug, row, created_families=created_families, overrides=family_slug_overrides
                 )
                 if cohort is None:
-                    missing.append(slug)
-                    dependent[slug] = _dependent_row_total(connection, row["id"])
+                    missing.append(raw_slug)
+                    dependent[raw_slug] = _dependent_row_total(connection, row["id"])
                     continue
                 local[slug] = cohort
                 created.append(slug)
+            local[raw_slug] = cohort
             if identity is not None:
                 family_slug, _year = identity
                 if cohort.course.slug != family_slug:
@@ -486,7 +494,11 @@ def import_cmp_course_content(
                 imported.append(_import_cohort(connection, row, cohort, homework_slug_overrides))
 
         campaigns, unlinked = _import_registration_campaigns(
-            connection, source_cohorts, local, cohort_slugs
+            connection,
+            source_cohorts,
+            local,
+            cohort_slugs,
+            cohort_slug_overrides=cohort_slug_overrides,
         )
 
         return CmpContentImportResult(
@@ -573,6 +585,8 @@ def _import_registration_campaigns(
     source_cohorts: Sequence[Any],
     local: Mapping[str, Cohort],
     cohort_slugs: Sequence[str] | None = None,
+    *,
+    cohort_slug_overrides: Mapping[str, str] = MappingProxyType({}),
 ) -> tuple[tuple[CampaignReport, ...], tuple[str, ...]]:
     """Copy CMP's registration campaign *definitions*, keyed by slug.
 
@@ -583,7 +597,11 @@ def _import_registration_campaigns(
     rather than silently pointing at nothing.
     """
 
-    slug_by_source_id = {row["id"]: str(row["slug"]) for row in source_cohorts}
+    raw_slug_by_source_id = {row["id"]: str(row["slug"]) for row in source_cohorts}
+    slug_by_source_id = {
+        row["id"]: cohort_slug_overrides.get(str(row["slug"]), str(row["slug"]))
+        for row in source_cohorts
+    }
     rows = _rows(connection, "SELECT * FROM courses_registrationcampaign ORDER BY slug")
     existing = {campaign.slug: campaign for campaign in RegistrationCampaign.objects.all()}
 
@@ -591,8 +609,13 @@ def _import_registration_campaigns(
     unlinked: list[str] = []
     for source in rows:
         slug = str(source["slug"])
+        raw_promoted_slug = raw_slug_by_source_id.get(source["current_course_id"], "")
         promoted_slug = slug_by_source_id.get(source["current_course_id"], "")
-        if cohort_slugs is not None and promoted_slug not in cohort_slugs:
+        if (
+            cohort_slugs is not None
+            and raw_promoted_slug not in cohort_slugs
+            and promoted_slug not in cohort_slugs
+        ):
             continue
         cohort = local.get(promoted_slug) if promoted_slug else None
         if promoted_slug and cohort is None:
