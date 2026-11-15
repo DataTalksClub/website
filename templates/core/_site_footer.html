@@ -4,6 +4,11 @@
   aria-labelledby="analytics-preferences-title"
   aria-describedby="analytics-preferences-description analytics-preferences-status"
   data-testid="analytics-preferences-dialog"
+  {% if umami_script_url %}
+  data-umami-script-url="{{ umami_script_url }}"
+  data-umami-website-id="{{ umami_website_id }}"
+  data-umami-page-path="{{ umami_page_path }}"
+  {% endif %}
 >
   <div class="analytics-preferences-content">
     <div>
@@ -46,7 +51,8 @@
       </button>
     </div>
     <p class="analytics-preferences-detail app-muted">
-      This site currently ships with analytics disabled. Read the
+      If you allow analytics, self-hosted Umami counts anonymous public pageviews without
+      analytics cookies. Private account and learning pages are excluded. Read the
       <a class="app-link" href="/privacy">Privacy Policy</a>
       for the complete data boundary.
     </p>

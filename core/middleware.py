@@ -25,6 +25,7 @@ from core.cache_policy import (
 from core.request_cache import bind_request_memo, reset_request_memo
 from core.security import MAX_REQUEST_BODY_BYTES
 from core.sensitive_query import has_sensitive_query_key
+from core.source_policy import UMAMI_ORIGIN
 
 PRIVATE_PREFIXES = (
     "/accounts/",
@@ -75,8 +76,9 @@ ROBOTS_HEADER_VALUE = "noindex, nofollow"
 SECURITY_HEADERS = {
     "Content-Security-Policy": (
         "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
-        "form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; "
+        f"form-action 'self'; script-src 'self' 'unsafe-inline' {UMAMI_ORIGIN}; "
+        "style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; "
+        f"connect-src 'self' {UMAMI_ORIGIN}; "
         "media-src 'self'; frame-src https://www.youtube.com https://www.youtube-nocookie.com "
         "https://creators.spotify.com https://open.spotify.com"
     ),

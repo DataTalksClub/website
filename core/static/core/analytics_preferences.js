@@ -92,6 +92,58 @@
     );
     var lastOpener = null;
     var restoreFocus = false;
+    var tracker = null;
+    var pageviewSent = false;
+
+    function publicPath() {
+      // The server owns the public-route allowlist. Bind to the validated
+      // initial path so later history changes cannot introduce private routes.
+      return Boolean(dialog.dataset.umamiPagePath) &&
+        dialog.dataset.umamiPagePath === window.location.pathname;
+    }
+
+    function canMeasure() {
+      return readChoice() === ALLOWED_VALUE && publicPath() &&
+        ["datatalks.club", "www.datatalks.club", "prod.datatalks.club"].indexOf(window.location.hostname) !== -1 &&
+        Boolean(dialog.dataset.umamiScriptUrl);
+    }
+
+    // Umami calls this for every send, including calls after consent withdrawal.
+    // Build a fresh allowlisted payload: no title, referrer, query, fragment,
+    // custom events, visitor ID or arbitrary event properties may cross it.
+    window.dtcUmamiBeforeSend = function (type, payload) {
+      if (!canMeasure() || type !== "event" || payload.name) {
+        return null;
+      }
+      return {
+        website: dialog.dataset.umamiWebsiteId,
+        hostname: window.location.hostname,
+        url: window.location.pathname,
+        language: navigator.language,
+        screen: window.screen.width + "x" + window.screen.height,
+      };
+    };
+
+    function measurePage() {
+      if (pageviewSent || !canMeasure()) {
+        return;
+      }
+      if (!tracker) {
+        tracker = document.createElement("script");
+        tracker.src = dialog.dataset.umamiScriptUrl;
+        tracker.defer = true;
+        tracker.dataset.websiteId = dialog.dataset.umamiWebsiteId;
+        tracker.dataset.autoTrack = "false";
+        tracker.dataset.doNotTrack = "true";
+        tracker.dataset.beforeSend = "dtcUmamiBeforeSend";
+        tracker.referrerPolicy = "no-referrer";
+        tracker.addEventListener("load", measurePage);
+        document.head.appendChild(tracker);
+      } else if (window.umami && typeof window.umami.track === "function") {
+        pageviewSent = true;
+        window.umami.track();
+      }
+    }
 
     function updateStatus() {
       if (!status) {
@@ -147,6 +199,7 @@
           expireOptionalCookies();
         }
         updateStatus();
+        measurePage();
         closePreferences();
       });
     });
@@ -194,6 +247,7 @@
     });
 
     updateStatus();
+    measurePage();
     if (!readChoice()) {
       dialog.setAttribute("open", "");
     }

@@ -9,6 +9,10 @@
   editorial content from private account, community, event, and learning records.
 {% endblock %}
 
+{% block meta %}
+  Last updated: 15 November 2026
+{% endblock %}
+
 {% block content %}
   <h2>1. Controller and contact</h2>
   <p>
@@ -108,11 +112,13 @@
     contains no account, profile, country, or session identifier.
   </p>
   <p>
-    Optional analytics fail closed. The website loads no analytics provider, carries no
-    measurement ID or event taxonomy, and contacts no analytics endpoint. If optional measurement
-    is added later, it may start only after an affirmative choice and must not receive an
-    email, profile value, country signal, raw IP, account or database ID, session or CSRF value,
-    credential, Slack secret, or other direct identifier.
+    Optional analytics stays off until you allow it. We use self-hosted Umami on our Contabo
+    infrastructure to count anonymous public pageviews. It receives the public page path,
+    website hostname, browser language, and screen size. We exclude signed-in visits and private
+    account, registration, and learning routes. We send no query strings, fragments, referrers,
+    page titles, custom events, account identifiers, profile values, or credentials.
+    Umami does not set analytics cookies. Like any requested service, the analytics server
+    receives your network address to deliver the request; we do not add it to event payloads.
   </p>
   <p>
     Use the Analytics preferences button in any footer to allow, reject, or withdraw the choice.
@@ -131,8 +137,8 @@
   <p>
     These services may process data outside the country where a participant lives. For the
     regions and transfer safeguards that apply to a particular service, write to
-    <a href="mailto:alexey@datatalks.club">alexey@datatalks.club</a>. No optional analytics
-    processor is configured.
+    <a href="mailto:alexey@datatalks.club">alexey@datatalks.club</a>. The optional analytics
+    service is operated by us on Contabo infrastructure; it is not Umami Cloud.
   </p>
 
   <h2>6. Retention</h2>
