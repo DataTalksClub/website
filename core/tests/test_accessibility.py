@@ -68,7 +68,7 @@ class AccessibilityRegistryTests(SimpleTestCase):
         self.assertRegex(registry_fingerprint(), r"^[0-9a-f]{64}$")
 
     def test_no_javascript_public_policy_is_exactly_rendered_public_states(self) -> None:
-        self.assertEqual(len(NO_JAVASCRIPT_PUBLIC_STATE_IDS), 26)
+        self.assertEqual(len(NO_JAVASCRIPT_PUBLIC_STATE_IDS), 27)
         self.assertEqual(
             len(NO_JAVASCRIPT_PUBLIC_STATE_IDS),
             len(set(NO_JAVASCRIPT_PUBLIC_STATE_IDS)),
