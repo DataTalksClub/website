@@ -980,6 +980,7 @@ def main(argv: list[str] | None = None) -> int:
             # only mode with a useful read-only plan.
             parser.error("--dry-run applies to --discover-new-events-only or --events-yaml")
         configure_target(parser, args)
+        report: dict[str, Any]
         if args.events_yaml is not None:
             report = {
                 "events_yaml": import_events_yaml(
@@ -991,7 +992,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.report_duplicate_identities or args.remove_duplicate_identities:
             if not args.luma_source.resolve().is_dir():
                 raise EventImportError("registration_source_unavailable")
-            report: dict[str, Any] = {
+            report = {
                 "duplicate_event_identities": {
                     "luma": reconcile_duplicate_luma_identities(
                         luma_source=args.luma_source.resolve(),
