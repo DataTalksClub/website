@@ -172,7 +172,7 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # Intake 850d5985 enrolls course_management.relay_campaigns and
 # courses.tests.test_relay_client_contract in strict mypy (configuration only,
 # no dependency change); the pyproject seal moves with that reviewed pyproject.
-STUDIO_COURSES_PYPROJECT_SHA256 = "43e091186a3a9f83475071919cb3d56ca4f5670b48165306c0d6242fdf04da06"
+STUDIO_COURSES_PYPROJECT_SHA256 = "245b51570348399a0cbeff1c7947df8d0cd26be94e06ef064c9a7011f7755b48"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
