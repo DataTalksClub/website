@@ -26,6 +26,12 @@ PODCASTS_ROOT = "podcasts"
 _TRANSCRIPT_SUFFIX = "-transcript.yaml"
 
 
+def imported_podcast_slug(source_slug: str) -> str:
+    """Remove a leaked source-file extension at the import boundary."""
+
+    return source_slug.removesuffix(".md")
+
+
 class PodcastsParser:
     def discover(self, checkout, source):
         if source.slug != SOURCE_SLUG:
@@ -46,7 +52,7 @@ class PodcastsParser:
             )
             items.append(
                 SourceItem(
-                    key=record["slug"],
+                    key=record["provenance"]["source_key"],
                     path=relative,
                     data={"record": record, "checksum": checksum},
                 )
@@ -62,7 +68,7 @@ class PodcastsParser:
         document, action = base.upsert_document(
             source,
             content_kind=CONTENT_KIND,
-            stable_key=record["slug"],
+            stable_key=record["provenance"]["source_key"],
             slug=record["slug"],
             title=record["title"],
             summary=record["description"],
@@ -103,6 +109,8 @@ class PodcastsParser:
         if legacy_path != f"/podcast/{slug}.html":
             base.fail("podcast route mismatch", relative)
         transcript, transcript_provenance = self._transcript(checkout, path, raw, slug)
+        source_slug = slug
+        slug = builder._safe_key(imported_podcast_slug(source_slug), field="podcast slug")
         raw_links = raw.get("links")
         if raw_links is not None and not isinstance(raw_links, dict):
             base.fail("podcast links rejected", relative)
@@ -150,7 +158,7 @@ class PodcastsParser:
                 repository=REPOSITORY,
                 revision=checkout.commit_sha,
                 source_path=relative,
-                source_key=slug,
+                source_key=source_slug,
                 checksum=checksum,
             ),
         }
