@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import re
 import uuid
+from collections.abc import Iterable
 from datetime import UTC, datetime
 from time import sleep
 from typing import Any
@@ -77,6 +78,7 @@ class EventIdentityNotFound(LookupError):
 _TYPE_TAG = "dtc-type:"
 _SEASON_TAG = "dtc-season:"
 _EPISODE_TAG = "dtc-episode:"
+_METADATA_TAG_PREFIXES = (_TYPE_TAG, _SEASON_TAG, _EPISODE_TAG)
 
 
 def encode_event_tags(
@@ -84,8 +86,9 @@ def encode_event_tags(
     event_type: str | None,
     season: int | None,
     episode: int | None,
+    display_tags: Iterable[str] | None = None,
 ) -> list[str]:
-    """Encode the DTC display vocabulary the package schema has no column for."""
+    """Encode the DTC display vocabulary and freeform display tags."""
 
     tags: list[str] = []
     if event_type:
@@ -94,7 +97,32 @@ def encode_event_tags(
         tags.append(f"{_SEASON_TAG}{season}")
     if episode is not None:
         tags.append(f"{_EPISODE_TAG}{episode}")
+    seen: set[str] = set(tags)
+    for raw_tag in display_tags or ():
+        if not isinstance(raw_tag, str):
+            continue
+        cleaned = raw_tag.strip()
+        if not cleaned or cleaned.startswith(_METADATA_TAG_PREFIXES) or cleaned in seen:
+            continue
+        seen.add(cleaned)
+        tags.append(cleaned)
     return tags
+
+
+def decode_display_tags(tags: list[str] | None) -> tuple[str, ...]:
+    """Return ordered, deduplicated display tags stored alongside DTC metadata tags."""
+
+    result: list[str] = []
+    seen: set[str] = set()
+    for tag in tags or []:
+        if not isinstance(tag, str):
+            continue
+        cleaned = tag.strip()
+        if not cleaned or cleaned.startswith(_METADATA_TAG_PREFIXES) or cleaned in seen:
+            continue
+        seen.add(cleaned)
+        result.append(cleaned)
+    return tuple(result)
 
 
 def decode_event_tags(tags: list[str] | None) -> tuple[str | None, int | None, int | None]:

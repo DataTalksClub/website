@@ -153,5 +153,8 @@ urlpatterns = [
     path("wiki/robots.txt", public_views.wiki_robots, name="wiki-robots"),
     path("wiki/assets/<path:asset>", public_views.wiki_asset, name="wiki-asset"),
     path("wiki/<path:slug>", public_views.wiki_detail, name="public-wiki"),
+    path("podwiki", public_views.podwiki_redirect, name="podwiki-home-redirect"),
+    path("podwiki/", public_views.podwiki_redirect, name="podwiki-slash-redirect"),
+    path("podwiki/<path:rest>", public_views.podwiki_redirect, name="podwiki-redirect"),
     path("images/<path:media_path>", public_views.media, name="public-media"),
 ]

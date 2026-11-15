@@ -27,7 +27,12 @@ from django.db.models import Count, Max, Prefetch, Q
 from content.models import EventSource
 from event_registrants.models import EventOperatorConfig
 
-from .identity import EventIdentityNotFound, decode_event_tags, host_profile_url
+from .identity import (
+    EventIdentityNotFound,
+    decode_display_tags,
+    decode_event_tags,
+    host_profile_url,
+)
 
 #: The statuses a public page may show, matching the published/completed split
 #: the former site ``Lifecycle`` carried.
@@ -54,6 +59,7 @@ def _record(event: Event) -> dict[str, Any]:
         # A manifest-only row has no DTC type yet; the page treats "" as "no
         # type stated" rather than inventing one.
         "type": event_type or "",
+        "tags": list(decode_display_tags(event.tags)),
         "starts_at": event.start_datetime.isoformat(),
         "ends_at": event.end_datetime.isoformat() if event.end_datetime is not None else "",
         "season": season,

@@ -40,7 +40,7 @@ HEADING = re.compile(r'<h1 id="text-page-heading">\s*Page not found\s*</h1>')
 
 class MissingPageTests(TestCase):
     def setUp(self) -> None:
-        self.response = self.client.get("/podwiki")
+        self.response = self.client.get("/not-a-public-route")
         self.assertEqual(self.response.status_code, 404)
         self.body = self.response.content.decode()
 

@@ -1,0 +1,31 @@
+{% extends "public/text_page.html" %}
+{% load static %}
+
+{% block kicker %}
+  Newsletter
+{% endblock %}
+
+{% block title %}
+  Weekly newsletter
+{% endblock %}
+
+{% block lede %}
+  Subscribe to our weekly newsletter and join our Slack community.
+{% endblock %}
+
+{% block content %}
+  <p>
+    We'll keep you informed about our events, articles, courses, and everything else happening in the Club.
+  </p>
+  <div class="newsletter-card">
+    {% include "core/_newsletter_signup_form.html" with input_id="newsletter-page-email" %}
+  </div>
+{% endblock %}
+
+{% block actions %}
+  <a class="cta cta-secondary interactive-lift" href="{% url 'slack' %}">Learn about our Slack</a>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{% static 'core/newsletter_signup.js' %}" defer></script>
+{% endblock %}

@@ -8,6 +8,7 @@ from accounts.views.continuity import explicit_reauthentication
 from accounts.views.impersonation import admin_impersonation_exit
 from cadmin.legacy_urls import legacy_course_list_redirect
 from content import public_views, review_views
+from content.feeds import site_feed
 from core import views as core_views
 from courses import urls as course_urls
 from courses.views import course_aliases, course_list, site_project_gallery
@@ -51,6 +52,7 @@ namespaced_course_patterns.append(
 )
 
 urlpatterns = [
+    path("feed.xml", site_feed, name="site-feed"),
     path("robots.txt", core_views.robots, name="development-robots"),
     path("sitemap.xml", core_views.sitemap, name="development-sitemap"),
     path(
@@ -59,6 +61,19 @@ urlpatterns = [
         name="section-sitemap",
     ),
     path("", core_views.home, name="home"),
+    path("newsletter", core_views.newsletter, name="newsletter"),
+    path(
+        "newsletter/",
+        public_views.permanent_public_redirect,
+        {"target": "/newsletter"},
+        name="newsletter-slash-redirect",
+    ),
+    path(
+        "newsletter.html",
+        public_views.permanent_public_redirect,
+        {"target": "/newsletter"},
+        name="newsletter-html-redirect",
+    ),
     path("sponsors", core_views.sponsors, name="sponsors"),
     path("tour", core_views.tour, name="tour"),
     # The media kit is not a page of this site. Keeping a second copy here
