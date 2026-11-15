@@ -599,6 +599,7 @@ def upload_event_banner(
     config.save(
         update_fields=("banner_image", "banner_content_type", "banner_updated_at", "updated_at")
     )
+    event.save(update_fields=("updated_at",))
     return {"event": serialize_admin_event(event), "size_bytes": len(raw_bytes)}
 
 
@@ -770,6 +771,7 @@ def manage_event_reminders(
         config.reminders_enabled = enabled
         config.reminder_intervals = intervals
         config.save(update_fields=("reminders_enabled", "reminder_intervals", "updated_at"))
+        event.save(update_fields=("updated_at",))
     reminders_qs = EventReminder.objects.filter(registration__event=event)
     return {
         "event_id": str(event.content_id) if event.content_id else "",

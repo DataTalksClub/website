@@ -188,7 +188,6 @@ def _published_records_stamp() -> tuple[tuple[int, str], ...]:
             _stamp(EventHost, "id"),
             _stamp(EventRegistration, "updated_at"),
             _stamp(EventSource, "updated_at"),
-            _stamp(EventOperatorConfig, "updated_at"),
             synced_stamp(PEOPLE_SOURCE_SLUG),
         )
 
