@@ -111,6 +111,13 @@
         padding-right: 2.5rem;
       }
 
+      .event-pills {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
       .event-speakers {
         color: var(--muted);
         font-size: 0.9rem;
@@ -263,7 +270,16 @@
                   </div>
                   <article class="card event-card interactive-card interactive-lift">
                     <div class="event-body">
-                      {% include "public/_event_kind.html" with tip_id=event.public_id|default:forloop.counter0 %}
+                      {% if event.tags %}
+                        <div class="event-pills">
+                          {% include "public/_event_kind.html" with tip_id=event.public_id|default:forloop.counter0 %}
+                          {% for tag in event.tags %}
+                            <span class="status-pill">{{ tag }}</span>
+                          {% endfor %}
+                        </div>
+                      {% else %}
+                        {% include "public/_event_kind.html" with tip_id=event.public_id|default:forloop.counter0 %}
+                      {% endif %}
                       <h3>
                         <a href="{{ event.public_path }}">{{ event.title }}</a>
                       </h3>

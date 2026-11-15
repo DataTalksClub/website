@@ -249,6 +249,8 @@ module = [
     # the retirement surfaces, so lint, format, and typecheck must reach it.
     "scripts.measure_retirement_surfaces",
     "scripts.tests.test_measure_retirement_surfaces",
+    "scripts.cutover_parity_crawl",
+    "scripts.tests.test_cutover_parity_crawl",
     "courses.services.cmp_certificate_reconciliation",
     "courses.tests.test_cmp_certificate_reconciliation",
     "courses.tests.test_course_list_projects_section",
@@ -303,6 +305,8 @@ module = [
     # Fast pages (intake bf001b67): warm query budgets for the logged-in
     # account pages.
     "accounts.tests.test_logged_in_page_budgets",
+    # Intake 1a849b81: the site-design banner generator.
+    "scripts.banners.render",
 ]
 ignore_errors = false
 

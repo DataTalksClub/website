@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.urls import reverse
@@ -33,7 +34,65 @@ def _canonical_path(slug: str) -> str:
 class PodcastStableRouteTests(TestCase):
     slug = "s24e06-how-to-build-ai-that-actually-ships-in-production"
 
-    def test_genai_pilots_hierarchical_route_is_the_only_public_detail_form(self) -> None:
+    def test_every_legacy_html_alias_redirects_once_preserving_raw_query(self) -> None:
+        query = "utm_source=legacy%2Btest&x=a%2Fb&x=&q=A+B&q=A%20B"
+        episodes = catalogue.podcasts()
+        self.assertTrue(episodes)
+        for episode in episodes:
+            source = f"/podcast/{episode['slug']}.html"
+            target = episode["public_path"]
+            with self.subTest(source=source):
+                for suffix in ("", f"?{query}"):
+                    for method in (self.client.get, self.client.head):
+                        response = method(f"{source}{suffix}", follow=False)
+                        self.assertEqual(response.status_code, 301)
+                        self.assertEqual(response["Location"], f"{target}{suffix}")
+                        self.assertEqual(response["Cache-Control"], "public, max-age=300")
+                    final = self.client.get(f"{source}{suffix}", follow=True)
+                    self.assertEqual(final.status_code, 200)
+                    self.assertEqual(final.redirect_chain, [(f"{target}{suffix}", 301)])
+
+    def test_legacy_html_alias_method_and_sensitive_query_boundaries(self) -> None:
+        source = f"/podcast/{self.slug}.html"
+        for method in (self.client.post, self.client.put, self.client.patch, self.client.delete):
+            response = method(source)
+            self.assertEqual(response.status_code, 405)
+            self.assertEqual(response["Allow"], "GET, HEAD")
+            self.assertEqual(response["Cache-Control"], "no-store, max-age=0")
+            self.assertNotIn("Location", response.headers)
+        response = self.client.get(f"{source}?access_token=synthetic")
+        self.assertEqual(response.status_code, 400)
+        self.assertNotIn("Location", response.headers)
+        for path in ("/podcast/missing.html", f"{source}/", f"{source}.html"):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 404)
+                self.assertNotIn("Location", response.headers)
+
+    def test_imported_html_alias_uses_recorded_source_identity(self) -> None:
+        episode = {
+            "slug": "repaired-title",
+            "provenance": {"source_key": "original-title.md"},
+            "public_path": "/podcast/s01e05/repaired-title",
+        }
+        query = "x=%2F&x=&q=A+B&q=A%20B"
+        with patch("content.public_views.catalogue.podcasts", return_value=(episode,)):
+            for slug in ("original-title.md", "repaired-title"):
+                for method in (self.client.get, self.client.head):
+                    response = method(f"/podcast/{slug}.html?{query}")
+                    self.assertEqual(response.status_code, 301)
+                    self.assertEqual(response["Location"], f"{episode['public_path']}?{query}")
+            # No invented spelling is accepted by removing historical suffixes.
+            self.assertEqual(self.client.get("/podcast/original-title.html").status_code, 404)
+            collision = {**episode, "slug": "other-title", "public_path": "/podcast/s01e06/other"}
+            with patch(
+                "content.public_views.catalogue.podcasts", return_value=(episode, collision)
+            ):
+                response = self.client.get("/podcast/original-title.md.html")
+                self.assertEqual(response.status_code, 404)
+                self.assertNotIn("Location", response.headers)
+
+    def test_genai_pilots_html_alias_redirects_to_hierarchical_detail(self) -> None:
         response = self.client.get("/podcast/s24e04/from-genai-pilots-to-production")
 
         self.assertEqual(response.status_code, 200)
@@ -58,7 +117,11 @@ class PodcastStableRouteTests(TestCase):
 
         legacy = "/podcast/s24e04-from-genai-pilots-to-production.html"
         clean_legacy = legacy.removesuffix(".html")
-        flat_forms = (legacy, clean_legacy, f"{clean_legacy}/")
+        for method in (self.client.get, self.client.head):
+            redirect = method(legacy, follow=False)
+            self.assertEqual(redirect.status_code, 301)
+            self.assertEqual(redirect["Location"], episode["public_path"])
+        flat_forms = (clean_legacy, f"{clean_legacy}/")
         for path in flat_forms:
             with self.subTest(path=path):
                 for method in (self.client.get, self.client.head):
@@ -85,7 +148,9 @@ class PodcastStableRouteTests(TestCase):
         )
         for path in ("/podcast/synthetic-episode-one.html",):
             with self.subTest(path=path):
-                self.assertEqual(self.client.get(path, follow=False).status_code, 404)
+                response = self.client.get(path, follow=False)
+                self.assertEqual(response.status_code, 301)
+                self.assertEqual(response["Location"], canonical)
 
     def test_a_lookalike_prefix_never_hides_the_real_stable_id(self) -> None:
         """A slug spelling a different episode id keeps its full tail."""

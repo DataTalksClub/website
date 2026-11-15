@@ -104,11 +104,13 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "content.review_views.faq_course": EDITORIAL_DETAIL,
     "content.review_views.faq_home": EDITORIAL_DETAIL,
     "content.review_views.slack": EDITORIAL_DETAIL,
+    "core.views.newsletter": EDITORIAL_DETAIL,
     "core.views.sponsors": EDITORIAL_DETAIL,
     "core.views.tour": EDITORIAL_DETAIL,
     "courses.views.course.course_family_view": EDITORIAL_DETAIL,
     # -- Public: hubs, feeds, sitemaps (registered selectors only, via
     # QUERY_ALLOWLISTS).
+    "content.feeds.site_feed": PUBLIC_HUB_FEED,
     "content.public_views.collection_hub": PUBLIC_HUB_FEED,
     "content.public_views.event_detail": PUBLIC_HUB_FEED,
     "content.public_views.event_detail_without_slug": PUBLIC_HUB_FEED,
@@ -140,6 +142,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "content.public_views.editorial_detail_alias_redirect": PERMANENT_REDIRECT,
     "content.public_views.legacy_events_redirect": PERMANENT_REDIRECT,
     "content.public_views.permanent_public_redirect": PERMANENT_REDIRECT,
+    "content.public_views.podwiki_redirect": PERMANENT_REDIRECT,
     "core.views.management_slash_redirect": PERMANENT_REDIRECT,
     "courses.views.course_aliases.legacy_course_redirect": PERMANENT_REDIRECT,
     # The former family/cohort gallery paths. Spec 02 keeps them as GET/HEAD

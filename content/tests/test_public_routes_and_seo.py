@@ -166,18 +166,46 @@ class PublicRouteAndSeoTests(TestCase):
                 self.assertEqual(final.status_code, 200)
                 self.assertNotIn("Location", final.headers)
 
-    def test_podwiki_and_unknown_paths_are_unredirected_404s(self) -> None:
-        for path in (
-            "/podwiki",
-            "/podwiki/",
-            "/podwiki/wiki/a-a-testing/?q=1",
-            "/podwiki/%77iki/a-a-testing/",
-            "/not-a-public-route",
-        ):
-            with self.subTest(path=path):
-                response = self.client.get(path, follow=False)
-                self.assertEqual(response.status_code, 404)
-                self.assertNotIn("Location", response.headers)
+    def test_unknown_paths_are_unredirected_404s(self) -> None:
+        response = self.client.get("/not-a-public-route", follow=False)
+        self.assertEqual(response.status_code, 404)
+        self.assertNotIn("Location", response.headers)
+
+    def test_podwiki_routes_permanently_redirect_to_wiki(self) -> None:
+        cases = (
+            ("/podwiki", "/wiki"),
+            ("/podwiki/", "/wiki"),
+            ("/podwiki/wiki/", "/wiki"),
+            ("/podwiki/wiki/a-a-testing/", "/wiki/a-a-testing"),
+            ("/podwiki/%77iki/a-a-testing/", "/wiki/a-a-testing"),
+            ("/podwiki/a-a-testing/", "/wiki/a-a-testing"),
+            ("/podwiki/course-wiki/a-a-testing/", "/wiki/a-a-testing"),
+            ("/podwiki/course-wiki/retired-course-page/", "/wiki"),
+            ("/podwiki/wiki/retired-wiki-page/", "/wiki"),
+            ("/podwiki/special-pages/", "/wiki/special-pages"),
+            ("/podwiki/special-pages/guides/", "/wiki/special-pages/guides"),
+            ("/podwiki/special-pages/unknown/", "/wiki/special-pages"),
+            ("/podwiki/graph/", "/wiki/graph"),
+            ("/podwiki/search/", "/wiki"),
+            ("/podwiki/404.html", "/wiki"),
+            ("/podwiki/skills/podcast-episode-integration/SKILL/", "/wiki"),
+        )
+        for source, target in cases:
+            with self.subTest(source=source):
+                response = self.client.get(f"{source}?q=1", follow=False)
+                self.assertEqual(response.status_code, 301)
+                self.assertEqual(response.headers["Location"], f"{target}?q=1")
+                self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
+                head = self.client.head(f"{source}?q=1", follow=False)
+                self.assertEqual(head.status_code, 301)
+                self.assertEqual(head.headers["Location"], f"{target}?q=1")
+                self.assertEqual(self.client.post(source).status_code, 405)
+                sensitive = self.client.get(f"{source}?preview_token=secret", follow=False)
+                self.assertEqual(sensitive.status_code, 400)
+                self.assertNotIn("Location", sensitive.headers)
+                final = self.client.get(target, follow=False)
+                self.assertEqual(final.status_code, 200)
+                self.assertNotIn("Location", final.headers)
 
     def test_people_hub_and_legacy_redirects_are_live(self) -> None:
         response = self.client.get("/people", follow=False)

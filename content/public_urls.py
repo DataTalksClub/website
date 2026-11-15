@@ -164,5 +164,8 @@ urlpatterns = [
     ),
     path("support", public_views.permanent_public_redirect, {"target": "/slack"}),
     path("support/", public_views.permanent_public_redirect, {"target": "/slack"}),
+    path("podwiki", public_views.podwiki_redirect, name="podwiki-home-redirect"),
+    path("podwiki/", public_views.podwiki_redirect, name="podwiki-slash-redirect"),
+    path("podwiki/<path:rest>", public_views.podwiki_redirect, name="podwiki-redirect"),
     path("images/<path:media_path>", public_views.media, name="public-media"),
 ]

@@ -172,7 +172,7 @@ def editorial_detail_alias_redirect(
     collection: str,
     slug: str,
 ) -> HttpResponse:
-    """Redirect one existing clean/slash editorial alias to its recorded canonical."""
+    """Redirect an existing editorial alias to its database-recorded canonical."""
 
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
@@ -183,17 +183,80 @@ def editorial_detail_alias_redirect(
         "podcast": catalogue.podcast,
     }[collection]
     source_slug = slug.removesuffix("/")
-    if collection == "podcast" and source_slug in PODCAST_HIERARCHICAL_ONLY_SLUGS:
+    podcast_html_alias = collection == "podcast" and slug.endswith(".html")
+    if podcast_html_alias:
+        source_slug = slug.removesuffix(".html")
+    if (
+        collection == "podcast"
+        and not podcast_html_alias
+        and source_slug in PODCAST_HIERARCHICAL_ONLY_SLUGS
+    ):
         raise Http404
-    record = resolver(source_slug)
+    if podcast_html_alias:
+        # Source keys are recorded at ingestion and can differ from a repaired
+        # public slug. Resolve the imported alias exactly, without guessing a
+        # modern slug from its historical spelling or accepting a collision.
+        matches = [
+            episode
+            for episode in catalogue.podcasts()
+            if source_slug in {episode["slug"], episode.get("provenance", {}).get("source_key")}
+        ]
+        record = matches[0] if len(matches) == 1 else None
+    else:
+        record = resolver(source_slug)
     if record is None:
         raise Http404
     target = record["public_path"]
     clean_alias = (
         f"/podcast/{source_slug}" if collection == "podcast" else target.removesuffix(".html")
     )
-    if request.path_info not in {clean_alias, f"{clean_alias}/"}:
+    aliases = {clean_alias, f"{clean_alias}/"}
+    if podcast_html_alias:
+        aliases = {f"{clean_alias}.html"}
+    if request.path_info not in aliases:
         raise Http404
+    return permanent_public_redirect(request, target=target)
+
+
+_PODWIKI_EXACT_REDIRECTS = {
+    "": "/wiki",
+    "wiki": "/wiki",
+    "course-wiki": "/wiki",
+    "search": "/wiki",
+    "graph": "/wiki/graph",
+    "graph/graph.json": "/wiki/graph/graph.json",
+    "search/search-corpus.json": "/wiki/search-corpus.json",
+    "feed.xml": "/wiki/feed.xml",
+    "sitemap.xml": "/wiki/sitemap.xml",
+    "robots.txt": "/wiki/robots.txt",
+    "special-pages": "/wiki/special-pages",
+}
+
+
+@csrf_exempt
+def podwiki_redirect(request: HttpRequest, rest: str = "") -> HttpResponse:
+    """Redirect legacy ``/podwiki/*`` URLs to ``/wiki/*`` (or ``/wiki`` for retired pages)."""
+
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    normalized = rest.strip("/")
+    target = _PODWIKI_EXACT_REDIRECTS.get(normalized)
+    if target is None:
+        if normalized.startswith("special-pages/"):
+            category = normalized.removeprefix("special-pages/")
+            target = (
+                f"/wiki/special-pages/{category}"
+                if category in WIKI_SPECIAL_CATEGORIES
+                else "/wiki/special-pages"
+            )
+        else:
+            slug = normalized
+            for prefix in ("wiki/", "course-wiki/"):
+                if normalized.startswith(prefix):
+                    slug = normalized.removeprefix(prefix)
+                    break
+            page = wiki_reader.wiki_page(slug)
+            target = page["public_path"] if page is not None else "/wiki"
     return permanent_public_redirect(request, target=target)
 
 
@@ -1227,6 +1290,7 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
     static_sections = {
         "main": (
             ("/", ""),
+            ("/newsletter", ""),
             ("/terms", ""),
             ("/privacy", ""),
             ("/impressum", ""),

@@ -964,7 +964,7 @@ class PodcastSeasonNavigationTests(TestCase):
         ``import_public_content.py`` -- the singleton's only writer -- was
         deleted). What remains here is the live behavior a real request still
         depends on: the canonical path answers, and the legacy flat spelling
-        does not.
+        redirects directly to it.
         """
 
         podcasts = catalogue.podcasts()
@@ -986,14 +986,14 @@ class PodcastSeasonNavigationTests(TestCase):
             self.assertNotIn("Location", response.headers)
         self.assertEqual(self.client.post(final_path).status_code, 405)
 
-        # The reviewed flat .html spelling is retired: it is a real 404 now.
+        # Historical .html addresses remain one-hop migration aliases.
         legacy = f"/podcast/{episode['slug']}.html"
         for method in ("GET", "HEAD"):
             response = self.client.generic(method, f"{legacy}?{query}", follow=False)
-            self.assertEqual(response.status_code, 404)
-            self.assertNotIn("Location", response.headers)
+            self.assertEqual(response.status_code, 301)
+            self.assertEqual(response["Location"], f"{final_path}?{query}")
 
-    def test_s24e05_uses_the_canonical_route_without_its_html_path(self) -> None:
+    def test_s24e05_html_alias_redirects_to_its_canonical_route(self) -> None:
         episode = _episode("s24e05-ai-adoption-in-enterprise-beyond-writing-code")
         canonical = episode["public_path"]
         legacy = f"/podcast/{episode['slug']}.html"
@@ -1014,8 +1014,8 @@ class PodcastSeasonNavigationTests(TestCase):
         )
         for method in ("GET", "HEAD"):
             response = self.client.generic(method, f"{legacy}?{query}", follow=False)
-            self.assertEqual(response.status_code, 404)
-            self.assertNotIn("Location", response.headers)
+            self.assertEqual(response.status_code, 301)
+            self.assertEqual(response["Location"], f"{canonical}?{query}")
 
         competing_path = (
             f"/podcast/s{episode['season']:02d}e{episode['episode']:02d}/competing-title"

@@ -253,6 +253,9 @@
                 {% if event_state %}
                   <span class="status-pill">{{ event_state }}</span>
                 {% endif %}
+                {% for tag in event.tags %}
+                  <span class="status-pill">{{ tag }}</span>
+                {% endfor %}
               </p>
               <h1 id="event-heading">{{ event.title }}</h1>
               {% comment %}
