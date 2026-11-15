@@ -1217,6 +1217,7 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
     static_sections = {
         "main": (
             ("/", ""),
+            ("/newsletter", ""),
             ("/terms", ""),
             ("/privacy", ""),
             ("/impressum", ""),

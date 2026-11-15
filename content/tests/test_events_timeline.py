@@ -754,6 +754,21 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         self.assertRegex(body, r'class="status-pill status-pill-mint"[^>]*>podcast</span>')
         self.assertIn('<span class="status-pill">upcoming</span>', body)
 
+    def test_display_tags_render_on_events_index_and_detail(self) -> None:
+        tagged = {
+            **next(iter((*event_groups().upcoming, *event_groups().recent))),
+            "tags": ["Академия"],
+        }
+
+        with patch.object(public_views, "event_groups", lambda: EventGroups((tagged,), ())):
+            index_response = self.client.get("/events")
+            detail_body = self.detail(tagged)
+
+        self.assertEqual(index_response.status_code, 200)
+        index_body = index_response.content.decode("utf-8")
+        self.assertIn('<span class="status-pill">Академия</span>', index_body)
+        self.assertIn('<span class="status-pill">Академия</span>', detail_body)
+
     def test_speakers_and_links_keep_their_destinations_and_their_labels(self) -> None:
         event = next(
             event
