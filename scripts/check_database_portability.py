@@ -86,6 +86,9 @@ BACKEND_PATTERN_EXCEPTIONS: dict[Path, frozenset[str]] = {
     Path("slack_access/management_services.py"): frozenset({"select_for_update"}),
     Path("courses/votes.py"): frozenset({"select_for_update"}),
     Path("courses/project_scoring.py"): frozenset({"select_for_update"}),
+    # Recalculation serializes totals and cache generation in one transaction.
+    # PostgreSQL locks the cohort row; SQLite serializes writes at database level.
+    Path("courses/leaderboard.py"): frozenset({"select_for_update"}),
     Path("courses/views/project_eval_submit_save.py"): frozenset({"select_for_update"}),
     # The CMP certificate reconciliation serializes concurrent imports with
     # ``select_for_update`` for the same reason as the vote-budget paths

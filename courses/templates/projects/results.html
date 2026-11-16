@@ -120,6 +120,9 @@
       You did not make a submission for this project.
     </p>
   {% else %}
+    {% if not has_evaluation %}
+      <p class="notice info">Your submission is awaiting evaluation. Results and scores will appear once it has been evaluated.</p>
+    {% else %}
     <section class="project-section" aria-labelledby="project-outcome-heading">
       <div class="project-section-head">
         <h2 id="project-outcome-heading">Outcome</h2>
@@ -199,6 +202,7 @@
         </div>
       </dl>
     </section>
+    {% endif %}
     <section class="project-section" aria-labelledby="submission-heading">
       <div class="project-section-head">
         <h2 id="submission-heading">Submission</h2>

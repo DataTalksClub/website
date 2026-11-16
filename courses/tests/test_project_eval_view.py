@@ -1,5 +1,7 @@
+from django.template.loader import render_to_string
 from django.urls import reverse
 
+from accounts.services.timezones import format_user_datetime
 from courses.models import (
     PeerReview,
     ProjectState,
@@ -184,3 +186,89 @@ class ProjectEvaluationViewTestCase(ProjectEvaluationTestBase):
             "Submission details",
             status_code=200,
         )
+
+
+class UpcomingProjectEvaluationViewTests(ProjectEvaluationTestBase):
+    def assert_upcoming_review(self, response):
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["eval_not_open"])
+        self.assertFalse(response.context["eval_closed"])
+        self.assertContains(response, "Peer review has not opened yet.")
+        self.assertContains(response, "peer reviewers have been assigned")
+        self.assertNotContains(response, "Peer review form is closed.")
+        self.assertNotContains(response, "submission window is closed")
+        self.assertNotContains(response, "Review progress")
+        self.assertNotContains(response, "Selected reviews")
+        self.assertNotContains(response, "Choose a project to evaluate")
+        self.assertContains(
+            response,
+            format_user_datetime(self.project.submission_due_date, response.wsgi_request),
+        )
+        self.assertContains(
+            response,
+            format_user_datetime(self.project.peer_review_due_date, response.wsgi_request),
+        )
+
+    def assert_upcoming_state_matrix(self):
+        for state in (ProjectState.CLOSED, ProjectState.COLLECTING_SUBMISSIONS):
+            self.project.state = state.value
+            self.project.save(update_fields=["state"])
+            for authenticated in (False, True):
+                with self.subTest(state=state, authenticated=authenticated):
+                    self.client.logout()
+                    if authenticated:
+                        self.client.login(**credentials)
+
+                    response = self.client.get(self.eval_view_url())
+
+                    self.assert_upcoming_review(response)
+                    if not authenticated:
+                        self.assertContains(response, 'href="' + reverse("login") + '"')
+
+    def test_upcoming_with_submission(self):
+        self.assert_upcoming_state_matrix()
+
+    def test_upcoming_without_submission(self):
+        self.submission.delete()
+        self.assert_upcoming_state_matrix()
+
+    def test_upcoming_dates_use_browser_timezone(self):
+        self.client.cookies["browser_timezone"] = "Asia/Tokyo"
+        self.project.state = ProjectState.CLOSED.value
+        self.project.save(update_fields=["state"])
+
+        response = self.client.get(self.eval_view_url())
+
+        self.assert_upcoming_review(response)
+        self.assertNotEqual(
+            format_user_datetime(self.project.submission_due_date, response.wsgi_request),
+            format_user_datetime(self.project.submission_due_date),
+        )
+
+    def test_upcoming_get_does_not_change_review_or_submission_rows(self):
+        self.project.state = ProjectState.COLLECTING_SUBMISSIONS.value
+        self.project.save(update_fields=["state"])
+        self.client.login(**credentials)
+        before = (ProjectSubmission.objects.count(), list(PeerReview.objects.values()))
+
+        self.client.get(self.eval_view_url())
+
+        self.assertEqual(
+            before, (ProjectSubmission.objects.count(), list(PeerReview.objects.values()))
+        )
+
+    def test_upcoming_template_without_dates_has_readable_copy(self):
+        self.project.state = ProjectState.CLOSED.value
+        self.project.save(update_fields=["state"])
+        response = self.client.get(self.eval_view_url())
+        context = response.context[0].flatten()
+        self.project.submission_due_date = None
+        self.project.peer_review_due_date = None
+        context["project"] = self.project
+
+        html = render_to_string("projects/eval.html", context, request=response.wsgi_request)
+
+        self.assertIn("Peer review has not opened yet.", html)
+        self.assertNotIn("Project deadline:", html)
+        self.assertNotIn("Peer review deadline:", html)
+        self.assertNotIn("None", html)

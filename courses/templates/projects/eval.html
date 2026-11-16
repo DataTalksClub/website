@@ -1,5 +1,5 @@
 {% extends 'projects/_base.html' %}
-{% load breadcrumbs %}
+{% load breadcrumbs custom_filters %}
 {% comment %}
   The peer evaluations a learner owes for one project, on the design system
   (issue #179).
@@ -75,7 +75,24 @@
       {% endfor %}
     </div>
   {% endif %}
-  {% if not is_authenticated %}
+  {% if eval_not_open %}
+    <p class="notice info">
+      <span>
+      Peer review has not opened yet. This form will open after the project deadline has passed and peer reviewers have been assigned.
+      {% if project.submission_due_date %}
+        Project deadline: <strong>{{ project.submission_due_date|user_datetime:request }}</strong>.
+      {% endif %}
+      {% if project.peer_review_due_date %}
+        Peer review deadline: <strong>{{ project.peer_review_due_date|user_datetime:request }}</strong>.
+      {% endif %}
+      </span>
+    </p>
+    {% if not is_authenticated %}
+      <p class="notice info">
+        <span>Please <a href="{% url 'login' %}">log in</a> to see the projects you need to evaluate.</span>
+      </p>
+    {% endif %}
+  {% elif not is_authenticated %}
     <p class="notice info">
       Please <a href="{% url 'login' %}">log in</a> to see the projects you need to evaluate.
     </p>
