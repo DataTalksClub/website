@@ -125,6 +125,7 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
     assert application_test_labels(graph) == {
         "api": ("api",),
         "academy": ("academy", "core"),
+        "slack_access": ("accounts", "core", "management_api", "slack_access", "studio"),
         "studio_courses": ("studio", "studio_courses"),
         "content": (
             "accounts",
@@ -148,13 +149,14 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
             "studio",
             "studio_courses",
         ),
-        "management_api": ("api", "management_api", "studio"),
+        "management_api": ("api", "management_api", "slack_access", "studio"),
         "management_auth": (
             "accounts",
             "api",
             "core",
             "management_api",
             "management_auth",
+            "slack_access",
             "studio",
         ),
         "review_import": ("accounts", "courses", "review_import"),
@@ -164,6 +166,7 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
             "event_qna",
             "event_registrants",
             "events",
+            "slack_access",
             "studio",
         ),
     }

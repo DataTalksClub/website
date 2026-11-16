@@ -282,6 +282,7 @@ PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod/import_production_ai_campaign.py",
 )
 TYPECHECK_PATHS: Final = (
+    "slack_access",
     "manage.py",
     "website",
     "core",

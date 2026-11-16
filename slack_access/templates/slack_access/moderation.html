@@ -1,0 +1,41 @@
+{% extends "public/text_page.html" %}
+{% block kicker %}Community moderation{% endblock %}
+{% block title %}Revoke Slack website access{% endblock %}
+{% block content %}
+<p>This revokes website Slack access for the member, their accountable sponsors, and all descendants. It does not deactivate Slack accounts.</p>
+{% if count != None %}
+  <p role="status">Website access revoked for {{ count }} members and their sponsored applications.</p>
+{% elif preview %}
+  <p>Member #{{ preview.member_id }}. This revokes website access for {{ preview.affected_count }} accountable members and their applications.</p>
+  <form method="post" action="{% url 'studio:slack-moderation-action' %}" class="cmp-form">
+    {% csrf_token %}
+    <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+    <input type="hidden" name="expected_count" value="{{ preview.affected_count }}">
+    <input type="hidden" name="scope_token" value="{{ preview.scope_token }}">
+    <input type="hidden" name="member_id" value="{{ preview.member_id }}">
+    <p class="fineprint"><span class="a11y-required" aria-hidden="true">*</span> Required fields.</p>
+    <div class="cmp-form-fields">
+      <div class="field">
+        <div class="form-check">
+          <input class="form-check-input" id="slack-ban-confirmed" type="checkbox" name="confirmed" value="true" required aria-describedby="slack-ban-confirmation-help">
+          <label class="form-check-label" for="slack-ban-confirmed">I confirm the accountability cascade and revocation. <span class="a11y-required" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+        </div>
+        <p class="a11y-help" id="slack-ban-confirmation-help">This affects all {{ preview.affected_count }} members in this reviewed accountability chain.</p>
+      </div>
+    </div>
+    <div class="cmp-form-actions"><button class="cta cta-primary interactive-lift" type="submit">Revoke website access</button></div>
+  </form>
+{% else %}
+  <form method="get" class="cmp-form">
+    <p class="fineprint"><span class="a11y-required" aria-hidden="true">*</span> Required fields.</p>
+    <div class="cmp-form-fields">
+      <div class="field">
+        <label class="field-label" for="slack-member-id">Member ID <span class="a11y-required" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+        <input class="field-input" id="slack-member-id" name="member_id" type="text" required autocomplete="off" spellcheck="false" aria-describedby="slack-member-id-help">
+        <p class="a11y-help" id="slack-member-id-help">Enter the member's public UUID to review the affected accountability chain.</p>
+      </div>
+    </div>
+    <div class="cmp-form-actions"><button class="cta cta-secondary interactive-lift" type="submit">Review revocation</button></div>
+  </form>
+{% endif %}
+{% endblock %}

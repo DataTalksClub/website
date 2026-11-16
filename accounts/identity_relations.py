@@ -18,6 +18,12 @@ class AccountRelationSpec:
 
 
 _MANDATORY_RELATIONS = (
+    # Slack questionnaire/membership belong to the surviving account. One-to-one
+    # collisions fail a merge closed; approval and decision actors remain provenance.
+    AccountRelationSpec("slack_access.Application", "user", "reparent"),
+    AccountRelationSpec("slack_access.Membership", "user", "reparent"),
+    AccountRelationSpec("slack_access.Application", "approved_by", "provenance_alias"),
+    AccountRelationSpec("slack_access.Decision", "actor", "provenance_alias"),
     AccountRelationSpec(
         "accounts.User_groups",
         "user",

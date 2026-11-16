@@ -1,0 +1,23 @@
+{% extends "public/text_page.html" %}
+{% block kicker %}Community review{% endblock %}
+{% block title %}Slack applications{% endblock %}
+{% block content %}
+<p><a href="{% url 'studio:slack-report' %}">Slack join monitoring report</a> · <a href="{% url 'studio:slack-moderation' %}">Moderate access</a></p>
+{% for application in applications %}
+  <section>
+    <h2>Applicant #{{ application.user_id }}</h2>
+    <dl><dt>Who</dt><dd>{{ application.who }}</dd><dt>Where they work</dt><dd>{{ application.work }}</dd><dt>What they do</dt><dd>{{ application.what }}</dd><dt>Accountable member</dt><dd>{{ application.sponsor_id|default:'No vouch yet' }}</dd></dl>
+    <form method="post" action="{% url 'studio:slack-review-action' %}" class="cmp-form">
+      {% csrf_token %}
+      <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+      <input type="hidden" name="expected_state" value="pending">
+      <input type="hidden" name="application_id" value="{{ application.id }}">
+      <div class="cmp-form-actions">
+        <button class="cta cta-primary interactive-lift" name="action" value="approve" type="submit">Approve</button>
+        <button class="cta cta-subtle interactive-lift" name="action" value="reject" type="submit">Decline</button>
+      </div>
+    </form>
+  </section>
+{% empty %}<p>No applications are awaiting review.</p>{% endfor %}
+{% if next_after %}<p><a href="?after={{ next_after }}">More applications</a></p>{% endif %}
+{% endblock %}

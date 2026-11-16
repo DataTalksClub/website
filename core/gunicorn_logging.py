@@ -31,6 +31,14 @@ REDACTED_SEGMENT = "[token]"
 # line and the path atom are both covered even though the deployed format uses
 # only the path.
 TOKEN_PATH_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (
+        re.compile(r"/community/slack/redeem/[A-Za-z0-9._~%-]+"),
+        f"/community/slack/redeem/{REDACTED_SEGMENT}",
+    ),
+    (
+        re.compile(r"/community/slack/vouch/[A-Za-z0-9._~%-]+"),
+        f"/community/slack/vouch/{REDACTED_SEGMENT}",
+    ),
     (re.compile(r"/t/o/[A-Za-z0-9._~%-]+\.gif"), f"/t/o/{REDACTED_SEGMENT}.gif"),
     (re.compile(r"/t/c/[A-Za-z0-9._~%-]+"), f"/t/c/{REDACTED_SEGMENT}"),
     (re.compile(r"/unsubscribe/[A-Za-z0-9._~%-]+"), f"/unsubscribe/{REDACTED_SEGMENT}"),

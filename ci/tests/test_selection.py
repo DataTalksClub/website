@@ -37,6 +37,10 @@ def test_every_reviewed_application_closure_is_exact(root: str, labels: tuple[st
         head=HEAD,
     )
 
+    if root == "slack_access":
+        assert result["profile"] == "full"
+        assert result["reason"] == "shared_application"
+        return
     assert result["profile"] == "focused"
     assert result["reason"] == "single_application"
     assert result["application_roots"] == [root]

@@ -69,6 +69,19 @@ QUERY_ALLOWLISTS: dict[str, frozenset[str]] = {
 #: classified`` — and the private/dynamic block is the explicit, reviewed
 #: complement of the shareable classes above, not a default.
 ROUTE_CACHE_CLASSES: dict[str, str] = {
+    "slack_access.studio_views.review": PRIVATE_DYNAMIC,
+    "slack_access.studio_views.review_action": PRIVATE_DYNAMIC,
+    "slack_access.studio_views.moderation": PRIVATE_DYNAMIC,
+    "slack_access.studio_views.moderation_action": PRIVATE_DYNAMIC,
+    "slack_access.studio_views.report": PRIVATE_DYNAMIC,
+    "slack_access.admin_api.application_list": PRIVATE_DYNAMIC,
+    "slack_access.admin_api.application_review": PRIVATE_DYNAMIC,
+    "slack_access.admin_api.join_report": PRIVATE_DYNAMIC,
+    "management_api.urls.slack_member_ban": PRIVATE_DYNAMIC,
+    "slack_access.views.application": PRIVATE_DYNAMIC,
+    "slack_access.views.vouch": PRIVATE_DYNAMIC,
+    "slack_access.views.member_invite": PRIVATE_DYNAMIC,
+    "slack_access.views.redeem": PRIVATE_DYNAMIC,
     # Academy resources carry confirmation tokens in queries: never shareable.
     "academy.views.resource": PRIVATE_DYNAMIC,
     "management_api.launch_views.launch_read": PRIVATE_DYNAMIC,

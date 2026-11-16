@@ -30,6 +30,8 @@ from management_registry import CAPABILITY_REGISTRY
 _AUDITED_COMMAND_CAPABILITIES = frozenset(
     {
         "site.settings.write",
+        "slack.applications.review",
+        "slack.members.ban",
         "site.navigation.write",
         "studio.audit.export",
     }

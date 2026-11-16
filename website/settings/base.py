@@ -132,6 +132,7 @@ INSTALLED_APPS = [
     "management_auth.apps.ManagementAuthConfig",
     "core.apps.CoreConfig",
     "academy.apps.AcademyConfig",
+    "slack_access.apps.SlackAccessConfig",
     "website.apps.WebsiteConfig",
     "accounts.apps.AccountsConfig",
     # D3.1a: the site-owned accounts extension app. It carries the identity
@@ -555,3 +556,8 @@ COMMUNITY_BASE: dict[str, Any] = {
     COURSE_TELEGRAM_BOT_TOKEN,
     COURSE_TELEGRAM_DESTINATIONS,
 ) = announcement_configuration(os.environ)
+
+# Provider secrets are resolved only at the Slack boundary, never persisted in content.
+SLACK_INVITE_URL = os.getenv("SLACK_INVITE_URL", "")
+SLACK_MONITOR_TOKEN = os.getenv("SLACK_MONITOR_TOKEN", "")
+SLACK_WORKSPACE_ID = os.getenv("SLACK_WORKSPACE_ID", "")

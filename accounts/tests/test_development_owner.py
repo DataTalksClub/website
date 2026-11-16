@@ -70,6 +70,8 @@ class DevelopmentOwnerBootstrapTests(TestCase):
                 ("core", "browse_audit"),
                 ("core", "export_audit"),
                 ("management_auth", "manage_api_credentials"),
+                ("slack_access", "review_applications"),
+                ("slack_access", "ban_members"),
                 ("event_qna", "view_event_qna"),
                 ("event_qna", "manage_event_qna"),
                 ("core", "read_operational_settings"),

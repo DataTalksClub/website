@@ -11,6 +11,8 @@ from typing import Any
 from community_base.kernel.context import current_context
 from community_base.kernel.redaction import REDACTED, redact
 
+from core.gunicorn_logging import redact_token_path
+
 _CONTEXT_FIELDS = ("request_id", "correlation_id", "job_id")
 _FORMATTER_FIELDS = frozenset({"timestamp", "level", "logger", "message"})
 _LOG_RECORD_FIELDS = set(
@@ -114,4 +116,4 @@ class SafeJsonFormatter(logging.Formatter):
             payload["exception_type"] = redact(getattr(exception_type, "__name__", "Exception"))
             payload["traceback"] = safe_traceback(record.exc_info)
 
-        return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+        return redact_token_path(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))

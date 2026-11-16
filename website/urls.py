@@ -52,6 +52,7 @@ namespaced_course_patterns.append(
 )
 
 urlpatterns = [
+    path("community/slack/", include("slack_access.urls")),
     path("academy/", include("academy.urls")),
     path("sitemaps/academy.xml", include("academy.sitemap_urls")),
     path("feed.xml", site_feed, name="site-feed"),

@@ -1,0 +1,10 @@
+{% extends "public/text_page.html" %}
+{% block kicker %}Community{% endblock %}
+{% block title %}Your Slack invitation{% endblock %}
+{% block content %}
+<p>This invitation can be used once. Continue when you are ready to join Slack.</p>
+<form method="post" class="cmp-form">
+  {% csrf_token %}
+  <div class="cmp-form-actions"><button type="submit" class="cta cta-primary interactive-lift">Use invitation and continue to Slack</button></div>
+</form>
+{% endblock %}
