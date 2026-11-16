@@ -2,8 +2,6 @@ from dataclasses import dataclass
 
 from django.shortcuts import get_object_or_404, render
 
-from courses.models.cohort import Cohort
-from courses.views.url_utils import get_cohort_or_404
 from courses.models.project import (
     PeerReview,
     PeerReviewState,
@@ -11,6 +9,7 @@ from courses.models.project import (
     ProjectState,
     ProjectSubmission,
 )
+from courses.views.url_utils import get_cohort_or_404
 
 
 @dataclass(frozen=True)
@@ -40,7 +39,13 @@ def split_project_eval_reviews(reviews):
     )
 
 
-def student_project_eval_context(course, project, user, eval_closed):
+EVAL_NOT_OPEN_STATES = (
+    ProjectState.CLOSED.value,
+    ProjectState.COLLECTING_SUBMISSIONS.value,
+)
+
+
+def student_project_eval_context(course, project, user, eval_closed, eval_not_open=False):
     student_submissions = ProjectSubmission.objects.filter(
         project=project,
         student=user,
@@ -48,12 +53,16 @@ def student_project_eval_context(course, project, user, eval_closed):
     project_submissions = student_submissions.filter(
         volunteer_review_only=False,
     )
-    reviews = PeerReview.objects.filter(
-        reviewer__in=student_submissions,
-        submission_under_evaluation__project=project,
-    ).select_related(
-        "submission_under_evaluation__enrollment",
-    ).order_by("optional")
+    reviews = (
+        PeerReview.objects.filter(
+            reviewer__in=student_submissions,
+            submission_under_evaluation__project=project,
+        )
+        .select_related(
+            "submission_under_evaluation__enrollment",
+        )
+        .order_by("optional")
+    )
     review_groups = split_project_eval_reviews(reviews)
     has_submission = project_submissions.exists()
 
@@ -68,18 +77,18 @@ def student_project_eval_context(course, project, user, eval_closed):
         "number_of_completed_evaluation": review_groups.completed_count,
         "has_submission": has_submission,
         "eval_closed": eval_closed,
+        "eval_not_open": eval_not_open,
     }
 
 
 def projects_eval_view(request, course_slug, project_slug, cohort_identifier=None):
     course = get_cohort_or_404(course_slug, cohort_identifier)
-    project = get_object_or_404(
-        Project, course=course, slug=project_slug
-    )
+    project = get_object_or_404(Project, course=course, slug=project_slug)
 
     user = request.user
     is_authenticated = user.is_authenticated
-    eval_closed = project.state != ProjectState.PEER_REVIEWING.value
+    eval_not_open = project.state in EVAL_NOT_OPEN_STATES
+    eval_closed = project.state != ProjectState.PEER_REVIEWING.value and not eval_not_open
 
     if not is_authenticated:
         context = {
@@ -88,6 +97,7 @@ def projects_eval_view(request, course_slug, project_slug, cohort_identifier=Non
             "project": project,
             "is_authenticated": False,
             "eval_closed": eval_closed,
+            "eval_not_open": eval_not_open,
         }
     else:
         context = student_project_eval_context(
@@ -95,6 +105,7 @@ def projects_eval_view(request, course_slug, project_slug, cohort_identifier=Non
             project,
             user,
             eval_closed,
+            eval_not_open,
         )
 
     response = render(request, "projects/eval.html", context)

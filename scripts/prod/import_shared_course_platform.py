@@ -502,6 +502,7 @@ def _mapping() -> dict[
             # Approval belongs to the site's registration workflow; the shared
             # curriculum cohort has no corresponding participation gate.
             "requires_registration_approval": _STAYS,
+            "leaderboard_cache_version": _STAYS,
             "finished": _COPIED,
             "min_projects_to_pass": _COPIED,
             "homework_problems_comments_field": _COPIED,

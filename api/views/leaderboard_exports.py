@@ -8,21 +8,18 @@ Cached and invalidated when the leaderboard is recalculated.
 import logging
 
 import yaml
-
+from django.core.cache import cache
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from django.core.cache import cache
 from django.views.decorators.http import require_GET
 
 from api.views.leaderboard_export_data import (
     build_leaderboard_data,
 )
+from courses.leaderboard_cache import leaderboard_cache_ttl, leaderboard_cache_version
 from courses.models.cohort import Cohort
 
 logger = logging.getLogger(__name__)
-
-LEADERBOARD_DATA_CACHE_TTL = 86400  # 24 hours; also invalidated by update_leaderboard()
-LEADERBOARD_YAML_CACHE_TTL = LEADERBOARD_DATA_CACHE_TTL
 
 
 def _get_positive_int(value, default, maximum=None):
@@ -39,15 +36,11 @@ def _get_positive_int(value, default, maximum=None):
 
 
 def _get_cache_version(course):
-    version_key = f"leaderboard_cache_version:{course.id}"
-    return cache.get(version_key, 1)
+    return leaderboard_cache_version(course.id)
 
 
 def _cached_leaderboard_data(course, page, cache_version):
-    data_cache_key = (
-        f"leaderboard_data:{course.id}:v{cache_version}:"
-        f"page:{page}"
-    )
+    data_cache_key = f"leaderboard_data:{course.id}:v{cache_version}:page:{page}"
     data = cache.get(data_cache_key)
     if data is not None:
         logger.info("Cache hit for leaderboard data of course %s", course.slug)
@@ -55,15 +48,12 @@ def _cached_leaderboard_data(course, page, cache_version):
 
     logger.info("Cache miss for leaderboard data of course %s", course.slug)
     data = build_leaderboard_data(course, page)
-    cache.set(data_cache_key, data, LEADERBOARD_DATA_CACHE_TTL)
+    cache.set(data_cache_key, data, leaderboard_cache_ttl())
     return data
 
 
 def _cached_leaderboard_yaml(course, page, cache_version):
-    yaml_cache_key = (
-        f"leaderboard_yaml:{course.id}:v{cache_version}:"
-        f"page:{page}"
-    )
+    yaml_cache_key = f"leaderboard_yaml:{course.id}:v{cache_version}:page:{page}"
     yaml_content = cache.get(yaml_cache_key)
     if yaml_content is not None:
         logger.info("Cache hit for leaderboard YAML of course %s", course.slug)
@@ -76,7 +66,7 @@ def _cached_leaderboard_yaml(course, page, cache_version):
         allow_unicode=True,
         sort_keys=False,
     )
-    cache.set(yaml_cache_key, yaml_content, LEADERBOARD_YAML_CACHE_TTL)
+    cache.set(yaml_cache_key, yaml_content, leaderboard_cache_ttl())
     return yaml_content
 
 

@@ -55,15 +55,10 @@ class StopImpersonatingStudioCoursesViewTests(ImpersonationStudioCoursesViewTest
 
 
 class StopImpersonatingCsrfStudioCoursesViewTests(ImpersonationStudioCoursesViewTestBase):
-    def test_stop_impersonating_allows_stale_csrf_token_after_user_switch(
-        self,
-    ):
+    def impersonated_csrf_client(self):
         csrf_client = Client(enforce_csrf_checks=True)
         login_url = self.login_as_user_url()
         course_list_url = reverse("course_list")
-        stop_url = reverse("stop_impersonating")
-        studio_courses_course_list_url = reverse("studio_courses_course_list")
-
         csrf_client.login(**admin_credentials)
         response = csrf_client.get(course_list_url)
         self.assertEqual(response.status_code, 200)
@@ -77,8 +72,49 @@ class StopImpersonatingCsrfStudioCoursesViewTests(ImpersonationStudioCoursesView
         self.assertContains(response, "impersonation-banner")
         self.assertEqual(response.wsgi_request.user, self.user)
 
-        response = csrf_client.post(stop_url, csrf_payload)
+        return csrf_client, admin_csrf_token
 
-        self.assertRedirects(response, studio_courses_course_list_url)
-        response = csrf_client.get(course_list_url)
+    def assert_still_impersonating(self, client):
+        response = client.get(reverse("course_list"))
+        self.assertEqual(response.wsgi_request.user, self.user)
+
+    def test_stop_rejects_missing_token(self):
+        client, _ = self.impersonated_csrf_client()
+
+        response = client.post(reverse("stop_impersonating"))
+
+        self.assertEqual(response.status_code, 403)
+        self.assert_still_impersonating(client)
+
+    def test_stop_rejects_pre_switch_token(self):
+        client, stale_token = self.impersonated_csrf_client()
+
+        response = client.post(
+            reverse("stop_impersonating"),
+            {"csrfmiddlewaretoken": stale_token},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assert_still_impersonating(client)
+
+    def test_stop_accepts_fresh_token(self):
+        client, stale_token = self.impersonated_csrf_client()
+        fresh_token = client.cookies["csrftoken"].value
+        self.assertNotEqual(fresh_token, stale_token)
+
+        response = client.post(
+            reverse("stop_impersonating"),
+            {"csrfmiddlewaretoken": fresh_token},
+        )
+
+        self.assertRedirects(response, reverse("studio_courses_course_list"))
+        response = client.get(reverse("course_list"))
         self.assertEqual(response.wsgi_request.user, self.admin_user)
+
+    def test_stop_get_does_not_restore_identity(self):
+        client, _ = self.impersonated_csrf_client()
+
+        response = client.get(reverse("stop_impersonating"))
+
+        self.assertEqual(response.status_code, 405)
+        self.assert_still_impersonating(client)
