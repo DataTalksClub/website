@@ -1140,6 +1140,33 @@ Rules for editing:
         box-shadow: none;
       }
 
+      /* Site-wide Academy stripe (core/_academy_cta.html): the lavender band
+         just above the tour stripe, in the tour stripe's shape and type scale. */
+      .academy-cta {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem 2rem;
+        justify-content: space-between;
+      }
+
+      .academy-cta > div {
+        flex: 1 1 26rem;
+      }
+
+      .academy-cta > .cta {
+        flex: none;
+      }
+
+      .academy-cta h2 {
+        font-size: clamp(1.15rem, 2.4vw, 1.55rem);
+      }
+
+      .academy-cta p {
+        font-size: 0.88rem;
+        margin-top: 0.5rem;
+      }
+
       /* Stacked by default; the action or kicker only moves onto the heading's own row
          once the row is wide enough to hold both without squeezing the heading. */
       .band-head {
