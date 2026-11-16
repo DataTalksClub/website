@@ -84,7 +84,7 @@ class PeopleParser:
 
     def upsert(self, item, source, media):
         if is_media_item(item):
-            return upsert_media_item(item, source, media)
+            return upsert_media_item(item, source)
         record = item.data["record"]
         if record["image_source"]:
             media.upload(base.active_checkout(), record["image_source"], source)

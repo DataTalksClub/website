@@ -12,7 +12,8 @@ The frozen corpus-wide inventory stays with the pinned-corpus gates; the
 parser follows the repositories across commits.  The profile pictures ride
 with the people parser (it already reads and allowlists the ``picture``
 frontmatter); this module owns the record shape, the byte rules and the
-upsert for both trees.
+upsert for both trees, including the upload of each object to the public media
+store before its record is written.
 """
 
 import re
@@ -23,6 +24,7 @@ from community_base.content_sync.orchestration import UpsertResult
 from community_base.content_sync.parsers import SourceItem, register_parser
 
 from content import projection_helpers as builder
+from content.media_store import MediaStoreError, ensure_media_object, media_store
 
 from . import base
 
@@ -129,11 +131,24 @@ def is_media_item(item: SourceItem) -> bool:
     return item.data.get("kind") == MEDIA_KIND
 
 
-def upsert_media_item(item: SourceItem, source, media) -> UpsertResult:
-    """Write one media record; the bytes also leave through the engine's store."""
+def upsert_media_item(item: SourceItem, source) -> UpsertResult:
+    """Upload one media object, then write the record that serves it.
+
+    The bytes go to the site's own public media store -- ``content.media_store``,
+    the store ``/images/`` reads -- at the record's path-mirrored key, not through
+    the engine's ``media`` boundary, whose keys the read side never resolves.  The
+    upload comes first and fails closed: when it does not land, the parser raises
+    before the row is created or changed, so no published record points at missing
+    bytes and the sync reports the item as an error.  An object already stored
+    with the record's checksum is not uploaded again.
+    """
 
     record = item.data["record"]
-    media.upload(base.active_checkout(), record["record_key"], source)
+    payload = base.active_checkout().read_bytes(record["record_key"])
+    try:
+        ensure_media_object(media_store(), record, payload)
+    except MediaStoreError as error:
+        base.fail(f"media object upload failed ({error.reason})", record["record_key"])
     document, action = base.upsert_document(
         source,
         content_kind=MEDIA_KIND,
@@ -170,7 +185,7 @@ class MediaParser:
         ]
 
     def upsert(self, item: SourceItem, source, media) -> UpsertResult:
-        return upsert_media_item(item, source, media)
+        return upsert_media_item(item, source)
 
     def soft_delete_missing(self, seen_keys: set[str], source) -> int:
         if source.slug != EDITORIAL_SOURCE_SLUG:

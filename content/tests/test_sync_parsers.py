@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from community_base.content_sync.checkout import ImmutableCheckout
 from community_base.content_sync.media import media_store
@@ -19,6 +21,7 @@ from community_base.knowledge_base.models import (
 )
 from django.test import TestCase
 
+from content.media_store import MediaStoreUnavailable, MemoryMediaStore, read_media_object
 from content.models import SyncedDocument
 from content.sync_parsers.base import ContentParserError, upsert_document
 from content.sync_parsers.course import COURSE_SOURCE_SLUGS
@@ -1578,3 +1581,115 @@ class SyncOrchestrationBoundaryTests(TestCase):
         self.assertTrue(SyncedDocument.objects.filter(pk=foreign.pk).exists())
         self.assertEqual(get_parser("article").soft_delete_missing(set(), self.other), 0)
         self.assertTrue(SyncedDocument.objects.filter(pk=foreign.pk).exists())
+
+
+class _RecordingStore(MemoryMediaStore):
+    """The offline store, counting uploads and able to refuse them."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.puts: list[str] = []
+        self.refuse = False
+
+    def put(self, record, payload: bytes) -> None:
+        if self.refuse:
+            raise MediaStoreUnavailable("object store upload failed")
+        self.puts.append(record["record_key"])
+        super().put(record, payload)
+
+
+class MediaUploadSyncTests(TestCase):
+    """A synced media record is only published once its bytes are in the store."""
+
+    COVER = "images/posts/hello-world/cover.png"
+    PORTRAIT = "images/authors/alexeygrigorev.jpg"
+
+    def setUp(self) -> None:
+        super().setUp()
+        SyncedDocument.objects.filter(source__slug__in=("dtc-content", "dtc-main-site")).delete()
+        self.store = _RecordingStore()
+        patcher = mock.patch("content.sync_parsers.media.media_store", return_value=self.store)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def _sync(self, source: ContentSource, repository: Path) -> SyncLog:
+        log = sync_content_source(source, repo_dir=repository, force=True)
+        source.refresh_from_db()
+        return log
+
+    def _media(self, source: ContentSource) -> dict[str, str]:
+        rows = SyncedDocument.objects.filter(source=source, content_kind="media")
+        return dict(rows.values_list("stable_key", "checksum"))
+
+    def test_a_new_record_uploads_its_bytes_once(self) -> None:
+        source = _source("dtc-content")
+        payload = _png(b"cover")
+        repository = _git_repository({self.COVER: payload})
+
+        log = self._sync(source, repository)
+        self.assertEqual(log.status, SyncStatus.SUCCESS, log.errors)
+        self.assertEqual(self.store.puts, [self.COVER])
+        document = SyncedDocument.objects.get(source=source, stable_key=self.COVER)
+        self.assertEqual(document.checksum, hashlib.sha256(payload).hexdigest())
+        self.assertEqual(read_media_object(self.store, document.record), payload)
+
+        # A re-sync of the same bytes finds the object and uploads nothing.
+        _git_commit(repository)
+        log = self._sync(source, repository)
+        self.assertEqual(log.status, SyncStatus.SUCCESS, log.errors)
+        self.assertEqual(self.store.puts, [self.COVER])
+
+        # Changed bytes are uploaded before the record moves to them.
+        changed = _png(b"repainted cover")
+        (repository / self.COVER).write_bytes(changed)
+        _git_commit(repository)
+        log = self._sync(source, repository)
+        self.assertEqual(log.status, SyncStatus.SUCCESS, log.errors)
+        self.assertEqual(self.store.puts, [self.COVER, self.COVER])
+        document.refresh_from_db()
+        self.assertEqual(read_media_object(self.store, document.record), changed)
+
+    def test_a_profile_picture_is_uploaded_with_its_record(self) -> None:
+        source = _source("dtc-main-site")
+        payload = _jpeg(b"portrait")
+        repository = _git_repository(
+            {"_people/alexeygrigorev.md": _person_markdown().encode(), self.PORTRAIT: payload}
+        )
+
+        log = self._sync(source, repository)
+        self.assertEqual(log.status, SyncStatus.SUCCESS, log.errors)
+        self.assertEqual(self.store.puts, [self.PORTRAIT])
+        document = SyncedDocument.objects.get(source=source, stable_key=self.PORTRAIT)
+        self.assertEqual(read_media_object(self.store, document.record), payload)
+
+    def test_a_failed_upload_publishes_no_record(self) -> None:
+        source = _source("dtc-content")
+        repository = _git_repository({self.COVER: _png(b"cover")})
+        self.store.refuse = True
+
+        log = self._sync(source, repository)
+        self.assertEqual(log.status, SyncStatus.PARTIAL)
+        self.assertEqual([error["content_type"] for error in log.errors], ["media"])
+        self.assertIn("media object upload failed (store-unavailable)", log.errors[0]["error"])
+        self.assertIn(self.COVER, log.errors[0]["error"])
+        self.assertEqual(self._media(source), {})
+        self.assertNotEqual(source.last_synced_commit, log.commit_sha)
+
+    def test_a_failed_upload_leaves_the_existing_record_on_its_old_bytes(self) -> None:
+        source = _source("dtc-content")
+        original = _png(b"cover")
+        repository = _git_repository({self.COVER: original})
+        good = self._sync(source, repository)
+        self.assertEqual(good.status, SyncStatus.SUCCESS, good.errors)
+        before = self._media(source)
+
+        (repository / self.COVER).write_bytes(_png(b"repainted cover"))
+        _git_commit(repository)
+        self.store.refuse = True
+        log = self._sync(source, repository)
+
+        self.assertEqual(log.status, SyncStatus.PARTIAL)
+        self.assertEqual(self._media(source), before)
+        document = SyncedDocument.objects.get(source=source, stable_key=self.COVER)
+        self.assertEqual(read_media_object(self.store, document.record), original)
+        self.assertEqual(source.last_synced_commit, good.commit_sha)
