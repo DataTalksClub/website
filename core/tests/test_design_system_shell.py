@@ -114,6 +114,7 @@ SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 EXPECTED_NAVIGATION = (
     ("Events", "events"),
     ("Courses", "course_list"),
+    ("Academy", "academy:home"),
     ("Blog", "articles"),
     ("Podcast", "podcast"),
     ("Wiki", "wiki-home"),
