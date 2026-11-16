@@ -114,6 +114,7 @@ SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 EXPECTED_NAVIGATION = (
     ("Events", "events"),
     ("Courses", "course_list"),
+    ("Academy", "academy:home"),
     ("Blog", "articles"),
     ("Podcast", "podcast"),
     ("Wiki", "wiki-home"),
@@ -339,6 +340,19 @@ class DesignFiveAShellTests(TestCase):
             with self.subTest(page=name):
                 slack = [href for label, href, _ in navigation_entries(body) if label == "Slack"]
                 self.assertEqual(slack, [reverse("slack")])
+
+    def test_every_design_system_page_reaches_the_academy(self) -> None:
+        """The Academy sits in the primary row and in the closing stripe on every page."""
+
+        for name, body in self.rendered_pages().items():
+            with self.subTest(page=name):
+                academy = [
+                    href for label, href, _ in navigation_entries(body) if label == "Academy"
+                ]
+                self.assertEqual(academy, ["/academy/"])
+                self.assertIn("data-academy-cta", body)
+                self.assertIn("Thinking about a full-time intensive bootcamp?", body)
+                self.assertIn("Check out DataTalks.Club Academy.", body)
 
     def test_every_design_system_page_marks_only_the_entry_it_is(self) -> None:
         expected_current = {

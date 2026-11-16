@@ -8,7 +8,6 @@ import unicodedata
 import uuid
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import urlsplit
 
 from community_base.kernel.services import ServiceContext, validate_actor_ref
 from django.db import DatabaseError, IntegrityError
@@ -53,6 +52,7 @@ NAVIGATION_TARGETS: tuple[tuple[str, str], ...] = (
     ("home", "Home"),
     ("events", "Events"),
     ("course_list", "Courses"),
+    ("academy:home", "Academy"),
     ("articles", "Blog"),
     ("podcast", "Podcast"),
     ("wiki-home", "Wiki"),
@@ -66,6 +66,7 @@ NAVIGATION_TARGET_ALLOWLIST = frozenset(target for target, _label in NAVIGATION_
 NAVIGATION_TARGET_CURRENT_KEYS = {
     "events": "events",
     "course_list": "courses",
+    "academy:home": "academy",
     "articles": "blog",
     "podcast": "podcast",
     "wiki-home": "wiki",
@@ -78,13 +79,14 @@ NAVIGATION_TARGET_CURRENT_KEYS = {
 DEFAULT_PRIMARY_NAVIGATION: tuple[tuple[str, str, str, int, bool], ...] = (
     ("events", "Events", "events", 1, True),
     ("courses", "Courses", "course_list", 2, True),
-    ("blog", "Blog", "articles", 3, True),
-    ("podcast", "Podcast", "podcast", 4, True),
-    ("wiki", "Wiki", "wiki-home", 5, True),
-    ("books", "Books", "books", 6, True),
-    ("docs", "Docs", "docs-home", 7, True),
-    ("sponsors", "Sponsors", "sponsors", 8, True),
-    ("slack", "Slack", "slack", 9, True),
+    ("academy", "Academy", "academy:home", 3, True),
+    ("blog", "Blog", "articles", 4, True),
+    ("podcast", "Podcast", "podcast", 5, True),
+    ("wiki", "Wiki", "wiki-home", 6, True),
+    ("books", "Books", "books", 7, True),
+    ("docs", "Docs", "docs-home", 8, True),
+    ("sponsors", "Sponsors", "sponsors", 9, True),
+    ("slack", "Slack", "slack", 10, True),
 )
 BASE_WRITE_REDACTED = (
     "authorization",
@@ -99,7 +101,6 @@ _WRITE_REDACTED = (
     "label",
     BASE_WRITE_REDACTED[4],
 )
-_UNSAFE_TARGET_MARKERS = ("://", "//", "\\", "..", "?", "#", "@")
 
 
 class InvalidSiteNavigation(ValueError):
@@ -231,25 +232,15 @@ def _normalize_label(value: object, *, field: str) -> str:
     return normalized
 
 
-def _looks_like_url(value: str) -> bool:
-    stripped = value.strip()
-    if not stripped:
-        return False
-    if stripped.startswith(("/", "\\")) or any(
-        marker in stripped for marker in _UNSAFE_TARGET_MARKERS
-    ):
-        return True
-    parsed = urlsplit(stripped)
-    return bool(parsed.scheme or parsed.netloc or parsed.query or parsed.fragment)
-
-
 def _normalize_target(value: object, *, field: str) -> str:
     if not isinstance(value, str):
         raise InvalidSiteNavigation(
             "navigation target is invalid",
             fields={field: "Choose a registered public route."},
         )
-    if _looks_like_url(value) or value not in NAVIGATION_TARGET_ALLOWLIST:
+    # The code-owned allowlist is the only gate: a URL, path or unknown route name
+    # can never match it, and namespaced names such as "academy:home" must pass.
+    if value not in NAVIGATION_TARGET_ALLOWLIST:
         raise InvalidSiteNavigation(
             "navigation target is invalid",
             fields={field: "Choose a registered public route."},

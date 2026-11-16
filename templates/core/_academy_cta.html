@@ -1,0 +1,20 @@
+{% comment %}
+  Site-wide Academy stripe: a lavender band just above the closing tour band on
+  every shared-shell page, so a visitor finishing any page meets the paid,
+  full-time option next to the free community.  It shows on every page,
+  including the homepage and the tour page, because those are where the
+  question "is there something more intensive?" comes up most.
+
+  The destination is a literal path for the same reason as the tour stripe:
+  this footer also renders under the compatibility urlconf, which mounts no
+  academy namespace, and a reversing tag would 500 there.
+{% endcomment %}
+<section class="band band-lavender academy-cta-band" aria-labelledby="academy-cta-heading" data-academy-cta>
+  <div class="shell academy-cta">
+    <div>
+      <h2 id="academy-cta-heading">Thinking about a full-time intensive bootcamp?</h2>
+      <p>Check out DataTalks.Club Academy.</p>
+    </div>
+    <a class="cta cta-secondary interactive-lift" href="/academy/">Explore the Academy</a>
+  </div>
+</section>

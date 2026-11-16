@@ -64,6 +64,7 @@ PUBLIC_COURSE_COHORT_ROUTE_NAMES = frozenset(
 PRIMARY_NAVIGATION_PREFIXES = (
     ("events", ("/events",)),
     ("courses", ("/courses",)),
+    ("academy", ("/academy",)),
     ("blog", ("/blog",)),
     ("podcast", ("/podcast",)),
     ("wiki", ("/wiki",)),
