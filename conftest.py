@@ -466,6 +466,17 @@ def pytest_runtest_makereport(item: pytest.Item, call):
 
 
 @pytest.fixture(autouse=True)
+def _fresh_public_media_store() -> Generator[None]:
+    """Drop the process-cached media stores so an upload never leaks into the next test."""
+
+    from content.media_store import _build_media_store
+
+    _build_media_store.cache_clear()
+    yield
+    _build_media_store.cache_clear()
+
+
+@pytest.fixture(autouse=True)
 def _deny_external_network() -> Generator[None]:
     from django.conf import settings
 

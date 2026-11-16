@@ -32,6 +32,8 @@ from __future__ import annotations
 import base64
 import binascii
 import hashlib
+import os
+import tempfile
 import zlib
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
@@ -197,10 +199,16 @@ def media_records() -> tuple[dict[str, Any], ...]:
 
 
 class MediaStore:
-    """Read-only view of the published projection objects."""
+    """The published media objects: read by ``/images/``, written by the content sync."""
 
     #: Short backend token used in redacted structured log events.
     name = "media-store"
+    #: The fail-closed object size bound; each backend sets its configured value.
+    _maximum = DEFAULT_MAX_OBJECT_BYTES
+
+    @property
+    def maximum_object_bytes(self) -> int:
+        return self._maximum
 
     def expected_checksum(self, record: Mapping[str, Any]) -> str:
         """Return the sha256 the retrieved bytes must have."""
@@ -220,6 +228,45 @@ class MediaStore:
         """Return every key the store currently holds below its namespace."""
 
         return ()
+
+    def put(self, record: Mapping[str, Any], payload: bytes) -> None:
+        """Write one object at the record's path-mirrored key."""
+
+        raise MediaStoreUnavailable("this media store does not accept uploads")
+
+
+def ensure_media_object(store: MediaStore, record: Mapping[str, Any], payload: bytes) -> bool:
+    """Make the store hold ``payload`` for ``record``; return whether it uploaded.
+
+    This is the write half of the read path's checksum contract, called by the
+    content sync before a media record is published or changed.  The payload must
+    hash to the record's ``provenance.checksum`` and fit the store's object bound.
+    An object already stored with that checksum is left alone, so a re-sync costs
+    one metadata request per record.  Any other answer from the probe -- absent,
+    a different digest, or a probe the store refused (S3 answers ``403`` for an
+    absent key when the caller lacks ``s3:ListBucket``) -- leads to an upload:
+    overwriting with the recorded bytes is always safe, and if the store really
+    is unreachable the upload fails too.  Every failure raises
+    :class:`MediaStoreError`, so the caller never publishes a record whose bytes
+    did not land.
+    """
+
+    expected = record_checksum(record)
+    if len(payload) > store.maximum_object_bytes:
+        # The read path would refuse this object; never store what cannot be served.
+        raise MediaObjectTooLarge("upload payload exceeds the configured bound")
+    if _sha256_hex(payload) != expected:
+        raise MediaChecksumMismatch("upload payload digest does not match the record")
+    try:
+        existing: str | None = store.stat(record).checksum
+    except MediaRecordInvalid:
+        raise
+    except MediaStoreError:
+        existing = None
+    if existing == expected:
+        return False
+    store.put(record, payload)
+    return True
 
 
 def read_media_object(store: MediaStore, record: Mapping[str, Any]) -> bytes:
@@ -275,6 +322,22 @@ class LocalMediaStore(MediaStore):
     def stat(self, record: Mapping[str, Any]) -> MediaObjectStat:
         payload = self.fetch(record).payload
         return MediaObjectStat(size=len(payload), checksum=_sha256_hex(payload))
+
+    def put(self, record: Mapping[str, Any], payload: bytes) -> None:
+        path = self.path_for(record)
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if path.is_symlink():
+                raise MediaStoreUnavailable("local media object is a symlink")
+            with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as handle:
+                handle.write(payload)
+            try:
+                os.replace(handle.name, path)
+            except OSError:
+                os.unlink(handle.name)
+                raise
+        except OSError as exc:
+            raise MediaStoreUnavailable("local media object cannot be written") from exc
 
     def existing_keys(self) -> tuple[str, ...]:
         if not self._root.is_dir():
@@ -364,7 +427,8 @@ class MemoryMediaStore(MediaStore):
 
     Each record is served a minimal valid image of its recorded content type, and the
     digest of that image is the checksum the read path verifies against.  The store
-    therefore exercises the real verification code path without a hydrated tree.
+    therefore exercises the real verification code path without a hydrated tree.  An
+    object the content sync uploads replaces the fixture for its key, in this process.
     """
 
     name = "memory"
@@ -389,6 +453,9 @@ class MemoryMediaStore(MediaStore):
         if len(payload) > self._maximum:
             raise MediaObjectTooLarge("fixture object exceeds the configured bound")
         return MediaObject(payload=payload)
+
+    def put(self, record: Mapping[str, Any], payload: bytes) -> None:
+        self._objects[record_key(record)] = payload
 
     def existing_keys(self) -> tuple[str, ...]:
         return tuple(sorted(record_key(record) for record in media_records()))
