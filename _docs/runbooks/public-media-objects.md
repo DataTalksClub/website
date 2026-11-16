@@ -200,6 +200,48 @@ stays unpublished and keeps returning `404`.
 **Publish before deploying a new `media.json`.** A record whose object is not in the bucket fails
 closed with a `502` for that one path rather than serving wrong bytes.
 
+## Content sync uploads the objects
+
+`manage.py sync_content` and the GitHub webhook sync write the media rows, and they now upload the
+bytes too. Before a media record (`content/sync_parsers/media.py` `upsert_media_item`, used by the
+media parser and by the people parser for profile pictures) is created or changed, the sync reads
+the file from the checkout and calls `content.media_store.ensure_media_object` against the same
+configured store `/images/` reads:
+
+- the key is the record's path-mirrored key (`images/authors/x.jpg` with the empty prefix), the
+  `ContentType` is the recorded content type, and the upload sets `ChecksumAlgorithm=SHA256`;
+- an object whose stored SHA-256 already equals `provenance.checksum` is not uploaded again, so a
+  re-sync costs one `HeadObject` per media record;
+- the upload fails closed. When it raises, the parser raises before the row is written, so the record is
+  neither created nor moved to new bytes. The sync log carries
+  `media object upload failed (<reason>): <path>`, the source goes `partial`, and
+  `last_synced_commit` stays put, so the next sync retries.
+
+Deployed environments already select the `s3` backend (see "Deployment"), so the sync uploads to
+`dtc-website-media` with no extra setting. Local checkouts on `local` get the file written into
+`PUBLIC_MEDIA_LOCAL_ROOT`; tests use `memory`. The hydrate/publish/verify scripts remain for
+operator backfills and audits, but a normal sync no longer depends on them.
+
+### IAM the sync needs
+
+The sync runs in the `web` task (webhook) and the `worker` task, under their ECS task role. That
+role needs, on bucket `dtc-website-media` (account `387546586013`):
+
+| Action | Resource | Why |
+| --- | --- | --- |
+| `s3:GetObject` | `arn:aws:s3:::dtc-website-media/images/*` | already granted; read path and checksum probe |
+| `s3:PutObject` | `arn:aws:s3:::dtc-website-media/images/*` | **new**: the sync uploads |
+| `s3:ListBucket` with `Condition: {"StringLike": {"s3:prefix": "images/*"}}` | `arn:aws:s3:::dtc-website-media` | **new**: so an absent key answers `404`, not `403` |
+
+If the bucket uses SSE-KMS with a customer-managed key, the role also needs `kms:GenerateDataKey`
+and `kms:Decrypt` on that key. These changes belong in `aws-infra`.
+
+Without `s3:ListBucket`, S3 answers `403 AccessDenied` for an absent key, so a missing object is
+logged as `store-unavailable`, not `object-missing`. The code deliberately keeps it that way: a
+`403` is also what a genuine permission fault looks like, so treating it as "absent" would
+misreport real outages. The upload path is not affected: a refused `HeadObject` just leads to a
+`PutObject`, which either lands the bytes or fails closed.
+
 ## Verifying
 
 ```bash
@@ -265,7 +307,7 @@ Failure reasons:
 | `object-missing` | the record exists but the store has no object | hydrate, or publish the missing object |
 | `checksum-mismatch` | retrieved bytes do not match `provenance.checksum` | republish that object |
 | `object-oversized` | the object exceeds `PUBLIC_MEDIA_MAX_OBJECT_BYTES` | investigate; raise the bound only deliberately |
-| `store-unavailable` | timeout, permission, or transport failure | check the store, the role, and the region |
+| `store-unavailable` | timeout, permission, or transport failure; also an absent key while the role lacks `s3:ListBucket` | check the store, the role, and the region |
 | `record-invalid` | the record itself is unusable | a projection defect; rebuild the projection |
 
 ## Integrity contract
