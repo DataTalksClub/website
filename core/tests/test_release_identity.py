@@ -17,6 +17,7 @@ from deploy.contracts import (
     ReleaseRecord,
     ServiceSnapshot,
 )
+from deploy.deployment_targets import SELECTED_TARGET
 from deploy.release_identity import (
     IdentityError,
     PublishedImageRecord,
@@ -327,7 +328,7 @@ def test_task_capture_and_smoke_reject_calendar_invalid_version_before_use() -> 
         patch("deploy.smoke._request") as request,
         pytest.raises(ReleaseContractError, match="sealed UTC timestamp"),
     ):
-        verify_health("https://web.dtcdev.click", invalid_version, SHA, DIGEST)
+        verify_health(SELECTED_TARGET.origin, invalid_version, SHA, DIGEST)
     request.assert_not_called()
 
 
@@ -355,7 +356,7 @@ def test_schema1_health_accepts_the_exact_legacy_contract() -> None:
     ]
 
     with patch("deploy.smoke._request", side_effect=responses) as request:
-        verify_legacy_health("https://web.dtcdev.click", SHA)
+        verify_legacy_health(SELECTED_TARGET.origin, SHA)
 
     assert [call.args[1] for call in request.call_args_list] == [
         "/health/live",
@@ -427,7 +428,7 @@ def test_schema1_health_rejects_wrong_or_mixed_identity_contracts(
         patch("deploy.smoke._request", side_effect=responses),
         pytest.raises(ReleaseContractError, match=message),
     ):
-        verify_legacy_health("https://web.dtcdev.click", SHA)
+        verify_legacy_health(SELECTED_TARGET.origin, SHA)
 
 
 def test_schema2_health_still_rejects_a_mismatched_exact_triplet() -> None:
@@ -449,7 +450,7 @@ def test_schema2_health_still_rejects_a_mismatched_exact_triplet() -> None:
         patch("deploy.smoke._request", return_value=live),
         pytest.raises(ReleaseContractError, match="exact release identity"),
     ):
-        verify_health("https://web.dtcdev.click", version, SHA, DIGEST)
+        verify_health(SELECTED_TARGET.origin, version, SHA, DIGEST)
 
 
 def test_schema2_version_format_has_one_parser_implementation() -> None:
