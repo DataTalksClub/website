@@ -3,7 +3,6 @@ from collections import defaultdict
 from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404, render
 
-from courses.models.cohort import Cohort
 from courses.models.project import (
     CriteriaResponse,
     PeerReview,
@@ -87,9 +86,7 @@ def annotate_scores_with_option_votes(
 
 def project_results(request, course_slug, project_slug, cohort_identifier=None):
     course = get_cohort_or_404(course_slug, cohort_identifier)
-    project = get_object_or_404(
-        Project, course=course, slug=project_slug
-    )
+    project = get_object_or_404(Project, course=course, slug=project_slug)
     context = _project_results_context(course, project, request.user)
 
     response = render(request, "projects/results.html", context)
@@ -127,6 +124,13 @@ def _project_results_context(course, project, user):
         }
     scores = _project_results_scores(submission)
     feedback = _project_results_feedback(submission)
+    has_evaluation = (
+        bool(scores)
+        or PeerReview.objects.filter(
+            submission_under_evaluation=submission,
+            state=PeerReviewState.SUBMITTED.value,
+        ).exists()
+    )
     return {
         "course": course,
         "course_family": course.course,
@@ -134,8 +138,10 @@ def _project_results_context(course, project, user):
         "submission": submission,
         "scores": scores,
         "feedback": feedback,
+        "has_evaluation": has_evaluation,
         "is_authenticated": True,
     }
+
 
 def _project_results_scores(submission):
     scores = ProjectEvaluationScore.objects.filter(submission=submission)
@@ -143,9 +149,7 @@ def _project_results_scores(submission):
     scores_list = list(scores)
     criteria_order = {
         criteria.id: position
-        for position, criteria in enumerate(
-            criteria_for_project(submission.project)
-        )
+        for position, criteria in enumerate(criteria_for_project(submission.project))
     }
     scores_list.sort(
         key=lambda score: (

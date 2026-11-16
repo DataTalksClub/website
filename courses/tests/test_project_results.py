@@ -1,6 +1,8 @@
 from courses.models import (
     Enrollment,
+    PeerReviewState,
     ProjectEvaluationScore,
+    ProjectState,
     ProjectSubmission,
     User,
 )
@@ -31,6 +33,90 @@ class ProjectResultsTestCase(ProjectEvaluationTestBase):
         self.assert_option_vote_content(response)
 
 
+class ProjectEvaluationVisibilityTests(ProjectEvaluationTestBase):
+    def assert_pending_result(self, response):
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["has_evaluation"])
+        self.assertContains(response, "Your submission is awaiting evaluation.")
+        for heading in ("Outcome", "Criteria Breakdown", "Score Components"):
+            self.assertNotContains(response, f">{heading}</h2>")
+        self.assertNotContains(response, ">Failed</span>")
+        self.assertNotContains(response, ">Passed</span>")
+        self.assertContains(response, self.submission.github_link)
+        self.assertContains(response, self.submission.commit_id)
+
+    def test_unreviewed_submission_stays_pending_even_when_project_completed(self):
+        for state in (ProjectState.PEER_REVIEWING, ProjectState.COMPLETED):
+            with self.subTest(state=state):
+                self.project.state = state.value
+                self.project.save(update_fields=["state"])
+
+                response = self.project_results_response()
+
+                self.assert_pending_result(response)
+
+    def test_assigned_unsubmitted_review_does_not_count_as_evaluation(self):
+        self.peer_reviews[0].note_to_peer = "Unsubmitted feedback"
+        self.peer_reviews[0].save(update_fields=["note_to_peer"])
+
+        response = self.project_results_response()
+
+        self.assert_pending_result(response)
+        self.assertNotContains(response, "Unsubmitted feedback")
+
+    def test_submitted_peer_evaluation_with_empty_feedback_displays_results(self):
+        review = self.peer_reviews[0]
+        review.state = PeerReviewState.SUBMITTED.value
+        review.note_to_peer = ""
+        review.save(update_fields=["state", "note_to_peer"])
+
+        response = self.project_results_response()
+
+        self.assertTrue(response.context["has_evaluation"])
+        self.assertContains(response, ">Failed</span>")
+        self.assertContains(response, "Score Components")
+        self.assertNotContains(response, "Your submission is awaiting evaluation.")
+
+    def test_persisted_zero_fallback_evaluation_displays_failed_zero_result(self):
+        ProjectEvaluationScore.objects.create(
+            submission=self.submission,
+            review_criteria=self.criteria,
+            score=0,
+        )
+
+        response = self.project_results_response()
+
+        self.assertTrue(response.context["has_evaluation"])
+        self.assertContains(response, ">Failed</span>")
+        self.assertContains(response, "total score")
+        self.assertContains(response, "Code quality")
+        self.assertNotContains(response, "Your submission is awaiting evaluation.")
+
+    def test_other_learners_evaluation_does_not_release_pending_results(self):
+        other_submission = self.peer_reviews[0].reviewer
+        ProjectEvaluationScore.objects.create(
+            submission=other_submission,
+            review_criteria=self.criteria,
+            score=3,
+        )
+
+        response = self.project_results_response()
+
+        self.assert_pending_result(response)
+
+    def test_pending_get_is_read_only_and_private(self):
+        before = list(ProjectSubmission.objects.values())
+        scores_before = list(ProjectEvaluationScore.objects.values())
+
+        response = self.project_results_response()
+
+        self.assert_pending_result(response)
+        self.assertEqual(before, list(ProjectSubmission.objects.values()))
+        self.assertEqual(scores_before, list(ProjectEvaluationScore.objects.values()))
+        self.assertIn("private", response.headers["Cache-Control"])
+        self.assertIn("no-store", response.headers["Cache-Control"])
+
+
 class NoSubmissionResultsTests(ProjectEvaluationTestBase):
     """An authenticated reader without a submitted project gets the empty
     state, not a crash, and the GET creates nothing (audit BE-17)."""
@@ -58,9 +144,7 @@ class NoSubmissionResultsTests(ProjectEvaluationTestBase):
         response = self.results_response_for_bystander()
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(
-            response, "You did not make a submission for this project."
-        )
+        self.assertContains(response, "You did not make a submission for this project.")
         self.assertEqual(response.context["submission"], None)
         self.assertEqual(response.context["scores"], [])
         self.assertEqual(response.context["feedback"], [])
@@ -82,9 +166,7 @@ class NoSubmissionResultsTests(ProjectEvaluationTestBase):
         response = self.results_response_for_bystander()
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(
-            response, "You did not make a submission for this project."
-        )
+        self.assertContains(response, "You did not make a submission for this project.")
 
     def test_anonymous_reader_still_sees_the_sign_in_message(self):
         from django.test import Client
