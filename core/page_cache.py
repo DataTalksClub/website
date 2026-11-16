@@ -297,9 +297,23 @@ def lookup_key(request: HttpRequest) -> str | None:
     # every stored page without touching each key (see invalidate_anonymous_
     # page_cache).
     return (
-        f"{_CACHE_KEY_PREFIX}:v{PAGE_CACHE_KEY_VERSION}"
+        f"{_CACHE_KEY_PREFIX}:v{PAGE_CACHE_KEY_VERSION}:{_release_identity()}"
         f":{view_path}:{request.path_info}:{query_hash}"
     )
+
+
+def _release_identity() -> str:
+    """The running release, so a deploy never serves the previous code's pages.
+
+    Stored pages go stale through database writes (the generation bump) or
+    through code and template changes.  A deploy writes nothing, so without
+    this segment a new release kept serving pages rendered by the old one
+    until their TTL ran out.  Keying on the release also keeps an old task
+    still draining during a rolling deploy from feeding the new one.
+    """
+
+    release = getattr(settings, "SOURCE_SHA", None) or getattr(settings, "VERSION", None)
+    return str(release or "local")
 
 
 def _storable_response(response: HttpResponse) -> bool:
