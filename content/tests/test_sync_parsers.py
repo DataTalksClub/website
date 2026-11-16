@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import subprocess
 import tempfile
 import unittest
@@ -21,7 +22,14 @@ from community_base.knowledge_base.models import (
 )
 from django.test import TestCase
 
-from content.media_store import MediaStoreUnavailable, MemoryMediaStore, read_media_object
+from content.media_store import (
+    LocalMediaStore,
+    MediaStoreUnavailable,
+    MemoryMediaStore,
+    S3MediaStore,
+    read_media_object,
+)
+from content.media_store import media_store as public_media_store
 from content.models import SyncedDocument
 from content.sync_parsers.base import ContentParserError, upsert_document
 from content.sync_parsers.course import COURSE_SOURCE_SLUGS
@@ -1693,3 +1701,31 @@ class MediaUploadSyncTests(TestCase):
         document = SyncedDocument.objects.get(source=source, stable_key=self.COVER)
         self.assertEqual(read_media_object(self.store, document.record), original)
         self.assertEqual(source.last_synced_commit, good.commit_sha)
+
+
+class SyncUnderTestSettingsTests(TestCase):
+    """A sync in the suite never reaches a real media store, whatever the shell says."""
+
+    def test_an_s3_environment_still_syncs_into_the_offline_store(self) -> None:
+        SyncedDocument.objects.filter(source__slug="dtc-content").delete()
+        source = _source("dtc-content")
+        repository = _git_repository({"images/posts/hello-world/cover.png": _png(b"cover")})
+        hostile = {
+            "PUBLIC_MEDIA_STORE_BACKEND": "s3",
+            "PUBLIC_MEDIA_S3_BUCKET": "dtc-website-media",
+            "PUBLIC_MEDIA_S3_REGION": "eu-west-1",
+        }
+        refuse = AssertionError("the suite built a real media store")
+        with (
+            mock.patch.dict(os.environ, hostile),
+            mock.patch("boto3.client", side_effect=refuse) as client,
+            mock.patch.object(S3MediaStore, "__init__", side_effect=refuse) as s3_store,
+            mock.patch.object(LocalMediaStore, "__init__", side_effect=refuse) as local_store,
+        ):
+            self.assertIsInstance(public_media_store(), MemoryMediaStore)
+            log = sync_content_source(source, repo_dir=repository, force=True)
+        self.assertEqual(log.status, SyncStatus.SUCCESS, log.errors)
+        self.assertTrue(SyncedDocument.objects.filter(source=source, content_kind="media").exists())
+        client.assert_not_called()
+        s3_store.assert_not_called()
+        local_store.assert_not_called()

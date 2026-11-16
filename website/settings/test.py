@@ -68,3 +68,22 @@ STORAGES = {
 # Schema-2 importer asset bytes land here during tests: project-local,
 # gitignored, never the source tree root.
 MEDIA_ROOT = BASE_DIR / ".tmp" / "test-media"
+
+# The suite never touches a real public media store, whatever the shell exports.
+# The content sync uploads media objects, so an environment that selects ``s3``
+# and a deployed bucket would otherwise have the tests overwrite production
+# objects with fixture bytes, and ``local`` would write into the checkout's
+# hydrated root.  The runtime registry reads the environment before these
+# settings, so the ``PUBLIC_MEDIA_*`` variables are dropped here as well:
+# otherwise an ``override_settings`` in a test would silently lose to the shell.
+# A test that needs another backend opts in with ``override_settings``.
+for _name in [name for name in os.environ if name.startswith("PUBLIC_MEDIA_")]:  # noqa: F405
+    del os.environ[_name]  # noqa: F405
+PUBLIC_MEDIA_STORE_BACKEND = "memory"
+PUBLIC_MEDIA_LOCAL_ROOT = BASE_DIR / ".local-media" / "public"  # noqa: F405
+PUBLIC_MEDIA_S3_BUCKET = ""
+PUBLIC_MEDIA_S3_PREFIX = ""
+PUBLIC_MEDIA_S3_REGION = ""
+PUBLIC_MEDIA_S3_ENDPOINT_URL = ""
+PUBLIC_MEDIA_S3_TIMEOUT_SECONDS = 5.0
+PUBLIC_MEDIA_MAX_OBJECT_BYTES = 8 * 1024 * 1024

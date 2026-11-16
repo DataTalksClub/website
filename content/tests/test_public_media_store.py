@@ -391,12 +391,15 @@ class S3MediaStoreTests(SimpleTestCase):
 
 class MediaStoreSelectionTests(SimpleTestCase):
     def test_the_default_backend_is_the_credential_free_local_store(self) -> None:
-        """``base`` defaults to ``local``; only the environment can select another one."""
+        """``base`` defaults to ``local``; the test settings pin ``memory`` over any env."""
 
-        self.assertEqual(
-            settings.PUBLIC_MEDIA_STORE_BACKEND,
-            os.getenv("PUBLIC_MEDIA_STORE_BACKEND", "local").strip().lower(),
+        from website.settings import base
+
+        self.assertIn(
+            'os.getenv("PUBLIC_MEDIA_STORE_BACKEND", "local")',
+            Path(base.__file__).read_text(),
         )
+        self.assertEqual(settings.PUBLIC_MEDIA_STORE_BACKEND, "memory")
         with override_settings(PUBLIC_MEDIA_STORE_BACKEND="local"):
             self.assertIsInstance(media_store(), LocalMediaStore)
 
