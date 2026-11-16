@@ -99,8 +99,8 @@ def home(request: HttpRequest):
         {**event, "home_time": event_time_display(event["starts_at"])}
         for event in events.upcoming[:3]
     )
-    # The featured panel is the soonest cohort that has not started yet, or nothing at
-    # all when none is upcoming; the template renders no hero in that case.
+    # The featured panel is the cohort an editor flagged ``featured``, or nothing at
+    # all when none is flagged; the template renders no hero in that case.
     #
     # The call to action goes to that cohort's own database-backed course page, the same
     # `/courses/<family>/<year>` route the catalogue cards use.  It used to go to a
