@@ -15,6 +15,10 @@ Implement the assigned `DataTalksClub/website` issue exactly as groomed. Read `_
 3. Implement the smallest complete solution. Keep business mutations in application services and app dependencies within `_docs/architecture/app-boundaries.md`.
 4. Use `uv` or Make targets backed by `uv`; never install project dependencies with `pip`.
 5. Add focused tests, migrations for model changes, and browser coverage for changed user journeys.
+   Before handoff, run `uv run --frozen python scripts/ci.py test-ci`: new Python files in an
+   excluded app tree must be listed in `ADOPTION_INTEGRATION_PYTHON` in `scripts/ci.py`, and any
+   `pyproject.toml` change must reseal `STUDIO_COURSES_PYPROJECT_SHA256` in
+   `core/tests/test_deployment_workflow.py`. Both gates fail far from the edit.
 6. Run `make verification-plan` from the reviewed base/head. Inspect the direct/downstream nodes,
    risk flags, render decision, and all four disposition buckets. Unknown impact or invalid/missing
    evidence must select a fresh full rerun.

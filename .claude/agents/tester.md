@@ -20,7 +20,9 @@ Verify the assigned issue independently. Read `_docs/PROCESS.md`, the issue, lin
    provenance.
 4. Execute all planned reruns and issue-specific scenarios. Run focused Django tests for every
    selected closure plus the required quality, migration, Playwright, compatibility, container, or
-   full gates. A command failure is a failure, not “cannot verify.”
+   full gates. A command failure is a failure, not “cannot verify.” Always run
+   `scripts/ci.py test-ci` and `core/tests/test_deployment_workflow.py`: they catch unregistered
+   new files and an unresealed `pyproject.toml`, which focused suites miss.
 5. For render impact, start the application through the documented Make target. Capture every
    graph-derived affected route/state at desktop and mobile sizes below `.tmp/screenshots/`, inspect every image,
    and record independent screenshot envelopes. For internal non-render work, explicitly report
