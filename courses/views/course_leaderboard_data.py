@@ -6,6 +6,10 @@ from django.core.paginator import Paginator
 from django.db.models import Prefetch, Value
 from django.db.models.functions import Coalesce
 
+from courses.leaderboard_cache import (
+    leaderboard_cache_ttl,
+    leaderboard_cache_version,
+)
 from courses.models.cohort import Enrollment
 from courses.models.project import Project, ProjectState, ProjectSubmission
 
@@ -55,14 +59,6 @@ def leaderboard_context(course, user, page_number):
         "current_student_enrollment_id": current_student.enrollment_id,
         "current_student_page_number": current_student_page_number,
     }
-
-
-def invalidate_leaderboard_cache(course_id: int) -> None:
-    cache.delete(f"leaderboard:{course_id}")
-    version_key = f"leaderboard_cache_version:{course_id}"
-    current_version = cache.get(version_key, 1)
-    next_version = current_version + 1
-    cache.set(version_key, next_version, None)
 
 
 def current_student_leaderboard_enrollment(course, user):
@@ -176,7 +172,7 @@ def build_leaderboard_data(course, cache_key):
     for enrollment in enrollments:
         enrollment_data = serialize_leaderboard_enrollment(enrollment, project_positions_by_id)
         enrollments_data.append(enrollment_data)
-    cache.set(cache_key, enrollments_data, 3600)
+    cache.set(cache_key, enrollments_data, leaderboard_cache_ttl())
     return enrollments_data
 
 
@@ -200,7 +196,8 @@ def get_leaderboard_data(
     course,
     current_student: CurrentLeaderboardStudent,
 ):
-    cache_key = f"leaderboard:{course.id}"
+    version = leaderboard_cache_version(course.id)
+    cache_key = f"leaderboard:{course.id}:v{version}"
     enrollments_data = cache.get(cache_key)
 
     if enrollments_data is None:

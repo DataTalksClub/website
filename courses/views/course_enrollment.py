@@ -1,18 +1,19 @@
 from dataclasses import dataclass
 
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from accounts.views.account_toggles import parse_truthy_post_flag
 from course_management.observability import record_event
+from courses.leaderboard_cache import invalidate_leaderboard_cache
 from courses.models.cohort import Cohort, Enrollment
 from courses.registration_wall import require_registration_approval
 from courses.services.enrollment import confirm_new_enrollment
 from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
-from .course_leaderboard_data import invalidate_leaderboard_cache
 from .forms import EnrollmentForm
 
 ENROLLMENT_TOGGLE_FIELDS = {
@@ -89,17 +90,14 @@ def enrollment_toggle_input_from_post(request):
     return field, enabled
 
 
+@transaction.atomic
 def update_enrollment_toggle_value(toggle_update):
     enrollment = toggle_update.enrollment
-    previous_display_on_leaderboard = enrollment.display_on_leaderboard
     setattr(enrollment, toggle_update.field, toggle_update.enabled)
     enrollment.save(update_fields=[toggle_update.field])
 
     if toggle_update.field != "display_on_leaderboard":
         return
-    if previous_display_on_leaderboard == toggle_update.enabled:
-        return
-
     invalidate_leaderboard_cache(toggle_update.course.id)
 
 
@@ -118,11 +116,12 @@ def _render_enrollment_form(request, course, enrollment, form):
     return response
 
 
+@transaction.atomic
 def _save_enrollment_form(form, course, enrollment) -> None:
-    previous_display_on_leaderboard = enrollment.display_on_leaderboard
     form.save()
-    if previous_display_on_leaderboard != form.instance.display_on_leaderboard:
-        invalidate_leaderboard_cache(course.id)
+    # The form instance can predate another worker's visibility change. Always
+    # advance the generation after persisting leaderboard-facing preferences.
+    invalidate_leaderboard_cache(course.id)
 
 
 def record_enrollment_created(request, course, enrollment):

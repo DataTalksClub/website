@@ -331,6 +331,10 @@ class Cohort(TimingOwner, SourceProvenanceModel):
         help_text="The hashtag associated with the course for social media use.",
     )
 
+    leaderboard_cache_version = models.PositiveBigIntegerField(
+        default=1, db_default=1, editable=False
+    )
+
     first_homework_scored = models.BooleanField(
         default=False,
         blank=False,
