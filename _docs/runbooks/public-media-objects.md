@@ -1,6 +1,7 @@
 # Public projection media objects
 
-The 1,253 public projection images (`/images/...`, about 154 MB) are **not** carried in the git
+The public site images (`/images/...`; one per synced media record, a set that grows with every
+content sync) are **not** carried in the git
 working tree. `.local-media/public/` (the local hydration root) is gitignored and
 excluded from the container build context. Django resolves each request against
 `~/prod/dtc-data/content-staging/public_projection/media.json` (the reviewed records, outside this
@@ -106,8 +107,13 @@ uv run --frozen python scripts/prod/sync_public_media_hydrate.py \
 
 Hydration is idempotent and resumable: an object already present with the recorded checksum is
 skipped, and an object whose retrieved digest does not match its record is never written. The
-command prints `{"failed": N, "skipped": N, "total": 1253, "written": N}` and exits non-zero if any
-object failed. `--force` re-fetches everything.
+command prints `{"failed": N, "skipped": N, "total": N, "written": N}`, where `total` is every
+media record in the target database, and exits non-zero if any object failed. `--force`
+re-fetches everything.
+
+`--source checkout` reads each record at the file in your local clone, so a record whose source
+commit is newer than that clone can come up missing or mismatched; pull the clones first, or
+fall back to `--source github`, which fetches each record at its recorded revision.
 
 The `github` source needs network access to `raw.githubusercontent.com`, and for 438 records that
 means the retired legacy repository — prefer `checkout` or `store`. No source needs an AWS
@@ -124,7 +130,7 @@ Terraform has been applied. These are the live values.
 | Account | `387546586013` |
 | Key prefix | *(empty — objects sit at the bucket root, e.g. `images/authors/aaronwishnick.jpg`)* |
 | CDN | `https://d3tgrbv0nfqbcz.cloudfront.net` (distribution `ER7BPQ5U74DFE`) |
-| Publisher role | `arn:aws:iam::387546586013:role/dtc-website-media-publisher` |
+| Publisher role | `arn:aws:iam::387546586013:role/dtc-website-media-publisher` — **CI only**: its trust policy accepts only GitHub Actions OIDC from `DataTalksClub/website` on `main` |
 | Sandbox account `817685572750` | documented as **read only**, but empirically also accepted `PutObject`/`DeleteObject` when checked 2026-09-11 — see the caveat below. Treat it as **not actually read-only** until `main/website-static`'s bucket policy is re-verified or fixed. |
 
 **Correction, 2026-09-11**: the "Key prefix: `public-projection`" and "bucket is empty" claims that
@@ -146,20 +152,17 @@ there rather than relying on this account being unable to write.
 
 ## Publishing to the object store
 
-Publishing requires main-account credentials that can assume
-`arn:aws:iam::387546586013:role/dtc-website-media-publisher`. The sandbox credentials used for
-development are read-only and cannot publish.
+The content sync uploads new and changed objects itself (see "Content sync uploads the objects"
+below); this script is the manual operator path for a backfill or repair.
+
+The publisher role `dtc-website-media-publisher` cannot be assumed from an operator machine: its
+trust policy accepts only GitHub Actions OIDC from `DataTalksClub/website` on `main`. An operator
+runs the script with the gated main-account principal instead (`AWS_PROFILE=main`), which has
+direct `s3:PutObject` on the bucket. That is how the 2026-11-16 backfill ran.
 
 ```bash
-# 1. Assume the publisher role (main-account credentials in the ambient profile).
-eval "$(aws sts assume-role \
-  --role-arn arn:aws:iam::387546586013:role/dtc-website-media-publisher \
-  --role-session-name dtc-website-media-publish \
-  --query 'Credentials.[
-      join(``,[`export AWS_ACCESS_KEY_ID=`,AccessKeyId]),
-      join(``,[`export AWS_SECRET_ACCESS_KEY=`,SecretAccessKey]),
-      join(``,[`export AWS_SESSION_TOKEN=`,SessionToken])]' \
-  --output text | tr '\t' '\n')"
+# 1. Use the gated main-account principal; it writes to the bucket directly.
+export AWS_PROFILE=main
 
 # 2. Dry run first: reports added/changed/skipped/orphan/failed without writing.
 PUBLIC_MEDIA_STORE_BACKEND=s3 \
@@ -187,8 +190,8 @@ ones the `/images/` route serves, and a database with none exits `2` with
 `no_synced_media_records`.
 
 Run these from a checkout whose `.local-media/public/` is hydrated — that tree is the
-publish source. `sync_public_media_verify.py` exits non-zero unless every one of the 1,253 records is
-present with a matching checksum and the store holds no unrecorded object.
+publish source. `sync_public_media_verify.py` exits non-zero unless every media record in the target
+database is present with a matching checksum and the store holds no unrecorded object.
 
 `publish` uploads exactly the recorded objects with the recorded `ContentType` and
 `ChecksumAlgorithm=SHA256`, skips objects already present with a matching checksum, and **refuses**
@@ -212,32 +215,52 @@ configured store `/images/` reads:
   `ContentType` is the recorded content type, and the upload sets `ChecksumAlgorithm=SHA256`;
 - an object whose stored SHA-256 already equals `provenance.checksum` is not uploaded again, so a
   re-sync costs one `HeadObject` per media record;
-- the upload fails closed. When it raises, the parser raises before the row is written, so the record is
-  neither created nor moved to new bytes. The sync log carries
+- an object larger than `PUBLIC_MEDIA_MAX_OBJECT_BYTES` is refused before any store call, because
+  the read path could never serve it;
+- the upload fails closed. When it raises, the parser raises before the row is written, so the
+  record is neither created nor moved to new bytes. The sync log carries
   `media object upload failed (<reason>): <path>`, the source goes `partial`, and
   `last_synced_commit` stays put, so the next sync retries.
 
 Deployed environments already select the `s3` backend (see "Deployment"), so the sync uploads to
 `dtc-website-media` with no extra setting. Local checkouts on `local` get the file written into
-`PUBLIC_MEDIA_LOCAL_ROOT`; tests use `memory`. The hydrate/publish/verify scripts remain for
+`PUBLIC_MEDIA_LOCAL_ROOT`. `website/settings/test.py` pins `memory` regardless of the
+environment, so the suite can never write to a real bucket or a hydrated root. The hydrate/publish/verify scripts remain for
 operator backfills and audits, but a normal sync no longer depends on them.
 
-### IAM the sync needs
+### Credentials the sync needs
 
-The sync runs in the `web` task (webhook) and the `worker` task, under their ECS task role. That
-role needs, on bucket `dtc-website-media` (account `387546586013`):
+In a deployed environment the GitHub webhook only enqueues the sync; the upload runs in the
+**worker** container. Live production runs on Coolify-managed Contabo containers (see
+[`coolify-production-deployments.md`](coolify-production-deployments.md)), not ECS, and reaches the
+bucket as the sandbox IAM user `dtc-website-prod-media-reader` (aws-infra
+`sandbox/website-media-reader`), whose key sits in the production application's Coolify
+environment.
+
+Its grants on bucket `dtc-website-media` (account `387546586013`), live since aws-infra PR #165
+(applied 2026-11-16):
 
 | Action | Resource | Why |
 | --- | --- | --- |
-| `s3:GetObject` | `arn:aws:s3:::dtc-website-media/images/*` | already granted; read path and checksum probe |
-| `s3:PutObject` | `arn:aws:s3:::dtc-website-media/images/*` | **new**: the sync uploads |
-| `s3:ListBucket` with `Condition: {"StringLike": {"s3:prefix": "images/*"}}` | `arn:aws:s3:::dtc-website-media` | **new**: so an absent key answers `404`, not `403` |
+| `s3:GetObject` | `arn:aws:s3:::dtc-website-media/images/*` | read path and checksum probe |
+| `s3:PutObject` | `arn:aws:s3:::dtc-website-media/images/*` | the sync uploads |
+| `s3:ListBucket` (no condition) | `arn:aws:s3:::dtc-website-media` | an absent key answers `404` (`object-missing`) instead of `403`; verified after the apply |
 
-If the bucket uses SSE-KMS with a customer-managed key, the role also needs `kms:GenerateDataKey`
-and `kms:Decrypt` on that key. These changes belong in `aws-infra`.
+`s3:ListBucket` must not carry an `s3:prefix` condition: `HeadObject` and `GetObject` send no
+prefix, so a prefix-conditioned grant would not turn their `403` into a `404`. The bucket only
+holds public media, so listing it discloses nothing the site does not already serve. If the
+bucket ever moves to SSE-KMS with a customer-managed key, the writer also needs
+`kms:GenerateDataKey` on that key. IAM changes belong in `aws-infra`.
 
-Without `s3:ListBucket`, S3 answers `403 AccessDenied` for an absent key, so a missing object is
-logged as `store-unavailable`, not `object-missing`. The code deliberately keeps it that way: a
+**`website-development`, and any other environment that points at `dtc-website-media`, must not
+get write rights.** It shares the production bucket and keys, so a development sync of an
+unreviewed branch would overwrite the objects production serves. Without write rights a
+development sync still succeeds whenever production has already uploaded the same bytes (the
+checksum probe matches and nothing is written); otherwise that media item fails closed and is
+retried on the next sync.
+
+A principal without `s3:ListBucket` gets `403 AccessDenied` for an absent key, so its missing
+objects are logged as `store-unavailable`, not `object-missing`. The code deliberately keeps it that way: a
 `403` is also what a genuine permission fault looks like, so treating it as "absent" would
 misreport real outages. The upload path is not affected: a refused `HeadObject` just leads to a
 `PutObject`, which either lands the bytes or fails closed.
@@ -355,15 +378,15 @@ onto a prior task exactly once. It refuses to overwrite a *different* value for 
 source task that names another bucket is a hard `ReleaseContractError`, not something the normalizer
 silently repoints.
 
-Do not deploy the media-free image before `sync_public_media_verify.py` reports 1253/1253 against the
-bucket. A record whose object is absent fails closed with a `502` for that one path.
+Do not deploy the media-free image before `sync_public_media_verify.py` reports every record in the
+target database as matched against the bucket. A record whose object is absent fails closed with a `502` for that one path.
 
 ### Why Django reads S3 directly and not the CDN
 
 `/images/...` stays on the site's own hostname. Django is the origin for those paths and reads the
 object from S3 through the ambient task role, verifies it against `provenance.checksum`, and serves
 it. The `d3tgrbv0nfqbcz.cloudfront.net` distribution is an origin/edge detail of the bucket; no
-public URL is ever rewritten to that hostname, because that would move 1,253 URLs off the
+public URL is ever rewritten to that hostname, because that would move every image URL off the
 preserve-first contract in `_docs/specs/02-url-link-seo-compatibility.md`. Putting the CDN between
 Django and the bucket would also insert a cache in front of the integrity check without removing
 Django from the request path, so it buys nothing in Phase 1.

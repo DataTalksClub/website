@@ -35,10 +35,11 @@ and runnable mail-job counts. Retain the prior connection privately for rollback
 Normal `web-migrate` startup also synchronizes schedules and mirrors templates.
 
 Website production reads media using the dedicated sandbox IAM user
-`dtc-website-prod-media-reader`. Its sole inline policy permits `s3:GetObject` on
-`arn:aws:s3:::dtc-website-media/images/*`, with no groups or attached policies.
-The access key is stored in the production application's encrypted Coolify
-environment, never in this repository or reports. The S3 prefix is empty. Verify
-reads using the application's checksum-enabled GET and public `/images/` URLs.
-An object absent from S3 may return `AccessDenied` to this reader because it has
-no bucket-list permission; do not broaden its policy to hide missing content.
+`dtc-website-prod-media-reader`. Its inline policy permits `s3:GetObject` and
+`s3:PutObject` on `arn:aws:s3:::dtc-website-media/images/*` (the content sync
+uploads media objects) and an unconditioned `s3:ListBucket` on the bucket, with
+no groups or attached policies (aws-infra PR #165). The access key is stored in
+the production application's encrypted Coolify environment, never in this
+repository or reports. The S3 prefix is empty. Verify reads using the
+application's checksum-enabled GET and public `/images/` URLs. An object absent
+from S3 returns `404` (`object-missing`). See `public-media-objects.md`.
