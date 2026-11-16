@@ -161,6 +161,14 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "content.public_views.podwiki_redirect": PERMANENT_REDIRECT,
     "core.views.management_slash_redirect": PERMANENT_REDIRECT,
     "courses.views.course_aliases.legacy_course_redirect": PERMANENT_REDIRECT,
+    # Trailing-slash spellings of rendered detail pages: each resolves the record the
+    # canonical serves and 301s to that canonical once, so the Location carries only the
+    # stable public path plus the raw (credential-free) query.
+    "content.public_views.event_detail_slash_alias": PERMANENT_REDIRECT,
+    "content.public_views.podcast_detail_slash_alias": PERMANENT_REDIRECT,
+    "content.public_views.wiki_slash_alias": PERMANENT_REDIRECT,
+    "courses.views.course_aliases.course_page_slash_redirect": PERMANENT_REDIRECT,
+    "courses.views.course_aliases.shared_lesson_slash_redirect": PERMANENT_REDIRECT,
     # The former family/cohort gallery paths. Spec 02 keeps them as GET/HEAD
     # one-hop 301s to the single rendered gallery URL; they resolve only
     # visible route objects and emit stable slug/identifier query values, so

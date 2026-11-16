@@ -190,11 +190,16 @@ class EventIdentityRouteTests(TestCase):
 
     def test_all_approved_alias_classes_redirect_one_hop_with_raw_query(self) -> None:
         query = "utm_source=route-test&x=%2F&x=&q=A+B&q=A%20B"
+        # The trailing-slash spellings (links with a CDN-added slash exist in the wild) are
+        # approved aliases too: one hop to the canonical, never via the slashless alias.
         sources = {
             f"/events/{self.event.public_id}",
             f"/events/{self.event.public_id}/stale-title",
+            f"{self.path}/",
+            f"/events/{self.event.public_id}/",
+            f"/events/{self.event.public_id}/stale-title/",
         }
-        self.assertEqual(len(sources), 2)
+        self.assertEqual(len(sources), 5)
         for source in sources:
             with self.subTest(source=source):
                 response = self.client.get(f"{source}?{query}", follow=False)
@@ -243,8 +248,8 @@ class EventIdentityRouteTests(TestCase):
 
         Those two forms keep the bounded event-route 404 contract (an explicit,
         query-sensitive ``Cache-Control``). Every other malformed spelling -- a
-        signed/zero-padded/leading-zero ID, a trailing slash, a raw or uppercase
-        UUID, or an unrecorded path -- matches no route at all now that the
+        signed/zero-padded/leading-zero ID, a raw or uppercase UUID, a doubled
+        slash, or an unrecorded path -- matches no route at all now that the
         legacy UUID and date/title paths (and their catch-all) are retired, so
         it falls through to the ordinary unmatched-URLconf 404 instead.
         """
@@ -254,6 +259,9 @@ class EventIdentityRouteTests(TestCase):
         routed_but_unknown = (
             "/events/999999999/unknown",
             f"/events/{'9' * 80}/{self.event.slug}",
+            # The slash alias resolves the ID first: an unknown ID is not redirected.
+            "/events/999999999/unknown/",
+            "/events/999999999/",
         )
         for path in routed_but_unknown:
             with self.subTest(path=path):
@@ -271,8 +279,8 @@ class EventIdentityRouteTests(TestCase):
             f"/events/+{public_id}/{self.event.slug}",
             f"/events/-{public_id}/{self.event.slug}",
             f"/events/0/{self.event.slug}",
-            f"/events/{public_id}/{self.event.slug}/",
-            f"/events/{public_id}/",
+            f"/events/0{public_id}/{self.event.slug}/",
+            f"/events/{public_id}/{self.event.slug}//",
             f"/events/{str(self.event.content_id).upper()}/{self.event.slug}",
             f"/events/{self.event.content_id}/",
             f"/events/{self.event.content_id}/{self.event.slug}",
@@ -292,6 +300,8 @@ class EventIdentityRouteTests(TestCase):
             self.path,
             f"/events/{self.event.public_id}",
             f"/events/{self.event.public_id}/stale-title",
+            f"{self.path}/",
+            f"/events/{self.event.public_id}/",
         )
         before = Event.objects.count()
         for path in paths:
