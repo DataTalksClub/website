@@ -25,6 +25,7 @@ from content.media_store import (
     MemoryMediaStore,
     S3MediaStore,
     deterministic_fixture,
+    ensure_media_object,
     media_store,
     object_key,
     read_media_object,
@@ -423,3 +424,124 @@ class MediaStoreSelectionTests(SimpleTestCase):
         with override_settings(PUBLIC_MEDIA_STORE_BACKEND="s3", PUBLIC_MEDIA_S3_BUCKET=""):
             with self.assertRaises(ImproperlyConfigured):
                 media_store()
+
+
+class EnsureMediaObjectTests(SimpleTestCase):
+    """The content sync's write half of the checksum contract."""
+
+    PAYLOAD = b"\xff\xd8\xffportrait\xff\xd9"
+
+    def _s3(self, boto3_client: Mock, client: Mock) -> S3MediaStore:
+        boto3_client.return_value = client
+        return S3MediaStore(
+            bucket="dtc-website-media",
+            prefix="",
+            region="eu-west-1",
+            endpoint_url="",
+            timeout_seconds=2.0,
+            maximum_object_bytes=DEFAULT_MAX_OBJECT_BYTES,
+        )
+
+    @patch("boto3.client")
+    def test_an_absent_object_is_uploaded_at_the_path_mirrored_key(
+        self, boto3_client: Mock
+    ) -> None:
+        client = Mock()
+        client.head_object.side_effect = _StubClientError("404", 404)
+        store = self._s3(boto3_client, client)
+        record = _record("images/authors/x.jpg", payload=self.PAYLOAD)
+
+        self.assertTrue(ensure_media_object(store, record, self.PAYLOAD))
+
+        client.head_object.assert_called_once_with(
+            Bucket="dtc-website-media", Key="images/authors/x.jpg", ChecksumMode="ENABLED"
+        )
+        client.put_object.assert_called_once_with(
+            Bucket="dtc-website-media",
+            Key="images/authors/x.jpg",
+            Body=self.PAYLOAD,
+            ContentType="image/jpeg",
+            ChecksumAlgorithm="SHA256",
+        )
+
+    @patch("boto3.client")
+    def test_an_object_with_the_recorded_checksum_is_not_uploaded_again(
+        self, boto3_client: Mock
+    ) -> None:
+        client = Mock()
+        client.head_object.return_value = {
+            "ContentLength": len(self.PAYLOAD),
+            "ChecksumSHA256": base64.b64encode(hashlib.sha256(self.PAYLOAD).digest()).decode(),
+        }
+        store = self._s3(boto3_client, client)
+        record = _record("images/authors/x.jpg", payload=self.PAYLOAD)
+
+        self.assertFalse(ensure_media_object(store, record, self.PAYLOAD))
+        client.put_object.assert_not_called()
+
+    @patch("boto3.client")
+    def test_a_stale_object_is_overwritten(self, boto3_client: Mock) -> None:
+        client = Mock()
+        client.head_object.return_value = {
+            "ContentLength": 3,
+            "ChecksumSHA256": base64.b64encode(hashlib.sha256(b"old").digest()).decode(),
+        }
+        store = self._s3(boto3_client, client)
+        record = _record("images/authors/x.jpg", payload=self.PAYLOAD)
+
+        self.assertTrue(ensure_media_object(store, record, self.PAYLOAD))
+        client.put_object.assert_called_once()
+
+    @patch("boto3.client")
+    def test_a_refused_probe_still_uploads(self, boto3_client: Mock) -> None:
+        # Without s3:ListBucket, S3 answers 403 for an absent key.  A 403 proves
+        # nothing either way, so the recorded bytes are written regardless.
+        client = Mock()
+        client.head_object.side_effect = _StubClientError("403", 403)
+        store = self._s3(boto3_client, client)
+        record = _record("images/authors/x.jpg", payload=self.PAYLOAD)
+
+        self.assertTrue(ensure_media_object(store, record, self.PAYLOAD))
+        client.put_object.assert_called_once()
+
+    @patch("boto3.client")
+    def test_a_failed_upload_raises_without_naming_the_bucket_or_key(
+        self, boto3_client: Mock
+    ) -> None:
+        client = Mock()
+        client.head_object.side_effect = _StubClientError("403", 403)
+        client.put_object.side_effect = _StubClientError("AccessDenied", 403)
+        store = self._s3(boto3_client, client)
+        record = _record("images/authors/x.jpg", payload=self.PAYLOAD)
+
+        with self.assertRaises(MediaStoreUnavailable) as raised:
+            ensure_media_object(store, record, self.PAYLOAD)
+        self.assertNotIn("dtc-website-media", str(raised.exception))
+        self.assertNotIn("authors", str(raised.exception))
+
+    def test_a_payload_that_does_not_match_the_record_is_refused(self) -> None:
+        store = MemoryMediaStore()
+        record = _record("images/authors/x.jpg", payload=self.PAYLOAD)
+
+        with self.assertRaises(MediaChecksumMismatch):
+            ensure_media_object(store, record, b"other bytes")
+        self.assertNotEqual(store.stat(record).checksum, record["provenance"]["checksum"])
+
+    def test_the_local_store_round_trips_an_upload(self) -> None:
+        with tempfile.TemporaryDirectory() as root:
+            store = LocalMediaStore(root=Path(root), maximum_object_bytes=DEFAULT_MAX_OBJECT_BYTES)
+            record = _record("images/authors/x.jpg", payload=self.PAYLOAD)
+
+            self.assertTrue(ensure_media_object(store, record, self.PAYLOAD))
+            self.assertEqual((Path(root) / "authors" / "x.jpg").read_bytes(), self.PAYLOAD)
+            self.assertEqual(read_media_object(store, record), self.PAYLOAD)
+            self.assertFalse(ensure_media_object(store, record, self.PAYLOAD))
+            self.assertEqual(os.listdir(Path(root) / "authors"), ["x.jpg"])
+
+    def test_the_memory_store_serves_what_was_uploaded(self) -> None:
+        store = MemoryMediaStore()
+        record = _record("images/authors/x.jpg", payload=self.PAYLOAD)
+
+        self.assertTrue(ensure_media_object(store, record, self.PAYLOAD))
+        self.assertEqual(read_media_object(store, record), self.PAYLOAD)
+        self.assertFalse(ensure_media_object(store, record, self.PAYLOAD))
