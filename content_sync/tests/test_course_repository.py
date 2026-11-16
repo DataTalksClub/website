@@ -12,6 +12,7 @@ from content_sync.course_repository import (
     ProjectFlowSource,
     parse_course_repository,
 )
+from courses.services.curriculum_source import CourseRepositorySource, UnitSource
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "course_repository" / "llm_zoomcamp_2026"
 COMMIT_SHA = "a" * 40
@@ -147,6 +148,53 @@ def test_ignores_unknown_lesson_frontmatter_keys() -> None:
     intro = module_item.module.units[0]
     assert intro.source_path == path
     assert intro.metadata.video_url == "https://www.youtube.com/watch?v=fixture-intro"
+
+
+def intro_lesson(source: CourseRepositorySource) -> UnitSource:
+    modules_cohort = source.cohorts[2]
+    module_item, _project_item = modules_cohort.flow
+    assert isinstance(module_item, ModuleFlowSource)
+    return module_item.module.units[0]
+
+
+GITHUB_NAV_BLOCK = (
+    b"\n\n<!-- nav:start -->\n"
+    b"[\xe2\x86\x90 Previous: Intro](prev.md) \xc2\xb7 [Next: Next](next.md)\n"
+    b"<!-- nav:end -->\n"
+)
+
+
+def test_strips_the_github_only_nav_block_from_the_lesson_body() -> None:
+    snapshot = fixture_snapshot()
+    path = "cohorts/2026/01-agentic-rag/lessons/01-intro.md"
+    snapshot[path] = (
+        b"---\nvideo_url: https://www.youtube.com/watch?v=x\n---\n"
+        b"# Introduction\n\nText.\n" + GITHUB_NAV_BLOCK
+    )
+
+    source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
+
+    assert intro_lesson(source).markdown == "# Introduction\n\nText.\n"
+
+
+def test_strips_the_github_only_nav_block_from_a_lesson_without_frontmatter() -> None:
+    snapshot = fixture_snapshot()
+    path = "cohorts/2026/01-agentic-rag/lessons/01-intro.md"
+    snapshot[path] = b"# Introduction\n\nBody text.\n" + GITHUB_NAV_BLOCK
+
+    source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
+
+    assert intro_lesson(source).markdown == "# Introduction\n\nBody text.\n"
+
+
+def test_leaves_a_lesson_body_without_a_nav_block_unchanged() -> None:
+    snapshot = fixture_snapshot()
+    path = "cohorts/2026/01-agentic-rag/lessons/01-intro.md"
+    snapshot[path] = b"---\nvideo_url: https://www.youtube.com/watch?v=x\n---\n# Title\n\nText.\n"
+
+    source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
+
+    assert intro_lesson(source).markdown == "# Title\n\nText.\n"
 
 
 def test_accepts_an_arbitrary_slug_like_cohort_identifier() -> None:

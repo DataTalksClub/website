@@ -57,6 +57,10 @@ _SHA256 = re.compile(r"[0-9a-f]{64}")
 _COMMIT_SHA = re.compile(r"[0-9a-f]{40}")
 _URL_SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
 _BASE64URL = re.compile(r"[A-Za-z0-9_-]+")
+_GITHUB_NAV_BLOCK = re.compile(
+    r"[\r\n]*<!-- nav:start -->.*?<!-- nav:end -->[\r\n]*",
+    re.DOTALL,
+)
 _PLAINTEXT_ANSWER_KEYS = frozenset(
     {
         "answer_key",
@@ -568,6 +572,20 @@ def _relative_source_reference(
     return resolved
 
 
+def _strip_github_nav_block(markdown: str) -> str:
+    """Remove the GitHub-only prev/next block; the website renders its own navigation.
+
+    Blocks and the blank lines around them are replaced by a single blank line, so
+    text on either side stays separated. The result ends with exactly one newline,
+    and Markdown without a block is returned untouched.
+    """
+
+    if _GITHUB_NAV_BLOCK.search(markdown) is None:
+        return markdown
+    stripped = _GITHUB_NAV_BLOCK.sub("\n\n", markdown)
+    return stripped.strip("\r\n") + "\n"
+
+
 def _parse_lesson_frontmatter(
     raw: str,
     *,
@@ -585,7 +603,7 @@ def _parse_lesson_frontmatter(
 
     lines = raw.splitlines(keepends=True)
     if not lines or lines[0].strip() != "---":
-        return raw, LessonMetadata()
+        return _strip_github_nav_block(raw), LessonMetadata()
 
     closing_index: int | None = None
     for index, line in enumerate(lines[1:], start=1):
@@ -639,7 +657,9 @@ def _parse_lesson_frontmatter(
             )
 
     body = "".join(lines[closing_index + 1 :]).lstrip("\n")
-    return body, LessonMetadata(video_url=video_url, code=tuple(code_sources))
+    return _strip_github_nav_block(body), LessonMetadata(
+        video_url=video_url, code=tuple(code_sources)
+    )
 
 
 class _Parser:
