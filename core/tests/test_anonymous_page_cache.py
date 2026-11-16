@@ -213,3 +213,14 @@ class AnonymousPageCacheTests(TestCase):
             self.assertContains(third, "Fast pages cache probe", status_code=200)
         finally:
             SyncedDocument.objects.filter(stable_key="zzz-fast-pages-cache-probe").delete()
+
+    def test_a_new_release_never_serves_the_previous_release_pages(self) -> None:
+        # A deploy writes nothing to the database, so the generation never
+        # bumps; the release identity in the key is what keeps the new code
+        # from serving templates rendered by the old one.
+        with override_settings(SOURCE_SHA="a" * 40):
+            self._miss_then_hit("/sponsors")
+        with override_settings(SOURCE_SHA="b" * 40):
+            fresh = self.client.get("/sponsors")
+        self.assertEqual(fresh.status_code, 200)
+        self.assertNotIn("X-Page-Cache", fresh.headers)
