@@ -160,9 +160,17 @@ class RuntimeSettingStampTests(TestCase):
     reader picks the write up *on its own*, from the settings table's stamp,
     once its own TTL has passed -- which is exactly what a second container
     does.
+
+    The key under test must start from its default, whatever the shell running
+    the suite exports: a developer environment that sets
+    ``PUBLIC_MEDIA_S3_BUCKET`` would otherwise answer through the environment
+    and settings layers before any row exists.
     """
 
     def setUp(self) -> None:
+        environment = self.enterContext(mock.patch.dict(os.environ))
+        environment.pop("PUBLIC_MEDIA_S3_BUCKET", None)
+        self.enterContext(override_settings(PUBLIC_MEDIA_S3_BUCKET=""))
         reset_runtime_settings_cache()
         self.addCleanup(reset_runtime_settings_cache)
 
