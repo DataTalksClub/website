@@ -301,6 +301,14 @@ class Cohort(TimingOwner, SourceProvenanceModel):
         db_default="",
         help_text="One-sentence summary shown where this cohort is advertised.",
     )
+    featured = models.BooleanField(
+        default=False,
+        db_default=False,
+        help_text=(
+            "Show this cohort in the homepage's featured panel. At most one cohort "
+            "can be featured; with none, the homepage shows no featured panel."
+        ),
+    )
     start_date = models.DateField(
         blank=True,
         null=True,
@@ -461,6 +469,11 @@ class Cohort(TimingOwner, SourceProvenanceModel):
     class Meta:
         db_table = "courses_course"
         constraints = [
+            models.UniqueConstraint(
+                fields=("featured",),
+                condition=Q(featured=True),
+                name="courses_cohort_single_featured",
+            ),
             models.UniqueConstraint(
                 fields=("course", "year"),
                 name="courses_cohort_course_year_unique",

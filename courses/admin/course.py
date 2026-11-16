@@ -326,8 +326,10 @@ class CourseAdmin(ModelAdmin):
         "start_date",
         "end_date",
         "visible",
+        "featured",
         "finished",
     ]
+    list_filter = ["featured", "visible"]
 
 
 admin.site.register(Module, ModelAdmin)

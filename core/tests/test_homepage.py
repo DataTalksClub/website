@@ -16,7 +16,6 @@ from django.utils.html import escape
 from core import views as core_views
 from core.home_content import (
     COURSE_FAMILIES,
-    FEATURED_FAMILY,
     course_catalog,
 )
 from courses.models.cohort import Cohort, Course
@@ -26,6 +25,8 @@ from courses.views.course import course_view
 from courses.views.course_aliases import legacy_course_redirect
 from courses.views.course_list import course_list
 from test_support.course_catalog import build_reviewed_catalog
+
+FEATURED_FAMILY = "ai-dev-tools-zoomcamp"
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADOPTED_COURSE_LIST_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course_list.html").resolve()
@@ -155,6 +156,50 @@ class CatalogCardTests(TestCase):
         self.assertIn('<span class="chip chip-ink">New cohort</span>', body)
 
 
+class FeaturedFlagTests(TestCase):
+    """The featured panel shows the cohort an editor flagged, and nothing else decides it."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.cohorts = build_reviewed_catalog()
+
+    def _body(self) -> str:
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        return response.content.decode()
+
+    def test_no_flagged_cohort_draws_no_panel_and_keeps_every_family_a_card(self) -> None:
+        Cohort.objects.update(featured=False)
+
+        body = self._body()
+
+        self.assertNotIn("data-featured-course", body)
+        scroller = body[body.index('id="catalog-scroller"') :]
+        scroller = scroller[: scroller.index("catalog-scroller-controls")]
+        for _family, title in COURSE_FAMILIES:
+            with self.subTest(title=title):
+                self.assertIn(escape(title), scroller)
+
+    def test_the_flagged_cohort_is_featured_and_leaves_the_cards(self) -> None:
+        Cohort.objects.update(featured=False)
+        Cohort.objects.filter(pk=self.cohorts["de-zoomcamp"].pk).update(featured=True)
+
+        body = self._body()
+
+        panel = body[body.index("data-featured-course") :]
+        panel, scroller = panel.split('id="catalog-scroller"', 1)
+        self.assertIn("Data Engineering Zoomcamp", panel)
+        cards = scroller.split("catalog-scroller-controls")[0]
+        self.assertNotIn("Data Engineering Zoomcamp", cards)
+        self.assertIn("AI Dev Tools Zoomcamp", scroller)
+
+    def test_only_one_cohort_can_be_featured(self) -> None:
+        from django.db import IntegrityError, transaction
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Cohort.objects.filter(pk=self.cohorts["de-zoomcamp"].pk).update(featured=True)
+
+
 class MainHomepageRoutingTests(TestCase):
     def test_member_stories_keep_titles_country_only_and_requested_order(self) -> None:
         """Every seeded row renders on the page, in the order the query returns it.
@@ -221,7 +266,7 @@ class MainHomepageRoutingTests(TestCase):
         featured = next(entry for entry in course_catalog() if entry.family == FEATURED_FAMILY)
         self.assertContains(response, f'href="{featured.public_path}"')
         self.assertContains(response, "View the syllabus")
-        self.assertContains(response, "all courses →")
+        self.assertNotContains(response, "all courses →")
         self.assertEqual(
             len(re.findall(r"\sdata-featured-course(?=[\s>])", response.content.decode())),
             1,
@@ -1027,12 +1072,12 @@ class AcademyLinkTests(TestCase):
         ("/academy/sessions/", "Hireable With AI: Free Sessions"),
     )
 
-    def test_home_band_and_footer_link_to_academy(self) -> None:
+    def test_footer_links_to_academy_and_the_courses_band_does_not(self) -> None:
         response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
-        band = re.search(r'<p class="band-more academy-links"[^>]*>(.*?)</p>', body, re.S)
-        assert band is not None, "homepage is missing the Academy links row"
+        # The owner removed the Academy links from under the course catalogue.
+        self.assertNotIn("academy-links", body)
         footer = re.search(
             r'<nav class="site-footer-legal site-footer-academy"[^>]*>(.*?)</nav>',
             body,
@@ -1040,10 +1085,6 @@ class AcademyLinkTests(TestCase):
         )
         assert footer is not None, "footer is missing the Academy links row"
         for href, label in self.ACADEMY_LINKS:
-            self.assertRegex(
-                band.group(1),
-                rf'href="{re.escape(href)}">{re.escape(label)} →</a>',
-            )
             self.assertRegex(
                 footer.group(1),
                 rf'href="{re.escape(href)}">\s*{re.escape(label)}\s*</a>',

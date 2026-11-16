@@ -55,6 +55,7 @@ def make_cohort(
     delivery_format: str = "",
     promo_summary: str = "",
     build_items: Sequence[str] = (),
+    featured: bool = False,
 ) -> Cohort:
     """Build one cohort, optionally with the modules its curriculum source defines.
 
@@ -76,6 +77,7 @@ def make_cohort(
         start_date=start_date or date(year, 8, 31),
         delivery_format=delivery_format,
         promo_summary=promo_summary,
+        featured=featured,
     )
     for position, text in enumerate(build_items):
         CohortBuildItem.objects.create(cohort=cohort, text=text, position=position)
@@ -134,6 +136,8 @@ def build_reviewed_catalog() -> dict[str, Cohort]:
         ai_dev_tools,
         2026,
         start_date=date(2026, 8, 31),
+        # The homepage's featured panel shows the cohort an editor flagged.
+        featured=True,
         homework_count=4,
         project_count=0,
         # The four modules of ``cohorts/2026`` in DataTalksClub/ai-dev-tools-zoomcamp, in

@@ -103,10 +103,7 @@ def test_public_home_and_hubs(
         "href",
         "/courses/ai-dev-tools-zoomcamp/2026",
     )
-    expect(page.get_by_role("link", name="all courses")).to_have_attribute(
-        "href",
-        "/courses",
-    )
+    expect(page.get_by_role("link", name="all courses")).to_have_count(0)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     expect(page.get_by_role("link", name="People", exact=True)).to_have_count(0)
     _shot(page, f"home-{suffix}.png", full_page=True)

@@ -17,8 +17,6 @@ from courses.services.public_course_catalog import (
     latest_visible_cohort_per_family,
 )
 
-FEATURED_FAMILY = "ai-dev-tools-zoomcamp"
-
 # Family slug prefix and catalogue title.  The cards used to carry a third value, a
 # short uppercase category pill ("Data Engineering", "LLMs", ...); the owner removed
 # that pill from the catalogue cards, and nothing else read the value.
@@ -35,10 +33,6 @@ COURSE_FAMILIES: tuple[tuple[str, str], ...] = (
     ("mlops-zoomcamp", "MLOps Zoomcamp"),
     ("sma-zoomcamp", "Stock Markets Analytics Zoomcamp"),
 )
-
-# The designed landing page for the featured cohort.  It is a fixed route rather than a
-# course-page link, so it is named here instead of derived from the resolved cohort.
-FEATURED_COHORT_ROUTE_NAME = "course-cohort-ai-dev-tools-zoomcamp-2026"
 
 # The wiki hub the graph is drawn around, and the direct relations it is drawn to.  Every
 # slug is validated against the published wiki so a source change fails loudly instead of
@@ -96,6 +90,8 @@ class CatalogCourse:
     delivery_format: str = ""
     promo_summary: str = ""
     build_items: tuple[str, ...] = ()
+    #: The cohort an editor chose for the homepage's featured panel.
+    featured: bool = False
 
     @property
     def start_display(self) -> str:
@@ -172,9 +168,21 @@ def course_catalog() -> tuple[CatalogCourse, ...]:
                 # query per family.  Calling ``order_by`` here would bypass the
                 # prefetch cache and reintroduce one query per family (N+1).
                 build_items=tuple(item.text for item in cohort.build_items.all()),
+                featured=bool(cohort.featured),
             )
         )
     return tuple(catalog)
+
+
+def featured_course(catalog: tuple[CatalogCourse, ...]) -> CatalogCourse | None:
+    """Return the cohort an editor flagged ``featured``, or ``None``.
+
+    The featured panel is an editorial choice stored on ``Cohort.featured``, not a rule
+    derived from dates or a family named in code: a hardcoded family kept advertising
+    its cohort as "New cohort" long after it had started.  No flag, no panel.
+    """
+
+    return next((entry for entry in catalog if entry.featured), None)
 
 
 _SPELLED = (

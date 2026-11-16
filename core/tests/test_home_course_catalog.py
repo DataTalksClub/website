@@ -18,7 +18,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from content import catalogue
-from core.home_content import FEATURED_FAMILY, course_catalog
+from core.home_content import course_catalog
 from courses.models.cohort import Cohort, Course
 from test_support.course_catalog import (
     build_reviewed_catalog,
@@ -98,7 +98,7 @@ class CourseCatalogSelectionTests(TestCase):
         build_reviewed_catalog()
 
         catalog = course_catalog()
-        ai_dev_tools = [entry for entry in catalog if entry.family == FEATURED_FAMILY]
+        ai_dev_tools = [entry for entry in catalog if entry.family == "ai-dev-tools-zoomcamp"]
 
         self.assertEqual(len(ai_dev_tools), 1)
         self.assertEqual(ai_dev_tools[0].slug, "ai-dev-tools-zoomcamp-2026")
@@ -224,7 +224,7 @@ class HomepageCourseRenderingTests(TestCase):
 
         drop_cohort("ai-dev-tools-zoomcamp-2026")
         family = Course.objects.get(slug="ai-dev-tools-zoomcamp")
-        make_cohort(family, 2026, start_date=date(2026, 8, 31), homework_count=4)
+        make_cohort(family, 2026, start_date=date(2026, 8, 31), homework_count=4, featured=True)
 
         body = self.client.get(reverse("home")).content.decode()
         featured = body[body.index("data-featured-course") :]
@@ -237,7 +237,14 @@ class HomepageCourseRenderingTests(TestCase):
     def test_the_featured_panel_makes_a_single_count_singular(self) -> None:
         drop_cohort("ai-dev-tools-zoomcamp-2026")
         family = Course.objects.get(slug="ai-dev-tools-zoomcamp")
-        make_cohort(family, 2026, start_date=date(2026, 8, 31), homework_count=1, project_count=1)
+        make_cohort(
+            family,
+            2026,
+            start_date=date(2026, 8, 31),
+            homework_count=1,
+            project_count=1,
+            featured=True,
+        )
 
         body = self.client.get(reverse("home")).content.decode()
         featured = body[body.index("data-featured-course") :]

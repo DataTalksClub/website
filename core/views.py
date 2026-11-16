@@ -23,9 +23,9 @@ from content.person_chip import PersonChip, person_chip
 from content.podcast_content import ordered_podcasts
 from content.tour_content import tour_page
 from core.home_content import (
-    FEATURED_FAMILY,
     course_catalog,
     event_time_display,
+    featured_course,
     published_display,
     reading_minutes,
     spelled_count,
@@ -99,15 +99,15 @@ def home(request: HttpRequest):
         {**event, "home_time": event_time_display(event["starts_at"])}
         for event in events.upcoming[:3]
     )
-    # The featured panel is the newest visible cohort of the featured family, or nothing
-    # at all when the database holds none; the template renders no hero in that case.
+    # The featured panel is the soonest cohort that has not started yet, or nothing at
+    # all when none is upcoming; the template renders no hero in that case.
     #
     # The call to action goes to that cohort's own database-backed course page, the same
     # `/courses/<family>/<year>` route the catalogue cards use.  It used to go to a
     # hardcoded per-cohort landing route whose copy was written in Python, including a
     # "materials are still being finalized" notice that had gone stale; that route and its
     # page are gone, so there is one cohort page and the hero links to it.
-    featured_entry = next((entry for entry in catalog if entry.family == FEATURED_FAMILY), None)
+    featured_entry = featured_course(catalog)
     featured_cohort_path = featured_entry.public_path if featured_entry is not None else ""
     return render(
         request,
@@ -122,7 +122,7 @@ def home(request: HttpRequest):
             "featured_cohort_format": featured_entry.delivery_format if featured_entry else "",
             "featured_cohort_summary": featured_entry.promo_summary if featured_entry else "",
             "featured_build_items": featured_entry.build_items if featured_entry else (),
-            "catalog_courses": tuple(entry for entry in catalog if entry.family != FEATURED_FAMILY),
+            "catalog_courses": tuple(entry for entry in catalog if entry is not featured_entry),
             "course_family_count": len(catalog),
             "course_family_word": spelled_count(len(catalog)),
             "member_stories": homepage_testimonials(),

@@ -521,6 +521,7 @@ def _mapping() -> dict[
             "outcome": _STAYS,
             "promo_summary": _STAYS,
             "delivery_format": _STAYS,
+            "featured": _STAYS,
             "github_repo_url": _STAYS,
             "students": "M2M through Enrollment; expressed as package enrollments",
         },

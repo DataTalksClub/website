@@ -329,13 +329,6 @@
         text-align: right;
       }
 
-      .academy-links {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem 1.5rem;
-        justify-content: flex-end;
-      }
-
       .event-top {
         align-items: center;
         display: flex;
@@ -905,7 +898,6 @@
             <div>
               <h2 id="courses-heading">Active courses</h2>
             </div>
-            <a class="band-link" href="{% url 'course_list' %}">all courses →</a>
           </div>
           {% if featured_catalog_entry %}
           {% if featured_build_items %}
@@ -1016,15 +1008,6 @@
             {% endcomment %}
             <p class="band-note">No active courses right now.</p>
           {% endif %}
-          {% comment %}
-            The Academy is served under /academy/ (proxied at the edge). These
-            plain links are its homepage entry point; the wording is the Title
-            Case copy from the Academy copy bank.
-          {% endcomment %}
-          <p class="band-more academy-links" data-academy-links>
-            <a class="band-link" href="/academy/">DataTalks.Club Academy →</a>
-            <a class="band-link" href="/academy/sessions/">Hireable With AI: Free Sessions →</a>
-          </p>
         </div>
       </section>
 
