@@ -530,6 +530,27 @@ class EnsureMediaObjectTests(SimpleTestCase):
             ensure_media_object(store, record, b"other bytes")
         self.assertNotEqual(store.stat(record).checksum, record["provenance"]["checksum"])
 
+    @patch("boto3.client")
+    def test_an_oversized_payload_is_refused_before_any_store_call(
+        self, boto3_client: Mock
+    ) -> None:
+        client = Mock()
+        boto3_client.return_value = client
+        store = S3MediaStore(
+            bucket="dtc-website-media",
+            prefix="",
+            region="eu-west-1",
+            endpoint_url="",
+            timeout_seconds=2.0,
+            maximum_object_bytes=len(self.PAYLOAD) - 1,
+        )
+        record = _record("images/authors/x.jpg", payload=self.PAYLOAD)
+
+        with self.assertRaises(MediaObjectTooLarge):
+            ensure_media_object(store, record, self.PAYLOAD)
+        client.head_object.assert_not_called()
+        client.put_object.assert_not_called()
+
     def test_the_local_store_round_trips_an_upload(self) -> None:
         with tempfile.TemporaryDirectory() as root:
             store = LocalMediaStore(root=Path(root), maximum_object_bytes=DEFAULT_MAX_OBJECT_BYTES)

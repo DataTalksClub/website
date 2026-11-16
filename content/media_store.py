@@ -203,6 +203,12 @@ class MediaStore:
 
     #: Short backend token used in redacted structured log events.
     name = "media-store"
+    #: The fail-closed object size bound; each backend sets its configured value.
+    _maximum = DEFAULT_MAX_OBJECT_BYTES
+
+    @property
+    def maximum_object_bytes(self) -> int:
+        return self._maximum
 
     def expected_checksum(self, record: Mapping[str, Any]) -> str:
         """Return the sha256 the retrieved bytes must have."""
@@ -234,17 +240,21 @@ def ensure_media_object(store: MediaStore, record: Mapping[str, Any], payload: b
 
     This is the write half of the read path's checksum contract, called by the
     content sync before a media record is published or changed.  The payload must
-    hash to the record's ``provenance.checksum``.  An object that is already stored
-    with that checksum is left alone, so a re-sync costs one metadata request per
-    record.  Any other answer from the probe -- absent, a different digest, or a
-    probe the store refused (S3 answers ``403`` for an absent key when the caller
-    lacks ``s3:ListBucket``) -- leads to an upload: overwriting with the recorded
-    bytes is always safe, and if the store really is unreachable the upload fails
-    too.  Every failure raises :class:`MediaStoreError`, so the caller never
-    publishes a record whose bytes did not land.
+    hash to the record's ``provenance.checksum`` and fit the store's object bound.
+    An object already stored with that checksum is left alone, so a re-sync costs
+    one metadata request per record.  Any other answer from the probe -- absent,
+    a different digest, or a probe the store refused (S3 answers ``403`` for an
+    absent key when the caller lacks ``s3:ListBucket``) -- leads to an upload:
+    overwriting with the recorded bytes is always safe, and if the store really
+    is unreachable the upload fails too.  Every failure raises
+    :class:`MediaStoreError`, so the caller never publishes a record whose bytes
+    did not land.
     """
 
     expected = record_checksum(record)
+    if len(payload) > store.maximum_object_bytes:
+        # The read path would refuse this object; never store what cannot be served.
+        raise MediaObjectTooLarge("upload payload exceeds the configured bound")
     if _sha256_hex(payload) != expected:
         raise MediaChecksumMismatch("upload payload digest does not match the record")
     try:
@@ -314,8 +324,6 @@ class LocalMediaStore(MediaStore):
         return MediaObjectStat(size=len(payload), checksum=_sha256_hex(payload))
 
     def put(self, record: Mapping[str, Any], payload: bytes) -> None:
-        if len(payload) > self._maximum:
-            raise MediaObjectTooLarge("local media object exceeds the configured bound")
         path = self.path_for(record)
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -447,8 +455,6 @@ class MemoryMediaStore(MediaStore):
         return MediaObject(payload=payload)
 
     def put(self, record: Mapping[str, Any], payload: bytes) -> None:
-        if len(payload) > self._maximum:
-            raise MediaObjectTooLarge("fixture object exceeds the configured bound")
         self._objects[record_key(record)] = payload
 
     def existing_keys(self) -> tuple[str, ...]:
