@@ -154,6 +154,7 @@ module = [
     "scripts.course_launch_presentation",
 
     "courses.tests.test_statistics_display_contract",
+    "courses.tests.test_course_slash_aliases",
     "accounts.backends",
     "accounts.identity_inventory",
     "accounts.identity_relations",

@@ -560,6 +560,23 @@ def event_detail_without_slug(request: HttpRequest, event_id: str) -> HttpRespon
 
 
 @_public_event_route
+def event_detail_slash_alias(request: HttpRequest, event_id: str, slug: str = "") -> HttpResponse:
+    """Answer the trailing-slash spelling of an Event detail in one permanent hop.
+
+    Links carrying a CDN-added trailing slash (``/events/<id>/<slug>/`` and ``/events/<id>/``)
+    exist in the wild.  The public ID still selects the Event and the slug stays cosmetic, so a
+    stale slug plus slash reaches the numeric/current-slug canonical directly, never via a second
+    hop.  An unknown ID is the bounded event-route 404.
+    """
+
+    try:
+        target = canonical_detail_path(resolve_public_id(event_id).content_id)
+    except EventIdentityNotFound as exc:
+        raise Http404 from exc
+    return permanent_public_redirect(request, target=target)
+
+
+@_public_event_route
 def event_banner(request: HttpRequest, event_id: str) -> HttpResponse:
     from event_registrants.models import EventOperatorConfig
 
@@ -1014,6 +1031,22 @@ def podcast_detail_by_id_without_slug(request: HttpRequest, episode_id: str) -> 
     return permanent_public_redirect(request, target=episode["public_path"])
 
 
+@csrf_exempt
+def podcast_detail_slash_alias(
+    request: HttpRequest, episode_id: str, slug: str = ""
+) -> HttpResponse:
+    """Redirect ``/podcast/<sNeM>[/<slug>]/`` to the episode canonical in one hop.
+
+    The stable episode ID selects the record and the title slug stays cosmetic, exactly as on
+    the slashless route; only the trailing slash differs.
+    """
+
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    episode = _podcast_by_public_id(episode_id)
+    return permanent_public_redirect(request, target=episode["public_path"])
+
+
 @require_safe
 def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
     book = catalogue.book(slug)
@@ -1163,6 +1196,36 @@ def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
             ),
         },
     )
+
+
+_WIKI_FIXED_SLASH_TARGETS = {
+    "graph": "/wiki/graph",
+    "special-pages": "/wiki/special-pages",
+}
+
+
+@csrf_exempt
+def wiki_slash_alias(request: HttpRequest, slug: str) -> HttpResponse:
+    """Redirect the trailing-slash spelling of a rendered Wiki page in one hop.
+
+    Only a page the Wiki actually renders is a target: a published editorial slug, the graph,
+    the special-pages index, or one of its known categories.  Exactly one trailing slash is
+    removed; nothing else about the path is guessed, so any other spelling stays a 404.
+    """
+
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    target = _WIKI_FIXED_SLASH_TARGETS.get(slug)
+    if target is None and slug.startswith("special-pages/"):
+        category = slug.removeprefix("special-pages/")
+        if category in WIKI_SPECIAL_CATEGORIES:
+            target = f"/wiki/special-pages/{category}"
+    if target is None:
+        page = wiki_reader.wiki_page(slug)
+        if page is None:
+            raise Http404
+        target = page["public_path"]
+    return permanent_public_redirect(request, target=target)
 
 
 def _wiki_search_results(query: str) -> tuple[dict, ...]:

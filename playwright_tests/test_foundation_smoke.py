@@ -325,6 +325,13 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
     article_alias = article_target.removesuffix(".html")
     book_target = catalogue.books()[0]["public_path"]
     book_alias = book_target.removesuffix(".html")
+    event_target = next(iter(published_event_records()))["public_path"]
+    episode_target = next(
+        record["public_path"]
+        for record in catalogue.podcasts()
+        if not record["public_path"].endswith(".html")
+    )
+    wiki_target = wiki_reader.wiki_pages()[0]["public_path"]
     aliases = {
         "/articles": "/blog",
         "/articles/": "/blog",
@@ -360,6 +367,14 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
         f"{book_alias}/": book_target,
         FEATURED_SPEAKER_PATH.removesuffix(".html"): FEATURED_SPEAKER_PATH,
         f"{FEATURED_SPEAKER_PATH.removesuffix('.html')}/": FEATURED_SPEAKER_PATH,
+        # Trailing-slash spellings of extensionless detail canonicals (links with a
+        # CDN-added slash exist in the wild) reach the canonical in one hop.
+        f"{event_target}/": event_target,
+        f"{episode_target}/": episode_target,
+        f"{wiki_target}/": wiki_target,
+        "/slack/": "/slack",
+        "/tour/": "/tour",
+        "/sponsors/": "/sponsors",
     }
     # A season the catalogue actually publishes, so the podcast alias redirect is
     # what is under test rather than a 404 on the query it carries.

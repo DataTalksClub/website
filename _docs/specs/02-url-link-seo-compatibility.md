@@ -54,6 +54,19 @@ application renders.
   remains available at `/wiki/search`.
 - Course-platform compatibility routes remain available on `courses.datatalks.club` until every known browser, script, certificate tool, and email template has migrated.
 - Path case, percent encoding, Unicode, query strings used by public behavior, and trailing-slash behavior are tested rather than normalized globally.
+- Links carrying a CDN-added trailing slash exist in the wild, so the single-trailing-slash
+  spelling of each of the following extensionless page families is an explicit, per-route
+  compatibility alias: Event details (`/events/<id>/<slug>/` and `/events/<id>/`), hierarchical
+  podcast episodes (`/podcast/<sNeM>/<slug>/` and `/podcast/<sNeM>/`), Wiki pages, the Wiki graph
+  and special-pages listings, the course-family page, the bare cohort and shared-module page
+  (`/courses/<family>/<cohort-or-module>/`), the shared-lesson page
+  (`/courses/<family>/<module>/<lesson>/`), `/courses/projects/`, and the `/slack/`, `/sponsors/`,
+  and `/tour/` pages. `GET`/`HEAD` redirects permanently in one hop to the canonical with the raw
+  query preserved, only after the route has resolved the record its canonical serves. Families
+  not listed here, including cohort subpages such as `/courses/<family>/<cohort>/leaderboard/`,
+  have no slash alias. An unknown record, a doubled slash, or any other spelling stays a `404`
+  without a redirect; unsafe methods get `405` and a credential-shaped query key is refused rather
+  than copied into a `Location`. No canonical changes.
 
 ### Canonical public Event identity
 
@@ -71,13 +84,15 @@ public URLs that once served as compatibility aliases are retired, as is the pre
 date/title path from before this canonical existed; none of them resolve or redirect any more, and
 none of the retired alias kinds are recorded for a newly imported or created Event. The identity
 manifest may still record other reviewed aliases (a previous title slug, or an explicitly reviewed
-rename) for provenance; resolution never guesses a slash form, a nearby date/title, case, a
-source/provider key, or a slug.
+rename) for provenance; resolution never guesses a doubled-slash form, a nearby date/title, case,
+a source/provider key, or a slug. The single-trailing-slash spelling of the numeric detail and
+numeric-only routes is an approved alias: it resolves the public id and redirects permanently in
+one hop to the numeric/current-slug canonical with the raw query preserved.
 
 Canonical numeric `GET`/`HEAD` is terminal `200` and self-canonical. A query-bearing terminal detail
 remains `200` with a query-free production canonical but is `no-store`; approved redirects retain
 `public, max-age=300`. Zero, negative, signed, zero-padded, overlong/malformed, a UUID in any
-spelling, a date/title path, canonical trailing-slash, and other non-exact forms are rendered `404`
+spelling, a date/title path, a doubled trailing slash, and other non-exact forms are rendered `404`
 without a redirect. A path that still matches the numeric-ID route shape gets the bounded event-route
 `404` (`max-age=0` when query-free, otherwise `no-store`); every other unmatched spelling gets the
 ordinary site `404`. Unsafe methods on a route that still exists return `405`, exact

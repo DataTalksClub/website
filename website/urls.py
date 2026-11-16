@@ -78,7 +78,19 @@ urlpatterns = [
         name="newsletter-html-redirect",
     ),
     path("sponsors", core_views.sponsors, name="sponsors"),
+    path(
+        "sponsors/",
+        public_views.permanent_public_redirect,
+        {"target": "/sponsors"},
+        name="sponsors-slash-redirect",
+    ),
     path("tour", core_views.tour, name="tour"),
+    path(
+        "tour/",
+        public_views.permanent_public_redirect,
+        {"target": "/tour"},
+        name="tour-slash-redirect",
+    ),
     # The media kit is not a page of this site. Keeping a second copy here
     # meant it drifted: it advertised a course start month the database
     # contradicted, listed an edition that does not exist, and omitted a
@@ -132,6 +144,12 @@ urlpatterns = [
     path("faq/<slug:course_slug>.html", review_views.faq_course, name="faq-course"),
     path("slack", review_views.slack, name="slack"),
     path("slack.html", public_views.permanent_public_redirect, {"target": "/slack"}),
+    path(
+        "slack/",
+        public_views.permanent_public_redirect,
+        {"target": "/slack"},
+        name="slack-slash-redirect",
+    ),
     path(
         "slack/guidelines",
         public_views.permanent_public_redirect,
@@ -235,12 +253,32 @@ urlpatterns = [
         name="all_projects",
     ),
     path(
+        "courses/projects/",
+        public_views.permanent_public_redirect,
+        {"target": "/courses/projects"},
+        name="all-projects-slash-redirect",
+    ),
+    path(
         "courses/",
         include(course_patterns),
     ),
     path(
         "courses/",
         include((namespaced_course_patterns, "courses"), namespace="courses"),
+    ),
+    # Trailing-slash spellings of the cohort/shared-module and shared-lesson pages redirect to
+    # their canonical in one hop.  They are declared after both course includes, not inside
+    # ``courses.urls`` (whose route-group sort would rank these generic shapes ahead of literal
+    # routes such as ``register/<campaign>/``), so they only ever see an otherwise unmatched path.
+    path(
+        "courses/<slug:course_slug>/<slug:page_slug>/",
+        course_aliases.course_page_slash_redirect,
+        name="course-page-slash-redirect",
+    ),
+    path(
+        "courses/<slug:course_slug>/<slug:module_slug>/<slug:lesson_slug>/",
+        course_aliases.shared_lesson_slash_redirect,
+        name="shared-lesson-slash-redirect",
     ),
     path(
         "<slug:course_slug>/",

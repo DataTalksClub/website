@@ -39,6 +39,19 @@ urlpatterns = [
         public_views.podcast_detail_by_id_without_slug,
         name="public-podcast-by-id-without-slug",
     ),
+    # Trailing-slash spellings of the episode routes (links with a CDN-added slash exist in
+    # the wild) redirect to the canonical in one hop; they precede the editorial alias
+    # catch-all, which would otherwise read them as a flat slug and 404.
+    re_path(
+        r"^podcast/(?P<episode_id>s[0-9]+e[0-9]+)/(?P<slug>[-a-zA-Z0-9_]+)/$",
+        public_views.podcast_detail_slash_alias,
+        name="public-podcast-by-id-slash-redirect",
+    ),
+    re_path(
+        r"^podcast/(?P<episode_id>s[0-9]+e[0-9]+)/$",
+        public_views.podcast_detail_slash_alias,
+        name="public-podcast-by-id-without-slug-slash-redirect",
+    ),
     path(
         "podcast/<path:slug>",
         public_views.editorial_detail_alias_redirect,
@@ -142,6 +155,19 @@ urlpatterns = [
         public_views.event_detail_without_slug,
         name="public-event-without-slug",
     ),
+    # The trailing-slash spellings of the two detail routes above are one-hop permanent
+    # redirects to the numeric/current-slug canonical (links with a CDN-added slash exist in
+    # the wild).  They never render, so the canonical stays the only 200.
+    re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)/$",
+        public_views.event_detail_slash_alias,
+        name="public-event-slash-redirect",
+    ),
+    re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/$",
+        public_views.event_detail_slash_alias,
+        name="public-event-without-slug-slash-redirect",
+    ),
     path("wiki", public_views.wiki_hub, name="wiki-home"),
     path("wiki/", public_views.permanent_public_redirect, {"target": "/wiki"}),
     path("wiki/search-corpus.json", public_views.wiki_search_json, name="wiki-search-json"),
@@ -157,6 +183,13 @@ urlpatterns = [
     path("wiki/sitemap.xml", public_views.wiki_sitemap, name="wiki-sitemap"),
     path("wiki/robots.txt", public_views.wiki_robots, name="wiki-robots"),
     path("wiki/assets/<path:asset>", public_views.wiki_asset, name="wiki-asset"),
+    # One trailing slash on a rendered Wiki page redirects to it in one hop; declared ahead
+    # of the editorial detail catch-all, which would otherwise read the slash as a slug.
+    re_path(
+        r"^wiki/(?P<slug>.+?)/$",
+        public_views.wiki_slash_alias,
+        name="public-wiki-slash-redirect",
+    ),
     path("wiki/<path:slug>", public_views.wiki_detail, name="public-wiki"),
     path("tools", public_views.permanent_public_redirect, {"target": "/wiki"}),
     path("tools/", public_views.permanent_public_redirect, {"target": "/wiki"}),
