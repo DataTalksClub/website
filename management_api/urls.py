@@ -1,7 +1,26 @@
 from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
 
+from slack_access import admin_api as slack_api
+
 from . import event_views, launch_views, views
+
+
+@csrf_exempt
+def slack_member_ban(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return slack_api.member_preview(request, *args, **kwargs)
+    return slack_api.member_ban(request, *args, **kwargs)
+
+
+slack_member_ban.management_capability_keys = (  # type: ignore[attr-defined]
+    "slack.members.preview",
+    "slack.members.ban",
+)
+slack_member_ban.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": slack_api.member_preview,
+    "POST": slack_api.member_ban,
+}
 
 
 @csrf_exempt
@@ -202,6 +221,14 @@ speakers_collection.management_capability_views = {  # type: ignore[attr-defined
 
 
 urlpatterns = [
+    path("slack/applications", slack_api.application_list, name="admin-slack-applications"),
+    path(
+        "slack/applications/<uuid:application_id>/review",
+        slack_api.application_review,
+        name="admin-slack-review",
+    ),
+    path("slack/members/<uuid:member_id>/ban", slack_member_ban, name="admin-slack-ban"),
+    path("slack/joins", slack_api.join_report, name="admin-slack-joins"),
     path("events", events_collection, name="admin-event-list"),
     path("events/speakers", speakers_collection, name="admin-event-speaker-list"),
     path("events/<uuid:event_id>", event_item, name="admin-event-detail"),

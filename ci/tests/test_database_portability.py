@@ -913,6 +913,7 @@ def test_catalog_is_exact_and_current() -> None:
         "09-migration-rollout-roadmap.md",
         "10-verification-strategy.md",
         "open-decisions.md",
+        "slack-invite-approval.md",
     )
     assert COMPATIBILITY_SPECIFICATIONS == ()
 

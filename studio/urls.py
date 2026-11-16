@@ -1,12 +1,20 @@
 from django.urls import path
 
 from event_qna import studio_views as qna_views
+from slack_access import studio_views as slack_views
 
 from . import event_views, launch_views, views
 
 app_name = "studio"
 
 urlpatterns = [
+    path("slack/applications/", slack_views.review, name="slack-review"),
+    path("slack/applications/review/", slack_views.review_action, name="slack-review-action"),
+    path("slack/members/ban/", slack_views.moderation, name="slack-moderation"),
+    path(
+        "slack/members/ban/confirm/", slack_views.moderation_action, name="slack-moderation-action"
+    ),
+    path("slack/joins/", slack_views.report, name="slack-report"),
     path("course-launch/", launch_views.launch_read, name="course-launch-read"),
     path("course-launch/commands/", launch_views.launch_write, name="course-launch-write"),
     path("course-launch/dispatch/", launch_views.launch_send, name="course-launch-send"),

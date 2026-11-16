@@ -1,0 +1,57 @@
+{% extends "public/text_page.html" %}
+{% block kicker %}Community{% endblock %}
+{% block title %}Join DataTalks.Club Slack{% endblock %}
+{% block content %}
+<p>Tell us about yourself to request access. An existing member can invite or vouch for you. Approval happens here; course participants are approved automatically.</p>
+<p>Your newsletter subscription is managed separately in account settings.</p>
+{% if error %}
+  <section class="a11y-error-summary" role="alert" aria-labelledby="slack-access-error-title" tabindex="-1" data-focus-error-summary>
+    <h2 id="slack-access-error-title">Your invitation is unavailable</h2>
+    <p>{{ error }}</p>
+  </section>
+{% endif %}
+{% if application %}
+  <p><strong>Status: {{ application.get_state_display }}</strong></p>
+  {% if application.state == 'pending' %}
+    <h2>Ask someone you know to vouch</h2>
+    <p>Share this request with a DataTalks.Club member who knows you. Your questionnaire stays private.</p>
+    <p><a href="{{ vouch_url }}">{{ vouch_url }}</a></p>
+    {% if application.sponsor_id %}<p>A member has vouched for you. Your application is awaiting review.</p>{% endif %}
+    <form method="post" class="cmp-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="recheck_course">
+      <p>Joined a course since applying? Check your course participation for automatic approval.</p>
+      <div class="cmp-form-actions"><button type="submit" class="cta cta-secondary interactive-lift">Check my course participation</button></div>
+    </form>
+  {% elif application.state == 'approved' %}
+    {% if application.redirect_consumed_at %}
+      <p>Your invitation was used. Contact the community team if you could not join.</p>
+    {% elif link %}
+      <p><a class="cta cta-primary interactive-lift" href="{{ link }}">Continue to your single-use invitation</a></p>
+    {% else %}
+      <form method="post" class="cmp-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="issue">
+        <div class="cmp-form-actions"><button type="submit" class="cta cta-primary interactive-lift">Get my single-use invitation</button></div>
+      </form>
+    {% endif %}
+  {% elif application.state == 'joined' %}
+    <p>You have joined Slack. Your invitation is deactivated.</p>
+  {% elif application.state == 'banned' %}
+    <p>Your Slack website access has been revoked.</p>
+  {% else %}
+    <p>Your application was declined. Contact the community team for help.</p>
+  {% endif %}
+{% else %}
+  <form method="post" class="cmp-form" novalidate>
+    {% csrf_token %}
+    {% include "accessibility/error_summary.html" with form=form %}
+    <p class="fineprint"><span class="a11y-required" aria-hidden="true">*</span> Required fields.</p>
+    <div class="cmp-form-fields">
+      {% for field in form %}{% include "slack_access/_field.html" with field=field %}{% endfor %}
+    </div>
+    <div class="cmp-form-actions"><button type="submit" class="cta cta-primary interactive-lift">Request access</button></div>
+  </form>
+{% endif %}
+<p><a href="{% url 'slack-access:invite' %}">Already a Slack member? Invite someone you know</a></p>
+{% endblock %}

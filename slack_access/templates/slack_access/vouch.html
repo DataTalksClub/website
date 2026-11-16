@@ -1,0 +1,24 @@
+{% extends "public/text_page.html" %}
+{% block kicker %}Community{% endblock %}
+{% block title %}Vouch for someone you know{% endblock %}
+{% block content %}
+<p>Request for site account #{{ applicant_id }}, created {{ requested_at|date:"j F Y" }}. Confirm this account reference with the person who shared this request.</p>
+<p id="slack-responsibility-warning" role="note"><strong>{{ warning }}</strong></p>
+<p>Vouching records you as the accountable sponsor. The community team reviews the application on this site.</p>
+{% if confirmed %}
+  <p role="status">Your vouch is recorded. The application is awaiting approval.</p>
+{% elif not pending %}
+  <p>This request is no longer awaiting a vouch.</p>
+{% elif user.is_authenticated %}
+  <form method="post" class="cmp-form" novalidate>
+    {% csrf_token %}
+    {% include "accessibility/error_summary.html" with form=form %}
+    <p class="fineprint"><span class="a11y-required" aria-hidden="true">*</span> Required fields.</p>
+    <div class="cmp-form-fields">{% include "slack_access/_field.html" with field=form.acknowledge %}</div>
+    <div class="cmp-form-actions"><button type="submit" class="cta cta-primary interactive-lift">Confirm my vouch</button></div>
+  </form>
+{% else %}
+  <p>Sign in with your verified Slack member account to vouch.</p>
+  <p><a class="cta cta-primary interactive-lift" href="{% url 'login' %}?next={{ request.path|urlencode }}">Sign in</a></p>
+{% endif %}
+{% endblock %}

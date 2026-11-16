@@ -1,0 +1,10 @@
+{% extends "public/text_page.html" %}
+{% block kicker %}Community monitoring{% endblock %}
+{% block title %}Slack join report{% endblock %}
+{% block content %}
+<p>Read-only visibility. Monitoring takes no moderation action. Inviter evidence from Slack is separate from the website sponsor.</p>
+{% if monitor.last_success_at %}<p>Last successful poll: {{ monitor.last_success_at }}. Baseline: {{ monitor.baseline_at }}.</p>{% else %}<p role="alert">Monitoring has not completed a successful poll. Join coverage is unavailable.</p>{% endif %}
+<p>Outside-flow and unresolved joins need review. Ordinary Slack member data does not identify the inviter. A roster poll cannot prove an exact join time; those approvals remain unresolved.</p>
+{% for observation in observations %}<section><h2>{{ observation.slack_user_id }}</h2><p>Classification: {{ observation.classification }}. Slack inviter: {{ observation.inviter_slack_id|default:'Unknown' }}. Website sponsor: {{ observation.sponsor_id|default:'None recorded' }}.</p><p>Observed {{ observation.observed_at }}{% if observation.joined_at %}; joined {{ observation.joined_at }}{% endif %}.</p></section>{% empty %}<p>No joins after the baseline have been recorded.</p>{% endfor %}
+{% if next_after %}<p><a href="?after={{ next_after }}">More joins</a></p>{% endif %}
+{% endblock %}

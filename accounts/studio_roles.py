@@ -36,6 +36,8 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
                 AUDIT_BROWSE,
                 AUDIT_EXPORT,
                 MANAGE_API_CREDENTIALS,
+                "slack_access.review_applications",
+                "slack_access.ban_members",
                 "courses.read_course_launch",
                 "courses.manage_course_launch",
                 "courses.send_course_launch",

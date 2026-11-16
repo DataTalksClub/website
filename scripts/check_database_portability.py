@@ -32,6 +32,7 @@ AUTHORITATIVE_SPECIFICATIONS = (
     "09-migration-rollout-roadmap.md",
     "10-verification-strategy.md",
     "open-decisions.md",
+    "slack-invite-approval.md",
 )
 # The former AWS sandbox specification was deleted with its stack.  Nothing is
 # expected to exist for it any more; only the stale-link check below still
@@ -41,6 +42,7 @@ EXPECTED_SPECIFICATIONS = AUTHORITATIVE_SPECIFICATIONS + COMPATIBILITY_SPECIFICA
 ORDINARY_JOBS = ("quality", "django", "playwright", "container")
 FULL_DJANGO_COMMANDS = ("scripts/ci.py test", "scripts/ci.py test-django-full")
 APPLICATION_ROOTS = (
+    "slack_access",
     "accounts",
     "api",
     "studio_courses",
@@ -77,6 +79,11 @@ BACKEND_TEST_PATTERNS = (
 # lock serializes the same transaction, so the behavior stays portable and
 # only the token is backend-specific.
 BACKEND_PATTERN_EXCEPTIONS: dict[Path, frozenset[str]] = {
+    # Slack approval/ban/redemption share a transaction lock. PostgreSQL locks
+    # the graph row; SQLite serializes committed writers at database level.
+    Path("slack_access/services.py"): frozenset({"select_for_update"}),
+    Path("slack_access/monitoring.py"): frozenset({"select_for_update"}),
+    Path("slack_access/management_services.py"): frozenset({"select_for_update"}),
     Path("courses/votes.py"): frozenset({"select_for_update"}),
     Path("courses/project_scoring.py"): frozenset({"select_for_update"}),
     Path("courses/views/project_eval_submit_save.py"): frozenset({"select_for_update"}),

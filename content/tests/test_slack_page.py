@@ -125,8 +125,10 @@ class SlackPageTests(TestCase):
                 self.assertIn(f'<code class="mono-code">{channel}</code>', self.body)
         self.assertEqual(self.body.count('class="chip chip-plain channel"'), len(channels))
 
-    def test_the_page_keeps_its_one_action_as_a_call_to_action(self) -> None:
-        self.assertIn('<h2 id="slack-help-heading">Need help with Slack?</h2>', self.body)
+    def test_the_page_offers_approval_flow_and_existing_help(self) -> None:
+        self.assertIn('<h2 id="slack-help-heading">Join the community</h2>', self.body)
+        self.assertIn('href="/community/slack/"', self.body)
+        self.assertIn("Request Slack access", self.body)
         self.assertIn(
             "Contact the community team and they will reply with the appropriate next step.",
             self.body,

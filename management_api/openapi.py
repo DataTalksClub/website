@@ -12,6 +12,7 @@ from core.configuration import registered_operational_settings
 from core.operational_settings import OPERATIONAL_SETTING_KEYS
 from courses.launch_schemas import launch_command_schema, launch_parameters
 from management_registry import CAPABILITY_REGISTRY
+from slack_access.schemas import slack_parameters, slack_schemas
 
 SCHEMA_PATH = Path(settings.BASE_DIR) / "_docs/api/admin-openapi.json"
 ADMIN_API_PREFIX = "/api/v1/admin"
@@ -440,6 +441,7 @@ def generate_document() -> dict[str, Any]:
                 }
             )
         parameters = launch_parameters(capability.key, parameters)
+        parameters = slack_parameters(capability.key, parameters)
         if parameters:
             operation["parameters"] = parameters
         if adapter.request_schema:
@@ -469,6 +471,7 @@ def generate_document() -> dict[str, Any]:
                 }
             },
             "schemas": {
+                **slack_schemas(),
                 "AdminHealth": {
                     "type": "object",
                     "additionalProperties": False,

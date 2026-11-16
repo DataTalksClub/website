@@ -1,0 +1,18 @@
+{% extends "public/text_page.html" %}
+{% block kicker %}Community{% endblock %}
+{% block title %}Invite someone you know{% endblock %}
+{% block content %}
+<p id="slack-responsibility-warning"><strong>{{ warning }}</strong></p>
+{% if invite_url %}
+  <p>Share this member invitation privately. It expires after seven days. Your invitee still needs website approval.</p>
+  <p><a href="{{ invite_url }}">{{ invite_url }}</a></p>
+{% else %}
+  <form method="post" class="cmp-form" novalidate>
+    {% csrf_token %}
+    {% include "accessibility/error_summary.html" with form=form %}
+    <p class="fineprint"><span class="a11y-required" aria-hidden="true">*</span> Required fields.</p>
+    <div class="cmp-form-fields">{% include "slack_access/_field.html" with field=form.acknowledge %}</div>
+    <div class="cmp-form-actions"><button type="submit" class="cta cta-primary interactive-lift">Create member invitation</button></div>
+  </form>
+{% endif %}
+{% endblock %}
