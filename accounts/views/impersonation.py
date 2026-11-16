@@ -1,6 +1,5 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from loginas.utils import restore_original_login
 
@@ -8,12 +7,6 @@ from course_management.observability import record_event
 
 
 @login_required
-# The stop action only de-elevates back to the original staff user, so a CSRF
-# rejection would lock the operator inside the impersonated account instead of
-# protecting anything.  Accepting the pre-switch (stale) token after loginas
-# rotates the session secret is pinned by
-# studio_courses.tests.test_impersonation_stop_views.
-@csrf_exempt
 @require_POST
 def stop_impersonating(request):
     record_event(
