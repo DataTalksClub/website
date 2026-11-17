@@ -158,6 +158,34 @@
             : "Current choice: not chosen.";
     }
 
+    // The undecided banner is fixed to the viewport foot, so the page keeps
+    // room for it underneath: the last footer control can always scroll clear
+    // of the banner instead of sitting behind it.
+    var bannerObserver = null;
+
+    // The same height is the document's bottom scroll padding, so a control
+    // that keyboard focus scrolls into view stops above the banner instead of
+    // behind it.
+    function reserveBannerSpace() {
+      var root = document.documentElement;
+      var isBanner = dialog.open && !dialog.matches(":modal");
+      root.classList.toggle("has-consent-banner", isBanner);
+      if (isBanner) {
+        var height = Math.ceil(dialog.getBoundingClientRect().height);
+        root.style.setProperty("--consent-banner-space", height + 24 + "px");
+      } else {
+        root.style.removeProperty("--consent-banner-space");
+      }
+    }
+
+    function watchBanner() {
+      reserveBannerSpace();
+      if (!bannerObserver && typeof ResizeObserver === "function") {
+        bannerObserver = new ResizeObserver(reserveBannerSpace);
+        bannerObserver.observe(dialog);
+      }
+    }
+
     function closePreferences() {
       if (dialog.open) {
         dialog.close();
@@ -209,10 +237,19 @@
     }
 
     dialog.addEventListener("close", function () {
+      reserveBannerSpace();
       if (restoreFocus && lastOpener instanceof HTMLElement) {
         lastOpener.focus();
       }
       restoreFocus = false;
+    });
+
+    // Escape dismisses the undecided banner without choosing, the same as
+    // "Close without changing", so it never has to stay over the page.
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && dialog.open && !dialog.matches(":modal")) {
+        closePreferences();
+      }
     });
 
     dialog.addEventListener("keydown", function (event) {
@@ -250,6 +287,7 @@
     measurePage();
     if (!readChoice()) {
       dialog.setAttribute("open", "");
+      watchBanner();
     }
   }
 

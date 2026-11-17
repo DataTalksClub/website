@@ -154,6 +154,7 @@ class SharedCurriculumParserV2:
                     "catalog",
                     "description",
                     "starting_point",
+                    "project_summary",
                     "prerequisites",
                     "progression",
                     "homework_summaries",
@@ -230,6 +231,16 @@ class SharedCurriculumParserV2:
                     maximum=self.limits.max_site_description_chars,
                 )
                 if "starting_point" in mapping
+                else None
+            ),
+            project_summary=(
+                _string(
+                    mapping["project_summary"],
+                    path=path,
+                    pointer="/project_summary",
+                    maximum=self.limits.max_site_description_chars,
+                )
+                if "project_summary" in mapping
                 else None
             ),
             prerequisites=(

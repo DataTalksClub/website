@@ -25,6 +25,7 @@
       .course-certificate {
         display: grid;
         gap: 1.5rem;
+        margin-top: 2.75rem;
       }
 
       .course-certificate p {
@@ -324,6 +325,25 @@
 
       .course-register-panel {
         justify-items: start;
+      }
+
+      .course-faq-line {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .course-faq-line .band-link {
+        align-items: center;
+        display: inline-flex;
+        font-weight: 600;
+        margin-left: 0.35rem;
+        min-height: 2.75rem;
+      }
+
+      .course-fineprint {
+        border-top: 2px dashed var(--line-soft);
+        margin-top: 1.5rem;
+        padding-top: 1rem;
       }
 
       /* Body text, not the muted grey: these notes sit on the lavender and mint
@@ -791,38 +811,43 @@
                 campaign offers nothing rather than a link off this site.
               {% endcomment %}
               {% if registration_wall_blocked %}
-                {% include "courses/_registration_approval.html" %}
+                <div class="panel panel-mint panel-outlined course-register-panel">
+                  {% include "courses/_registration_approval.html" %}
+                </div>
               {% elif registration_campaign and not has_enrollment and not has_registration %}
-                <div class="panel panel-lavender panel-outlined course-register-panel">
+                <div class="panel panel-mint panel-outlined course-register-panel">
                   <h3>Register for {{ course.title }}</h3>
                   <p>Free, no card. Registration takes a minute and opens the cohort Slack channel.</p>
                   {% url 'registration_campaign' registration_campaign.slug as registration_campaign_url %}
                   {% include "core/_button.html" with href=registration_campaign_url label="Register for the cohort" variant="primary" compact=True %}
                 </div>
               {% elif next_edition_campaign and not has_enrollment %}
-                <div class="panel panel-lavender panel-outlined course-register-panel">
+                <div class="panel panel-mint panel-outlined course-register-panel">
                   <h3>Register for the next {{ course_family.title }} edition</h3>
                   <p>This edition is closed. Register and we will let you know when the next cohort is announced.</p>
                   {% url 'registration_campaign' next_edition_campaign.slug as next_edition_campaign_url %}
                   {% include "core/_button.html" with href=next_edition_campaign_url label="Register for the next edition" variant="primary" compact=True %}
                 </div>
               {% elif has_registration and not has_enrollment %}
-                <div class="panel panel-lavender panel-outlined course-register-panel">
+                <div class="panel panel-mint panel-outlined course-register-panel">
                   <h3>You are registered</h3>
                   <p>Watch your inbox for the schedule, and start on the modules whenever you like.</p>
                 </div>
               {% endif %}
+              {% comment %}
+                The FAQ pointer is a line, not a second boxed panel stacked under
+                the registration one: one panel closes the page.
+              {% endcomment %}
               {% if course_family.faq_document_url %}
-                <div class="panel panel-lavender panel-outlined">
-                  <h3>Questions before you start?</h3>
-                  <p class="course-note">This course keeps its own frequently asked questions.</p>
+                <p class="course-faq-line">
+                  Questions before you start?
                   <a
                     class="band-link"
                     href="{{ course_family.faq_document_url }}"
                     target="_blank"
                     rel="noopener noreferrer"
                   >Course FAQ →</a>
-                </div>
+                </p>
               {% endif %}
             </div>
             {% comment %}

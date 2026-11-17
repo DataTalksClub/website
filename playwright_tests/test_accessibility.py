@@ -210,6 +210,13 @@ def _restore_audit_event_id_default() -> None:
 
 def _cookie(page: Page, live_server, user: object | None) -> None:
     page.context.clear_cookies()
+    # The undecided analytics prompt is a consent banner fixed over the foot of
+    # the viewport; these scans audit the pages themselves, as a visitor who
+    # has already made the choice sees them.  The banner's own keyboard, axe
+    # and target-size contract is held by test_legal_footer_125 and test_consent_banner_focus.
+    page.context.add_cookies(
+        [{"name": "dtc_analytics_consent", "value": "v1.deny", "url": live_server.url}]
+    )
     if user is None:
         return
     client = Client()

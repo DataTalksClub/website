@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
@@ -6,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from content.docs_reader import docs_page
-from content.faq_data import faq_course_for_family_slug, faq_questions, render_faq_answer
+from content.faq_data import faq_course_for_family_slug, render_faq_answer
 from courses.course_page_content import (
     course_modules,
     course_specs,
@@ -32,6 +33,7 @@ from courses.models.cohort import (
 from courses.models.project import ProjectState
 from courses.models.shared_curriculum import CohortSharedModule, SharedLesson, SharedModule
 from courses.models.testimonial import TestimonialPlacement
+from courses.registration_wall import registration_wall_context
 from courses.services.curriculum_flow import build_curriculum_flow
 from courses.services.registration_campaigns import (
     FamilyRegistration,
@@ -49,7 +51,6 @@ from courses.views.course_projects import get_projects_for_course
 from courses.views.project_gallery_groups import family_project_submissions
 from courses.views.site_project_gallery import _repository_identity
 from courses.views.url_utils import get_cohort_or_404
-from courses.registration_wall import registration_wall_context
 
 
 @dataclass(frozen=True)
@@ -116,6 +117,7 @@ def _course_enrollment_progress(user, course: Cohort) -> dict:
         "total_score": enrollment.total_score,
         "certificate_url": enrollment.certificate_url,
     }
+
 
 def _has_course_registration(
     user,
@@ -231,9 +233,7 @@ def course_page_context(data: CoursePageData) -> dict:
     course_editions = visible_course_editions(data.course)
     context["course_editions"] = course_editions
     context["other_course_editions"] = [
-        edition
-        for edition in course_editions
-        if edition.pk != data.course.pk
+        edition for edition in course_editions if edition.pk != data.course.pk
     ]
     user_context = course_user_context(
         data.user,
@@ -262,16 +262,12 @@ def course_page_data(
     add_course_homepage_info(course, now)
     homeworks = get_homeworks_for_course(course, user)
     projects = get_projects_for_course(course, user)
-    registration_campaign = active_registration_campaign_for_course(
-        course
-    )
+    registration_campaign = active_registration_campaign_for_course(course)
     # Only a closed edition offers the next one, so this is never a second Register
     # button beside the first: the template reaches it only when no campaign promotes
     # this edition.
     next_edition_campaign = (
-        None
-        if registration_campaign is not None
-        else next_edition_campaign_for_cohort(course)
+        None if registration_campaign is not None else next_edition_campaign_for_cohort(course)
     )
     return CoursePageData(
         course=course,
@@ -374,18 +370,51 @@ def family_faq_preview(family: Course, *, limit: int = FAMILY_FAQ_PREVIEW_LIMIT)
     course = faq_course_for_family_slug(family.slug)
     if course is None:
         return (), family.faq_document_url
-    questions = faq_questions(course)[:limit]
+    questions = [
+        (question, section) for section in course["sections"] for question in section["questions"]
+    ][:limit]
     if not questions:
         return (), family.faq_document_url
     rows = tuple(
         {
             "id": question["id"],
-            "question": question["question"],
+            "question": faq_question_without_section_label(
+                question["question"], section_title(section)
+            ),
             "rendered_answer": render_faq_answer(question),
         }
-        for question in questions
+        for question, section in questions
     )
     return rows, course["public_path"]
+
+
+def section_title(section: dict) -> str:
+    return str(section.get("title") or section.get("name") or "")
+
+
+# FAQ sources file a question under a category by prefixing it: "Course: When
+# does the course start?", "Course - Can I still join?".  Inside the FAQ
+# document the prefix sorts the questions; previewed on a course's own landing
+# page under one heading it only repeats the section the question came from.
+_FAQ_CATEGORY_PREFIX = re.compile(r"^\s*([A-Z][\w&/ ]{0,30}?)\s*(?::|\s-\s)\s*(?=\S)")
+
+
+def faq_question_without_section_label(question: str, section: str) -> str:
+    """Drop a question's category prefix when its section already names it.
+
+    The prefix is removed only when its words appear in the question's own
+    section title ("Course" inside "General Course-Related Questions"); a
+    prefix that adds information ("Leaderboard: ...") is kept.
+    """
+
+    match = _FAQ_CATEGORY_PREFIX.match(question)
+    if not match:
+        return question
+    label = match.group(1).strip().casefold()
+    if not label or label not in section.casefold():
+        return question
+    remainder = question[match.end() :]
+    return remainder[:1].upper() + remainder[1:]
 
 
 @dataclass(frozen=True)
@@ -456,13 +485,9 @@ def family_quick_faq_items(
 
     if not family_has_a_real_cohort:
         return ()
-    covered = " ".join(
-        question["question"].casefold() for question in family_faq_questions
-    )
+    covered = " ".join(question["question"].casefold() for question in family_faq_questions)
     return tuple(
-        item
-        for item in QUICK_FAQ_ITEMS
-        if not any(keyword in covered for keyword in item.keywords)
+        item for item in QUICK_FAQ_ITEMS if not any(keyword in covered for keyword in item.keywords)
     )
 
 
@@ -511,8 +536,7 @@ def course_family_page_context(family: Course, user) -> dict:
     if shared_modules:
         syllabus_units: list = shared_modules
         syllabus_urls = [
-            reverse("shared_module", args=[family.slug, module.slug])
-            for module in shared_modules
+            reverse("shared_module", args=[family.slug, module.slug]) for module in shared_modules
         ]
         lesson_count = SharedLesson.objects.filter(
             module__in=shared_modules,
@@ -543,9 +567,7 @@ def course_family_page_context(family: Course, user) -> dict:
             for module in shared_modules
         ]
     else:
-        syllabus_units = (
-            get_homeworks_for_course(front_cohort, user) if front_cohort else []
-        )
+        syllabus_units = get_homeworks_for_course(front_cohort, user) if front_cohort else []
         syllabus_fact = f"{len(syllabus_units)} homeworks" if syllabus_units else ""
         syllabus_urls = [
             reverse(
@@ -632,9 +654,7 @@ def course_family_page_context(family: Course, user) -> dict:
         if submission_count
         else ""
     )
-    enrolled_count = Enrollment.objects.filter(
-        course__course=family, course__visible=True
-    ).count()
+    enrolled_count = Enrollment.objects.filter(course__course=family, course__visible=True).count()
     certificate_count = (
         Enrollment.objects.filter(
             course__course=family,
@@ -653,9 +673,7 @@ def course_family_page_context(family: Course, user) -> dict:
         registration_count=(family_registered.count if family_registered else None),
         cohort_count=len(cohorts),
     )
-    project_brief = next(
-        (card for card in project_cards if card.project.instructions_url), None
-    )
+    project_brief = next((card for card in project_cards if card.project.instructions_url), None)
     transformation = family.progression if len(family.progression) == 3 else []
     certificate_cohort = (
         front_cohort
@@ -721,6 +739,7 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_gallery_submissions": gallery_submissions,
         "family_submissions_fact": submissions_fact,
         "family_project_brief": project_brief,
+        "family_project_summary": family.project_summary.strip(),
         "certificate_cohort": certificate_cohort,
         "syllabus_fact": syllabus_fact,
         "family_stories": family_story_rows(
@@ -737,6 +756,4 @@ def course_family_page_context(family: Course, user) -> dict:
 def visible_course_editions_for_family(family: Course) -> list[Cohort]:
     """Return only public editions for the family landing page."""
 
-    return list(
-        family.cohorts.filter(visible=True).order_by("-year", "-id")
-    )
+    return list(family.cohorts.filter(visible=True).order_by("-year", "-id"))

@@ -53,6 +53,7 @@ FIXTURE_ROOT = (
 )
 FIRST_COMMIT = "a" * 40
 SECOND_COMMIT = "b" * 40
+THIRD_COMMIT = "c" * 40
 SOURCE_UUID = UUID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
 
 
@@ -169,6 +170,27 @@ class CurriculumImportServiceTests(TestCase):
 
         course.refresh_from_db()
         self.assertEqual(course.description, curated)
+
+    def test_project_summary_is_set_when_published_and_kept_when_omitted(self):
+        _, course, _, _ = self.import_fixture_with_project()
+        course.project_summary = "Curated summary kept by the database."
+        course.save(update_fields=["project_summary"])
+
+        # The fixture's course.yaml carries no project_summary: the stored copy stands.
+        import_course_repository_curriculum(
+            import_command(fixture_source(commit_sha=SECOND_COMMIT), commit_sha=SECOND_COMMIT)
+        )
+        course.refresh_from_db()
+        self.assertEqual(course.project_summary, "Curated summary kept by the database.")
+
+        published = fixture_source(commit_sha=THIRD_COMMIT)
+        published = replace(
+            published,
+            course=replace(published.course, project_summary="Learners ship a RAG app."),
+        )
+        import_course_repository_curriculum(import_command(published, commit_sha=THIRD_COMMIT))
+        course.refresh_from_db()
+        self.assertEqual(course.project_summary, "Learners ship a RAG app.")
 
     def test_reimport_preserves_the_database_managed_starting_point(self):
         _, course, _, _ = self.import_fixture_with_project()

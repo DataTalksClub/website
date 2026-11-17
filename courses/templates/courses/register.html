@@ -42,10 +42,21 @@
         margin-top: -0.85rem;
       }
 
-      .content-page-content > .content-shell > .registration-section + .registration-section {
+      /* One rhythm for every section: the dashed seam and a band-head, the
+         same chapter frame the course family landing uses. */
+      .registration-section + .registration-section {
         border-top: 2px dashed var(--line-soft);
         margin-top: 2.75rem;
-        padding-top: 2.75rem;
+        padding-top: 2.5rem;
+      }
+
+      .registration-section .band-head {
+        margin-bottom: 1.1rem;
+      }
+
+      .registration-section h2 {
+        letter-spacing: -0.02em;
+        scroll-margin-top: 1.5rem;
       }
 
       /* The campaign's own artwork, bounded by the column and keeping its
@@ -70,17 +81,32 @@
       .registration-hero h1 {
         font-size: clamp(2.1rem, 4.9vw, 3.4rem);
         letter-spacing: -0.03em;
-        margin-top: 0.6rem;
+        margin-top: 0.35rem;
         max-width: 22ch;
+        text-wrap: balance;
+      }
+
+      /* The edition, the application rule and the live count as status
+         pills: facts, set as the site sets facts, not as a mono caption. */
+      .registration-hero-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
       }
 
       .registration-count {
-        margin-top: 0.85rem;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        margin-top: 0.75rem;
       }
 
       .registration-state {
+        display: grid;
+        gap: 0.35rem;
         justify-items: start;
-        margin-top: 1.5rem;
+        margin-top: 1.25rem;
       }
 
       /* The state line is a statement, not a section, so it keeps the weight
@@ -93,12 +119,136 @@
 
       .registration-note {
         color: var(--body-text);
-        font-size: 0.92rem;
+        font-size: 0.95rem;
         /* The note prints an email address, and an address is one long
            unbreakable token: at WCAG 1.4.12's letter and word spacing the
            synthetic addresses pushed the card, the band and the page 25 CSS px
            sideways at 320px, so the token wraps inside the measure instead. */
         overflow-wrap: anywhere;
+      }
+
+      .registration-hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.85rem;
+      }
+
+      /* --- the campaign copy, shaped into sections ----------------------- */
+
+      .registration-intro-copy {
+        font-size: 1.05rem;
+        line-height: 1.7;
+        max-width: var(--measure);
+      }
+
+      /* The copy's pull question: the system's quote card, not a rule. */
+      .registration-intro-copy blockquote {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        color: var(--ink);
+        font-size: 1.1rem;
+        font-style: italic;
+        font-weight: 600;
+        line-height: 1.55;
+        margin: 1.25rem 0;
+        padding: 1.1rem 1.35rem;
+      }
+
+      .registration-intro-copy blockquote p {
+        margin: 0;
+      }
+
+      .registration-schedule-row {
+        --row-cols: minmax(0, 15rem) minmax(0, 1fr);
+        align-items: baseline;
+      }
+
+      .registration-schedule dt {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .registration-schedule dd {
+        color: var(--body-text);
+        font-size: 0.88rem;
+        margin: 0;
+      }
+
+      .registration-features {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .registration-feature-row {
+        --row-cols: 3.5rem minmax(0, 1fr);
+        align-items: start;
+        grid-template-columns: 3rem minmax(0, 1fr);
+      }
+
+      .registration-feature-index {
+        border-right: 2px solid var(--line-soft);
+        color: var(--green-ship);
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding-top: 0.15rem;
+      }
+
+      .registration-feature-row h3 {
+        font-size: 1.05rem;
+      }
+
+      .registration-feature-row p {
+        color: var(--body-text);
+        font-size: 0.95rem;
+        margin-top: 0.25rem;
+      }
+
+      /* Artwork inside the copy (a roadmap, a project diagram) carries its own
+         drawn frame, so it is not boxed a second time: it simply takes the
+         column, rounded like the system's cards. */
+      .registration-prose img {
+        border: 0;
+        border-radius: 0.9rem;
+        display: block;
+        height: auto;
+        max-width: 100%;
+      }
+
+      .registration-prose {
+        max-width: none;
+      }
+
+      .registration-prose > :not(:has(img)) {
+        max-width: var(--measure);
+      }
+
+      .registration-application {
+        margin-bottom: 1.5rem;
+      }
+
+      /* The gate keeps the featured slab's own inset and rhythm over the
+         form card's `registration-panel` hook it also carries. */
+      .featured.registration-gate {
+        gap: 2rem;
+        padding: 1.9rem 2.1rem;
+      }
+
+      .featured.registration-gate h2 {
+        font-size: clamp(1.5rem, 3vw, 2.1rem);
+        line-height: 1.1;
+      }
+
+      .registration-gate .chip {
+        justify-self: start;
+      }
+
+      .registration-gate .registration-fineprint {
+        margin: 0;
       }
 
       .registration-video {
@@ -512,8 +662,15 @@
           width: 100%;
         }
 
-        .registration-gate-actions .cta {
+        .registration-gate-actions .cta,
+        .registration-hero-actions .cta {
+          justify-content: center;
           width: 100%;
+        }
+
+        .featured.registration-gate {
+          border-radius: 1.1rem;
+          padding: 1.35rem;
         }
       }
 {% endblock %}
@@ -527,18 +684,19 @@
 
 {% block page_header %}
         {% comment %}
-          One level per crumb.  "Machine Learning Zoomcamp registration" used to be
-          a single crumb, so the course this form registers for was written into the
-          trail as text instead of being the link back to it that every other course
-          page's trail carries.  The course is now its own level, and "registration"
-          — the one thing the heading below does not say, because that heading is the
-          campaign's own title — is the page.  A campaign with no promoted edition
-          names no course and the trail is simply "Courses / registration".
+          One level per crumb: the course this form registers for is the link back
+          to it, and "registration" -- the one thing the heading does not say -- is
+          the page.  A campaign with no promoted edition names no course.
         {% endcomment %}
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course.course.slug as course_family_url %}
         {% breadcrumbs "Courses" course_list_url course.course.title course_family_url current="registration" %}
-        <div>
+        <div class="registration-hero-body">
+          {% comment %}
+            A campaign's hero artwork is its title card: it already sets the
+            course name in display type, so with a banner the h1 stays for
+            assistive technology and the outline but is not drawn a second time.
+          {% endcomment %}
           {% if campaign.hero_image_url %}
             <div class="registration-hero-frame">
               <img
@@ -549,70 +707,127 @@
               >
             </div>
           {% endif %}
-          {% if campaign.edition_label %}
-            <p class="mono-label mono-label-indigo">{{ campaign.edition_label }}</p>
+          {% if campaign.hero_image_url %}
+            <h1 id="registration-heading" class="sr-only">{{ campaign.title }}</h1>
           {% else %}
-            <p class="mono-label mono-label-indigo">Next edition</p>
+            <h1 id="registration-heading">{{ campaign.title }}</h1>
           {% endif %}
-          <h1 id="registration-heading">{{ campaign.title }}</h1>
+          <div class="registration-hero-pills">
+            <span class="status-pill status-pill-open">
+              {% if campaign.edition_label %}
+                {{ campaign.edition_label }}
+              {% else %}
+                Next edition
+              {% endif %}
+            </span>
+            {% if campaign.requires_approval %}
+              <span class="status-pill status-pill-wait">application · limited seats</span>
+            {% endif %}
+          </div>
           {% if signup_count %}
-            <p class="mono-note registration-count">
+            <p class="registration-count">
               {{ signup_count }} already registered
               {% if campaign.edition_label %}
                 for {{ campaign.edition_label }}
               {% endif %}
             </p>
           {% endif %}
-          {% if course_is_open and start_course_url %}
-            <div class="panel panel-mint panel-outlined registration-state">
+          <div class="registration-state">
+            {% if course_is_open and start_course_url %}
               <p class="registration-state-title">The course is already open.</p>
               <p class="registration-note">
                 You can start now, and register if you want to receive course updates.
               </p>
-              {% include "core/_button.html" with href=start_course_url label="Start course" variant="primary" %}
-            </div>
-          {% elif course and start_course_url %}
-            <div class="panel panel-lavender panel-outlined registration-state">
+            {% elif course and start_course_url %}
               <p class="registration-state-title">Registration is open.</p>
               <p class="registration-note">
                 We will send course updates by email when the edition starts.
               </p>
-            </div>
-          {% else %}
-            <div class="panel panel-lavender panel-outlined registration-state">
+            {% else %}
               <p class="registration-state-title">Register for the next edition.</p>
               <p class="registration-note">
                 We will let you know when the next cohort is announced.
               </p>
+            {% endif %}
+            <div class="registration-hero-actions">
+              {% if registration %}
+                {% include "core/_button.html" with href="#registration-form-heading" label="Your registration" variant="primary" %}
+              {% else %}
+                {% include "core/_button.html" with href="#registration-form-heading" label="Register" variant="primary" %}
+              {% endif %}
+              {% if course_is_open and start_course_url %}
+                {% include "core/_button.html" with href=start_course_url label="Start course" variant="secondary" %}
+              {% endif %}
             </div>
-          {% endif %}
+          </div>
         </div>
 {% endblock %}
 
 {% block page_content %}
-      {% if marketing_html or video_embed_url %}
-        <section class="registration-section" aria-labelledby="registration-about-heading">
-          <div>
-            <h2 id="registration-about-heading" class="sr-only">About {{ campaign.title }}</h2>
-            {% if marketing_html %}
-              <div class="prose">{{ marketing_html }}</div>
-            {% endif %}
-            {% if video_embed_url %}
-              <div class="registration-video">
-                <iframe
-                  src="{{ video_embed_url }}"
-                  title="{{ campaign.title }} video"
-                  allowfullscreen
-                ></iframe>
-              </div>
-            {% endif %}
-          </div>
+      {% comment %}
+        The campaign's marketing copy, shaped into the page's own sections by
+        courses.views.registration_marketing: the intro first, then one section
+        per heading of the source, a dated list as a schedule, a bold-led list
+        as titled rows, and the rest as prose.  The words are all the
+        campaign's.
+      {% endcomment %}
+      {% if marketing.intro_html or video_embed_url %}
+        <section class="registration-section registration-intro" aria-labelledby="registration-about-heading">
+          <h2 id="registration-about-heading" class="sr-only">About {{ campaign.title }}</h2>
+          {% if marketing.intro_html %}
+            <div class="prose registration-intro-copy">{{ marketing.intro_html }}</div>
+          {% endif %}
+          {% if video_embed_url %}
+            <div class="registration-video">
+              <iframe
+                src="{{ video_embed_url }}"
+                title="{{ campaign.title }} video"
+                allowfullscreen
+              ></iframe>
+            </div>
+          {% endif %}
         </section>
       {% endif %}
 
-      {% if campaign.requires_approval %}
-        <section class="registration-section" aria-labelledby="registration-application-heading">
-          <div class="panel panel-lavender panel-outlined registration-state">
+      {% for section in marketing.sections %}
+        <section class="registration-section registration-section-{{ section.kind }}" aria-labelledby="{{ section.slug }}">
+          <div class="band-head">
+            <div>
+              <h2 id="{{ section.slug }}">{{ section.heading }}</h2>
+            </div>
+          </div>
+          {% if section.kind == "schedule" %}
+            <dl class="row-list registration-schedule">
+              {% for row in section.rows %}
+                <div class="list-row registration-schedule-row">
+                  <dt>{{ row.label }}</dt>
+                  <dd class="mono-note">{{ row.value }}</dd>
+                </div>
+              {% endfor %}
+            </dl>
+          {% elif section.kind == "features" %}
+            <ol class="row-list registration-features" role="list">
+              {% for row in section.rows %}
+                <li class="list-row registration-feature-row">
+                  <span class="registration-feature-index" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+                  <div>
+                    <h3>{{ row.label }}</h3>
+                    {% if row.value %}
+                      <p>{{ row.value }}</p>
+                    {% endif %}
+                  </div>
+                </li>
+              {% endfor %}
+            </ol>
+          {% else %}
+            <div class="prose registration-prose">{{ section.html }}</div>
+          {% endif %}
+        </section>
+      {% endfor %}
+
+      <section class="registration-section registration-form-section" aria-labelledby="registration-form-heading">
+        {% if campaign.requires_approval and not registration %}
+          <div class="callout callout-info registration-application" role="note">
             <p class="registration-state-title" id="registration-application-heading">
               Limited seats · medium–advanced level
             </p>
@@ -622,61 +837,61 @@
               applicants are approved after registration — acceptance is not
               automatic.
             </p>
-            {% if campaign.application_notice %}
+            {% comment %}
+              The notice is an operational message editors set in Studio, so it
+              is always shown -- unless the campaign copy above already carries
+              the identical text (application_notice_in_copy).
+            {% endcomment %}
+            {% if campaign.application_notice and not application_notice_in_copy %}
               <p class="registration-note">{{ campaign.application_notice|linebreaksbr }}</p>
             {% endif %}
           </div>
-        </section>
-      {% endif %}
-
-      <section class="registration-section" aria-labelledby="registration-form-heading">
-        <div>
-          {% if registration %}
-            {% include "courses/_registration_done.html" %}
-          {% elif registration_gate %}
-            {% include "courses/_registration_gate.html" %}
-          {% elif user.is_authenticated %}
-            {% include "courses/_registration_final_step.html" %}
-          {% else %}
-            <div class="card registration-panel">
-              <h2 id="registration-form-heading">Register</h2>
-              {% comment %}
-                Reached only while REGISTRATION_REQUIRES_ACCOUNT is off — the
-                revert lever §8.3 asks for.  With the gate on, an anonymous
-                visitor is offered an account instead of this form.
-              {% endcomment %}
-              <p>
-                <a href="{% url 'login' %}?next={{ request.path }}">
-                  Log in to use your account email
-                </a>
+        {% endif %}
+        {% if registration %}
+          {% include "courses/_registration_done.html" %}
+        {% elif registration_gate %}
+          {% include "courses/_registration_gate.html" %}
+        {% elif user.is_authenticated %}
+          {% include "courses/_registration_final_step.html" %}
+        {% else %}
+          <div class="card registration-panel">
+            <h2 id="registration-form-heading">Register</h2>
+            {% comment %}
+              Reached only while REGISTRATION_REQUIRES_ACCOUNT is off — the
+              revert lever §8.3 asks for.  With the gate on, an anonymous
+              visitor is offered an account instead of this form.
+            {% endcomment %}
+            <p>
+              <a href="{% url 'login' %}?next={{ request.path }}">
+                Log in to use your account email
+              </a>
+            </p>
+            <form method="post" class="registration-form" data-registration-form>
+              {% csrf_token %}
+              <p class="registration-fineprint">
+                Fields marked
+                <span class="a11y-required" aria-hidden="true">*</span>
+                are required.
               </p>
-              <form method="post" class="registration-form" data-registration-form>
-                {% csrf_token %}
-                <p class="registration-fineprint">
-                  Fields marked
-                  <span class="a11y-required" aria-hidden="true">*</span>
-                  are required.
-                </p>
-                {% accessibility_error_summary form %}
-                {% for field in form %}
-                  {% if field.field.widget.input_type == 'checkbox' %}
-                    {% include "courses/_registration_consent.html" %}
-                  {% else %}
-                    {% include "courses/_registration_field.html" %}
-                  {% endif %}
-                {% endfor %}
-                <div class="registration-actions">
-                  <button
-                    class="cta cta-primary registration-submit-button interactive-lift"
-                    type="submit"
-                    data-busy-label="Registering…"
-                    data-registration-submit
-                  >Register</button>
-                </div>
-              </form>
-            </div>
-          {% endif %}
-        </div>
+              {% accessibility_error_summary form %}
+              {% for field in form %}
+                {% if field.field.widget.input_type == 'checkbox' %}
+                  {% include "courses/_registration_consent.html" %}
+                {% else %}
+                  {% include "courses/_registration_field.html" %}
+                {% endif %}
+              {% endfor %}
+              <div class="registration-actions">
+                <button
+                  class="cta cta-primary registration-submit-button interactive-lift"
+                  type="submit"
+                  data-busy-label="Registering…"
+                  data-registration-submit
+                >Register</button>
+              </div>
+            </form>
+          </div>
+        {% endif %}
       </section>
 {% endblock %}
 

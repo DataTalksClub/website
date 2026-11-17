@@ -1954,55 +1954,65 @@ Rules for editing:
         color: var(--muted);
       }
 
+      /* The footer is one deliberate strip at the masthead's own shell width:
+         the brand on the left and the legal row on the right, with the build
+         line (source link and version) under a dashed rule.  Narrow screens
+         stack the three groups, left-aligned like the rest of the page. */
+      .site-footer {
+        border-top: 2px dashed var(--line-soft);
+      }
+
       .site-footer-inner {
+        align-items: center;
         display: grid;
-        gap: 0.25rem;
-        justify-items: center;
-        margin-inline: auto;
-        max-width: 56rem;
-        padding: 1.5rem 1.25rem;
-        width: 100%;
+        gap: 0.5rem 2rem;
+        grid-template-areas:
+          "identity"
+          "legal"
+          "runtime";
+        padding-block: 1.25rem 1rem;
       }
 
       .site-footer-identity {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0 0.75rem;
-        justify-content: center;
-        max-width: 100%;
+        grid-area: identity;
         min-width: 0;
       }
 
       .site-footer-brand {
-        align-items: center;
+        align-items: baseline;
         display: inline-flex;
         flex-wrap: wrap;
-        gap: 0 0.5rem;
-        justify-content: center;
+        gap: 0.15rem 0.6rem;
       }
 
-      .site-footer-brand .font-semibold {
+      .site-footer-name {
         color: var(--ink);
         font-weight: 800;
       }
 
+      .site-footer-tagline {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
       .site-footer-runtime {
         align-items: center;
-        display: inline-flex;
-        flex: 0 1 auto;
-        gap: 0.5rem;
-        justify-content: center;
-        max-width: 100%;
+        border-top: 2px dashed var(--line-soft);
+        display: flex;
+        gap: 0.35rem;
+        grid-area: runtime;
         min-width: 0;
+        padding-top: 0.5rem;
       }
 
       .site-footer-legal {
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        font-size: 0.85rem;
-        justify-content: center;
+        font-size: 0.88rem;
+        gap: 0 1rem;
+        grid-area: legal;
+        margin-inline: -0.35rem;
       }
 
       .site-footer-legal-control {
@@ -2013,12 +2023,11 @@ Rules for editing:
         color: var(--indigo);
         display: inline-flex;
         font: inherit;
-        justify-content: center;
         line-height: 1.3;
         margin: 0;
         min-height: 2.75rem;
-        padding: 0.65rem 0.5rem;
-        text-align: center;
+        padding: 0.5rem 0.35rem;
+        text-align: left;
         text-decoration: underline;
         text-underline-offset: 0.18em;
       }
@@ -2027,14 +2036,24 @@ Rules for editing:
         cursor: pointer;
       }
 
-      .site-footer-separator {
-        color: var(--muted);
-        line-height: 1;
+      @media (min-width: 48rem) {
+        .site-footer-inner {
+          grid-template-areas:
+            "identity legal"
+            "runtime runtime";
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .site-footer-legal {
+          justify-content: flex-end;
+          margin-inline: 0 -0.35rem;
+        }
       }
 
       .footer-version {
         color: var(--muted);
-        font-size: 0.78rem;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
         min-width: 0;
         overflow-wrap: anywhere;
       }
@@ -2073,16 +2092,22 @@ Rules for editing:
         --github-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z'/%3E%3C/svg%3E");
       }
 
+      /* The analytics choice is one dialog in two states.  Undecided, it is a
+         consent banner: a non-modal card fixed to the foot of the viewport,
+         never part of the page flow, so it cannot land between a page's last
+         section and the footer bands.  analytics_preferences.js reserves the
+         banner's height under the page (--consent-banner-space) so the last
+         footer control can still scroll clear of it.  Reopened from the
+         footer, it is the modal dialog, centred over a backdrop. */
       .analytics-preferences {
         background: var(--card);
         border: 2px solid var(--line);
-        border-radius: 0.75rem;
-        box-shadow: 0 1rem 2.5rem var(--shadow-soft);
+        border-radius: 0.9rem;
+        box-shadow: 0.45rem 0.45rem 0 var(--shadow-soft);
         color: var(--body-text);
-        inset: auto 1rem 1rem auto;
         margin: 0;
         max-height: calc(100vh - 2rem);
-        max-width: min(30rem, calc(100vw - 2rem));
+        max-width: min(32rem, calc(100vw - 2rem));
         overflow: auto;
         padding: 0;
         width: 100%;
@@ -2095,11 +2120,19 @@ Rules for editing:
       }
 
       .analytics-preferences[open]:not(:modal) {
-        inset: auto;
-        margin: 1rem auto 0;
-        max-height: none;
-        position: static;
-        width: calc(100% - 2rem);
+        bottom: 1rem;
+        left: auto;
+        position: fixed;
+        right: 1rem;
+        top: auto;
+      }
+
+      html.has-consent-banner {
+        scroll-padding-bottom: var(--consent-banner-space, 0px);
+      }
+
+      html.has-consent-banner body {
+        padding-bottom: var(--consent-banner-space, 0px);
       }
 
       .analytics-preferences::backdrop {
@@ -2108,46 +2141,58 @@ Rules for editing:
 
       .analytics-preferences-content {
         display: grid;
-        gap: 0.9rem;
+        gap: 0.85rem;
         padding: 1.25rem;
       }
 
       .analytics-preferences-content h2 {
-        font-size: 1.35rem;
+        font-size: 1.15rem;
       }
 
       .analytics-preferences-eyebrow {
         color: var(--muted);
-        font-size: 0.74rem;
-        letter-spacing: 0.08em;
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
       }
 
       .analytics-preferences-status {
-        font-weight: 600;
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      /* The banner only appears while nothing is chosen, so the eyebrow and
+         the "not chosen" line are noise there; the reopened dialog keeps
+         both, where the current choice is the point. */
+      .analytics-preferences[open]:not(:modal) :is(.analytics-preferences-eyebrow, .analytics-preferences-status) {
+        display: none;
       }
 
       .analytics-preferences-actions {
+        align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.65rem;
+        gap: 0.65rem 0.75rem;
       }
 
       .analytics-preferences-choice,
       .analytics-preferences-close {
         align-items: center;
-        border-radius: 0.5rem;
         display: inline-flex;
         font: inherit;
         justify-content: center;
         min-height: 2.75rem;
-        padding: 0.65rem 0.85rem;
       }
 
       .analytics-preferences-choice {
         border: 2px solid var(--line);
+        border-radius: 0.7rem;
+        box-shadow: 0.2rem 0.2rem 0 var(--shadow);
         cursor: pointer;
+        font-size: 0.92rem;
         font-weight: 700;
+        padding: 0.55rem 0.95rem;
       }
 
       .analytics-preferences-allow {
@@ -2165,13 +2210,71 @@ Rules for editing:
         border: 0;
         color: var(--indigo);
         cursor: pointer;
+        font-size: 0.92rem;
+        padding: 0.5rem 0.25rem;
         text-decoration: underline;
+        text-underline-offset: 0.18em;
+      }
+
+      .analytics-preferences-policy {
+        align-items: center;
+        color: var(--indigo);
+        display: none;
+        font-size: 0.92rem;
+        min-height: 2.75rem;
+        padding-inline: 0.25rem;
         text-underline-offset: 0.18em;
       }
 
       .analytics-preferences-detail {
         color: var(--muted);
-        font-size: 0.85rem;
+        font-size: 0.82rem;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 47.99rem) {
+        .analytics-preferences {
+          max-width: calc(100vw - 1rem);
+        }
+
+        .analytics-preferences[open]:not(:modal) {
+          bottom: 0.5rem;
+          right: 0.5rem;
+        }
+
+        .analytics-preferences-content {
+          font-size: 0.92rem;
+          gap: 0.6rem;
+          padding: 0.9rem 1rem;
+        }
+
+        .analytics-preferences-content h2 {
+          font-size: 1.05rem;
+        }
+
+        .analytics-preferences-choice {
+          flex: 1 1 auto;
+          font-size: 0.88rem;
+          padding-inline: 0.6rem;
+          white-space: nowrap;
+        }
+
+        /* A phone banner stays well under half the screen, so whatever the
+           reader focuses (scrolled to the middle) is never behind it: the
+           long explanation waits in the reopened dialog and the Privacy
+           Policy, and the banner keeps a direct link to the policy. */
+        .analytics-preferences[open]:not(:modal) .analytics-preferences-detail {
+          display: none;
+        }
+
+        .analytics-preferences[open]:not(:modal) .analytics-preferences-policy {
+          display: inline-flex;
+        }
+
+        .analytics-preferences-close,
+        .analytics-preferences-policy {
+          font-size: 0.85rem;
+        }
       }
 
       /* ------------------------------------------------------------------ *
@@ -3314,6 +3417,105 @@ Rules for editing:
         font-size: 0.85rem;
         font-weight: 700;
         margin-top: 0.35rem;
+      }
+
+      /* The featured slab: one white slab with a thick ink outline, the
+         story and CTA on the left, and a mint "what you'll build" panel on the
+         right with ink checkbox squares.  Narrow screens stack the mint panel
+         under the story; the two-column floor is wider than a 320px viewport.
+         Shared by the homepage catalogue and the course landings' join
+         panel; each page sets its own wide-screen columns. */
+      .featured {
+        background: var(--card);
+        border: 3px solid var(--ink);
+        border-radius: 1.5rem;
+        box-shadow: 0.45rem 0.45rem 0 var(--shadow-soft);
+        display: grid;
+        gap: 2rem;
+        grid-template-columns: minmax(0, 1fr);
+        padding: 1.9rem 2.1rem;
+      }
+
+      .featured-main {
+        align-content: start;
+        display: grid;
+        gap: 0.85rem;
+      }
+
+      .featured-main h3 {
+        font-size: clamp(1.6rem, 3.2vw, 2.35rem);
+        line-height: 1.08;
+      }
+
+      .featured-subline {
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .featured-main > p {
+        font-size: 0.95rem;
+      }
+
+      .featured-desc {
+        max-width: 44ch;
+      }
+
+      .featured-meta {
+        border-top: 1.5px solid var(--line-soft);
+        color: var(--muted);
+        font-size: 0.88rem;
+        padding-top: 0.85rem;
+      }
+
+      .featured-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+      }
+
+      .featured-build {
+        align-content: start;
+        background: var(--mint);
+        border-radius: 1.1rem;
+        display: grid;
+        gap: 0.75rem;
+        padding: 1.35rem 1.5rem;
+      }
+
+      .featured-build h4 {
+        font-size: 1.08rem;
+      }
+
+      .featured-build ul {
+        display: grid;
+        gap: 0.6rem;
+      }
+
+      .featured-build li {
+        align-items: flex-start;
+        display: flex;
+        font-size: 0.92rem;
+        gap: 0.6rem;
+        line-height: 1.45;
+      }
+
+      /* The application-wall notice (courses/_registration_approval.html): the
+         words and the apply action as one left-aligned group, wherever a
+         course page places it. */
+      .registration-approval {
+        display: grid;
+        /* Inside a wrapping action row (the cohort hero's) the notice takes a
+           row of its own, and the buttons after it keep their own size. */
+        flex: 1 1 100%;
+        gap: 0.6rem;
+        justify-items: start;
+      }
+
+      .registration-approval p {
+        color: var(--body-text);
+        max-width: var(--measure);
       }
 
       /* Tinted inset panels (what you'll build, next assignment, questions). */

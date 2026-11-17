@@ -90,6 +90,7 @@ def test_schema_one_course_manifest_accepts_optional_family_landing_content() ->
         (
             b"outcome: Build, evaluate, and monitor production-style LLM applications.\n"
             b"starting_point: You have a document question to answer.\n"
+            b"project_summary: Learners ship a grounded question-answering app.\n"
             b"prerequisites: You can write Python.\n"
             b"progression:\n"
             b"  - heading: I have a question\n"
@@ -107,6 +108,7 @@ def test_schema_one_course_manifest_accepts_optional_family_landing_content() ->
     source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
 
     assert source.course.starting_point == "You have a document question to answer."
+    assert source.course.project_summary == "Learners ship a grounded question-answering app."
     assert source.course.prerequisites == "You can write Python."
     assert [step.heading for step in source.course.progression or ()] == [
         "I have a question",

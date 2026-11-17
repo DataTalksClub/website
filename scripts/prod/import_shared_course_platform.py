@@ -454,6 +454,7 @@ def _mapping() -> dict[
             "weekly_commitment": _STAYS,
             "progression": _STAYS,
             "outcome": _STAYS,
+            "project_summary": _STAYS,
         },
         frozenset(
             {

@@ -85,11 +85,11 @@ def test_course_value_precedes_route_choice_and_anchors_work(
             expect(page.locator("body.dark-mode")).to_have_count(1)
         page.evaluate("scrollTo(0,0)")
         expect(page.locator(".family-lede")).to_have_text(family.outcome)
-        # The prerequisites answer "is this a good fit" as their own
-        # opening-group section, ahead of the journey -- not a stage-card
-        # fact any more.
-        expect(page.locator("#fit-heading")).to_contain_text("Good fit if")
-        expect(page.locator(".family-opening-group")).to_contain_text(family.prerequisites)
+        # The prerequisites answer "who it's for" in their own chapter,
+        # after what the course teaches -- not a stage-card fact.
+        expect(page.locator("#audience-heading")).to_have_text("Who it's for")
+        expect(page.locator(".family-audience")).to_contain_text("Good fit if")
+        expect(page.locator(".family-audience")).to_contain_text(family.prerequisites)
         expect(page.locator(".family-prerequisites")).to_have_count(0)
         # The journey card is the shared stage-card component
         # (core/_stage_card.html), on its rail variant.
@@ -119,21 +119,27 @@ def test_course_value_precedes_route_choice_and_anchors_work(
         # Each disc sits on the dashed rail behind the row, not inside a
         # paragraph, so the three stages read as a sequence.
         expect(page.locator(".stage-card-rail .step-number")).to_have_count(3)
+        # Four modules and the project, one row component; a summary that is
+        # only a link is not drawn as a summary.
         expect(page.locator(".family-syllabus-row h3")).to_have_count(5)
         expect(page.locator(".family-syllabus-row h3 a")).to_have_count(5)
-        expect(page.locator(".family-syllabus-row p")).to_have_count(4)
+        expect(page.locator(".family-syllabus-row p")).to_have_count(3)
+        expect(page.locator(".family-syllabus-project .family-syllabus-marker")).to_have_text(
+            "Project"
+        )
+        expect(page.locator(".family-syllabus-project .family-attempt-dates")).to_contain_text(
+            "submit by"
+        )
+        about = page.locator(".family-about").bounding_box()
+        routes = page.locator(".family-register").bounding_box()
         value = page.locator(".family-transformation").bounding_box()
-        routes = page.locator(".family-register-cohort").bounding_box()
-        opening = page.locator(".family-opening-group").bounding_box()
-        assert value is not None and routes is not None
-        assert opening is not None
-        section_gap = value["y"] - (opening["y"] + opening["height"])
-        assert 40 <= section_gap <= 72
-        assert value["y"] + value["height"] <= routes["y"]
-        # The stages carry their own evidence now, so stacked they run longer
-        # than three screens; what has to hold is that the visitor *meets* the
-        # argument early, which is the section's top, not its bottom.
-        assert value["y"] < height if width == 1440 else value["y"] < height * 2
+        assert about is not None and routes is not None and value is not None
+        # One chapter rhythm: the same seam and spacing between sections.
+        section_gap = routes["y"] - (about["y"] + about["height"])
+        assert 30 <= section_gap <= 110
+        assert routes["y"] + routes["height"] <= value["y"]
+        # When and how to join is met early, before the long journey.
+        assert routes["y"] < height * 1.5 if width == 1440 else routes["y"] < height * 3
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), page.evaluate(
             """() => [...document.querySelectorAll('main *')].filter(el => {
                 const r = el.getBoundingClientRect(); return r.right > innerWidth;

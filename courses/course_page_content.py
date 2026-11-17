@@ -225,14 +225,26 @@ def family_registration_specs(
 
 
 @dataclass(frozen=True, slots=True)
+class FamilyProjectAttempt:
+    """One dated attempt of a grouped syllabus project, read from its Project row."""
+
+    title: str
+    url: str = ""
+    submission_due: Any = None
+    peer_review_due: Any = None
+
+
+@dataclass(frozen=True, slots=True)
 class FamilySyllabusRow:
     """One row of the family landing's syllabus band, module or project alike.
 
     ``is_project`` marks a real peer-reviewed project (midterm or capstone)
-    interleaved into the same numbered list at its real chronological slot,
-    rather than appended after it in a box of its own -- the row still
-    carries a title and a destination, only its index reads as a star
-    instead of a number (see ``merge_syllabus_rows_with_projects``).
+    interleaved into the same list at its real chronological slot.  It is
+    drawn with the module rows' own component; only the index column reads
+    as a project marker instead of a number.  The attempts of one project
+    ("Project Attempt 1", "Attempt 2", "Last Project Attempt") are collapsed
+    into one row whose ``attempts`` carry each attempt's own title, link and
+    deadlines (see ``merge_syllabus_rows_with_projects``).
     """
 
     index: str
@@ -240,12 +252,43 @@ class FamilySyllabusRow:
     summary: str = ""
     url: str = ""
     is_project: bool = False
+    attempts: tuple[FamilyProjectAttempt, ...] = ()
+    brief_url: str = ""
 
 
 # Curriculum modules and homework both arrive titled "Module 1: Agentic RAG"
 # or "Homework 3: Orchestration"; the row's own mono index already says the
 # number, so the spoken prefix would repeat it.
 _UNIT_TITLE_PREFIX = re.compile(r"^(?:module|homework)\s+\d+\s*:\s*", re.IGNORECASE)
+
+# A summary field that holds only a link is a pointer, not a description: the
+# imported homework and project rows often carry their instructions URL there.
+_BARE_URL = re.compile(r"^https?://\S+$")
+
+# The words that distinguish one attempt of a project from the next
+# ("Project Attempt 1", "Last Project Attempt", "Capstone 2",
+# "Capstone Project (Attempt 1)", "Project 3rd attempt").  What is left is the
+# project itself, which is what the attempts of one project share.
+_ATTEMPT_MARKERS = re.compile(
+    r"\((?:[^)]*\battempt\b[^)]*)\)|\b(?:attempt|last|final)\b|\b\d+(?:st|nd|rd|th)?\b",
+    re.IGNORECASE,
+)
+GROUPED_PROJECT_FALLBACK_TITLE = "Project"
+_PARENTHETICAL_ATTEMPT = re.compile(r"\s*\([^)]*\battempt\b[^)]*\)", re.IGNORECASE)
+
+
+def _usable_summary(text: str) -> str:
+    summary = (text or "").strip()
+    if not summary or _BARE_URL.match(summary):
+        return ""
+    return summary
+
+
+def project_base_title(title: str) -> str:
+    """The project an attempt belongs to: its title without the attempt words."""
+
+    base = _ATTEMPT_MARKERS.sub(" ", title or "")
+    return re.sub(r"\s+", " ", base).strip(" -–—:·,.")
 
 
 def family_syllabus_rows(
@@ -257,8 +300,9 @@ def family_syllabus_rows(
 
     A unit is a shared-curriculum module when the course's import created one,
     otherwise a homework row of the front cohort; both carry a title and,
-    optionally, a one-line summary.  A unit the data cannot summarise is a
-    title-only row rather than a padded one.
+    optionally, a one-line summary.  A unit the data cannot summarise -- or
+    whose summary is only a link -- is a title-only row rather than a padded
+    one.
     """
 
     rows = []
@@ -269,15 +313,49 @@ def family_syllabus_rows(
             FamilySyllabusRow(
                 index=f"{position:02d}",
                 title=title,
-                summary=(
-                    getattr(unit, "summary", "")
-                    or getattr(unit, "description", "")
-                    or ""
+                summary=_usable_summary(
+                    getattr(unit, "summary", "") or getattr(unit, "description", "") or ""
                 ),
                 url=url,
             )
         )
     return tuple(rows)
+
+
+def _project_group_row(projects: list, urls: list[str]) -> FamilySyllabusRow:
+    """Collapse the attempts of one project into a single syllabus row."""
+
+    first = projects[0]
+    base = project_base_title(first.title)
+    description = (getattr(first, "description", "") or "").strip()
+    summary = _usable_summary(_PARENTHETICAL_ATTEMPT.sub("", description))
+    if len(summary.split()) < 2:
+        # A one-word placeholder ("TBA") says nothing about the project.
+        summary = ""
+    instruction_urls = [getattr(project, "instructions_url", "") or "" for project in projects]
+    brief_url = next((url for url in instruction_urls if url), "") or (
+        description if _BARE_URL.match(description) else ""
+    )
+    attempts = tuple(
+        FamilyProjectAttempt(
+            title=project.title,
+            url=url,
+            submission_due=getattr(project, "submission_due_date", None),
+            peer_review_due=getattr(project, "peer_review_due_date", None),
+        )
+        for project, url in zip(projects, urls, strict=True)
+    )
+    return FamilySyllabusRow(
+        index="",
+        # Attempts titled by nothing but their attempt words ("Attempt 1",
+        # "Attempt 2") name no project; the row is then simply the project.
+        title=(base or GROUPED_PROJECT_FALLBACK_TITLE) if len(projects) > 1 else first.title,
+        summary=summary,
+        url=urls[0] if len(projects) == 1 else "",
+        is_project=True,
+        attempts=attempts,
+        brief_url=brief_url,
+    )
 
 
 def merge_syllabus_rows_with_projects(
@@ -288,29 +366,36 @@ def merge_syllabus_rows_with_projects(
 ) -> tuple[FamilySyllabusRow, ...]:
     """Interleave the family's real projects into the numbered unit list.
 
-    A project (midterm or capstone alike) is positioned by real chronology,
-    not merely appended after the modules: it lands right after the last
-    unit whose own due date is no later than the project's own submission
-    deadline. Only units the caller can date are used to decide a
-    position -- a unit ``unit_due_dates`` has no date for (``None``) keeps
-    its own place in the list but is not itself a candidate boundary. A
-    project that genuinely predates every dated unit sits ahead of the
-    first one; a project the caller cannot date at all, or a syllabus with
-    no dated units to compare against, falls back to the list's end --
-    the previous append-only behaviour, rather than a guessed position.
+    Attempts of one project -- rows whose titles differ only by their attempt
+    words -- are first collapsed into one row, so "Project Attempt 1",
+    "Project Attempt 2" and "Last Project Attempt" read as one project with
+    three deadlines.  Each project (midterm or capstone alike) is then
+    positioned by real chronology, not merely appended after the modules: it
+    lands right after the last unit whose own due date is no later than the
+    project's first submission deadline. Only units the caller can date are
+    used to decide a position -- a unit ``unit_due_dates`` has no date for
+    (``None``) keeps its own place in the list but is not itself a candidate
+    boundary. A project that genuinely predates every dated unit sits ahead of
+    the first one; a project the caller cannot date at all, or a syllabus with
+    no dated units to compare against, falls back to the list's end.
 
     ``project_urls`` is positional, the same contract ``family_syllabus_rows``
     already uses for ``urls``.
     """
 
-    dated_units = [
-        (index, due) for index, due in enumerate(unit_due_dates) if due is not None
-    ]
+    groups: dict[str, tuple[list, list[str]]] = {}
+    for project, url in zip(projects, project_urls, strict=True):
+        key = project_base_title(project.title).casefold()
+        members, urls = groups.setdefault(key, ([], []))
+        members.append(project)
+        urls.append(url)
+
+    dated_units = [(index, due) for index, due in enumerate(unit_due_dates) if due is not None]
     last_index = len(unit_rows) - 1
     insert_after: dict[int, list[FamilySyllabusRow]] = {}
-    for project, url in zip(projects, project_urls, strict=True):
-        due = getattr(project, "submission_due_date", None)
-        row = FamilySyllabusRow(index="★", title=project.title, url=url, is_project=True)
+    for members, urls in groups.values():
+        row = _project_group_row(members, urls)
+        due = getattr(members[0], "submission_due_date", None)
         if due is None or not dated_units:
             after_index = last_index
         else:

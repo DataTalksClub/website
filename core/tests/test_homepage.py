@@ -1061,10 +1061,10 @@ class HomeQueryBudgetTests(TestCase):
 
 
 class AcademyLinkTests(TestCase):
-    """The public homepage and footer link to the Academy under /academy/.
+    """The Academy is reached from its site-wide stripe, not from the footer.
 
-    Academy is a separate Django app. Homepage and shared footer links
-    resolve locally against database-owned published Academy content.
+    Academy is a separate Django app. The stripe's link
+    resolves locally against database-owned published Academy content.
     """
 
     ACADEMY_LINKS = (
@@ -1072,23 +1072,20 @@ class AcademyLinkTests(TestCase):
         ("/academy/sessions/", "Hireable With AI: Free Sessions"),
     )
 
-    def test_footer_links_to_academy_and_the_courses_band_does_not(self) -> None:
+    def test_neither_the_footer_nor_the_courses_band_links_to_academy(self) -> None:
         response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
-        # The owner removed the Academy links from under the course catalogue.
+        # The owner removed the Academy links from under the course catalogue,
+        # and then from the footer: the site-wide Academy stripe above the
+        # footer is the one Academy route left.
         self.assertNotIn("academy-links", body)
-        footer = re.search(
-            r'<nav class="site-footer-legal site-footer-academy"[^>]*>(.*?)</nav>',
-            body,
-            re.S,
-        )
-        assert footer is not None, "footer is missing the Academy links row"
+        footer = re.search(r"<footer\b.*?</footer>", body, re.S)
+        assert footer is not None, "the shared footer is missing"
+        self.assertNotIn("site-footer-academy", footer.group(0))
         for href, label in self.ACADEMY_LINKS:
-            self.assertRegex(
-                footer.group(1),
-                rf'href="{re.escape(href)}">\s*{re.escape(label)}\s*</a>',
-            )
+            self.assertNotIn(f'href="{href}"', footer.group(0))
+            self.assertNotIn(label, footer.group(0))
 
     def test_academy_is_served_by_its_django_app(self) -> None:
         from academy.models import PublishedResource

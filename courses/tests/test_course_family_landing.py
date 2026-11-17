@@ -86,20 +86,23 @@ class CourseFamilyLandingTests(TestCase):
 
         self.assertContains(response, self.family.prerequisites)
         self.assertContains(response, self.family.outcome)
-        # The prerequisites now answer "is this a good fit" as their own
-        # opening-group section, ahead of the journey, which in turn still
-        # establishes fit and value before the page asks the visitor to
-        # choose a route.
+        # Owner order (2026-11): what it is, when and what it costs, what
+        # you learn and build, who it is for, the editions, what people
+        # built, the questions, and the closing action.
         self.assertLess(
+            body.index('id="register-heading"'),
+            body.index('id="transformation-heading"'),
+        )
+        self.assertLess(
+            body.index('id="transformation-heading"'),
+            body.index('id="audience-heading"'),
+        )
+        self.assertLess(
+            body.index('id="audience-heading"'),
             body.index(self.family.prerequisites),
-            body.index('id="transformation-heading"'),
         )
         self.assertLess(
-            body.index('id="transformation-heading"'),
-            body.index('id="register-heading"'),
-        )
-        self.assertLess(
-            body.index('id="register-heading"'),
+            body.index('id="audience-heading"'),
             body.index("Explore all learner projects"),
         )
         self.assertContains(
@@ -126,20 +129,22 @@ class CourseFamilyLandingTests(TestCase):
         # The stages break out to the shell's full width, on the page's own
         # lavender ground: the cards are too narrow to read at the reading
         # column, and the section introduces no band of its own.
-        self.assertContains(response, 'class="family-transformation shell-breakout"', count=1)
+        self.assertContains(
+            response, 'class="family-chapter family-transformation shell-breakout"', count=1
+        )
 
     def journey_section(self, response) -> str:
         """The rendered three-stage section, markup only."""
 
         body = response.content.decode()
-        start = body.index('class="family-transformation shell-breakout"')
+        start = body.index('class="family-chapter family-transformation shell-breakout"')
         return body[start : body.index("</section>", start)]
 
     def hero_section(self, response) -> str:
         """The rendered hero, markup only (up to the illustration)."""
 
         body = response.content.decode()
-        start = body.index('class="family-hero-inner"')
+        start = body.index('class="family-hero-inner shell-breakout"')
         end = body.index('class="family-hero-art', start)
         return body[start:end]
 
@@ -183,25 +188,30 @@ class CourseFamilyLandingTests(TestCase):
         # (the closing </article> is the shared stage-card template's own).
         self.assertEqual(section.count("</p>\n  </article>"), 3)
 
-    def test_prerequisites_and_weekly_commitment_are_their_own_opening_sections(self):
+    def test_prerequisites_answer_who_it_is_for_and_commitment_heads_the_join_section(self):
         self.family.weekly_commitment = "Free. Plan for about 5-15 hours a week."
         self.family.save(update_fields=["weekly_commitment"])
 
         response = self.client.get(self.url)
         body = response.content.decode()
 
-        opening_group = body[
-            body.index('class="family-opening-group"') : body.index('id="transformation-heading"')
+        audience = body[
+            body.index('id="audience-heading"') : body.index(
+                "</section>", body.index('id="audience-heading"')
+            )
         ]
-        self.assertIn('id="fit-heading"', opening_group)
-        self.assertIn("Good fit if", opening_group)
-        self.assertIn(self.family.prerequisites, opening_group)
-        self.assertIn('id="commitment-heading"', opening_group)
-        self.assertIn("Time and cost", opening_group)
-        self.assertIn(self.family.weekly_commitment, opening_group)
-        # Not a journey-card fact any more, and not in the hero either.
+        self.assertIn("Good fit if", audience)
+        self.assertIn(self.family.prerequisites, audience)
+        self.assertIn(self.family.starting_point, audience)
+        # "When and what it costs" sits with the cohort it applies to.
+        join = body[
+            body.index('id="register-heading"') : body.index(
+                "</section>", body.index('id="register-heading"')
+            )
+        ]
+        self.assertIn(self.family.weekly_commitment, join)
+        # Not a journey-card fact, and not in the hero either.
         self.assertNotIn("Good fit if", self.journey_section(response))
-        self.assertNotIn("Time and cost", self.journey_section(response))
         self.assertNotIn(self.family.weekly_commitment, self.hero_section(response))
 
     def test_unpublished_retired_and_other_course_skills_are_not_promoted(self):
@@ -289,21 +299,20 @@ class CourseFamilyLandingTests(TestCase):
         self.assertContains(response, "This course is educational; results are not guaranteed.")
         self.assertNotContains(response, "<script>unsafe()")
         self.assertNotIn("This course is educational", self.hero_section(response))
-        self.assertContains(response, 'class="family-overview-section"')
         overview_section = body[
-            body.index('class="family-overview-section"') : body.index(
-                "</section>", body.index('class="family-overview-section"')
+            body.index('id="about-heading"') : body.index(
+                "</section>", body.index('id="about-heading"')
             )
         ]
         self.assertIn("This course is educational", overview_section)
-        # In the body, after the hero and the opening-group quick facts,
-        # ahead of the journey.
+        # In the body, the first chapter after the hero: what the course is
+        # comes before when it runs and what it teaches.
         self.assertLess(
-            body.index('class="family-hero-inner"'),
-            body.index('class="family-overview-section"'),
+            body.index('class="family-hero-inner shell-breakout"'),
+            body.index('id="about-heading"'),
         )
         self.assertLess(
-            body.index('class="family-overview-section"'),
+            body.index('id="about-heading"'),
             body.index('id="transformation-heading"'),
         )
 
@@ -322,8 +331,8 @@ class CourseFamilyLandingTests(TestCase):
         body = response.content.decode()
 
         self.assertContains(response, self.family.prerequisites)
-        starting_point_section = body.split('class="family-starting-point"', 1)[1].split(
-            "</section>", 1
+        starting_point_section = body.split('class="card family-starting-point"', 1)[1].split(
+            "</article>", 1
         )[0]
         self.assertIn(self.family.starting_point, starting_point_section)
         self.assertNotIn(self.family.prerequisites, starting_point_section)
@@ -338,11 +347,10 @@ class CourseFamilyLandingTests(TestCase):
 
         self.assertContains(response, "&lt;script&gt;evil()&lt;/script&gt;")
         self.assertNotContains(response, "<script>evil()")
-        # The hero no longer carries the price/hours line at all -- it is
-        # its own opening-group section now (see
-        # test_prerequisites_and_weekly_commitment_are_their_own_opening_sections).
+        # The hero does not carry the price/hours line: it heads the join
+        # section (see
+        # test_prerequisites_answer_who_it_is_for_and_commitment_heads_the_join_section).
         self.assertNotIn("Free.", self.hero_section(response))
-        self.assertNotIn("Time and cost", self.hero_section(response))
 
     def test_whitespace_weekly_commitment_does_not_leave_an_empty_line(self):
         self.family.weekly_commitment = " \n "
@@ -736,6 +744,43 @@ class CourseFamilyProjectGalleryTests(TestCase):
             passed=passed,
         )
 
+    def test_built_section_carries_the_family_project_summary_and_shared_scene(self):
+        self.add_submission()
+        self.family.project_summary = "Learners ship an end-to-end <b>pipeline</b>."
+        self.family.save(update_fields=["project_summary"])
+
+        response = self.client.get(self.url)
+        section = self.proof_section(response)
+
+        self.assertIn("Learners ship an end-to-end &lt;b&gt;pipeline&lt;/b&gt;.", section)
+        self.assertIn("1 project submitted by learners so far", section)
+        self.assertIn("course-projects-built.", section)
+        self.assertIn("course-projects-built-dark.", section)
+
+    def test_a_family_with_only_a_brief_introduces_its_final_project(self):
+        project = self.cohort.project_set.first()
+        assert project is not None
+        project.instructions_url = "https://github.com/example/course/blob/main/project.md"
+        project.save(update_fields=["instructions_url"])
+
+        response = self.client.get(self.url)
+        section = self.proof_section(response)
+
+        # No learner work yet: the heading does not promise any.
+        self.assertNotContains(response, "See what people have built")
+        self.assertContains(response, '<h2 id="built-heading">Your final project</h2>')
+        self.assertIn("Read the project brief", section)
+        self.assertNotIn("submitted by learners", section)
+
+    def test_built_section_without_a_summary_states_the_real_count_only(self):
+        self.add_submission()
+
+        response = self.client.get(self.url)
+        section = self.proof_section(response)
+
+        self.assertNotIn('class="family-built-lede"', section)
+        self.assertIn("1 project submitted by learners so far", section)
+
     def proof_section(self, response) -> str:
         """The rendered "See what people have built" section, markup only."""
 
@@ -748,7 +793,7 @@ class CourseFamilyProjectGalleryTests(TestCase):
 
         response = self.client.get(self.url)
 
-        self.assertContains(response, 'class="card-grid card-grid-2 family-proof-gallery"')
+        self.assertContains(response, 'class="card-grid card-grid-3 family-proof-gallery"')
         self.assertContains(
             response,
             'class="card family-proof-card stretched-card-link interactive-card interactive-lift"',
@@ -756,7 +801,7 @@ class CourseFamilyProjectGalleryTests(TestCase):
         self.assertContains(response, submission.enrollment.display_name)
         self.assertContains(response, submission.github_link)
         self.assertContains(response, "github.com/example/gallery-repo-1")
-        self.assertContains(response, f"· {self.cohort.identifier} cohort")
+        self.assertContains(response, f"{self.cohort.identifier} cohort</p>")
         self.assertContains(
             response,
             reverse(
@@ -785,7 +830,7 @@ class CourseFamilyProjectGalleryTests(TestCase):
         response = self.client.get(self.url)
 
         self.assertEqual(list(response.context["family_gallery_submissions"]), [])
-        self.assertNotContains(response, 'class="card-grid card-grid-2 family-proof-gallery"')
+        self.assertNotContains(response, 'class="card-grid card-grid-3 family-proof-gallery"')
         self.assertNotContains(response, "family-proof-card")
 
     def test_a_family_with_only_unpassed_submissions_hides_the_inline_gallery(self):
@@ -798,7 +843,7 @@ class CourseFamilyProjectGalleryTests(TestCase):
 
         self.assertEqual(list(response.context["family_gallery_submissions"]), [])
         self.assertContains(response, 'id="built-heading"')
-        self.assertNotContains(response, 'class="card-grid card-grid-2 family-proof-gallery"')
+        self.assertNotContains(response, 'class="card-grid card-grid-3 family-proof-gallery"')
         self.assertNotContains(response, "family-proof-card")
 
     def test_inline_gallery_caps_at_six_even_with_more_real_submissions(self):
@@ -925,7 +970,7 @@ class CourseFamilyFaqPreviewTests(TestCase):
         response = self.client.get(reverse("course_family", args=[family.slug]))
         body = response.content.decode()
 
-        self.assertContains(response, 'class="family-faq"')
+        self.assertContains(response, 'class="family-chapter family-faq shell-breakout"')
         self.assertNotContains(response, 'class="panel panel-lavender panel-outlined family-faq"')
         self.assertContains(response, 'id="faq-heading"')
         # Last content section: after both the editions strip and "See what

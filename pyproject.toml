@@ -155,6 +155,8 @@ module = [
 
     "courses.tests.test_statistics_display_contract",
     "courses.tests.test_course_slash_aliases",
+    "courses.views.registration_marketing",
+    "courses.tests.test_registration_marketing",
     "accounts.backends",
     "accounts.identity_inventory",
     "accounts.identity_relations",

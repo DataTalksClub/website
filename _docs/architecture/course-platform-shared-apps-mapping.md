@@ -64,7 +64,7 @@ Site `courses.Course` (`courses/models/cohort.py:54`), package
 | `slug` | `slug` | maps |
 | `title` | `title` | maps |
 | `description` | `description` (+ package-rendered `description_html`) | maps |
-| `starting_point`, `prerequisites`, `weekly_commitment`, `progression`, `outcome` | — | stays (site-owned long-form content; no package columns) |
+| `starting_point`, `prerequisites`, `weekly_commitment`, `progression`, `outcome`, `project_summary` | — | stays (site-owned long-form content; no package columns) |
 | `github_repo_url` | `github_repo_url` | maps |
 | `docs_url` | `docs_url` | maps |
 | `faq_document_url` | `faq_url` | maps (rename) |
