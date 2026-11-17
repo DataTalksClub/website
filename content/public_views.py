@@ -550,7 +550,9 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             ),
         },
     )
-    if event["registration_count"]:
+    # An upcoming event's page takes registrations, so its count must move on
+    # the next view whatever it is now (a zero must not sit at the edge either).
+    if event_state == "upcoming" or event["registration_count"]:
         response["Cache-Control"] = "no-store, max-age=0, s-maxage=0"
     return response
 

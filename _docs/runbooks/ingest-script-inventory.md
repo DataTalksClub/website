@@ -631,8 +631,10 @@ status changes are reflected. See
 [\`event-registration-pull.md\`](event-registration-pull.md) for the command
 sequence.
 
-Public event queries count eligible registration rows directly: approved Luma
-rows and attending Eventbrite rows.
+Public event queries count distinct registered people directly: approved Luma
+rows and attending Eventbrite rows, plus confirmed, attended or no-show site
+registrations, with a site registration that matches an eligible provider
+identity for the same event (by email or account) counted once.
 ---
 
 # 7. Testimonials
