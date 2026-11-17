@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import os
 import subprocess
+import tarfile
 import tempfile
 import unittest
+from collections.abc import Sequence
 from pathlib import Path
 from unittest import mock
 
 from community_base.content_sync.checkout import ImmutableCheckout
+from community_base.content_sync.github import GitHubClient
 from community_base.content_sync.media import media_store
 from community_base.content_sync.models import ContentSource, SyncLog, SyncStatus
 from community_base.content_sync.orchestration import sync_content_source
@@ -20,6 +24,7 @@ from community_base.knowledge_base.models import (
     STATUS_PUBLISHED,
     KnowledgeBasePage,
 )
+from django.conf import settings as settings_module
 from django.test import TestCase
 
 from content.media_store import (
@@ -295,6 +300,47 @@ class ArticlesParserTests(_CheckoutCase):
         self.assertEqual(parser.soft_delete_missing(set(), source), 1)
         self.assertFalse(SyncedDocument.objects.filter(source=source).exists())
 
+    def test_an_embedded_image_replaced_in_place_updates_the_article(self) -> None:
+        # The article file is unchanged; the image it embeds is redrawn at a new
+        # size, and the stored block carries that size.
+        source = _source("dtc-content")
+        parser = get_parser("article")
+        article = (
+            _article_markdown()
+            + '\n<img src="/images/posts/hello-world/chart.png" alt="A chart">\n'
+        )
+
+        def png(width: int, height: int) -> bytes:
+            return (
+                b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+                + width.to_bytes(4, "big")
+                + height.to_bytes(4, "big")
+            )
+
+        def sync(chart: bytes, commit: str) -> tuple[str, dict]:
+            tree = {
+                "articles/2024-03-07-hello-world.md": article.encode(),
+                "images/posts/hello-world/cover.png": b"png-bytes",
+                "images/posts/hello-world/chart.png": chart,
+            }
+            with self.checkout(tree, commit=commit) as checkout:
+                (item,) = parser.discover(checkout, source)
+                action = parser.upsert(item, source, media_store()).action
+            (image,) = [
+                block
+                for block in SyncedDocument.objects.get(
+                    source=source, stable_key="hello-world"
+                ).record["blocks"]
+                if block["kind"] == "image"
+            ]
+            return action, image
+
+        self.assertEqual(sync(png(640, 480), "a" * 40)[0], "created")
+        self.assertEqual(sync(png(640, 480), "b" * 40)[0], "unchanged")
+        action, image = sync(png(1280, 720), "c" * 40)
+        self.assertEqual(action, "updated")
+        self.assertEqual((image["width"], image["height"]), (1280, 720))
+
     def test_frontmatter_faq_is_validated_into_pairs(self) -> None:
         source = _source("dtc-content")
         parser = get_parser("article")
@@ -472,6 +518,118 @@ class PodcastsParserTests(_CheckoutCase):
 
         self.assertEqual(parser.soft_delete_missing(set(), source), 1)
         self.assertFalse(SyncedDocument.objects.filter(source=source).exists())
+
+    def _sync_once(self, tree: dict[str, bytes], commit: str) -> str:
+        source = _source("dtc-content")
+        parser = get_parser("podcast")
+        with self.checkout(tree, commit=commit) as checkout:
+            (item,) = parser.discover(checkout, source)
+            return parser.upsert(item, source, media_store()).action
+
+    def _episode_tree(self, transcript: bytes) -> dict[str, bytes]:
+        return {
+            "podcasts/s03/e11.yaml": _episode_yaml(),
+            "podcasts/s03/e11-transcript.yaml": transcript,
+            "images/podcast/test-episode.jpg": b"jpeg-bytes",
+        }
+
+    def test_a_transcript_only_edit_updates_the_episode(self) -> None:
+        # Issue #464: the episode file is byte-identical; only its transcript
+        # gains a chapter header and an edited line.
+        self.assertEqual(
+            self._sync_once(self._episode_tree(_transcript_yaml()), "a" * 40), "created"
+        )
+        before = SyncedDocument.objects.get(source__slug="dtc-content", content_kind="podcast")
+
+        edited = (
+            b"podcast: test-episode\n"
+            b"segments:\n"
+            b"- header: Introduction\n"
+            b"- who: Alexey\n"
+            b"  line: Hello and welcome back.\n"
+            b"  sec: 0\n"
+            b"  time: '00:00:00'\n"
+        )
+        self.assertEqual(self._sync_once(self._episode_tree(edited), "b" * 40), "updated")
+
+        stored = SyncedDocument.objects.get(pk=before.pk)
+        self.assertNotEqual(stored.checksum, before.checksum)
+        self.assertEqual(
+            stored.record["transcript"],
+            [
+                {"header": "Introduction"},
+                {"line": "Hello and welcome back.", "sec": 0, "time": "00:00:00", "who": "Alexey"},
+            ],
+        )
+        self.assertEqual(
+            stored.record["transcript_provenance"]["checksum"],
+            hashlib.sha256(edited).hexdigest(),
+        )
+        self.assertEqual(stored.record["transcript_provenance"]["revision"], "b" * 40)
+        # The episode file itself did not change, so its own provenance digest holds.
+        self.assertEqual(
+            stored.record["provenance"]["checksum"], before.record["provenance"]["checksum"]
+        )
+
+    def test_unchanged_episode_and_transcript_stay_unchanged_on_a_new_commit(self) -> None:
+        tree = self._episode_tree(_transcript_yaml())
+        self.assertEqual(self._sync_once(tree, "a" * 40), "created")
+        before = SyncedDocument.objects.get(source__slug="dtc-content", content_kind="podcast")
+
+        # A push that touches neither file must not rewrite the row, even though
+        # the commit (and so every provenance revision) moved.
+        self.assertEqual(self._sync_once(tree, "c" * 40), "unchanged")
+
+        stored = SyncedDocument.objects.get(pk=before.pk)
+        self.assertEqual(stored.checksum, before.checksum)
+        self.assertEqual(stored.record, before.record)
+        self.assertEqual(stored.record["provenance"]["revision"], "a" * 40)
+
+    def test_a_linked_episodes_new_route_updates_the_linking_episode(self) -> None:
+        # Resources resolve against the whole catalogue: a root-relative link to
+        # another episode follows that episode's route, which this file does not hold.
+        source = _source("dtc-content")
+        parser = get_parser("podcast")
+        linking = _episode_yaml().replace(
+            b"  url: https://example.com/resource\n",
+            b"  url: /podcast/other-episode.html\n",
+        )
+        other = (
+            b"slug: other-episode\n"
+            b"legacy_path: /podcast/other-episode.html\n"
+            b"title: Another episode\n"
+            b"season: 3\n"
+            b"episode: 12\n"
+        )
+        tree = {
+            "podcasts/s03/e11.yaml": linking,
+            "podcasts/s03/e12.yaml": other,
+            "images/podcast/test-episode.jpg": b"jpeg-bytes",
+        }
+        tree["podcasts/s03/e11.yaml"] = tree["podcasts/s03/e11.yaml"].replace(
+            b"transcript: e11-transcript.yaml\n", b""
+        )
+
+        def sync(current: dict[str, bytes], commit: str) -> dict[str, str]:
+            with self.checkout(current, commit=commit) as checkout:
+                items = parser.discover(checkout, source)
+                return {
+                    item.key: parser.upsert(item, source, media_store()).action for item in items
+                }
+
+        self.assertEqual(
+            sync(tree, "a" * 40), {"other-episode": "created", "test-episode": "created"}
+        )
+        first = SyncedDocument.objects.get(source=source, stable_key="test-episode")
+        self.assertEqual(first.record["resources"][0]["url"], "/podcast/s03e12/other-episode")
+
+        moved = dict(tree)
+        moved["podcasts/s03/e12.yaml"] = other.replace(b"episode: 12", b"episode: 13")
+        self.assertEqual(
+            sync(moved, "b" * 40), {"other-episode": "updated", "test-episode": "updated"}
+        )
+        first.refresh_from_db()
+        self.assertEqual(first.record["resources"][0]["url"], "/podcast/s03e13/other-episode")
 
     def test_rejects_misnamed_transcripts(self) -> None:
         source = _source("dtc-content")
@@ -1729,3 +1887,149 @@ class SyncUnderTestSettingsTests(TestCase):
         client.assert_not_called()
         s3_store.assert_not_called()
         local_store.assert_not_called()
+
+
+_ARCHIVE_COMMIT = "d" * 40
+
+
+def _tarball(members: Sequence[tarfile.TarInfo | tuple[str, bytes]]) -> bytes:
+    """A GitHub-shaped tarball: one ``owner-repo-sha/`` root above the tree."""
+
+    buffer = io.BytesIO()
+    root = f"DataTalksClub-content-{_ARCHIVE_COMMIT[:7]}"
+    with tarfile.open(fileobj=buffer, mode="w:gz") as archive:
+        directory = tarfile.TarInfo(root)
+        directory.type = tarfile.DIRTYPE
+        archive.addfile(directory)
+        for member in members:
+            if isinstance(member, tarfile.TarInfo):
+                member.name = f"{root}/{member.name}"
+                archive.addfile(member)
+                continue
+            name, payload = member
+            info = tarfile.TarInfo(f"{root}/{name}")
+            info.size = len(payload)
+            archive.addfile(info, io.BytesIO(payload))
+    return buffer.getvalue()
+
+
+class _FakeResponse:
+    def __init__(self, *, payload: bytes = b"", json_body: dict | None = None) -> None:
+        self.status_code = 200
+        self._payload = payload
+        self._json = json_body
+
+    def json(self) -> dict:
+        return self._json or {}
+
+    def iter_content(self, chunk_size: int):
+        for start in range(0, len(self._payload), chunk_size):
+            yield self._payload[start : start + chunk_size]
+
+
+class _FakeGitHub:
+    """Stands in for ``requests.Session`` on the anonymous public-repository path."""
+
+    def __init__(self, tarball: bytes) -> None:
+        self.tarball = tarball
+        self.paths: list[str] = []
+
+    def __call__(self) -> _FakeGitHub:
+        return self
+
+    def request(self, method, url, *, headers, timeout, stream=False):
+        del method, timeout, stream
+        assert "Authorization" not in headers
+        path = url.removeprefix("https://api.github.com")
+        self.paths.append(path)
+        if path == "/repos/DataTalksClub/content/commits/HEAD":
+            return _FakeResponse(json_body={"sha": _ARCHIVE_COMMIT})
+        if path == f"/repos/DataTalksClub/content/tarball/{_ARCHIVE_COMMIT}":
+            return _FakeResponse(payload=self.tarball)
+        raise AssertionError(f"unexpected GitHub request: {path}")
+
+
+class GitHubArchiveSyncTests(TestCase):
+    """The normal production path: ``sync_content`` without ``--from-disk``.
+
+    The engine resolves the commit and streams the repository tarball from the
+    GitHub API, so the container needs no VCS binary and no checkout. The
+    archive bound is this site's setting, sized for the image-heavy editorial
+    repositories; it still refuses an oversized, traversing or linked archive.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        SyncedDocument.objects.filter(source__slug="dtc-content").delete()
+        self.source = _source("dtc-content")
+
+    def _sync(self, tarball: bytes) -> tuple[SyncLog, _FakeGitHub]:
+        github = _FakeGitHub(tarball)
+        empty_bin = Path(tempfile.mkdtemp(prefix="empty-path-"))
+        with (
+            mock.patch("community_base.content_sync.github.requests.Session", github),
+            # An empty PATH, as in the production container: nothing to shell out to.
+            mock.patch.dict(os.environ, {"PATH": str(empty_bin)}),
+        ):
+            log = sync_content_source(self.source, force=True)
+        self.source.refresh_from_db()
+        return log, github
+
+    def test_the_site_bound_admits_the_editorial_repositories(self) -> None:
+        # Largest measured archive (main-site repo, 2026-11-17): 154,393,811 bytes
+        # compressed, 176,214,236 bytes of extracted files. The bound keeps a 2x
+        # growth margin over it and stays a hard cap on untrusted input.
+        largest_measured = 176_214_236
+        bound = settings_module.CONTENT_SYNC_MAX_ARCHIVE_BYTES
+        self.assertEqual(bound, 400_000_000)
+        self.assertEqual(settings_module.COMMUNITY_BASE["CONTENT_SYNC_MAX_ARCHIVE_BYTES"], bound)
+        self.assertEqual(GitHubClient(session=object()).max_archive_bytes, bound)
+        self.assertGreaterEqual(bound, 2 * largest_measured)
+        self.assertLessEqual(bound, 512 * 1024 * 1024)
+
+    def test_a_normal_sync_reads_the_github_archive_without_a_checkout(self) -> None:
+        tarball = _tarball(
+            [
+                ("articles/2024-03-07-hello-world.md", _article_markdown().encode()),
+                ("images/posts/hello-world/cover.png", _png(b"cover")),
+            ]
+        )
+        log, github = self._sync(tarball)
+
+        self.assertEqual(log.status, SyncStatus.SUCCESS, log.errors)
+        self.assertEqual(log.commit_sha, _ARCHIVE_COMMIT)
+        self.assertEqual(self.source.last_synced_commit, _ARCHIVE_COMMIT)
+        self.assertEqual(
+            github.paths,
+            [
+                "/repos/DataTalksClub/content/commits/HEAD",
+                f"/repos/DataTalksClub/content/tarball/{_ARCHIVE_COMMIT}",
+            ],
+        )
+        stored = SyncedDocument.objects.get(source=self.source, content_kind="article")
+        self.assertEqual(stored.record["provenance"]["revision"], _ARCHIVE_COMMIT)
+
+    def test_an_archive_over_the_bound_is_refused(self) -> None:
+        tarball = _tarball([("articles/2024-03-07-hello-world.md", _article_markdown().encode())])
+        bounded = {**settings_module.COMMUNITY_BASE, "CONTENT_SYNC_MAX_ARCHIVE_BYTES": 64}
+        with self.settings(COMMUNITY_BASE=bounded):
+            log, _github = self._sync(tarball)
+
+        self.assertEqual(log.status, SyncStatus.FAILED)
+        self.assertIn("exceeds configured size limit", log.errors[0]["error"])
+        self.assertFalse(SyncedDocument.objects.filter(source=self.source).exists())
+        self.assertFalse(self.source.last_synced_commit)
+
+    def test_traversal_and_content_links_are_refused(self) -> None:
+        link = tarfile.TarInfo("articles/2024-03-07-hello-world.md")
+        link.type = tarfile.SYMTYPE
+        link.linkname = "../../etc/passwd"
+        for members, message in (
+            ([("../escape.md", b"x")], "unsafe path"),
+            ([link], "link or special file"),
+        ):
+            with self.subTest(message=message):
+                log, _github = self._sync(_tarball(members))
+                self.assertEqual(log.status, SyncStatus.FAILED)
+                self.assertIn(message, log.errors[0]["error"])
+                self.assertFalse(SyncedDocument.objects.filter(source=self.source).exists())

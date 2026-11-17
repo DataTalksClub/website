@@ -700,7 +700,9 @@ checkout and wrote nothing. The verifier was deleted with the staged pipeline in
 plural `scripts/content.py checkouts` (1.2) is unrelated: it covers course
 repositories only.
 
-For the live rows, run the sync itself:
+For the live rows, run the sync itself: on production
+`python manage.py sync_content --source dtc-content` (straight from the GitHub archive; see
+`data-ingest.md` §10.3), locally
 `uv run --frozen python manage.py sync_content --source dtc-content --from-disk <checkout>`.
 Each parser deletes only its own source's rows of its own kind, an unchanged file is
 reported `unchanged`, and a refused file leaves that kind's rows and the source's

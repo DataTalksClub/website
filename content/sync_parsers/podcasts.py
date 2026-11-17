@@ -50,11 +50,15 @@ class PodcastsParser:
                 source_name=source_name,
                 podcast_records=records,
             )
+            # The row derives from the episode file, its transcript file and the
+            # other episodes its resources resolve against, so the change
+            # checksum covers the finished record, not the episode file alone
+            # (issue #464: a transcript-only edit was reported unchanged).
             items.append(
                 SourceItem(
                     key=record["provenance"]["source_key"],
                     path=relative,
-                    data={"record": record, "checksum": checksum},
+                    data={"record": record, "checksum": base.record_checksum(checksum, record)},
                 )
             )
         items.sort(key=lambda item: item.key)
