@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 
 from django.utils import timezone
 
+from events.lifecycle import has_started
 from events.queries import published_event_records
 
 #: The site shows event times in one established timezone, so grouping happens
@@ -93,7 +94,9 @@ def _grouped(now: datetime | None) -> EventGroups:
             event["type"].casefold(),
             "fas fa-calendar-check",
         )
-        (upcoming if event["starts_at_value"] >= current else recent).append(event)
+        # Upcoming until the start has passed, then listed with the recent events: the
+        # shared ``events.lifecycle`` boundary, never the stored status.
+        (recent if has_started(event["starts_at_value"], current) else upcoming).append(event)
 
     # Keep ties deterministic even when two events share a title-derived slug.  UUID is the
     # immutable final tie-breaker, so a source reorder cannot change the rendered catalogue.

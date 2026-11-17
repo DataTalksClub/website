@@ -5837,7 +5837,7 @@
             ]
           }
         ],
-        "summary": "Mark an event completed",
+        "summary": "Confirm an ended event and attach its recording",
         "x-audit-action": "events.admin.completed",
         "x-capability-key": "events.manage.complete",
         "x-concurrency": "none",

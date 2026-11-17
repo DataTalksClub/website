@@ -985,10 +985,10 @@ def import_events_yaml(
 
     import yaml
     from django.db import transaction
-    from django.utils import timezone
 
     from content.models import SyncedDocument
     from events.identity import EventIdentityError, canonical_detail_path, create_event_identity
+    from events.lifecycle import PUBLISHED_STATUS
     from events.slugs import event_title_slug
     from scripts.prod.registrant_import import normalize_match_title
 
@@ -1003,7 +1003,6 @@ def import_events_yaml(
 
     checksum = hashlib.sha256(raw_bytes).hexdigest()
     berlin = ZoneInfo("Europe/Berlin")
-    now = timezone.now()
     luma_urls = _luma_url_index(luma_source)
 
     people_names = dict(
@@ -1066,9 +1065,7 @@ def import_events_yaml(
             season = int(entry["season"]) if entry.get("season") is not None else None
             episode = int(entry["episode"]) if entry.get("episode") is not None else None
             materials = _events_yaml_materials(entry)
-            speaker_keys = [
-                str(s).strip() for s in (entry.get("speakers") or []) if str(s).strip()
-            ]
+            speaker_keys = [str(s).strip() for s in (entry.get("speakers") or []) if str(s).strip()]
             described = {"title": title, "starts_at": starts_at.isoformat()}
 
             same_day_entries = file_day_titles.get((local_date, normalize_match_title(title)), 0)
@@ -1140,7 +1137,8 @@ def import_events_yaml(
                         )
                 continue
 
-            status = "upcoming" if starts_at >= now else "completed"
+            # Published; upcoming vs past is derived from the schedule (events.lifecycle).
+            status = PUBLISHED_STATUS
             if not apply:
                 planned_pk -= 1
                 created_pks.add(planned_pk)

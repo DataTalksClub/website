@@ -27,6 +27,7 @@ from django.utils.dateparse import parse_datetime
 from core.audit import AuditWriteContext, record_audit_event
 from core.models import RevisionConflict
 from core.runtime_config import get_str_setting
+from events.lifecycle import is_published
 
 from .backend import BackendSession, get_qna_backend
 from .errors import QnaArchived, QnaError, QnaNotFound
@@ -53,10 +54,6 @@ MAX_NAME_LENGTH = 60
 QUESTION_EDIT_WINDOW = 300
 ARCHIVE_DELETE_DAYS = 7
 COHOST_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,47}$")
-# The package row carries the schedule and its status in one place; these
-# are the statuses a public Q&A room may open under (the former site
-# "published"/"completed" lifecycle pair).
-PUBLIC_EVENT_LIFECYCLES = frozenset({"upcoming", "completed"})
 PUBLIC_STATUSES = frozenset({EventQnaQuestion.Status.VISIBLE, EventQnaQuestion.Status.ANSWERED})
 QUESTION_STATUSES = frozenset(EventQnaQuestion.Status.values)
 DEFAULT_SETTINGS = {
@@ -318,7 +315,8 @@ def _public_session(
     event_id: uuid.UUID | str | int, *, using: str = DEFAULT_DB_ALIAS
 ) -> EventQnaSession:
     session = _qna_session(event_id, using=using)
-    if session.event.status not in PUBLIC_EVENT_LIFECYCLES:
+    # A public room opens under a published event, upcoming or past alike.
+    if not is_published(session.event):
         raise QnaNotFound()
     if session.state == EventQnaSession.State.ARCHIVED:
         raise QnaArchived()

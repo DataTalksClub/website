@@ -18,6 +18,7 @@ from django.test import TestCase
 
 import scripts.prod
 from content.models import EventSource
+from events.lifecycle import derived_status
 from test_support.reference_data import EVENT_CONTENT, EVENT_IDENTITY_MANIFEST
 
 PROD_ROOT = Path(scripts.prod.__file__).resolve().parent
@@ -741,7 +742,11 @@ class EventsYamlImportTests(TestCase):
             )
 
             past = Event.objects.get(title="Past Podcast Episode")
-            self.assertEqual(past.status, "completed")
+            # Stored as published like any other row; "past" is derived from the
+            # schedule, never written by the import.
+            self.assertEqual(past.status, "upcoming")
+            self.assertEqual(derived_status(past), "past")
+            self.assertEqual(derived_status(upcoming), "upcoming")
             self.assertEqual(len(past.materials), 2)
 
             replay = import_events_yaml(path=yaml_path, revision="def456", apply=True)

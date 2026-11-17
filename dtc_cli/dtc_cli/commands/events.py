@@ -62,8 +62,10 @@ def events() -> None:
 @events.command("list")
 @click.option(
     "--status",
-    type=click.Choice(["draft", "upcoming", "completed", "cancelled", "archived"]),
+    type=click.Choice(["draft", "upcoming", "in_progress", "past", "cancelled", "archived"]),
     default=None,
+    help="Draft, cancelled and archived are stored; upcoming, in_progress and past "
+    "follow from the event's start and end time.",
 )
 @click.option("--upcoming", is_flag=True, help="Show only upcoming events.")
 @click.option("--past", is_flag=True, help="Show only past events.")
@@ -254,7 +256,11 @@ def events_cancel(event: str, reason: str) -> None:
 @click.argument("event")
 @click.option("--recording-url", default="", help="Optional recording URL.")
 def events_complete(event: str, recording_url: str) -> None:
-    """Mark an event as completed."""
+    """Confirm an ended event and attach its recording.
+
+    Whether an event is past follows from its end time; this refuses an event
+    that has not ended yet.
+    """
     event_uuid = _resolve_event_uuid(event)
     body = {"recording_url": recording_url} if recording_url else {}
     emit(get_client().post(f"{API}/events/{event_uuid}/complete", json_body=body))

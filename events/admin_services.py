@@ -29,6 +29,16 @@ from core.security import UnsafeInputError, validate_url
 from event_registrants.models import EventOperatorConfig, EventRegistrationMeta
 
 from .identity import decode_event_tags, encode_event_tags, host_profile_url, package_kind_for_type
+from .lifecycle import (
+    ARCHIVED,
+    CANCELLED,
+    DRAFT,
+    PAST,
+    UPCOMING,
+    derived_status,
+    is_published,
+    status_q,
+)
 
 DEFAULT_REMINDER_INTERVALS: tuple[str, ...] = ("24h", "20m")
 ALLOWED_BANNER_TYPES: dict[str, str] = {
@@ -102,7 +112,7 @@ def _get_config(event: Event) -> EventOperatorConfig | None:
 
 
 def _public_url(event: Event) -> str:
-    if event.public_id is None or event.status not in {"upcoming", "completed"}:
+    if event.public_id is None or not is_published(event):
         return ""
     from django.conf import settings
 
@@ -155,7 +165,9 @@ def serialize_admin_event(event: Event, *, include_registrations: bool = False) 
         "type": event_type or "",
         "kind": event.kind,
         "platform": event.platform,
-        "status": event.status,
+        # Derived: draft/cancelled/archived as stored, otherwise upcoming,
+        # in_progress or past from the schedule (``events.lifecycle``).
+        "status": derived_status(event),
         "start_datetime": _iso(event.start_datetime),
         "end_datetime": _iso(event.end_datetime),
         "timezone": event.timezone,
@@ -394,15 +406,17 @@ def list_events(
     del context
     params = dict(payload or {})
     qs = Event.objects.all().order_by("-start_datetime", "pk")
+    now = timezone.now()
     status = str(params.get("status") or "").strip()
     if status:
-        qs = qs.filter(status=status)
+        try:
+            qs = qs.filter(status_q(status, now))
+        except ValueError as exc:
+            raise EventAdminError(f"Unknown event status '{status}'.") from exc
     if str(params.get("upcoming") or "").lower() in {"1", "true", "yes"}:
-        qs = qs.filter(status="upcoming", start_datetime__gte=timezone.now()).order_by(
-            "start_datetime", "pk"
-        )
+        qs = qs.filter(status_q(UPCOMING, now)).order_by("start_datetime", "pk")
     if str(params.get("past") or "").lower() in {"1", "true", "yes"}:
-        qs = qs.filter(status__in={"completed", "upcoming"}, start_datetime__lt=timezone.now())
+        qs = qs.filter(status_q(PAST, now))
     public_id = params.get("public_id")
     if public_id is not None and str(public_id).strip():
         qs = qs.filter(public_id=int(public_id))
@@ -677,6 +691,10 @@ def cancel_event_action(
         raise EventAdminError("event_id is required.")
     event = _resolve_event(target)
     reason = str(data.get("reason") or "").strip()
+    if derived_status(event) == PAST:
+        # The package refuses only a stored ``completed``; a past event is past
+        # whatever its stored status, and cancelling it would mail registrants.
+        raise EventAdminError("A past event cannot be cancelled.")
     try:
         event = cancel_event(event, reason=reason)
     except DjangoValidationError as exc:
@@ -697,13 +715,19 @@ def complete_event_action(
     if target is None:
         raise EventAdminError("event_id is required.")
     event = _resolve_event(target)
-    if event.status in {"cancelled", "archived"}:
-        raise EventAdminError(f"Cannot complete an event in status '{event.status}'.")
+    # Completion is derived from the schedule, never stored: this action only
+    # confirms the event is over and attaches its recording.
+    state = derived_status(event)
+    if state in {CANCELLED, ARCHIVED}:
+        raise EventAdminError(f"Cannot complete an event in status '{state}'.")
+    if state == DRAFT:
+        raise EventAdminError("Publish the event before completing it.")
+    if state != PAST:
+        raise EventAdminError("The event has not ended yet; it becomes past when it ends.")
     recording_url = str(data.get("recording_url") or "").strip()
     if recording_url:
         event.recording_url = recording_url
-    event.status = "completed"
-    event.save(update_fields=("status", "recording_url", "updated_at"))
+        event.save(update_fields=("recording_url", "updated_at"))
     return {"event": serialize_admin_event(event, include_registrations=True)}
 
 
