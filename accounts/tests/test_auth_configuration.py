@@ -119,7 +119,7 @@ class LoginPageConfigurationTests(TestCase):
         self.assertContains(response, 'name="password"')
         self.assertContains(response, "Choose your preferred login method")
         self.assertNotContains(response, "Back to courses")
-        self.assertNotContains(response, "Sign-in is temporarily unavailable")
+        self.assertNotContains(response, "Signing in isn't available right now")
 
     def test_create_account_link_targets_signup_and_preserves_next(self) -> None:
         with override_settings(DEVELOPMENT_OWNER_LOGIN_ENABLED=True):
@@ -153,7 +153,9 @@ class LoginPageConfigurationTests(TestCase):
                     response = self.client.get(f"/accounts/login/?next={next_path}")
 
                 self.assertEqual(response.status_code, 200)
-                self.assertContains(response, "Sign-in is temporarily unavailable")
+                self.assertContains(response, "Signing in isn't available right now")
+                self.assertContains(response, "mailto:alexey@datatalks.club")
+                self.assertNotContains(response, "temporarily unavailable")
                 self.assertNotContains(response, "Back to courses")
                 self.assertNotContains(response, "Choose your preferred login method")
 
@@ -168,7 +170,7 @@ class LoginPageConfigurationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Sign In")
         self.assertContains(response, "Choose your preferred login method")
-        self.assertNotContains(response, "Sign-in is temporarily unavailable")
+        self.assertNotContains(response, "Signing in isn't available right now")
         for provider, name in PLACEHOLDER_PROVIDERS:
             with self.subTest(provider=provider):
                 self.assertContains(response, f"Continue with {name}")
@@ -211,7 +213,7 @@ class LoginPageConfigurationTests(TestCase):
             with self.subTest(provider=provider):
                 self.assertContains(response, f"Continue with {name}")
                 self.assertContains(response, f"/accounts/{provider}/login/?next=%2Fbooks")
-        self.assertNotContains(response, "Sign-in is temporarily unavailable")
+        self.assertNotContains(response, "Signing in isn't available right now")
 
     def test_installed_social_providers_have_login_and_callback_routes(self) -> None:
         for provider in ("google", "github", "slack"):

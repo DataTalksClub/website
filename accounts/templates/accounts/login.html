@@ -30,6 +30,11 @@
         Create an account
       </a>
     </p>
+  {% elif providers and not account_signup_url %}
+    <p class="auth-account-links">
+      New here? Continuing with {{ account_entry.provider_names }} creates your
+      free account.
+    </p>
   {% endif %}
   {% if providers and development_owner_login_enabled %}
     <p class="auth-or">
@@ -83,12 +88,7 @@
   {% elif not providers %}
     <div class="auth-fallback">
       <div class="auth-notice" role="status">
-        <p>
-          <strong>Sign-in is temporarily unavailable</strong>
-        </p>
-        <p>
-          Please try again later or contact the community team.
-        </p>
+        {% include "account/_no_sign_in_method.html" %}
       </div>
     </div>
   {% endif %}

@@ -1037,7 +1037,7 @@ def _account_scenario(recorder: ScenarioRecorder) -> set[str]:
         recorder.scan(
             "account.unavailable-login",
             "login",
-            text="Sign-in is temporarily unavailable",
+            text="Signing in isn't available right now",
         )
 
     recorder.scan("account.settings", "account-settings", text="Account settings")

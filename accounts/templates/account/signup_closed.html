@@ -8,7 +8,13 @@
       document.documentElement.classList.remove("no-js");
       document.documentElement.classList.add("js");
     </script>
-    <title>Sign-up is closed · DataTalks.Club</title>
+    <title>
+      {% if not account_entry.unavailable %}
+        Create your account · DataTalks.Club
+      {% else %}
+        Sign-up is closed · DataTalks.Club
+      {% endif %}
+    </title>
     <style>
       /* ------------------------------------------------------------------ *
        * The sign-up page's closed state, design system.  allauth renders this
@@ -41,36 +47,63 @@
   >
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
+      {% comment %}
+        Plain signup is closed (production), so the configured social providers
+        are how a new member gets an account: the first sign-in creates it
+        (`accounts.auth.ConsolidatingSocialAccountAdapter`).  Offer them here,
+        with the visitor's `next`, instead of a dead "closed" message.  With no
+        provider configured the page says so honestly and gives the contact
+        address (`accounts.account_entry`).
+      {% endcomment %}
       <section class="band band-cream entrance-hero" aria-labelledby="signup-closed-heading">
         <div class="shell shell-reading">
-          <h1 id="signup-closed-heading">Sign-up is closed</h1>
-          <p class="entrance-lede">
-            New accounts are not being created at the moment.
-          </p>
+          {% if not account_entry.unavailable %}
+            <h1 id="signup-closed-heading">Create your account</h1>
+            <p class="entrance-lede">
+              New accounts are created by signing in with
+              {{ account_entry.provider_names }}.
+            </p>
+          {% else %}
+            <h1 id="signup-closed-heading">Sign-up is closed</h1>
+            <p class="entrance-lede">
+              New accounts can't be created at the moment.
+            </p>
+          {% endif %}
         </div>
       </section>
       <section class="band band-lavender" aria-labelledby="signup-closed-next-heading">
         <div class="shell shell-reading">
-          <div class="band-head">
-            <div>
-              <h2 id="signup-closed-next-heading">What you can still do</h2>
+          {% if not account_entry.unavailable %}
+            <div class="band-head">
+              <div>
+                <h2 id="signup-closed-next-heading">Choose how to sign in</h2>
+              </div>
             </div>
-          </div>
-          <div class="card entrance-panel">
-            <div class="entrance-notice">
+            <div class="card entrance-panel">
+              {% include "account/_social_provider_choices.html" with provider_list=account_entry.providers provider_url_mode="provided" %}
+              <p>
+                Already have an account? The same buttons sign you in.
+              </p>
+            </div>
+          {% else %}
+            <div class="band-head">
+              <div>
+                <h2 id="signup-closed-next-heading">What you can still do</h2>
+              </div>
+            </div>
+            <div class="card entrance-panel">
+              <div class="entrance-notice">
+                {% include "account/_no_sign_in_method.html" %}
+              </div>
               <p>
                 Every course page, article, podcast episode and wiki page stays open
                 without an account.
               </p>
+              <div class="entrance-actions">
+                <a class="cta cta-primary interactive-lift" href="{% url 'course_list' %}">Browse courses</a>
+              </div>
             </div>
-            <p>
-              If you already have an account, you can still sign in.
-            </p>
-            <div class="entrance-actions">
-              <a class="cta cta-primary interactive-lift" href="{% url 'login' %}">Sign in</a>
-              <a class="cta cta-secondary interactive-lift" href="{% url 'course_list' %}">Browse courses</a>
-            </div>
-          </div>
+          {% endif %}
         </div>
       </section>
     </main>

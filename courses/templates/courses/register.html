@@ -373,6 +373,25 @@
         gap: 0.75rem;
       }
 
+      /* The gate's sign-in provider stack (production, where the providers
+         create the account): the entrance pages' one-decision column. */
+      .registration-provider-choices {
+        display: grid;
+        gap: 0.75rem;
+        max-width: 24rem;
+      }
+
+      .registration-provider-choices .provider-choice {
+        gap: 0.6rem;
+        width: 100%;
+      }
+
+      .registration-provider-choices .provider-mark {
+        flex: none;
+        height: 1.25rem;
+        width: 1.25rem;
+      }
+
       .registration-handoff {
         align-items: center;
         border-top: 2px dashed var(--line-soft);

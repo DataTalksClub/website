@@ -13,6 +13,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.urls.exceptions import NoReverseMatch
 
+from accounts.account_entry import log_missing_providers, signup_is_open
 from accounts.development_owner import DEVELOPMENT_OWNER_PRINCIPAL
 from accounts.forms import DevelopmentOwnerLoginForm
 from accounts.identity_values import normalize_account_email
@@ -80,6 +81,8 @@ def _optional_signup_url() -> str | None:
 def social_login_view(request):
     safe_next = safe_next_path(request)
     providers = get_available_providers(safe_next)
+    if not providers:
+        log_missing_providers(request, surface="login")
     local_login_enabled = bool(settings.DEVELOPMENT_OWNER_LOGIN_ENABLED)
     form = DevelopmentOwnerLoginForm(request.POST or None)
     login_error = ""
@@ -132,7 +135,9 @@ def social_login_view(request):
     context = {
         "providers": providers,
         "safe_next": safe_next,
-        "account_signup_url": _optional_signup_url(),
+        # Only an open form is linked: a closed one is a dead end, and the
+        # provider buttons above already create a new member's account.
+        "account_signup_url": _optional_signup_url() if signup_is_open(request) else None,
         "development_owner_form": form,
         "development_owner_login_enabled": local_login_enabled,
         "login_error": login_error,
@@ -168,7 +173,11 @@ def get_available_providers(safe_next="/"):
         }
         providers.append(provider_record)
 
-    cache.set("available_providers", providers, 60 * 60)
+    # An empty list is never cached: it is the misconfiguration state
+    # (`accounts.checks`), and the operator's fix must show on the next request
+    # rather than an hour later in every worker.
+    if providers:
+        cache.set("available_providers", providers, 60 * 60)
     return _providers_with_next(providers, safe_next)
 
 
