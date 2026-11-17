@@ -156,6 +156,11 @@ SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
         "deliberate, separately invoked run rather than something a local rebuild "
         "does on its way past."
     ),
+    "import_event_duplicate_merges": (
+        "Deletes Event rows and moves their registrations, and only for pairs a person "
+        "named after reviewing a dry run, so it is a typed operator command and never "
+        "part of a dataset rebuild."
+    ),
     "import_mailchimp_course_tags": (
         "Needs Mailchimp provider credentials and reads subscriber-level personal "
         "data, and additionally depends on the course catalogue already existing "

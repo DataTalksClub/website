@@ -890,6 +890,36 @@ untouched draft one `create_event_identity` provisions. A duplicate carrying rea
 dependent data is reported and kept. There is no force flag, because merging one is a
 decision this script may not guess at.
 
+**Merging a duplicate that carries data** is a separate, reviewed step:
+`scripts/prod/import_event_duplicate_merges.py`. A person names every pair as
+`--pair KEEP_ID:DUPLICATE_ID` (event row ids, not public ids); nothing is detected. It is
+a dry run by default and prints both records side by side — title, start, description
+presence, hosts, registration and Q&A counts — plus exactly what would move. `--apply`
+merges each pair in its own transaction through `events.merge`: registrations move to the
+kept event (a registrant already on it is not doubled; a kept event already holding rows
+from the same provider is refused, because a later `--refresh` replaces a provider's rows
+on an event wholesale), missing hosts are appended, an *empty* Q&A session is deleted (a
+non-empty one refuses the pair), and any relation the service does not know refuses the
+pair. The duplicate's public id, UUID, calendar UID and source tuple are kept in
+`content.EventMergedIdentity`: the retired detail URLs (`/events/<retired id>/<slug>`,
+`/events/<retired id>`, and their trailing-slash spellings) answer with a one-hop `301` to
+the kept event's canonical path; `GET /events/<retired id>/<slug>/register` answers `302`
+to it, matching the live register route. The retired public id is never reassigned, and discovery and the registrant
+importer resolve the retired Luma event id to the kept event (content writers do not), so a
+later export neither recreates the duplicate nor strands its registrations. One
+`core.AuditEvent` (`events.duplicate_merged`) is written per merged pair; replaying a pair
+reports `already_merged`. An error raised mid-run stops the run and prints
+`merge_run_aborted` with the failing pair and `completed_pairs`, the pairs already committed
+before it (each pair commits on its own; the failing one rolled back). Pairs whose starts differ by more than `--max-days-apart`
+(default 1) need `--allow-date-mismatch`. The kept event's start time is never changed
+unless `--start-from-duplicate` is given.
+
+The 4.5–5 hour start difference in the Luma/events.yaml pairs is not an import error.
+Luma's `event_start_at` is a real UTC instant (Luma's own `timezone` agrees with it), while
+393 of the 440 legacy `_data/events.yaml` entries carry a placeholder `17:00` Berlin time,
+because the legacy site rendered only the date. Where the two disagree, Luma's time is the
+scheduled slot (commonly 12:30 Berlin for podcasts).
+
 **Report shape**, per provider: `candidate_total` (events read from the export),
 `existing_event_total` (recognised as an event we already hold), `already_tracked_total`
 (we minted this one on an earlier run), `ambiguous_total`, `undated_total`,

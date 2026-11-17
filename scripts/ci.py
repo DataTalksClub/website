@@ -142,6 +142,7 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "scripts/tests/test_identity_manifest.py",
     "scripts/tests/test_ml_zoomcamp_2021_identity_merge.py",
     "scripts/tests/test_registrant_import.py",
+    "scripts/tests/test_import_event_duplicate_merges.py",
     "courses/tests/test_enrollment_error_accessibility.py",
     "studio_courses/tests/test_enrollment_sorting.py",
     "courses/tests/test_course_external_links.py",
@@ -281,6 +282,9 @@ PRODUCTION_IMPORT_PYTHON: Final = (
     # for mypy (the directory walk already covers it) while the adoption-gate
     # coverage test still sees the opt-in by path.
     "scripts/prod/import_production_ai_campaign.py",
+    # Reviewed duplicate-event merge: new production-import code. Listed after
+    # the directory for the same reason as the entries above.
+    "scripts/prod/import_event_duplicate_merges.py",
 )
 TYPECHECK_PATHS: Final = (
     "slack_access",

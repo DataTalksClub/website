@@ -108,6 +108,12 @@ BACKEND_PATTERN_EXCEPTIONS: dict[Path, frozenset[str]] = {
     # Keep the lock so concurrent approve/reject decisions cannot lose updates;
     # application-notification tests cover replay and rollback of mail failures.
     Path("courses/services/application_notifications.py"): frozenset({"select_for_update"}),
+    # A reviewed duplicate-event merge locks both Event rows for the whole
+    # per-pair transaction, so a registrant import or Studio edit cannot write
+    # to the duplicate between the plan and its deletion. PostgreSQL locks the
+    # two rows; SQLite serializes the same transaction at database level, so
+    # the behavior is portable and only the token is backend-specific.
+    Path("events/merge.py"): frozenset({"select_for_update"}),
     # The Coolify deploy preflight audits catalog ownership as the
     # migration role before any DDL. It refuses to run anywhere but the
     # deployed engine, so the behavior is intentionally PostgreSQL-only
