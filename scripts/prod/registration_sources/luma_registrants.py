@@ -32,6 +32,13 @@ title+date match, no fuzzy matching) is passed in, a ``resolved`` entry's
 ``Event`` that export id really is -- the same shape
 :mod:`.eventbrite_registrants` already uses its own reviewed identities file
 for. This only changes which ``Event`` attendee rows attach to.
+
+When neither resolves -- discovery recognised the event as one the reviewed
+manifest already describes, so no provider identity was minted -- the importer
+falls back to the event's own title and start
+(:func:`scripts.prod.registrant_import.resolve_pending_events`), read by
+:func:`read_luma_event_metadata` from the two event-level columns of the first
+CSV row. Unambiguous matches only, every one reported.
 """
 
 from __future__ import annotations
@@ -75,6 +82,7 @@ __all__ = [
     "DiscoveredRegistrantFile",
     "discover_luma_registrant_files",
     "read_luma_registrant_rows",
+    "read_luma_event_metadata",
     "luma_registrant_sources",
 ]
 
@@ -188,6 +196,38 @@ def read_luma_registrant_rows(
     return tuple(rows)
 
 
+def read_luma_event_metadata(
+    csv_path: Path, *, external_event_identifier: str
+) -> tuple[str, str]:
+    """``(event_name, event_start_at)`` from the event's first CSV row, or ``("", "")``.
+
+    Event-level columns only, from the first data row: these are the event's
+    public title and start, repeated on every row.  Only those two values (and
+    the row's ``event_id``, checked against the pair) are used or returned -- no
+    attendee value leaves this function -- and nothing past the first row is
+    parsed.  A file without the two event
+    columns, or with no row at all (an event nobody registered for), yields
+    ``("", "")`` -- there is then nothing to match on, and the event stays
+    awaiting its identity.
+    """
+
+    resolved = _safe_csv_path(csv_path)
+    try:
+        with resolved.open("r", encoding="utf-8-sig", newline="") as stream:
+            reader = csv.DictReader(stream, strict=True)
+            headers = reader.fieldnames or []
+            if "event_name" not in headers or "event_start_at" not in headers:
+                return "", ""
+            row = next(reader, None)
+    except (OSError, UnicodeDecodeError, csv.Error) as error:
+        raise RegistrantImportError("malformed_csv") from error
+    if row is None:
+        return "", ""
+    if row.get("event_id") != external_event_identifier:
+        _refuse("mismatched_luma_pair")
+    return (row.get("event_name") or "").strip(), (row.get("event_start_at") or "").strip()
+
+
 @dataclass(frozen=True, slots=True)
 class CanonicalLumaIdentity:
     repository: str
@@ -283,6 +323,11 @@ def luma_registrant_sources(
                     external_event_identifier=item.external_event_identifier,
                 ),
                 resolve_event=resolve_event,
+                read_event_metadata=partial(
+                    read_luma_event_metadata,
+                    item.csv_path,
+                    external_event_identifier=item.external_event_identifier,
+                ),
             )
         )
     return tuple(pending)

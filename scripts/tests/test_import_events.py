@@ -748,3 +748,454 @@ class EventsYamlImportTests(TestCase):
             self.assertEqual(replay["created_total"], 0)
             self.assertEqual(replay["existing_event_total"], 2)
             self.assertEqual(Event.objects.count(), before + 2)
+
+
+class EventsYamlDuplicateTests(TestCase):
+    """The two duplicate classes the 2026-11-16 rebuild hit, reproduced synthetically.
+
+    The first version of ``--events-yaml`` only recognised an existing event by
+    a *dated* source key, so it created a second row for (a) every Luma-discovered
+    event (``evt-...`` key) and (b) every podcast-style manifest entry whose key
+    carries no date: 79 duplicates on a production-like rebuild.
+    """
+
+    def setUp(self) -> None:
+        scratch = Path(settings.BASE_DIR) / ".tmp"
+        scratch.mkdir(exist_ok=True)
+        temporary = tempfile.TemporaryDirectory(dir=scratch)
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.luma = self.root / "luma"
+        self.luma.mkdir()
+
+    def _yaml(self, text: str) -> Path:
+        path = self.root / "events.yaml"
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def _luma_event(self, *, event_id: str, title: str, start_at: str, slug: str):
+        from scripts.prod.registrant_import import create_provider_event_identity
+
+        _write_luma_pair(
+            self.luma,
+            event_id,
+            event_id=event_id,
+            event_url=f"https://luma.com/{slug}",
+            title=title,
+            start_at=start_at,
+            statuses=("approved",),
+        )
+        return create_provider_event_identity(
+            provider="luma", external_event_identifier=event_id, title=title, start_at=start_at
+        )
+
+    def _manifest_event(self, *, title: str, source_key: str, start: str):
+        from datetime import datetime
+
+        from events.identity import create_event_identity
+
+        return create_event_identity(
+            title=title,
+            starts_at=datetime.fromisoformat(start),
+            source_repository="DataTalksClub/datatalksclub.github.io",
+            source_revision="a" * 40,
+            source_key=source_key,
+            event_type="podcast",
+            status="upcoming",
+        )
+
+    def test_a_luma_discovered_event_is_matched_and_given_its_type_and_speakers(self) -> None:
+        from community_base.events.models import Event
+
+        from events.identity import decode_event_tags
+        from scripts.prod.import_events import import_events_yaml
+
+        luma = self._luma_event(
+            event_id="evt-SyntheticReliable",
+            title="Synthetic Reliable Agents On Live Data",
+            start_at="2099-12-02T11:30:00+00:00",
+            slug="synthrel",
+        )
+        before = Event.objects.count()
+        path = self._yaml(
+            "- time: 2099-12-02 12:30:00\n"
+            "  title: 'Synthetic Reliable Agents On Live Data'\n"
+            "  speakers: [synthetic-speaker]\n"
+            "  type: podcast\n"
+            "  link: https://luma.com/synthrel\n"
+        )
+
+        dry = import_events_yaml(path=path, apply=False, luma_source=self.luma)
+        report = import_events_yaml(path=path, apply=True, luma_source=self.luma)
+
+        for result in (dry, report):
+            self.assertEqual(result["created_total"], 0)
+            self.assertEqual(result["existing_event_total"], 1)
+            self.assertEqual(result["matched_events"][0]["matched_by"], "luma_url")
+            self.assertEqual(result["matched_events"][0]["public_id"], luma.public_id)
+            self.assertEqual(
+                result["enriched_events"][0]["filled"], ["type", "speakers", "materials"]
+            )
+        self.assertEqual(Event.objects.count(), before)
+        luma.refresh_from_db()
+        self.assertEqual(decode_event_tags(luma.tags)[0], "podcast")
+        self.assertEqual(
+            list(luma.hosts.values_list("external_ref", flat=True)), ["synthetic-speaker"]
+        )
+        self.assertEqual(luma.materials[0]["url"], "https://luma.com/synthrel")
+
+        replay = import_events_yaml(path=path, apply=True, luma_source=self.luma)
+        self.assertEqual(replay["created_total"], 0)
+        self.assertEqual(replay["enriched_total"], 0)
+
+    def test_without_the_export_start_and_title_still_find_the_luma_event(self) -> None:
+        from community_base.events.models import Event
+
+        from scripts.prod.import_events import import_events_yaml
+
+        luma = self._luma_event(
+            event_id="evt-SyntheticPeople",
+            title="Synthetic People Analytics with AI",
+            start_at="2099-11-30T11:30:00+00:00",
+            slug="synthpeople",
+        )
+        before = Event.objects.count()
+        path = self._yaml(
+            "- time: 2099-11-30 12:30:00\n"
+            "  title: 'Synthetic People Analytics With AI'\n"
+            "  type: podcast\n"
+        )
+
+        report = import_events_yaml(path=path, apply=True)
+
+        self.assertEqual(report["created_total"], 0)
+        self.assertEqual(report["matched_events"][0]["matched_by"], "start_and_title")
+        self.assertEqual(report["matched_events"][0]["public_id"], luma.public_id)
+        self.assertEqual(Event.objects.count(), before)
+
+    def test_a_nominal_hour_on_the_same_day_matches_a_differently_spelled_luma_title(
+        self,
+    ) -> None:
+        """The legacy site's nominal 17:00 against Luma's real 12:30, and a leading "The"."""
+
+        from community_base.events.models import Event
+
+        from scripts.prod.import_events import import_events_yaml
+
+        luma = self._luma_event(
+            event_id="evt-SyntheticPlaybook",
+            title="Synthetic Consultant Playbook: From Code to Impact",
+            start_at="2099-08-17T10:30:00+00:00",
+            slug="synthplay",
+        )
+        before = Event.objects.count()
+        path = self._yaml(
+            "- time: 2099-08-17 17:00:00\n"
+            "  title: 'The Synthetic Consultant Playbook From Code to Impact'\n"
+            "  type: podcast\n"
+        )
+
+        report = import_events_yaml(path=path, apply=True)
+
+        self.assertEqual(report["created_total"], 0)
+        self.assertEqual(report["matched_events"][0]["matched_by"], "date_and_title")
+        self.assertEqual(report["matched_events"][0]["public_id"], luma.public_id)
+        self.assertEqual(Event.objects.count(), before)
+
+    def test_an_undated_podcast_manifest_event_is_matched_and_left_untouched(self) -> None:
+        from community_base.events.models import Event
+
+        from scripts.prod.import_events import import_events_yaml
+
+        manifest = self._manifest_event(
+            title="Synthetic Roles in a Data Team",
+            source_key="synthetic-roles",  # podcast-style: no date in the key
+            start="2020-11-20T11:00:00+00:00",
+        )
+        before = Event.objects.count()
+        path = self._yaml(
+            "- time: 2020-11-20 12:00:00\n"
+            "  title: 'Synthetic Roles in a Data Team'\n"
+            "  speakers: [synthetic-guest]\n"
+            "  type: podcast\n"
+            "  season: 1\n"
+            "  episode: 3\n"
+            "  link: https://example.com/synthetic-roles\n"
+        )
+
+        dry = import_events_yaml(path=path, apply=False)
+        report = import_events_yaml(path=path, apply=True)
+
+        for result in (dry, report):
+            self.assertEqual(result["created_total"], 0)
+            self.assertEqual(result["matched_events"][0]["matched_by"], "start_and_title")
+            self.assertEqual(result["matched_events"][0]["public_id"], manifest.public_id)
+            # A reviewed manifest row is never enriched from the legacy file.
+            self.assertEqual(result["enriched_total"], 0)
+        self.assertEqual(Event.objects.count(), before)
+        manifest.refresh_from_db()
+        self.assertEqual(manifest.materials, [])
+        self.assertFalse(manifest.hosts.exists())
+
+    def test_a_luma_url_on_another_date_is_not_the_same_occurrence(self) -> None:
+        """A reused Luma listing: same URL, a different day.  Reported, then created."""
+
+        from scripts.prod.import_events import import_events_yaml
+
+        luma = self._luma_event(
+            event_id="evt-SyntheticReused",
+            title="Synthetic Reused Listing",
+            start_at="2099-07-01T10:30:00+00:00",
+            slug="synthreused",
+        )
+        path = self._yaml(
+            "- time: 2099-04-14 17:00:00\n"
+            "  title: 'Synthetic Reused Listing'\n"
+            "  link: https://lu.ma/SynthReused\n"
+        )
+
+        report = import_events_yaml(path=path, apply=False, luma_source=self.luma)
+
+        self.assertEqual(report["created_total"], 1)
+        self.assertEqual(report["provider_url_date_conflict_total"], 1)
+        self.assertEqual(
+            report["provider_url_date_conflicts"][0]["provider_url_on_another_date_public_id"],
+            luma.public_id,
+        )
+
+    def test_two_candidate_events_are_ambiguous_and_nothing_is_created(self) -> None:
+        from community_base.events.models import Event
+
+        from scripts.prod.import_events import import_events_yaml
+
+        self._manifest_event(
+            title="Synthetic Twin Session", source_key="synthetic-twin-a",
+            start="2099-03-01T16:00:00+00:00",
+        )
+        self._manifest_event(
+            title="Synthetic Twin Session", source_key="synthetic-twin-b",
+            start="2099-03-01T16:00:00+00:00",
+        )
+        before = Event.objects.count()
+        path = self._yaml("- time: 2099-03-01 17:00:00\n  title: 'Synthetic Twin Session'\n")
+
+        report = import_events_yaml(path=path, apply=True)
+
+        self.assertEqual(report["created_total"], 0)
+        self.assertEqual(report["ambiguous_total"], 1)
+        self.assertEqual(report["ambiguous_events"][0]["candidate_event_total"], 2)
+        self.assertEqual(Event.objects.count(), before)
+
+    def test_the_dry_run_separates_matches_from_creations_and_sees_repeats(self) -> None:
+        from community_base.events.models import Event
+
+        from scripts.prod.import_events import import_events_yaml
+
+        self._luma_event(
+            event_id="evt-SyntheticKnown",
+            title="Synthetic Known Event",
+            start_at="2099-05-05T15:00:00+00:00",
+            slug="synthknown",
+        )
+        before = Event.objects.count()
+        path = self._yaml(
+            "- time: 2099-05-05 17:00:00\n"
+            "  title: 'Synthetic Known Event'\n"
+            "- time: 2099-06-06 17:00:00\n"
+            "  title: 'Synthetic Brand New Event'\n"
+            "- time: 2099-06-06 17:00:00\n"
+            "  title: 'Synthetic Brand-New Event'\n"
+        )
+
+        dry = import_events_yaml(path=path, apply=False)
+
+        self.assertEqual(Event.objects.count(), before)
+        self.assertEqual(
+            [(m["title"], m["matched_by"]) for m in dry["matched_events"]],
+            [
+                ("Synthetic Known Event", "start_and_title"),
+                ("Synthetic Brand-New Event", "earlier_entry_in_this_file"),
+            ],
+        )
+        self.assertEqual(
+            [c["title"] for c in dry["created_events"]], ["Synthetic Brand New Event"]
+        )
+
+        applied = import_events_yaml(path=path, apply=True)
+
+        self.assertEqual(applied["created_total"], 1)
+        self.assertEqual(
+            [m["matched_by"] for m in applied["matched_events"]],
+            ["start_and_title", "earlier_entry_in_this_file"],
+        )
+        self.assertEqual(Event.objects.count(), before + 1)
+
+    def test_a_luma_event_that_already_has_speakers_keeps_them(self) -> None:
+        from community_base.events.models import EventHost, Host
+
+        from scripts.prod.import_events import import_events_yaml
+
+        luma = self._luma_event(
+            event_id="evt-SyntheticReviewed",
+            title="Synthetic Reviewed Speakers",
+            start_at="2099-09-09T15:00:00+00:00",
+            slug="synthreviewed",
+        )
+        host = Host.objects.create(
+            slug="synthetic-reviewed-host", name="Reviewed", kind="speaker",
+            external_ref="synthetic-reviewed-host",
+        )
+        EventHost.objects.create(event=luma, host=host, role="speaker", position=0)
+        path = self._yaml(
+            "- time: 2099-09-09 17:00:00\n"
+            "  title: 'Synthetic Reviewed Speakers'\n"
+            "  speakers: [synthetic-yaml-speaker]\n"
+            "  type: webinar\n"
+        )
+
+        report = import_events_yaml(path=path, apply=True)
+
+        self.assertEqual(report["enriched_events"][0]["filled"], ["type"])
+        self.assertEqual(
+            list(luma.hosts.values_list("external_ref", flat=True)),
+            ["synthetic-reviewed-host"],
+        )
+
+    def test_a_luma_row_duplicating_a_reviewed_row_is_reported_not_enriched(self) -> None:
+        """An earlier discovery minted a Luma twin of a manifest event; leave it bare."""
+
+        from community_base.events.models import Event
+
+        from scripts.prod.import_events import import_events_yaml
+
+        manifest = self._manifest_event(
+            title="Synthetic Agent In The Loop",
+            source_key="synthetic-agent-in-the-loop-reviewed",
+            start="2099-12-16T16:00:00+00:00",
+        )
+        luma = self._luma_event(
+            event_id="evt-SyntheticTwin",
+            title="Synthetic Agent In The Loop",
+            start_at="2099-12-16T11:30:00+00:00",
+            slug="synthtwin",
+        )
+        before = Event.objects.count()
+        path = self._yaml(
+            "- time: 2099-12-16 17:00:00\n"
+            "  title: 'Synthetic Agent In The Loop'\n"
+            "  speakers: [synthetic-speaker]\n"
+            "  type: webinar\n"
+            "  link: https://luma.com/synthtwin\n"
+        )
+
+        report = import_events_yaml(path=path, apply=True, luma_source=self.luma)
+
+        self.assertEqual(report["created_total"], 0)
+        self.assertEqual(report["enriched_total"], 0)
+        self.assertEqual(
+            report["provider_duplicates"][0]["also_matches_public_id"], manifest.public_id
+        )
+        self.assertEqual(report["provider_duplicates"][0]["provider_public_id"], luma.public_id)
+        self.assertEqual(Event.objects.count(), before)
+        luma.refresh_from_db()
+        self.assertEqual(luma.tags, [])
+
+    def _production_shaped_row(self, *, title: str, source_key: str, start: str, link: str = ""):
+        """A reviewed row whose source key matches neither the old nor the new title.
+
+        Production's manifest keys were cut from an earlier spelling of the title
+        (``writing``, ``2021-01-15-importance-of-writing``), and its Eventbrite link
+        lives in ``materials`` -- the shape behind the 74 events a dry run against
+        production would have recreated.
+        """
+
+        row = self._manifest_event(title=title, source_key=source_key, start=start)
+        if link:
+            row.materials = [{"label": "Register on Eventbrite", "url": link}]
+            row.save(update_fields=["materials"])
+        return row
+
+    def test_a_production_shaped_row_is_found_by_its_eventbrite_link(self) -> None:
+        from community_base.events.models import Event
+
+        from scripts.prod.import_events import import_events_yaml
+
+        row = self._production_shaped_row(
+            title="The Importance of Writing in a Synthetic Career",
+            source_key="2099-01-15-old-spelling-of-writing",
+            start="2099-01-15T16:00:00+00:00",
+            link="https://www.eventbrite.com/e/synthetic-writing-tickets-998877665544",
+        )
+        before = Event.objects.count()
+        # Retitled since, and given the nominal hour: neither the key nor the
+        # start/title tiers would see it.
+        path = self._yaml(
+            "- time: 2099-01-15 19:00:00\n"
+            "  title: 'Writing Well: A Synthetic Career Skill'\n"
+            "  type: podcast\n"
+            "  link: https://eventbrite.com/e/998877665544\n"
+        )
+
+        report = import_events_yaml(path=path, apply=False)
+
+        self.assertEqual(report["created_total"], 0)
+        self.assertEqual(report["matched_events"][0]["matched_by"], "eventbrite_url")
+        self.assertEqual(report["matched_events"][0]["public_id"], row.public_id)
+        self.assertEqual(Event.objects.count(), before)
+
+    def test_a_production_shaped_row_is_found_by_date_and_normalized_title(self) -> None:
+        from community_base.events.models import Event
+
+        from scripts.prod.import_events import import_events_yaml
+
+        row = self._production_shaped_row(
+            title="The Importance of Writing in a Tech Career (Synthetic)",
+            source_key="synthetic-writing",
+            start="2099-01-15T16:00:00+00:00",
+        )
+        before = Event.objects.count()
+        path = self._yaml(
+            "- time: 2099-01-15 19:00:00\n"
+            "  title: 'Importance of Writing in a Tech Career - Synthetic'\n"
+        )
+
+        report = import_events_yaml(path=path, apply=True)
+
+        self.assertEqual(report["created_total"], 0)
+        self.assertEqual(report["matched_events"][0]["matched_by"], "date_and_title")
+        self.assertEqual(report["matched_events"][0]["public_id"], row.public_id)
+        self.assertEqual(Event.objects.count(), before)
+
+    def test_a_luma_profile_or_calendar_url_names_no_event(self) -> None:
+        from scripts.prod.import_events import _luma_url_key
+
+        self.assertIsNone(_luma_url_key("https://luma.com/user/synthetic-host"))
+        self.assertIsNone(_luma_url_key("https://lu.ma/calendar/manage/cal-synthetic"))
+        self.assertEqual(_luma_url_key("https://lu.ma/SynthSlug/"), "synthslug")
+        self.assertEqual(_luma_url_key("https://lu.ma/event/evt-SynthAbC"), "evt-SynthAbC")
+        self.assertEqual(
+            _luma_url_key("https://www.eventbrite.de/e/synthetic-tickets-123456789012"),
+            "eventbrite:123456789012",
+        )
+
+    def test_two_same_title_entries_on_one_day_are_not_folded_together(self) -> None:
+        """Two sessions of a series on one day: the date tier refuses, it does not merge."""
+
+        from community_base.events.models import Event
+
+        from scripts.prod.import_events import import_events_yaml
+
+        before = Event.objects.count()
+        path = self._yaml(
+            "- time: 2099-10-10 10:00:00\n"
+            "  title: 'Synthetic Office Hours'\n"
+            "- time: 2099-10-10 17:00:00\n"
+            "  title: 'Synthetic Office Hours'\n"
+        )
+
+        report = import_events_yaml(path=path, apply=True)
+
+        self.assertEqual(report["created_total"], 1)
+        self.assertEqual(report["ambiguous_total"], 1)
+        self.assertEqual(report["ambiguous_events"][0]["same_day_same_title_entries"], 2)
+        self.assertEqual(Event.objects.count(), before + 1)

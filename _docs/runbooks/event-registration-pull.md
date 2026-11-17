@@ -34,9 +34,13 @@ provider event identifiers and counts, but never email addresses.
 
 3. Run the same command without \`--dry-run\`.
 
-4. For a newer export, add \`--refresh\`. Refresh replaces each event's provider
-   rows atomically, so cancellations and changed statuses are reflected rather
-   than appended.
+4. For a newer export, add \`--refresh\`. Refresh replaces each provider event's
+   own rows atomically, so cancellations and changed statuses are reflected rather
+   than appended. Dry-run it first: \`registrations_replaced\` is the gross rewrite,
+   \`registrations_removed\` the people really lost. A refresh that would lose more
+   than 5 people or 10% of one event, or 2% overall, is refused before any write and
+   names the events (\`refresh_removal_guard\`); pass \`--allow-large-removal\` only
+   after reviewing them (\`data-ingest.md\` §16/17).
 
 The importer requires existing Event identities. Events it cannot resolve are
 reported under \`awaiting_identity_events\` and skipped. Resolve the identity in

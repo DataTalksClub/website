@@ -86,6 +86,7 @@ from courses.services.course_family_identity import (
     family_title_from_edition_title,
 )
 from courses.services.launch_import_timing import import_explicit_start
+from courses.services.launch_validation import LaunchError
 
 __all__ = [
     "CampaignReport",
@@ -373,16 +374,68 @@ def _date(value: Any) -> date | None:
 
 
 def _datetime(value: Any) -> datetime | None:
+    """Read one CMP timestamp, interpreting an offset-less value as UTC.
+
+    CMP runs Django with ``TIME_ZONE = "UTC"`` and ``USE_TZ = True``
+    (``course_management/settings.py``), and its SQLite backend stores every aware
+    datetime as a naive UTC string (``"2026-01-12 00:00:00"``).  So a naive value in
+    the export *is* UTC, by CMP's own configuration -- reading it as such here, at
+    the import boundary, is the documented interpretation, not a guess.  Nothing
+    past this function ever sees a naive value.
+    """
+
     if value in (None, ""):
         return None
-    text = str(value).replace("Z", "+00:00")
-    try:
-        parsed = datetime.fromisoformat(text)
-    except ValueError:
-        _refuse("source-datetime-invalid")
+    if isinstance(value, datetime):
+        parsed = value
+    else:
+        text = str(value).replace("Z", "+00:00")
+        try:
+            parsed = datetime.fromisoformat(text)
+        except ValueError:
+            _refuse("source-datetime-invalid")
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=UTC)
     return parsed
+
+
+def _is_date_only(value: Any) -> bool:
+    """A start carrying a calendar date and no time of day."""
+
+    if isinstance(value, datetime):
+        return False
+    if isinstance(value, date):
+        return True
+    if isinstance(value, str):
+        text = value.strip()
+        return len(text) == 10 and text[4] == "-" and text[7] == "-"
+    return False
+
+
+def _import_explicit_start(row: Any, source: Any, kind: str) -> None:
+    """Hand CMP's optional ``starts_at`` to the shared timing seam, already aware.
+
+    ``courses.services.launch_import_timing`` deliberately accepts only an
+    offset-carrying timestamp, so the CMP-specific interpretation (naive means
+    UTC, see :func:`_datetime`) happens here rather than loosening that seam for
+    every caller.  A start the launch rules reject (after the deadline, after the
+    cohort end) is a bounded refusal like every other bad source value, not an
+    uncaught ``LaunchError``.
+    """
+
+    explicit: dict[str, Any] = {}
+    if "starts_at" in source.keys():
+        raw = source["starts_at"]
+        if _is_date_only(raw):
+            # The provenance this records says date-only values are not
+            # inferred: a bare date names no instant, so it is refused rather
+            # than silently read as midnight UTC.
+            _refuse(f"source-{kind}-start-date-only")
+        explicit["starts_at"] = _datetime(raw)
+    try:
+        import_explicit_start(row, explicit, kind)
+    except LaunchError:
+        _refuse(f"source-{kind}-start-invalid")
 
 
 def _coerce(name: str, value: Any) -> Any:
@@ -733,7 +786,7 @@ def _import_cohort(
     homework_slug_overrides: Mapping[str, Mapping[str, str]] = MappingProxyType({}),
 ) -> CohortReport:
     _apply(cohort, _values(row, _COHORT_FIELDS))
-    import_explicit_start(cohort, row, "cohort")
+    _import_explicit_start(cohort, row, "cohort")
     course_id = row["id"]
 
     homework_rows = _rows(
@@ -787,7 +840,7 @@ def _import_cohort(
             homework = Homework.objects.create(course=cohort, slug=slug, **values)
             if is_modules:
                 unpaired_cmp.append(slug)
-        import_explicit_start(homework, source, "homework")
+        _import_explicit_start(homework, source, "homework")
         existing[slug] = homework
         written += 1
         question_count, retained_count = _reconcile_questions(connection, source["id"], homework)
@@ -825,7 +878,7 @@ def _import_cohort(
         )
         if not created:
             _apply(project, _values(source, _PROJECT_FIELDS))
-        import_explicit_start(project, source, "project")
+        _import_explicit_start(project, source, "project")
         projects_written += 1
     projects_removed = (
         Project.objects.filter(course=cohort).exclude(slug__in=project_slugs).delete()[0]

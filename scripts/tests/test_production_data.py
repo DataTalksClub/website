@@ -53,7 +53,7 @@ STEP_TABLE = """\
 | ↳ `editorial_seed` | `manage.py seed_content_sources`, with `--editorial-checkout-root` |
 | ↳ `editorial_checkouts` | `scripts/content.py editorial-checkouts`, with `--refresh-checkouts` |
 | ↳ `editorial_sync` | `sync_content --source <slug> --from-disk <root>/<slug>`, five sources |
-| ↳ `events` | `import_events.run()`, then the Luma and Eventbrite attendee exports |
+| ↳ `events` | `import_events.run()` + events.yaml leg; registrants with `--with-registrants` |
 | `scripts/verify_local_dataset.py` | the dataset gate, editorial and media store included |
 """
 
@@ -136,8 +136,9 @@ class ProductionDataSequenceTests(SimpleTestCase):
             mock.patch.object(production_data.subprocess, "run", recorder),
             contextlib.redirect_stderr(stderr),
         ):
-            if "PRODUCTION_PREP_FRESH" not in environment:
-                os.environ.pop("PRODUCTION_PREP_FRESH", None)
+            for opt_in in ("PRODUCTION_PREP_FRESH", "PRODUCTION_PREP_WITH_REGISTRANTS"):
+                if opt_in not in environment:
+                    os.environ.pop(opt_in, None)
             status = production_data.main([command])
         return status, recorder, stderr.getvalue()
 
@@ -173,6 +174,32 @@ class ProductionDataSequenceTests(SimpleTestCase):
         self.assertEqual(status, 0)
         self.assertIn("--fresh", recorder.commands[1])
         self.assertIs(recorder.database_existed_at_prepare, False)
+
+    def test_a_routine_dataset_imports_no_registrants(self) -> None:
+        """Attendee data is not part of a routine rebuild (runbook section 8.1)."""
+
+        _status, recorder, _stderr = self._run("dataset")
+        self.assertNotIn("--with-registrants", recorder.commands[1])
+
+    def test_only_an_explicit_true_value_opts_in(self) -> None:
+        for value, expected in (
+            ("0", False),
+            ("false", False),
+            ("no", False),
+            ("", False),
+            ("1", True),
+            ("TRUE", True),
+            ("yes", True),
+        ):
+            with self.subTest(value=value):
+                _status, recorder, _stderr = self._run(
+                    "dataset", PRODUCTION_PREP_WITH_REGISTRANTS=value
+                )
+                self.assertEqual("--with-registrants" in recorder.commands[1], expected)
+
+    def test_registrants_are_an_explicit_opt_in(self) -> None:
+        _status, recorder, _stderr = self._run("dataset", PRODUCTION_PREP_WITH_REGISTRANTS="1")
+        self.assertIn("--with-registrants", recorder.commands[1])
 
     def test_a_failed_rehearsal_step_fails_the_run_and_is_named(self) -> None:
         status, recorder, stderr = self._run("dataset", fail_on="scripts/prepare_local_data.py")
@@ -355,6 +382,96 @@ class RehearsalSequenceTests(SimpleTestCase):
         # Offline by default: nothing is refreshed.
         self.assertNotIn("course_repository_checkouts", order)
         self.assertNotIn("editorial_checkouts", order)
+
+    def test_a_routine_rehearsal_imports_no_attendee_rows(self) -> None:
+        """Registrants are opt-in; without them no attendee export need exist."""
+
+        order: list[str] = []
+        self.fixture.eventbrite.unlink()
+        report = self._run(order, eventbrite_source=self.fixture.eventbrite)
+        # The event pipeline ran once; the registrant importer never did.
+        self.assertEqual(order.count("events"), 1)
+        self.assertEqual(report["event_registrations"], {"skipped": "registrants_not_requested"})
+
+    def test_registrants_run_only_when_asked_for(self) -> None:
+        order: list[str] = []
+        report = self._run(order, with_registrants=True)
+        # The pipeline, then one import per provider.
+        self.assertEqual(order.count("events"), 3)
+        self.assertEqual(sorted(report["event_registrations"]), ["eventbrite", "luma"])
+
+    def test_asking_for_registrants_without_the_eventbrite_export_is_refused(self) -> None:
+        self.fixture.eventbrite.unlink()
+        with self.assertRaises(prepare.LocalPreparationError) as raised:
+            self._run([], with_registrants=True)
+        self.assertEqual(str(raised.exception), "registration_source_unavailable")
+
+    def test_the_event_stage_reads_events_yaml_from_the_synced_main_site(self) -> None:
+        """Production's upcoming events got type and speakers from this file."""
+
+        received: dict[str, Any] = {}
+
+        def pipeline(**kwargs: Any) -> dict[str, Any]:
+            received.update(kwargs)
+            return {
+                "identities": {},
+                "new_event_identities": {},
+                "event_content": {},
+                "new_event_content": {},
+                "eventbrite_descriptions": {},
+                "events_yaml": {"present": True, "created_total": 0},
+            }
+
+        fixture = self.fixture
+        with (
+            _stubbed_rehearsal([]),
+            mock.patch.object(prepare, "run_event_pipeline", pipeline),
+        ):
+            report = prepare.run(
+                database=fixture.database,
+                course_checkout_root=fixture.course_root,
+                identity_manifest=fixture.manifest,
+                luma_source=fixture.luma,
+                eventbrite_source=fixture.eventbrite,
+                luma_identities=None,
+                editorial_checkout_root=fixture.editorial_root,
+                fresh=True,
+            )
+        self.assertEqual(
+            received["events_yaml"],
+            fixture.editorial_root / "dtc-main-site" / "_data" / "events.yaml",
+        )
+        self.assertEqual(report["events_yaml"], {"present": True, "created_total": 0})
+
+    def test_without_an_editorial_root_there_is_no_events_yaml_leg(self) -> None:
+        received: dict[str, Any] = {}
+
+        def pipeline(**kwargs: Any) -> dict[str, Any]:
+            received.update(kwargs)
+            return {
+                "identities": {},
+                "new_event_identities": {},
+                "event_content": {},
+                "new_event_content": {},
+                "eventbrite_descriptions": {},
+            }
+
+        fixture = self.fixture
+        with (
+            _stubbed_rehearsal([]),
+            mock.patch.object(prepare, "run_event_pipeline", pipeline),
+        ):
+            report = prepare.run(
+                database=fixture.database,
+                course_checkout_root=fixture.course_root,
+                identity_manifest=fixture.manifest,
+                luma_source=fixture.luma,
+                luma_identities=None,
+                fresh=True,
+            )
+        self.assertIn("events_yaml", received)
+        self.assertIsNone(received["events_yaml"])
+        self.assertEqual(report["events_yaml"], {"present": False})
 
     def test_a_missing_editorial_checkout_names_its_slug(self) -> None:
         (self.fixture.editorial_root / "dtc-faq").rmdir()

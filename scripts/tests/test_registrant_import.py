@@ -9,6 +9,8 @@ directly.  The reader that turns a Luma export into those rows is tested in
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from community_base.events.models import Event
 from django.db import IntegrityError
 from django.test import TestCase
@@ -26,12 +28,14 @@ from scripts.prod.registrant_import import (
     EXISTING_EVENT_DATE_UNUSABLE,
     EXISTING_EVENT_MATCHED,
     EXISTING_EVENT_NONE,
+    EventOccurrenceIndex,
     ExistingEventIndex,
     PendingEventRegistrants,
     RegistrantRow,
     RunReport,
     create_provider_event_identity,
     import_registrants,
+    normalize_match_title,
     provider_source_identity,
 )
 
@@ -646,14 +650,17 @@ class PlanRegistrantsTests(RegistrantImportTestCase):
 
         self.assertEqual(report.events_planned, 1)
         self.assertEqual(report.rows_writable, 3)
-        self.assertEqual(report.registrations_removed, 3)
+        # Gross: all three held rows are deleted and rewritten. Net: only the
+        # one person the new export dropped is a loss.
+        self.assertEqual(report.registrations_replaced, 3)
+        self.assertEqual(report.registrations_removed, 1)
         self.assertEqual(report.registrations_unchanged, 1)
         self.assertEqual(report.registrations_changed, 2)
 
         # Apply carries out exactly the predicted diff.
         result = self._run(refresh=True)
         self.assertEqual(result.events_refreshed, 1)
-        self.assertEqual(result.rows_replaced, report.registrations_removed)
+        self.assertEqual(result.rows_replaced, report.registrations_replaced)
         self.assertEqual(result.rows_written, report.rows_writable)
 
         # And a second plan against the applied state predicts all unchanged.
@@ -836,3 +843,607 @@ class ExistingEventIndexTests(TestCase):
 
         self.assertEqual(match.outcome, EXISTING_EVENT_NONE)
         self.assertEqual(match.other_dates_with_this_title, ())
+
+
+class _FallbackFixtures(RegistrantImportTestCase):
+    """Synthetic manifest events and provider events carrying their own title/start."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.metadata_reads: list[str] = []
+
+    def _manifest_event(self, *, title: str, source_key: str, start: datetime) -> Event:
+        return create_event_identity(
+            title=title,
+            starts_at=start,
+            source_repository="DataTalksClub/datatalksclub.github.io",
+            source_revision="a" * 40,
+            source_key=source_key,
+        )
+
+    def _add_with_metadata(
+        self, *, event_id: str, title: str, start_at: str, rows: list[RegistrantRow]
+    ) -> None:
+        self._add_event(event_id=event_id, rows=rows)
+        plain = self.pending.pop()
+
+        def read_event_metadata(event_id: str = event_id) -> tuple[str, str]:
+            self.metadata_reads.append(event_id)
+            return title, start_at
+
+        self.pending.append(
+            PendingEventRegistrants(
+                external_event_identifier=plain.external_event_identifier,
+                read_rows=plain.read_rows,
+                read_event_metadata=read_event_metadata,
+            )
+        )
+
+
+class TitleAndStartFallbackTests(_FallbackFixtures):
+    """A provider event with no identity attaches to the one event it provably is.
+
+    Reproduces the rebuild's "awaiting identity" class: discovery recognised the
+    Luma event as one the reviewed manifest already describes -- under an
+    undated, podcast-style source key, or a legacy key whose title is spelled
+    differently -- so it minted no provider identity, and the registrant rows had
+    nowhere to go.  Every value here is synthetic.
+    """
+
+    def test_an_exact_start_and_normalized_title_attaches_to_an_undated_manifest_event(
+        self,
+    ) -> None:
+        event = self._manifest_event(
+            title="Synthetic Fallback: Trade-offs In Problem Solving",
+            source_key="synthetic-fallback-podcast",  # podcast-style, no date
+            start=datetime(2023, 10, 31, 16, 0, tzinfo=UTC),
+        )
+        self._add_with_metadata(
+            event_id="evt-fallback-1",
+            title="The Synthetic Fallback Trade-offs in Problem-Solving",
+            start_at="2023-10-31T16:00:00.000Z",
+            rows=[self._row(guest_id="g1", email="fallback@example.invalid")],
+        )
+
+        report = self._run()
+
+        self.assertEqual(report.events_completed, 1)
+        self.assertEqual(report.events_awaiting_identity, 0)
+        self.assertEqual(
+            EventRegistration.objects.filter(event=event, provider=PROVIDER).count(), 1
+        )
+        reported = report.as_dict()
+        self.assertEqual(reported["fallback_matched_total"], 1)
+        self.assertEqual(
+            reported["fallback_matched_events"],
+            [
+                {
+                    "external_event_identifier": "evt-fallback-1",
+                    "title": "The Synthetic Fallback Trade-offs in Problem-Solving",
+                    "start_at": "2023-10-31T16:00:00.000Z",
+                    "matched_by": "start_and_title",
+                    "matched_event_public_id": event.public_id,
+                }
+            ],
+        )
+        # Nothing was minted for the provider id: the rows went to the event we had.
+        self.assertFalse(EventSource.objects.filter(source_key="evt-fallback-1").exists())
+
+    def test_the_same_berlin_date_and_title_attaches_when_the_hour_differs(self) -> None:
+        """The legacy site wrote a nominal 17:00; Luma held it at 12:30 that day."""
+
+        event = self._manifest_event(
+            title="Synthetic Collaborative Science",
+            source_key="2023-10-02-synthetic-collaborative-science",
+            start=datetime(2023, 10, 2, 15, 0, tzinfo=UTC),
+        )
+        self._add_with_metadata(
+            event_id="evt-fallback-2",
+            title="Synthetic Collaborative Science",
+            start_at="2023-10-02T10:30:00.000Z",
+            rows=[self._row(guest_id="g1", email="sameday@example.invalid")],
+        )
+
+        report = self._run()
+
+        self.assertEqual(report.events_awaiting_identity, 0)
+        self.assertEqual(report.fallback_matched_events[0].matched_by, "date_and_title")
+        self.assertEqual(EventRegistration.objects.filter(event=event).count(), 1)
+
+    def test_another_date_stays_awaiting_its_identity(self) -> None:
+        self._manifest_event(
+            title="Synthetic Freelance Next Level",
+            source_key="2025-04-14-synthetic-freelance-next-level",
+            start=datetime(2025, 4, 14, 15, 0, tzinfo=UTC),
+        )
+        self._add_with_metadata(
+            event_id="evt-fallback-3",
+            title="Synthetic Freelance Next Level",
+            start_at="2025-07-01T10:30:00.000Z",
+            rows=[self._row(guest_id="g1", email="later@example.invalid")],
+        )
+
+        report = self._run()
+
+        self.assertEqual(report.awaiting_identity_events, ("evt-fallback-3",))
+        self.assertEqual(report.fallback_matched_events, ())
+        self.assertEqual(self.read_calls, {})
+
+    def test_two_candidates_are_ambiguous_and_reported_not_guessed(self) -> None:
+        start = datetime(2024, 5, 7, 14, 30, tzinfo=UTC)
+        self._manifest_event(
+            title="Synthetic Office Hours", source_key="synthetic-office-hours-a", start=start
+        )
+        self._manifest_event(
+            title="Synthetic Office Hours", source_key="synthetic-office-hours-b", start=start
+        )
+        self._add_with_metadata(
+            event_id="evt-fallback-4",
+            title="Synthetic Office Hours",
+            start_at="2024-05-07T14:30:00.000Z",
+            rows=[self._row(guest_id="g1", email="ambiguous@example.invalid")],
+        )
+
+        report = self._run()
+
+        self.assertEqual(report.awaiting_identity_events, ("evt-fallback-4",))
+        self.assertEqual(EventRegistration.objects.count(), 0)
+        refused = report.as_dict()["fallback_refused_events"]
+        self.assertEqual(len(refused), 1)
+        self.assertEqual(refused[0]["reason"], "ambiguous")
+        self.assertEqual(refused[0]["candidate_event_total"], 2)
+
+    def test_an_event_another_source_resolves_directly_is_not_taken_by_a_fallback(
+        self,
+    ) -> None:
+        """Refresh replaces one event's provider rows wholesale; two writers would erase."""
+
+        minted = create_provider_event_identity(
+            provider=PROVIDER,
+            external_event_identifier="evt-own",
+            title="Synthetic Shared Listing",
+            start_at="2024-01-15T11:30:00+00:00",
+        )
+        self._add_event(
+            event_id="evt-own", rows=[self._row(guest_id="g1", email="own@example.invalid")]
+        )
+        self._add_with_metadata(
+            event_id="evt-copy",
+            title="Synthetic Shared Listing",
+            start_at="2024-01-15T11:30:00.000Z",
+            rows=[self._row(guest_id="g2", email="copy@example.invalid")],
+        )
+
+        report = self._run(refresh=True)
+
+        self.assertEqual(report.awaiting_identity_events, ("evt-copy",))
+        refused = report.as_dict()["fallback_refused_events"]
+        self.assertEqual(refused[0]["reason"], "event_claimed_by_another_source")
+        self.assertEqual(refused[0]["matched_event_public_id"], minted.public_id)
+        self.assertEqual(EventRegistration.objects.filter(event=minted).count(), 1)
+
+    def test_the_plan_reports_the_same_fallback_and_writes_nothing(self) -> None:
+        from scripts.prod.registrant_import import plan_registrants
+
+        event = self._manifest_event(
+            title="Synthetic Planned Fallback",
+            source_key="synthetic-planned-fallback",
+            start=datetime(2023, 11, 7, 16, 0, tzinfo=UTC),
+        )
+        self._add_with_metadata(
+            event_id="evt-fallback-5",
+            title="Synthetic Planned Fallback",
+            start_at="2023-11-07T16:00:00.000Z",
+            rows=[self._row(guest_id="g1", email="planned-fallback@example.invalid")],
+        )
+
+        plan = plan_registrants(provider=PROVIDER, pending=tuple(self.pending)).as_dict()
+
+        self.assertEqual(plan["events_planned"], 1)
+        self.assertEqual(plan["events_awaiting_identity"], 0)
+        self.assertEqual(
+            plan["fallback_matched_events"][0]["matched_event_public_id"], event.public_id
+        )
+        self.assertEqual(EventRegistration.objects.count(), 0)
+        self.assertEqual(EventRegistrantImportProgress.objects.count(), 0)
+
+    def test_a_completed_event_is_not_asked_for_its_metadata_on_resume(self) -> None:
+        self._manifest_event(
+            title="Synthetic Resumed Fallback",
+            source_key="synthetic-resumed-fallback",
+            start=datetime(2023, 11, 17, 11, 30, tzinfo=UTC),
+        )
+        self._add_with_metadata(
+            event_id="evt-fallback-6",
+            title="Synthetic Resumed Fallback",
+            start_at="2023-11-17T11:30:00.000Z",
+            rows=[self._row(guest_id="g1", email="resumed@example.invalid")],
+        )
+        self._run()
+        self.metadata_reads.clear()
+
+        second = self._run()
+
+        self.assertEqual(second.events_already_completed, 1)
+        self.assertEqual(self.metadata_reads, [])
+        self.assertEqual(EventRegistration.objects.count(), 1)
+
+
+class EventOccurrenceIndexTests(TestCase):
+    """The shared same-occurrence rule: exact on each axis of each tier."""
+
+    def _event(self, *, title: str, source_key: str, start: datetime) -> Event:
+        return create_event_identity(
+            title=title,
+            starts_at=start,
+            source_repository="DataTalksClub/datatalksclub.github.io",
+            source_revision="a" * 40,
+            source_key=source_key,
+        )
+
+    def test_title_normalization_ignores_case_punctuation_and_a_leading_the(self) -> None:
+        self.assertEqual(
+            normalize_match_title("The Data Consultant Playbook From Code to Business Impact"),
+            normalize_match_title("Data Consultant Playbook: From Code to Business Impact"),
+        )
+        self.assertEqual(normalize_match_title("The ABC’s of  Data"), "abc s of data")
+        self.assertNotEqual(
+            normalize_match_title("ML Engineering in Finance"),
+            normalize_match_title("ML Engineering in Finances"),
+        )
+
+    def test_a_naive_start_matches_nothing_rather_than_being_guessed(self) -> None:
+        self._event(
+            title="Synthetic Naive Start",
+            source_key="synthetic-naive-start",
+            start=datetime(2024, 3, 1, 12, tzinfo=UTC),
+        )
+
+        match = EventOccurrenceIndex().match(
+            title="Synthetic Naive Start", start="2024-03-01 12:00:00"
+        )
+
+        self.assertIsNone(match.event)
+
+    def test_an_ambiguous_exact_tier_is_not_broken_by_the_looser_date_tier(self) -> None:
+        start = datetime(2024, 3, 1, 12, tzinfo=UTC)
+        self._event(title="Synthetic Twin", source_key="synthetic-twin-a", start=start)
+        self._event(title="Synthetic Twin", source_key="synthetic-twin-b", start=start)
+
+        match = EventOccurrenceIndex().match(title="Synthetic Twin", start=start)
+
+        self.assertIsNone(match.event)
+        self.assertEqual(match.outcome, "ambiguous")
+
+    def test_plus_and_hash_keep_languages_apart(self) -> None:
+        titles = {
+            normalize_match_title(title) for title in ("Intro to C", "Intro to C++", "Intro to C#")
+        }
+        self.assertEqual(len(titles), 3)
+
+
+class FallbackAcrossRunsTests(_FallbackFixtures):
+    """The tester's cross-run probe (``.tmp/qa/probe/qa_fallback_probe.py``), kept.
+
+    A refresh replaces one provider event's rows; a fallback must therefore never
+    send a second provider event to an ``Event`` another one already holds -- in
+    this run or any earlier one -- or a later refresh would erase its rows.
+    """
+
+    def test_two_fallbacks_to_one_event_are_both_refused_under_refresh(self) -> None:
+        event = self._manifest_event(
+            title="Probe Shared",
+            source_key="probe-shared",
+            start=datetime(2024, 3, 1, 15, tzinfo=UTC),
+        )
+        for event_id, start, guest in (
+            ("evt-p1", "2024-03-01T15:00:00Z", "a"),
+            ("evt-p2", "2024-03-01T10:00:00Z", "b"),
+        ):
+            self._add_with_metadata(
+                event_id=event_id,
+                title="Probe Shared",
+                start_at=start,
+                rows=[self._row(guest_id=guest, email=f"{guest}@example.invalid")],
+            )
+
+        report = self._run(refresh=True)
+
+        self.assertEqual(sorted(report.awaiting_identity_events), ["evt-p1", "evt-p2"])
+        self.assertEqual(EventRegistration.objects.filter(event=event).count(), 0)
+        self.assertEqual(
+            [r["reason"] for r in report.as_dict()["fallback_refused_events"]],
+            ["event_claimed_by_another_source"] * 2,
+        )
+
+    def test_a_refresh_after_a_fallback_import_keeps_and_extends_its_rows(self) -> None:
+        event = self._manifest_event(
+            title="Probe Refresh",
+            source_key="probe-refresh",
+            start=datetime(2024, 3, 2, 15, tzinfo=UTC),
+        )
+        self._add_with_metadata(
+            event_id="evt-r1",
+            title="Probe Refresh",
+            start_at="2024-03-02T15:00:00Z",
+            rows=[self._row(guest_id="a", email="a@example.invalid")],
+        )
+        self._run()
+        self._next_export()
+        self._add_with_metadata(
+            event_id="evt-r1",
+            title="Probe Refresh",
+            start_at="2024-03-02T15:00:00Z",
+            rows=[
+                self._row(guest_id="a", email="a@example.invalid"),
+                self._row(guest_id="c", email="c@example.invalid"),
+            ],
+        )
+
+        report = self._run(refresh=True)
+
+        self.assertEqual(report.events_refreshed, 1)
+        self.assertEqual(EventRegistration.objects.filter(event=event).count(), 2)
+
+    def test_an_event_claimed_in_an_earlier_run_is_refused_to_a_new_source(self) -> None:
+        event = self._manifest_event(
+            title="Probe Cross",
+            source_key="probe-cross",
+            start=datetime(2024, 3, 3, 15, tzinfo=UTC),
+        )
+        self._add_with_metadata(
+            event_id="evt-x1",
+            title="Probe Cross",
+            start_at="2024-03-03T15:00:00Z",
+            rows=[self._row(guest_id="a", email="a@example.invalid")],
+        )
+        self._run()
+        self._next_export()
+        self._add_with_metadata(
+            event_id="evt-x1",
+            title="Probe Cross",
+            start_at="2024-03-03T15:00:00Z",
+            rows=[self._row(guest_id="a", email="a@example.invalid")],
+        )
+        self._add_with_metadata(
+            event_id="evt-x2",
+            title="Probe Cross",
+            start_at="2024-03-03T11:00:00Z",
+            rows=[self._row(guest_id="b", email="b@example.invalid")],
+        )
+
+        # evt-x1 is skipped as completed, yet its claim on the event still counts.
+        report = self._run()
+
+        self.assertEqual(report.awaiting_identity_events, ("evt-x2",))
+        self.assertEqual(
+            report.as_dict()["fallback_refused_events"][0]["reason"],
+            "event_claimed_by_another_source",
+        )
+        self.assertEqual(EventRegistration.objects.filter(event=event).count(), 1)
+
+        # Under --refresh both propose the event again: the incumbent keeps it.
+        self._next_export()
+        self._add_with_metadata(
+            event_id="evt-x1",
+            title="Probe Cross",
+            start_at="2024-03-03T15:00:00Z",
+            rows=[self._row(guest_id="a", email="a@example.invalid")],
+        )
+        self._add_with_metadata(
+            event_id="evt-x2",
+            title="Probe Cross",
+            start_at="2024-03-03T11:00:00Z",
+            rows=[self._row(guest_id="b", email="b@example.invalid")],
+        )
+        refreshed = self._run(refresh=True)
+        self.assertEqual(refreshed.events_refreshed, 1)
+        self.assertEqual(refreshed.awaiting_identity_events, ("evt-x2",))
+        self.assertEqual(EventRegistration.objects.filter(event=event).count(), 1)
+
+    def test_no_refresh_ever_erases_another_provider_events_rows(self) -> None:
+        """The blocking scenario: fallback, then a later direct mapping, then refresh."""
+
+        event = self._manifest_event(
+            title="Probe Erase",
+            source_key="probe-erase",
+            start=datetime(2024, 3, 4, 15, tzinfo=UTC),
+        )
+        self._add_with_metadata(
+            event_id="evt-e1",
+            title="Probe Erase",
+            start_at="2024-03-04T15:00:00Z",
+            rows=[self._row(guest_id="a", email="a@example.invalid")],
+        )
+        self._run()
+        self._next_export()
+        self._add_with_metadata(
+            event_id="evt-e1",
+            title="Probe Erase",
+            start_at="2024-03-04T15:00:00Z",
+            rows=[self._row(guest_id="a", email="a@example.invalid")],
+        )
+        self._add_with_metadata(
+            event_id="evt-e2",
+            title="Probe Erase",
+            start_at="2024-03-04T11:00:00Z",
+            rows=[self._row(guest_id="b", email="b@example.invalid")],
+        )
+        self._run()
+        held = set(
+            EventRegistration.objects.filter(event=event).values_list("identity_id", flat=True)
+        )
+        # The reviewed identities file now maps evt-e1 straight to the event.
+        self._next_export()
+        self._add_event(
+            event_id="evt-e1", rows=[self._row(guest_id="a", email="a@example.invalid")]
+        )
+        direct = self.pending.pop()
+        self.pending.append(
+            PendingEventRegistrants(
+                external_event_identifier="evt-e1",
+                read_rows=direct.read_rows,
+                resolve_event=lambda: event,
+            )
+        )
+        self._add_with_metadata(
+            event_id="evt-e2",
+            title="Probe Erase",
+            start_at="2024-03-04T11:00:00Z",
+            rows=[self._row(guest_id="b", email="b@example.invalid")],
+        )
+
+        self._run(refresh=True)
+
+        after = set(
+            EventRegistration.objects.filter(event=event).values_list("identity_id", flat=True)
+        )
+        self.assertTrue(held <= after, "a refresh erased rows it did not write")
+
+    def test_a_refresh_replaces_only_its_own_provider_events_rows(self) -> None:
+        """Two provider events mapped to one Event: each refresh touches its own rows."""
+
+        event = self._manifest_event(
+            title="Probe Two Sources",
+            source_key="probe-two-sources",
+            start=datetime(2024, 3, 5, 15, tzinfo=UTC),
+        )
+        for event_id, guest in (("evt-d1", "a"), ("evt-d2", "b")):
+            self._add_event(
+                event_id=event_id,
+                rows=[self._row(guest_id=guest, email=f"{guest}@example.invalid")],
+            )
+            plain = self.pending.pop()
+            self.pending.append(
+                PendingEventRegistrants(
+                    external_event_identifier=event_id,
+                    read_rows=plain.read_rows,
+                    resolve_event=lambda: event,
+                )
+            )
+        self._run()
+        self._next_export()
+        self._add_event(
+            event_id="evt-d1", rows=[self._row(guest_id="a", email="a@example.invalid")]
+        )
+        plain = self.pending.pop()
+        self.pending.append(
+            PendingEventRegistrants(
+                external_event_identifier="evt-d1",
+                read_rows=plain.read_rows,
+                resolve_event=lambda: event,
+            )
+        )
+
+        report = self._run(refresh=True)
+
+        self.assertEqual(report.rows_replaced, 1)
+        self.assertEqual(
+            sorted(
+                EventRegistration.objects.filter(event=event).values_list(
+                    "source_event_identifier", flat=True
+                )
+            ),
+            ["evt-d1", "evt-d2"],
+        )
+
+
+class RefreshRemovalGuardTests(RegistrantImportTestCase):
+    """A refresh deletes what the new export does not carry; large losses are refused.
+
+    The dry run used to report every replaced row as ``registrations_removed``
+    (54,430 against the prod-like database), which read as a mass deletion. Now
+    ``registrations_replaced`` is the gross rewrite and ``registrations_removed``
+    the people really lost -- and a refresh that would lose too many is refused
+    before any write unless the operator allows it.
+    """
+
+    def _held_event(self, event_id: str, people: int) -> None:
+        self._mint_event(event_id=event_id, title=f"Guarded {event_id}")
+        self._add_event(
+            event_id=event_id,
+            rows=[
+                self._row(guest_id=f"g{index}", email=f"{event_id}-{index}@example.invalid")
+                for index in range(people)
+            ],
+        )
+        self._run()
+        self._next_export()
+
+    def _newer_export(self, event_id: str, keep: int) -> None:
+        self._add_event(
+            event_id=event_id,
+            rows=[
+                self._row(guest_id=f"g{index}", email=f"{event_id}-{index}@example.invalid")
+                for index in range(keep)
+            ],
+        )
+
+    def test_an_unchanged_export_plans_replacement_but_no_removal(self) -> None:
+        from scripts.prod.registrant_import import plan_registrants
+
+        self._held_event("evt-same", 20)
+        self._newer_export("evt-same", 20)
+
+        plan = plan_registrants(provider=PROVIDER, pending=tuple(self.pending), refresh=True)
+
+        self.assertEqual(plan.registrations_replaced, 20)
+        self.assertEqual(plan.registrations_removed, 0)
+        self.assertFalse(plan.as_dict()["refresh_removal_guard"]["would_refuse"])
+
+    def test_a_refresh_losing_most_of_an_event_is_refused_before_any_write(self) -> None:
+        from scripts.prod.registrant_import import RefreshRemovalRefused
+
+        self._held_event("evt-shrunk", 20)
+        self._newer_export("evt-shrunk", 2)
+
+        with self.assertRaises(RefreshRemovalRefused) as raised:
+            self._run(refresh=True)
+
+        guard = raised.exception.plan.as_dict()["refresh_removal_guard"]
+        self.assertEqual(
+            guard["large_removal_events"],
+            [
+                {
+                    "external_event_identifier": "evt-shrunk",
+                    "registrations_existing": 20,
+                    "registrations_removed": 18,
+                }
+            ],
+        )
+        self.assertEqual(EventRegistration.objects.count(), 20)
+
+    def test_an_empty_export_of_a_held_event_is_refused(self) -> None:
+        from scripts.prod.registrant_import import RefreshRemovalRefused
+
+        self._held_event("evt-emptied", 8)
+        self._newer_export("evt-emptied", 0)
+
+        with self.assertRaises(RefreshRemovalRefused):
+            self._run(refresh=True)
+        self.assertEqual(EventRegistration.objects.count(), 8)
+
+    def test_an_explicit_allowance_lets_the_large_refresh_through(self) -> None:
+        self._held_event("evt-allowed", 20)
+        self._newer_export("evt-allowed", 2)
+
+        report = import_registrants(
+            provider=PROVIDER,
+            pending=tuple(self.pending),
+            refresh=True,
+            allow_large_removal=True,
+        )
+
+        self.assertEqual(report.events_refreshed, 1)
+        self.assertEqual(EventRegistration.objects.count(), 2)
+
+    def test_a_small_ordinary_shrink_is_not_refused(self) -> None:
+        """Cancellations happen: a few people leaving one event is a normal refresh."""
+
+        self._held_event("evt-cancellations", 40)
+        self._newer_export("evt-cancellations", 37)
+
+        report = self._run(refresh=True)
+
+        self.assertEqual(report.events_refreshed, 1)
+        self.assertEqual(EventRegistration.objects.count(), 37)

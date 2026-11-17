@@ -101,9 +101,11 @@ class EventRegistration(models.Model):
     The consequence, and it is the reason a refresh works the way it does: a
     newer export of an event we already hold cannot be merged row by row,
     because there is no key to merge on.  ``scripts.prod.registrant_import``'s
-    ``refresh`` replaces the event's rows for that provider wholesale instead,
-    so an ``id`` and a ``created_at`` here are stable only until the next
-    refresh of that event.  Nothing reads either.
+    ``refresh`` replaces the rows of one *provider event* wholesale instead --
+    those attributed to it by ``source_event_identifier``, plus unattributed
+    rows written before attribution existed -- so an ``id`` and a ``created_at``
+    here are stable only until the next refresh of that event.  Nothing reads
+    either.
 
     Public event pages count eligible rows from this table directly. Provider
     exports are translated only by the ingest scripts; runtime reads never
@@ -122,6 +124,12 @@ class EventRegistration(models.Model):
         EventRegistrantIdentity, on_delete=models.PROTECT, related_name="registrations"
     )
     provider = models.CharField(max_length=16, choices=Provider.choices)
+    #: The provider's own *event* id this fact was imported from (a Luma
+    #: ``evt-...`` or an Eventbrite event number -- public, part of the event's
+    #: URL, not an attendee value). One ``Event`` can hold rows from more than
+    #: one provider event, so a refresh replaces only the rows of the provider
+    #: event it re-read. Blank on rows written before attribution existed.
+    source_event_identifier = models.CharField(max_length=512, blank=True, default="")
     status = models.CharField(max_length=32)
     registered_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -228,6 +236,17 @@ class EventRegistrantImportProgress(models.Model):
 
     provider = models.CharField(max_length=16, choices=EventRegistration.Provider.choices)
     external_event_identifier = models.CharField(max_length=512)
+    #: The ``Event`` this provider event's rows were last written to. A claim:
+    #: the title-and-start fallback never sends a second provider event to an
+    #: event another one already holds, even when that one is skipped as
+    #: completed on a later run.
+    event = models.ForeignKey(
+        "events.Event",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
     completed = models.BooleanField(default=False)
     rows_total = models.PositiveIntegerField(default=0)
     rows_written = models.PositiveIntegerField(default=0)
