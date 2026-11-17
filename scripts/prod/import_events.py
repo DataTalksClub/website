@@ -11,7 +11,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 from pathlib import Path
 from typing import Any
@@ -645,32 +647,350 @@ def _events_yaml_materials(entry: dict[str, Any]) -> list[dict[str, str]]:
     return materials
 
 
+_LUMA_HOSTS = frozenset({"luma.com", "lu.ma"})
+
+#: How a ``_data/events.yaml`` entry was recognised as an event we already hold.
+YAML_MATCH_LEGACY_SOURCE_KEY = "legacy_source_key"
+YAML_MATCH_LUMA_URL = "luma_url"
+YAML_MATCH_EVENTBRITE_URL = "eventbrite_url"
+YAML_MATCH_EARLIER_ENTRY = "earlier_entry_in_this_file"
+
+
+def _luma_url_key(value: Any) -> str | None:
+    """The stable provider identity a URL names: a Luma slug or ``evt-`` id, or an
+    Eventbrite event id.
+
+    ``https://luma.com/b90ue873``, ``http://lu.ma/B90UE873/`` and
+    ``https://www.luma.com/b90ue873?utm=x`` are one event.  A Luma event id
+    (``evt-...``) is case-sensitive and kept as written; a short slug is
+    case-folded.  ``https://eventbrite.com/e/725934990097`` keys as
+    ``eventbrite:725934990097`` -- the reviewed manifest rows carry their
+    Eventbrite link in ``materials``, which is how a legacy entry finds a row
+    whose source key no longer matches its title.  Anything else has no key.
+    """
+
+    if not isinstance(value, str) or not value.strip():
+        return None
+    text = value.strip()
+    if text.startswith("evt-"):
+        return text
+    split = urlsplit(text)
+    host = split.netloc.lower().removeprefix("www.")
+    if split.scheme not in {"http", "https"}:
+        return None
+    parts = [part for part in split.path.split("/") if part]
+    if not parts:
+        return None
+    slug = parts[-1]
+    if host.startswith("eventbrite."):
+        # ``/e/725934990097`` and ``/e/some-title-tickets-725934990097`` are the
+        # same listing: its numeric event id is the identity.
+        digits = re.search(r"(\d{6,})$", slug)
+        return f"eventbrite:{digits.group(1)}" if digits else None
+    if host not in _LUMA_HOSTS:
+        return None
+    if slug.startswith("evt-"):
+        return slug
+    # An event page is a single path segment (``luma.com/<slug>``); anything
+    # deeper -- ``luma.com/user/<x>``, ``/calendar/...`` -- names no event.
+    return slug.casefold() if len(parts) == 1 else None
+
+
+def _luma_url_index(luma_source: Path | None) -> dict[str, str]:
+    """``{luma url key: luma event id}`` from a Luma export's checkpoints.
+
+    The export's JSON checkpoint names each event's public URL beside its event
+    id, which is what lets a legacy ``link: https://luma.com/<slug>`` find the
+    event discovery minted under ``evt-...``.  No export, no URL tier: matching
+    falls through to start and title.
+    """
+
+    if luma_source is None or not luma_source.is_dir():
+        return {}
+    from scripts.prod.registrant_import import RegistrantImportError
+    from scripts.prod.registration_sources.luma_events import discover_luma_events
+
+    try:
+        discovered = discover_luma_events(luma_source)
+    except RegistrantImportError as error:
+        raise EventImportError("luma_discovery_failed") from error
+    urls: dict[str, str] = {}
+    for item in discovered:
+        key = _luma_url_key(item.event_url)
+        if key is not None:
+            urls[key] = item.external_event_identifier
+    return urls
+
+
+@dataclass(slots=True)
+class _PlannedYamlEvent:
+    """A dry-run stand-in for an event this file would create, so a later entry
+    naming the same occurrence is reported as matching it, exactly as apply would."""
+
+    pk: int
+    title: str
+    start_datetime: datetime
+    public_id: int | None = None
+    content_id: Any = None
+
+
+class _EventsYamlIndex:
+    """Everything an events.yaml entry can be recognised by, built once per run.
+
+    Tiers, in order, each resolving only an unambiguous single event:
+
+    1. the entry's own legacy source key (a reviewed-manifest or earlier
+       events.yaml row);
+    2. its provider identity -- the entry's ``link`` as a Luma slug/id or an
+       Eventbrite event id (:func:`_luma_url_key`), matched against the Luma
+       event discovery minted for that URL, or against any event whose
+       materials carry the same link -- held by exactly one event on the same
+       Europe/Berlin calendar date, because a reused listing is not the same
+       occurrence;
+    3. the same start instant and normalized title
+       (:class:`scripts.prod.registrant_import.EventOccurrenceIndex`);
+    4. the same Europe/Berlin calendar date and normalized title.
+
+    Tiers 3 and 4 read the ``Event`` row's own ``start_datetime``, so an event
+    whose source key carries no date -- every Luma-discovered ``evt-...`` row and
+    every podcast-style manifest entry -- is matched like any other.  That blind
+    spot is what let the first version of this leg create 79 duplicates.
+    """
+
+    def __init__(self, *, luma_urls: dict[str, str]) -> None:
+        from community_base.events.models import Event
+
+        from scripts.prod.registrant_import import (
+            PROVIDER_SOURCE_REPOSITORY,
+            EventOccurrenceIndex,
+        )
+
+        events = list(Event.objects.select_related("source_identity"))
+        self.occurrences = EventOccurrenceIndex(events)
+        self.by_legacy_key: dict[str, Any] = {}
+        self.by_luma: dict[str, dict[int, Any]] = {}
+        self.provider_event_pks: set[int] = set()
+        provider_repositories = set(PROVIDER_SOURCE_REPOSITORY.values())
+        luma_repository = PROVIDER_SOURCE_REPOSITORY["luma"]
+        by_luma_event_id: dict[str, Any] = {}
+        for event in events:
+            source = getattr(event, "source_identity", None)
+            if source is not None:
+                if source.repository == LEGACY_EVENTS_YAML_REPOSITORY:
+                    self.by_legacy_key.setdefault(source.source_key, event)
+                if source.repository in provider_repositories:
+                    self.provider_event_pks.add(event.pk)
+                if source.repository == luma_repository:
+                    by_luma_event_id[source.source_key] = event
+                    self._add_luma(source.source_key, event)
+            for material in event.materials or []:
+                if isinstance(material, dict):
+                    self._add_luma(_luma_url_key(material.get("url")), event)
+        for url_key, luma_event_id in luma_urls.items():
+            event = by_luma_event_id.get(luma_event_id)
+            if event is not None:
+                self._add_luma(url_key, event)
+
+    def _add_luma(self, key: str | None, event: Any) -> None:
+        if key is not None:
+            self.by_luma.setdefault(key, {})[event.pk] = event
+
+    def add(self, event: Any, *, legacy_key: str, luma_key: str | None) -> None:
+        self.by_legacy_key.setdefault(legacy_key, event)
+        self._add_luma(luma_key, event)
+        self.occurrences.add(event)
+
+    def match(
+        self,
+        *,
+        title: str,
+        starts_at: datetime,
+        legacy_key: str,
+        luma_key: str | None,
+        day_level: bool = True,
+    ) -> tuple[str, Any, dict[str, Any]]:
+        """``(outcome, event, detail)``. ``event`` is ``None`` unless matched.
+
+        ``day_level=False`` (the file names this title twice on this day) skips
+        the two tiers that only know the day -- the legacy key is
+        ``<date>-<slug>`` -- so only a provider link or the exact start decides,
+        and a date-only match is reported as ambiguous instead of folding two
+        sessions into one row.
+        """
+
+        from scripts.prod.registrant_import import (
+            EVENT_CALENDAR_TIMEZONE,
+            OCCURRENCE_MATCH_AMBIGUOUS,
+            OCCURRENCE_MATCH_DATE_AND_TITLE,
+        )
+
+        detail: dict[str, Any] = {}
+        legacy = self.by_legacy_key.get(legacy_key) if day_level else None
+        if legacy is not None:
+            return YAML_MATCH_LEGACY_SOURCE_KEY, legacy, detail
+        if luma_key is not None:
+            candidates = list(self.by_luma.get(luma_key, {}).values())
+            day = starts_at.astimezone(EVENT_CALENDAR_TIMEZONE).date()
+            same_day = [
+                candidate
+                for candidate in candidates
+                if candidate.start_datetime.astimezone(EVENT_CALENDAR_TIMEZONE).date() == day
+            ]
+            if len(same_day) == 1:
+                outcome = (
+                    YAML_MATCH_EVENTBRITE_URL
+                    if luma_key.startswith("eventbrite:")
+                    else YAML_MATCH_LUMA_URL
+                )
+                return outcome, same_day[0], detail
+            # No same-day holder, or a reused listing naming several events on
+            # that day: the URL proves nothing, so start and title decide.
+            if candidates and not same_day:
+                detail["provider_url_on_another_date_public_id"] = candidates[0].public_id
+            elif len(same_day) > 1:
+                detail["provider_url_same_day_candidate_total"] = len(same_day)
+        occurrence = self.occurrences.match(title=title, start=starts_at)
+        if occurrence.event is not None and (
+            day_level or occurrence.outcome != OCCURRENCE_MATCH_DATE_AND_TITLE
+        ):
+            return occurrence.outcome, occurrence.event, detail
+        if occurrence.event is not None:
+            return "ambiguous", None, detail
+        if occurrence.outcome == OCCURRENCE_MATCH_AMBIGUOUS:
+            detail["candidate_event_total"] = occurrence.candidate_total
+            return "ambiguous", None, detail
+        return "none", None, detail
+
+
+def _attach_yaml_speakers(event: Any, speaker_keys: list[str], people_names: dict) -> None:
+    from community_base.events.models import EventHost, Host
+
+    for order, speaker_key in enumerate(speaker_keys):
+        host, _ = Host.objects.get_or_create(
+            slug=speaker_key,
+            defaults={
+                "name": people_names.get(speaker_key) or speaker_key,
+                "kind": "speaker",
+                "external_ref": speaker_key,
+            },
+        )
+        EventHost.objects.get_or_create(
+            event=event,
+            host=host,
+            role="speaker",
+            defaults={"position": order},
+        )
+
+
+def _yaml_enrichment(
+    event: Any,
+    *,
+    event_type: str | None,
+    season: int | None,
+    episode: int | None,
+    speaker_keys: list[str],
+    materials: list[dict[str, str]],
+) -> list[str]:
+    """Which empty fields of a provider-discovered event this entry would fill.
+
+    Fill-only: a field that already holds anything -- a reviewed type, a speaker
+    list, materials -- is never touched, so a description review or a later
+    ``dtc events update`` always wins over the legacy file.
+    """
+
+    from events.identity import decode_event_tags
+
+    current_type, current_season, current_episode = decode_event_tags(event.tags)
+    filled: list[str] = []
+    if event_type and current_type is None:
+        filled.append("type")
+    if season is not None and current_season is None:
+        filled.append("season")
+    if episode is not None and current_episode is None:
+        filled.append("episode")
+    if speaker_keys and not event.event_host_links.exists():
+        filled.append("speakers")
+    if materials and not event.materials:
+        filled.append("materials")
+    return filled
+
+
+def _apply_yaml_enrichment(
+    event: Any,
+    filled: list[str],
+    *,
+    event_type: str | None,
+    season: int | None,
+    episode: int | None,
+    speaker_keys: list[str],
+    materials: list[dict[str, str]],
+    people_names: dict,
+) -> None:
+    from events.identity import (
+        decode_display_tags,
+        decode_event_tags,
+        encode_event_tags,
+        package_kind_for_type,
+    )
+
+    current_type, current_season, current_episode = decode_event_tags(event.tags)
+    update_fields: list[str] = []
+    if {"type", "season", "episode"} & set(filled):
+        new_type = event_type if "type" in filled else current_type
+        event.tags = encode_event_tags(
+            event_type=new_type,
+            season=season if "season" in filled else current_season,
+            episode=episode if "episode" in filled else current_episode,
+            display_tags=decode_display_tags(event.tags),
+        )
+        update_fields.append("tags")
+        if "type" in filled and event.kind == "standard":
+            event.kind = package_kind_for_type(new_type)
+            update_fields.append("kind")
+    if "materials" in filled:
+        event.materials = materials
+        update_fields.append("materials")
+    if update_fields:
+        event.save(update_fields=[*update_fields, "updated_at"])
+    if "speakers" in filled:
+        _attach_yaml_speakers(event, speaker_keys, people_names)
+
+
 def import_events_yaml(
     *,
     path: Path,
     revision: str = "HEAD",
     apply: bool = True,
+    luma_source: Path | None = None,
 ) -> dict[str, Any]:
-    """Import new events from a legacy ``_data/events.yaml`` file.
+    """Import the events a legacy ``_data/events.yaml`` names that we do not hold.
 
-    Existing events (matched by ``EventSource`` or calendar date + exact
-    normalized title) are skipped without modification so reviewed descriptions
-    and provider-linked rows are never overwritten.
+    Each entry is first matched against every event already in the database
+    (see :class:`_EventsYamlIndex` for the tiers); only an entry that matches
+    nothing creates an event, so one occurrence never gets a second row.  An
+    ambiguous match creates nothing and is reported.  ``luma_source`` (a Luma
+    export directory) enables the Luma-URL tier.
+
+    A matched event is never rewritten, with one exception: a Luma-discovered
+    event -- minted from a provider export with only a title and a start -- has
+    its *empty* type, season, episode, speakers and materials filled from the
+    entry.  That is how production's upcoming podcasts carry their type and
+    speakers, and a rebuild must reproduce it.  Reviewed manifest rows and rows
+    this leg created earlier are matched and left exactly as they are.
+
+    The dry run (``apply=False``) makes every decision apply would make -- an
+    entry repeated later in the file matches the first one's planned row -- and
+    reports matches, enrichments and creations separately.
     """
 
     import yaml
-    from community_base.events.models import EventHost, Host
     from django.db import transaction
     from django.utils import timezone
 
-    from content.models import EventSource, SyncedDocument
+    from content.models import SyncedDocument
     from events.identity import EventIdentityError, canonical_detail_path, create_event_identity
     from events.slugs import event_title_slug
-    from scripts.prod.registrant_import import (
-        EXISTING_EVENT_AMBIGUOUS,
-        EXISTING_EVENT_MATCHED,
-        ExistingEventIndex,
-    )
+    from scripts.prod.registrant_import import normalize_match_title
 
     try:
         raw_bytes = path.read_bytes()
@@ -684,6 +1004,7 @@ def import_events_yaml(
     checksum = hashlib.sha256(raw_bytes).hexdigest()
     berlin = ZoneInfo("Europe/Berlin")
     now = timezone.now()
+    luma_urls = _luma_url_index(luma_source)
 
     people_names = dict(
         SyncedDocument.objects.filter(
@@ -692,12 +1013,40 @@ def import_events_yaml(
         ).values_list("slug", "title")
     )
 
+    def _path(event: Any) -> str | None:
+        return canonical_detail_path(event.content_id) if event.content_id else None
+
     def _apply() -> dict[str, Any]:
-        index = ExistingEventIndex()
+        index = _EventsYamlIndex(luma_urls=luma_urls)
         created: list[dict[str, Any]] = []
-        existing_count = 0
+        matched: list[dict[str, Any]] = []
+        matched_by: dict[str, int] = {}
+        enriched: list[dict[str, Any]] = []
         ambiguous: list[dict[str, Any]] = []
+        url_date_conflicts: list[dict[str, Any]] = []
+        provider_duplicates: list[dict[str, Any]] = []
         skipped_invalid = 0
+        planned_pk = 0
+        created_pks: set[int] = set()
+        # Same-day, same-title entries in the file itself: two sessions of one
+        # series on one day are two events, so the date tier may not fold one
+        # into the other (or both into one database row). Exact start still can.
+        file_day_titles: dict[tuple[str, str], int] = {}
+        for entry in entries:
+            if not isinstance(entry, dict) or entry.get("time") is None:
+                continue
+            entry_title = str(entry.get("title") or "").strip()
+            if not entry_title:
+                continue
+            try:
+                entry_start = _parse_events_yaml_timestamp(entry["time"])
+            except EventImportError:
+                continue
+            day_title = (
+                entry_start.astimezone(berlin).date().isoformat(),
+                normalize_match_title(entry_title),
+            )
+            file_day_titles[day_title] = file_day_titles.get(day_title, 0) + 1
 
         for entry in entries:
             if not isinstance(entry, dict):
@@ -712,36 +1061,97 @@ def import_events_yaml(
             ends_at = _parse_events_yaml_timestamp(entry["end"]) if entry.get("end") else None
             local_date = starts_at.astimezone(berlin).date().isoformat()
             source_key = f"{local_date}-{event_title_slug(title)}"
-
-            if EventSource.objects.filter(
-                repository=LEGACY_EVENTS_YAML_REPOSITORY,
-                source_key=source_key,
-            ).exists():
-                existing_count += 1
-                continue
-
-            match = index.match(title=title, start_at=starts_at.isoformat())
-            if match.outcome == EXISTING_EVENT_MATCHED:
-                existing_count += 1
-                continue
-            if match.outcome == EXISTING_EVENT_AMBIGUOUS:
-                ambiguous.append({"title": title, "date": local_date})
-                continue
-
+            luma_key = _luma_url_key(entry.get("link"))
             event_type = str(entry.get("type") or "").strip() or None
             season = int(entry["season"]) if entry.get("season") is not None else None
             episode = int(entry["episode"]) if entry.get("episode") is not None else None
-            status = "upcoming" if starts_at >= now else "completed"
             materials = _events_yaml_materials(entry)
             speaker_keys = [
                 str(s).strip() for s in (entry.get("speakers") or []) if str(s).strip()
             ]
+            described = {"title": title, "starts_at": starts_at.isoformat()}
 
+            same_day_entries = file_day_titles.get((local_date, normalize_match_title(title)), 0)
+            outcome, event, detail = index.match(
+                title=title,
+                starts_at=starts_at,
+                legacy_key=source_key,
+                luma_key=luma_key,
+                day_level=same_day_entries < 2,
+            )
+            if "provider_url_on_another_date_public_id" in detail:
+                url_date_conflicts.append({**described, "link": entry.get("link"), **detail})
+            if outcome == "ambiguous" and same_day_entries > 1:
+                detail = {**detail, "same_day_same_title_entries": same_day_entries}
+            if outcome == "ambiguous":
+                ambiguous.append({**described, "date": local_date, **detail})
+                continue
+            if event is not None and event.pk in created_pks:
+                # The same occurrence named twice in one file: the first entry
+                # created (or, dry, would create) it; this one is that row.
+                outcome = YAML_MATCH_EARLIER_ENTRY
+            if event is not None:
+                matched_by[outcome] = matched_by.get(outcome, 0) + 1
+                matched.append(
+                    {
+                        **described,
+                        "matched_by": outcome,
+                        "public_id": event.public_id,
+                        "canonical_path": _path(event),
+                    }
+                )
+                twin = None
+                if event.pk in index.provider_event_pks and outcome == YAML_MATCH_LUMA_URL:
+                    # The Luma URL found the provider row; if start and title also
+                    # prove a *different* event (the reviewed row an earlier
+                    # discovery duplicated), that row is the occurrence and the
+                    # provider row is a duplicate to reconcile, not to dress up.
+                    occurrence = index.occurrences.match(title=title, start=starts_at)
+                    if occurrence.event is not None and occurrence.event.pk != event.pk:
+                        twin = occurrence.event
+                        provider_duplicates.append(
+                            {
+                                **described,
+                                "provider_public_id": event.public_id,
+                                "also_matches_public_id": twin.public_id,
+                            }
+                        )
+                if event.pk in index.provider_event_pks and twin is None:
+                    metadata: dict[str, Any] = {
+                        "event_type": event_type,
+                        "season": season,
+                        "episode": episode,
+                        "speaker_keys": speaker_keys,
+                        "materials": materials,
+                    }
+                    filled = _yaml_enrichment(event, **metadata)
+                    if filled:
+                        if apply:
+                            _apply_yaml_enrichment(
+                                event, filled, people_names=people_names, **metadata
+                            )
+                        enriched.append(
+                            {
+                                **described,
+                                "public_id": event.public_id,
+                                "canonical_path": _path(event),
+                                "filled": filled,
+                            }
+                        )
+                continue
+
+            status = "upcoming" if starts_at >= now else "completed"
             if not apply:
+                planned_pk -= 1
+                created_pks.add(planned_pk)
+                index.add(
+                    _PlannedYamlEvent(pk=planned_pk, title=title, start_datetime=starts_at),
+                    legacy_key=source_key,
+                    luma_key=luma_key,
+                )
                 created.append(
                     {
-                        "title": title,
-                        "starts_at": starts_at.isoformat(),
+                        **described,
                         "status": status,
                         "public_id": None,
                         "canonical_path": None,
@@ -771,28 +1181,13 @@ def import_events_yaml(
             event.timezone = "Europe/Berlin"
             event.materials = materials
             event.save(update_fields=["timezone", "materials"])
-
-            for order, speaker_key in enumerate(speaker_keys):
-                speaker_name = people_names.get(speaker_key) or speaker_key
-                host, _ = Host.objects.get_or_create(
-                    slug=speaker_key,
-                    defaults={
-                        "name": speaker_name,
-                        "kind": "speaker",
-                        "external_ref": speaker_key,
-                    },
-                )
-                EventHost.objects.get_or_create(
-                    event=event,
-                    host=host,
-                    role="speaker",
-                    defaults={"position": order},
-                )
+            _attach_yaml_speakers(event, speaker_keys, people_names)
+            index.add(event, legacy_key=source_key, luma_key=luma_key)
+            created_pks.add(event.pk)
 
             created.append(
                 {
-                    "title": title,
-                    "starts_at": starts_at.isoformat(),
+                    **described,
                     "status": status,
                     "public_id": event.public_id,
                     "canonical_path": canonical_detail_path(event.content_id),
@@ -803,9 +1198,21 @@ def import_events_yaml(
             "source": str(path),
             "revision": revision,
             "total": len(entries),
-            "existing_event_total": existing_count,
+            "luma_url_index": {"present": bool(luma_urls), "urls": len(luma_urls)},
+            "existing_event_total": len(matched),
+            "matched_by_totals": dict(sorted(matched_by.items())),
+            "matched_events": matched,
+            "enriched_total": len(enriched),
+            "enriched_events": enriched,
             "ambiguous_total": len(ambiguous),
             "ambiguous_events": ambiguous,
+            "provider_url_date_conflict_total": len(url_date_conflicts),
+            "provider_url_date_conflicts": url_date_conflicts,
+            # A Luma-discovered row that duplicates another event this entry also
+            # matches: neither enriched nor touched here. Reconcile it with
+            # --report-duplicate-identities / --remove-duplicate-identities.
+            "provider_duplicate_total": len(provider_duplicates),
+            "provider_duplicates": provider_duplicates,
             "skipped_invalid_total": skipped_invalid,
             "created_total": len(created),
             "created_events": created,
@@ -825,8 +1232,16 @@ def run(
     new_event_content_source: Path | None = None,
     eventbrite_descriptions_source: Path | None = None,
     luma_source: Path,
+    events_yaml: Path | None = None,
+    events_yaml_revision: str = "HEAD",
 ) -> dict[str, Any]:
-    """Import current Event rows and content in one transaction."""
+    """Import current Event rows and content in one transaction.
+
+    ``events_yaml`` is the legacy site's ``_data/events.yaml`` (the
+    ``dtc-main-site`` checkout's copy). When given, its leg runs last -- after
+    discovery has minted every provider identity, so it matches those rather
+    than racing them -- and reports under ``events_yaml``.
+    """
 
     if not luma_source.is_dir():
         raise EventImportError("registration_source_unavailable")
@@ -840,6 +1255,8 @@ def run(
             new_event_content_source=new_event_content_source,
             eventbrite_descriptions_source=eventbrite_descriptions_source,
             luma_source=luma_source,
+            events_yaml=events_yaml,
+            events_yaml_revision=events_yaml_revision,
         )
 
 
@@ -850,6 +1267,8 @@ def _run_legs(
     new_event_content_source: Path | None,
     eventbrite_descriptions_source: Path | None,
     luma_source: Path,
+    events_yaml: Path | None = None,
+    events_yaml_revision: str = "HEAD",
 ) -> dict[str, Any]:
     """The event legs in their fixed order. Only :func:`run` may call this.
 
@@ -876,12 +1295,33 @@ def _run_legs(
     # different artifacts with different provenance, and merging their counts
     # would hide which of the two moved.
     new_event_content = import_new_content(source=new_event_content_source, apply=True)
+    # Last: the legacy file's events after the reviewed manifest, so every event
+    # it names that a provider export also named is matched rather than created
+    # twice, and its type/speakers/materials fill what discovery could not know.
+    # Reviewed staged content above has already landed, and fill-only never
+    # overrides it.
+    events_yaml_report: dict[str, Any]
+    if events_yaml is None:
+        events_yaml_report = {"present": False, "applied": True}
+    elif not events_yaml.is_file():
+        raise EventImportError("events_yaml_unreadable")
+    else:
+        events_yaml_report = {
+            "present": True,
+            **import_events_yaml(
+                path=events_yaml,
+                revision=events_yaml_revision,
+                apply=True,
+                luma_source=luma_source,
+            ),
+        }
     return {
         "identities": identities,
         "new_event_identities": new_event_identities,
         "event_content": content,
         "new_event_content": new_event_content,
         "eventbrite_descriptions": eventbrite_descriptions,
+        "events_yaml": events_yaml_report,
     }
 
 
@@ -960,8 +1400,13 @@ def _parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help=(
-            "Import new events from a legacy _data/events.yaml file. "
-            "Existing events are skipped without modification."
+            "Import the events a legacy _data/events.yaml names that this database "
+            "does not hold. Each entry matches an existing event first -- by legacy "
+            "source key, Luma or Eventbrite link (Luma via --luma-source when present), start and "
+            "normalized title, then Berlin date and title -- and only an unmatched "
+            "entry creates one. A matched Luma-discovered event has its empty type, "
+            "speakers and materials filled; nothing else is modified. With --dry-run, "
+            "reports matches, enrichments and creations without writing."
         ),
     )
     parser.add_argument(
@@ -983,11 +1428,15 @@ def main(argv: list[str] | None = None) -> int:
         configure_target(parser, args)
         report: dict[str, Any]
         if args.events_yaml is not None:
+            luma_source = args.luma_source.resolve()
             report = {
                 "events_yaml": import_events_yaml(
                     path=args.events_yaml.resolve(),
                     revision=args.events_yaml_revision,
                     apply=not args.dry_run,
+                    # Optional here: without an export the Luma-URL tier is
+                    # simply absent and matching falls through to start/title.
+                    luma_source=luma_source if luma_source.is_dir() else None,
                 )
             }
         elif args.report_duplicate_identities or args.remove_duplicate_identities:

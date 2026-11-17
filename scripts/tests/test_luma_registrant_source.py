@@ -35,8 +35,10 @@ from scripts.prod.registration_sources.luma_registrants import (
     discover_luma_registrant_files,
     load_resolved_luma_identities,
     luma_registrant_sources,
+    read_luma_event_metadata,
     read_luma_registrant_rows,
 )
+from events.identity import create_event_identity
 
 _COLUMNS = (
     "guest_id",
@@ -456,3 +458,71 @@ class LumaIdentityResolutionIntegrationTests(LumaRegistrantExportMixin, TestCase
             EventRegistration.objects.filter(provider=PROVIDER).values("event").distinct().count(),
             1,
         )
+
+
+class LumaTitleAndStartFallbackTests(LumaRegistrantExportMixin, TestCase):
+    """The reader supplies the event's own title and start for the fallback."""
+
+    def setUp(self) -> None:
+        temporary = scratch_root()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+
+    def _event_row(self, guest_id: str, email: str) -> dict[str, str]:
+        return {
+            **self._row(guest_id=guest_id, email=email),
+            "event_name": "The Synthetic Luma Fallback Event",
+            "event_start_at": "2023-10-17T10:30:00.000Z",
+        }
+
+    def test_metadata_is_the_first_rows_event_columns_only(self) -> None:
+        self._write_event(
+            stem="e1",
+            event_id="evt-1",
+            rows=[self._event_row("g1", "first@example.invalid")],
+        )
+
+        title, start = read_luma_event_metadata(
+            self.root / "e1.csv", external_event_identifier="evt-1"
+        )
+
+        self.assertEqual(title, "The Synthetic Luma Fallback Event")
+        self.assertEqual(start, "2023-10-17T10:30:00.000Z")
+
+    def test_an_event_with_no_rows_has_no_metadata(self) -> None:
+        self._write_event(stem="e1", event_id="evt-1", rows=[])
+
+        self.assertEqual(
+            read_luma_event_metadata(self.root / "e1.csv", external_event_identifier="evt-1"),
+            ("", ""),
+        )
+
+    def test_an_unminted_event_attaches_to_the_manifest_event_it_is(self) -> None:
+        # The legacy site's nominal 17:00 Berlin; Luma held it at 12:30 that day.
+        event = create_event_identity(
+            title="Synthetic Luma Fallback Event",
+            starts_at=datetime(2023, 10, 17, 15, 0, tzinfo=UTC),
+            source_repository="DataTalksClub/datatalksclub.github.io",
+            source_revision="a" * 40,
+            source_key="2023-10-17-synthetic-luma-fallback-event",
+        )
+        self._write_event(
+            stem="e1",
+            event_id="evt-unminted",
+            rows=[self._event_row("g1", "fallback@example.invalid")],
+        )
+
+        report = import_registrants(
+            provider=PROVIDER, pending=luma_registrant_sources(self.root)
+        ).as_dict()
+
+        self.assertEqual(report["events_awaiting_identity"], 0)
+        self.assertEqual(report["fallback_matched_total"], 1)
+        self.assertEqual(
+            report["fallback_matched_events"][0]["matched_event_public_id"], event.public_id
+        )
+        self.assertEqual(
+            EventRegistration.objects.filter(event=event, provider=PROVIDER).count(), 1
+        )
+        # The report names the event, never an attendee value.
+        self.assertNotIn("example.invalid", json.dumps(report))

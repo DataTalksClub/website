@@ -813,3 +813,67 @@ class CmpRegistrationCampaignImportTests(CmpContentImportTests):
         campaign = RegistrationCampaign.objects.get(slug="production-ai-agents-generative-media")
         self.assertEqual(campaign.current_course, cohort)
         self.assertEqual(result.summary()["cohorts_imported"], 1)
+
+
+class CmpNaiveStartTests(TestCase):
+    """CMP stores its aware datetimes as naive UTC strings (TIME_ZONE = "UTC")."""
+
+    def setUp(self) -> None:
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.source = Path(self.directory.name) / "source.sqlite3"
+        _build_source(self.source, cohort_slugs=("de-zoomcamp-2026",))
+
+    def _set_course_start(self, value: str) -> None:
+        connection = sqlite3.connect(self.source)
+        connection.execute("ALTER TABLE courses_course ADD COLUMN starts_at TEXT")
+        connection.execute("UPDATE courses_course SET starts_at = ?", (value,))
+        connection.commit()
+        connection.close()
+
+    def test_a_naive_cmp_course_start_is_read_as_utc(self) -> None:
+        # Exactly the shape CMP's SQLite export carries: no offset at all.
+        self._set_course_start("2026-01-12 00:00:00")
+
+        import_cmp_course_content(self.source)
+
+        cohort = Cohort.objects.get(slug="de-zoomcamp-2026")
+        self.assertEqual(cohort.starts_at, datetime(2026, 1, 12, tzinfo=UTC))
+
+    def test_an_offset_carrying_start_is_kept_as_written(self) -> None:
+        self._set_course_start("2026-01-12T09:00:00+02:00")
+
+        import_cmp_course_content(self.source)
+
+        cohort = Cohort.objects.get(slug="de-zoomcamp-2026")
+        self.assertEqual(cohort.starts_at, datetime(2026, 1, 12, 7, tzinfo=UTC))
+
+    def test_an_unreadable_start_is_a_bounded_refusal_not_a_launch_error(self) -> None:
+        self._set_course_start("not-a-timestamp")
+
+        with self.assertRaises(CmpContentImportError) as raised:
+            import_cmp_course_content(self.source)
+
+        self.assertEqual(str(raised.exception), "source-datetime-invalid")
+
+    def test_a_date_only_start_is_refused_not_read_as_midnight(self) -> None:
+        """The recorded provenance says date-only values are not inferred."""
+
+        self._set_course_start("2026-01-12")
+
+        with self.assertRaises(CmpContentImportError) as raised:
+            import_cmp_course_content(self.source)
+
+        self.assertEqual(str(raised.exception), "source-cohort-start-date-only")
+        self.assertFalse(
+            Cohort.objects.filter(slug="de-zoomcamp-2026", starts_at__isnull=False).exists()
+        )
+
+    def test_a_start_the_launch_rules_reject_is_a_bounded_refusal(self) -> None:
+        # After the cohort's 2026-05-11 end date: launch validation refuses it.
+        self._set_course_start("2026-06-01 00:00:00")
+
+        with self.assertRaises(CmpContentImportError) as raised:
+            import_cmp_course_content(self.source)
+
+        self.assertEqual(str(raised.exception), "source-cohort-start-invalid")

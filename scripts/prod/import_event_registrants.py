@@ -14,8 +14,12 @@ full matching contract and ``events.models.EventRegistrantIdentity`` /
 ``EventRegistration`` for the two tables this writes.
 
 This requires event identities to already exist (``scripts/prod/import_events.py``,
-section 5.2 of the ingest inventory) -- it never mints one itself.  An event
-this script cannot resolve a source identity for is reported under
+section 5.2 of the ingest inventory) -- it never mints one itself.  A Luma
+event whose own identity does not resolve falls back to its normalized title
+and its start -- the exact instant, else the same Europe/Berlin date
+(``scripts.prod.registrant_import.resolve_pending_events``) -- unambiguous
+matches only, each reported under ``fallback_matched_events`` and each refusal
+under ``fallback_refused_events``.  An event still unresolved is reported under
 ``awaiting_identity_events`` and skipped, not created.
 
 **Two providers, as of 2026-09-11.**  Luma (``--luma-source``, always run) and
@@ -176,6 +180,16 @@ def _parser() -> argparse.ArgumentParser:
             "an interrupted run safe to resume."
         ),
     )
+    parser.add_argument(
+        "--allow-large-removal",
+        action="store_true",
+        help=(
+            "Let --refresh proceed even when the new export would lose more than "
+            "the guard allows (per event: more than 5 people or 10%%; overall: more "
+            "than 2%%). Without it such a refresh is refused before any write and "
+            "the events that tripped the guard are reported."
+        ),
+    )
     return parser
 
 
@@ -185,6 +199,7 @@ def _run_provider(
     pending: Iterable[PendingEventRegistrants],
     dry_run: bool,
     refresh: bool,
+    allow_large_removal: bool = False,
 ) -> dict[str, object]:
     from scripts.prod.registrant_import import import_registrants, plan_registrants
 
@@ -200,7 +215,12 @@ def _run_provider(
             "refresh": refresh,
             "applied": False,
         }
-    result = import_registrants(provider=provider, pending=pending, refresh=refresh)
+    result = import_registrants(
+        provider=provider,
+        pending=pending,
+        refresh=refresh,
+        allow_large_removal=allow_large_removal,
+    )
     return {**result.as_dict(), "refresh": refresh, "applied": True}
 
 
@@ -211,7 +231,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--eventbrite-source and --eventbrite-identities must be given together")
     configure_target(parser, args)
 
-    from scripts.prod.registrant_import import RegistrantImportError
+    from scripts.prod.registrant_import import RefreshRemovalRefused, RegistrantImportError
 
     # The events app owns no provider file format, so the reader that knows what
     # a Luma/Eventbrite export looks like is supplied here, by the ingestion layer.
@@ -229,7 +249,11 @@ def main(argv: list[str] | None = None) -> int:
             ),
         )
         report["luma"] = _run_provider(
-            provider=LUMA_PROVIDER, pending=luma_pending, dry_run=args.dry_run, refresh=args.refresh
+            provider=LUMA_PROVIDER,
+            pending=luma_pending,
+            dry_run=args.dry_run,
+            refresh=args.refresh,
+            allow_large_removal=args.allow_large_removal,
         )
         if args.eventbrite_source is not None:
             from scripts.prod.registration_sources.eventbrite_registrants import (
@@ -246,7 +270,22 @@ def main(argv: list[str] | None = None) -> int:
                 pending=eventbrite_pending,
                 dry_run=args.dry_run,
                 refresh=args.refresh,
+                allow_large_removal=args.allow_large_removal,
             )
+    except RefreshRemovalRefused as error:
+        # Counts and provider event ids only; nothing was written.
+        print(
+            json.dumps(
+                {
+                    "error": str(error),
+                    "refresh_removal_guard": error.plan.as_dict()["refresh_removal_guard"],
+                    "plan": error.plan.as_dict(),
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 1
     except RegistrantImportError as error:
         # The error carries a condition code, never a source value.
         print(json.dumps({"error": str(error)}, indent=2))

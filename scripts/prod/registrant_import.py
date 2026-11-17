@@ -94,10 +94,14 @@ identity scheme. See that attribute's own docstring.
 
 from __future__ import annotations
 
+import re
+import unicodedata
+from collections import Counter
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from django.db import IntegrityError, transaction
 from django.utils.dateparse import parse_datetime
@@ -132,6 +136,14 @@ __all__ = [
     "EXISTING_EVENT_DATE_UNUSABLE",
     "ExistingEventMatch",
     "ExistingEventIndex",
+    "OCCURRENCE_MATCH_START_AND_TITLE",
+    "OCCURRENCE_MATCH_DATE_AND_TITLE",
+    "OccurrenceMatch",
+    "EventOccurrenceIndex",
+    "normalize_match_title",
+    "parse_event_instant",
+    "FallbackMatch",
+    "resolve_pending_events",
     "RegistrantImportError",
     "RegistrantRow",
     "PendingEventRegistrants",
@@ -301,6 +313,140 @@ class ExistingEventIndex:
         return ExistingEventMatch(EXISTING_EVENT_NONE, None, date, 0, remaining)
 
 
+# --------------------------------------------------------------------------
+# One occurrence, matched by its start and its title
+# --------------------------------------------------------------------------
+#
+# ``ExistingEventIndex`` above can only see an event whose *source key* carries a
+# date, so every provider-minted event (``evt-...``) and every older podcast-style
+# manifest entry is invisible to it.  This index reads the ``Event`` row's own
+# ``start_datetime`` instead, so it sees every event in the database.  It answers
+# "is this the same occurrence?" for two import boundaries that need exactly that:
+# the legacy ``_data/events.yaml`` leg (``scripts/prod/import_events.py``) and the
+# registrant importer's fallback for a provider event with no identity of its own.
+#
+# Two tiers, tried in order, each exact on both of its axes:
+#
+# * the same start instant and the same normalized title;
+# * the same Europe/Berlin calendar date and the same normalized title -- the
+#   legacy site wrote a nominal ``17:00`` for events Luma actually holds at
+#   another hour on that day, and production's registrant adapter matched those
+#   by date and title for the same reason.
+#
+# A tier with more than one candidate is ambiguous and resolves nothing; the
+# next tier is not consulted, because a looser rule must never break a tie the
+# stricter one could not.  Nothing is fuzzy, ranked or scored.
+
+OCCURRENCE_MATCH_START_AND_TITLE = "start_and_title"
+OCCURRENCE_MATCH_DATE_AND_TITLE = "date_and_title"
+OCCURRENCE_MATCH_AMBIGUOUS = "ambiguous"
+OCCURRENCE_MATCH_NONE = "none"
+OCCURRENCE_MATCH_UNDATED = "undated"
+
+#: The calendar every DataTalks.Club event date is read in.
+EVENT_CALENDAR_TIMEZONE = ZoneInfo("Europe/Berlin")
+
+#: Punctuation to ignore. ``+`` and ``#`` are kept: "C++", "C#" and "C" are three
+#: different subjects, not three spellings of one.
+_NON_WORD = re.compile(r"[^\w\s+#]|_")
+
+
+def normalize_match_title(title: str) -> str:
+    """Fold a title to what two spellings of one event's title share.
+
+    Case, punctuation (``:``, ``?``, ``&``, typographic apostrophes, hyphens --
+    but not ``+`` or ``#``), whitespace and a single leading "The" are ignored -- the differences seen
+    between Luma's and the legacy site's spelling of the same event ("The Data
+    Consultant Playbook From Code ..." against "Data Consultant Playbook: From
+    Code ...").  Every word is otherwise kept, in order.
+    """
+
+    folded = unicodedata.normalize("NFKC", title).casefold()
+    words = _NON_WORD.sub(" ", folded).split()
+    if len(words) > 1 and words[0] == "the":
+        words = words[1:]
+    return " ".join(words)
+
+
+def parse_event_instant(value: Any) -> datetime | None:
+    """An aware instant from a provider/legacy start value, or ``None``.
+
+    An offset-less value is not guessed at here: callers that know their
+    source's timezone make it aware before they ask.
+    """
+
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str) and value.strip():
+        try:
+            parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    else:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed
+
+
+@dataclass(frozen=True, slots=True)
+class OccurrenceMatch:
+    outcome: str
+    event: Event | None = None
+    candidate_total: int = 0
+
+    @property
+    def matched(self) -> bool:
+        return self.event is not None
+
+
+class EventOccurrenceIndex:
+    """Every event in this database, keyed by start instant/calendar date and title."""
+
+    def __init__(self, events: Any = None) -> None:
+        self._by_start: dict[tuple[datetime, str], list[Event]] = {}
+        self._by_date: dict[tuple[str, str], list[Event]] = {}
+        for event in Event.objects.all() if events is None else events:
+            self.add(event)
+
+    def add(self, event: Event) -> None:
+        start = event.start_datetime
+        if start is None or start.tzinfo is None:
+            return
+        title = normalize_match_title(event.title)
+        if not title:
+            return
+        self._by_start.setdefault((start, title), []).append(event)
+        local_date = start.astimezone(EVENT_CALENDAR_TIMEZONE).date().isoformat()
+        self._by_date.setdefault((local_date, title), []).append(event)
+
+    def match(self, *, title: str, start: Any) -> OccurrenceMatch:
+        instant = parse_event_instant(start)
+        normalized = normalize_match_title(title)
+        if instant is None or not normalized:
+            return OccurrenceMatch(OCCURRENCE_MATCH_UNDATED)
+        tiers = (
+            (OCCURRENCE_MATCH_START_AND_TITLE, self._by_start.get((instant, normalized), [])),
+            (
+                OCCURRENCE_MATCH_DATE_AND_TITLE,
+                self._by_date.get(
+                    (
+                        instant.astimezone(EVENT_CALENDAR_TIMEZONE).date().isoformat(),
+                        normalized,
+                    ),
+                    [],
+                ),
+            ),
+        )
+        for outcome, candidates in tiers:
+            distinct = {event.pk: event for event in candidates}
+            if len(distinct) == 1:
+                return OccurrenceMatch(outcome, next(iter(distinct.values())), 1)
+            if len(distinct) > 1:
+                return OccurrenceMatch(OCCURRENCE_MATCH_AMBIGUOUS, None, len(distinct))
+        return OccurrenceMatch(OCCURRENCE_MATCH_NONE)
+
+
 class RegistrantImportError(ValueError):
     """A bounded refusal that never embeds a source value (an email, a name, a guest id).
 
@@ -351,6 +497,12 @@ class PendingEventRegistrants:
     external_event_identifier: str
     read_rows: Callable[[], tuple[RegistrantRow, ...]]
     resolve_event: Callable[[], Event | None] | None = None
+    #: ``(title, start)`` of the provider event itself -- public event-level facts,
+    #: never an attendee value.  Asked for only when the event's own identity
+    #: does not resolve, to try :func:`resolve_pending_events`' title-and-start
+    #: fallback.  ``None`` means the provider export carries no such facts
+    #: (Eventbrite's registrant CSVs do not), so there is no fallback to try.
+    read_event_metadata: Callable[[], tuple[str, str]] | None = None
 
 
 def _parse_registered_at(raw: str) -> Any:
@@ -445,6 +597,204 @@ def _resolve_event(
 
 
 @dataclass(frozen=True, slots=True)
+class FallbackMatch:
+    """One provider event attached to an existing event by its title and start.
+
+    Event-level, public facts only: the provider's own event id (part of its
+    public URL), the event title and start, and the event it matched.
+    """
+
+    external_event_identifier: str
+    title: str
+    start_at: str
+    matched_by: str
+    public_id: int | None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "external_event_identifier": self.external_event_identifier,
+            "title": self.title,
+            "start_at": self.start_at,
+            "matched_by": self.matched_by,
+            "matched_event_public_id": self.public_id,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class PendingResolution:
+    """Which ``Event`` each pending provider event resolves to, decided once per run."""
+
+    events: dict[str, Event | None]
+    fallback_matches: tuple[FallbackMatch, ...] = ()
+    fallback_refusals: tuple[dict[str, Any], ...] = ()
+
+
+def resolve_pending_events(
+    *, provider: str, pending: Iterable[PendingEventRegistrants], refresh: bool = False
+) -> PendingResolution:
+    """Resolve every pending event: its own identity first, then the fallback.
+
+    The fallback is production's registrant adapter's rule brought into the
+    reviewed importer (``~/prod/events/registrations-2026-11-15-v2/
+    production-run/import-adapter.py``): a provider event whose own identity
+    does not resolve -- because discovery recognised it as an event the reviewed
+    manifest already describes, and so minted nothing -- attaches to the one
+    existing event with the same start and normalized title
+    (:class:`EventOccurrenceIndex`).  It is refused, and the event stays under
+    ``awaiting_identity_events``, when
+
+    * the match is ambiguous (several candidates in the deciding tier);
+    * the matched event is also resolved directly by another event in this run,
+      or matched by a second fallback -- a ``--refresh`` replaces one event's
+      provider rows wholesale, so two sources writing one event would erase
+      each other.
+
+    Every accepted and every refused fallback is reported; none is silent.
+    Only identity lookups and the event-level metadata reader run here: no
+    registrant row is read, and an event a resumed run will skip (completed,
+    without ``refresh``) is not asked for its metadata either, so its file
+    stays closed.
+    """
+
+    items = tuple(pending)
+    skipped: set[str] = set()
+    if not refresh:
+        skipped = set(
+            EventRegistrantImportProgress.objects.filter(
+                provider=provider,
+                completed=True,
+                external_event_identifier__in=[item.external_event_identifier for item in items],
+            ).values_list("external_event_identifier", flat=True)
+        )
+    events: dict[str, Event | None] = {}
+    for item in items:
+        events[item.external_event_identifier] = _resolve_event(
+            provider=provider,
+            external_event_identifier=item.external_event_identifier,
+            resolve_event=item.resolve_event,
+        )
+    claimed = Counter(event.pk for event in events.values() if event is not None)
+
+    index: EventOccurrenceIndex | None = None
+    proposals: list[tuple[PendingEventRegistrants, str, str, Event, str]] = []
+    refusals: list[dict[str, Any]] = []
+    for item in items:
+        if events[item.external_event_identifier] is not None:
+            continue
+        if item.read_event_metadata is None or item.external_event_identifier in skipped:
+            continue
+        title, start_at = item.read_event_metadata()
+        if not title or not start_at:
+            continue
+        if index is None:
+            index = EventOccurrenceIndex()
+        match = index.match(title=title, start=start_at)
+        if match.event is not None:
+            proposals.append((item, title, start_at, match.event, match.outcome))
+        elif match.outcome == OCCURRENCE_MATCH_AMBIGUOUS:
+            refusals.append(
+                {
+                    "external_event_identifier": item.external_event_identifier,
+                    "title": title,
+                    "start_at": start_at,
+                    "reason": "ambiguous",
+                    "candidate_event_total": match.candidate_total,
+                }
+            )
+
+    proposed = Counter(event.pk for _, _, _, event, _ in proposals)
+    # A provider event that already holds its target from an earlier run keeps
+    # it: a newcomer proposing the same event is what gets refused, not both.
+    incumbents = {
+        (external_event_identifier, event_pk)
+        for external_event_identifier, event_pk in EventRegistrantImportProgress.objects.filter(
+            provider=provider,
+            event__isnull=False,
+            external_event_identifier__in=[item.external_event_identifier for item, *_ in proposals],
+        ).values_list("external_event_identifier", "event_id")
+    }
+    accepted: list[FallbackMatch] = []
+    for item, title, start_at, event, matched_by in proposals:
+        incumbent = (item.external_event_identifier, event.pk) in incumbents
+        if (
+            claimed[event.pk]
+            or (proposed[event.pk] > 1 and not incumbent)
+            or _held_by_another_source(
+                event=event,
+                provider=provider,
+                external_event_identifier=item.external_event_identifier,
+            )
+        ):
+            refusals.append(
+                {
+                    "external_event_identifier": item.external_event_identifier,
+                    "title": title,
+                    "start_at": start_at,
+                    "reason": "event_claimed_by_another_source",
+                    "matched_event_public_id": event.public_id,
+                }
+            )
+            continue
+        events[item.external_event_identifier] = event
+        accepted.append(
+            FallbackMatch(
+                external_event_identifier=item.external_event_identifier,
+                title=title,
+                start_at=start_at,
+                matched_by=matched_by,
+                public_id=event.public_id,
+            )
+        )
+    return PendingResolution(
+        events=events,
+        fallback_matches=tuple(accepted),
+        fallback_refusals=tuple(refusals),
+    )
+
+
+def _rows_owned_by(*, event: Event, provider: str, external_event_identifier: str) -> Any:
+    """The provider rows on ``event`` a refresh of this provider event replaces."""
+
+    return EventRegistration.objects.filter(
+        event=event,
+        provider=provider,
+        source_event_identifier__in=(external_event_identifier, ""),
+    )
+
+
+def _held_by_another_source(*, event: Event, provider: str, external_event_identifier: str) -> bool:
+    """Whether another provider event already holds ``event``, in any earlier run.
+
+    A completed progress row naming ``event`` for a different provider event id
+    is a claim even when that event is skipped on this run; so is any provider
+    row on ``event`` not attributed to this provider event (an unattributed row
+    cannot be proved to be ours).
+    """
+
+    claimed = (
+        EventRegistrantImportProgress.objects.filter(provider=provider, event=event)
+        .exclude(external_event_identifier=external_event_identifier)
+        .exists()
+    )
+    if claimed:
+        return True
+    return (
+        EventRegistration.objects.filter(event=event, provider=provider)
+        .exclude(source_event_identifier=external_event_identifier)
+        .exists()
+    )
+
+
+def _already_resolved(event: Event | None) -> Callable[[], Event | None]:
+    """A ``resolve_event`` that returns what :func:`resolve_pending_events` decided."""
+
+    def resolve() -> Event | None:
+        return event
+
+    return resolve
+
+
+@dataclass(frozen=True, slots=True)
 class EventImportOutcome:
     external_event_identifier: str
     status: str  # "completed", "refreshed", "already_completed", "no_identity_yet"
@@ -503,11 +853,16 @@ def _import_one_event(
     replaced = 0
     with transaction.atomic():
         if replacing:
-            # Wholesale, and inside the same transaction as the rewrite: a
-            # refreshed export is not append-only, so the rows it no longer
-            # carries have to stop being facts at the same moment the new ones
-            # start being facts.  Identities are untouched.
-            replaced, _ = EventRegistration.objects.filter(event=event, provider=provider).delete()
+            # Wholesale for *this provider event*, and inside the same
+            # transaction as the rewrite: a refreshed export is not append-only,
+            # so the rows it no longer carries have to stop being facts at the
+            # same moment the new ones start being facts.  Rows another provider
+            # event wrote to the same Event are not this export's to replace;
+            # unattributed rows (written before attribution existed) are, as
+            # they always were.  Identities are untouched.
+            replaced, _ = _rows_owned_by(
+                event=event, provider=provider, external_event_identifier=external_event_identifier
+            ).delete()
         for row in rows:
             if row.normalized_email is None:
                 skipped += 1
@@ -523,11 +878,13 @@ def _import_one_event(
                 event=event,
                 identity=identity,
                 provider=provider,
+                source_event_identifier=external_event_identifier,
                 status=row.status,
                 registered_at=_parse_registered_at(row.registered_at_raw),
             )
             written += 1
         progress.completed = True
+        progress.event = event
         progress.rows_total = len(rows)
         progress.rows_written = written
         progress.rows_skipped = skipped
@@ -564,6 +921,8 @@ class RunReport:
     matched_account_total: int
     matched_prior_identity_total: int
     new_identity_total: int
+    fallback_matched_events: tuple[FallbackMatch, ...] = ()
+    fallback_refused_events: tuple[dict[str, Any], ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -587,11 +946,68 @@ class RunReport:
             "matched_account_total": self.matched_account_total,
             "matched_prior_identity_total": self.matched_prior_identity_total,
             "new_identity_total": self.new_identity_total,
+            **_fallback_report(self.fallback_matched_events, self.fallback_refused_events),
         }
 
 
+def _fallback_report(
+    matches: tuple[FallbackMatch, ...], refusals: tuple[dict[str, Any], ...]
+) -> dict[str, Any]:
+    """Every title-and-start fallback this run accepted or refused, by name."""
+
+    return {
+        "fallback_matched_total": len(matches),
+        "fallback_matched_events": [match.as_dict() for match in matches],
+        "fallback_refused_total": len(refusals),
+        "fallback_refused_events": list(refusals),
+    }
+
+
+#: A refresh may lose at most this many people from one provider event ...
+REFRESH_EVENT_REMOVAL_FLOOR = 5
+#: ... or this share of the people it holds, whichever is larger,
+REFRESH_EVENT_REMOVAL_SHARE = 0.10
+#: and at most this share of everyone the refreshed events hold overall,
+#: unless the operator passes ``allow_large_removal``.
+REFRESH_TOTAL_REMOVAL_SHARE = 0.02
+
+
+def _event_removal_is_large(*, existing: int, removed: int) -> bool:
+    return removed > max(REFRESH_EVENT_REMOVAL_FLOOR, existing * REFRESH_EVENT_REMOVAL_SHARE)
+
+
+def _removal_guard_report(plan: PlanReport) -> dict[str, Any]:
+    total_large = plan.registrations_removed > max(
+        REFRESH_EVENT_REMOVAL_FLOOR, plan.registrations_existing * REFRESH_TOTAL_REMOVAL_SHARE
+    )
+    return {
+        "would_refuse": bool(plan.large_removal_events) or total_large,
+        "total_removal_exceeds_share": total_large,
+        "event_removal_floor": REFRESH_EVENT_REMOVAL_FLOOR,
+        "event_removal_share": REFRESH_EVENT_REMOVAL_SHARE,
+        "total_removal_share": REFRESH_TOTAL_REMOVAL_SHARE,
+        "large_removal_events": list(plan.large_removal_events),
+    }
+
+
+class RefreshRemovalRefused(RegistrantImportError):
+    """A refresh that would lose more registrations than the guard allows.
+
+    Carries the dry-run plan (counts and provider event ids only) so the caller
+    can report which events tripped it.
+    """
+
+    def __init__(self, plan: PlanReport) -> None:
+        super().__init__("refresh_removal_exceeds_threshold")
+        self.plan = plan
+
+
 def import_registrants(
-    *, provider: str, pending: Iterable[PendingEventRegistrants], refresh: bool = False
+    *,
+    provider: str,
+    pending: Iterable[PendingEventRegistrants],
+    refresh: bool = False,
+    allow_large_removal: bool = False,
 ) -> RunReport:
     """Import one export's registrant rows, one event at a time, in the reader's order.
 
@@ -613,17 +1029,27 @@ def import_registrants(
     """
 
     events = tuple(pending)
+    if refresh and not allow_large_removal:
+        # A refresh deletes what it does not re-read. Plan it first -- the same
+        # readers and gates, no writes -- and refuse before touching a row if
+        # the new export would lose more people than a refresh plausibly should
+        # (an empty or partial export, a wrong directory).
+        plan = plan_registrants(provider=provider, pending=events, refresh=True)
+        if _removal_guard_report(plan)["would_refuse"]:
+            raise RefreshRemovalRefused(plan)
+    resolution = resolve_pending_events(provider=provider, pending=events, refresh=refresh)
 
     events_completed = events_refreshed = events_already_completed = 0
     awaiting_identity: list[str] = []
     rows_written = rows_skipped = rows_replaced = 0
     matched_account = matched_prior = new_identity = 0
     for item in events:
+        resolved = resolution.events.get(item.external_event_identifier)
         outcome = _import_one_event(
             provider=provider,
             external_event_identifier=item.external_event_identifier,
             read_rows=item.read_rows,
-            resolve_event=item.resolve_event,
+            resolve_event=_already_resolved(resolved),
             refresh=refresh,
         )
         if outcome.status == "no_identity_yet":
@@ -656,6 +1082,8 @@ def import_registrants(
         matched_account_total=matched_account,
         matched_prior_identity_total=matched_prior,
         new_identity_total=new_identity,
+        fallback_matched_events=resolution.fallback_matches,
+        fallback_refused_events=resolution.fallback_refusals,
     )
 
 
@@ -677,7 +1105,13 @@ class EventPlanOutcome:
     rows_total: int = 0
     rows_writable: int = 0
     rows_skipped: int = 0
+    #: Rows a refresh deletes and rewrites: every row this provider event owns.
+    #: Gross, not a loss -- an unchanged person is replaced by an identical row.
+    registrations_replaced: int = 0
+    #: People this provider event holds that the new export no longer carries:
+    #: the registrations a refresh would really lose.
     registrations_removed: int = 0
+    registrations_existing: int = 0
     registrations_unchanged: int = 0
     registrations_changed: int = 0
     matched_account_total: int = 0
@@ -744,20 +1178,22 @@ def _plan_one_event(
             key = email
         proposed[key] = row.status
 
-    removed = unchanged = changed = 0
+    replaced = removed = existing_total = unchanged = changed = 0
     if progress is not None and progress.completed and refresh:
         existing: dict[str, str] = {}
-        for registration in EventRegistration.objects.filter(
-            event=event, provider=provider
+        for registration in _rows_owned_by(
+            event=event, provider=provider, external_event_identifier=external_event_identifier
         ).select_related("identity__account"):
             identity = registration.identity
             if identity.account_id is not None and identity.account is not None:
                 existing_key = normalized_email_of(identity.account)
             else:
                 existing_key = identity.normalized_email
+            replaced += 1
             if existing_key:
                 existing[existing_key] = registration.status
-        removed = len(existing)
+        existing_total = len(existing)
+        removed = len(set(existing) - set(proposed))
         for email, status in proposed.items():
             if existing.get(email) == status:
                 unchanged += 1
@@ -770,7 +1206,9 @@ def _plan_one_event(
         rows_total=len(rows),
         rows_writable=writable,
         rows_skipped=skipped,
+        registrations_replaced=replaced,
         registrations_removed=removed,
+        registrations_existing=existing_total,
         registrations_unchanged=unchanged,
         registrations_changed=changed,
         matched_account_total=matched_account,
@@ -798,6 +1236,11 @@ class PlanReport:
     registrations_removed: int
     registrations_unchanged: int
     registrations_changed: int
+    registrations_replaced: int = 0
+    registrations_existing: int = 0
+    large_removal_events: tuple[dict[str, Any], ...] = ()
+    fallback_matched_events: tuple[FallbackMatch, ...] = ()
+    fallback_refused_events: tuple[dict[str, Any], ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -813,9 +1256,15 @@ class PlanReport:
             "matched_account_total": self.matched_account_total,
             "matched_prior_identity_total": self.matched_prior_identity_total,
             "new_identity_total": self.new_identity_total,
+            # Gross: rows a refresh deletes and rewrites, unchanged people included.
+            "registrations_replaced": self.registrations_replaced,
+            # Net: people currently held whom the new export no longer carries.
             "registrations_removed": self.registrations_removed,
+            "registrations_existing": self.registrations_existing,
+            "refresh_removal_guard": _removal_guard_report(self),
             "registrations_unchanged": self.registrations_unchanged,
             "registrations_changed": self.registrations_changed,
+            **_fallback_report(self.fallback_matched_events, self.fallback_refused_events),
         }
 
 
@@ -834,15 +1283,19 @@ def plan_registrants(
     progress row is touched.
     """
 
+    items = tuple(pending)
+    resolution = resolve_pending_events(provider=provider, pending=items, refresh=refresh)
     outcomes = [
         _plan_one_event(
             provider=provider,
             external_event_identifier=pending_event.external_event_identifier,
             read_rows=pending_event.read_rows,
-            resolve_event=pending_event.resolve_event,
+            resolve_event=_already_resolved(
+                resolution.events.get(pending_event.external_event_identifier)
+            ),
             refresh=refresh,
         )
-        for pending_event in pending
+        for pending_event in items
     ]
     awaiting = tuple(
         outcome.external_event_identifier
@@ -869,4 +1322,19 @@ def plan_registrants(
         registrations_removed=sum(outcome.registrations_removed for outcome in outcomes),
         registrations_unchanged=sum(outcome.registrations_unchanged for outcome in outcomes),
         registrations_changed=sum(outcome.registrations_changed for outcome in outcomes),
+        registrations_replaced=sum(outcome.registrations_replaced for outcome in outcomes),
+        registrations_existing=sum(outcome.registrations_existing for outcome in outcomes),
+        large_removal_events=tuple(
+            {
+                "external_event_identifier": outcome.external_event_identifier,
+                "registrations_existing": outcome.registrations_existing,
+                "registrations_removed": outcome.registrations_removed,
+            }
+            for outcome in outcomes
+            if _event_removal_is_large(
+                existing=outcome.registrations_existing, removed=outcome.registrations_removed
+            )
+        ),
+        fallback_matched_events=resolution.fallback_matches,
+        fallback_refused_events=resolution.fallback_refusals,
     )

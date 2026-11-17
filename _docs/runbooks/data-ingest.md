@@ -689,6 +689,20 @@ uv run --frozen python scripts/prod/import_cmp_content.py \
     --source /data/tmp/rds-export/cmp/rds-prod-20260905-182754.db
 ```
 
+**Timezone-less timestamps are UTC.** CMP runs Django with `TIME_ZONE = "UTC"` and
+`USE_TZ = True` (`course-management-platform/course_management/settings.py`), and its
+SQLite backend stores every aware datetime as a naive UTC string —
+`courses_course.starts_at` reads `2026-01-12 00:00:00`. The importer interprets every such value as UTC
+at the boundary (`cmp_content_import._datetime`, used for the explicit `starts_at` leg by
+`_import_explicit_start`) before the shared, offset-only launch-timing seam sees it, so a
+naive start no longer escapes as an uncaught `LaunchError`. A start the launch rules
+reject (after the deadline or the cohort end) is the bounded refusal
+`source-<kind>-start-invalid`. A **date-only** value (`2026-01-12`, no time of day)
+names no instant and is refused as `source-<kind>-start-date-only` rather than read as
+midnight UTC — the provenance the import records says date-only values are not
+inferred. Guarded by
+`courses/tests/test_cmp_content_import.py::CmpNaiveStartTests`.
+
 > **The export is not frozen.** `/data/tmp/rds-export/` receives a **new dump
 > every day**. Treating this as "one-time" is a *decision about cutover*, not a
 > property of the source: CMP is still live and still being written to. Pick the
@@ -1052,6 +1066,115 @@ reported `replayed: true`, `created: 0`, `unchanged: 160`. With the checked-in
 reviewed file, which is empty, the same run prepares **0**: nobody has decided a type
 yet, and that is the honest state.
 
+### 14.5 — Legacy `_data/events.yaml` events
+
+The legacy site kept adding events to `_data/events.yaml` after the reviewed
+manifest (§14) was frozen — the Aug–Dec 2026 webinars and podcasts among them, with
+their `type`, `speakers` and links. `scripts/prod/import_events.py`'s
+`import_events_yaml()` brings them in. It runs two ways:
+
+```
+uv run --frozen python scripts/prod/import_events.py \
+    --database .tmp/local.sqlite3 \
+    --events-yaml <dtc-main-site checkout>/_data/events.yaml \
+    --events-yaml-revision <that checkout's commit> \
+    --luma-source ~/prod/events/registrations-2026-11-15-v2/prepared --dry-run
+```
+
+`--luma-source` is the directory of CSV/JSON pairs itself —
+`~/prod/events/registrations-2026-11-15-v2/prepared` for the v2 export, the one the
+measurements below used. Its parent directory is not an export and refuses with
+`luma_discovery_failed`.
+
+standalone (production applies it this way), and as the **last leg of `run()`** when
+`events_yaml` is given — which is how the local rebuild runs it, from the
+`dtc-main-site` checkout the editorial stage just synced (§8.1).
+
+**One occurrence, one row.** Each entry is matched against every event already in the
+database before anything is created, in tiers that each accept only a single,
+unambiguous candidate:
+
+1. its own legacy source key (`<Berlin date>-<title slug>`): a manifest row, or a row
+   an earlier run of this leg created;
+2. its provider identity — the entry's `link`, normalized: a Luma slug or `evt-` id
+   (`luma.com/<slug>` or `lu.ma/<slug>`, a single path segment — `luma.com/user/<x>`
+   and other deeper paths name no event; case, trailing slash and query ignored), or an Eventbrite
+   event id (`eventbrite.com/e/<id>`, with or without a title prefix). It is matched
+   against the event discovery minted for that Luma URL in the `--luma-source`
+   export, or against any event whose `materials` carry the same link — the reviewed
+   manifest rows carry their Eventbrite link there. Only a holder **on the same
+   Europe/Berlin date** counts: a listing reused on another date is reported under
+   `provider_url_date_conflicts`, and a listing reused for several events that day
+   decides nothing; either way the start/title tiers decide;
+3. the same start instant and normalized title — case, punctuation (but not `+` or
+   `#`, so "C++", "C#" and "C" stay apart) and a leading "The" ignored
+   (`scripts.prod.registrant_import.normalize_match_title`);
+4. the same Europe/Berlin calendar date and normalized title — the legacy file wrote a
+   nominal `17:00` for events Luma held at another hour that day.
+
+When the file itself names one title twice on one day (two sessions of a series), the
+day-level tiers — 1, whose key is `<date>-<slug>`, and 4 — are skipped for those
+entries: only a provider link or the exact start decides, and a date-only match is
+reported under `ambiguous_events` with `same_day_same_title_entries` rather than
+folding one session into the other. A tier-4 match with two same-title events on that
+day in the database is ambiguous in the same way.
+
+Tiers 3 and 4 read the `Event` row's own `start_datetime`
+(`scripts.prod.registrant_import.EventOccurrenceIndex`), not its source key. That is
+the fix for the first version of this leg (PR #505), which recognised an existing
+event only by a *dated* source key and so never saw a Luma-discovered `evt-...` row or
+an undated podcast-style manifest row: on the 2026-11-16 production-like rebuild it
+created **79 duplicates** — every Aug–Dec 2026 Luma event and 56 podcasts from
+2020–2022. A dry run against production on 2026-11-16 showed the same shape there —
+74 entries it would recreate, e.g. "The Importance of Writing in a Tech Career"
+(production public id 421), because production's source keys match neither the old
+nor the new spelling of those titles.
+
+Measured 2026-11-17 by dry runs against scratch copies of that rebuild's database,
+each checked for any creation sharing a Berlin date and normalized title, or a
+provider link, with an existing event:
+
+| Database state | `--luma-source` | Legacy key | Eventbrite URL | Luma URL | Start+title | Date+title | Created | Duplicates |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| as rebuilt (buggy run's 4 survivors present) | v2 export | 341 | 55 | 25 | 26 | 0 | 0 | 0 |
+| buggy run's rows removed | v2 export | 337 | 55 | 26 | 26 | 0 | 3 | 0 |
+| buggy run's rows removed | none | 337 | 55 | 0 | 40 | 12 | 3 | 0 |
+
+0 ambiguous in every run. The 3 created are Hireable With AI #1–#3, which no other
+source has. One Luma URL named an event on another date (a reused listing) and was
+correctly not matched. A
+tier with several candidates reports the entry under `ambiguous_events` and creates
+nothing; an entry repeated in the same file matches the first one's row
+(`earlier_entry_in_this_file`). The legacy-key tier alone is weaker than it looks:
+`event_title_slug` truncates long titles, so a long manifest key never equals the key
+this leg derives, and the later tiers are what catch those.
+
+**What a match changes.** A reviewed manifest row, or a row this leg created, is left
+exactly as it is. A **Luma-discovered** row — minted from a provider export with only a
+title and a start (§14.3) — has its *empty* `type`, season, episode, speakers and
+materials filled from the entry, fill-only, reported under `enriched_events` with the
+fields named (24 on the measured run). If the start and title also prove a *different*
+event — the reviewed row an earlier discovery duplicated — the Luma row is reported
+under `provider_duplicates` instead and left alone (2 on the measured run); reconcile it
+with `--report-duplicate-identities`.
+
+This file is where production's upcoming podcasts got their type (whose blurb is the
+"description" a podcast card shows) and their speakers: production ran this leg on
+2026-11-15, before its v2 Luma discovery, so there the yaml rows were created first and
+discovery then declined to duplicate them. A rebuild discovers first, and never ran
+this leg at all, so its Luma rows stayed bare; the rebuild now runs it and the fill
+closes the gap (public ids still differ from production's, because allocation order
+does). A description written
+in production with `dtc events update` (the Hireable With AI webinars) has no staged
+source and is not reproduced by any rebuild.
+
+**Dry run.** `--dry-run` makes the same decisions and reports `matched_events` (each
+with `matched_by` and the public id), `matched_by_totals`, `enriched_events`,
+`ambiguous_events` and `created_events` (`dry_run: true`) separately, writing nothing.
+Replaying an applied file creates nothing and enriches nothing.
+
+Guarded by `scripts/tests/test_import_events.py::EventsYamlDuplicateTests`.
+
 ### 15 — Event description bridge
 
 `~/prod/dtc-data/content-staging/event_description_bridge.json`, built by
@@ -1087,6 +1210,62 @@ resolves those rows into `event_registrants.EventRegistrantIdentity` and
 `EventRegistration`; unresolved events are reported and skipped, never guessed. The
 durable protected exports live outside the repository, and attendee values must not be
 logged or copied into a worktree.
+
+**Title-and-start fallback.** A Luma event discovery *recognised* as one the reviewed
+manifest already describes gets no provider identity (§14.3), so its own identity never
+resolves. `registrant_import.resolve_pending_events()` then tries the event's own title
+and start — read by `luma_registrants.read_luma_event_metadata` from the two
+event-level columns of the first CSV row; no attendee value is used or reported — against
+`EventOccurrenceIndex`: the same start instant and normalized title, else the same
+Europe/Berlin date and normalized title. This is the rule production's adapter
+(`~/prod/events/registrations-2026-11-15-v2/production-run/import-adapter.py`) applied
+by hand, now in the reviewed importer. It is accepted only when unambiguous, and refused
+— the event stays under `awaiting_identity_events` — when the deciding tier has several
+candidates, or when the matched event is held by another provider event: resolved to it
+directly in this run, proposed by a second fallback in this run, recorded as its target
+by an earlier run (`EventRegistrantImportProgress.event`, kept even while that provider
+event is skipped as completed), or carrying provider rows not attributed to this
+provider event. When an earlier run's holder and a newcomer both propose the same
+event, the holder keeps it.
+
+**Refresh replaces one provider event's rows, not the Event's.** Every imported
+`EventRegistration` records the provider event it came from
+(`source_event_identifier`, migration
+`event_registrants/0003_registration_source_attribution`), and `--refresh` deletes only
+that provider event's rows plus unattributed rows written before attribution existed.
+So two provider events mapped to one `Event` — by the identities file or by a
+fallback — never erase each other. Guarded by
+`scripts/tests/test_registrant_import.py::FallbackAcrossRunsTests`, which keeps the
+tester's cross-run probe (fallback, then a later direct mapping, then refresh).
+
+**The refresh removal guard.** A refresh deletes what it does not re-read, so
+`import_registrants` plans every `--refresh` first (the same readers and gates, no
+writes) and refuses before touching a row when the new export would lose more than
+**5 people or 10%** of any one provider event, or more than **2%** of everyone the
+refreshed events hold — an empty or partial export, or the wrong directory. The refusal
+(`refresh_removal_exceeds_threshold`) prints the plan with `refresh_removal_guard` and
+its `large_removal_events` (provider event id, people held, people lost), and nothing
+is written. `--allow-large-removal` lets a reviewed large refresh through. The dry run
+reports `registrations_replaced` (gross: every held row is deleted and rewritten,
+unchanged people included) separately from `registrations_removed` (net: people held
+whom the new export no longer carries); before this split the dry run printed the
+gross figure as "removed". Measured 2026-11-17 against a scratch copy of the
+2026-11-16 rebuild with the v2 export and `luma-event-identities.json`: 195 events,
+193 planned, **55,882 replaced, 0 removed**, 55,882 unchanged, 6 fallback matches,
+guard not tripped. Guarded by
+`scripts/tests/test_registrant_import.py::RefreshRemovalGuardTests`. Every accepted match is reported under
+`fallback_matched_events` (provider id, title, start, `matched_by`, matched public id)
+and every refusal under `fallback_refused_events`; the dry run reports the same.
+Measured 2026-11-17 against a scratch copy of the 2026-11-16 rebuild with the v2 export
+and `luma-event-identities.json`: of its 8 Luma "awaiting identity" events, **6 resolve**
+(2 by exact start, 4 by Berlin date), 0 refused; the other 2 have no registrant row at
+all, so there is neither a title to read nor a row to attach.
+
+**Eventbrite has no fallback to give.** Its registrant CSVs carry no event title or
+start, and the 6 ids `eventbrite-event-identities.json` leaves unresolved are exactly
+the ones with no single title/date anywhere: 3 are `ambiguous` (the listing was reused,
+two real events per id) and 3 have no `events.xlsx` row at all. They stay reported under
+`awaiting_identity_events` until a person resolves them in that file.
 
 **Luma is not frozen history, and this table is a snapshot rather than a fact.**
 New events keep appearing and people keep registering for events we already have:
@@ -1175,7 +1354,9 @@ ambient value silently points a command at the wrong database), and reads
 `LEGACY_ZOOMCAMP_SOURCE` (default `~/git/zoomcamp-scoring`; empty skips the legacy
 import, a path that is not a checkout refuses), `PRODUCTION_PREP_CMP_SOURCE`,
 `PRODUCTION_PREP_COURSE_SOURCE_DIR`, `PRODUCTION_PREP_EDITORIAL_SOURCE_DIR` (default
-`<root>/editorial-sources`) and `PRODUCTION_PREP_FRESH=1` (refuse an existing database).
+`<root>/editorial-sources`), `PRODUCTION_PREP_FRESH=1` (refuse an existing database)
+and `PRODUCTION_PREP_WITH_REGISTRANTS=1` (opt in to attendee rows, below; off by
+default, and only `1`/`true`/`yes` turn it on).
 **On a fresh root, `dataset` exits 1 at the media-store check** of
 `verify_local_dataset.py`: the rebuild syncs the media *records* but never hydrates the media
 *objects* (hydration is a separate operator command, §7), so every record reports missing. That
@@ -1209,7 +1390,9 @@ The same order, by hand:
    <database> --checkout-root <root>`, then for each of `dtc-content`, `dtc-main-site`,
    `dtc-docs`, `dtc-faq`, `dtc-podwiki`:
    `manage.py sync_content --source <slug> --from-disk <root>/<slug>`.
-5. `import_events.py` (§14-15) — one call, five legs internally sequenced.
+5. `import_events.py` (§14-15) — one call, its legs internally sequenced; the rebuild
+   passes the synced `dtc-main-site` checkout's `_data/events.yaml` so the §14.5 leg
+   runs last and gives Luma-discovered events their type, speakers and links.
 6. `import_mailchimp_course_tags.py` (§18) — after step 2, since it needs the course
    catalogue's cohorts to already exist.
 
@@ -1219,6 +1402,16 @@ learner activity — run only when you actually need them, and record which expo
 used), `import_event_registrants.py` and the remaining Mailchimp importers (attendee-level
 personal data, need provider credentials), and `import_account_reconciliation.py` (merges
 real people, no rollback).
+
+`prepare_local_data.py` honours that for registrants too: it imports the Luma and
+Eventbrite attendee rows **only with `--with-registrants`**
+(`PRODUCTION_PREP_WITH_REGISTRANTS=1` through `production_data.py dataset`; only `1`,
+`true` or `yes` opt in — `0`, `false` or anything else does not), and
+otherwise reports `event_registrations: {"skipped": "registrants_not_requested"}` and
+does not require the Eventbrite export to exist. The Luma export is still read for
+event discovery (§14.3) — event identities, not attendees. Before this, the rehearsal
+imported registrants unconditionally, so a rebuild could not run without attendee
+data.
 
 ## 9. What is file-backed and what is database-backed
 
@@ -1536,7 +1729,8 @@ What genuinely differs, and needs care rather than a separate pipeline:
    2026-09-11 — overwrites the row content import just wrote, for every event whose
    Eventbrite id resolves against `~/prod/dtc-data/eventbrite-event-identities.json`;
    see `events.eventbrite_content`), new-event identity discovery (§14.3), staged
-   content for those events (§14.4). Run it before anything else event-related.
+   content for those events (§14.4) and, when `events_yaml` is given, the legacy
+   `_data/events.yaml` leg (§14.5), last. Run it before anything else event-related.
 6. `scripts/prod/import_event_registrants.py` — both providers now: `--luma-source`
    (always run) and, since 2026-09-11, `--eventbrite-source`/`--eventbrite-identities`
    (opt-in; a one-time backfill against Eventbrite's frozen export, not a recurring
@@ -1568,7 +1762,7 @@ finds the database absent — and runs them in `STEP_ORDER`
 | ↳ `editorial_seed` | `manage.py seed_content_sources`, with `--editorial-checkout-root` |
 | ↳ `editorial_checkouts` | `scripts/content.py editorial-checkouts`, with `--refresh-checkouts` |
 | ↳ `editorial_sync` | `sync_content --source <slug> --from-disk <root>/<slug>`, five sources |
-| ↳ `events` | `import_events.run()`, then the Luma and Eventbrite attendee exports |
+| ↳ `events` | `import_events.run()` + events.yaml leg; registrants with `--with-registrants` |
 | `scripts/verify_local_dataset.py` | the dataset gate, editorial and media store included |
 
 `scripts/production_data.py bootstrap` is the same sequence: the legacy Zoomcamp import
@@ -1578,7 +1772,8 @@ used to be its only addition, and it now runs inside the rehearsal for every reb
 `--no-homework-content`.
 
 The orchestrator runs the whole of step 5 by composing `import_events.run()` itself —
-one call, all five legs, in the fixed order, under its single transaction, after the
+one call, all its legs (the §14.5 events.yaml leg included, from the synced
+`dtc-main-site` checkout), in the fixed order, under its single transaction, after the
 editorial block — and `verify_local_dataset.py` reports `database_event_identities` and
 `database_event_content` separately, because an identity alone publishes no page. No
 runner has an `import-events` call of its own: the rehearsal already ran the pipeline,
@@ -1594,7 +1789,8 @@ points are deliberately outside it, and the exclusions are checked by
 
 - **Step 6** — `import_event_registrants`, `import_mailchimp_event_tags` and
   `import_mailchimp_subscriptions`. They read attendee-level personal data and need
-  provider credentials, so they stay separately invoked runs.
+  provider credentials, so they stay separately invoked runs. The rehearsal's own
+  registrant leg is opt-in for the same reason (`--with-registrants`, §8.1).
 - **The CMP learner importers** — `scripts/prod/import_cmp_learners.py`,
   `scripts/prod/import_cmp_learner_history.py`, and the explicit ordered runner for the pair
   in order. Between them they write 20,009 real accounts and 472,690 learner rows. A
@@ -1688,9 +1884,11 @@ closed, so an old item number still leads somewhere.
 2. **Provider rows still depend on reviewed event identity resolution.**
    `scripts/prod/import_event_registrants.py` never guesses an event target. Luma can
    use the reviewed `--luma-identities` document and Eventbrite requires
-   `--eventbrite-identities`; any unresolved provider event is reported under
-   `awaiting_identity_events` and skipped. The source readers and consolidation path
-   are live, so the remaining operational work is to keep those identity documents
+   `--eventbrite-identities`; a Luma event neither resolves falls back to its own
+   normalized title and start (exact instant, else Berlin date), unambiguous only
+   and always reported (§16/17); any provider event still unresolved is reported
+   under `awaiting_identity_events` and skipped. The source readers and
+   consolidation path are live, so the remaining operational work is to keep those identity documents
    reviewed and to use `--refresh` deliberately when a newer Luma export supersedes a
    completed import.
 

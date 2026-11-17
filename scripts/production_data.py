@@ -8,8 +8,10 @@ are reviewed exports and course checkouts; it is never used by ``make data``.
 order :data:`DATASET_STEPS` declares: the rebuild gate, ``prepare_local_data.py``
 -- which alone owns ``migrate``, source registration, the legacy Zoomcamp import,
 the checkout refresh, every import and the editorial sync -- and
-``verify_local_dataset.py``.  Nothing here touches the dataset database itself, so
-``PRODUCTION_PREP_FRESH=1`` finds it absent and ``--fresh`` holds.
+``verify_local_dataset.py``.  Attendee-level registrant rows are imported only
+when ``PRODUCTION_PREP_WITH_REGISTRANTS=1`` passes ``--with-registrants`` on.
+Nothing here touches the dataset database itself, so ``PRODUCTION_PREP_FRESH=1``
+finds it absent and ``--fresh`` holds.
 """
 
 from __future__ import annotations
@@ -93,6 +95,12 @@ def _rebuild_database(database: Path) -> None:
     _run(_python("scripts/rebuild_gate.py", str(database)))
 
 
+def _explicitly_true(value: str | None) -> bool:
+    """Only an explicit yes opts in: ``0``, ``false`` or a typo must not."""
+
+    return (value or "").strip().casefold() in {"1", "true", "yes"}
+
+
 def _prepare_local_data(values: DatasetValues) -> None:
     if values.legacy_source is not None and not values.legacy_source.is_dir():
         raise RuntimeError("LEGACY_ZOOMCAMP_SOURCE is not a checkout")
@@ -118,6 +126,10 @@ def _prepare_local_data(values: DatasetValues) -> None:
         command.extend(("--cmp-source-db", str(values.cmp_source)))
     if os.environ.get("PRODUCTION_PREP_FRESH"):
         command.append("--fresh")
+    # Attendee-level registrant rows are opt-in: a routine rebuild carries none
+    # (_docs/runbooks/data-ingest.md section 8.1).
+    if _explicitly_true(os.environ.get("PRODUCTION_PREP_WITH_REGISTRANTS")):
+        command.append("--with-registrants")
     command.extend(shlex.split(os.environ.get("PRODUCTION_PREP_LOCAL_ARGS", "")))
     _run(tuple(command))
 
