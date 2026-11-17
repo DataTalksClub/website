@@ -1,0 +1,45 @@
+{% extends "core/content_page.html" %}
+{% load breadcrumbs %}
+{% comment %}
+  The Academy FAQ (/academy/faq/): the questions as the site's FAQ folds.
+  Copy: academy/faq.md.
+{% endcomment %}
+
+{% block document_title %}
+  {{ page.title }}
+{% endblock %}
+
+{% block metadata %}
+  {% include "academy/_metadata.html" %}
+{% endblock %}
+
+{% block page_styles %}
+  {% include "academy/_styles.html" %}
+{% endblock %}
+
+{% block header_band_class %}
+  academy-hero
+{% endblock %}
+
+{% block header_attributes %}
+  aria-labelledby="academy-heading"
+{% endblock %}
+
+{% block page_header %}
+  {% breadcrumbs shared.brand academy_root %}
+  {% if data.eyebrow != shared.brand %}
+    <p class="kicker">{{ data.eyebrow }}</p>
+  {% endif %}
+  <h1 id="academy-heading">{{ data.heading }}</h1>
+  <p class="academy-lede">{{ data.lead }}</p>
+  <div class="academy-actions">
+    {% include "core/_button.html" with href=academy_root|add:"#signup-hero" label=data.button variant="primary" %}
+  </div>
+{% endblock %}
+
+{% block page_content %}
+  <section class="academy-section" aria-label="{{ data.list_label }}">
+    {% include "academy/_faq.html" with items=data.items prefix="question" label="" %}
+  </section>
+  {% include "academy/_links.html" with links=shared.footer.links copyright=shared.footer.copyright other_program=None %}
+{% endblock %}

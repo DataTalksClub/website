@@ -579,3 +579,14 @@ COMMUNITY_BASE: dict[str, Any] = {
 SLACK_INVITE_URL = os.getenv("SLACK_INVITE_URL", "")
 SLACK_MONITOR_TOKEN = os.getenv("SLACK_MONITOR_TOKEN", "")
 SLACK_WORKSPACE_ID = os.getenv("SLACK_WORKSPACE_ID", "")
+
+# The Academy waitlist and session registration backend (AWS Lambda, double opt-in).
+# The browser posts to its /signup and /confirm endpoints directly; Academy's CSP
+# admits exactly those two.  Operational configuration, not page content.
+ACADEMY_API_ORIGIN = os.getenv(
+    "ACADEMY_API_ORIGIN",
+    "https://augldvp3omxdxz3irqsmmxc25e0blpxx.lambda-url.eu-west-1.on.aws",
+)
+# The consent text version the backend records with every signup; it changes only
+# together with the Academy privacy notice.
+ACADEMY_CONSENT_VERSION = "2026-11-13.v1"

@@ -1063,8 +1063,8 @@ class HomeQueryBudgetTests(TestCase):
 class AcademyLinkTests(TestCase):
     """The Academy is reached from its site-wide stripe, not from the footer.
 
-    Academy is a separate Django app. The stripe's link
-    resolves locally against database-owned published Academy content.
+    Academy is part of this site. The stripe's link resolves locally against
+    the synced Academy pages.
     """
 
     ACADEMY_LINKS = (
@@ -1088,15 +1088,9 @@ class AcademyLinkTests(TestCase):
             self.assertNotIn(label, footer.group(0))
 
     def test_academy_is_served_by_its_django_app(self) -> None:
-        from academy.models import PublishedResource
+        from academy.tests.content import publish
 
-        PublishedResource.objects.create(
-            path="",
-            content=b"Academy published home",
-            content_type="text/html",
-            sha256="a" * 64,
-            source_commit="b" * 40,
-        )
+        publish()
         response = self.client.get("/academy/")
-        self.assertContains(response, "Academy published home")
+        self.assertContains(response, "Synthetic home headline")
         self.assertEqual(response.resolver_match.app_name, "academy")

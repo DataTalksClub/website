@@ -1,0 +1,241 @@
+{% extends "core/content_page.html" %}
+{% load static breadcrumbs academy_text %}
+{% comment %}
+  One program page (/academy/agentic-engineering/, /academy/ai-engineering/),
+  composed like a course family landing: the cream header with the heading,
+  lede and the waitlist card; then, on the lavender ground, the facts strip,
+  the outcomes, the final project, the instructor, who it is for, the syllabus
+  as the module accordion, funding, admission, the questions, and a closing
+  mint panel with the second waitlist card.  The program's own copy is
+  academy/<slug>.md; the copy both programs share is academy/shared.yaml.
+{% endcomment %}
+
+{% block document_title %}
+  {{ page.title }}
+{% endblock %}
+
+{% block metadata %}
+  {% include "academy/_metadata.html" %}
+{% endblock %}
+
+{% block page_styles %}
+  {% include "academy/_styles.html" %}
+{% endblock %}
+
+{% block header_band_class %}
+  academy-hero
+{% endblock %}
+
+{% block header_attributes %}
+  aria-labelledby="academy-heading"
+{% endblock %}
+
+{% block page_header %}
+  {% breadcrumbs shared.brand academy_root %}
+  <div class="academy-hero-inner">
+    <div>
+      <p class="kicker">{{ data.hero.eyebrow }}</p>
+      <h1 id="academy-heading">{{ data.hero.headline }}</h1>
+      <p class="academy-lede">{{ data.hero.lead }}</p>
+      <p class="academy-note">{{ data.hero.basis }}</p>
+      <div class="academy-actions">
+        {% include "core/_button.html" with href="#signup-hero" label=shared.waitlist_button variant="primary" %}
+      </div>
+      <div class="academy-person">
+        <img src="/{{ shared.instructor.photo }}" alt="" width="112" height="112" decoding="async">
+        <p>{{ shared.hero.instructor_line }}</p>
+      </div>
+    </div>
+    <div class="academy-aside">
+      {% include "academy/_signup_card.html" with form_id="hero" choose_program=False %}
+      <p class="mono-note">{{ shared.hero.honesty }}</p>
+      <p>
+        <span class="status-pill status-pill-open academy-pill">{{ shared.seat_caption }}</span>
+      </p>
+    </div>
+  </div>
+{% endblock %}
+
+{% block page_content %}
+  {% include "academy/_facts.html" with facts=shared.facts %}
+
+  <section class="academy-section" aria-labelledby="outcomes-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="outcomes-heading">{{ data.outcomes.heading }}</h2>
+      </div>
+    </div>
+    <ol class="academy-numbered">
+      {% for outcome in data.outcomes.items %}
+        <li>
+          <span class="module-number" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+          <span>{{ outcome }}</span>
+        </li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  <section class="academy-section" aria-labelledby="project-heading">
+    <div class="panel panel-mint panel-outlined">
+      <h2 id="project-heading">{{ shared.project_heading }}</h2>
+      <p>{{ data.project }}</p>
+    </div>
+  </section>
+
+  <section class="academy-section" aria-labelledby="instructor-heading">
+    <div class="academy-instructor">
+      <img src="/{{ shared.instructor.photo }}" alt="{{ shared.instructor.photo_alt }}" width="280" height="280" loading="lazy" decoding="async">
+      <div>
+        <div class="band-head">
+          <div>
+            <h2 id="instructor-heading">{{ shared.instructor.heading }}</h2>
+          </div>
+        </div>
+        <div class="prose">
+          {% for paragraph in shared.instructor.paragraphs %}
+            <p>{{ paragraph }}</p>
+          {% endfor %}
+        </div>
+        <ul class="academy-proof">
+          {% for link in shared.instructor.proof %}
+            <li>
+              <a class="band-link" href="{{ link.href }}" target="_blank" rel="noopener">{{ link.label }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="academy-section" aria-labelledby="fit-heading">
+    <div class="card-grid card-grid-2">
+      <div class="card">
+        <h2 id="fit-heading">{{ shared.fit.for_title }}</h2>
+        <ul class="academy-card-list">
+          {% for item in fit_for %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="card">
+        <h2>{{ shared.fit.not_title }}</h2>
+        <ul class="academy-card-list">
+          {% for item in shared.fit.not %}
+            <li>{{ item|academy_inline }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="academy-section" aria-labelledby="syllabus-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="syllabus-heading">{{ shared.syllabus.heading }}</h2>
+        <p>{{ shared.syllabus.intro }}</p>
+      </div>
+    </div>
+    <div class="module-list academy-module-list">
+      {% for group in syllabus %}
+        <details class="module" {{ forloop.first|yesno:"open," }}>
+          <summary>
+            <span class="module-number" aria-hidden="true">{{ forloop.counter }}</span>
+            <span class="module-title">{{ group.title }}</span>
+            <span class="module-summary">{{ group.weeks }}</span>
+            <span class="module-marker" aria-hidden="true"></span>
+          </summary>
+          <div class="module-body">
+            <ol class="academy-modules">
+              {% for module in group.modules %}
+                <li>
+                  <span class="academy-module-number" aria-hidden="true">{{ module.number }}</span>
+                  <div>
+                    <h3>{{ module.title }}</h3>
+                    {% if module.description %}
+                      <p>{{ module.description }}</p>
+                    {% endif %}
+                    {% if module.topics %}
+                      <ul>
+                        {% for topic in module.topics %}
+                          <li>{{ topic }}</li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                    <p class="academy-produce">
+                      <span class="mono-label">{{ shared.syllabus.produce_label }}</span>
+                      {{ module.produce }}
+                    </p>
+                  </div>
+                </li>
+              {% endfor %}
+            </ol>
+          </div>
+        </details>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="academy-section" aria-labelledby="funding-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="funding-heading">{{ shared.funding.heading }}</h2>
+      </div>
+    </div>
+    <div class="prose">
+      {% for paragraph in shared.funding.paragraphs %}
+        <p>{{ paragraph }}</p>
+      {% endfor %}
+    </div>
+    <p class="academy-actions">
+      <a class="band-link" href="{{ shared.funding.link.href }}" target="_blank" rel="noopener">{{ shared.funding.link.label }}</a>
+    </p>
+  </section>
+
+  <section class="academy-section" aria-labelledby="admission-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="admission-heading">{{ shared.admission.heading }}</h2>
+        <p>{{ shared.admission.body }}</p>
+      </div>
+    </div>
+    <ol class="academy-numbered" aria-label="{{ shared.admission.steps_heading }}">
+      {% for step in shared.admission.steps %}
+        <li>
+          <span class="module-number" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+          <p>
+            <strong>{{ step.title }}</strong>
+            {{ step.text }}
+          </p>
+        </li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  <section class="academy-section" aria-labelledby="faq-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="faq-heading">{{ shared.faq.heading }}</h2>
+      </div>
+    </div>
+    {% include "academy/_faq.html" with items=faq prefix="faq" label="" %}
+  </section>
+
+  <section class="academy-section" aria-labelledby="join-heading">
+    <div class="panel panel-mint panel-outlined academy-closing">
+      <div>
+        <h2 id="join-heading">{{ shared.join.heading }}</h2>
+        <p>{{ shared.join.text }}</p>
+        <p>
+          <span class="status-pill status-pill-open academy-pill">{{ shared.seat_caption }}</span>
+        </p>
+      </div>
+      {% include "academy/_signup_card.html" with form_id="join" choose_program=False %}
+    </div>
+  </section>
+
+  {% include "academy/_links.html" with links=shared.footer.links copyright=shared.footer.copyright %}
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{% static 'academy/academy.js' %}" defer></script>
+{% endblock %}

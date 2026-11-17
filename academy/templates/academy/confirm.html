@@ -1,0 +1,42 @@
+{% extends "core/content_page.html" %}
+{% load static %}
+{% comment %}
+  The double opt-in confirmation (/academy/confirm/?token=...).  academy.js reads
+  the token, asks the signup backend's /confirm endpoint, and writes the
+  outcome into the heading, eyebrow and message below; every state's words are
+  synced copy (academy/confirm.md) carried on the card.  The token never leaves
+  for anything but that one request: the page is excluded from analytics and
+  the response is private and never stored.
+{% endcomment %}
+
+{% block document_title %}
+  {{ page.title }}
+{% endblock %}
+
+{% block metadata %}
+  {% include "academy/_metadata.html" %}
+{% endblock %}
+
+{% block page_styles %}
+  {% include "academy/_styles.html" %}
+{% endblock %}
+
+{% block header_attributes %}
+  aria-labelledby="academy-heading"
+{% endblock %}
+
+{% block page_header %}
+  <p class="mono-label mono-label-green" data-confirm-eyebrow>{{ data.eyebrow }}</p>
+  <h1 id="academy-heading" tabindex="-1" data-confirm-title>{{ data.heading }}</h1>
+{% endblock %}
+
+{% block page_content %}
+  <div class="card academy-confirm" data-academy-confirm data-api-origin="{{ api_origin }}" data-root="{{ academy_root }}" data-programs="{{ program_slugs }}" data-error-eyebrow="{{ data.states.error_eyebrow }}" data-confirmed-eyebrow="{{ data.states.confirmed_eyebrow }}" data-missing-title="{{ data.states.missing_title }}" data-missing-message="{{ data.states.missing_message }}" data-unconfigured-title="{{ data.states.unconfigured_title }}" data-unconfigured-message="{{ data.states.unconfigured_message }}" data-confirmed-title="{{ data.states.confirmed_title }}" data-confirmed-message="{{ data.states.confirmed_message }}" data-invalid-title="{{ data.states.invalid_title }}" data-invalid-message="{{ data.states.invalid_message }}" data-failed-title="{{ data.states.failed_title }}" data-failed-message="{{ data.states.failed_message }}">
+    <p data-confirm-message>{{ data.message }}</p>
+    <a class="cta cta-secondary interactive-lift" href="{{ academy_root }}" data-confirm-back>{{ data.back }}</a>
+  </div>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{% static 'academy/academy.js' %}" defer></script>
+{% endblock %}

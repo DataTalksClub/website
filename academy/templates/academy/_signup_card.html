@@ -1,0 +1,81 @@
+{% load academy_text %}
+{% comment %}
+  The waitlist form: one card, posted by academy.js to the signup backend's
+  /signup endpoint with the field keys that backend has always read (email,
+  name, track, payment_plan, the campaign parameters, referrer, page, lang,
+  consent_version and the "website" honeypot).  After a signup the card turns
+  into the confirmation note and the optional quick questions, each answer a
+  second /signup post.  Every word is the synced shared copy.
+
+  form_id         "hero" or "join"; the ids and the #signup-<id> anchor follow it
+  choose_program  draw the program select (the Academy home page)
+  program         the page's own program, when the page belongs to one
+{% endcomment %}
+{% with copy=shared.signup %}
+  <div class="card academy-form-card" id="signup-{{ form_id }}" data-academy-signup data-api-origin="{{ api_origin }}" data-consent-version="{{ consent_version }}" data-track="{{ program.slug|default:'' }}" data-survey-option="{{ program.survey_option|default:'' }}" data-survey-url="{{ copy.success.survey_url }}">
+    <form class="cmp-form" novalidate>
+      {% if choose_program %}
+        <div class="field">
+          <label class="field-label" for="program-{{ form_id }}">{{ copy.program_label }}</label>
+          <select class="field-input" id="program-{{ form_id }}" name="program">
+            {% for item in programs %}
+              <option value="{{ item.slug }}" data-survey-option="{{ item.survey_option }}">{{ item.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+      <div class="field">
+        <label class="field-label" for="name-{{ form_id }}">{{ copy.name_label }}</label>
+        <input class="field-input" id="name-{{ form_id }}" type="text" name="name" autocomplete="name" maxlength="60" placeholder="{{ copy.name_placeholder }}">
+      </div>
+      <div class="field">
+        <label class="field-label" for="payment-plan-{{ form_id }}">{{ copy.payment_label }}</label>
+        <select class="field-input" id="payment-plan-{{ form_id }}" name="payment_plan" required aria-describedby="payment-err-{{ form_id }}">
+          <option value="" selected disabled>{{ copy.payment_placeholder }}</option>
+          {% for option in copy.payment_options %}
+            <option value="{{ option }}">{{ option }}</option>
+          {% endfor %}
+        </select>
+        <p class="a11y-error" id="payment-err-{{ form_id }}" data-error="payment_plan" hidden>{{ copy.payment_error }}</p>
+      </div>
+      <div class="field">
+        <label class="field-label" for="email-{{ form_id }}">{{ copy.email_label }}</label>
+        <div class="academy-email-row">
+          <input class="field-input" id="email-{{ form_id }}" type="email" name="email" required autocomplete="email" inputmode="email" placeholder="{{ copy.email_placeholder }}" aria-describedby="email-err-{{ form_id }} email-micro-{{ form_id }}">
+          <button class="cta cta-primary cta-compact interactive-lift" type="submit" disabled data-needs-js data-pending-label="{{ copy.busy }}">{{ copy.button }}</button>
+        </div>
+        <p class="a11y-error" id="email-err-{{ form_id }}" data-error="invalid" hidden>{{ copy.email_error }}</p>
+      </div>
+      <div class="newsletter-honeypot" aria-hidden="true">
+        <input type="text" name="website" tabindex="-1" autocomplete="off">
+      </div>
+      <p class="a11y-error" data-error="failed" role="alert" hidden>{{ copy.failed|academy_inline }}</p>
+      <noscript>
+        <p class="a11y-error">{{ copy.noscript|academy_inline }}</p>
+      </noscript>
+      <p class="academy-fineprint" id="email-micro-{{ form_id }}">
+        {{ copy.micro }}
+        <a href="{{ academy_root }}privacy/">{{ copy.privacy_label }}</a>
+      </p>
+    </form>
+    <div class="academy-success" data-success hidden>
+      <p class="mono-label mono-label-green">{{ copy.success.eyebrow }}</p>
+      <h3 tabindex="-1" data-success-title>{{ copy.success.title }}</h3>
+      <p>{{ copy.success.text }}</p>
+      <p class="mono-label mono-label-green">{{ copy.success.questions_label }}</p>
+      {% for question in copy.success.questions %}
+        <div class="academy-question">
+          <p id="question-{{ form_id }}-{{ question.key }}">{{ question.question }}</p>
+          <div class="filter-pills" role="group" aria-labelledby="question-{{ form_id }}-{{ question.key }}">
+            {% for option in question.options %}
+              <button class="filter-pill" type="button" data-group="{{ question.key }}" data-value="{{ option.value }}" aria-pressed="false">{{ option.label }}</button>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+      <p class="a11y-error" data-error="answers" role="alert" hidden>{{ copy.success.answers_error }}</p>
+      <p>{{ copy.success.survey_text }}</p>
+      <a class="cta cta-secondary cta-compact interactive-lift" href="{{ copy.success.survey_url }}" target="_blank" rel="noopener" data-survey>{{ copy.success.survey_button }}</a>
+    </div>
+  </div>
+{% endwith %}

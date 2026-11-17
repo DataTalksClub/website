@@ -318,6 +318,8 @@ module = [
     "accounts.tests.provider_fixtures",
     "accounts.tests.test_account_entry",
     "courses.tests.test_registration_gate_production",
+    # Issue #515: the one-time Astro Academy to content-repository converter.
+    "scripts.convert_academy_source",
 ]
 ignore_errors = false
 

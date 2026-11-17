@@ -1,0 +1,45 @@
+{% extends "core/content_page.html" %}
+{% load static breadcrumbs %}
+{% comment %}
+  The recording and materials form the session slides' QR code opens
+  (/academy/sessions/materials/?session=N).  Not indexed and never measured.
+  Copy: academy/sessions-materials.md, with the field labels the sessions
+  page's own form uses.
+{% endcomment %}
+
+{% block document_title %}
+  {{ page.title }}
+{% endblock %}
+
+{% block metadata %}
+  {% include "academy/_metadata.html" %}
+{% endblock %}
+
+{% block page_styles %}
+  {% include "academy/_styles.html" %}
+{% endblock %}
+
+{% block header_band_class %}
+  academy-hero
+{% endblock %}
+
+{% block header_attributes %}
+  aria-labelledby="academy-heading"
+{% endblock %}
+
+{% block page_header %}
+  {% breadcrumbs shared.brand academy_root sessions_data.hero.headline sessions_page.public_path %}
+  <h1 id="academy-heading">{{ data.heading }}</h1>
+  <p class="academy-lede">{{ data.text }}</p>
+{% endblock %}
+
+{% block page_content %}
+  <section class="academy-section" aria-labelledby="academy-heading">
+    {% include "academy/_sessions_form.html" with kind="qr" %}
+  </section>
+  {% include "academy/_links.html" with links=sessions_data.footer_links copyright="" other_program=None %}
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{% static 'academy/academy.js' %}" defer></script>
+{% endblock %}

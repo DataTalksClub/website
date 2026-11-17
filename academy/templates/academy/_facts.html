@@ -1,0 +1,14 @@
+{% comment %}
+  The key facts as the system's spec strip: label over value.  facts: a
+  mapping with the strip's accessible label and its label/value items.
+{% endcomment %}
+<section class="academy-section" aria-label="{{ facts.label }}">
+  <dl class="spec-strip academy-facts">
+    {% for fact in facts.items %}
+      <div class="spec">
+        <dt class="mono-label">{{ fact.label }}</dt>
+        <dd>{{ fact.value }}</dd>
+      </div>
+    {% endfor %}
+  </dl>
+</section>

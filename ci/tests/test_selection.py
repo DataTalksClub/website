@@ -270,6 +270,7 @@ def test_focused_runner_uses_parallel_noninteractive_command_and_only_validated_
             "test",
             "--parallel",
             "--noinput",
+            "academy",
             "accounts",
             "api",
             "content.tests",

@@ -128,6 +128,7 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
         "slack_access": ("accounts", "core", "management_api", "slack_access", "studio"),
         "studio_courses": ("studio", "studio_courses"),
         "content": (
+            "academy",
             "accounts",
             "api",
             "content.tests",

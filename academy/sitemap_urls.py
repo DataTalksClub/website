@@ -1,5 +1,5 @@
 from django.urls import path
 
-from .views import resource
+from .views import sitemap
 
-urlpatterns = [path("", resource, {"path": "sitemap.xml"}, name="academy-sitemap")]
+urlpatterns = [path("", sitemap, name="academy-sitemap")]

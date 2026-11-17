@@ -1,0 +1,18 @@
+{% load academy_text %}
+{% comment %}
+  A list of questions drawn as the site's FAQ folds (the same control the
+  course pages and the FAQ hub use).  items: question/answer mappings.
+{% endcomment %}
+<div class="row-list" aria-label="{{ label|default:'' }}">
+  {% for item in items %}
+    <details class="faq-fold" id="{{ prefix }}-{{ forloop.counter }}">
+      <summary class="faq-fold-summary">
+        <h3 class="faq-question-title">{{ item.question }}</h3>
+        <span class="faq-fold-marker" aria-hidden="true"></span>
+      </summary>
+      <div class="prose faq-answer">
+        <p>{{ item.answer|academy_inline }}</p>
+      </div>
+    </details>
+  {% endfor %}
+</div>

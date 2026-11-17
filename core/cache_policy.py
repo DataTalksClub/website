@@ -82,8 +82,12 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "slack_access.views.vouch": PRIVATE_DYNAMIC,
     "slack_access.views.member_invite": PRIVATE_DYNAMIC,
     "slack_access.views.redeem": PRIVATE_DYNAMIC,
-    # Academy resources carry confirmation tokens in queries: never shareable.
-    "academy.views.resource": PRIVATE_DYNAMIC,
+    # Academy: the confirmation page carries its token in the query, and the
+    # forms post from every page, so no Academy response is ever shareable.
+    "academy.views.page": PRIVATE_DYNAMIC,
+    "academy.views.calendar": PRIVATE_DYNAMIC,
+    "academy.views.sitemap": PRIVATE_DYNAMIC,
+    "academy.views.layoff_proof": PRIVATE_DYNAMIC,
     "management_api.launch_views.launch_read": PRIVATE_DYNAMIC,
     "management_api.launch_views.launch_write": PRIVATE_DYNAMIC,
     "management_api.launch_views.launch_send": PRIVATE_DYNAMIC,
@@ -156,6 +160,8 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     # contract).
     "cadmin.legacy_urls.redirect_to_studio": PERMANENT_REDIRECT,
     "content.public_views.editorial_detail_alias_redirect": PERMANENT_REDIRECT,
+    # The retired Astro build's Open Graph and QR images, moved to /images/academy/.
+    "academy.views.legacy_image": PERMANENT_REDIRECT,
     "content.public_views.legacy_events_redirect": PERMANENT_REDIRECT,
     "content.public_views.permanent_public_redirect": PERMANENT_REDIRECT,
     "content.public_views.podwiki_redirect": PERMANENT_REDIRECT,

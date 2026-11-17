@@ -38,6 +38,8 @@ EDITORIAL_MEDIA_PREFIXES = (
     "images/posts/",
     "images/podcast/",
     "images/books/",
+    # The Academy pages' artwork: portraits, Open Graph cards, session QR codes.
+    "images/academy/",
 )
 #: Extension to recorded content type, per ``_copy_media``.
 MEDIA_CONTENT_TYPES = {
