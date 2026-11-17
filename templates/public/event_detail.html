@@ -176,6 +176,14 @@
         margin-bottom: 0;
       }
 
+      /* Registration: the outcome notice sits above the form at the form's
+         own measure, so the two read as one block on the band. */
+      .event-register {
+        display: grid;
+        gap: 1.25rem;
+        max-width: var(--form-measure);
+      }
+
       @media (max-width: 47.99rem) {
         /* Narrow: actions become full-width blocks instead of a squeezed row. */
         .event-head {
@@ -320,7 +328,25 @@
         </section>
       {% endif %}
 
-      {% if event_state == "upcoming" %}
+      {% comment %}
+        Registration is drawn from the shared form primitives (`.cmp-form`,
+        `.field`, `.field-label`, `.field-input`, `.form-check`, `.cta`) and the
+        shared state surfaces (`.callout`, `.a11y-error-summary`, `.a11y-error`),
+        so it reads as the same kind of form as account and course registration.
+        The POST handler reads raw request data and reports its outcome back
+        through `?registered=`, so there is no bound Django form to hand to
+        `accessible_widget`; the email input writes the same relationships that
+        tag writes (`aria-describedby`, `aria-invalid`, `aria-errormessage`
+        pointing at `<id>-error`).  A `closed` outcome lands here after the
+        event has left the upcoming list, so it is reported even when the form
+        itself is no longer offered.  An outcome notice arrives after a
+        redirect, so it is an alert and takes focus through the shared
+        focus-on-load hook (`data-focus-error-summary`, accessibility.js); a
+        successful registration replaces the form rather than sitting above an
+        empty copy of it.
+      {% endcomment %}
+      {% with registered=request.GET.registered %}
+      {% if event_state == "upcoming" or registered == "closed" %}
         <section class="band band-lavender event-register-band" aria-labelledby="event-register-heading">
           <div class="shell event-shell">
             <div class="band-head">
@@ -328,49 +354,123 @@
                 <h2 id="event-register-heading">Register</h2>
               </div>
             </div>
-            {% if request.GET.registered == "ok" %}
-              <p class="mono-note" role="status">You are registered for this event.</p>
-            {% elif request.GET.registered == "invalid_email" %}
-              <p class="mono-note" role="alert">Please enter a valid email address.</p>
-            {% endif %}
-            <form method="post" action="{{ event.public_path }}/register" class="event-register-form">
-              {% csrf_token %}
-              <p>
-                <label for="id_reg_email">Email</label>
-                <input id="id_reg_email" type="email" name="email" required autocomplete="email">
-              </p>
-              <p>
-                <label for="id_reg_name">Name (optional)</label>
-                <input id="id_reg_name" type="text" name="display_name" autocomplete="name">
-              </p>
-              {% if event.collect_company %}
-                <p>
-                  <label for="id_reg_company">Company</label>
-                  <input id="id_reg_company" type="text" name="company" autocomplete="organization">
-                </p>
+            <div class="event-register">
+              {% if registered == "ok" %}
+                <div
+                  class="callout callout-info event-register-notice"
+                  role="alert"
+                  tabindex="-1"
+                  data-focus-error-summary
+                >
+                  <p>
+                    <strong>You are registered for this event.</strong>
+                  </p>
+                </div>
+              {% elif registered == "closed" %}
+                <div
+                  class="callout callout-attention event-register-notice"
+                  role="alert"
+                  tabindex="-1"
+                  data-focus-error-summary
+                >
+                  <p>
+                    <strong>Registration for this event is closed.</strong>
+                  </p>
+                </div>
+              {% elif registered == "invalid_email" %}
+                <section
+                  class="a11y-error-summary"
+                  role="alert"
+                  aria-labelledby="event-register-error-title"
+                  tabindex="-1"
+                  data-focus-error-summary
+                >
+                  <h2 id="event-register-error-title">Check the highlighted fields</h2>
+                  <ul>
+                    <li>
+                      <a href="#id_reg_email">Email: Please enter a valid email address.</a>
+                    </li>
+                  </ul>
+                </section>
               {% endif %}
-              <p>
-                <label>
-                  <input type="checkbox" name="newsletter_consent" value="true">
-                  Subscribe to the DataTalks.Club newsletter
-                </label>
-              </p>
-              {% if event.sponsor_sharing_enabled %}
-                <p>
-                  <label>
-                    <input type="checkbox" name="sponsor_sharing_consent" value="true">
-                    Share my email with the event sponsor
-                    {% if event.sponsor_name %}
-                      ({{ event.sponsor_name }})
+              {% if event_state == "upcoming" and registered != "ok" %}
+                <form method="post" action="{{ event.public_path }}/register" class="cmp-form event-register-form">
+                  {% csrf_token %}
+                  <div class="cmp-form-fields">
+                    <div class="field">
+                      <label class="field-label" for="id_reg_email">Email</label>
+                      <input
+                        {% if registered == "invalid_email" %}
+                          class="field-input is-invalid"
+                          aria-describedby="id_reg_email-error"
+                          aria-invalid="true"
+                          aria-errormessage="id_reg_email-error"
+                        {% else %}
+                          class="field-input"
+                        {% endif %}
+                        id="id_reg_email"
+                        type="email"
+                        name="email"
+                        required
+                        autocomplete="email"
+                      >
+                      {% if registered == "invalid_email" %}
+                        <p id="id_reg_email-error" class="a11y-error">
+                          <span class="sr-only">Error:</span>
+                          Please enter a valid email address.
+                        </p>
+                      {% endif %}
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="id_reg_name">Name (optional)</label>
+                      <input class="field-input" id="id_reg_name" type="text" name="display_name" autocomplete="name">
+                    </div>
+                    {% if event.collect_company %}
+                      <div class="field">
+                        <label class="field-label" for="id_reg_company">Company</label>
+                        <input class="field-input" id="id_reg_company" type="text" name="company" autocomplete="organization">
+                      </div>
                     {% endif %}
-                  </label>
-                </p>
+                    <div class="form-check">
+                      <input
+                        class="form-check-input"
+                        id="id_reg_newsletter_consent"
+                        type="checkbox"
+                        name="newsletter_consent"
+                        value="true"
+                      >
+                      <label class="form-check-label" for="id_reg_newsletter_consent">
+                        Subscribe to the DataTalks.Club newsletter
+                      </label>
+                    </div>
+                    {% if event.sponsor_sharing_enabled %}
+                      <div class="form-check">
+                        <input
+                          class="form-check-input"
+                          id="id_reg_sponsor_sharing_consent"
+                          type="checkbox"
+                          name="sponsor_sharing_consent"
+                          value="true"
+                        >
+                        <label class="form-check-label" for="id_reg_sponsor_sharing_consent">
+                          Share my email with the event sponsor
+                          {% if event.sponsor_name %}
+                            ({{ event.sponsor_name }})
+                          {% endif %}
+                        </label>
+                      </div>
+                    {% endif %}
+                  </div>
+                  <div class="cmp-form-actions">
+                    <button type="submit" class="cta cta-primary interactive-lift">Register</button>
+                  </div>
+                </form>
               {% endif %}
-              <button type="submit" class="cta cta-primary interactive-lift">Register</button>
-            </form>
+            </div>
           </div>
         </section>
       {% endif %}
+      {% endwith %}
 
       {% if event.speakers %}
         <section class="band band-lavender speaker-band" aria-labelledby="event-speakers-heading">
