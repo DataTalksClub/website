@@ -465,6 +465,8 @@ SESSION_COOKIE_DOMAIN = None
 # through the standard X-CSRFToken header.
 CSRF_COOKIE_HTTPONLY = False
 
+CONTENT_SYNC_MAX_ARCHIVE_BYTES = 400_000_000
+
 # community-base kernel declarations (D0.1a). JOBS_BACKEND and MAIL_BACKEND name
 # the intended Relay direction but install nothing: no Relay contact, no jobs or
 # mail adoption, and no credentials. Settings writers stay site-owned until the
@@ -512,6 +514,17 @@ COMMUNITY_BASE: dict[str, Any] = {
     "RELAY_BASE_URL": os.getenv("RELAY_BASE_URL", ""),
     "RELAY_API_KEY": os.getenv("RELAY_API_KEY", ""),
     "RELAY_WEBHOOK_SECRET": os.getenv("RELAY_WEBHOOK_SECRET", ""),
+    # Bound on one GitHub source tarball, applied twice by the engine: to the
+    # compressed bytes streamed to disk and to the summed size of the regular
+    # files extracted from it. The package default (100 MB) is below the two
+    # image-heavy editorial repositories; measured 2026-11-17 the content repo
+    # archive is 150 MB compressed / 170 MB extracted and the main-site repo
+    # 154 MB / 176 MB, so a normal sync refused both. 400 MB keeps a 2x growth
+    # margin over the largest while still capping untrusted input; peak scratch
+    # disk per sync is about three times the extracted size (archive, extracted
+    # tree, immutable snapshot). Raise it in review, from a fresh measurement,
+    # never at the command line. See _docs/runbooks/data-ingest.md section 10.3.
+    "CONTENT_SYNC_MAX_ARCHIVE_BYTES": CONTENT_SYNC_MAX_ARCHIVE_BYTES,
     # D2.2a: declared GitHub content sources. Secrets are injected at
     # runtime and never persisted; sync reads immutable checkouts and the
     # webhook verifies signatures.

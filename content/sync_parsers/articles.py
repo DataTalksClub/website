@@ -112,7 +112,14 @@ class ArticlesParser:
                 checksum=checksum,
             ),
         }
-        return SourceItem(key=slug, path=relative, data={"record": record, "checksum": checksum})
+        # The blocks carry the width and height read from each embedded image
+        # file, so an image replaced in place changes the row without touching
+        # the article file: the change checksum covers the derived record.
+        return SourceItem(
+            key=slug,
+            path=relative,
+            data={"record": record, "checksum": base.record_checksum(checksum, record)},
+        )
 
     @staticmethod
     def _faq_pairs(value, source_path: str) -> list[dict[str, str]] | None:

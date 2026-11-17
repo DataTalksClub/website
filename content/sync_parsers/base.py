@@ -10,6 +10,7 @@ The record helpers are imported from ``content.projection_helpers`` instead of
 copied: it is the reviewed definition of these record shapes.
 """
 
+import json
 from contextvars import ContextVar
 from typing import NoReturn
 
@@ -49,6 +50,42 @@ def checksum_of(checkout, relative_path: str) -> str:
     return builder._sha256_bytes(checkout.read_bytes(relative_path))
 
 
+#: The provenance fields that name the commit a record was read at.  They
+#: change on every push, so change detection leaves them out: a commit that
+#: does not touch any of a record's inputs leaves the row (and its recorded
+#: revision) as it was.
+_REVISION_FIELDS = frozenset({"revision", "source_url"})
+
+
+def _without_revision(value):
+    if isinstance(value, dict):
+        provenance = "revision" in value and "source_key" in value
+        return {
+            key: _without_revision(item)
+            for key, item in value.items()
+            if not (provenance and key in _REVISION_FIELDS)
+        }
+    if isinstance(value, list):
+        return [_without_revision(item) for item in value]
+    return value
+
+
+def record_checksum(source_checksum: str, record: dict) -> str:
+    """Change-detection checksum for a record built from more than its own file.
+
+    A podcast episode carries its transcript file and its resolved links to
+    other episodes; an article carries the dimensions of the images it embeds.
+    Hashing only the file the record was keyed on misses an edit to any of those
+    other inputs (issue #464), so the checksum covers the whole derived record —
+    every byte of every input that reaches the row — except the commit-scoped
+    provenance fields, which would otherwise mark every row updated on every
+    push.
+    """
+
+    payload = json.dumps(_without_revision(record), sort_keys=True, ensure_ascii=False)
+    return builder._sha256_bytes(f"{source_checksum}|{payload}".encode())
+
+
 def snapshot_path(checkout, relative_path: str):
     """Return the real file inside the immutable snapshot for Path-based helpers.
 
@@ -74,9 +111,9 @@ def upsert_document(
 ):
     """Write one parsed record; return ``(document, action)`` for the package result.
 
-    The source checksum decides the action: the record derives deterministically
-    from the source bytes, so an unchanged checksum means an unchanged row and
-    the write is skipped.
+    The checksum decides the action: it must cover every input the record derives
+    from (``record_checksum`` when that is more than one file), so an unchanged
+    checksum means an unchanged row and the write is skipped.
     """
 
     values = {

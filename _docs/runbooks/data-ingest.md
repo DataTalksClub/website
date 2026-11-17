@@ -1259,7 +1259,7 @@ resolves from; it no longer reads the staged `media.json` (issue #463).
   `content/sync_parsers/`, writing `SyncedDocument` rows directly.
 
 So the database is the serving path, and editorial content arrives through
-`manage.py sync_content` (against a checkout with `--from-disk`, or from its webhook).
+`manage.py sync_content` (from the GitHub archive, against a checkout with `--from-disk`, or from its webhook).
 There is no out-of-band drift report for `DataTalksClub/content` any more (§10.3).
 
 ---
@@ -1366,15 +1366,54 @@ staged pipeline in `1cd976a4`; issue #427 removed the wrappers. Do not look for 
 and do not confuse the plural course-repository `scripts/content.py checkouts` (§3),
 which never covered this repository.
 
-To bring the served editorial rows up to a checkout, run the sync itself:
+To bring the served editorial rows up to the source repository, run the sync itself.
+**On production, sync straight from GitHub — no checkout, no `--from-disk`:**
+
+```bash
+uv run --no-sync ssh contabo-a 'sudo docker exec <production-web> python manage.py sync_content --source dtc-content'
+uv run --no-sync ssh contabo-a 'sudo docker exec <production-web> python manage.py sync_content --source dtc-main-site'
+```
+
+Without `--from-disk` the engine resolves the default branch's HEAD through the GitHub API,
+streams that commit's tarball to a private temporary directory, and extracts it under the
+same rules as a checkout: no absolute or `..` paths, no hard links or special files, and no
+symlinks outside a top-level dot-directory (issue #462). It needs no `git` binary, which the
+production container does not have. Do not stream commits into a scratch directory, and do
+not put a fake `git` on `PATH` to satisfy `--from-disk`: `--from-disk` reads the commit with
+`git rev-parse HEAD` and is for a local checkout only. Without `--force` a source whose
+`last_synced_commit` is already HEAD reports `skipped`; pass `--force` to re-run the parsers
+at the same commit (`--force` also includes disabled sources, so always pair it with
+`--source`).
+
+**Archive bound.** `COMMUNITY_BASE["CONTENT_SYNC_MAX_ARCHIVE_BYTES"]` caps both the
+compressed tarball and the summed size of its extracted files; a larger archive fails the
+sync with `GitHub archive exceeds configured size limit` and writes nothing. The package
+default is 100 MB, below the two image-heavy repositories (measured 2026-11-17: content
+150 MB compressed / 170 MB extracted, main site 154 MB / 176 MB; docs, FAQ and podwiki are
+each under 30 MB), so `website/settings/base.py` sets 400 MB — a 2x margin over the largest.
+A sync needs roughly three times the extracted size in scratch disk (tarball, extracted tree,
+immutable snapshot), about 0.5 GB today. When a repository approaches the bound, re-measure
+and raise the setting in a reviewed change; never work around it at the command line. The
+bound and the extraction refusals are covered by `GitHubArchiveSyncTests` in
+`content/tests/test_sync_parsers.py`.
+
+A local checkout still works for development and the local rebuild (§8.1):
 
 ```bash
 uv run --frozen python manage.py sync_content --source dtc-content --from-disk <checkout>
 ```
 
-It is source-scoped and checksum-driven: an unchanged file is reported `unchanged`, a
+It is source-scoped and checksum-driven: an unchanged record is reported `unchanged`, a
 file a parser refuses fails that content kind without touching its rows, and the
-source's `last_synced_commit` advances only on a run with no errors.
+source's `last_synced_commit` advances only on a run with no errors. A record's change
+checksum covers every input it derives from, not only the file it is keyed on: a podcast
+episode updates when only its transcript file changes, or when an episode its resources
+link to moves (issue #464), and an article updates when an embedded image is replaced at a
+new size. Commit-scoped provenance (`revision`, `source_url`) is left out of that checksum,
+so a push that touches none of a record's inputs leaves the row alone. The first sync after
+this rule shipped reports every podcast and article `updated` once; existing transcript-only
+edits that never reached the database need one `--force` run of `dtc-content` if its
+`last_synced_commit` is already HEAD.
 
 **For the course repositories there is still no such check.** What follows is the design
 it would be built from, unchanged except that its step 7 is struck:
