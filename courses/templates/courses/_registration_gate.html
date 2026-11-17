@@ -25,40 +25,48 @@
   first sign-in creates the account; with neither, an honest notice and the
   site's contact address instead of a link to a closed page.
 {% endcomment %}
-<div class="card registration-panel">
-  {% if account_entry.unavailable %}
-    <h2 id="registration-form-heading">Registration needs an account</h2>
-    <div class="registration-note" role="status">
-      {% include "account/_no_sign_in_method.html" %}
-    </div>
-  {% else %}
-    <h2 id="registration-form-heading">Create your free account to register</h2>
-    {% if account_entry.signup_open %}
-      <p class="registration-note">
-        One account covers everything: registering, homework, the leaderboard, and
-        your certificate. Takes about twenty seconds.
-      </p>
-      <div class="registration-gate-actions">
-        <a
-          class="cta cta-primary interactive-lift"
-          href="{{ account_entry.signup_url }}?next={{ request.path|urlencode }}"
-        >Create account</a>
+{% comment %}
+  Drawn as the featured slab -- the same card the family landing uses for the
+  cohort to join -- because it is the page's one action for a signed-out
+  visitor.  `registration-panel` stays on it as the gate's stable hook.
+{% endcomment %}
+<div class="featured registration-panel registration-gate">
+  <div class="featured-main">
+    {% if account_entry.unavailable %}
+      <h2 id="registration-form-heading">Registration needs an account</h2>
+      <div class="registration-note" role="status">
+        {% include "account/_no_sign_in_method.html" %}
       </div>
     {% else %}
-      <p class="registration-note">
-        Create your account with {{ account_entry.provider_names }}. One account
-        covers everything: registering, homework, the leaderboard, and your
-        certificate.
+      <span class="chip chip-ink">Free account</span>
+      <h2 id="registration-form-heading">Create your free account to register</h2>
+      {% if account_entry.signup_open %}
+        <p class="featured-desc">
+          One account covers everything: registering, homework, the leaderboard, and
+          your certificate. Takes about twenty seconds.
+        </p>
+        <div class="featured-actions registration-gate-actions">
+          <a
+            class="cta cta-primary interactive-lift"
+            href="{{ account_entry.signup_url }}?next={{ request.path|urlencode }}"
+          >Create account</a>
+        </div>
+      {% else %}
+        <p class="featured-desc">
+          Create your account with {{ account_entry.provider_names }}. One account
+          covers everything: registering, homework, the leaderboard, and your
+          certificate.
+        </p>
+        {% include "account/_social_provider_choices.html" with provider_list=account_entry.providers provider_url_mode="provided" provider_container_class="registration-provider-choices" %}
+      {% endif %}
+      <p class="registration-fineprint">
+        Already have one?
+        {% if account_entry.social_signup %}Use the same button, or{% endif %}
+        <a
+          class="band-link"
+          href="{% url 'login' %}?next={{ request.path|urlencode }}"
+        >Sign in</a>
       </p>
-      {% include "account/_social_provider_choices.html" with provider_list=account_entry.providers provider_url_mode="provided" provider_container_class="registration-provider-choices" %}
     {% endif %}
-    <p class="registration-fineprint">
-      Already have one?
-      {% if account_entry.social_signup %}Use the same button, or{% endif %}
-      <a
-        class="band-link"
-        href="{% url 'login' %}?next={{ request.path|urlencode }}"
-      >Sign in</a>
-    </p>
-  {% endif %}
+  </div>
 </div>

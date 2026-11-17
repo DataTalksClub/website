@@ -562,8 +562,15 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
 
 ### Panels, discs and scrollers
 
+- **`.featured`** (`.featured-main`, `.featured-subline`, `.featured-desc`,
+  `.featured-meta`, `.featured-actions`, `.featured-build`) — the featured slab: white,
+  `3px` ink outline, `1.5rem` radius, the larger hard shadow. It marks the one thing a
+  page most wants the reader to act on: the homepage's featured course, a course
+  landing's cohort to join, the registration page's account gate. Each page sets its
+  own wide-screen columns; the slab itself lives in the partial.
 - **`.panel`** + `.panel-mint` / `.panel-lavender` (+ `.panel-outlined` for the 2px
-  ink border) — tinted inset blocks.
+  ink border) — tinted inset blocks. A course landing closes on one
+  `panel-mint panel-outlined` holding its strongest action.
 - **`.play-disc`** — bubble-lavender disc with an ink glyph (`2.4rem`;
   `.play-disc-large` `3.5rem`; `.play-disc-card` the white disc inside a player).
   Use `.play-disc-card` **only where the surface behind it is known** — a white disc
@@ -737,6 +744,21 @@ styled by the partial, and their **markup is shared too**:
 </body>
 ```
 
+**The footer** is one strip at the masthead's shell width: the brand and tagline on
+the left, the legal row (Terms, Privacy, Analytics preferences, Impressum) on the
+right, and the build line (source link and version) under a dashed rule; below 48rem
+the three groups stack, left-aligned. It carries no Academy links — the site-wide
+Academy stripe above it is the Academy route.
+
+**The analytics choice** is one `<dialog>` in two states. While nothing is chosen it is
+a non-modal consent banner fixed to the viewport foot, never part of the page flow;
+`analytics_preferences.js` reserves its height (`html.has-consent-banner`,
+`--consent-banner-space`) as the page's bottom padding and as the document's
+`scroll-padding-bottom`, so every control keyboard focus scrolls to stops above the
+banner, never behind it, and the last footer control can scroll clear of it. Escape
+dismisses it without choosing. Reopened from the footer it is the centred modal
+dialog.
+
 **Do not copy that markup into a page.** The first five pages in the system each
 carried their own copy, and the copies drifted — one lost `/slack` from the
 navigation, and one lost `user_menu.js`, so the account menu would not close on
@@ -838,6 +860,30 @@ Artwork lives in `core/static/core/illustrations/` as **trimmed transparent WebP
   own variant map rather than overloading the homepage's.
 
 How an illustration is produced and processed is `_docs/design/illustration-assets.md`.
+
+## Course landings
+
+The course family landing (`courses/course_family.html`) is a landing, like `/tour`:
+the hero and every chapter break out to the full shell (`.shell-breakout`), and every
+chapter is the same frame — a dashed seam above, a real `.band-head`, then the site's
+own components. The chapter order is fixed: about the course, join (the cohort on a
+`.featured` slab beside the start-now card, the weekly commitment as the subline),
+the journey, the syllabus, the certificate, who it is for, cohort editions, stories,
+what people built, the FAQ, and the closing mint panel. A chapter the data cannot fill
+is not drawn.
+
+The syllabus is one list drawn by one row component. A project sits at its
+chronological slot with a mono `Project` marker in the index rail instead of a
+number; the attempts of one project (`Project Attempt 1`, `Last Project Attempt`,
+`Capstone Project (Attempt 2)`) are one row listing each attempt's own deadlines
+(`courses.course_page_content.merge_syllabus_rows_with_projects`).
+
+The registration page keeps the ordinary content width. Its campaign copy is one
+editor-owned Markdown field, presented as sections by
+`courses.views.registration_marketing`: each heading opens a section, a `Label: value`
+list is a schedule of dashed definition rows, a bold-led list is titled rows, and the
+rest stays prose. A leading heading that repeats the campaign title is not drawn, and
+with a hero banner (which already sets the title) the `h1` is visually hidden.
 
 ## Building a new page — checklist
 

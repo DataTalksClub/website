@@ -7,7 +7,6 @@ from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST
 
 from accounts.services.email_verification import is_account_email_verified
@@ -20,13 +19,16 @@ from courses.models.homework import Homework
 from courses.models.project import Project
 from courses.registration import (
     ordered_countries,
-    render_markdown,
     youtube_embed_url,
 )
 from courses.services import cross_sell
 from courses.services.application_notifications import queue_operator_notification
 from courses.services.registration_contacts import queue_registration_contacts
 from courses.services.registration_counts import public_course_registration_count
+from courses.views.registration_marketing import (
+    application_notice_in_copy,
+    registration_marketing,
+)
 from courses.views.url_utils import canonical_cohort_url_kwargs
 
 from .registration_form import (
@@ -200,8 +202,7 @@ def _registration_context(
     form: CourseRegistrationForm | None,
     registration: CourseRegistration | None,
 ) -> dict:
-    marketing_content = render_markdown(campaign.marketing_markdown)
-    marketing_html = mark_safe(marketing_content)
+    marketing = registration_marketing(campaign.marketing_markdown, title=campaign.title)
     video_embed_url = youtube_embed_url(campaign.video_url)
     start_course_url = _start_course_url(campaign)
     country_options = ordered_countries()
@@ -216,7 +217,10 @@ def _registration_context(
         "signup_count": public_count.count if public_count is not None else None,
         "form": form,
         "registration": registration,
-        "marketing_html": marketing_html,
+        "marketing": marketing,
+        "application_notice_in_copy": application_notice_in_copy(
+            campaign.application_notice, campaign.marketing_markdown
+        ),
         "video_embed_url": video_embed_url,
         "start_course_url": start_course_url,
         "country_options": country_options,

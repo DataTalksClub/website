@@ -1,0 +1,29 @@
+{% load static %}
+{% comment %}
+  The "see what people have built" scene: learners showing finished projects.
+  Like the journey-start scene it belongs to no one course family, so the
+  family landing's projects section draws it for every family.
+
+  `loading` is the caller's; the section sits far down the page, so the
+  partial defaults to the lazy case.
+{% endcomment %}
+<span class="doodle-variants">
+  <img
+    class="doodle doodle-light"
+    src="{% static 'core/illustrations/course-projects-built.webp' %}"
+    alt=""
+    width="1254"
+    height="1254"
+    loading="{{ loading|default:'lazy' }}"
+    decoding="async"
+  >
+  <img
+    class="doodle doodle-dark"
+    src="{% static 'core/illustrations/course-projects-built-dark.webp' %}"
+    alt=""
+    width="1254"
+    height="1254"
+    loading="{{ loading|default:'lazy' }}"
+    decoding="async"
+  >
+</span>

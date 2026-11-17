@@ -836,6 +836,7 @@ class _Parser:
                     "title",
                     "description_path",
                     "starting_point",
+                    "project_summary",
                     "prerequisites",
                     "progression",
                     "homework_summaries",
@@ -884,6 +885,11 @@ class _Parser:
             starting_point=(
                 _string(mapping["starting_point"], path=path, pointer="/starting_point")
                 if "starting_point" in mapping
+                else None
+            ),
+            project_summary=(
+                _string(mapping["project_summary"], path=path, pointer="/project_summary")
+                if "project_summary" in mapping
                 else None
             ),
             prerequisites=(

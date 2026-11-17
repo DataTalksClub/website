@@ -792,3 +792,20 @@ def test_script_refuses_a_branch_name_as_the_archive_identity() -> None:
     from scripts.verify_course_repository_curriculum import main as script_main
 
     assert script_main(["--checkout", ".", "--commit", "main"]) == 2
+
+
+def test_project_summary_is_read_when_present_and_none_when_omitted() -> None:
+    omitted = parse_course_repository(shared_snapshot(), commit_sha=COMMIT_SHA)
+    assert omitted.course.project_summary is None
+
+    snapshot = shared_snapshot()
+    replace_bytes(
+        snapshot,
+        "course.yaml",
+        "starting_point: You can already build small Python applications.\n",
+        "starting_point: You can already build small Python applications.\n"
+        "project_summary: Learners ship an LLM application of their own.\n",
+    )
+    source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
+
+    assert source.course.project_summary == "Learners ship an LLM application of their own."

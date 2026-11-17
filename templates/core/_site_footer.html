@@ -4,50 +4,22 @@
 
 {% include "core/_tour_cta.html" %}
 
-<footer class="site-footer mt-10 border-t app-border app-surface app-muted">
-  <div class="site-footer-inner app-content-shell mx-auto px-4 py-5 md:px-8 md:py-6">
-    <div class="site-footer-identity site-footer-meta">
+<footer class="site-footer">
+  <div class="shell site-footer-inner">
+    <div class="site-footer-identity">
       <span class="site-footer-brand">
-        <span class="font-semibold app-heading">DataTalks.Club</span>
+        <span class="site-footer-name">DataTalks.Club</span>
         <span class="site-footer-tagline">Free courses to learn data.</span>
       </span>
-      <span class="site-footer-runtime">
-        <a
-          href="https://github.com/DataTalksClub/website"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="site-footer-link site-footer-github app-link"
-          title="Website source on GitHub (opens in a new tab)"
-          aria-label="Website source on GitHub (opens in a new tab)"
-        >
-          <i class="fab fa-github" aria-hidden="true"></i>
-        </a>
-        <span class="footer-version app-muted">
-          <span class="footer-version-label">Version</span>
-          <span class="footer-version-value">{{ VERSION }}</span>
-        </span>
-      </span>
     </div>
-
-    <nav class="site-footer-legal site-footer-academy" aria-label="DataTalks.Club Academy">
-      <a class="site-footer-legal-control app-link" href="/academy/">
-        DataTalks.Club Academy
-      </a>
-      <span class="site-footer-separator" aria-hidden="true">·</span>
-      <a class="site-footer-legal-control app-link" href="/academy/sessions/">
-        Hireable With AI: Free Sessions
-      </a>
-    </nav>
 
     <nav class="site-footer-legal" aria-label="Legal">
       <a class="site-footer-legal-control app-link" href="/terms">
         Terms of Service
       </a>
-      <span class="site-footer-separator" aria-hidden="true">·</span>
       <a class="site-footer-legal-control app-link" href="/privacy">
         Privacy Policy
       </a>
-      <span class="site-footer-separator" aria-hidden="true">·</span>
       <button
         type="button"
         class="site-footer-legal-control site-footer-preferences app-link interactive-lift"
@@ -57,10 +29,26 @@
       >
         Analytics preferences
       </button>
-      <span class="site-footer-separator" aria-hidden="true">·</span>
       <a class="site-footer-legal-control app-link" href="/impressum">
         Impressum
       </a>
     </nav>
+
+    <div class="site-footer-runtime">
+      <a
+        href="https://github.com/DataTalksClub/website"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="site-footer-link site-footer-github app-link"
+        title="Website source on GitHub (opens in a new tab)"
+        aria-label="Website source on GitHub (opens in a new tab)"
+      >
+        <i class="fab fa-github" aria-hidden="true"></i>
+      </a>
+      <span class="footer-version app-muted">
+        <span class="footer-version-label">Version</span>
+        <span class="footer-version-value">{{ VERSION }}</span>
+      </span>
+    </div>
   </div>
 </footer>

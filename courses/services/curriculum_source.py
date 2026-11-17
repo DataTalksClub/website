@@ -57,6 +57,10 @@ class CourseSource:
     # declares curriculum: current -- validated against course.yaml:cohorts
     # and the cohorts actually discovered on disk. None for schema 1.
     current_cohort: str | None = None
+    # What learners build in the final project, for the family landing's
+    # projects section. ``None`` keeps existing curated database copy when
+    # the optional key is absent.
+    project_summary: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

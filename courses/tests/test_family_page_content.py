@@ -49,6 +49,19 @@ class FamilySyllabusRowsTests(SimpleTestCase):
 
         self.assertEqual(rows[0].title, "Capstone project")
 
+    def test_a_summary_that_is_only_a_link_is_not_a_summary(self):
+        rows = family_syllabus_rows(
+            [
+                SimpleNamespace(
+                    title="Homework 1: Intro",
+                    summary="",
+                    description="https://github.com/example/course/blob/main/homework1.md",
+                )
+            ]
+        )
+
+        self.assertEqual(rows[0].summary, "")
+
 
 class MergeSyllabusRowsWithProjectsTests(SimpleTestCase):
     """The syllabus's real projects, interleaved by chronology (issue: "for ml
@@ -96,9 +109,10 @@ class MergeSyllabusRowsWithProjectsTests(SimpleTestCase):
         self.assertEqual(
             [row.is_project for row in merged], [False, False, True, False, False, True]
         )
-        # A project row is starred, not numbered, and carries its own url.
+        # A project row carries no module number, and a single-attempt
+        # project links straight to its own page.
         midterm_row = merged[2]
-        self.assertEqual(midterm_row.index, "★")
+        self.assertEqual(midterm_row.index, "")
         self.assertEqual(midterm_row.url, "/midterm")
         # The plain module rows keep their own original numbering.
         self.assertEqual(
@@ -253,3 +267,103 @@ class FamilyEditionRowsTests(SimpleTestCase):
         empty = SimpleNamespace(cohort=SimpleNamespace(identifier="2026"), projects=[])
 
         self.assertEqual(family_project_cards([empty]), ())
+
+
+class ProjectAttemptGroupingTests(SimpleTestCase):
+    """The attempts of one project collapse into one syllabus row.
+
+    Owner feedback (2026-11): "Project Attempt 1 / 2 / Last Project Attempt"
+    and "Capstone Project (Attempt 1) / (Attempt 2)" were near-empty rows drawn
+    by a different component; one row now lists every attempt's deadlines.
+    """
+
+    def _units(self):
+        return family_syllabus_rows([SimpleNamespace(title="Module 1: Intro", summary="")])
+
+    def _project(self, title, due, review, **extra):
+        return SimpleNamespace(
+            title=title,
+            description=extra.get("description", ""),
+            instructions_url=extra.get("instructions_url", ""),
+            submission_due_date=due,
+            peer_review_due_date=review,
+        )
+
+    def test_numbered_and_last_attempts_share_one_row(self):
+        projects = [
+            self._project(
+                "Project Attempt 1",
+                date(2026, 3, 30),
+                date(2026, 4, 8),
+                description="Put everything we learned into practice. (Attempt 1)",
+                instructions_url="https://example.com/project.md",
+            ),
+            self._project("Project Attempt 2", date(2026, 4, 20), date(2026, 4, 27)),
+            self._project("Last Project Attempt", date(2026, 5, 4), date(2026, 5, 11)),
+        ]
+
+        merged = merge_syllabus_rows_with_projects(
+            self._units(), [None], projects, ["/p1", "/p2", "/p3"]
+        )
+
+        self.assertEqual(len(merged), 2)
+        row = merged[1]
+        self.assertTrue(row.is_project)
+        self.assertEqual(row.title, "Project")
+        self.assertEqual(row.summary, "Put everything we learned into practice.")
+        self.assertEqual(row.brief_url, "https://example.com/project.md")
+        self.assertEqual(row.url, "")
+        self.assertEqual(
+            [(attempt.title, attempt.url) for attempt in row.attempts],
+            [
+                ("Project Attempt 1", "/p1"),
+                ("Project Attempt 2", "/p2"),
+                ("Last Project Attempt", "/p3"),
+            ],
+        )
+        self.assertEqual(row.attempts[2].peer_review_due, date(2026, 5, 11))
+
+    def test_parenthesised_attempts_keep_the_project_name(self):
+        projects = [
+            self._project("Capstone Project (Attempt 1)", date(2027, 1, 15), date(2027, 1, 22)),
+            self._project("Capstone Project (Attempt 2)", date(2027, 1, 29), date(2027, 2, 5)),
+        ]
+
+        merged = merge_syllabus_rows_with_projects(self._units(), [None], projects, ["/a1", "/a2"])
+
+        self.assertEqual([row.title for row in merged], ["Intro", "Capstone Project"])
+        self.assertEqual(len(merged[1].attempts), 2)
+
+    def test_different_projects_stay_separate_rows(self):
+        projects = [
+            self._project("Midterm Project", date(2025, 11, 19), date(2025, 11, 27)),
+            self._project("Capstone 1", date(2026, 1, 5), date(2026, 1, 12)),
+            self._project("Capstone 2", date(2026, 1, 21), date(2026, 1, 26)),
+        ]
+
+        merged = merge_syllabus_rows_with_projects(
+            self._units(), [None], projects, ["/m", "/c1", "/c2"]
+        )
+
+        self.assertEqual([row.title for row in merged], ["Intro", "Midterm Project", "Capstone"])
+        self.assertEqual(merged[1].url, "/m")
+        self.assertEqual(len(merged[2].attempts), 2)
+
+    def test_a_link_or_placeholder_description_is_not_shown_as_a_summary(self):
+        projects = [
+            self._project(
+                "Attempt 1",
+                date(2025, 7, 14),
+                date(2025, 7, 23),
+                description="https://github.com/example/course/blob/main/project.md",
+            ),
+            self._project("Attempt 2", date(2025, 8, 4), date(2025, 8, 11), description="TBA"),
+        ]
+
+        merged = merge_syllabus_rows_with_projects(self._units(), [None], projects, ["/1", "/2"])
+
+        row = merged[1]
+        self.assertEqual(row.summary, "")
+        self.assertEqual(row.brief_url, "https://github.com/example/course/blob/main/project.md")
+        # Nothing but attempt words: the row is simply the project.
+        self.assertEqual(row.title, "Project")

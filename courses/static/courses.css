@@ -1229,10 +1229,6 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
   white-space: nowrap;
 }
 
-.site-footer-meta {
-  max-width: 100%;
-}
-
 .site-footer-link {
   align-items: center;
   display: inline-flex;

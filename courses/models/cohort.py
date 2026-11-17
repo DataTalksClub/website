@@ -75,6 +75,17 @@ class Course(SourceProvenanceModel):
         validators=[validate_course_progression],
     )
     outcome = models.TextField(blank=True, default="")
+    project_summary = models.TextField(
+        blank=True,
+        default="",
+        db_default="",
+        help_text=(
+            "What learners build in the course's final project, in a short "
+            "paragraph, shown in the family landing's projects section. "
+            "Authored by the course repository; preserved when an import "
+            "omits it."
+        ),
+    )
     github_repo_url = models.URLField(
         blank=True,
         validators=[URLValidator()],

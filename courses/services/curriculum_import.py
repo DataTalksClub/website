@@ -451,6 +451,8 @@ class _CurriculumImporter:
             course.prerequisites = source.prerequisites
         if source.starting_point is not None:
             course.starting_point = source.starting_point
+        if source.project_summary is not None:
+            course.project_summary = source.project_summary
         if source.progression is not None:
             course.progression = [
                 {"heading": step.heading, "description": step.description}

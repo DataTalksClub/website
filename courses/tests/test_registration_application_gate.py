@@ -55,7 +55,19 @@ class RegistrationApplicationGateTests(RegistrationCampaignBase):
         self.assertContains(response, "Limited seats")
         self.assertContains(response, "medium–advanced level")
         self.assertContains(response, "acceptance is not")
+        # The notice is an operational message: shown even with campaign copy.
         self.assertContains(response, "Prerequisites: Python")
+
+    def test_notice_already_in_the_copy_is_not_printed_twice(self):
+        self.campaign.marketing_markdown = (
+            "## Learn LLMs\n\n" + self.campaign.application_notice + "\n"
+        )
+        self.campaign.save(update_fields=["marketing_markdown"])
+
+        response = self.client.get(self.campaign_url())
+
+        self.assertContains(response, "Limited seats")
+        self.assertContains(response, "Prerequisites: Python", count=1)
 
     def test_approval_campaign_requires_role_and_experience(self):
         url = self.campaign_url()

@@ -56,6 +56,8 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/views/homework_solution.py",
     "courses/tests/test_statistics_display_contract.py",
     "courses/tests/test_course_slash_aliases.py",
+    "courses/views/registration_marketing.py",
+    "courses/tests/test_registration_marketing.py",
     "accounts/tests/test_user.py",
     "api/models.py",
     "api/tests/test_admin_health.py",

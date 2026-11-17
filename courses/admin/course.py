@@ -310,6 +310,7 @@ class CourseFamilyAdmin(ModelAdmin):
         "weekly_commitment",
         "progression",
         "outcome",
+        "project_summary",
         "description",
         "visible",
     ]
