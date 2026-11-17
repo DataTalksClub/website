@@ -305,6 +305,7 @@ def discover_new_provider_events(
                 repository=source.repository,
                 revision=source.revision,
                 source_key=source.source_key,
+                follow_merges=True,
             )
         except EventIdentityNotFound:
             existing = None

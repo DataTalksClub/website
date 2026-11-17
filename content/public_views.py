@@ -35,6 +35,7 @@ from event_qna.models import EventQnaSession
 from events.identity import (
     EventIdentityNotFound,
     canonical_detail_path,
+    merged_canonical_path,
     redirect_for_supplied_slug,
     resolve_public_id,
 )
@@ -461,7 +462,10 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
         identity = resolve_public_id(event_id)
         redirect_path = redirect_for_supplied_slug(identity.content_id, slug)
     except EventIdentityNotFound as exc:
-        raise Http404 from exc
+        merged_path = merged_canonical_path(event_id)
+        if merged_path is None:
+            raise Http404 from exc
+        return permanent_public_redirect(request, target=merged_path)
     if redirect_path is not None:
         return permanent_public_redirect(request, target=redirect_path)
     try:
@@ -555,7 +559,10 @@ def event_detail_without_slug(request: HttpRequest, event_id: str) -> HttpRespon
     try:
         target = canonical_detail_path(resolve_public_id(event_id).content_id)
     except EventIdentityNotFound as exc:
-        raise Http404 from exc
+        merged_path = merged_canonical_path(event_id)
+        if merged_path is None:
+            raise Http404 from exc
+        target = merged_path
     return permanent_public_redirect(request, target=target)
 
 
@@ -566,13 +573,17 @@ def event_detail_slash_alias(request: HttpRequest, event_id: str, slug: str = ""
     Links carrying a CDN-added trailing slash (``/events/<id>/<slug>/`` and ``/events/<id>/``)
     exist in the wild.  The public ID still selects the Event and the slug stays cosmetic, so a
     stale slug plus slash reaches the numeric/current-slug canonical directly, never via a second
-    hop.  An unknown ID is the bounded event-route 404.
+    hop.  An ID retired by a reviewed merge answers the same single hop to the event it was
+    merged into; any other unknown ID is the bounded event-route 404.
     """
 
     try:
         target = canonical_detail_path(resolve_public_id(event_id).content_id)
     except EventIdentityNotFound as exc:
-        raise Http404 from exc
+        merged_path = merged_canonical_path(event_id)
+        if merged_path is None:
+            raise Http404 from exc
+        target = merged_path
     return permanent_public_redirect(request, target=target)
 
 
@@ -603,7 +614,13 @@ def event_register(request: HttpRequest, event_id: str, slug: str) -> HttpRespon
     from event_registrants.models import EventOperatorConfig, EventRegistrationMeta
 
     if request.method != "POST":
-        return redirect(canonical_detail_path(resolve_public_id(event_id).content_id))
+        try:
+            return redirect(canonical_detail_path(resolve_public_id(event_id).content_id))
+        except EventIdentityNotFound as exc:
+            merged_path = merged_canonical_path(event_id)
+            if merged_path is None:
+                raise Http404 from exc
+            return redirect(merged_path)
     try:
         identity = resolve_public_id(event_id)
     except EventIdentityNotFound as exc:

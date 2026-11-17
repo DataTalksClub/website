@@ -233,6 +233,8 @@ module = [
     "scripts.tests.test_identity_manifest",
     "scripts.tests.test_ml_zoomcamp_2021_identity_merge",
     "scripts.tests.test_registrant_import",
+    "scripts.prod.import_event_duplicate_merges",
+    "scripts.tests.test_import_event_duplicate_merges",
     "scripts.tests.test_scoring_import_submitted_at",
     "studio_courses.tests.test_enrollment_sorting",
     "courses.tests.test_course_external_links",

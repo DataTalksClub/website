@@ -438,6 +438,7 @@ def _resolve_event(
             repository=source.repository,
             revision=source.revision,
             source_key=source.source_key,
+            follow_merges=True,
         )
     except EventIdentityNotFound:
         return None

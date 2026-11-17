@@ -844,3 +844,72 @@ class EventSource(models.Model):
 
     def __str__(self) -> str:
         return f"{self.source_key}@{self.revision}"
+
+
+class EventMergedIdentity(models.Model):
+    """The identity of an ``events.Event`` that was merged into a surviving event.
+
+    When two rows turn out to describe one occurrence, the reviewed merge
+    (``events.merge``) deletes the duplicate.  Its identity does not disappear
+    with it: this row records the duplicate's public ID, UUID, calendar UID and
+    exact ``content.EventSource`` tuple, pointing at the survivor.  Two readers
+    use it, and nothing else does:
+
+    * the public event routes answer the retired ``/events/<public_id>/...``
+      with a one-hop ``301`` to the survivor's canonical path, so a URL that
+      once served never ``404``s and the retired public ID is never reused;
+    * ingest lookups that opt in (``resolve_source_identity(follow_merges=True)``
+      -- provider discovery and the registrant importers) resolve the retired
+      provider identity to the survivor, so a later export neither recreates
+      the duplicate nor attaches its registrations anywhere else.
+
+    Content writers deliberately do not follow it: a description reviewed
+    against the duplicate never lands on the survivor by this route.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.ForeignKey(
+        "events.Event",
+        on_delete=models.CASCADE,
+        related_name="merged_identities",
+    )
+    #: The duplicate's database row id, which is how a reviewed merge names the
+    #: pair; kept so a replay of the same pair recognises its own work.
+    merged_row_id = models.PositiveBigIntegerField(unique=True)
+    #: Null only for a duplicate that was never published, so never had a URL.
+    public_id = models.PositiveIntegerField(unique=True, null=True, blank=True)
+    content_id = models.UUIDField(unique=True)
+    slug = models.CharField(max_length=300)
+    calendar_uid = models.CharField(max_length=400, blank=True, default="")
+    #: The duplicate's ``content.EventSource`` tuple; empty for an event that
+    #: never had one (created in Studio rather than imported).
+    repository = models.CharField(max_length=255, blank=True, default="")
+    revision = models.CharField(max_length=64, blank=True, default="")
+    source_key = models.CharField(max_length=512, blank=True, default="")
+    source_path = models.CharField(max_length=512, default="", blank=True)
+    source_checksum = models.CharField(max_length=64, default="", blank=True)
+    merged_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("public_id",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("repository", "revision", "source_key"),
+                condition=Q(source_key__gt=""),
+                name="content_event_merged_identity_source_unique",
+            ),
+            models.CheckConstraint(
+                condition=Q(public_id__isnull=True) | Q(public_id__gt=0),
+                name="content_event_merged_identity_public_id_positive",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(repository="", revision="", source_key="")
+                    | (Q(repository__gt="") & Q(revision__gt="") & Q(source_key__gt=""))
+                ),
+                name="content_event_merged_identity_source_complete",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"merged-event:{self.public_id}->{self.event_id}"

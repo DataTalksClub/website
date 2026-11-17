@@ -33,7 +33,7 @@ from django.db import OperationalError, transaction
 from django.db.models import Max
 from django.utils import timezone
 
-from content.models import EventSource
+from content.models import EventMergedIdentity, EventSource
 
 from .slugs import event_title_slug
 
@@ -201,6 +201,18 @@ def _create_event_identity_atomic(
     public_id: int | None = None,
 ) -> Event:
     with transaction.atomic():
+        # A merged-away event's public ID and source identity stay retired: the
+        # public ID still answers with a redirect, and the source identity now
+        # resolves (for ingest) to the event it was merged into.
+        if (
+            public_id is not None
+            and EventMergedIdentity.objects.filter(public_id=public_id).exists()
+        ):
+            raise EventIdentityError("event_public_id_retired")
+        if EventMergedIdentity.objects.filter(
+            repository=source_repository, revision=source_revision, source_key=source_key
+        ).exists():
+            raise EventIdentityError("source_identity_merged")
         event = Event(
             content_id=event_id or uuid.uuid4(),
             title=title,
@@ -371,7 +383,20 @@ def resolve_public_id(public_id: int | str) -> Event:
         raise EventIdentityNotFound("unknown_event") from exc
 
 
-def resolve_source_identity(*, repository: str, revision: str, source_key: str) -> Event:
+def resolve_source_identity(
+    *, repository: str, revision: str, source_key: str, follow_merges: bool = False
+) -> Event:
+    """Resolve one exact source tuple to its event.
+
+    ``follow_merges`` also resolves the tuple of an event that a reviewed merge
+    folded into another (``content.EventMergedIdentity``) to the survivor.
+    Only the provider-identity lookups opt in -- discovery, so a later export
+    does not recreate the duplicate, and the registrant importers, so its
+    registrations keep landing on the one event.  Content writers keep the
+    exact default: content reviewed against the duplicate must not land on the
+    survivor through an identity it never had.
+    """
+
     try:
         source = EventSource.objects.select_related("event").get(
             repository=repository,
@@ -379,10 +404,40 @@ def resolve_source_identity(*, repository: str, revision: str, source_key: str) 
             source_key=source_key,
         )
     except EventSource.DoesNotExist as exc:
+        if follow_merges:
+            merged = (
+                EventMergedIdentity.objects.select_related("event")
+                .filter(repository=repository, revision=revision, source_key=source_key)
+                .first()
+            )
+            if merged is not None:
+                return merged.event
         raise EventIdentityNotFound("source_identity_unmapped") from exc
     except EventSource.MultipleObjectsReturned as exc:
         raise EventIdentityError("source_identity_ambiguous") from exc
     return source.event
+
+
+def merged_canonical_path(public_id: int | str) -> str | None:
+    """The survivor's canonical path for a public ID retired by a reviewed merge.
+
+    ``None`` when the ID was never merged away.  Public routes use this only
+    after the live lookup missed, and answer with one permanent redirect; the
+    retired ID never selects or renders the survivor under its own URL.
+    """
+
+    if isinstance(public_id, bool):
+        return None
+    if isinstance(public_id, str):
+        if not re.fullmatch(r"[1-9][0-9]*", public_id):
+            return None
+        public_id = int(public_id)
+    if not isinstance(public_id, int) or public_id < 1 or public_id > MAX_PUBLIC_ID:
+        return None
+    merged = EventMergedIdentity.objects.select_related("event").filter(public_id=public_id).first()
+    if merged is None or merged.event.public_id is None:
+        return None
+    return f"/events/{merged.event.public_id}/{merged.event.slug}"
 
 
 def current_slug(event_id: uuid.UUID | str) -> str:
