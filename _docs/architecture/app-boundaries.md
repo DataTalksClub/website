@@ -45,7 +45,8 @@ mail/jobs may receive identifiers from domains, but domains do not import worker
   label, schema, and product routes. It carries the DTC identity policy
   (`events.identity`: public-ID allocation, `content_id` resolution, source
   provenance in `content.EventSource`, canonical paths), the public record
-  reader (`events.queries`), the reviewed description/content imports
+  reader (`events.queries`), the derived upcoming/in-progress/past status every reader
+  uses instead of the stored package status (`events.lifecycle`), the reviewed description/content imports
   (`events.content_import`, `events.eventbrite_content`), and the slug policy.
   Registration, reminders, and package studio CRUD stay package-owned.
 - `community_base.mail` (package app, no site app since D1.2cb): logical `EmailDelivery`

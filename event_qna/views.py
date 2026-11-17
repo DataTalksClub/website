@@ -23,6 +23,7 @@ from accounts.studio_authorization import (
 from accounts.studio_sessions import session_reference
 from core.audit import AuditWriteContext
 from core.models import RevisionConflict
+from events.lifecycle import is_published
 from management_registry import CAPABILITY_REGISTRY
 from studio.auth import audit_capability_denial
 
@@ -213,7 +214,7 @@ def _route_session(
     )
     if actor is not None:
         return session, actor
-    if event.status not in services.PUBLIC_EVENT_LIFECYCLES:
+    if not is_published(event):
         raise services.QnaNotFound()
     if session.state == services.EventQnaSession.State.ARCHIVED:
         raise services.QnaArchived()

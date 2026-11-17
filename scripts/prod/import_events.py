@@ -660,10 +660,10 @@ def import_events_yaml(
     import yaml
     from community_base.events.models import EventHost, Host
     from django.db import transaction
-    from django.utils import timezone
 
     from content.models import EventSource, SyncedDocument
     from events.identity import EventIdentityError, canonical_detail_path, create_event_identity
+    from events.lifecycle import PUBLISHED_STATUS
     from events.slugs import event_title_slug
     from scripts.prod.registrant_import import (
         EXISTING_EVENT_AMBIGUOUS,
@@ -682,7 +682,6 @@ def import_events_yaml(
 
     checksum = hashlib.sha256(raw_bytes).hexdigest()
     berlin = ZoneInfo("Europe/Berlin")
-    now = timezone.now()
 
     people_names = dict(
         SyncedDocument.objects.filter(
@@ -730,7 +729,8 @@ def import_events_yaml(
             event_type = str(entry.get("type") or "").strip() or None
             season = int(entry["season"]) if entry.get("season") is not None else None
             episode = int(entry["episode"]) if entry.get("episode") is not None else None
-            status = "upcoming" if starts_at >= now else "completed"
+            # Published; upcoming vs past is derived from the schedule (events.lifecycle).
+            status = PUBLISHED_STATUS
             materials = _events_yaml_materials(entry)
             speaker_keys = [
                 str(s).strip() for s in (entry.get("speakers") or []) if str(s).strip()

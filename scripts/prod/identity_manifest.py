@@ -33,6 +33,7 @@ from events.identity import (
     EventIdentityError,
     ensure_public_id_sequence,
 )
+from events.lifecycle import PUBLISHED_STATUS
 from events.slugs import event_title_slug
 
 #: Bumped from 1 (schema history was collapsed) to 3 to 4. Version 2 required every
@@ -271,7 +272,7 @@ def import_identity_manifest(*, path: Path, dry_run: bool = False) -> IdentityIm
                     public_id=item.public_id,
                     title=item.title,
                     slug=event_title_slug(item.title),
-                    status="upcoming",
+                    status=PUBLISHED_STATUS,
                     start_datetime=DEFAULT_STARTS_AT,
                     source_repo=item.source.repository,
                     source_path=item.source_path,

@@ -17,9 +17,10 @@ adapter over the shared row:
 - speakers are written as package `Host` rows (`kind="speaker"`, `external_ref=<person short>`,
   first-minted name wins across sites) and their public profile paths resolve at read time through
   `HOST_PROFILE_RESOLVER` against the people catalogue;
-- package `status` (`upcoming`/`completed`) replaces the site lifecycle at the row level; the
-  site-side `draft -> published -> completed -> archived` lifecycle below remains the registration
-  and email semantics until the D4.2 cutover.
+- package `status` replaces the site lifecycle at the row level, but only its editorial states
+  carry meaning: `draft`, `cancelled`, and `archived`. The stored `upcoming` and legacy `completed`
+  both mean "published"; whether a published event is upcoming, in progress, or past is derived from
+  its start and end time (`events.lifecycle`), never stored or read from the column.
 
 Public events are exposed at `/events/<positive-public-id>/<current-title-slug>`. Provider and
 recording destinations appear only as clearly labelled safe external actions on the detail, and
@@ -45,9 +46,20 @@ id: the UUID/current-slug, UUID-only, and reviewed date/title spellings that onc
 numeric/current-slug canonical are retired and resolve to nothing. No public slug-only,
 date/title-derived, UUID, provider-ID, source-key, or numeric management lookup exists.
 
-Row status: `upcoming` or `completed` on the shared row, derived at import from the site lifecycle
-(published → upcoming, completed → completed). Registration availability is derived from publication,
-registration window, event time, and cancellation state.
+Row status: site writers store `upcoming` for every published event and never write `completed`;
+imports do not choose a stored value by date. Every reader — public pages, registration, Q&A, the
+management API/CLI and its filters — uses the derived status from `events.lifecycle`:
+
+- `draft`, `cancelled`, `archived`: as stored (editorial);
+- `upcoming`: published and the start is now or later;
+- `in_progress`: published, the start has passed, and the effective end (the stored end, or one
+  hour after the start) has not;
+- `past`: published and the effective end has passed.
+
+Registration is open while a published event is upcoming or in progress. "Complete" does not store a
+status: it refuses an event that has not ended and only attaches the recording. A past event cannot
+be cancelled. Registration availability is otherwise derived from publication, registration window,
+event time, and cancellation state.
 
 MVP has no capacity or waitlist. The schema and services must not imply unlimited capacity forever, but capacity workflows are deferred until their product rules are specified.
 

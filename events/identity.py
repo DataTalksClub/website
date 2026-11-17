@@ -35,6 +35,7 @@ from django.utils import timezone
 
 from content.models import EventSource
 
+from .lifecycle import PUBLISHED_STATUS
 from .slugs import event_title_slug
 
 MAX_PUBLIC_ID = 2_147_483_647
@@ -46,16 +47,6 @@ _PUBLIC_ID_ALLOCATION_ATTEMPTS = 5
 #: standing instant; every caller with real schedule data passes it and the
 #: content import reconciles it.
 DEFAULT_STARTS_AT = datetime(2026, 1, 1, tzinfo=UTC)
-
-#: The package owns its own lifecycle vocabulary.  The site map is total: every
-#: DTC lifecycle value lands on the package status with the same public meaning.
-STATUS_BY_LIFECYCLE: dict[str, str] = {
-    "draft": "draft",
-    "published": "upcoming",
-    "completed": "completed",
-    "cancelled": "cancelled",
-    "archived": "archived",
-}
 
 #: Package event kinds the DTC type maps onto directly.  Podcast, webinar and
 #: conference have no package kind; they keep their exact DTC value in ``tags``
@@ -196,17 +187,22 @@ def _create_event_identity_atomic(
     event_type: str | None = None,
     season: int | None = None,
     episode: int | None = None,
-    status: str = "upcoming",
+    status: str = PUBLISHED_STATUS,
     event_id: uuid.UUID | None = None,
     public_id: int | None = None,
 ) -> Event:
+    start = starts_at if starts_at is not None else DEFAULT_STARTS_AT
+    if ends_at is not None and ends_at < start:
+        # An end before the start would put the row in both the upcoming and
+        # the past bucket of ``events.lifecycle``; refuse it at the boundary.
+        raise EventIdentityError("event_end_before_start")
     with transaction.atomic():
         event = Event(
             content_id=event_id or uuid.uuid4(),
             title=title,
             slug=event_title_slug(title),
             status=status,
-            start_datetime=starts_at if starts_at is not None else DEFAULT_STARTS_AT,
+            start_datetime=start,
             end_datetime=ends_at,
             kind=package_kind_for_type(event_type),
             tags=encode_event_tags(event_type=event_type, season=season, episode=episode),
@@ -255,7 +251,7 @@ def create_event_identity(
     event_type: str | None = None,
     season: int | None = None,
     episode: int | None = None,
-    status: str = "upcoming",
+    status: str = PUBLISHED_STATUS,
     event_id: uuid.UUID | None = None,
     public_id: int | None = None,
 ) -> Event:

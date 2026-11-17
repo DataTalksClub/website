@@ -8,10 +8,12 @@ and episode) plus the ordered link list ride in the row's ``tags`` and
 ``materials`` JSON.  This module is the one place that turns a row into the
 record shape the views and templates read.
 
-Only publicly visible statuses are published: draft and cancelled rows never
-appear, and a page that would have to invent a start time is impossible by
-construction -- the shared row cannot exist without one.  An empty database
-therefore lists no events, which is a normal state and not a failure.
+Only published rows appear (``events.lifecycle.PUBLISHED_STATUSES``): draft,
+cancelled and archived rows never do.  Whether a published event is upcoming
+or past is derived from its schedule, never from the stored status.  A page
+that would have to invent a start time is impossible by construction -- the
+shared row cannot exist without one.  An empty database therefore lists no
+events, which is a normal state and not a failure.
 """
 
 from __future__ import annotations
@@ -33,10 +35,7 @@ from .identity import (
     decode_event_tags,
     host_profile_url,
 )
-
-#: The statuses a public page may show, matching the published/completed split
-#: the former site ``Lifecycle`` carried.
-PUBLIC_STATUSES = ("upcoming", "completed")
+from .lifecycle import PUBLISHED_STATUSES, is_published
 
 
 def _operator_config(event: Event) -> EventOperatorConfig | None:
@@ -107,7 +106,7 @@ def _provenance(event: Event) -> dict[str, Any]:
 
 def _published() -> Any:
     return (
-        Event.objects.filter(status__in=PUBLIC_STATUSES)
+        Event.objects.filter(status__in=PUBLISHED_STATUSES)
         .annotate(
             registration_count=Count(
                 "registrant_registrations",
@@ -248,7 +247,7 @@ def event_public_record(event: Event) -> dict[str, Any]:
     contract the former content-less identity had.
     """
 
-    if event.status not in PUBLIC_STATUSES:
+    if not is_published(event):
         raise EventIdentityNotFound("event_content_unavailable")
     record = published_event_record(event.content_id)
     if record is None:

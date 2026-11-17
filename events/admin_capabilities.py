@@ -187,7 +187,7 @@ EVENT_ADMIN_CAPABILITIES = (
     ),
     _cap(
         key="events.manage.complete",
-        description="Mark an event completed",
+        description="Confirm an ended event and attach its recording",
         kind=ServiceKind.COMMAND,
         service=complete_event_action,
         permission="event_registrants.manage_events",

@@ -28,7 +28,10 @@ This document answers all 10 open questions in `bots-management/agents/contracts
   Environment overrides: `DTC_URL`, `DTC_TOKEN`, `DTC_PROFILE_PATH`.
 
 - **Event commands** (`<event>` accepts numeric `public_id` e.g. `448`, `slug`, or UUID):
-  - **List:** `dtc events list [--status draft|upcoming|completed|cancelled|archived] [--upcoming] [--past] [--format json|table]`
+  - **List:** `dtc events list [--status draft|upcoming|in_progress|past|cancelled|archived] [--upcoming] [--past] [--format json|table]`
+    `draft`, `cancelled` and `archived` are stored editorial states; `upcoming` (start now or later),
+    `in_progress` (started, not yet ended) and `past` (ended; no stored end means one hour after the
+    start) are derived from the schedule and are what `status` reports in every response.
   - **Get:** `dtc events get <event>` (returns `public_url`, `public_id`, `id` UUID, `speakers`, `banner_url`, `reminder_intervals`, `registration_counts`, etc.)
   - **Create** (published by default; pass `--no-publish` for `draft`):
     ```bash
@@ -64,9 +67,9 @@ This document answers all 10 open questions in `bots-management/agents/contracts
     - `--sponsor-name`
     - `--publish` / `--no-publish`
   - **Update:** `dtc events update <event> [--title ...] [--start-datetime ...] ...` (only passed flags are sent; schedule/location changes bump `ics_sequence`).
-  - **Publish:** `dtc events publish <event>` (`draft` -> `upcoming`, allocates `public_id`).
-  - **Cancel:** `dtc events cancel <event> [--reason "..."]` (closes registration, bumps `ics_sequence`, queues cancellation email + cancelled ICS).
-  - **Complete:** `dtc events complete <event> [--recording-url "https://youtube.com/..."]` (marks `completed`).
+  - **Publish:** `dtc events publish <event>` (`draft` -> published, allocates `public_id`; the event then reports `upcoming`, `in_progress` or `past` from its schedule).
+  - **Cancel:** `dtc events cancel <event> [--reason "..."]` (closes registration, bumps `ics_sequence`, queues cancellation email + cancelled ICS). A `past` event cannot be cancelled.
+  - **Complete:** `dtc events complete <event> [--recording-url "https://youtube.com/..."]` (stores no status: refuses an event that has not ended yet, or a draft/cancelled/archived one, and only attaches the recording; the event reports `past` because its end has passed).
 
 ---
 

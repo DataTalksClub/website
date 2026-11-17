@@ -38,6 +38,7 @@ from events.identity import (
     redirect_for_supplied_slug,
     resolve_public_id,
 )
+from events.lifecycle import accepts_registrations
 from events.queries import event_public_record, published_event_records
 
 from . import catalogue, wiki_content, wiki_reader
@@ -609,7 +610,7 @@ def event_register(request: HttpRequest, event_id: str, slug: str) -> HttpRespon
     except EventIdentityNotFound as exc:
         raise Http404 from exc
     canonical = canonical_detail_path(identity.content_id)
-    if identity.status != "upcoming" or not identity.is_upcoming:
+    if not accepts_registrations(identity):
         return redirect(f"{canonical}?registered=closed")
 
     email = str(request.POST.get("email") or "").strip()

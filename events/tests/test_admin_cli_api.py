@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -223,7 +223,7 @@ class EventAdminAPITests(TestCase):
         self.assertEqual(cancel_resp.json()["event"]["status"], "cancelled")
 
     def test_draft_publish_and_complete(self) -> None:
-        start = datetime(2026, 12, 1, 17, 0, tzinfo=UTC)
+        start = (timezone.now() + timedelta(days=30)).replace(microsecond=0)
         resp = self.client.post(
             "/api/v1/admin/events",
             data=json.dumps(
@@ -252,6 +252,22 @@ class EventAdminAPITests(TestCase):
         self.assertEqual(pub_resp.status_code, 200, pub_resp.content)
         self.assertEqual(pub_resp.json()["event"]["status"], "upcoming")
 
+        # Completion follows from the schedule: an event that has not ended
+        # cannot be completed by hand.
+        early = self.client.post(
+            f"/api/v1/admin/events/{event_uuid}/complete",
+            data=json.dumps({"recording_url": "https://youtube.com/watch?v=abc"}),
+            content_type="application/json",
+            headers=self.auth_headers,
+        )
+        self.assertEqual(early.status_code, 400, early.content)
+
+        from community_base.events.models import Event
+
+        past_start = timezone.now() - timedelta(days=2)
+        Event.objects.filter(content_id=event_uuid).update(
+            start_datetime=past_start, end_datetime=past_start + timedelta(hours=1)
+        )
         comp_resp = self.client.post(
             f"/api/v1/admin/events/{event_uuid}/complete",
             data=json.dumps({"recording_url": "https://youtube.com/watch?v=abc"}),
@@ -259,7 +275,9 @@ class EventAdminAPITests(TestCase):
             headers=self.auth_headers,
         )
         self.assertEqual(comp_resp.status_code, 200)
-        self.assertEqual(comp_resp.json()["event"]["status"], "completed")
+        self.assertEqual(comp_resp.json()["event"]["status"], "past")
+        # Nothing time-derived was written: the row stays published.
+        self.assertEqual(Event.objects.get(content_id=event_uuid).status, "upcoming")
         self.assertEqual(
             comp_resp.json()["event"]["recording_url"], "https://youtube.com/watch?v=abc"
         )
