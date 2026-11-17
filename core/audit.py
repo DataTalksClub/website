@@ -54,6 +54,24 @@ class AuditWriteContext:
             source_ip_class=source_ip_class,
         )
 
+    @classmethod
+    def for_actor_ref(
+        cls, service_context: ServiceContext, *, using: str = "default"
+    ) -> AuditWriteContext:
+        """Bridge a service context and resolve its actor_ref to the attribution FKs.
+
+        ``user:<pk>`` and ``staff:<pk>`` set ``actor_id``; ``api_principal:<uuid>``
+        sets ``api_principal_id`` and the principal's ``actor_id``, the same
+        attribution the admin API writes on its own records.  A reference that
+        names no existing row (or any other kind, e.g. ``operator:...``) stays in
+        ``actor_ref`` only, so a stale reference can never break the write.
+        """
+
+        actor_id, api_principal_id = _resolve_actor_ref(service_context.actor_ref or "", using)
+        return cls.from_service_context(
+            service_context, actor_id=actor_id, api_principal_id=api_principal_id
+        )
+
     def validated(self) -> AuditWriteContext:
         execution = self.execution or current_context()
         for name, value in (
@@ -72,6 +90,36 @@ class AuditWriteContext:
         if self.source_ip_class not in _SOURCE_IP_CLASSES:
             raise ValueError("source_ip_class is not an allowlisted classification")
         return self
+
+
+def _resolve_actor_ref(actor_ref: str, using: str) -> tuple[Any | None, uuid.UUID | None]:
+    kind, _, raw = actor_ref.partition(":")
+    if kind in {"user", "staff"}:
+        if not (raw.isascii() and raw.isdecimal() and not raw.startswith("0")):
+            return None, None
+        from django.contrib.auth import get_user_model
+
+        user_id = int(raw)
+        exists = get_user_model().objects.using(using).filter(pk=user_id).exists()
+        return (user_id if exists else None), None
+    if kind == "api_principal":
+        try:
+            principal_id = uuid.UUID(raw)
+        except ValueError:
+            return None, None
+        from django.apps import apps
+
+        principal_model = apps.get_model("management_auth", "APIPrincipal")
+        row = (
+            principal_model.objects.using(using)
+            .filter(pk=principal_id)
+            .values_list("pk", "user_id")
+            .first()
+        )
+        if row is None:
+            return None, None
+        return row[1], principal_id
+    return None, None
 
 
 def _redacted_json_object(value: Mapping[str, Any]) -> JsonObject:

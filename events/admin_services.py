@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import hashlib
 import uuid
 from collections.abc import Mapping
 from datetime import datetime
@@ -21,6 +22,9 @@ from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 
 from content.catalogue import people_by_slug
+from core.audit import AuditWriteContext, record_audit_event
+from core.cyrillic import CYRILLIC_PATTERN
+from core.models import AuditEvent
 from core.security import UnsafeInputError, validate_url
 from event_registrants.models import EventOperatorConfig, EventRegistrationMeta
 
@@ -229,6 +233,32 @@ def _sync_event_speakers(event: Event, speaker_shorts: list[str]) -> None:
         EventHost.objects.create(event=event, host=host, position=position, role="speaker")
 
 
+def _reject_cyrillic(fields: Mapping[str, Any]) -> None:
+    """Refuse author-entered public text containing Cyrillic (the site is English-only).
+
+    ``fields`` maps a field name to a string or a list of strings.  The first
+    offending field raises a 400 naming it and the Cyrillic characters found,
+    so a single homoglyph (Cyrillic U+0441 for Latin "c") is easy to locate.
+    """
+
+    for field, value in fields.items():
+        values = value if isinstance(value, list | tuple) else [value]
+        found = sorted(
+            {
+                char
+                for item in values
+                if isinstance(item, str)
+                for char in CYRILLIC_PATTERN.findall(item)
+            }
+        )
+        if found:
+            characters = ", ".join(f"'{char}' (U+{ord(char):04X})" for char in found)
+            raise EventAdminError(
+                f"Event {field} must be English: it contains Cyrillic characters "
+                f"{characters}. Translate the text or replace them with Latin letters."
+            )
+
+
 def _encode_all_tags(
     *,
     event_type: str | None,
@@ -238,7 +268,87 @@ def _encode_all_tags(
 ) -> list[str]:
     base = encode_event_tags(event_type=event_type, season=season, episode=episode)
     extras = [str(tag).strip() for tag in display_tags if str(tag).strip()]
+    _reject_cyrillic({"tags": extras})
     return [*base, *extras]
+
+
+EVENT_AUDIT_TARGET_TYPE = "events.event"
+
+
+def _audit_snapshot(event: Event) -> dict[str, Any]:
+    """Return the operator-editable state of ``event`` for the audit trail.
+
+    The description is recorded as a length and digest so a large body never
+    bloats the trail, and the Zoom join URL (an access link) only as a short
+    digest.
+    No registrant or other personal data is read.
+    """
+
+    config = _get_config(event)
+    description = event.description or ""
+    return {
+        "title": event.title,
+        "slug": event.slug,
+        "description": {
+            "length": len(description),
+            "sha256": hashlib.sha256(description.encode("utf-8")).hexdigest(),
+        },
+        "kind": event.kind,
+        "platform": event.platform,
+        "status": event.status,
+        "start_datetime": _iso(event.start_datetime),
+        "end_datetime": _iso(event.end_datetime),
+        "timezone": event.timezone,
+        "location": event.location,
+        # A short digest, never the access link: a replaced URL is visible as a
+        # changed digest without the trail holding a joinable link.
+        "zoom_join_url_sha256_12": (
+            hashlib.sha256(event.zoom_join_url.encode("utf-8")).hexdigest()[:12]
+            if event.zoom_join_url
+            else ""
+        ),
+        "recording_url": event.recording_url,
+        "tags": list(event.tags or []),
+        "materials": list(event.materials or []),
+        "speakers": list(
+            EventHost.objects.filter(event=event)
+            .order_by("position", "pk")
+            .values_list("host__slug", flat=True)
+        ),
+        "reminders_enabled": config.reminders_enabled if config is not None else None,
+        "reminder_intervals": list(config.reminder_intervals) if config is not None else None,
+        "sponsor_sharing_enabled": (config.sponsor_sharing_enabled if config is not None else None),
+        "collect_company": config.collect_company if config is not None else None,
+        "sponsor_name": config.sponsor_name if config is not None else None,
+    }
+
+
+def _audit_event_write(
+    *,
+    action: str,
+    event: Event,
+    before: Mapping[str, Any] | None,
+    context: ServiceContext | None,
+) -> None:
+    """Record a successful event write with the fields it changed."""
+
+    after = _audit_snapshot(event)
+    base = before or {}
+    changes = {
+        field: {"before": base.get(field), "after": value}
+        for field, value in after.items()
+        if before is None or base.get(field) != value
+    }
+    record_audit_event(
+        action=action,
+        target_type=EVENT_AUDIT_TARGET_TYPE,
+        target_id=event.content_id,
+        target_label=event.slug,
+        outcome=AuditEvent.Outcome.SUCCEEDED,
+        context=AuditWriteContext.for_actor_ref(context or ServiceContext.from_current()),
+        changes=changes,
+        metadata={"public_id": event.public_id},
+    )
 
 
 def _validate_materials(raw: Any) -> list[dict[str, str]]:
@@ -321,7 +431,6 @@ def get_event_detail(
 def create_event(
     payload: Mapping[str, Any], *, context: ServiceContext | None = None
 ) -> dict[str, Any]:
-    del context
     data = dict(payload or {})
     title = str(data.get("title") or "").strip()
     if not title:
@@ -355,6 +464,17 @@ def create_event(
     display_tags = list(data.get("tags") or [])
     materials = _validate_materials(data.get("materials"))
     publish_now = bool(data.get("publish", True))
+    sponsor_name = str(data.get("sponsor_name") or "").strip()
+    _reject_cyrillic(
+        {
+            "title": title,
+            "slug": slug,
+            "description": description,
+            "location": location,
+            "materials": [item["label"] for item in materials],
+            "sponsor_name": sponsor_name,
+        }
+    )
 
     event = Event.objects.create(
         content_id=uuid.uuid4(),
@@ -393,12 +513,13 @@ def create_event(
         reminder_intervals=reminder_intervals,
         sponsor_sharing_enabled=bool(data.get("sponsor_sharing_enabled", False)),
         collect_company=bool(data.get("collect_company", False)),
-        sponsor_name=str(data.get("sponsor_name") or "").strip(),
+        sponsor_name=sponsor_name,
     )
 
     if publish_now:
         event = publish_event(event)
 
+    _audit_event_write(action="events.admin.created", event=event, before=None, context=context)
     return {"event": serialize_admin_event(event, include_registrations=True)}
 
 
@@ -409,12 +530,12 @@ def update_event(
     event_id: uuid.UUID | str | int | None = None,
     context: ServiceContext | None = None,
 ) -> dict[str, Any]:
-    del context
     data = dict(payload or {})
     target = event_id if event_id is not None else data.get("event_id")
     if target is None:
         raise EventAdminError("event_id is required.")
     event = _resolve_event(target)
+    before = _audit_snapshot(event)
 
     event_type, season, episode = decode_event_tags(event.tags)
     display_tags = [
@@ -474,6 +595,28 @@ def update_event(
         episode=episode,
         display_tags=display_tags,
     )
+    # The saved state must be English, so a legacy row with Cyrillic in a field
+    # is editable once that field is fixed in the same request.
+    existing_config = _get_config(event)
+    sponsor_name = (
+        str(data["sponsor_name"]).strip()
+        if data.get("sponsor_name") is not None
+        else (existing_config.sponsor_name if existing_config is not None else "")
+    )
+    _reject_cyrillic(
+        {
+            "title": event.title,
+            "slug": event.slug,
+            "description": event.description,
+            "location": event.location,
+            "materials": [
+                str(item.get("label") or "")
+                for item in (event.materials or [])
+                if isinstance(item, dict)
+            ],
+            "sponsor_name": sponsor_name,
+        }
+    )
     if schedule_changed:
         event.ics_sequence += 1
     event.save()
@@ -497,6 +640,7 @@ def update_event(
     if data.get("publish") is True and event.status == "draft":
         event = publish_event(event)
 
+    _audit_event_write(action="events.admin.updated", event=event, before=before, context=context)
     return {"event": serialize_admin_event(event, include_registrations=True)}
 
 
@@ -715,6 +859,7 @@ def message_event_registrants(
     body = str(data.get("body") or "").strip()
     if not subject or not body:
         raise EventAdminError("subject and body are required.")
+    _reject_cyrillic({"message subject": subject, "message body": body})
     audience = str(data.get("audience") or "confirmed").strip()
     if audience == "confirmed":
         statuses = [EventRegistration.Status.CONFIRMED, EventRegistration.Status.ATTENDED]
@@ -824,6 +969,14 @@ def create_speaker(
     name = str(data.get("name") or "").strip()
     if not short or not name:
         raise EventAdminError("short and name are required.")
+    _reject_cyrillic(
+        {
+            "speaker short": short,
+            "speaker name": name,
+            "speaker title": str(data.get("title") or ""),
+            "speaker bio": str(data.get("bio") or ""),
+        }
+    )
     slug = slugify(short)[:200] or f"speaker-{uuid.uuid4().hex[:8]}"
     host, _created = Host.objects.update_or_create(
         slug=slug,
