@@ -271,6 +271,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "accounts.navigation.account_navigation",
+                "accounts.account_entry.account_entry",
                 "course_management.context_processors.export_settings",
                 "core.context_processors.site_context",
             ]
@@ -288,6 +289,10 @@ LOGOUT_REDIRECT_URL = "home"
 ACCOUNT_CANONICAL_ORIGIN = CANONICAL_ORIGIN
 
 SITE_ID = 2
+# The site's published contact address (the legal pages and the newsletter
+# errors already give it).  Account entrances fall back to it when no sign-in
+# method is configured, so a visitor is never left without a way to reach us.
+SITE_CONTACT_EMAIL = "alexey@datatalks.club"
 ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]

@@ -1,0 +1,17 @@
+{% comment %}
+  The honest words for the misconfigured state: email signup is closed or
+  absent and no social sign-in app is configured (`accounts.account_entry`),
+  so nobody can get in.  Each entrance wraps these paragraphs in its own
+  notice box.  The contact address is the site's published one
+  (settings.SITE_CONTACT_EMAIL, also on the legal pages).
+{% endcomment %}
+<p>
+  <strong>Signing in isn't available right now</strong>
+</p>
+<p>
+  Accounts here are created and used through Google, GitHub or Slack sign-in,
+  and none of them is switched on at the moment. That's a problem on our side:
+  email
+  <a href="mailto:{{ account_entry.contact_email }}">{{ account_entry.contact_email }}</a>
+  and we'll sort it out.
+</p>

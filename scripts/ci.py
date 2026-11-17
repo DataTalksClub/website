@@ -258,6 +258,13 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "scripts/banners/render.py",
     "scripts/cutover_parity_crawl.py",
     "scripts/tests/test_cutover_parity_crawl.py",
+    # Owner request: no account entrance dead-ends whatever the sign-in
+    # configuration (account-entry state, the no-provider system check).
+    "accounts/account_entry.py",
+    "accounts/checks.py",
+    "accounts/tests/provider_fixtures.py",
+    "accounts/tests/test_account_entry.py",
+    "courses/tests/test_registration_gate_production.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",

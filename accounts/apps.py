@@ -6,4 +6,5 @@ class AccountsConfig(AppConfig):
     name = "accounts"
 
     def ready(self):
+        import accounts.checks  # noqa: F401  (registers the sign-in provider check)
         import accounts.signals  # noqa: F401

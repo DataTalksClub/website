@@ -695,6 +695,26 @@ form panel is replaced by:
 > [`cta cta-primary` **Create account**] → `/accounts/signup/?next={{ request.path }}`
 > Already have one? [Sign in] → `/accounts/login/?next={{ request.path }}`
 
+That is the gate while email signup is open (local, test). Production closes
+email signup (`accounts.auth.AccountAdapter`) and a new member's account is
+created by their first Google, GitHub or Slack sign-in, so the gate never links
+to the closed form there (`accounts/account_entry.py` decides the state for
+every entrance):
+
+- **Providers configured** — the note reads "Create your account with
+  {configured providers}. One account covers everything…", followed by the
+  same "Continue with …" buttons the sign-in page shows, each carrying
+  `next={{ request.path }}`; the fine print adds "Use the same button, or
+  [Sign in]".
+- **No provider configured** — a misconfiguration. The panel says "Registration
+  needs an account" and "Signing in isn't available right now", with the site's
+  contact address, and links nowhere that dead-ends. Operators see system check
+  `accounts.W001` (on `migrate`) and the `account_entry_no_providers` log event.
+
+The sign-in page and `/accounts/signup/` follow the same three states: with
+signup closed and providers configured, `/accounts/signup/` is a "Create your
+account" page offering the providers with the visitor's `next`.
+
 The round-trip works with existing primitives: `safe_next_path`
 (`accounts/navigation.py:147-167`) honours a local `?next=` and only forces
 `/` for account-transition paths — verified in code — so after signup or

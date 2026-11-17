@@ -252,7 +252,7 @@
         {% if counts.wiki %}Browse the member-written wiki's {{ counts.wiki }} topic{{ counts.wiki|pluralize }}.{% endif %}
       </p>
       <div class="tour-hero-actions">
-        <a class="cta cta-primary interactive-lift" href="{% url 'account_signup' %}">Create your free account</a>
+        <a class="cta cta-primary interactive-lift" href="{{ account_entry.landing_create_url }}">Create your free account</a>
         <a class="cta cta-secondary interactive-lift" href="{% url 'slack' %}">Join the Slack</a>
       </div>
     </div>
@@ -634,7 +634,7 @@
           <p>{{ tour_content.close_intro }}</p>
         {% endif %}
       </div>
-      <a class="cta cta-primary interactive-lift" href="{% url 'account_signup' %}">Create your free account</a>
+      <a class="cta cta-primary interactive-lift" href="{{ account_entry.landing_create_url }}">Create your free account</a>
     </div>
   </section>
 {% endblock %}

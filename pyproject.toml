@@ -307,6 +307,12 @@ module = [
     "accounts.tests.test_logged_in_page_budgets",
     # Intake 1a849b81: the site-design banner generator.
     "scripts.banners.render",
+    # Owner request: no account entrance dead-ends.
+    "accounts.account_entry",
+    "accounts.checks",
+    "accounts.tests.provider_fixtures",
+    "accounts.tests.test_account_entry",
+    "courses.tests.test_registration_gate_production",
 ]
 ignore_errors = false
 

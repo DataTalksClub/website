@@ -18,7 +18,6 @@
 {% url 'studio:home' as studio_home_url %}
 {% url 'account_settings' as account_settings_url %}
 {% url 'account_logout' as account_logout_url %}
-{% url 'account_signup' as account_signup_url %}
 <a class="skip-link" href="#main-content">Skip to content</a>
 <script>
   (function () {
@@ -211,8 +210,8 @@
           that flow at 390px).
         {% endcomment %}
         <a class="nav-link nav-auth" href="{{ account_login_url }}">Log in</a>
-        {% if account_signup_url %}
-          <a class="signup-button interactive-lift" href="{{ account_signup_url }}">Sign up free</a>
+        {% if account_entry.signup_url %}
+          <a class="signup-button interactive-lift" href="{{ account_entry.create_url }}">Sign up free</a>
         {% endif %}
       {% endif %}
     </div>

@@ -786,7 +786,7 @@
             </p>
             <div class="hero-actions">
               <a class="cta cta-primary interactive-lift" href="{% url 'course_list' %}">Explore free courses</a>
-              <a class="cta cta-secondary interactive-lift" href="{% url 'account_signup' %}">Join the community</a>
+              <a class="cta cta-secondary interactive-lift" href="{{ account_entry.landing_create_url }}">Join the community</a>
             </div>
           </div>
           <div class="hero-figure">
@@ -1315,7 +1315,7 @@
               whenever you want it.
             </p>
           </div>
-          <a class="cta cta-primary interactive-lift" href="{% url 'account_signup' %}">Create your free account</a>
+          <a class="cta cta-primary interactive-lift" href="{{ account_entry.landing_create_url }}">Create your free account</a>
         </div>
       </section>
     </main>
