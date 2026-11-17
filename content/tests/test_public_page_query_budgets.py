@@ -232,4 +232,7 @@ class MemberHomeQueryBudgetTests(TestCase):
         with CaptureQueriesContext(connection) as captured:
             response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertLessEqual(len(captured), 16)
+        # 17: the event-records stamp also aggregates the native
+        # ``community_base.events.EventRegistration`` table, so a site
+        # registration moves the public "N registered" count.
+        self.assertLessEqual(len(captured), 17)

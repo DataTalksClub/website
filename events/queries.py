@@ -22,10 +22,23 @@ from functools import lru_cache
 from typing import Any
 
 from community_base.events.models import Event, EventHost, Host
-from django.db.models import Count, Max, Prefetch, Q
+from community_base.events.models import EventRegistration as NativeRegistration
+from django.db.models import (
+    Count,
+    Exists,
+    IntegerField,
+    Max,
+    OuterRef,
+    Prefetch,
+    Q,
+    Subquery,
+    Value,
+)
+from django.db.models.functions import Coalesce
 
 from content.models import EventSource
 from event_registrants.models import EventOperatorConfig
+from event_registrants.models import EventRegistration as ProviderRegistration
 
 from .identity import (
     EventIdentityNotFound,
@@ -105,24 +118,78 @@ def _provenance(event: Event) -> dict[str, Any]:
     }
 
 
+#: Provider registration rows a public count includes, by provider.
+ELIGIBLE_PROVIDER_STATUSES = Q(provider="luma", status="approved") | Q(
+    provider="eventbrite", status="attending"
+)
+
+#: Native (site-owned) registration statuses a public count includes.
+#: The number means "people who registered", so a confirmed registration
+#: keeps counting once the event marks it attended or no-show (marking
+#: no-shows must not lower it).  ``pending_verification`` has not confirmed an
+#: address yet, and cancelled and expired rows are no longer registrations.
+COUNTED_NATIVE_STATUSES = ("confirmed", "attended", "no_show")
+
+
+def _registration_count() -> Any:
+    """The distinct people registered for the outer ``Event``, as one expression.
+
+    Two correlated subqueries, so the listing stays one query however many
+    events it holds:
+
+    * eligible provider rows (``event_registrants.EventRegistration``), the
+      Luma/Eventbrite import facts;
+    * native rows (``community_base.events.EventRegistration``) written by the
+      site's own register form, with a counted status (confirmed, attended,
+      no-show) -- minus any native row whose person already has an eligible
+      provider row for the same event, so someone registered on Luma and on
+      the site counts once.  The person
+      is matched by email on the provider identity (the registrant-only
+      ``normalized_email``, or the linked account's identity email) or by the
+      native row's account being the identity's account.
+    """
+
+    provider_rows = ProviderRegistration.objects.filter(ELIGIBLE_PROVIDER_STATUSES)
+    provider_count = (
+        provider_rows.filter(event_id=OuterRef("pk"))
+        .order_by()
+        .values("event_id")
+        .annotate(total=Count("id"))
+        .values("total")
+    )
+
+    # One ``Exists`` per way a provider identity can name the person, rather
+    # than one ``OR`` across the joins, so each probe stays a plain indexed
+    # lookup of the event's provider rows.
+    same_event = provider_rows.filter(event_id=OuterRef("event_id"))
+    on_provider = (
+        Exists(same_event.filter(identity__normalized_email=OuterRef("normalized_email")))
+        | Exists(
+            same_event.filter(
+                identity__account__identity__normalized_email=OuterRef("normalized_email")
+            )
+        )
+        | Exists(same_event.filter(identity__account_id=OuterRef("user_id")))
+    )
+    native_count = (
+        NativeRegistration.objects.filter(
+            event_id=OuterRef("pk"), status__in=COUNTED_NATIVE_STATUSES
+        )
+        .exclude(on_provider)
+        .order_by()
+        .values("event_id")
+        .annotate(total=Count("id"))
+        .values("total")
+    )
+    return Coalesce(Subquery(provider_count, output_field=IntegerField()), Value(0)) + Coalesce(
+        Subquery(native_count, output_field=IntegerField()), Value(0)
+    )
+
+
 def _published() -> Any:
     return (
         Event.objects.filter(status__in=PUBLIC_STATUSES)
-        .annotate(
-            registration_count=Count(
-                "registrant_registrations",
-                filter=(
-                    Q(
-                        registrant_registrations__provider="luma",
-                        registrant_registrations__status="approved",
-                    )
-                    | Q(
-                        registrant_registrations__provider="eventbrite",
-                        registrant_registrations__status="attending",
-                    )
-                ),
-            )
-        )
+        .annotate(registration_count=_registration_count())
         .select_related("source_identity", "operator_config")
         .prefetch_related(
             Prefetch(
@@ -176,8 +243,9 @@ def _published_records_stamp() -> tuple[tuple[int, str], ...]:
     * ``EventHost`` link rows carry no timestamp of their own and are only
       ever rewritten by the import above, so their count and newest id join
       the event stamp rather than standing alone.
-    * Registration counts are annotated from the site's own
-      ``event_registrants`` rows, so those join in too.
+    * Registration counts are annotated from the imported provider rows
+      (``event_registrants``) and the native rows the site's own register
+      form writes (``community_base.events``), so both join in too.
     * Provenance is read off the site-owned ``EventSource`` row, and a
       speaker's profile path is resolved against the synced people catalogue
       at record time, so both stamps join as well.
@@ -185,19 +253,19 @@ def _published_records_stamp() -> tuple[tuple[int, str], ...]:
 
     from content.catalogue import PEOPLE_SOURCE_SLUG, synced_stamp
     from core.request_cache import memoized
-    from event_registrants.models import EventRegistration
 
     def read() -> tuple[tuple[int, str], ...]:
         return (
             _stamp(Event, "updated_at"),
             _stamp(Host, "updated_at"),
             _stamp(EventHost, "id"),
-            _stamp(EventRegistration, "updated_at"),
+            _stamp(ProviderRegistration, "updated_at"),
+            _stamp(NativeRegistration, "updated_at"),
             _stamp(EventSource, "updated_at"),
             synced_stamp(PEOPLE_SOURCE_SLUG),
         )
 
-    # The six aggregates run once per request; the stamp-keyed ``lru_cache``
+    # The seven aggregates run once per request; the stamp-keyed ``lru_cache``
     # on the records stays the cross-request authority.
     return memoized("events.queries.published_records_stamp", read)
 

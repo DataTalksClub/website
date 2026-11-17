@@ -54,6 +54,10 @@ uv run --frozen python manage.py shell -c \\
   'from event_registrants.models import EventRegistration; print(EventRegistration.objects.count())'
 \`\`\`
 
-Public event counts include approved Luma registrations and attending
-Eventbrite registrations. Other statuses remain in the database but are not
-included in the displayed count.
+Public event counts are the distinct people registered for the event: approved
+Luma and attending Eventbrite registrations, plus registrations made on the site
+itself (\`community_base.events.EventRegistration\`) that are confirmed,
+attended or no-show. A site registration whose email or account matches an
+eligible provider registration for the same event counts once. Other statuses
+(including site registrations pending verification) remain in the database but
+are not included in the displayed count.
