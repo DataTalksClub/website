@@ -259,6 +259,8 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     # the wiki OG image in the site design system.
     "scripts/banners/render.py",
     "scripts/cutover_parity_crawl.py",
+    # Issue #515: the one-time Astro Academy to content-repository converter.
+    "scripts/convert_academy_source.py",
     "scripts/tests/test_cutover_parity_crawl.py",
     # Owner request: no account entrance dead-ends whatever the sign-in
     # configuration (account-entry state, the no-provider system check).

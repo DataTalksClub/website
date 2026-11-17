@@ -25,6 +25,11 @@ DIRECT_CHILDREN = (
     "courses/templates/homework/stats.html",
     "courses/templates/courses/_submission_page.html",
     "courses/templates/projects/_base.html",
+    # The Academy's pages are ordinary content pages in the same shell.
+    *(
+        f"academy/templates/academy/{name}.html"
+        for name in ("home", "program", "sessions", "materials", "confirm", "guide", "faq", "legal")
+    ),
 )
 
 PROJECT_CHILDREN = (

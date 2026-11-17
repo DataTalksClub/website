@@ -2,9 +2,13 @@ from django.db import models
 
 
 class PublishedResource(models.Model):
-    """An Academy page or asset published from its reviewed source repository.
+    """The retired Astro Academy build, one row per file.  Nothing reads it.
 
-    These rows own public reads. They contain no subscriber or registration data.
+    The Academy pages are synced content now (``content.sync_parsers.academy``)
+    and no view serves these rows.  The model and its table stay for exactly one
+    release so the previous image keeps working during the rolling deploy and a
+    rollback to it is still possible; a later release drops the table
+    (``_docs/runbooks/academy.md``).  The rows hold no subscriber data.
     """
 
     path = models.CharField(max_length=512, unique=True)

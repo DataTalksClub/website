@@ -176,7 +176,10 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # their tests in strict mypy, and the event merge tool enrolls its script and
 # tests (configuration only, no dependency change); the pyproject seal moves
 # with that reviewed pyproject.
-STUDIO_COURSES_PYPROJECT_SHA256 = "59e04abbf8017e9a09e36a4b1bdd2ccb8c963881c846fc9c94e5097830ddd26e"
+# Issue #515 enrolls scripts.convert_academy_source in strict mypy
+# (configuration only, no dependency change); the pyproject seal moves with
+# that reviewed pyproject.
+STUDIO_COURSES_PYPROJECT_SHA256 = "70bf513c23bd406f9a489dc16adf9d3aa888b0c362e30fde226c1d78c0538482"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation

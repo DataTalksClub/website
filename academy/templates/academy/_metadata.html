@@ -1,0 +1,34 @@
+{% load seo %}
+{% comment %}
+  The head of every Academy page: canonical on datatalks.club, description,
+  Open Graph and Twitter cards, the language alternate the German pages
+  declare, and the page's structured data.
+{% endcomment %}
+{% canonical_link canonical_url %}
+<meta name="description" content="{{ page.description }}">
+{% if page.noindex %}
+  <meta name="robots" content="noindex">
+{% endif %}
+{% if data.hreflang %}
+  <link rel="alternate" hreflang="{{ page.lang }}" href="{{ canonical_url }}">
+{% endif %}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ shared.brand }}">
+<meta property="og:title" content="{{ page.title }}">
+<meta property="og:description" content="{{ page.description }}">
+<meta property="og:url" content="{{ canonical_url }}">
+{% if og_image_url %}
+  <meta property="og:image" content="{{ og_image_url }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="{{ og_image_url }}">
+{% else %}
+  <meta name="twitter:card" content="summary">
+{% endif %}
+<meta name="twitter:site" content="@DataTalksClub">
+<meta name="twitter:title" content="{{ page.title }}">
+<meta name="twitter:description" content="{{ page.description }}">
+{% for item in json_ld %}
+  <script type="application/ld+json">{{ item }}</script>
+{% endfor %}

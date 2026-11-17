@@ -109,7 +109,16 @@ MEDIA_KIND = "media"
 #: structured content repository and read like every other synced kind; a
 #: database that publishes none offers no platforms and no Slack page.
 SLACK_PAGE_KIND = "slack_page"
-SITE_PAGE_SYNCED_KINDS = ("podcast_platforms", SLACK_PAGE_KIND)
+#: The Academy pages (one row per page) and the copy they share (one row),
+#: authored under ``academy/`` in the same repository.
+ACADEMY_PAGE_KIND = "academy_page"
+ACADEMY_SHARED_KIND = "academy_shared"
+SITE_PAGE_SYNCED_KINDS = (
+    "podcast_platforms",
+    SLACK_PAGE_KIND,
+    ACADEMY_PAGE_KIND,
+    ACADEMY_SHARED_KIND,
+)
 
 #: The kind the course catalogue copies are stored under. Each course
 #: repository is its own sync source (the parser rejects every other), so --
@@ -571,6 +580,28 @@ def slack_page() -> Record | None:
 
     held = records(SLACK_PAGE_KIND)
     return held[0] if held else None
+
+
+def academy_pages() -> tuple[Record, ...]:
+    """Every published Academy page, in path order."""
+
+    return tuple(
+        sorted(records(ACADEMY_PAGE_KIND), key=lambda record: str(record.get("public_path", "")))
+    )
+
+
+def academy_page(public_path: str) -> Record | None:
+    """The Academy page published at ``public_path``, or ``None``."""
+
+    return next(
+        (record for record in academy_pages() if record.get("public_path") == public_path), None
+    )
+
+
+def academy_shared() -> Record:
+    """The copy the Academy pages share, or an empty mapping when none is published."""
+
+    return singleton(ACADEMY_SHARED_KIND)
 
 
 def books() -> tuple[Record, ...]:

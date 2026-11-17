@@ -94,6 +94,7 @@ this exact gap by writing a staged `ContentDocument` release --
 | Documentation | `content/docs_reader.py` -> `community_base.knowledge_base.KnowledgeBasePage` | `manage.py sync_content` / webhook |
 | Course FAQ | `content/faq_data.py` -> `SyncedDocument` (`dtc-faq`) | `manage.py sync_content` / webhook |
 | `/slack` | `content/catalogue.py` -> `SyncedDocument` (`dtc-content`) | `manage.py sync_content` / webhook |
+| Academy pages (`/academy/`) | `content/catalogue.py` -> `SyncedDocument` (`dtc-content`, `academy_page` / `academy_shared`) | `manage.py sync_content` / webhook |
 | Article FAQ sections | `content/article_faq.py` -> the article's own row | with the article |
 | Events | `events/queries.py` -> `Event`/`EventContent` | `scripts/prod/import_events.py` (identity, then content) |
 | Sponsors | `core/sponsors.py` -> `Sponsor` | `scripts/prod/import_sponsors.py` |

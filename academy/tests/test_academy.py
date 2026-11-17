@@ -1,156 +1,430 @@
-import hashlib
-import shutil
-from pathlib import Path
-from tempfile import TemporaryDirectory
+"""The Academy pages: synced content, rendered in the site's own shell."""
 
-from django.conf import settings
-from django.core.management import call_command
-from django.core.management.base import CommandError
-from django.test import TestCase
+from __future__ import annotations
+
+import json
+import re
+from pathlib import Path
+
+from community_base.content_sync.checkout import ImmutableCheckout
+from community_base.content_sync.media import media_store
+from community_base.content_sync.models import SyncStatus
+from community_base.content_sync.orchestration import sync_content_source
+from community_base.content_sync.parsers import get_parser
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import resolve
 
-from academy.models import PublishedResource
+from academy.calendars import calendar_for
+from academy.tests import content as fixture
+from content.models import SyncedDocument
+from content.sync_parsers.base import ContentParserError
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+API = "https://augldvp3omxdxz3irqsmmxc25e0blpxx.lambda-url.eu-west-1.on.aws"
+
+SITEMAP_PAGES = (
+    "/academy/",
+    "/academy/agentic-engineering/",
+    "/academy/ai-engineering/",
+    "/academy/sessions/",
+    "/academy/bildungsgutschein/",
+    "/academy/faq/",
+    "/academy/privacy/",
+    "/academy/impressum/",
+)
+ALL_PAGES = (*SITEMAP_PAGES, "/academy/confirm/", "/academy/sessions/materials/")
+TEMPLATES = (
+    "home",
+    "program",
+    "sessions",
+    "materials",
+    "confirm",
+    "guide",
+    "faq",
+    "legal",
+)
 
 
-class AcademyTests(TestCase):
-    def publish(self, path: str, body: bytes, content_type: str = "text/html") -> None:
-        PublishedResource.objects.create(
-            path=path,
-            content=body,
-            content_type=content_type,
-            source_commit="a" * 40,
-            sha256=hashlib.sha256(body).hexdigest(),
-        )
+def _clear_academy() -> None:
+    SyncedDocument.objects.filter(content_kind__in=("academy_page", "academy_shared")).delete()
+    SyncedDocument.objects.filter(
+        content_kind="media", stable_key__startswith="images/academy/"
+    ).delete()
 
-    def test_empty_database_has_no_page_or_asset_fallback(self) -> None:
-        for path in ("", "sessions/", "_astro/missing.js", "sitemap.xml"):
-            with self.subTest(path=path):
-                self.assertEqual(self.client.get("/academy/" + path).status_code, 404)
 
-    def test_pages_metadata_assets_and_calendars_are_served_verbatim(self) -> None:
-        pages = (
-            "",
-            "agentic-engineering/",
-            "ai-engineering/",
-            "sessions/",
-            "bildungsgutschein/",
-            "faq/",
-            "privacy/",
-            "impressum/",
-            "sessions/materials/",
-            "confirm/",
-            "layoff-proof/",
-        )
-        for path in pages:
-            body = (
-                f'<title>Source {path}</title><link rel="canonical" '
-                f'href="https://datatalks.club/academy/{path}">'
-                '<meta property="og:site_name" content="DataTalks.Club Academy">'
-            ).encode()
-            self.publish(path, body)
-            response = self.client.get("/academy/" + path)
-            self.assertEqual(response.content, body)
-            self.assertEqual(response.resolver_match.app_name, "academy")
-            self.assertIn("lambda-url.eu-west-1.on.aws", response["Content-Security-Policy"])
-            self.assertIn("umami.169.58.119.163.sslip.io", response["Content-Security-Policy"])
-        for path, mime, body in (
-            ("_astro/app.js", "text/javascript", b"source script"),
-            ("sessions/session-1.ics", "text/calendar", b"BEGIN:VCALENDAR"),
-            ("font.woff2", "font/woff2", b"font bytes"),
+class EmptyAcademyTests(TestCase):
+    def setUp(self) -> None:
+        _clear_academy()
+
+    def test_an_empty_database_has_no_academy_and_no_fallback(self) -> None:
+        for path in (
+            *ALL_PAGES,
+            "/academy/sessions/session-1.ics",
+            "/academy/sitemap.xml",
+            "/sitemaps/academy.xml",
+            "/academy/layoff-proof/",
         ):
-            self.publish(path, body, mime)
-            response = self.client.get("/academy/" + path)
-            self.assertEqual(response.content, body)
-            self.assertEqual(response["Content-Type"], mime)
-        self.publish("sitemap.xml", b"<urlset/>", "application/xml")
-        self.assertEqual(self.client.get("/sitemaps/academy.xml").content, b"<urlset/>")
+            with self.subTest(path=path):
+                self.assertEqual(self.client.get(path).status_code, 404)
 
-    def test_head_post_unknown_and_token_cache_safety(self) -> None:
-        self.publish("confirm/", b"confirmation page")
+    def test_the_raw_build_path_is_gone(self) -> None:
+        self.assertFalse((REPOSITORY_ROOT / "academy/management").exists())
+        for path in ("/academy/_astro/app.js", "/academy/favicon.svg", "/academy/robots.txt"):
+            with self.subTest(path=path):
+                self.assertEqual(self.client.get(path).status_code, 404)
+
+
+class AcademyPageTests(TestCase):
+    def setUp(self) -> None:
+        _clear_academy()
+        fixture.publish()
+
+    def test_every_page_renders_in_the_site_shell(self) -> None:
+        for path in ALL_PAGES:
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.resolver_match.app_name, "academy")
+                body = response.content.decode()
+                self.assertIn('<header class="masthead">', body)
+                self.assertIn('class="band band-cream content-page-header', body)
+                self.assertIn('class="band band-lavender content-page-content', body)
+                self.assertIn("site-footer", body)
+                self.assertEqual(body.count("<style>"), 1)
+                self.assertNotIn('rel="stylesheet"', body)
+                self.assertEqual(len(re.findall(r"<h1\b", body)), 1)
+                # The site-wide Academy stripe would link the page to itself.
+                self.assertNotIn("data-academy-cta", body)
+
+    def test_canonical_open_graph_and_language(self) -> None:
+        response = self.client.get("/academy/agentic-engineering/")
+        self.assertContains(
+            response,
+            '<link rel="canonical" href="https://datatalks.club/academy/agentic-engineering/">',
+            html=False,
+        )
+        self.assertContains(response, "<title>")
+        self.assertContains(response, "Agentic Engineering synthetic title")
+        self.assertContains(response, '<meta property="og:site_name" content="Synthetic Academy">')
+        self.assertContains(
+            response,
+            '<meta property="og:url" content="https://datatalks.club/academy/agentic-engineering/">',
+        )
+        self.assertContains(
+            response,
+            '<meta property="og:image" content="https://datatalks.club/images/academy/og/agentic-engineering.png">',
+        )
+        self.assertContains(response, '<html lang="en"')
+        german = self.client.get("/academy/bildungsgutschein/")
+        self.assertContains(german, '<html lang="de"')
+        self.assertContains(
+            german,
+            '<link rel="alternate" hreflang="de" href="https://datatalks.club/academy/bildungsgutschein/">',
+        )
+        self.assertContains(self.client.get("/academy/impressum/"), '<html lang="de"')
+        self.assertContains(
+            self.client.get("/academy/confirm/"), '<meta name="robots" content="noindex">'
+        )
+        self.assertNotContains(self.client.get("/academy/faq/"), 'content="noindex"')
+
+    def test_structured_data_follows_the_content(self) -> None:
+        body = self.client.get("/academy/ai-engineering/").content.decode()
+        documents = [
+            json.loads(match)
+            for match in re.findall(r'<script type="application/ld\+json">(.*?)</script>', body)
+        ]
+        kinds = [document["@type"] for document in documents]
+        self.assertEqual(kinds, ["Course", "FAQPage"])
+        answers = [item["acceptedAnswer"]["text"] for item in documents[1]["mainEntity"]]
+        # Markdown links read as their label; a missing answer is the prerequisites.
+        self.assertEqual(
+            answers, ["See the privacy notice.", "AI Engineering synthetic prerequisites."]
+        )
+        sessions = self.client.get("/academy/sessions/").content.decode()
+        self.assertEqual(sessions.count('"@type":"Event"'), 3)
+        self.assertIn('"startDate":"2026-11-21T17:00:00+01:00"', sessions)
+
+    def test_copy_is_the_synced_content(self) -> None:
+        home = self.client.get("/academy/")
+        for text in (
+            "Synthetic home headline",
+            "Synthetic home lead.",
+            "Read about Agentic Engineering",
+            "Agentic Engineering outcome 1.",
+            "Agentic Engineering outcome 3.",
+            "Agentic Engineering outcome 5.",
+            "Synthetic seats",
+        ):
+            self.assertContains(home, text)
+        self.assertNotContains(home, "Agentic Engineering outcome 2.")
+        program = self.client.get("/academy/agentic-engineering/")
+        for text in (
+            "Agentic Engineering synthetic first fit.",
+            "Synthetic shared fit.",
+            "Agentic Engineering module three.",
+            "Synthetic module description.",
+            '<a href="https://example.invalid/courses">synthetic courses</a>',
+            '<a href="/academy/privacy/">privacy notice</a>',
+            "Synthetic other track?",
+            'href="/academy/ai-engineering/"',
+        ):
+            self.assertContains(program, text, html=False)
+        self.assertContains(self.client.get("/academy/impressum/"), "Synthetische Straße 1<br>")
+        self.assertContains(self.client.get("/academy/privacy/"), "<code>utm_*</code>")
+
+    def test_forms_carry_the_backend_contract(self) -> None:
+        home = self.client.get("/academy/").content.decode()
+        self.assertEqual(home.count("data-academy-signup"), 1)
+        self.assertIn(f'data-api-origin="{API}"', home)
+        self.assertIn('data-consent-version="2026-11-13.v1"', home)
+        self.assertIn('name="program"', home)
+        self.assertIn(
+            '<option value="agentic-engineering" data-survey-option="A. Agentic Engineering">', home
+        )
+        for name in ('name="name"', 'name="payment_plan"', 'name="email"', 'name="website"'):
+            self.assertIn(name, home)
+        program = self.client.get("/academy/ai-engineering/").content.decode()
+        self.assertEqual(program.count("data-academy-signup"), 2)
+        self.assertIn('data-track="ai-engineering"', program)
+        sessions = self.client.get("/academy/sessions/").content.decode()
+        for name in (
+            'name="sessions" value="session-1"',
+            'name="track_interest" value="agentic"',
+            'name="status" value="job_hunting"',
+            'name="years_dev"',
+            'name="based_in" value="outside"',
+            'name="bildungsgutschein" value="dont_know"',
+            'name="free_text"',
+            'name="academy_optin" value="yes"',
+            'data-form-kind="main"',
+            'href="/academy/sessions/session-2.ics"',
+            'href="/academy/sessions/synthetic-series.ics"',
+        ):
+            self.assertIn(name, sessions)
+        materials = self.client.get("/academy/sessions/materials/?session=1").content.decode()
+        self.assertIn('data-form-kind="qr"', materials)
+        self.assertIn('data-session-ids="session-1 session-2 session-3"', materials)
+        self.assertNotIn('name="sessions"', materials)
+
+    def test_headers_methods_and_token_privacy(self) -> None:
         response = self.client.get("/academy/confirm/?token=opaque-test-token")
         self.assertIn("no-store", response["Cache-Control"])
-        self.assertNotIn(b"opaque-test-token", response.content)
-        self.assertEqual(self.client.head("/academy/confirm/").content, b"")
+        self.assertIn("private", response["Cache-Control"])
+        self.assertNotContains(response, "opaque-test-token")
+        connect = response["Content-Security-Policy"].split("connect-src ")[1].split(";")[0].split()
+        self.assertIn(f"{API}/signup", connect)
+        self.assertIn(f"{API}/confirm", connect)
+        self.assertNotIn(API, connect)
+        self.assertNotIn(f"{API}/pv", connect)
+        self.assertEqual(self.client.head("/academy/").content, b"")
+        self.assertEqual(self.client.post("/academy/").status_code, 405)
         self.assertEqual(self.client.post("/academy/confirm/").status_code, 405)
         self.assertEqual(self.client.get("/academy/unknown/").status_code, 404)
+        self.assertEqual(self.client.get("/academy/sessions/unknown.ics").status_code, 404)
         self.assertEqual(resolve("/academy/").app_name, "academy")
 
-    def test_analytics_uses_site_consent_and_never_tracks_confirmation_tokens(self) -> None:
+    @override_settings(ALLOWED_HOSTS=["prod.datatalks.club"])
+    def test_analytics_follow_the_shared_consent_and_skip_tokens(self) -> None:
         from core.source_policy import umami_public_path
 
-        for path in ("", "sessions/", "bildungsgutschein/", "faq/"):
-            self.assertTrue(umami_public_path("/academy/" + path))
+        for path in SITEMAP_PAGES:
+            self.assertTrue(umami_public_path(path), path)
         self.assertFalse(umami_public_path("/academy/confirm/"))
         self.assertFalse(umami_public_path("/academy/sessions/materials/"))
-        html = (
-            b"<html><body><h1>Source</h1><script defer "
-            b'src="https://umami.169.58.119.163.sslip.io/script.js" '
-            b'data-website-id="source-id"></script></body></html>'
+        home = self.client.get("/academy/", HTTP_HOST="prod.datatalks.club")
+        self.assertContains(home, 'data-umami-page-path="/academy/"')
+        confirm = self.client.get(
+            "/academy/confirm/?token=opaque-test-token", HTTP_HOST="prod.datatalks.club"
         )
-        self.publish("", html)
-        self.publish("confirm/", html)
-        with self.settings(ALLOWED_HOSTS=["prod.datatalks.club"], NOINDEX=False):
-            response = self.client.get("/academy/", HTTP_HOST="prod.datatalks.club")
-            self.assertContains(response, 'data-umami-page-path="/academy/"')
-            self.assertContains(response, "data-analytics-preferences-open")
-            self.assertNotContains(response, 'data-website-id="source-id"')
-            api = "https://augldvp3omxdxz3irqsmmxc25e0blpxx.lambda-url.eu-west-1.on.aws"
-            connect = response["Content-Security-Policy"].split("connect-src ")[1].split(";")[0]
-            self.assertIn(api + "/signup", connect.split())
-            self.assertIn(api + "/confirm", connect.split())
-            self.assertNotIn(api, connect.split())
-            self.assertNotIn(api + "/pv", connect.split())
-            response = self.client.get(
-                "/academy/confirm/?token=opaque-test-token", HTTP_HOST="prod.datatalks.club"
-            )
-            self.assertNotContains(response, "data-umami-script-url")
-            self.assertNotContains(response, "opaque-test-token")
+        self.assertNotContains(confirm, "data-umami-script-url")
+        self.assertNotContains(confirm, "opaque-test-token")
+
+    def test_sitemap_and_its_mirror(self) -> None:
+        response = self.client.get("/academy/sitemap.xml")
+        self.assertEqual(response["Content-Type"], "application/xml; charset=utf-8")
+        locations = re.findall(r"<loc>(.*?)</loc>", response.content.decode())
+        self.assertEqual(locations, [f"https://datatalks.club{path}" for path in SITEMAP_PAGES])
+        self.assertEqual(self.client.get("/sitemaps/academy.xml").content, response.content)
+
+    def test_calendars_and_the_historical_redirect(self) -> None:
+        one = self.client.get("/academy/sessions/session-2.ics")
+        self.assertEqual(one["Content-Type"], "text/calendar; charset=utf-8")
+        text = one.content.decode()
+        self.assertTrue(
+            text.startswith("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Synthetic//Series//EN")
+        )
+        self.assertIn("UID:session-2@series.example.invalid\r\n", text)
+        self.assertIn("DTSTART:20261122T160000Z\r\n", text)
+        self.assertIn("SUMMARY:Synthetic Series #2: Synthetic session 2\\, a talk\r\n", text)
+        self.assertEqual(text.count("BEGIN:VEVENT"), 1)
+        everything = self.client.get("/academy/sessions/synthetic-series.ics").content.decode()
+        self.assertEqual(everything.count("BEGIN:VEVENT"), 3)
+        redirect = self.client.get("/academy/layoff-proof/?utm_source=x&utm_content=b")
+        self.assertEqual(redirect.status_code, 301)
+        self.assertEqual(redirect["Location"], "/academy/sessions/?utm_source=x&utm_content=b")
+
+    def test_the_retired_build_images_move_permanently(self) -> None:
+        moved = (
+            "og/home.png",
+            "og/agentic-engineering.png",
+            "og/ai-engineering.png",
+            "og/sessions.png",
+            "qr/session-1.png",
+            "qr/session-1.svg",
+            "qr/session-2.png",
+            "qr/session-2.svg",
+            "qr/session-3.png",
+            "qr/session-3.svg",
+        )
+        for name in moved:
+            with self.subTest(name=name):
+                response = self.client.get(f"/academy/{name}")
+                self.assertEqual(response.status_code, 301)
+                self.assertEqual(response["Location"], f"/images/academy/{name}")
+        for name in ("og/other.png", "qr/session-4.png", "og/home.svg", "qr/session-1.jpg"):
+            with self.subTest(name=name):
+                self.assertEqual(self.client.get(f"/academy/{name}").status_code, 404)
+        self.assertEqual(self.client.head("/academy/og/home.png").status_code, 301)
+        self.assertEqual(self.client.post("/academy/og/home.png").status_code, 405)
+
+    def test_materials_need_the_sessions_page(self) -> None:
+        SyncedDocument.objects.filter(
+            content_kind="academy_page", stable_key="/academy/sessions/"
+        ).delete()
+        self.assertEqual(self.client.get("/academy/sessions/materials/").status_code, 404)
 
 
-class PublishAcademyTests(TestCase):
+class CalendarFormatTests(SimpleTestCase):
+    def test_text_escaping_and_folding_follow_rfc_5545(self) -> None:
+        page = fixture.PAGES["sessions"][0]
+        session = {**page["sessions"][0], "title": "Ä long title; with, commas " + "x" * 80}
+        text = calendar_for(page, [session])
+        lines = text.split("\r\n")
+        self.assertTrue(text.endswith("END:VCALENDAR\r\n"))
+        for line in lines:
+            self.assertLessEqual(len(line.encode()), 75)
+        unfolded = text.replace("\r\n ", "")
+        self.assertIn("SUMMARY:Synthetic Series #1: Ä long title; with\\, commas", unfolded)
+        self.assertIn(
+            "Zoom link: https://example.invalid/zoom/1\\n\\n"
+            "Synthetic calendar note\\, with a comma.",
+            unfolded,
+        )
+
+
+class AcademyParserTests(TestCase):
     def setUp(self) -> None:
-        # The importer forbids repository-contained production content. Scratch
-        # fixtures stay in .tmp; an overridden BASE_DIR exercises that guard.
-        scratch = Path(settings.BASE_DIR) / ".tmp"
-        scratch.mkdir(exist_ok=True)
-        self.directory = TemporaryDirectory(dir=scratch)
-        self.addCleanup(self.directory.cleanup)
-        self.root = Path(self.directory.name)
-        (self.root / "index.html").write_text("<h1>Source academy</h1>")
-        (self.root / "sitemap.xml").write_text(
-            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-            "<url><loc>https://datatalks.club/academy/</loc></url></urlset>"
+        _clear_academy()
+        self.source = fixture.editorial_source()
+
+    def discover(self, tree: dict[str, bytes], kind: str = "academy_page"):
+        with ImmutableCheckout(fixture.write_tree(tree), commit_sha="b" * 40) as checkout:
+            return get_parser(kind).discover(checkout, self.source)
+
+    def test_pages_and_shared_copy_publish_at_their_paths(self) -> None:
+        items = self.discover(fixture.academy_tree())
+        self.assertEqual([item.key for item in items], sorted(ALL_PAGES))
+        record = next(item for item in items if item.key == "/academy/").data["record"]
+        self.assertEqual(record["layout"], "home")
+        self.assertEqual(record["og_image"], "/images/academy/og/home.png")
+        self.assertEqual(record["provenance"]["repository"], "DataTalksClub/content")
+        shared = self.discover(fixture.academy_tree(), "academy_shared")
+        self.assertEqual([item.key for item in shared], ["shared"])
+        media = [item.key for item in self.discover(fixture.academy_tree(), "media")]
+        self.assertIn("images/academy/og/home.png", media)
+        self.assertIn("images/academy/qr/session-1.svg", media)
+
+    def test_a_repository_without_academy_publishes_nothing(self) -> None:
+        self.assertEqual(self.discover({"slack.yaml": b"title: x\n"}), [])
+        self.assertEqual(self.discover({"slack.yaml": b"title: x\n"}, "academy_shared"), [])
+
+    def test_invalid_pages_are_refused(self) -> None:
+        cases = {
+            "unknown layout": lambda pages: pages["faq"][0].update(layout="landing"),
+            "unknown field": lambda pages: pages["faq"][0].update(extra="x"),
+            "missing field": lambda pages: pages["faq"][0].pop("lead"),
+            "missing image": lambda pages: pages["index"][0].update(
+                og_image="images/academy/none.png"
+            ),
+            "outside path": lambda pages: pages["faq"][0].update(path="/faq/"),
+            "unsafe link": lambda pages: pages["index"][0]["hero"]["links"][0].update(
+                href="javascript:x"
+            ),
+            "program path": lambda pages: pages["ai-engineering"][0].update(path="/academy/other/"),
+            "body on a structured page": lambda pages: pages.update(faq=(pages["faq"][0], "Body")),
+            "duplicate session": lambda pages: pages["sessions"][0]["sessions"][1].update(
+                id="session-1"
+            ),
+        }
+        for name, change in cases.items():
+            with self.subTest(case=name):
+                pages = fixture.pages_copy()
+                change(pages)
+                with self.assertRaises(ContentParserError):
+                    self.discover(fixture.academy_tree(pages=pages))
+
+    def test_pages_without_the_shared_copy_are_refused(self) -> None:
+        tree = fixture.academy_tree()
+        del tree["academy/shared.yaml"]
+        with self.assertRaises(ContentParserError):
+            self.discover(tree)
+
+    def test_upsert_is_idempotent(self) -> None:
+        tree = fixture.academy_tree()
+        for expected in ("created", "unchanged"):
+            with ImmutableCheckout(fixture.write_tree(tree), commit_sha="c" * 40) as checkout:
+                parser = get_parser("academy_page")
+                actions = {
+                    parser.upsert(item, self.source, media_store()).action
+                    for item in parser.discover(checkout, self.source)
+                }
+            self.assertEqual(actions, {expected})
+        self.assertEqual(
+            SyncedDocument.objects.filter(content_kind="academy_page").count(), len(ALL_PAGES)
         )
 
-    def run_publish(self) -> None:
-        with self.settings(BASE_DIR=self.root / "application"):
-            call_command("publish_academy", self.root, source_commit="a" * 40, verbosity=0)
 
-    def test_import_is_idempotent_keeps_old_assets_and_reads_database(self) -> None:
-        (self.root / "old.js").write_text("old asset")
-        self.run_publish()
-        (self.root / "old.js").unlink()
-        (self.root / "index.html").write_text("<h1>Updated source academy</h1>")
-        self.run_publish()
-        shutil.rmtree(self.root)
-        self.assertEqual(PublishedResource.objects.count(), 3)
-        self.assertContains(self.client.get("/academy/"), "Updated source academy")
-        self.assertEqual(self.client.get("/academy/old.js").content, b"old asset")
-        self.assertEqual(self.client.get("/academy/sitemap.xml").status_code, 200)
+class AcademySyncTests(TestCase):
+    """The supported entry point, ``sync_content_source``, over a local checkout."""
 
-    def test_invalid_build_and_unpublished_sitemap_do_not_write_partial_rows(self) -> None:
-        for sitemap in (
-            "not xml",
-            "<urlset><url><loc>https://other.test/</loc></url></urlset>",
-            "<urlset><url><loc>https://datatalks.club/academy/missing/</loc></url></urlset>",
-        ):
-            (self.root / "sitemap.xml").write_text(sitemap)
-            with self.assertRaises(CommandError):
-                self.run_publish()
-            self.assertFalse(PublishedResource.objects.exists())
+    def setUp(self) -> None:
+        SyncedDocument.objects.filter(source__slug="dtc-content").delete()
+        self.source = fixture.editorial_source()
+        self.repository = fixture.git_repository(fixture.academy_tree())
 
-    def test_repository_builds_and_invalid_commit_are_rejected(self) -> None:
-        with self.assertRaisesMessage(CommandError, "outside the repository"):
-            call_command("publish_academy", self.root, source_commit="a" * 40)
-        with self.assertRaisesMessage(CommandError, "complete commit SHA"):
-            call_command("publish_academy", self.root, source_commit="main")
+    def test_sync_publishes_the_academy_and_a_second_sync_changes_nothing(self) -> None:
+        log = sync_content_source(self.source, repo_dir=str(self.repository), force=True)
+        self.assertEqual(log.status, SyncStatus.SUCCESS, log.errors)
+        self.assertEqual(self.client.get("/academy/").status_code, 200)
+        before = dict(
+            SyncedDocument.objects.filter(source=self.source).values_list("stable_key", "checksum")
+        )
+        log = sync_content_source(self.source, repo_dir=str(self.repository), force=True)
+        self.assertEqual(log.status, SyncStatus.SUCCESS, log.errors)
+        self.assertEqual((log.items_created, log.items_updated, log.items_deleted), (0, 0, 0))
+        after = dict(
+            SyncedDocument.objects.filter(source=self.source).values_list("stable_key", "checksum")
+        )
+        self.assertEqual(after, before)
+        self.assertIn("images/academy/portrait.jpg", after)
+
+
+class AcademyTemplateContractTests(SimpleTestCase):
+    def test_every_page_extends_the_shared_content_page(self) -> None:
+        for name in TEMPLATES:
+            with self.subTest(template=name):
+                source = (REPOSITORY_ROOT / f"academy/templates/academy/{name}.html").read_text()
+                self.assertIn('{% extends "core/content_page.html" %}', source)
+                self.assertNotIn("<!DOCTYPE html>", source)
+                self.assertNotIn('class="band ', source)
+                self.assertIn('{% include "academy/_styles.html" %}', source)
+
+    def test_templates_stay_readable(self) -> None:
+        from core.accessibility_registry import template_readability_issues
+
+        failures = []
+        for path in sorted((REPOSITORY_ROOT / "academy/templates/academy").glob("*.html")):
+            failures.extend(
+                f"{path.name}:{issue}" for issue in template_readability_issues(path.read_text())
+            )
+        self.assertEqual(failures, [])

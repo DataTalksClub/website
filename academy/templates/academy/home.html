@@ -1,0 +1,95 @@
+{% extends "core/content_page.html" %}
+{% load static %}
+{% comment %}
+  The Academy home page (/academy/).  The cream header opens like a course page:
+  the heading and lede beside the waitlist card.  Below the seam, on the
+  lavender ground, the two programs as cards, the key facts as the spec strip,
+  and the funding note.  Every word is synced content (academy/index.md and
+  academy/shared.yaml in DataTalksClub/content).
+{% endcomment %}
+
+{% block document_title %}
+  {{ page.title }}
+{% endblock %}
+
+{% block metadata %}
+  {% include "academy/_metadata.html" %}
+{% endblock %}
+
+{% block page_styles %}
+  {% include "academy/_styles.html" %}
+{% endblock %}
+
+{% block header_band_class %}
+  academy-hero
+{% endblock %}
+
+{% block header_attributes %}
+  aria-labelledby="academy-heading"
+{% endblock %}
+
+{% block page_header %}
+  <div class="academy-hero-inner">
+    <div>
+      <p class="kicker">{{ data.hero.eyebrow }}</p>
+      <h1 id="academy-heading">{{ data.hero.headline }}</h1>
+      <p class="academy-lede">{{ data.hero.lead }}</p>
+      <div class="academy-hero-links">
+        {% for link in data.hero.links %}
+          <a class="band-link" href="{{ link.href }}">{{ link.label }}</a>
+        {% endfor %}
+      </div>
+      <div class="academy-person">
+        <img src="/{{ shared.instructor.photo }}" alt="" width="112" height="112" decoding="async">
+        <p>{{ shared.hero.instructor_line }}</p>
+      </div>
+    </div>
+    <div class="academy-aside">
+      {% include "academy/_signup_card.html" with form_id="hero" choose_program=True program=None %}
+      <p class="mono-note">{{ shared.hero.honesty }}</p>
+      <p>
+        <span class="status-pill status-pill-open academy-pill">{{ shared.seat_caption }}</span>
+      </p>
+    </div>
+  </div>
+{% endblock %}
+
+{% block page_content %}
+  <section class="academy-section" aria-label="{{ data.tracks.label }}">
+    <div class="card-grid card-grid-2" data-tracks>
+      {% for track in tracks %}
+        <article class="card academy-track-card">
+          <h2>{{ track.name }}</h2>
+          <p class="academy-headline">{{ track.headline }}</p>
+          <ol class="academy-numbered">
+            {% for outcome in track.highlights %}
+              <li>
+                <span class="module-number" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+                <span>{{ outcome }}</span>
+              </li>
+            {% endfor %}
+          </ol>
+          {% include "core/_button.html" with href=track.path label=track.button variant="primary" %}
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% include "academy/_facts.html" with facts=shared.facts %}
+  <section class="academy-section" aria-labelledby="funding-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="funding-heading">{{ data.funding.heading }}</h2>
+      </div>
+    </div>
+    <div class="prose">
+      {% for paragraph in data.funding.paragraphs %}
+        <p>{{ paragraph }}</p>
+      {% endfor %}
+    </div>
+  </section>
+  {% include "academy/_links.html" with links=shared.footer.links copyright=shared.footer.copyright other_program=None %}
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{% static 'academy/academy.js' %}" defer></script>
+{% endblock %}

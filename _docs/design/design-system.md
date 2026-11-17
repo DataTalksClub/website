@@ -575,8 +575,10 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
 - **`.doodle`** — a decorative drawing: `display: block; width: 100%`. Pages constrain
   aspect ratio per slot. Always `alt=""`.
 - **`.module` / `.module-list`** — the disclosure accordion for a surface with genuine
-  per-module content. **No page uses it today**; a page whose job is to show every
-  deadline and state draws `.row-list` tables instead of folding them behind a click.
+  per-module content. The Academy program pages use it for their syllabus (one
+  `details.module` per group of weeks, its modules listed in the body); a page whose
+  job is to show every deadline and state draws `.row-list` tables instead of folding
+  them behind a click.
 
 ## Forms
 
@@ -755,6 +757,19 @@ it are stroked paths in the same weight and round cap, because the illustrations
 masthead sits above are hand-lettered and a typeset `DTC` was the one printed-looking
 thing in the mark. `DataTalks.Club` is a single weight throughout — it is one name,
 not a light half and a bold half.
+
+## The Academy pages
+
+The `/academy/` pages (`academy/templates/academy/`) are ordinary content pages:
+each extends `core/content_page.html`, so the masthead, cream header, lavender
+content band and footer are the shared ones. Like the account entrance family they
+share one page-level partial, `academy/_styles.html`, included straight after the
+design system; it only lays out primitives the system already owns — the header's
+heading beside a waitlist `.card`, numbered lists on `.module-number` discs, the
+syllabus as `.module` accordions, facts as the `.spec-strip`, FAQ as `.faq-fold`,
+the closing waitlist on a `.panel-mint`. The forms use `.field`, `.field-input`,
+`.form-check`, `.a11y-error` and the quick-question answers are `.filter-pill`
+toggles.
 
 ## The account entrance family
 

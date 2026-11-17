@@ -1064,7 +1064,7 @@ class AcademyLinkTests(TestCase):
     """The public homepage and footer link to the Academy under /academy/.
 
     Academy is a separate Django app. Homepage and shared footer links
-    resolve locally against database-owned published Academy content.
+    resolve locally against the synced Academy pages.
     """
 
     ACADEMY_LINKS = (
@@ -1091,15 +1091,9 @@ class AcademyLinkTests(TestCase):
             )
 
     def test_academy_is_served_by_its_django_app(self) -> None:
-        from academy.models import PublishedResource
+        from academy.tests.content import publish
 
-        PublishedResource.objects.create(
-            path="",
-            content=b"Academy published home",
-            content_type="text/html",
-            sha256="a" * 64,
-            source_commit="b" * 40,
-        )
+        publish()
         response = self.client.get("/academy/")
-        self.assertContains(response, "Academy published home")
+        self.assertContains(response, "Synthetic home headline")
         self.assertEqual(response.resolver_match.app_name, "academy")

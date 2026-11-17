@@ -101,6 +101,16 @@ DESIGN_SYSTEM_TEMPLATES = (
     "account/password_reset_from_key.html",
     "account/password_reset_from_key_done.html",
     "socialaccount/signup.html",
+    # The Academy pages (/academy/...), synced content in the ordinary content
+    # page shell; their own tests publish the content they render.
+    "academy/home.html",
+    "academy/program.html",
+    "academy/sessions.html",
+    "academy/materials.html",
+    "academy/confirm.html",
+    "academy/guide.html",
+    "academy/faq.html",
+    "academy/legal.html",
 )
 SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 
