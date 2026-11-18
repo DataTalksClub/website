@@ -817,6 +817,7 @@ def _mapping() -> dict[
             "points_for_peer_review": _COPIED,
             "time_spent_evaluation_field": _COPIED,
             "state": _COPIED,
+            "evaluation_criteria": _COPIED,
         },
         written(site.Project, {"course"}) | {"cohort"},
         # Decision 18: DTC has no pooled review window; deriving one from a past due date
@@ -897,6 +898,7 @@ def _mapping() -> dict[
             "optional": _COPIED,
             "submitted_at": _COPIED,
             "state": _COPIED,
+            "criteria_scores": _COPIED,
         },
         written(site.PeerReview, set()),
         # Decision 18: a pooled review batch (C5.2f) is a package-only row.  Every migrated
