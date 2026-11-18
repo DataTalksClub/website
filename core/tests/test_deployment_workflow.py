@@ -180,7 +180,7 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # test, and issue #515 enrolls scripts.convert_academy_source, in strict mypy
 # (configuration only, no dependency change); the pyproject seal moves with
 # that reviewed pyproject.
-STUDIO_COURSES_PYPROJECT_SHA256 = "5cf1117a458cf8eb9012a46532e07e2efee389cc3e19ba2784ff7ef264db18a8"
+STUDIO_COURSES_PYPROJECT_SHA256 = "7a6a888f83f182bf4bdfa23f7e5b1002bc77691454d45e0cdc55416048f3bf8d"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
@@ -201,7 +201,7 @@ STUDIO_COURSES_PYPROJECT_SHA256 = "5cf1117a458cf8eb9012a46532e07e2efee389cc3e19b
 # (2ec90c67); the reviewed lock seal tracks the entry and pin reference bytes.
 # Intake 623a5c59 drops python-json-logger and tqdm from the lock.
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "2d4ae8ff4c27ee684df0f5203cd076cf5fea8371285e4fca8643ff02da8db713"
+    "cae9bc7383f040ec3c603160b5254401b505dd4e9c1cd1e97459ba8cdbe73c98"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"

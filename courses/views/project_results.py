@@ -19,6 +19,7 @@ from courses.models.project import (
     ProjectEvaluationScore,
     ProjectSubmission,
     criteria_for_project,
+    project_yaml_criteria,
 )
 from courses.views.url_utils import get_cohort_or_404
 
@@ -132,7 +133,7 @@ def _project_results_context(course, project, user):
             "feedback": [],
             "is_authenticated": True,
         }
-    yaml_criteria = getattr(project, "evaluation_criteria", None) or []
+    yaml_criteria = project_yaml_criteria(project)
     yaml_result = None
     if yaml_criteria:
         submitted_reviews = list(

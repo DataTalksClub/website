@@ -1,13 +1,22 @@
-"""Integration tests for community-base v0.5.37 peer-review & submission wiring."""
+"""Integration tests for community-base v0.5.38 peer-review, criteria sets & submission wiring."""
 
 from datetime import timedelta
 from io import StringIO
+from pathlib import Path
+import subprocess
+import tempfile
 from typing import Any
 from unittest.mock import patch
+import uuid
 
+from community_base.content_sync.models import ContentSource, SyncStatus
+from community_base.content_sync.orchestration import sync_content_source
+from community_base.coursework.models import ReviewCriteriaSet
 from community_base.coursework.project_criteria import parse_criteria
 from django.contrib.auth.models import Permission
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -19,6 +28,7 @@ from courses.models.project import (
     Project,
     ProjectState,
     ProjectSubmission,
+    project_yaml_criteria,
 )
 from courses.project_assignment import ProjectActionStatus
 from courses.project_scoring import score_project
@@ -356,3 +366,216 @@ class CommunityBasePeerReviewIntegrationTests(TestCase):
         self.assertEqual(body["batched"], 3)
         self.assertEqual(body["reviews_assigned"], 3)
         mock_notify.assert_called_once_with(project)
+
+    def test_git_yaml_synced_review_criteria_sets_shared_and_distinct_per_project(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_dir = Path(tmpdir)
+            (repo_dir / "review_criteria").mkdir(parents=True)
+            (repo_dir / "content.yaml").write_text(
+                "schema_version: 1\n"
+                "collections:\n"
+                "  - path: review_criteria\n"
+                "    kind: review_criteria\n",
+                encoding="utf-8",
+            )
+            (repo_dir / "review_criteria" / "capstone-rubric.yaml").write_text(
+                f"content_id: {uuid.uuid4()}\n"
+                "title: Capstone Rubric\n"
+                "description: Standard capstone rubric\n"
+                "criteria:\n"
+                "  - id: problem-description\n"
+                "    title: Problem description\n"
+                "    description: Is the problem clearly described?\n"
+                "    type: scale\n"
+                "    options:\n"
+                "      - points: 0\n"
+                "        text: Missing\n"
+                "      - points: 2\n"
+                "        text: Clear\n"
+                "  - id: bonus-tests\n"
+                "    title: Unit tests\n"
+                "    type: checklist\n"
+                "    options:\n"
+                "      - points: 1\n"
+                "        text: Has unit tests\n",
+                encoding="utf-8",
+            )
+            (repo_dir / "review_criteria" / "midterm-rubric.yaml").write_text(
+                f"content_id: {uuid.uuid4()}\n"
+                "title: Midterm Rubric\n"
+                "criteria:\n"
+                "  - id: reproducibility\n"
+                "    title: Reproducibility\n"
+                "    type: scale\n"
+                "    options:\n"
+                "      - points: 0\n"
+                "        text: Not reproducible\n"
+                "      - points: 3\n"
+                "        text: Fully reproducible\n",
+                encoding="utf-8",
+            )
+
+            subprocess.run(("git", "init", "-q", str(repo_dir)), check=True)
+            subprocess.run(("git", "-C", str(repo_dir), "add", "-A"), check=True)
+            subprocess.run(
+                (
+                    "git",
+                    "-C",
+                    str(repo_dir),
+                    "-c",
+                    "user.name=Fixture",
+                    "-c",
+                    "user.email=fixture@example.invalid",
+                    "commit",
+                    "-q",
+                    "-m",
+                    "Add review criteria sets",
+                ),
+                check=True,
+            )
+
+            source, _ = ContentSource.objects.get_or_create(
+                slug="dtc-rubrics",
+                defaults={
+                    "repo_name": "DataTalksClub/test-rubrics",
+                    "webhook_secret": "test-secret",
+                    "max_files": 100,
+                },
+            )
+            log = sync_content_source(source, repo_dir=repo_dir, force=True)
+            self.assertEqual(log.status, SyncStatus.SUCCESS, log.errors)
+
+        capstone_set = ReviewCriteriaSet.objects.get(slug="capstone-rubric")
+        midterm_set = ReviewCriteriaSet.objects.get(slug="midterm-rubric")
+
+        now = timezone.now()
+        p1 = Project.objects.create(
+            course=self.cohort,
+            slug="project-1",
+            title="Project 1",
+            submission_due_date=now + timedelta(days=2),
+            peer_review_due_date=now + timedelta(days=9),
+            criteria_set=capstone_set,
+        )
+        p2 = Project.objects.create(
+            course=self.cohort,
+            slug="project-2",
+            title="Project 2",
+            submission_due_date=now + timedelta(days=3),
+            peer_review_due_date=now + timedelta(days=10),
+            criteria_set=capstone_set,
+        )
+        p3 = Project.objects.create(
+            course=self.cohort,
+            slug="project-3",
+            title="Project 3",
+            submission_due_date=now + timedelta(days=4),
+            peer_review_due_date=now + timedelta(days=11),
+            criteria_set=midterm_set,
+        )
+        self.assertEqual(project_yaml_criteria(p1), project_yaml_criteria(p2))
+        self.assertEqual(len(project_yaml_criteria(p1)), 2)
+        self.assertEqual(project_yaml_criteria(p3)[0]["id"], "reproducibility")
+
+        # Every project must have criteria.
+        p_missing = Project(
+            course=self.cohort,
+            slug="project-no-criteria",
+            title="Missing Criteria",
+            submission_due_date=now + timedelta(days=2),
+            peer_review_due_date=now + timedelta(days=9),
+        )
+        with self.assertRaises(ValidationError):
+            p_missing.full_clean()
+        p_missing.save()
+        with self.assertRaises(CommandError):
+            call_command(
+                "set_project_state",
+                self.course.slug,
+                p_missing.slug,
+                "peer_reviewing",
+                cohort=self.cohort.identifier,
+            )
+
+        # End-to-end eval, save, results, and scoring via project.criteria_set (no inline evaluation_criteria).
+        p1.state = ProjectState.PEER_REVIEWING.value
+        p1.number_of_peers_to_evaluate = 1
+        p1.save(update_fields=["state", "number_of_peers_to_evaluate"])
+
+        sub1 = ProjectSubmission.objects.create(
+            project=p1,
+            student=self.student1,
+            enrollment=self.enrollment1,
+            github_link="https://github.com/student1/p1",
+            commit_id="1234567",
+        )
+        sub2 = ProjectSubmission.objects.create(
+            project=p1,
+            student=self.student2,
+            enrollment=self.enrollment2,
+            github_link="https://github.com/student2/p1",
+            commit_id="7654321",
+        )
+        review = PeerReview.objects.create(
+            reviewer=sub2,
+            submission_under_evaluation=sub1,
+            state=PeerReviewState.TO_REVIEW.value,
+        )
+        PeerReview.objects.create(
+            reviewer=sub1,
+            submission_under_evaluation=sub2,
+            state=PeerReviewState.SUBMITTED.value,
+            criteria_scores={"problem-description": 1, "bonus-tests": [0]},
+        )
+
+        self.client.force_login(self.student2)
+        eval_url = reverse(
+            "cohort_projects_eval_submit",
+            kwargs={
+                "course_slug": self.course.slug,
+                "cohort_identifier": self.cohort.identifier,
+                "project_slug": p1.slug,
+                "review_id": review.id,
+            },
+        )
+        get_resp = self.client.get(eval_url)
+        self.assertEqual(get_resp.status_code, 200)
+        self.assertContains(get_resp, "Problem description")
+
+        post_resp = self.client.post(
+            eval_url,
+            {
+                "criterion-problem-description": "1",
+                "criterion-bonus-tests": ["0"],
+                "note_to_peer": "Nice work!",
+            },
+        )
+        self.assertEqual(post_resp.status_code, 302)
+        review.refresh_from_db()
+        self.assertEqual(review.state, PeerReviewState.SUBMITTED.value)
+        self.assertEqual(
+            review.criteria_scores,
+            {"problem-description": 1, "bonus-tests": [0]},
+        )
+
+        p1.peer_review_due_date = timezone.now() - timedelta(hours=1)
+        p1.save(update_fields=["peer_review_due_date"])
+        status, _msg = score_project(p1)
+        self.assertEqual(status, ProjectActionStatus.OK)
+        sub1.refresh_from_db()
+        self.assertEqual(sub1.project_score, 3)
+        self.assertTrue(sub1.passed)
+
+        self.client.force_login(self.student1)
+        results_url = reverse(
+            "cohort_project_results",
+            kwargs={
+                "course_slug": self.course.slug,
+                "cohort_identifier": self.cohort.identifier,
+                "project_slug": p1.slug,
+            },
+        )
+        res_resp = self.client.get(results_url)
+        self.assertEqual(res_resp.status_code, 200)
+        self.assertContains(res_resp, "Problem description")
+        self.assertContains(res_resp, "Nice work!")

@@ -108,6 +108,7 @@ ALLOWLIST: dict[str, tuple[str, ...]] = {
         "points_for_peer_review",
         "time_spent_evaluation_field",
         "state",
+        "criteria_set_id",
         "evaluation_criteria",
     ),
     "courses_reviewcriteria": (
