@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.13"
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
@@ -230,8 +230,8 @@ wheels = [
 
 [[package]]
 name = "community-base"
-version = "0.5.35"
-source = { git = "https://github.com/DataTalksClub/community-base?rev=v0.5.35#2ec90c676cd0ffdd9ee5283be164de6b884ff576" }
+version = "0.5.37"
+source = { git = "https://github.com/DataTalksClub/community-base?rev=v0.5.37#c58b852e492654efa26987d60e1024ec4abdf7d0" }
 dependencies = [
     { name = "apispec" },
     { name = "cryptography" },
@@ -434,7 +434,7 @@ dev = [
 requires-dist = [
     { name = "bleach", specifier = ">=6.2,<7" },
     { name = "boto3", specifier = ">=1.43.33,<2" },
-    { name = "community-base", git = "https://github.com/DataTalksClub/community-base?rev=v0.5.35" },
+    { name = "community-base", git = "https://github.com/DataTalksClub/community-base?rev=v0.5.37" },
     { name = "cryptography", specifier = ">=50,<51" },
     { name = "dj-database-url", specifier = ">=3.0,<4" },
     { name = "django", specifier = ">=6.0,<6.1" },

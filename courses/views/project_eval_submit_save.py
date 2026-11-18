@@ -1,6 +1,11 @@
 import re
 from collections.abc import Iterable
 
+from community_base.coursework.peer_review_form import (
+    missing_criteria_message,
+    save_draft,
+    save_review,
+)
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -44,12 +49,70 @@ def locked_peer_reviewing_project(project: Project) -> Project:
     return locked
 
 
+def _save_yaml_criteria_review(
+    request: HttpRequest,
+    project: Project,
+    review: PeerReview,
+    yaml_criteria: list[dict],
+) -> None:
+    is_draft = request.POST.get("action") == "draft"
+    with transaction.atomic():
+        project = locked_peer_reviewing_project(project)
+        apply_review_learning_in_public_links(request, project, review)
+        apply_review_time_spent(request, project, review)
+        if project.problems_comments_field:
+            review.problems_comments = (request.POST.get("problems_comments") or "").strip()
+        if is_draft:
+            save_draft(review, yaml_criteria, request.POST)
+            review.save(
+                update_fields=[
+                    "learning_in_public_links",
+                    "time_spent_reviewing",
+                    "problems_comments",
+                ]
+            )
+            return
+        form_data, complete = save_review(review, yaml_criteria, request.POST)
+        if not complete:
+            raise ValidationError(missing_criteria_message(form_data["missing_titles"]))
+        review.save(
+            update_fields=[
+                "learning_in_public_links",
+                "time_spent_reviewing",
+                "problems_comments",
+            ]
+        )
+    record_event(
+        "project.review_submitted",
+        request=request,
+        properties={
+            "course_slug": project.course.slug,
+            "project_slug": project.slug,
+            "project_id": project.id,
+            "review_id": review.id,
+            "reviewer_submission_id": review.reviewer_id,
+            "submission_id": review.submission_under_evaluation_id,
+            "criteria_count": len(yaml_criteria),
+        },
+    )
+    messages.success(
+        request,
+        "Thank you for submitting your evaluation, it is now saved. You can update it at any point.",
+        extra_tags="homework",
+    )
+
+
 def project_eval_post_submission(
     request: HttpRequest,
     project: Project,
     review: PeerReview,
     review_criteria: Iterable[ReviewCriteria],
 ) -> None:
+    yaml_criteria = getattr(project, "evaluation_criteria", None) or []
+    if yaml_criteria:
+        _save_yaml_criteria_review(request, project, review, yaml_criteria)
+        return
+
     review_criteria = tuple(review_criteria)
     answers_by_field = project_eval_answers_from_post(request.POST)
     validate_project_criteria_answers(review_criteria, answers_by_field)

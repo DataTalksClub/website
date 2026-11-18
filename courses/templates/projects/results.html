@@ -144,7 +144,28 @@
       <div class="project-section-head">
         <h2 id="criteria-breakdown-heading">Criteria Breakdown</h2>
       </div>
-      {% if scores %}
+      {% if yaml_result %}
+        <div class="row-list">
+          {% for criterion in yaml_result.criteria %}
+            <article class="list-row criteria-row">
+              <div>
+                <h3>{{ criterion.title }}{% if criterion.bonus_marker %} <span class="mono-note">(bonus)</span>{% endif %}</h3>
+                <div class="criteria-options">
+                  {% for option in criterion.options %}
+                    <p class="criteria-option">
+                      <span>
+                        {{ option.label }}
+                      </span>
+                      <span class="mono-note">{{ option.votes }} vote{{ option.votes|pluralize }}</span>
+                    </p>
+                  {% endfor %}
+                </div>
+              </div>
+              <p class="criteria-score">{{ criterion.score }}</p>
+            </article>
+          {% endfor %}
+        </div>
+      {% elif scores %}
         <div class="row-list">
           {% for score in scores %}
             <article class="list-row criteria-row">
@@ -213,7 +234,11 @@
         <div>
           <dt>commit id</dt>
           <dd>
-            <code class="mono-code">{{ submission.commit_id }}</code>
+            {% if commit_url %}
+              <a class="band-link" href="{{ commit_url }}" target="_blank" rel="noopener noreferrer"><code class="mono-code">{{ submission.commit_id }}</code></a>
+            {% else %}
+              <code class="mono-code">{{ submission.commit_id }}</code>
+            {% endif %}
           </dd>
         </div>
         <div>
@@ -229,7 +254,7 @@
         </div>
         <div class="row-list">
           {% for review in feedback %}
-            <p class="list-row">{{ review.note_to_peer }}</p>
+            <p class="list-row">{% if review.peer_pseudonym %}<strong>{{ review.peer_pseudonym }}:</strong> {% endif %}{{ review.note_to_peer }}</p>
           {% endfor %}
         </div>
       </section>

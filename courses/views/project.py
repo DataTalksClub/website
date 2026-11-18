@@ -13,7 +13,9 @@ from courses.registration_wall import require_registration_approval
 from courses.views.project_page_context import (
     project_accepting_submissions,
     project_build_context,
+    project_context_submission,
 )
+from community_base.coursework.project_forms import update_commit_action
 from courses.services.project_form_adapter import build_project_submission_form
 from courses.views.project_submission_edit import (
     project_delete_submission,
@@ -162,6 +164,30 @@ def handle_project_post(request: HttpRequest, course: Cohort, project: Project):
             course,
             project,
         )
+    if action == "update_commit":
+        submission = project_context_submission(request.user, project)
+        if submission is not None:
+            form = project_submit_form(request, project)
+            ok, message = update_commit_action(form, submission)
+            if not ok:
+                if message:
+                    messages.error(request, message, extra_tags="homework")
+                return project_validation_error_response(
+                    request,
+                    course,
+                    project,
+                    form,
+                )
+            messages.success(
+                request,
+                "Commit updated to the latest commit on GitHub.",
+                extra_tags="homework",
+            )
+            return redirect(
+                "cohort_project",
+                **canonical_cohort_url_kwargs(course),
+                project_slug=project.slug,
+            )
 
     return save_project_submission_response(
         request,

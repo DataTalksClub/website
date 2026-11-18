@@ -1008,6 +1008,41 @@ def generate_document() -> dict[str, Any]:
                 },
                 "LaunchCommand": launch_command_schema(),
                 "LaunchResult": {"type": "object"},
+                "CoursePeerReviewsResponse": {
+                    "type": "object",
+                    "required": ["course_id", "course", "course_title", "projects"],
+                    "properties": {
+                        "course_id": {"type": "integer"},
+                        "course": {"type": "string"},
+                        "course_title": {"type": "string"},
+                        "projects": {"type": "array", "items": {"type": "object"}},
+                    },
+                },
+                "CoursePeerReviewAssignmentsRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "cohort": {"type": "string"},
+                        "project": {"type": "string"},
+                    },
+                },
+                "CoursePeerReviewAssignmentsResponse": {
+                    "type": "object",
+                    "required": [
+                        "course_id",
+                        "course",
+                        "batched",
+                        "reviews_assigned",
+                        "projects",
+                    ],
+                    "properties": {
+                        "course_id": {"type": "integer"},
+                        "course": {"type": "string"},
+                        "batched": {"type": "integer"},
+                        "reviews_assigned": {"type": "integer"},
+                        "projects": {"type": "array", "items": {"type": "object"}},
+                    },
+                },
                 "APIError": _error_schema(),
             },
         },

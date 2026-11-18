@@ -3,7 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from slack_access import admin_api as slack_api
 
-from . import event_views, launch_views, views
+from . import event_views, launch_views, peer_review_views, views
 
 
 @csrf_exempt
@@ -323,6 +323,16 @@ urlpatterns = [
         "events/<int:event_id>/qna/cohosts/<str:invite_id>",
         views.event_qna_cohost_revoke,
         name="admin-event-qna-cohost-revoke",
+    ),
+    path(
+        "courses/<slug:slug>/peer-reviews",
+        csrf_exempt(peer_review_views.course_peer_reviews),
+        name="admin-course-peer-reviews",
+    ),
+    path(
+        "courses/<slug:slug>/peer-reviews/assignments",
+        csrf_exempt(peer_review_views.course_peer_review_assignments),
+        name="admin-course-peer-review-assignments",
     ),
     path(
         "credentials/<uuid:credential_id>/rotate",

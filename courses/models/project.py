@@ -83,6 +83,7 @@ class Project(TimingOwner, models.Model):
         choices=PROJECT_STATE_CHOICES,
         default=ProjectState.COLLECTING_SUBMISSIONS.value,
     )
+    evaluation_criteria = models.JSONField(default=list, blank=True)
 
     def __str__(self):
         return self.title
@@ -377,6 +378,7 @@ class PeerReview(models.Model):
         choices=PEER_REVIEW_STATE_CHOICES,
         default=PeerReviewState.TO_REVIEW.value,
     )
+    criteria_scores = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         return f"Peer review {self.id}, state={self.state}"

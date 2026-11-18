@@ -85,6 +85,8 @@ class ProjectSubmissionForm(BaseProjectSubmissionForm):
         submission=None,
         enrollment=None,
         user=None,
+        resolve_commit: bool = False,
+        auth_headers=None,
         **kwargs,
     ):
         super().__init__(
@@ -96,6 +98,8 @@ class ProjectSubmissionForm(BaseProjectSubmissionForm):
             # Certificates are issued on this site, so the shared certificate
             # name field always renders; the site setting stays unset.
             certificate_name_field=True,
+            resolve_commit=resolve_commit,
+            auth_headers=auth_headers,
             **kwargs,
         )
         if not project.faq_contribution_field:
@@ -139,7 +143,12 @@ class ProjectSubmissionForm(BaseProjectSubmissionForm):
                 )
                 created = True
             submission.github_link = data["github_link"]
-            submission.commit_id = data.get("commit_id", "")
+            if self.resolved_commit:
+                submission.commit_id = self.resolved_commit
+            elif self.clear_commit:
+                submission.commit_id = ""
+            else:
+                submission.commit_id = data.get("commit_id", "")
             if "learning_in_public_links" in self.fields:
                 submission.learning_in_public_links = data.get("learning_in_public_links") or []
             if "time_spent" in self.fields:
@@ -195,7 +204,15 @@ def learner_profile_certificate_name(enrollment: Enrollment) -> str:
     return enrollment.display_name
 
 
-def build_project_submission_form(project, *, user, data=None, enrollment=None):
+def build_project_submission_form(
+    project,
+    *,
+    user,
+    data=None,
+    enrollment=None,
+    resolve_commit: bool = False,
+    auth_headers=None,
+):
     """The adapter form for the viewer's own submission.
 
     The enrollment is looked up without creating it: the save path creates a
@@ -223,4 +240,6 @@ def build_project_submission_form(project, *, user, data=None, enrollment=None):
         submission=submission,
         enrollment=enrollment,
         user=user,
+        resolve_commit=resolve_commit,
+        auth_headers=auth_headers,
     )

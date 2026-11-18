@@ -123,7 +123,13 @@
     </div>
     <div class="spec">
       <dt class="mono-label">commit</dt>
-      <dd><code class="mono-code">{{ submission.commit_id }}</code></dd>
+      <dd>
+        {% if commit_url %}
+          <a class="band-link" href="{{ commit_url }}" target="_blank" rel="noopener noreferrer"><code class="mono-code">{{ submission.commit_id }}</code></a>
+        {% else %}
+          <code class="mono-code">{{ submission.commit_id }}</code>
+        {% endif %}
+      </dd>
     </div>
   </dl>
   <p class="project-note">
@@ -205,30 +211,60 @@
     <form method="post" class="needs-validation cmp-form review-form submission-form" novalidate>
       {% csrf_token %}
       <div class="cmp-form-fields">
-        {% for criteria, response in criteria_response_pairs %}
-          <fieldset class="criteria-question">
-            <legend>{{ forloop.counter }}. {{ criteria.description }}</legend>
-            <div class="criteria-options">
-              {% for option in criteria.options %}
-                <div class="form-check">
-                  <input
-                    class="form-check-input"
-                    id="radio-{{ criteria.id }}-{{ option.index }}"
-                    type="{% if criteria.review_criteria_type == 'RB' %}radio{% else %}checkbox{% endif %}"
-                    name="answer_{{ criteria.id }}"
-                    value="{{ option.index }}"
-                    {% if option.is_selected %}checked{% endif %}
-                    {% if disabled %}disabled{% endif %}
-                  />
-                  <label class="form-check-label" for="radio-{{ criteria.id }}-{{ option.index }}">
-                    {{ option.criteria }}
-                    <span class="mono-note">({{ option.score }} {{ option.score|pluralize:"point,points" }})</span>
-                  </label>
-                </div>
-              {% endfor %}
-            </div>
-          </fieldset>
-        {% endfor %}
+        {% if evaluation_form %}
+          {% for row in evaluation_form.rows %}
+            <fieldset class="criteria-question">
+              <legend>{{ row.number }}. {{ row.title }}{% if row.is_bonus %} <span class="mono-note">(bonus)</span>{% endif %}</legend>
+              {% if row.description %}
+                <p class="field-hint">{{ row.description }}</p>
+              {% endif %}
+              <div class="criteria-options">
+                {% for option in row.options %}
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      id="criterion-{{ row.id }}-{{ option.index }}"
+                      type="{{ row.input_type }}"
+                      name="{{ row.input_name }}"
+                      value="{{ option.index }}"
+                      {% if option.checked %}checked{% endif %}
+                      {% if option.readonly %}disabled{% endif %}
+                    />
+                    <label class="form-check-label" for="criterion-{{ row.id }}-{{ option.index }}">
+                      {{ option.text }}
+                      <span class="mono-note">({{ option.points_label }})</span>
+                    </label>
+                  </div>
+                {% endfor %}
+              </div>
+            </fieldset>
+          {% endfor %}
+        {% else %}
+          {% for criteria, response in criteria_response_pairs %}
+            <fieldset class="criteria-question">
+              <legend>{{ forloop.counter }}. {{ criteria.description }}</legend>
+              <div class="criteria-options">
+                {% for option in criteria.options %}
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      id="radio-{{ criteria.id }}-{{ option.index }}"
+                      type="{% if criteria.review_criteria_type == 'RB' %}radio{% else %}checkbox{% endif %}"
+                      name="answer_{{ criteria.id }}"
+                      value="{{ option.index }}"
+                      {% if option.is_selected %}checked{% endif %}
+                      {% if disabled %}disabled{% endif %}
+                    />
+                    <label class="form-check-label" for="radio-{{ criteria.id }}-{{ option.index }}">
+                      {{ option.criteria }}
+                      <span class="mono-note">({{ option.score }} {{ option.score|pluralize:"point,points" }})</span>
+                    </label>
+                  </div>
+                {% endfor %}
+              </div>
+            </fieldset>
+          {% endfor %}
+        {% endif %}
       </div>
       <div class="field">
         <label class="field-label" for="note_to_peer">Review comments</label>
