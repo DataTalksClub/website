@@ -1,13 +1,13 @@
 """Integration tests for community-base v0.5.38 peer-review, criteria sets & submission wiring."""
 
+import subprocess
+import tempfile
+import uuid
 from datetime import timedelta
 from io import StringIO
 from pathlib import Path
-import subprocess
-import tempfile
 from typing import Any
 from unittest.mock import patch
-import uuid
 
 from community_base.content_sync.models import ContentSource, SyncStatus
 from community_base.content_sync.orchestration import sync_content_source
@@ -497,7 +497,7 @@ class CommunityBasePeerReviewIntegrationTests(TestCase):
                 cohort=self.cohort.identifier,
             )
 
-        # End-to-end eval, save, results, and scoring via project.criteria_set (no inline evaluation_criteria).
+        # End-to-end eval, save, results, and scoring via project.criteria_set.
         p1.state = ProjectState.PEER_REVIEWING.value
         p1.number_of_peers_to_evaluate = 1
         p1.save(update_fields=["state", "number_of_peers_to_evaluate"])
