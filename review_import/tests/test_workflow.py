@@ -398,6 +398,7 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "points_for_peer_review": 3,
             "time_spent_evaluation_field": 1,
             "state": "CS",
+            "evaluation_criteria": "[]",
         },
     )
     _insert(
