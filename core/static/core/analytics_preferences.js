@@ -189,6 +189,7 @@
     function closePreferences() {
       if (dialog.open) {
         dialog.close();
+        reserveBannerSpace();
       }
     }
 
@@ -201,6 +202,7 @@
       lastOpener = opener;
       restoreFocus = true;
       dialog.showModal();
+      reserveBannerSpace();
       var currentChoice = dialog.querySelector(
         readChoice() === ALLOWED_VALUE
           ? '[data-analytics-consent="allow"]'
