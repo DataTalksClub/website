@@ -13,6 +13,7 @@ from courses.models.project import (
     Project,
     ProjectState,
     ReviewCriteria,
+    project_yaml_criteria,
 )
 from courses.votes import (
     PROJECT_VOTES_PER_PROJECT,
@@ -86,7 +87,7 @@ def project_eval_review_context(
 ):
     accepting_submissions = project_eval_accepting_submissions(project)
     disabled = not accepting_submissions
-    yaml_criteria = getattr(project, "evaluation_criteria", None) or []
+    yaml_criteria = project_yaml_criteria(project)
     if yaml_criteria:
         criteria_response_pairs = []
         yaml_form = evaluation_form(

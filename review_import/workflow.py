@@ -111,6 +111,7 @@ NULLABLE_COLUMNS = frozenset(
         "answer_type",
         "possible_answers",
         "correct_answer",
+        "criteria_set_id",
     }
 )
 QUESTION_TYPES = frozenset({"MC", "FF", "FL", "CB"})

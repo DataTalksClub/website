@@ -8,7 +8,7 @@ from community_base.coursework.project_state import (
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Q
 
-from courses.models.project import Project
+from courses.models.project import Project, ProjectState, project_yaml_criteria
 
 
 def move_project(
@@ -33,7 +33,14 @@ def move_project(
         )
     project = matches[0]
     try:
-        previous = set_project_state(project, parse_state(state))
+        target_state = parse_state(state)
+        if (
+            target_state.value == ProjectState.PEER_REVIEWING.value
+            and not project_yaml_criteria(project)
+            and not project.criteria_for_project()
+        ):
+            raise CommandError(f'Project "{project.slug}" has no review criteria set assigned.')
+        previous = set_project_state(project, target_state)
     except ProjectStateError as error:
         raise CommandError(str(error)) from error
     return project, previous

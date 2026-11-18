@@ -4,6 +4,10 @@ import statistics
 from enum import Enum
 
 from community_base.coursework import stat_display as display
+from community_base.coursework.project_criteria import (
+    MissingProjectCriteriaError,
+    project_evaluation_criteria,
+)
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
@@ -83,7 +87,23 @@ class Project(TimingOwner, models.Model):
         choices=PROJECT_STATE_CHOICES,
         default=ProjectState.COLLECTING_SUBMISSIONS.value,
     )
+    criteria_set = models.ForeignKey(
+        "cb_coursework.ReviewCriteriaSet",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="dtc_projects",
+        help_text="Standalone reusable review criteria set for this project.",
+    )
     evaluation_criteria = models.JSONField(default=list, blank=True)
+
+    def clean(self):
+        super().clean()
+        has_legacy_criteria = bool(self.pk and self.criteria_assignments.exists())
+        if not self.criteria_set_id and not self.evaluation_criteria and not has_legacy_criteria:
+            raise ValidationError(
+                {"criteria_set": "Every project must reference a review criteria set."}
+            )
 
     def __str__(self):
         return self.title
@@ -103,6 +123,26 @@ class Project(TimingOwner, models.Model):
 
     class Meta:
         unique_together = ("course", "slug")
+
+
+def project_yaml_criteria(project) -> list[dict]:
+    """Return structured YAML criteria from the project's ReviewCriteriaSet or inline criteria."""
+    if project is None:
+        return []
+    criteria_set = getattr(project, "criteria_set", None)
+    if criteria_set is not None and getattr(criteria_set, "criteria", None):
+        return list(criteria_set.criteria)
+    return project_evaluation_criteria(project)
+
+
+def require_project_yaml_criteria(project) -> list[dict]:
+    """Return structured YAML criteria for ``project``, or raise MissingProjectCriteriaError."""
+    criteria = project_yaml_criteria(project)
+    if not criteria:
+        raise MissingProjectCriteriaError(
+            f"Project {project!r} has no review criteria set assigned."
+        )
+    return criteria
 
 
 class ProjectSubmission(models.Model):

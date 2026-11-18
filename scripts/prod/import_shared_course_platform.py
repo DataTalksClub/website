@@ -817,9 +817,10 @@ def _mapping() -> dict[
             "points_for_peer_review": _COPIED,
             "time_spent_evaluation_field": _COPIED,
             "state": _COPIED,
+            "criteria_set": "not copied (DTC standalone ReviewCriteriaSet FK)",
             "evaluation_criteria": _COPIED,
         },
-        written(site.Project, {"course"}) | {"cohort"},
+        written(site.Project, {"course", "criteria_set"}) | {"cohort"},
         # Decision 18: DTC has no pooled review window; deriving one from a past due date
         # would fabricate an operator knob, so the package default (7 days) stands.
         # C5.2m: DTC modules stay site-side and submissions already collect commit IDs.

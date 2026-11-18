@@ -230,8 +230,8 @@ wheels = [
 
 [[package]]
 name = "community-base"
-version = "0.5.37"
-source = { git = "https://github.com/DataTalksClub/community-base?rev=v0.5.37#c58b852e492654efa26987d60e1024ec4abdf7d0" }
+version = "0.5.38"
+source = { git = "https://github.com/DataTalksClub/community-base?rev=v0.5.38#7c05efcb50c117fd5af629b153f27bf71e63c152" }
 dependencies = [
     { name = "apispec" },
     { name = "cryptography" },
@@ -434,7 +434,7 @@ dev = [
 requires-dist = [
     { name = "bleach", specifier = ">=6.2,<7" },
     { name = "boto3", specifier = ">=1.43.33,<2" },
-    { name = "community-base", git = "https://github.com/DataTalksClub/community-base?rev=v0.5.37" },
+    { name = "community-base", git = "https://github.com/DataTalksClub/community-base?rev=v0.5.38" },
     { name = "cryptography", specifier = ">=50,<51" },
     { name = "dj-database-url", specifier = ">=3.0,<4" },
     { name = "django", specifier = ">=6.0,<6.1" },

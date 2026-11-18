@@ -21,6 +21,7 @@ from courses.models.project import (
     ProjectState,
     ReviewCriteria,
     ReviewCriteriaTypes,
+    project_yaml_criteria,
 )
 from courses.views.homework_learning_links import (
     clean_learning_in_public_links,
@@ -108,7 +109,7 @@ def project_eval_post_submission(
     review: PeerReview,
     review_criteria: Iterable[ReviewCriteria],
 ) -> None:
-    yaml_criteria = getattr(project, "evaluation_criteria", None) or []
+    yaml_criteria = project_yaml_criteria(project)
     if yaml_criteria:
         _save_yaml_criteria_review(request, project, review, yaml_criteria)
         return

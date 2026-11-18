@@ -9,6 +9,7 @@ from community_base.coursework.project_results import project_result
 from courses.models.project import (
     Project,
     ProjectSubmission,
+    project_yaml_criteria,
 )
 from courses.project_review_scores import calculate_project_score
 
@@ -106,7 +107,7 @@ def assign_peer_review_scores(submission, project, reviewed) -> int:
 
 
 def score_submission(data):
-    yaml_criteria = getattr(data.project, "evaluation_criteria", None) or []
+    yaml_criteria = project_yaml_criteria(data.project)
     if yaml_criteria:
         settled = settle_completion(data.reviews, yaml_criteria)
         complete_reviews = [r for r in settled if is_review_complete(r)]

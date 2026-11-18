@@ -1,3 +1,4 @@
+from community_base.coursework.models import ReviewCriteriaSet
 from django.contrib import admin, messages
 from unfold.admin import ModelAdmin
 
@@ -88,9 +89,12 @@ class ProjectAdmin(ModelAdmin):
         calculate_statistics_selected_projects,
     ]
 
-    list_display = ["title", "course", "state"]
+    list_display = ["title", "course", "criteria_set", "state"]
     list_filter = ["course__slug"]
+    list_select_related = ("course", "criteria_set")
 
 
 admin.site.register(ReviewCriteria, ModelAdmin)
 admin.site.register(ProjectCriteriaAssignment, ModelAdmin)
+if not admin.site.is_registered(ReviewCriteriaSet):
+    admin.site.register(ReviewCriteriaSet, ModelAdmin)
