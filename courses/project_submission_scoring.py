@@ -1,6 +1,11 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from community_base.coursework.project_criteria import (
+    is_review_complete,
+    settle_completion,
+)
+from community_base.coursework.project_results import project_result
 from courses.models.project import (
     Project,
     ProjectSubmission,
@@ -101,12 +106,20 @@ def assign_peer_review_scores(submission, project, reviewed) -> int:
 
 
 def score_submission(data):
-    project_score, scores = calculate_project_score(
-        submission=data.submission,
-        evaluation_criteria=data.criteria,
-        reviews=data.reviews,
-    )
-    data.submission.project_score = project_score
+    yaml_criteria = getattr(data.project, "evaluation_criteria", None) or []
+    if yaml_criteria:
+        settled = settle_completion(data.reviews, yaml_criteria)
+        complete_reviews = [r for r in settled if is_review_complete(r)]
+        result = project_result(yaml_criteria, complete_reviews)
+        data.submission.project_score = result.total if result is not None else 0
+        scores = []
+    else:
+        project_score, scores = calculate_project_score(
+            submission=data.submission,
+            evaluation_criteria=data.criteria,
+            reviews=data.reviews,
+        )
+        data.submission.project_score = project_score
 
     assign_peer_review_scores(
         data.submission,

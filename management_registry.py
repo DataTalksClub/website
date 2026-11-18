@@ -28,6 +28,7 @@ from core.operational_settings_service import OPERATIONAL_SETTING_CAPABILITIES
 from core.site_settings import SITE_SETTING_CAPABILITIES
 from core.sponsors import SPONSOR_CAPABILITIES
 from courses.launch_capabilities import LAUNCH_CAPABILITIES
+from courses.peer_review_capabilities import PEER_REVIEW_ADMIN_CAPABILITIES
 from event_qna.capabilities import QNA_CAPABILITIES
 from events.admin_capabilities import EVENT_ADMIN_CAPABILITIES
 from events.capabilities import EVENT_IDENTITY_CAPABILITIES
@@ -176,6 +177,7 @@ STUDIO_AUDIT_EXPORT = Capability(
 CAPABILITY_REGISTRY = CapabilityRegistry(
     (
         *LAUNCH_CAPABILITIES,
+        *PEER_REVIEW_ADMIN_CAPABILITIES,
         STUDIO_HOME,
         STUDIO_AUDIT,
         STUDIO_AUDIT_DETAIL,

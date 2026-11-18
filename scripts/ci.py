@@ -185,6 +185,12 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     # format, and typecheck must reach them.
     "courses/services/project_form_adapter.py",
     "courses/tests/test_project_form_adapter.py",
+    # Community-base PR #422 peer-review, management commands, and staff API wiring.
+    "courses/management/commands/close_peer_review.py",
+    "courses/management/commands/set_project_state.py",
+    "courses/peer_review_capabilities.py",
+    "courses/services/peer_review_admin.py",
+    "courses/tests/test_cb_peer_review_integration.py",
     # 460: the live enrollment service that owns the confirmation mail, and
     # its submission-path tests, are new integration code.
     "courses/services/enrollment.py",

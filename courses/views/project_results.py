@@ -1,5 +1,12 @@
 from collections import defaultdict
 
+from community_base.coursework.github_commit import github_commit_url
+from community_base.coursework.peer_pseudonym import peer_pseudonym
+from community_base.coursework.project_criteria import (
+    is_review_complete,
+    settle_completion,
+)
+from community_base.coursework.project_results import project_result
 from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404, render
 
@@ -125,14 +132,43 @@ def _project_results_context(course, project, user):
             "feedback": [],
             "is_authenticated": True,
         }
-    scores = _project_results_scores(submission)
+    yaml_criteria = getattr(project, "evaluation_criteria", None) or []
+    yaml_result = None
+    if yaml_criteria:
+        submitted_reviews = list(
+            PeerReview.objects.filter(
+                submission_under_evaluation=submission,
+                state=PeerReviewState.SUBMITTED.value,
+            )
+        )
+        settled = settle_completion(submitted_reviews, yaml_criteria)
+        complete_reviews = [r for r in settled if is_review_complete(r)]
+        yaml_result = project_result(
+            yaml_criteria,
+            complete_reviews,
+            passing_score=project.points_to_pass,
+            reviewed_enough=submission.reviewed_enough_peers,
+        )
+        scores = []
+    else:
+        scores = _project_results_scores(submission)
     feedback = _project_results_feedback(submission)
+    for review in feedback:
+        review.peer_pseudonym = peer_pseudonym(
+            review.reviewer.student_id,
+            course.pk,
+        )
     return {
         "course": course,
         "course_family": course.course,
         "project": project,
         "submission": submission,
         "scores": scores,
+        "yaml_result": yaml_result,
+        "commit_url": github_commit_url(
+            submission.github_link,
+            submission.commit_id,
+        ),
         "feedback": feedback,
         "is_authenticated": True,
     }
@@ -163,5 +199,5 @@ def _project_results_feedback(submission):
         state=PeerReviewState.SUBMITTED.value,
         note_to_peer__isnull=False,
         note_to_peer__gt="",
-    )
+    ).select_related("reviewer")
     return list(feedback)

@@ -129,3 +129,35 @@ def test_device_login_uses_server_routes() -> None:
     ):
         assert auth._poll_device_flow("https://x", "t") == "tok"
     assert seen == ["/api/auth/device", "/api/auth/device/token"]
+
+
+def test_courses_peer_reviews_and_assign_commands() -> None:
+    runner = CliRunner()
+    fake_client = MagicMock()
+    fake_client.get.return_value = {"course": "ml-zoomcamp", "projects": []}
+    fake_client.post.return_value = {
+        "course": "ml-zoomcamp",
+        "batched": 3,
+        "reviews_assigned": 3,
+        "projects": [],
+    }
+    with patch("dtc_cli.commands.courses.get_client", return_value=fake_client):
+        r1 = runner.invoke(
+            cli,
+            ["courses", "peer-reviews", "ml-zoomcamp", "--cohort", "2026", "--json"],
+        )
+        r2 = runner.invoke(
+            cli,
+            ["courses", "assign-peer-reviews", "ml-zoomcamp", "--project", "capstone", "--json"],
+        )
+    assert r1.exit_code == 0, r1.output
+    assert r2.exit_code == 0, r2.output
+    fake_client.get.assert_called_once_with(
+        "/api/v1/admin/courses/ml-zoomcamp/peer-reviews",
+        params={"cohort": "2026"},
+    )
+    fake_client.post.assert_called_once_with(
+        "/api/v1/admin/courses/ml-zoomcamp/peer-reviews/assignments",
+        json_body={"project": "capstone"},
+    )
+    assert json.loads(r2.output)["reviews_assigned"] == 3

@@ -30,6 +30,7 @@ MANIFEST_PATH = ADOPTION_DIR / "copied-files.tsv"
 EXPECTED_COMMANDS = {
     "account_identity_inventory": "accounts",
     "bootstrap_development_owner": "accounts",
+    "close_peer_review": "courses",
     "import_development_course_content": "courses",
     "import_mail_category_optouts": "courses",
     "learner_duplicate_preflight": "courses",
@@ -40,6 +41,7 @@ EXPECTED_COMMANDS = {
     "seed_local_questions": "courses",
     "seed_local_social_providers": "accounts",
     "send_deadline_reminders": "courses",
+    "set_project_state": "courses",
     "shared_curriculum_inventory": "courses",
     "verify_development_course_content": "courses",
 }

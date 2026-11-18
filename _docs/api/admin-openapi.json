@@ -86,6 +86,74 @@
         ],
         "type": "object"
       },
+      "CoursePeerReviewAssignmentsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "cohort": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CoursePeerReviewAssignmentsResponse": {
+        "properties": {
+          "batched": {
+            "type": "integer"
+          },
+          "course": {
+            "type": "string"
+          },
+          "course_id": {
+            "type": "integer"
+          },
+          "projects": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "reviews_assigned": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "course_id",
+          "course",
+          "batched",
+          "reviews_assigned",
+          "projects"
+        ],
+        "type": "object"
+      },
+      "CoursePeerReviewsResponse": {
+        "properties": {
+          "course": {
+            "type": "string"
+          },
+          "course_id": {
+            "type": "integer"
+          },
+          "course_title": {
+            "type": "string"
+          },
+          "projects": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "course_id",
+          "course",
+          "course_title",
+          "projects"
+        ],
+        "type": "object"
+      },
       "CredentialCreateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -3497,6 +3565,300 @@
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 1
+      }
+    },
+    "/courses/{slug}/peer-reviews": {
+      "get": {
+        "operationId": "admin.courses.peer_reviews.read",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoursePeerReviewsResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "courses.peer_reviews.read"
+            ]
+          }
+        ],
+        "summary": "Read peer-review state, counts, and deadlines for a course",
+        "x-audit-action": "courses.peer_reviews.read",
+        "x-capability-key": "courses.peer_reviews.read",
+        "x-concurrency": "none",
+        "x-django-permission": "courses.view_project",
+        "x-idempotency": "none",
+        "x-rate-class": "read",
+        "x-rate-cost": 1
+      }
+    },
+    "/courses/{slug}/peer-reviews/assignments": {
+      "post": {
+        "operationId": "admin.courses.peer_reviews.assign",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoursePeerReviewAssignmentsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoursePeerReviewAssignmentsResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "courses.peer_reviews.assign"
+            ]
+          }
+        ],
+        "summary": "Create round-robin peer review assignments for a course",
+        "x-audit-action": "courses.peer_reviews.assigned",
+        "x-capability-key": "courses.peer_reviews.assign",
+        "x-concurrency": "none",
+        "x-django-permission": "courses.change_project",
+        "x-idempotency": "optional",
+        "x-rate-class": "write",
+        "x-rate-cost": 5
       }
     },
     "/credentials": {

@@ -2,6 +2,9 @@ import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from community_base.coursework.github_commit import github_commit_url
+from community_base.coursework.peer_pseudonym import peer_pseudonym
+from community_base.coursework.peer_review_form import evaluation_form
 from django.http import HttpRequest
 
 from courses.models.cohort import Cohort, Enrollment
@@ -83,17 +86,31 @@ def project_eval_review_context(
 ):
     accepting_submissions = project_eval_accepting_submissions(project)
     disabled = not accepting_submissions
-    responses_by_criteria_id = project_eval_responses_by_criteria_id(review)
-    criteria_response_pairs = project_eval_criteria_response_pairs(
-        review_criteria,
-        responses_by_criteria_id,
-    )
+    yaml_criteria = getattr(project, "evaluation_criteria", None) or []
+    if yaml_criteria:
+        criteria_response_pairs = []
+        yaml_form = evaluation_form(
+            yaml_criteria,
+            review.criteria_scores or {},
+            readonly=disabled,
+        )
+    else:
+        responses_by_criteria_id = project_eval_responses_by_criteria_id(review)
+        criteria_response_pairs = project_eval_criteria_response_pairs(
+            review_criteria,
+            responses_by_criteria_id,
+        )
+        yaml_form = None
     disable_learning_in_public = project_eval_disable_learning_in_public(
         enrollment
     )
+    submission = review.submission_under_evaluation
 
     context = {
         "criteria_response_pairs": criteria_response_pairs,
+        "evaluation_form": yaml_form,
+        "peer_pseudonym": peer_pseudonym(submission.student_id, project.course_id),
+        "commit_url": github_commit_url(submission.github_link, submission.commit_id),
         "accepting_submissions": accepting_submissions,
         "disabled": disabled,
         "disable_learning_in_public": disable_learning_in_public,
