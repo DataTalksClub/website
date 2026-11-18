@@ -39,9 +39,7 @@ def move_project(
             and not project_yaml_criteria(project)
             and not project.criteria_for_project()
         ):
-            raise CommandError(
-                f'Project "{project.slug}" has no review criteria set assigned.'
-            )
+            raise CommandError(f'Project "{project.slug}" has no review criteria set assigned.')
         previous = set_project_state(project, target_state)
     except ProjectStateError as error:
         raise CommandError(str(error)) from error
