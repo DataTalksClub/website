@@ -104,3 +104,20 @@ def test_escape_dismisses_the_banner_without_choosing(page: Page, live_server) -
     expect(banner).to_be_hidden()
     assert "dtc_analytics_consent" not in {cookie["name"] for cookie in page.context.cookies()}
     assert not page.evaluate("document.documentElement.classList.contains('has-consent-banner')")
+
+
+def test_escape_clears_banner_space_synchronously(page: Page, live_server) -> None:
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto(f"{live_server.url}/terms", wait_until="networkidle")
+    banner = page.get_by_test_id("analytics-preferences-dialog")
+    expect(banner).to_be_visible()
+    state = page.evaluate("""() => {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        const root = document.documentElement;
+        return {
+            open: document.getElementById('analytics-preferences-dialog').open,
+            hasClass: root.classList.contains('has-consent-banner'),
+            space: root.style.getPropertyValue('--consent-banner-space'),
+        };
+    }""")
+    assert state == {"open": False, "hasClass": False, "space": ""}
