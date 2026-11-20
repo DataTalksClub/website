@@ -143,6 +143,7 @@ LAYOUTS: dict[str, dict[str, Any]] = {
                 "description": "text",
                 "zoom_url": "url",
                 "meetup_url": Optional("url"),
+                "hero_time": Optional("text"),
             }
         ],
         "rsvp_published": "bool",

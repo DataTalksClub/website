@@ -37,7 +37,7 @@
   <ul class="academy-hero-sessions">
     {% for session in sessions %}
       <li>
-        <span class="mono-note">{{ session.date_label }}, {{ data.series.hero_time }}</span>
+        <span class="mono-note">{{ session.date_label }}, {{ session.hero_time|default:data.series.hero_time }}</span>
         <span>{{ session.hero_topic }}</span>
       </li>
     {% endfor %}
