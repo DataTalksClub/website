@@ -46,6 +46,15 @@ PLAYWRIGHT_EXCLUSIONS: Final = (
 # These lists used to live in Makefile variables. They are part of the quality
 # gate, so keep them next to the command that consumes them.
 ADOPTION_INTEGRATION_PYTHON: Final = (
+    # Certificates intake aa1a414f: per-course templates and generation.
+    "courses/admin/certificate.py",
+    "courses/certificate_capabilities.py",
+    "courses/certificate_generation_capabilities.py",
+    "courses/models/certificate.py",
+    "courses/services/certificate_template_admin.py",
+    "courses/services/certificates.py",
+    "courses/tests/test_certificate_template_admin.py",
+    "courses/tests/test_certificates.py",
     "courses/registration_jobs.py",
     "courses/services/registration_contacts.py",
     "courses/tests/test_registration_contacts.py",
