@@ -1,0 +1,28 @@
+name: Coolify token check
+
+# Daily guard for the coolify-staging COOLIFY_TOKEN used by
+# deploy-coolify.yml: fails when Coolify rejects the token or when the
+# recorded expiry (COOLIFY_TOKEN_EXPIRES_AT) is within 30 days, so a token
+# expiry or rotation shows up as a red run, not as a broken deploy.
+# Rotation steps: _docs/runbooks/coolify-api-token.md
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    environment: coolify-staging
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Check the Coolify API token and its expiry
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_TOKEN_EXPIRES_AT: ${{ vars.COOLIFY_TOKEN_EXPIRES_AT }}
+        run: python3 -m deploy.coolify_token check --expires-at "${COOLIFY_TOKEN_EXPIRES_AT}" --warn-days 30

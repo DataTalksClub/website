@@ -125,6 +125,13 @@ jobs:
             --sha "$GITHUB_SHA" \
             --timeout-seconds 1800 \
             --interval-seconds 30
+      - name: Check the Coolify API token
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        # An expired or revoked token otherwise surfaces as a bare curl 401
+        # mid-deploy. Fail here with the cause and the rotation runbook.
+        run: python3 -m deploy.coolify_token check
       - name: Point staging at the pushed release
         env:
           COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
