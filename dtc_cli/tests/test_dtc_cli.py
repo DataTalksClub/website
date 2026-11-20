@@ -161,3 +161,33 @@ def test_courses_peer_reviews_and_assign_commands() -> None:
         json_body={"project": "capstone"},
     )
     assert json.loads(r2.output)["reviews_assigned"] == 3
+
+
+def test_certificates_preview_and_issue_commands(tmp_path) -> None:
+    import base64
+
+    runner = CliRunner()
+    fake_client = MagicMock()
+    fake_client.post.side_effect = [
+        {
+            "filename": "preview.pdf",
+            "date": "9 February 2026",
+            "content_base64": base64.b64encode(b"%PDF-x").decode(),
+        },
+        {"executed": False, "graduate_count": 2},
+        {"executed": True, "graduate_count": 2},
+    ]
+    out = tmp_path / "p.pdf"
+    with patch("dtc_cli.commands.certificates.get_client", return_value=fake_client):
+        r1 = runner.invoke(
+            cli, ["certificates", "preview", "c-2026", "--name", "Rick Astley", "--out", str(out)]
+        )
+        r2 = runner.invoke(cli, ["certificates", "issue", "c-2026"])
+        r3 = runner.invoke(cli, ["certificates", "issue", "c-2026", "--yes"])
+    assert r1.exit_code == 0, r1.output
+    assert out.read_bytes() == b"%PDF-x"
+    assert "9 February 2026" in r1.output
+    assert r2.exit_code == 0 and r3.exit_code == 0
+    calls = fake_client.post.call_args_list
+    assert calls[1].kwargs["json_body"] == {}
+    assert calls[2].kwargs["json_body"] == {"confirm": "c-2026"}
