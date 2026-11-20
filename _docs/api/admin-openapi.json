@@ -3533,7 +3533,7 @@
             ]
           }
         ],
-        "summary": "Plan or issue (render, publish to S3, record URL) certificates for a cohort's graduates",
+        "summary": "Plan or issue (render, publish, record URL) certificates for graduates",
         "x-audit-action": "courses.certificate.issued",
         "x-capability-key": "courses.certificate.issue",
         "x-concurrency": "none",
