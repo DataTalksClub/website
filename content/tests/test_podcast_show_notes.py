@@ -271,6 +271,6 @@ class PodcastShowNotesContractTests(TestCase):
         )
         body = self.render_episode(record)
 
-        self.assertIn('id="show-notes-heading"', body)
-        self.assertIn("No show notes are available for this episode.", body)
+        self.assertNotIn('id="show-notes-heading"', body)
+        self.assertNotIn("No show notes are available", body)
         self.assertNotIn('<ul class="episode-resource-list"', body)

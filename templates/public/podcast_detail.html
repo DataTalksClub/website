@@ -654,7 +654,9 @@
       <section class="band band-lavender" aria-label="Episode reading sections">
         <div class="shell episode-shell">
           <nav class="episode-tabs" aria-label="Episode sections">
-            <a class="episode-tab" href="#show-notes">Show Notes</a>
+            {% if episode.links %}
+              <a class="episode-tab" href="#show-notes">Show Notes</a>
+            {% endif %}
             {% if episode.timestamp_entries %}
               <a class="episode-tab" href="#timestamps">Timestamps</a>
             {% endif %}
@@ -663,6 +665,7 @@
             {% endif %}
           </nav>
 
+          {% if episode.links %}
           <section id="show-notes" class="episode-section" aria-labelledby="show-notes-heading">
             <div class="band-head">
               <div>
@@ -670,7 +673,7 @@
                 <p>Links and resources mentioned in this episode.</p>
               </div>
             </div>
-            {% if episode.links %}
+            {% comment %}Empty show notes are hidden, not announced (site feedback 2026-11-19).{% endcomment %}
               <ul class="episode-resource-list" aria-label="Show notes resources">
                 {% for resource in episode.links %}
                   <li>
@@ -689,10 +692,8 @@
                   </li>
                 {% endfor %}
               </ul>
-            {% else %}
-              <p class="episode-empty-state">No show notes are available for this episode.</p>
-            {% endif %}
           </section>
+          {% endif %}
 
           {% if episode.timestamp_entries %}
             <section id="timestamps" class="episode-section" aria-labelledby="timestamps-heading">

@@ -316,8 +316,7 @@ def newsletter(request: HttpRequest) -> HttpResponse:
         "canonical_url": "https://datatalks.club/newsletter",
         "seo_title": "Newsletter — DataTalks.Club",
         "seo_description": (
-            "Subscribe to our weekly newsletter and join our Slack community for events, "
-            "articles, and free courses."
+            "Subscribe to our weekly newsletter for events, articles, and free courses."
         ),
     }
 

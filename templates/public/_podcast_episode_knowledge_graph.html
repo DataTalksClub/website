@@ -6,6 +6,7 @@
   JavaScript; keeping the two surfaces in this partial makes their labels and
   destinations visibly auditable together.
 {% endcomment %}
+{% if episode_graph.state != "no_data" %}
 <section
   class="episode-knowledge-graph band-lavender band"
   aria-labelledby="episode-graph-heading"
@@ -188,10 +189,6 @@
           </li>
         {% endfor %}
       </ol>
-    {% elif episode_graph.state == "no_data" %}
-      <p class="prose-unavailable">
-        No related knowledge-graph connections are available for this episode yet.
-      </p>
     {% else %}
       <p class="prose-unavailable">
         Related knowledge graph is temporarily unavailable.
@@ -199,3 +196,4 @@
     {% endif %}
   </div>
 </section>
+{% endif %}

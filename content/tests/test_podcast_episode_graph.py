@@ -460,10 +460,8 @@ class EpisodeGraphPageTests(TestCase):
         with patch("content.catalogue.wiki_graph", return_value={"nodes": [], "links": []}):
             no_data_response = self.client.get(episode["public_path"])
         self.assertEqual(no_data_response.status_code, 200)
-        self.assertContains(
-            no_data_response,
-            "No related knowledge-graph connections are available for this episode yet.",
-        )
+        self.assertNotContains(no_data_response, "episode-graph-heading")
+        self.assertNotContains(no_data_response, "No related knowledge-graph connections")
 
         with patch(
             "content.public_views.wiki_content.episode_graph",
