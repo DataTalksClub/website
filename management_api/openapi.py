@@ -1008,6 +1008,53 @@ def generate_document() -> dict[str, Any]:
                 },
                 "LaunchCommand": launch_command_schema(),
                 "LaunchResult": {"type": "object"},
+                "CertificateCohortListResponse": {
+                    "type": "object",
+                    "properties": {"items": {"type": "array", "items": {"type": "object"}}},
+                },
+                "CohortCertificatePreviewRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["name"],
+                    "properties": {
+                        "name": {"type": "string"},
+                        "format": {"type": "string", "enum": ["pdf", "png"]},
+                    },
+                },
+                "CohortCertificatePreviewResponse": {
+                    "type": "object",
+                    "properties": {
+                        "cohort": {"type": "string"},
+                        "name": {"type": "string"},
+                        "format": {"type": "string"},
+                        "date": {"type": "string"},
+                        "content_type": {"type": "string"},
+                        "filename": {"type": "string"},
+                        "content_base64": {"type": "string"},
+                    },
+                },
+                "CohortCertificateIssueRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "confirm": {
+                            "type": "string",
+                            "description": "Cohort slug to issue; else a plan only.",
+                        },
+                        "enrollment_ids": {"type": "array", "items": {"type": "integer"}},
+                    },
+                },
+                "CohortCertificateIssueResponse": {
+                    "type": "object",
+                    "properties": {
+                        "cohort": {"type": "string"},
+                        "date": {"type": "string"},
+                        "graduate_count": {"type": "integer"},
+                        "graduates": {"type": "array", "items": {"type": "object"}},
+                        "executed": {"type": "boolean"},
+                        "issued": {"type": "array", "items": {"type": "object"}},
+                    },
+                },
                 "CourseCertificateTemplateRequest": {
                     "type": "object",
                     "additionalProperties": False,

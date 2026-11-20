@@ -119,6 +119,43 @@ course_certificate_template.management_capability_views = {  # type: ignore[attr
 
 
 @csrf_exempt
+def certificate_list(request, *args, **kwargs):
+    return certificate_views.certificate_list(request, *args, **kwargs)
+
+
+certificate_list.management_capability_keys = ("courses.certificate.list",)  # type: ignore[attr-defined]
+certificate_list.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": certificate_views.certificate_list,
+}
+
+
+@csrf_exempt
+def cohort_certificate_preview(request, *args, **kwargs):
+    return certificate_views.cohort_certificate_preview(request, *args, **kwargs)
+
+
+cohort_certificate_preview.management_capability_keys = (  # type: ignore[attr-defined]
+    "courses.certificate.preview",
+)
+cohort_certificate_preview.management_capability_views = {  # type: ignore[attr-defined]
+    "POST": certificate_views.cohort_certificate_preview,
+}
+
+
+@csrf_exempt
+def cohort_certificate_issue(request, *args, **kwargs):
+    return certificate_views.cohort_certificate_issue(request, *args, **kwargs)
+
+
+cohort_certificate_issue.management_capability_keys = (  # type: ignore[attr-defined]
+    "courses.certificate.issue",
+)
+cohort_certificate_issue.management_capability_views = {  # type: ignore[attr-defined]
+    "POST": certificate_views.cohort_certificate_issue,
+}
+
+
+@csrf_exempt
 def site_navigation_collection(request, *args, **kwargs):
     if request.method in {"GET", "HEAD"}:
         return views.site_navigation_read(request, *args, **kwargs)
@@ -355,6 +392,17 @@ urlpatterns = [
         "courses/<slug:slug>/certificate-template",
         course_certificate_template,
         name="admin-course-certificate-template",
+    ),
+    path("certificates", certificate_list, name="admin-certificate-list"),
+    path(
+        "cohorts/<slug:slug>/certificates/preview",
+        cohort_certificate_preview,
+        name="admin-cohort-certificate-preview",
+    ),
+    path(
+        "cohorts/<slug:slug>/certificates/issue",
+        cohort_certificate_issue,
+        name="admin-cohort-certificate-issue",
     ),
     path(
         "credentials/<uuid:credential_id>/rotate",

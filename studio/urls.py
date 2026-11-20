@@ -48,6 +48,17 @@ urlpatterns = [
     path("audit/", views.audit_list, name="audit-list"),
     path("audit/export/", views.audit_export, name="audit-export"),
     path("audit/<uuid:event_id>/", views.audit_detail, name="audit-detail"),
+    path("certificates/", certificate_views.certificates_page, name="certificates"),
+    path(
+        "certificates/<slug:slug>/preview/",
+        certificate_views.cohort_certificate_preview,
+        name="cohort-certificate-preview",
+    ),
+    path(
+        "certificates/<slug:slug>/issue/",
+        certificate_views.cohort_certificate_issue,
+        name="cohort-certificate-issue",
+    ),
     path(
         "courses/<slug:slug>/certificate-template/",
         certificate_views.course_certificate_template,

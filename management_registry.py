@@ -28,6 +28,7 @@ from core.operational_settings_service import OPERATIONAL_SETTING_CAPABILITIES
 from core.site_settings import SITE_SETTING_CAPABILITIES
 from core.sponsors import SPONSOR_CAPABILITIES
 from courses.certificate_capabilities import CERTIFICATE_TEMPLATE_CAPABILITIES
+from courses.certificate_generation_capabilities import CERTIFICATE_GENERATION_CAPABILITIES
 from courses.launch_capabilities import LAUNCH_CAPABILITIES
 from courses.peer_review_capabilities import PEER_REVIEW_ADMIN_CAPABILITIES
 from event_qna.capabilities import QNA_CAPABILITIES
@@ -180,6 +181,7 @@ CAPABILITY_REGISTRY = CapabilityRegistry(
         *LAUNCH_CAPABILITIES,
         *PEER_REVIEW_ADMIN_CAPABILITIES,
         *CERTIFICATE_TEMPLATE_CAPABILITIES,
+        *CERTIFICATE_GENERATION_CAPABILITIES,
         STUDIO_HOME,
         STUDIO_AUDIT,
         STUDIO_AUDIT_DETAIL,
