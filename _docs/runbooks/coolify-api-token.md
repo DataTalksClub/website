@@ -19,8 +19,8 @@ The original shared token `agent-setup-2026-10-22` was created with a 30-day
 expiry. It expired at 2026-11-20 22:12:50 UTC. The next website deploy (run
 44830025858) failed at "Point staging at the pushed release" with a bare
 `curl: (22) ... 401`. The production rolling follower and the CMP release
-poller on Hetzner used the same token and failed from 22:13 UTC. Nothing had revoked it; it just expired, and no check
-looked at the expiry.
+poller on Hetzner used the same token and failed from 22:13 UTC. Nothing
+had revoked it; it just expired, and no check looked at the expiry.
 
 ## Guards
 
