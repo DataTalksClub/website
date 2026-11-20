@@ -13,6 +13,7 @@ import base64
 import hashlib
 import io
 from dataclasses import dataclass
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import requests
@@ -126,12 +127,12 @@ def graduates(cohort: Cohort) -> list[Graduate]:
     return result
 
 
-def render(template: CertificateTemplate, fmt: str, spec: dict) -> bytes:
+def render(template: CertificateTemplate, fmt: str, spec: dict[str, Any]) -> bytes:
     if not settings.BANNER_GENERATOR_URL:
         raise CertificateError(
             "renderer_not_configured", "BANNER_GENERATOR_URL is not configured.", 503
         )
-    payload = {
+    payload: dict[str, Any] = {
         "template": template.banner_template,
         "size": template.banner_size,
         "width": CERT_WIDTH,
@@ -187,7 +188,7 @@ def preview_certificate(cohort: Cohort, name: str, fmt: str = "pdf") -> bytes:
 
 
 def _s3_client(template: CertificateTemplate):
-    import boto3
+    import boto3  # type: ignore[import-untyped]
 
     kwargs = {"region_name": settings.CERTIFICATE_AWS_REGION}
     if settings.CERTIFICATE_AWS_ACCESS_KEY_ID:
@@ -250,7 +251,7 @@ def write_urls_to_cmp(cohort: Cohort, issued: list[dict], *, session=None) -> in
     return len(issued)
 
 
-# -- capability services (Studio button, admin API / dtc CLI) ---------------------------------------
+# -- capability services (Studio button, admin API / dtc CLI) ---------------------------
 
 
 def _cohort(slug: str) -> Cohort:
@@ -294,7 +295,11 @@ def issue_service(payload: dict, *, cohort_slug: str, context=None) -> dict:
         "date": date,
         "graduate_count": len(people),
         "graduates": [
-            {"enrollment_id": p.enrollment_id, "name": p.name, "url": certificate_url(template, cohort, p.certificate_id)}
+            {
+                "enrollment_id": p.enrollment_id,
+                "name": p.name,
+                "url": certificate_url(template, cohort, p.certificate_id),
+            }
             for p in people
         ],
         "executed": False,

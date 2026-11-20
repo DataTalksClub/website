@@ -1,5 +1,5 @@
 from django.contrib import admin
-from unfold.admin import ModelAdmin
+from unfold.admin import ModelAdmin  # type: ignore[import-untyped]
 
 from courses.models.certificate import CertificateTemplate
 

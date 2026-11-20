@@ -1,5 +1,4 @@
-from datetime import datetime, timedelta
-from datetime import timezone as dt_timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import Permission
@@ -23,6 +22,10 @@ def _response(content=b"%PDF-1.7 fake", status=200):
 
 
 class CertificateFixture(TestCase):
+    course: Course
+    cohort: Cohort
+    graduate: Enrollment
+
     @classmethod
     def setUpTestData(cls):
         cls.course = Course.objects.create(slug="ai-dev-tools", title="AI Dev Tools Zoomcamp")
@@ -37,8 +40,8 @@ class CertificateFixture(TestCase):
         CertificateTemplate.objects.create(course=cls.course)
         projects = []
         for slug, due in (
-            ("project1", datetime(2026, 10, 26, 23, tzinfo=dt_timezone.utc)),
-            ("project2", datetime(2026, 11, 16, 23, tzinfo=dt_timezone.utc)),
+            ("project1", datetime(2026, 10, 26, 23, tzinfo=UTC)),
+            ("project2", datetime(2026, 11, 16, 23, tzinfo=UTC)),
         ):
             projects.append(
                 Project.objects.create(

@@ -59,7 +59,7 @@ CERTIFICATE_PREVIEW = Capability(
 
 CERTIFICATE_ISSUE = Capability(
     key="courses.certificate.issue",
-    description="Plan or issue (render, publish to S3, record URL) certificates for a cohort's graduates",
+    description="Plan or issue (render, publish, record URL) certificates for graduates",
     service_kind=ServiceKind.COMMAND,
     service=issue_service,
     django_permission="courses.change_certificatetemplate",

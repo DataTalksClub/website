@@ -47,12 +47,12 @@ class CertificateTemplate(models.Model):
         help_text="Timezone the last project deadline is converted to for the printed date.",
     )
 
+    def __str__(self):
+        return f"Certificate template for {self.course}"
+
     def clean(self):
         super().clean()
         if self.date_timezone not in available_timezones():
             raise ValidationError({"date_timezone": "Unknown timezone."})
         if self.url_base.endswith("/"):
             raise ValidationError({"url_base": "Use an origin without a trailing slash."})
-
-    def __str__(self):
-        return f"Certificate template for {self.course}"

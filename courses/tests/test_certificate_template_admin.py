@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone as dt_timezone
+from datetime import UTC, datetime, timedelta
 
 from django.contrib.auth.models import Permission
 from django.test import TestCase
@@ -14,6 +14,10 @@ from management_auth.tokens import encode_secret, generate_token
 
 
 class CertificateTemplateAdminApiTests(TestCase):
+    course: Course
+    cohort: Cohort
+    headers: dict[str, str]
+
     @classmethod
     def setUpTestData(cls):
         cls.course = Course.objects.create(slug="ai-dev-tools", title="AI Dev Tools Zoomcamp")
@@ -25,8 +29,8 @@ class CertificateTemplateAdminApiTests(TestCase):
             year=2026,
         )
         for slug, due in (
-            ("project1", datetime(2026, 10, 26, 23, tzinfo=dt_timezone.utc)),
-            ("project2", datetime(2026, 11, 16, 23, tzinfo=dt_timezone.utc)),
+            ("project1", datetime(2026, 10, 26, 23, tzinfo=UTC)),
+            ("project2", datetime(2026, 11, 16, 23, tzinfo=UTC)),
         ):
             Project.objects.create(
                 course=cls.cohort,
