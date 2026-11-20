@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import jwt
@@ -20,7 +21,7 @@ from content_sync import ci_trigger
 ROOT = Path(__file__).resolve().parents[2]
 PRIVATE_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 OTHER_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-CONFIG = settings.CONTENT_SYNC_CI
+CONFIG: dict[str, Any] = settings.CONTENT_SYNC_CI
 
 
 def claims(**overrides):
@@ -98,8 +99,10 @@ class CITriggerTests(TestCase):
         }
         for code, bearer in cases.items():
             with self.subTest(code=code):
-                headers = {} if bearer is None else {"HTTP_AUTHORIZATION": f"Bearer {bearer}"}
-                response = self.client.get(self.url, {"source": "dtc-content"}, **headers)
+                if bearer is None:
+                    response = self.client.get(self.url, {"source": "dtc-content"})
+                else:
+                    response = self.get(bearer)
                 self.assertEqual(response.status_code, 401)
                 self.assertEqual(response.json(), {"error": code})
 
