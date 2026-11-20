@@ -1589,7 +1589,31 @@ staged pipeline in `1cd976a4`; issue #427 removed the wrappers. Do not look for 
 and do not confuse the plural course-repository `scripts/content.py checkouts` (§3),
 which never covered this repository.
 
-To bring the served editorial rows up to the source repository, run the sync itself.
+**`DataTalksClub/content` is synchronised automatically by CI/CD.**
+`.github/workflows/content-sync.yml` runs every ten minutes, on manual dispatch (with an
+optional `force` input) and on a `repository_dispatch` of type `content-push`. Each run
+compares the content repository's HEAD with the production source's
+`last_synced_commit`; when they differ it asks production to sync and waits for the
+resulting sync log, failing the run if the sync fails. The endpoint is
+`/api/content-sync/ci/` (`content_sync/ci_trigger.py`): `GET` reports the source state and
+latest sync log, `POST` starts `sync_content_source` in the background (a full sync takes
+about a minute, longer than the CDN waits for an origin response) and answers 202.
+
+There is no shared secret. The workflow presents a GitHub Actions OIDC token for the
+audience in `settings.CONTENT_SYNC_CI`; production verifies it against GitHub's signing
+keys and accepts only this repository (name and immutable id), this workflow file on
+`refs/heads/main`, and the three triggers above. Only the sources listed in
+`CONTENT_SYNC_CI["sources"]` (today `dtc-content`) can be synced this way. The content
+repository has no webhook to production; to re-publish at once after a push, dispatch the
+workflow (`gh workflow run content-sync.yml -R DataTalksClub/website`, add
+`-f force=true` to re-run the parsers at an already synchronised commit). If the web
+process restarts mid-sync, the engine's source lock expires after ten minutes and the next
+scheduled run converges.
+
+The manual commands below remain for the other sources and for break-glass use; they are
+not how `dtc-content` is published.
+
+To bring the served editorial rows up to the source repository by hand, run the sync itself.
 **On production, sync straight from GitHub — no checkout, no `--from-disk`:**
 
 ```bash

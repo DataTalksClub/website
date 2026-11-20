@@ -1,0 +1,124 @@
+name: Content Sync
+
+# Publishes DataTalksClub/content to the production database.  Every run asks
+# production (content_sync/ci_trigger.py) whether the content repository's HEAD
+# is already synchronised and, if not, starts `sync_content_source` for
+# dtc-content there and waits for its sync log.  Production authenticates this
+# workflow with a GitHub Actions OIDC token: there is no shared secret, and only
+# this file on main may call the endpoint.
+#
+# Triggers: a schedule (the content repository has no webhook to us), a manual
+# dispatch (`force` re-runs the parsers at an already synchronised commit), and
+# `repository_dispatch` type `content-push` so a push hook can wake it at once.
+# See _docs/runbooks/data-ingest.md section 10.3.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Re-run the parsers even if HEAD is already synchronised
+        required: true
+        default: false
+        type: boolean
+  repository_dispatch:
+    types: [content-push]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: content-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      ENDPOINT: https://prod.datatalks.club/api/content-sync/ci/
+      AUDIENCE: https://datatalks.club/api/content-sync/ci/
+      SOURCE: dtc-content
+      CONTENT_REPOSITORY: DataTalksClub/content
+      FORCE: ${{ inputs.force == true }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Sync DataTalksClub/content into production
+        run: |
+          set -euo pipefail
+          oidc="$(curl --fail --silent --show-error --max-time 30 \
+            --header "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            --get --data-urlencode "audience=${AUDIENCE}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}" | jq -er .value)"
+          echo "::add-mask::${oidc}"
+
+          state() {
+            curl --fail-with-body --silent --show-error --max-time 30 \
+              --header "Authorization: Bearer ${oidc}" \
+              --get --data-urlencode "source=${SOURCE}" "${ENDPOINT}"
+          }
+
+          head="$(gh api "repos/${CONTENT_REPOSITORY}/commits/HEAD" --jq .sha)"
+          before="$(state)"
+          jq . <<< "$before"
+          if [[ "$(jq -r .enabled <<< "$before")" != true ]]; then
+            echo "::error::Content source ${SOURCE} is disabled in production"
+            exit 1
+          fi
+          synced="$(jq -r .last_synced_commit <<< "$before")"
+          status="$(jq -r .last_sync_status <<< "$before")"
+          if [[ "$FORCE" != true && "$synced" == "$head" && "$status" =~ ^(success|skipped)$ ]]; then
+            echo "${CONTENT_REPOSITORY}@${head} is already synchronised"
+            exit 0
+          fi
+
+          echo "Syncing ${CONTENT_REPOSITORY}@${head} (force=${FORCE})"
+          started="$(curl --fail-with-body --silent --show-error --max-time 30 \
+            --header "Authorization: Bearer ${oidc}" \
+            --header "Content-Type: application/json" \
+            --data "$(jq -cn --arg source "$SOURCE" --argjson force "$FORCE" '{source: $source, force: $force}')" \
+            "${ENDPOINT}")"
+          requested_at="$(jq -er .requested_at <<< "$started")"
+
+          # The OIDC token lives about five minutes; refresh it while polling.
+          for attempt in $(seq 1 90); do
+            sleep 10
+            if (( attempt % 20 == 0 )); then
+              oidc="$(curl --fail --silent --show-error --max-time 30 \
+                --header "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+                --get --data-urlencode "audience=${AUDIENCE}" \
+                "${ACTIONS_ID_TOKEN_REQUEST_URL}" | jq -er .value)"
+              echo "::add-mask::${oidc}"
+            fi
+            current="$(state)" || continue
+            latest="$(jq -c '.latest_sync // {}' <<< "$current")"
+            # ISO-8601 UTC timestamps from the same clock compare as strings.
+            if [[ "$(jq -r '.started_at // ""' <<< "$latest")" < "$requested_at" ]]; then
+              continue
+            fi
+            case "$(jq -r .status <<< "$latest")" in
+              running|queued) continue ;;
+              success)
+                jq . <<< "$current"
+                echo "Synchronised ${CONTENT_REPOSITORY}@$(jq -r .commit <<< "$latest")"
+                exit 0
+                ;;
+              skipped)
+                jq . <<< "$current"
+                if jq -e '.warnings | any(test("already running"))' <<< "$latest" > /dev/null; then
+                  echo "::notice::Another sync of ${SOURCE} is running; the next run converges"
+                fi
+                exit 0
+                ;;
+              *)
+                jq . <<< "$current"
+                echo "::error::Content sync of ${SOURCE} ended $(jq -r .status <<< "$latest")"
+                exit 1
+                ;;
+            esac
+          done
+          echo "::error::Content sync of ${SOURCE} did not finish within 15 minutes"
+          exit 1
