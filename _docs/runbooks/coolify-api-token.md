@@ -8,6 +8,8 @@ token, so one token's expiry or rotation never breaks another repo:
 |----------|--------------------|-----------|---------------|----------------|
 | `DataTalksClub/website` `deploy-coolify.yml` | `gha-website-deploy-<date>` | read, write, deploy | env `coolify-staging` → `COOLIFY_TOKEN` | `coolify.gha-website-deploy` |
 | `DataTalksClub/course-management-platform` `deploy-coolify.yml` | `gha-cmp-deploy-<date>` | read, write, deploy, read:sensitive (reads `docker_compose_raw`) | env `coolify-staging` → `COOLIFY_TOKEN` | `coolify.gha-cmp-deploy` |
+| `DataTalksClub/relay` deploy workflows | `gha-relay-deploy-<date>` | read, write, deploy, read:sensitive | repo and env `coolify-staging` → `COOLIFY_TOKEN` | `coolify.gha-relay-deploy` |
+| Hetzner `coolify-rolling-web` (production follower), `cmp-release-poller`, aisl tools | `hetzner-ops-<date>` | read, write, deploy, read:sensitive, write:sensitive | `~/.secrets/` and `~/tmp/secrets/coolify-api-169.58.119.163.token` on Hetzner | `coolify.hetzner-ops` |
 
 The current tokens were minted on 2026-11-21 and expire on 2027-11-20.
 
@@ -16,7 +18,8 @@ The current tokens were minted on 2026-11-21 and expire on 2027-11-20.
 The original shared token `agent-setup-2026-10-22` was created with a 30-day
 expiry. It expired at 2026-11-20 22:12:50 UTC. The next website deploy (run
 44830025858) failed at "Point staging at the pushed release" with a bare
-`curl: (22) ... 401`. Nothing had revoked it; it just expired, and no check
+`curl: (22) ... 401`. The production rolling follower and the CMP release
+poller on Hetzner used the same token and failed from 22:13 UTC. Nothing had revoked it; it just expired, and no check
 looked at the expiry.
 
 ## Guards
@@ -39,6 +42,8 @@ ssh contabo-a "sudo -n docker exec coolify-db psql -U coolify -d coolify -c \
 ```
 
 ## Rotate a token
+
+All four tokens expire on the same day, so rotate them together.
 
 Never print a token. Write it to a mode-600 file, pipe it into the stores, then
 delete the file.
