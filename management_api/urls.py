@@ -3,7 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from slack_access import admin_api as slack_api
 
-from . import event_views, launch_views, peer_review_views, views
+from . import certificate_views, event_views, launch_views, peer_review_views, views
 
 
 @csrf_exempt
@@ -98,6 +98,23 @@ oauth_provider_item.management_capability_keys = (  # type: ignore[attr-defined]
 )
 oauth_provider_item.management_capability_views = {  # type: ignore[attr-defined]
     "PUT": views.oauth_provider_update,
+}
+
+
+@csrf_exempt
+def course_certificate_template(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return certificate_views.course_certificate_template_read(request, *args, **kwargs)
+    return certificate_views.course_certificate_template_write(request, *args, **kwargs)
+
+
+course_certificate_template.management_capability_keys = (  # type: ignore[attr-defined]
+    "courses.certificate_template.read",
+    "courses.certificate_template.write",
+)
+course_certificate_template.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": certificate_views.course_certificate_template_read,
+    "PUT": certificate_views.course_certificate_template_write,
 }
 
 
@@ -333,6 +350,11 @@ urlpatterns = [
         "courses/<slug:slug>/peer-reviews/assignments",
         csrf_exempt(peer_review_views.course_peer_review_assignments),
         name="admin-course-peer-review-assignments",
+    ),
+    path(
+        "courses/<slug:slug>/certificate-template",
+        course_certificate_template,
+        name="admin-course-certificate-template",
     ),
     path(
         "credentials/<uuid:credential_id>/rotate",

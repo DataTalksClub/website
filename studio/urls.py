@@ -3,7 +3,7 @@ from django.urls import path
 from event_qna import studio_views as qna_views
 from slack_access import studio_views as slack_views
 
-from . import event_views, launch_views, peer_review_views, views
+from . import certificate_views, event_views, launch_views, peer_review_views, views
 
 app_name = "studio"
 
@@ -48,6 +48,16 @@ urlpatterns = [
     path("audit/", views.audit_list, name="audit-list"),
     path("audit/export/", views.audit_export, name="audit-export"),
     path("audit/<uuid:event_id>/", views.audit_detail, name="audit-detail"),
+    path(
+        "courses/<slug:slug>/certificate-template/",
+        certificate_views.course_certificate_template,
+        name="course-certificate-template",
+    ),
+    path(
+        "courses/<slug:slug>/certificate-template/write/",
+        certificate_views.course_certificate_template_write,
+        name="course-certificate-template-write",
+    ),
     path(
         "courses/<slug:slug>/peer-reviews/",
         peer_review_views.course_peer_reviews,

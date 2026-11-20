@@ -86,6 +86,77 @@
         ],
         "type": "object"
       },
+      "CourseCertificateTemplateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "banner_size": {
+            "type": "string"
+          },
+          "banner_template": {
+            "type": "string"
+          },
+          "cloudfront_distribution_id": {
+            "type": "string"
+          },
+          "date_timezone": {
+            "type": "string"
+          },
+          "s3_bucket": {
+            "type": "string"
+          },
+          "url_base": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CourseCertificateTemplateResponse": {
+        "properties": {
+          "banner_size": {
+            "type": "string"
+          },
+          "banner_template": {
+            "type": "string"
+          },
+          "cloudfront_distribution_id": {
+            "type": "string"
+          },
+          "cohort": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "course": {
+            "type": "string"
+          },
+          "course_title": {
+            "type": "string"
+          },
+          "date_timezone": {
+            "type": "string"
+          },
+          "last_project_deadline": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "s3_bucket": {
+            "type": "string"
+          },
+          "url_base": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "course",
+          "course_title",
+          "banner_template",
+          "banner_size"
+        ],
+        "type": "object"
+      },
       "CoursePeerReviewAssignmentsRequest": {
         "additionalProperties": false,
         "properties": {
@@ -3565,6 +3636,298 @@
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 1
+      }
+    },
+    "/courses/{slug}/certificate-template": {
+      "get": {
+        "operationId": "admin.courses.certificate_template.read",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseCertificateTemplateResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "courses.certificate_template.read"
+            ]
+          }
+        ],
+        "summary": "Read a course's certificate template and its last project deadline",
+        "x-audit-action": "courses.certificate_template.read",
+        "x-capability-key": "courses.certificate_template.read",
+        "x-concurrency": "none",
+        "x-django-permission": "courses.view_certificatetemplate",
+        "x-idempotency": "none",
+        "x-rate-class": "read",
+        "x-rate-cost": 1
+      },
+      "put": {
+        "operationId": "admin.courses.certificate_template.write",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseCertificateTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseCertificateTemplateResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "courses.certificate_template.write"
+            ]
+          }
+        ],
+        "summary": "Create or update a course's certificate template",
+        "x-audit-action": "courses.certificate_template.written",
+        "x-capability-key": "courses.certificate_template.write",
+        "x-concurrency": "none",
+        "x-django-permission": "courses.change_certificatetemplate",
+        "x-idempotency": "optional",
+        "x-rate-class": "write",
+        "x-rate-cost": 2
       }
     },
     "/courses/{slug}/peer-reviews": {

@@ -1,1 +1,1 @@
-from . import course, homework, projects, testimonial, wrapped  # noqa: F401
+from . import certificate, course, homework, projects, testimonial, wrapped  # noqa: F401
