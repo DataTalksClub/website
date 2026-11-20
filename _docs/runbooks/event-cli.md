@@ -1,6 +1,6 @@
 # Event management CLI (`dtc`) — Operator & Orin reference
 
-Status: **live** (mirrors AI Shipping Labs `asl` CLI). Replaces Luma and `_data/events.yaml` for DataTalks.Club events.
+Status: **live** (mirrors AI Shipping Labs `asl` CLI). During the transition, new live event listings are created on both Luma and the DTC site with `dtc events create` on prod.datatalks.club. `_data/events.yaml` is no longer the path for new live event listings. Luma is removed from the process only when Alexey says the migration is complete.
 
 This document answers all 10 open questions in `bots-management/agents/contracts/orin/dtc-website-events.md`.
 
@@ -160,11 +160,11 @@ This document answers all 10 open questions in `bots-management/agents/contracts
 
 ---
 
-## 9. Existing Luma events (podcasts 24 Nov–2 Dec, etc.)
+## 9. Existing Luma events and new listings
 
-- Already-published Luma event links stay valid on Luma until those events happen — do **not** delete or break them.
+- Already-published Luma event links stay valid on Luma until those events happen. Do not delete or break them.
 - Historical Luma events and past registrations are imported by Developer using `scripts/prod/import_events.py` and `scripts/prod/import_event_registrants.py`.
-- From 15 Nov 2026 onward, **no new Luma events are created**; all new events are created on `prod.datatalks.club` via `dtc events create`.
+- During the transition, every new public DataTalks.Club live event (podcast, webinar, workshop, and other live events) is created on both Luma and the DTC site. The DTC site listing is created on `prod.datatalks.club` with `dtc events create`. If the DTC site step is blocked, still publish the event on Luma and add the site listing as soon as it works. Luma is removed from the process only when Alexey says the migration is complete.
 
 ---
 
