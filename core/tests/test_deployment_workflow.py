@@ -200,8 +200,9 @@ STUDIO_COURSES_PYPROJECT_SHA256 = "27ab4c182b3a21d2dd79fcb885e338b6ac6ee8a40df45
 # Community-base v0.5.35 adopts the immutable template version selection
 # (2ec90c67); the reviewed lock seal tracks the entry and pin reference bytes.
 # Intake 623a5c59 drops python-json-logger and tqdm from the lock.
+# Certificates intake aa1a414f adds segno (QR codes) to pyproject and the lock.
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "cae9bc7383f040ec3c603160b5254401b505dd4e9c1cd1e97459ba8cdbe73c98"
+    "3868e17e872d3c62a631702f763e54c96ae74354ebfe2e68beffa621588743d3"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
