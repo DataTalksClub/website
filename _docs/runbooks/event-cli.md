@@ -27,6 +27,26 @@ This document answers all 10 open questions in `bots-management/agents/contracts
   ```
   Environment overrides: `DTC_URL`, `DTC_TOKEN`, `DTC_PROFILE_PATH`.
 
+- **Orin on production (service token):** browser device approval needs a staff
+  sign-in, and production currently has no Google/GitHub/Slack `SocialApp` rows
+  (they were deliberately not imported at the Coolify cutover and have not been
+  configured since). Orin therefore signs in with a scoped service token kept in
+  the dataops secrets store, never with a personal login:
+  ```bash
+  dataops secrets get website-production.orin-dtc-token --field token \
+    | dtc login --url https://prod.datatalks.club --token-stdin
+  dtc whoami                         # health.status must be "ok"
+  dtc events list --upcoming
+  ```
+  The secret `website-production.orin-dtc-token` holds the fields `token`, `url`,
+  `principal_id`, `credential_id`, `expires_at` and `scopes`. The token belongs to
+  the service principal `service:orin-events-publisher` and carries only
+  `studio.home.read` plus the `events.manage.{list,detail,create,update,publish,banner}`
+  and `events.manage.speakers.{list,create}` scopes. Registrant export,
+  attendance import, messaging, cancel and complete are outside its scope and
+  return `permission_denied`. It expires after 89 days (see `expires_at`); rotate
+  it before then and replace the secret.
+
 - **Event commands** (`<event>` accepts numeric `public_id` e.g. `448`, `slug`, or UUID):
   - **List:** `dtc events list [--status draft|upcoming|in_progress|past|cancelled|archived] [--upcoming] [--past] [--format json|table]`
     `draft`, `cancelled` and `archived` are stored editorial states; `upcoming` (start now or later),
