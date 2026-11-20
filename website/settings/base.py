@@ -605,3 +605,17 @@ ACADEMY_API_ORIGIN = os.getenv(
 # The consent text version the backend records with every signup; it changes only
 # together with the Academy privacy notice.
 ACADEMY_CONSENT_VERSION = "2026-11-13.v1"
+
+# Certificate generation.  Rendering goes through the private Banner Generator
+# (AI-Shipping-Labs/banner-generator Lambda Function URL, bearer token).  Published PDFs/PNGs are
+# written to each course's CertificateTemplate.s3_bucket with the dedicated credentials below
+# (the ``zoomcamp-certificate-publisher`` role/user); blank falls back to the default boto3 chain.
+BANNER_GENERATOR_URL = os.getenv("BANNER_GENERATOR_URL", "").strip()
+BANNER_GENERATOR_TOKEN = os.getenv("BANNER_GENERATOR_TOKEN", "").strip()
+BANNER_GENERATOR_TIMEOUT_SECONDS = float(os.getenv("BANNER_GENERATOR_TIMEOUT_SECONDS", "90"))
+CERTIFICATE_AWS_ACCESS_KEY_ID = os.getenv("CERTIFICATE_AWS_ACCESS_KEY_ID", "").strip()
+CERTIFICATE_AWS_SECRET_ACCESS_KEY = os.getenv("CERTIFICATE_AWS_SECRET_ACCESS_KEY", "").strip()
+CERTIFICATE_AWS_REGION = os.getenv("CERTIFICATE_AWS_REGION", "eu-west-1").strip()
+# Optional write-back of issued URLs to the legacy CMP (courses.datatalks.club); CLI-only.
+CMP_BASE_URL = os.getenv("CMP_BASE_URL", "https://courses.datatalks.club").strip().rstrip("/")
+CMP_STAFF_API_TOKEN = os.getenv("CMP_STAFF_API_TOKEN", "").strip()

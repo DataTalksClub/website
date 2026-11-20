@@ -104,6 +104,7 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
                 "events.manage.registrants.export",
                 "events.qna.read",
                 "site.sponsors.detail",
+                "courses.certificate_template.read",
             }
         ):
             continue

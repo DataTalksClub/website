@@ -1,0 +1,61 @@
+{% extends "studio/base.html" %}
+
+{% block title %}
+  Certificates · Studio · {{ brand_name }}
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">
+      Studio · Courses
+    </p>
+    <h1>
+      Certificates
+    </h1>
+    <p class="admin-lede">
+      Each course has its own certificate template. The date printed on a certificate is the
+      deadline of the cohort's last project. Preview renders a throwaway certificate and publishes
+      nothing; Generate renders, publishes and records the certificate URL for every graduate.
+    </p>
+  </div>
+{% endblock %}
+
+{% block content %}
+  {% if message %}
+    <div class="admin-notice" role="status"><p>{{ message }}</p></div>
+  {% endif %}
+
+  {% for item in items %}
+    <section class="admin-section">
+      <h2>{{ item.title }}</h2>
+      <p>
+        Template: {{ item.banner_template }} · Certificate date: {{ item.date|default:"no project deadline yet" }}
+        · Graduates: {{ item.graduate_count }}
+      </p>
+      <form class="admin-form" method="post" target="_blank"
+            action="{% url 'studio:cohort-certificate-preview' item.cohort %}">
+        {% csrf_token %}
+        <p>
+          <label class="field-label" for="name-{{ item.cohort }}">Preview name</label>
+          <input class="field-input" id="name-{{ item.cohort }}" name="name" value="Rick Astley" required>
+        </p>
+        <input type="hidden" name="format" value="pdf">
+        <button class="button" type="submit">Preview certificate</button>
+      </form>
+      {% if can_issue %}
+        <form class="admin-form" method="post" action="{% url 'studio:cohort-certificate-issue' item.cohort %}">
+          {% csrf_token %}
+          <p>
+            <label class="field-label" for="confirm-{{ item.cohort }}">
+              Type <strong>{{ item.cohort }}</strong> to generate {{ item.graduate_count }} real certificates
+            </label>
+            <input class="field-input" id="confirm-{{ item.cohort }}" name="confirm" autocomplete="off">
+          </p>
+          <button class="button" type="submit">Generate certificates</button>
+        </form>
+      {% endif %}
+    </section>
+  {% empty %}
+    <p>No course has a certificate template yet.</p>
+  {% endfor %}
+{% endblock %}

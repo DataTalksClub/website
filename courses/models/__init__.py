@@ -14,6 +14,7 @@ from . import (  # noqa: F401
     testimonial,
     wrapped,
 )
+from .certificate import CertificateTemplate
 from .cmp_import import (
     CmpHistoryClaim,
     CmpHistoryImportBinding,
@@ -91,6 +92,7 @@ User = get_user_model()
 __all__ = (
     "Answer",
     "AnswerTypes",
+    "CertificateTemplate",
     "CmpHistoryClaim",
     "CmpHistoryImportBinding",
     "CmpHistoryImportProgress",

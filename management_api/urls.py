@@ -3,7 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from slack_access import admin_api as slack_api
 
-from . import event_views, launch_views, peer_review_views, views
+from . import certificate_views, event_views, launch_views, peer_review_views, views
 
 
 @csrf_exempt
@@ -98,6 +98,60 @@ oauth_provider_item.management_capability_keys = (  # type: ignore[attr-defined]
 )
 oauth_provider_item.management_capability_views = {  # type: ignore[attr-defined]
     "PUT": views.oauth_provider_update,
+}
+
+
+@csrf_exempt
+def course_certificate_template(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return certificate_views.course_certificate_template_read(request, *args, **kwargs)
+    return certificate_views.course_certificate_template_write(request, *args, **kwargs)
+
+
+course_certificate_template.management_capability_keys = (  # type: ignore[attr-defined]
+    "courses.certificate_template.read",
+    "courses.certificate_template.write",
+)
+course_certificate_template.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": certificate_views.course_certificate_template_read,
+    "PUT": certificate_views.course_certificate_template_write,
+}
+
+
+@csrf_exempt
+def certificate_list(request, *args, **kwargs):
+    return certificate_views.certificate_list(request, *args, **kwargs)
+
+
+certificate_list.management_capability_keys = ("courses.certificate.list",)  # type: ignore[attr-defined]
+certificate_list.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": certificate_views.certificate_list,
+}
+
+
+@csrf_exempt
+def cohort_certificate_preview(request, *args, **kwargs):
+    return certificate_views.cohort_certificate_preview(request, *args, **kwargs)
+
+
+cohort_certificate_preview.management_capability_keys = (  # type: ignore[attr-defined]
+    "courses.certificate.preview",
+)
+cohort_certificate_preview.management_capability_views = {  # type: ignore[attr-defined]
+    "POST": certificate_views.cohort_certificate_preview,
+}
+
+
+@csrf_exempt
+def cohort_certificate_issue(request, *args, **kwargs):
+    return certificate_views.cohort_certificate_issue(request, *args, **kwargs)
+
+
+cohort_certificate_issue.management_capability_keys = (  # type: ignore[attr-defined]
+    "courses.certificate.issue",
+)
+cohort_certificate_issue.management_capability_views = {  # type: ignore[attr-defined]
+    "POST": certificate_views.cohort_certificate_issue,
 }
 
 
@@ -333,6 +387,22 @@ urlpatterns = [
         "courses/<slug:slug>/peer-reviews/assignments",
         csrf_exempt(peer_review_views.course_peer_review_assignments),
         name="admin-course-peer-review-assignments",
+    ),
+    path(
+        "courses/<slug:slug>/certificate-template",
+        course_certificate_template,
+        name="admin-course-certificate-template",
+    ),
+    path("certificates", certificate_list, name="admin-certificate-list"),
+    path(
+        "cohorts/<slug:slug>/certificates/preview",
+        cohort_certificate_preview,
+        name="admin-cohort-certificate-preview",
+    ),
+    path(
+        "cohorts/<slug:slug>/certificates/issue",
+        cohort_certificate_issue,
+        name="admin-cohort-certificate-issue",
     ),
     path(
         "credentials/<uuid:credential_id>/rotate",
