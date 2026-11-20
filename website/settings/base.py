@@ -472,6 +472,21 @@ CSRF_COOKIE_HTTPONLY = False
 
 CONTENT_SYNC_MAX_ARCHIVE_BYTES = 400_000_000
 
+# Automated editorial sync (content_sync/ci_trigger.py). The caller proves its
+# identity with a GitHub Actions OIDC token, so there is no shared secret: only
+# the content-sync workflow on this repository's main branch, identified by the
+# immutable repository id as well as its name, may read the sync state or run a
+# sync. See _docs/runbooks/data-ingest.md section 10.3.
+CONTENT_SYNC_CI = {
+    "audience": "https://datatalks.club/api/content-sync/ci/",
+    "repository": "DataTalksClub/website",
+    "repository_id": 1326548167,
+    "workflow_path": ".github/workflows/content-sync.yml",
+    "ref": "refs/heads/main",
+    "events": ("schedule", "workflow_dispatch", "repository_dispatch"),
+    "sources": ("dtc-content",),
+}
+
 # community-base kernel declarations (D0.1a). JOBS_BACKEND and MAIL_BACKEND name
 # the intended Relay direction but install nothing: no Relay contact, no jobs or
 # mail adoption, and no credentials. Settings writers stay site-owned until the

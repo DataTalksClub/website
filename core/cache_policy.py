@@ -188,6 +188,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "api.views.course_repository_webhooks.github_course_repository_webhook": OPERATIONAL,
     "api.views.health.health_view": OPERATIONAL,
     "community_base.content_sync.webhooks.github_webhook": OPERATIONAL,
+    "content_sync.ci_trigger.content_sync": OPERATIONAL,
     "community_base.jobs.ingress.run_job": OPERATIONAL,
     "community_base.mail.callback_ingress.receive_callback": OPERATIONAL,
     "community_base.mail.views.tracking_click": OPERATIONAL,

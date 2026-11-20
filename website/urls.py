@@ -9,6 +9,7 @@ from accounts.views.impersonation import admin_impersonation_exit
 from cadmin.legacy_urls import legacy_course_list_redirect
 from content import public_views, review_views
 from content.feeds import site_feed
+from content_sync import ci_trigger as content_sync_ci_trigger
 from core import views as core_views
 from courses import urls as course_urls
 from courses.views import course_aliases, course_list, site_project_gallery
@@ -223,6 +224,9 @@ urlpatterns = [
     ),
     # Package content sync GitHub webhook (D2.2a), alongside the site's
     # own /api/webhooks/github route.
+    # Automated editorial sync run by .github/workflows/content-sync.yml
+    # (GitHub Actions OIDC; content_sync/ci_trigger.py).
+    path("api/content-sync/ci/", content_sync_ci_trigger.content_sync, name="content-sync-ci"),
     path("api/content-sync/", include("community_base.content_sync.urls")),
     path("api/", include("api.urls")),
     path(

@@ -35,8 +35,8 @@ Markdown and render through the shared sanitizer.  The images publish through
 the media parser at `/images/academy/...`.
 
 To change Academy copy, edit those files in the content repository; the
-content sync (webhook, or `manage.py sync_content --source dtc-content`)
-publishes the change.  For a local check against a working tree:
+automated content sync (`.github/workflows/content-sync.yml`, every ten minutes
+or on dispatch; see `data-ingest.md` section 10.3) publishes the change.  For a local check against a working tree:
 
 ```sh
 uv run python manage.py sync_content --source dtc-content --from-disk /path/to/content-checkout
