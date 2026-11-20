@@ -861,8 +861,8 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Video unavailable.")
         self.assertContains(response, 'href="https://open.spotify.com/episode/synthetic"')
-        self.assertContains(response, 'id="show-notes-heading"')
-        self.assertContains(response, "No show notes are available for this episode.")
+        self.assertNotContains(response, 'id="show-notes-heading"')
+        self.assertNotContains(response, "No show notes are available")
         for heading_id in ("timestamps-heading", "transcript-heading"):
             self.assertNotIn(f'id="{heading_id}"', body)
         self.assertNotIn('id="podcast-video-player"', body)
