@@ -1,9 +1,8 @@
 {% comment %}
-  Site-wide Academy stripe: a lavender band just above the closing tour band on
-  every shared-shell page, so a visitor finishing any page meets the paid,
-  full-time option next to the free community.  It shows on every page,
-  including the homepage and the tour page, because those are where the
-  question "is there something more intensive?" comes up most.
+  Academy stripe: a lavender band just above the closing tour band, shown only
+  on the homepage and the Courses section -- the places a visitor is choosing
+  how to learn.  On every other page it was noise (owner feedback 2026-11-23);
+  the Academy stays reachable from the primary navigation everywhere.
 
   The destination is a literal path for the same reason as the tour stripe:
   this footer also renders under the compatibility urlconf, which mounts no
@@ -11,7 +10,7 @@
 
   The Academy's own pages leave it out: there it would link a page to itself.
 {% endcomment %}
-{% if primary_navigation_current != "academy" %}
+{% if request.path == "/" or primary_navigation_current == "courses" %}
   <section class="band band-lavender academy-cta-band" aria-labelledby="academy-cta-heading" data-academy-cta>
     <div class="shell academy-cta">
       <div>
