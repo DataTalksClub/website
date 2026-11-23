@@ -80,11 +80,26 @@
          the same page -- owner feedback (2026-09): widen the body to match
          the shell instead of narrowing the title. */
       .article-shell {
-        max-width: var(--content-width);
+        /* The reading column is already a comfortable measure, so the
+           standfirst and the body fill it rather than stopping 4rem short
+           of the title's edge (owner feedback 2026-11-23). */
+        --measure: 100%;
+        max-width: var(--reading-width);
       }
 
       .article-body.prose-reading {
-        max-width: var(--content-width);
+        max-width: var(--reading-width);
+      }
+
+      /* Inline images (covers, diagrams) are held to a modest height and
+         centred so an illustration never takes over the reading column
+         (owner feedback 2026-11-23: the course-cover robot was too large). */
+      .article-body.prose-reading img {
+        margin-inline: auto;
+        max-height: 20rem;
+        max-width: 100%;
+        object-fit: contain;
+        width: auto;
       }
 
       .article-hero .breadcrumbs {

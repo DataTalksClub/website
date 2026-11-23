@@ -81,6 +81,9 @@ Rules for editing:
         /* Mutation surfaces use a slightly wider measure than long-form prose,
            while still keeping controls comfortable on a large screen. */
         --form-measure: 46rem;
+        /* Long-form reading pages (blog, podcast, wiki) hold a narrower
+           column so lines stay readable -- owner feedback 2026-11-23. */
+        --reading-width: 44rem;
         /* The drawn circle.  Every round mark the pages draw by hand — step
            discs, promise marks, the play disc, module numbers — carries this
            lopsided radius instead of a true 999px circle, so a mark sitting
@@ -519,6 +522,11 @@ Rules for editing:
 
       .masthead {
         background: var(--cream);
+      /* Long-form reading surfaces (wiki hub/search/special pages). */
+      .shell-reading.shell-narrow {
+        max-width: var(--reading-width);
+      }
+
         border-bottom: 2px dashed var(--line-soft);
       }
 

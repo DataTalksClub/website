@@ -104,12 +104,12 @@
       <section class="band band-cream wiki-hero" aria-labelledby="special-heading">
         {% url 'wiki-home' as wiki_home_url %}
         {% if category == 'all' %}
-          {% breadcrumbs "Wiki" wiki_home_url current="Special pages" nav_class="shell shell-reading" %}
+          {% breadcrumbs "Wiki" wiki_home_url current="Special pages" nav_class="shell shell-reading shell-narrow" %}
         {% else %}
           {% url 'wiki-special' as wiki_special_url %}
-          {% breadcrumbs "Wiki" wiki_home_url "Special pages" wiki_special_url current=category|title nav_class="shell shell-reading" %}
+          {% breadcrumbs "Wiki" wiki_home_url "Special pages" wiki_special_url current=category|title nav_class="shell shell-reading shell-narrow" %}
         {% endif %}
-        <div class="shell shell-reading">
+        <div class="shell shell-reading shell-narrow">
           <h1 id="special-heading">Special pages</h1>
           <p class="special-lede">
             Browse the guides, comparisons, roadmaps, transitions, and how-tos in the wiki.
@@ -132,7 +132,7 @@
       </section>
 
       <section class="band band-lavender" aria-labelledby="special-list-heading">
-        <div class="shell shell-reading">
+        <div class="shell shell-reading shell-narrow">
           <div class="band-head">
             <div>
               <h2 id="special-list-heading">

@@ -83,7 +83,11 @@
       /* One column at the ordinary content width every non-landing page
          shares; the title, the date and the body all line up inside it. */
       .text-page-shell {
-        max-width: var(--content-width);
+        /* The reading column is already a comfortable measure, so the
+           standfirst and the body fill it rather than stopping 4rem short
+           of the title's edge (owner feedback 2026-11-23). */
+        --measure: 100%;
+        max-width: var(--reading-width);
       }
 
       /* The opening block spaces itself with margins rather than a grid gap:

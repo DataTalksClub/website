@@ -67,7 +67,7 @@
       /* The episode reads as one column. */
       /* The same ordinary content column every content page holds. */
       .episode-shell {
-        max-width: var(--content-width);
+        max-width: var(--reading-width);
       }
 
       .episode-back {
@@ -331,7 +331,13 @@
         align-items: baseline;
         display: inline-flex;
         gap: 0.8rem;
-        min-height: 2.75rem;
+        min-height: 1.75rem;
+      }
+
+      /* Timestamps and transcript rows sit tighter than the shared list
+         rows: a chapter list reads as one list, not a stack of cards. */
+      .episode-section .timestamp-row {
+        padding-block: 0.4rem;
       }
 
       .transcript-time-link {
@@ -461,13 +467,16 @@
 
       /* Transcript: shared timestamp rows, with the section headers the source
          gives the conversation and the speaker as each row's mark. */
+      /* Topic headings break the transcript into chapters, so they read as
+         headings (owner: the mono caps label was too subtle to notice). */
       .transcript-section {
-        color: var(--muted);
-        font-family: var(--font-mono);
-        font-size: 0.78rem;
-        letter-spacing: 0.06em;
-        margin-top: 1.5rem;
-        text-transform: uppercase;
+        color: var(--ink);
+        font-size: 1.2rem;
+        font-weight: 700;
+        line-height: 1.3;
+        margin: 2.25rem 0 0.35rem;
+        padding-left: 0.75rem;
+        border-left: 4px solid var(--green);
       }
 
       .timestamp-mark {
