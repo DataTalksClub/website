@@ -255,7 +255,12 @@
                 guessed when the catalogue cannot place this event in time.
               {% endcomment %}
               <p class="event-pills">
-                {% if event_state == "past" %}
+                {% comment %}
+                  An event the catalogue gives no kind draws no kind pill: an
+                  empty pill rendered as a blank square ahead of the state.
+                {% endcomment %}
+                {% if not event.type %}
+                {% elif event_state == "past" %}
                   <span class="status-pill status-pill-wait">{{ event.type }}</span>
                 {% elif event.type == "podcast" %}
                   <span class="status-pill status-pill-mint">{{ event.type }}</span>

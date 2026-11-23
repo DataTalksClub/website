@@ -213,8 +213,18 @@
          state readable without opening anything.  The column set is stated once
          on the list because custom properties inherit; the status column sizes
          to its widest pill so a long state name never squeezes the title. */
+      /* 14rem holds the longest deadline ("14 September 2026 (Mon), 21:59")
+         on one line; at 11.5rem every September deadline broke its clock onto
+         a second line (owner audit 2026-11-23). */
       .course-rows {
-        --row-cols: minmax(0, 1fr) 11.5rem auto;
+        --row-cols: minmax(0, 1fr) 14rem auto;
+      }
+
+      /* An edition row is a title and its identifier: the identifier sits at
+         the row's right edge, not in the deadline column of a three-column
+         row it does not have. */
+      .course-editions {
+        --row-cols: minmax(0, 1fr) auto;
       }
 
       .course-rows .list-row {
@@ -249,6 +259,13 @@
 
       .course-flow-terminal .mono-label {
         margin-bottom: 0.35rem;
+      }
+
+      /* The homework row nested in a module row already ends on the module
+         row's own dashed rule; drawing its own as well stacked two rules
+         15px apart under every module. */
+      .course-flow-terminal .row-list > :last-child {
+        border-bottom: 0;
       }
 
       /* Column captions belong to the wide layout only: below 48rem the row
@@ -790,7 +807,7 @@
                   <p>Explore previous and other cohorts of {{ course_family.title }}.</p>
                 </div>
               </div>
-              <div class="row-list course-rows">
+              <div class="row-list course-rows course-editions">
                 {% for edition in other_course_editions %}
                   <div class="list-row">
                     <a class="course-row-title band-link" href="{% url 'cohort' course_family.slug edition.identifier %}">{{ edition.title }}</a>

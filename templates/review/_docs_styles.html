@@ -363,15 +363,18 @@
   font-weight: 800;
 }
 
-/* The reading column is the measure itself, not the wider content width the
-   lesson page gives its video: a documentation page is prose, and at
-   `--content-width` its foot -- the page links, the edit note, the pager --
-   would sit 250px to the right of the last line of text they belong to.  The
-   pair is centred by the component, so the rail takes the room the measure
-   leaves and the page needs no width of its own. */
+/* The rail and the reading column together fill the page's content column
+   exactly, so the rail's left edge sits under the breadcrumb and the title
+   and the text's right edge under the header's (owner feedback 2026-11-23:
+   the pair used to break out 36px past the header on both sides).  The
+   reading column is what the rail leaves -- about 36rem at full width, the
+   prose measure -- and the page foot (page links, edit note, pager) ends on
+   the same edge as the last line of text. */
 @media (min-width: 52.01rem) {
   .docs-layout {
-    grid-template-columns: minmax(14rem, 17rem) minmax(0, var(--measure));
+    gap: 2.25rem;
+    grid-template-columns: minmax(13rem, 15rem) minmax(0, 1fr);
+    justify-content: stretch;
   }
 }
 
@@ -529,6 +532,14 @@
 
 .docs-curriculum-details li + li {
   margin-top: 0.25rem;
+}
+
+/* A module described by one bullet is a sentence, not a list: it reads as
+   plain text flush with the title above it, with no lone "•" (owner feedback
+   2026-11-23).  Two or more bullets keep their list markers. */
+.docs-curriculum-details ul:has(> li:only-child) {
+  list-style: none;
+  padding-left: 0;
 }
 
 .docs-follow-on {

@@ -23,6 +23,15 @@
         min-width: 0;
       }
 
+      /* The title band above a module layout spans the same width as the rail
+         and reading column pair below it, so the breadcrumb and the title
+         start on the rail's left edge instead of 72px inside it (owner audit
+         2026-11-23).  The docs layout fits the ordinary column instead and
+         carries no breakout, so it is not matched here. */
+      .content-page-header:has(+ .content-page-content .module-layout.shell-breakout) > .content-shell {
+        max-width: calc(19rem + 3rem + var(--measure) + 2.5rem + 2.5rem);
+      }
+
       .module-sidebar {
         grid-area: rail;
         position: sticky;
@@ -135,6 +144,15 @@
         display: inline-flex;
       }
 
+      /* The heading and the count share the rows' 0.5rem inset, so every line
+         of the rail starts on the ordinals' edge rather than the heading
+         hanging 8px left of the rows beneath it. */
+      .rail-heading-row,
+      .module-rail > .rail-heading,
+      .rail-progress {
+        padding-inline: 0.5rem;
+      }
+
       .rail-progress {
         color: var(--muted);
         font-family: var(--font-mono);
@@ -149,8 +167,12 @@
         gap: 0.15rem;
       }
 
+      /* The label is centred on its ordinal, so the current row's tint holds
+         the title in its middle rather than at its top edge, and a row is as
+         tall as the ordinal plus its padding (36px, above the 24px target
+         minimum) rather than a fixed 44px that read as loose spacing. */
       .rail-unit-link {
-        align-items: start;
+        align-items: center;
         border-radius: 0.6rem;
         color: var(--ink);
         display: grid;
@@ -158,10 +180,10 @@
         font-weight: 700;
         gap: 0.6rem;
         grid-template-columns: 1.75rem minmax(0, 1fr);
-        line-height: 1.4;
-        min-height: 2.75rem;
+        line-height: 1.35;
+        min-height: 2.25rem;
         overflow-wrap: anywhere;
-        padding: 0.3rem 0.5rem;
+        padding: 0.25rem 0.5rem;
         text-decoration: none;
       }
 

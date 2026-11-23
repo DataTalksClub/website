@@ -108,11 +108,11 @@
         max-width: 44rem;
       }
 
-      /* Four facts, not four slabs: the tiles keep the width of the hero column
-         they summarise rather than stretching across the whole shell. */
+      /* Up to four facts, as the shared one-row strip (`.stat-tiles-row`)
+         across the reading column, so the tiles end on the same edge as the
+         title and summary above them instead of stopping two thirds across. */
       .person-stats {
         margin-top: 1.5rem;
-        max-width: 34rem;
       }
 
       .person-links {
@@ -217,7 +217,7 @@
             <p class="person-summary">{{ person.summary }}</p>
           {% endif %}
           {% if person.groups %}
-            <div class="stat-tiles person-stats">
+            <div class="stat-tiles stat-tiles-row person-stats">
               {% for group in person.groups %}
                 <div class="stat-tile">
                   <strong>{{ group.count }}</strong>

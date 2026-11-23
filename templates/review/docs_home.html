@@ -33,8 +33,19 @@
     reading robot is the one illustration pair no other page draws, and it is
     the include's own generic branch, so the hero needs no new art and no new
     slot -- it passes no family slug.
+
+    The guide chapters below break out to the full shell for their three-up
+    cards, so the hero breaks out with them and the title, the drawing and the
+    cards share one left and right edge.  A search result list stays in the
+    ordinary column, and so does the hero above it.
   {% endcomment %}
-  <div class="docs-home-hero-inner">
+  <div
+    class="docs-home-hero-inner
+    {% if not docs_query %}
+      shell-breakout
+    {% endif %}
+    "
+  >
     <div class="docs-home-header">
       <p class="mono-label mono-label-indigo">
         docs · {{ docs_total_pages }} page{{ docs_total_pages|pluralize }}

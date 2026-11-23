@@ -24,6 +24,11 @@
   subject would simply be false, so it is resolved through `firstof`, which
   ignores a name the context does not carry.
 {% endcomment %}
+{% comment %}
+  An event the catalogue gives no kind draws no pill: an empty pill rendered as a
+  blank oval above the title.
+{% endcomment %}
+{% if event.type %}
 {% firstof is_past_events "" as kind_is_past %}
 <span class="kind">
   <span
@@ -47,3 +52,4 @@
     {% endif %}
   </span>
 </span>
+{% endif %}

@@ -287,7 +287,7 @@ class DocsDetailNavigationTests(TestCase):
 
         # The component, not a copy of it: the same layout, rows, ordinals and
         # current state the course lesson pages already ship.
-        self.assertIn('class="module-layout shell-breakout docs-layout', body)
+        self.assertIn('class="module-layout docs-layout', body)
         self.assertIn('class="module-sidebar module-rail docs-rail"', body)
         self.assertIn('class="rail-unit-link"', body)
         self.assertIn('class="read-indicator', body)

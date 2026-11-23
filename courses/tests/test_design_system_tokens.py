@@ -44,6 +44,7 @@ THEME_NEUTRAL_TOKENS = {
     "--gold",
     "--graph-edge",
     "--measure",
+    "--reading-width",
     "--shell",
 }
 LITERAL_COLOR = re.compile(r"#[0-9a-fA-F]{3,8}\b")

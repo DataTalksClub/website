@@ -117,6 +117,14 @@
         margin-top: 2rem;
       }
 
+      /* The 2rem separates the body from a notice above it.  With no notice
+         the body opens the band, and the band's own padding is the gap every
+         other page has between the header seam and the first line -- not
+         padding plus 2rem (owner audit 2026-11-23). */
+      .text-page-body:first-child {
+        margin-top: 0;
+      }
+
       /* The actions a text page owns, in one wrapping row below the body. */
       .text-page-actions {
         display: flex;

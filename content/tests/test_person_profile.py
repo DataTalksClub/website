@@ -412,7 +412,7 @@ class PersonPageTests(TestCase):
         self.assertEqual(body.count('class="mono-note archive-date date-rail"'), len(dated))
         self.assertNotIn('class="when"', body)
         self.assertNotIn('class="status-pill status-pill-mint"', body)
-        self.assertIn('class="stat-tiles person-stats"', body)
+        self.assertIn('class="stat-tiles stat-tiles-row person-stats"', body)
         # Design system bands, one per kind of work, and no invented catalogue link.
         # Every band after the hero takes the content ground, so a profile with
         # four kinds of work still reads as one page.
@@ -461,7 +461,7 @@ class PersonPageTests(TestCase):
 
         self.assertIn("No podcast episode, event, article or book on DataTalks.Club lists", body)
         self.assertIn(escape(record["title"]), body)
-        self.assertNotIn('class="stat-tiles person-stats"', body)
+        self.assertNotIn('person-stats"', body)
         self.assertNotIn('class="row-list', body)
         self.assertNotIn('aria-label="Community roles"', body)
         self.assertNotIn('class="person-summary"', body)
