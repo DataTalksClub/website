@@ -253,6 +253,7 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
         context["guide_programs"] = [
             {**item, "path": f"{ACADEMY_ROOT}{item['slug']}/"} for item in data["programs"]["items"]
         ]
+        schema.append(_faq_schema(data["faq"]["items"]))
 
     elif layout == "faq":
         schema.append(_faq_schema(data["items"]))

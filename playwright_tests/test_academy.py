@@ -102,9 +102,9 @@ def test_no_academy_page_scrolls_sideways_on_a_narrow_phone(
     from academy.tests.content import PAGES, academy_tree, pages_copy, publish
 
     pages = pages_copy()
-    pages["bildungsgutschein"][0]["hero"]["funding_line"] = LONG_GERMAN_LINE
+    pages["bildungsgutschein"][0]["intro"]["paragraphs"][0] = LONG_GERMAN_LINE
     publish(academy_tree(pages=pages))
-    assert PAGES["bildungsgutschein"][0]["hero"]["funding_line"] != LONG_GERMAN_LINE
+    assert PAGES["bildungsgutschein"][0]["intro"]["paragraphs"][0] != LONG_GERMAN_LINE
     backend(page, {})
     page.set_viewport_size({"width": width, "height": 800})
     for path in ACADEMY_PAGES:
