@@ -421,9 +421,7 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
             },
             "faq": {
                 "heading": "Synthetische häufige Fragen",
-                "items": [
-                    {"question": "Synthetische Frage?", "answer": "Synthetische Antwort."}
-                ],
+                "items": [{"question": "Synthetische Frage?", "answer": "Synthetische Antwort."}],
             },
             "join": {
                 "heading": "Synthetisch beitreten",
