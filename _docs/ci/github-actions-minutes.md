@@ -26,6 +26,7 @@ Production repos (DataTalksClub, AI-Shipping-Labs and the product repos under `a
 - Jobs that stay on GitHub-hosted runners: Windows/macOS, `ubuntu-24.04-arm` image builds, and anything triggered by `issues`, `issue_comment` or `pull_request_target`.
 - AWS OIDC is unchanged. The role trust keys on the token `sub` (the repo), not on the runner.
 - The Hetzner runners for `aws-infra` and `dataops-knowledge` (`[self-hosted, hetzner]`) stay registered as a fallback.
+- Heavy public repos (this one, AI-Shipping-Labs/website, dataops, agent-hub) have runners registered, but as of 23 Nov 2026 their workflows still run on GitHub-hosted runners. On 2 vCPU their test suites ran 3-10x slower than hosted and hit job timeouts, and hosted minutes are free for public repos. Moving them needs a bigger box or longer timeouts first.
 
 ## Public repos on self-hosted runners
 
