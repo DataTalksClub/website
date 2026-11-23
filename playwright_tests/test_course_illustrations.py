@@ -43,7 +43,7 @@ def test_course_art_preserves_theme_geometry_and_course_actions(
     images.evaluate_all("imgs => Promise.all(imgs.map(img => img.decode()))")
     for image in images.all():
         expect(image).to_have_attribute("alt", "")
-        assert image.evaluate("img => img.complete && img.naturalWidth === 1024")
+        assert image.evaluate("img => img.complete && img.naturalWidth === 1254")
 
     screenshot_dir = Path(".tmp/screenshots/issue-401-engineer")
     screenshot_dir.mkdir(parents=True, exist_ok=True)
