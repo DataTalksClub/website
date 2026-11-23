@@ -36,7 +36,7 @@ concurrency:
 jobs:
   sync:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     timeout-minutes: 20
     env:
       ENDPOINT: https://prod.datatalks.club/api/content-sync/ci/

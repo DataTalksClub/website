@@ -187,6 +187,30 @@ def test_declared_runner_image_binds_the_plan_to_the_authorized_hosted_family() 
     assert not environment_matches_plan(actual, local_plan, allow_hosted_runner_drift=True)
 
 
+def test_self_hosted_runner_is_identified_by_its_registered_name() -> None:
+    """A self-hosted planner has no GitHub image revision, only its runner name.
+
+    That name stands in for the revision, so the planner's own components match
+    exactly on the same runner, and the hosted aarch64 container job still binds
+    to the declared family through ordinary same-family drift.
+    """
+
+    self_hosted = {"RUNNER_ENVIRONMENT": "self-hosted", "RUNNER_OS": "Linux"}
+    planner = environment_fingerprint(self_hosted | {"RUNNER_NAME": "contabo-web"})
+    assert planner["runner_image"] == "Linux@self-hosted-contabo-web"
+    assert environment_fingerprint(self_hosted | {"RUNNER_NAME": "contabo-web"}) == planner
+    assert environment_fingerprint(self_hosted | {"RUNNER_NAME": "other"}) != planner
+
+    planned = environment_fingerprint(
+        self_hosted | {"RUNNER_NAME": "contabo-web"}, runner_image="ubuntu24-arm64"
+    )
+    actual = environment_fingerprint({"ImageOS": "ubuntu24-arm64", "ImageVersion": "20260808.1"})
+    assert environment_matches_plan(actual, planned, allow_hosted_runner_drift=True)
+
+    with pytest.raises(EvidenceError, match="ImageVersion"):
+        environment_fingerprint({"RUNNER_ENVIRONMENT": "github-hosted", "RUNNER_OS": "Linux"})
+
+
 @pytest.mark.parametrize(
     "component, actual_environment",
     [

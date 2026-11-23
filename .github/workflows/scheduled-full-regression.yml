@@ -27,7 +27,7 @@ env:
 
 jobs:
   selector:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     # The scheduled selector performs the same bounded planning work as push CI.
     timeout-minutes: 10
     outputs:
@@ -109,7 +109,7 @@ jobs:
     needs: selector
     outputs:
       evidence_artifact: verification-component-quality-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     timeout-minutes: 15
     env:
       # The checkout carries no projection media objects; every job reads them from
@@ -175,7 +175,7 @@ jobs:
   factories:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     env:
       PUBLIC_MEDIA_STORE_BACKEND: memory
     steps:
@@ -194,7 +194,7 @@ jobs:
   migrations:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     env:
       PUBLIC_MEDIA_STORE_BACKEND: memory
     steps:
@@ -215,7 +215,7 @@ jobs:
     needs: selector
     outputs:
       evidence_artifact: verification-component-django-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     timeout-minutes: 30
     env:
       DJANGO_SETTINGS_MODULE: website.settings.test
@@ -278,7 +278,7 @@ jobs:
     needs: selector
     outputs:
       evidence_artifact: verification-component-playwright-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     # The verified full-profile suite currently takes ~49-52m on the hosted
     # runner (issue #206; ci.yml keeps the same reserve on its Playwright
     # job). A 45m bound killed healthy runs at ~80% completion, so keep a
@@ -304,21 +304,19 @@ jobs:
           path: .tmp/input
       - run: uv sync --locked
       - run: uv lock --check
-      # Runner apt mirrors and DNS fail transiently (Temporary failure
-      # resolving azure.archive.ubuntu.com, apt exit 100). apt retries each
-      # fetch and the whole install is retried with backoff; only this setup
-      # step is retried, never the tests that follow.
+      # The self-hosted Contabo runner has Chromium's system libraries
+      # preinstalled (it has no sudo, so no --with-deps). The browser download
+      # still fails transiently, so the whole install is retried with backoff;
+      # only this setup step is retried, never the tests that follow.
       - name: Install Playwright Chromium with retries
         timeout-minutes: 20
         run: |
-          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
-            | sudo tee /etc/apt/apt.conf.d/80-ci-retries >/dev/null
           for delay in 0 15 30 60 120; do
             if (( delay > 0 )); then
               echo "::warning::Playwright install failed; retrying in ${delay}s"
               sleep "$delay"
             fi
-            if uv run playwright install --with-deps chromium; then
+            if uv run playwright install chromium; then
               exit 0
             fi
           done
@@ -365,7 +363,7 @@ jobs:
     if: always() && needs.selector.result == 'success'
     needs: selector
     continue-on-error: true
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     timeout-minutes: 45
     env:
       DJANGO_ALLOW_ASYNC_UNSAFE: "true"
@@ -382,21 +380,19 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - run: uv lock --check
-      # Runner apt mirrors and DNS fail transiently (Temporary failure
-      # resolving azure.archive.ubuntu.com, apt exit 100). apt retries each
-      # fetch and the whole install is retried with backoff; only this setup
-      # step is retried, never the tests that follow.
+      # The self-hosted Contabo runner has Chromium's system libraries
+      # preinstalled (it has no sudo, so no --with-deps). The browser download
+      # still fails transiently, so the whole install is retried with backoff;
+      # only this setup step is retried, never the tests that follow.
       - name: Install Playwright Chromium with retries
         timeout-minutes: 20
         run: |
-          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
-            | sudo tee /etc/apt/apt.conf.d/80-ci-retries >/dev/null
           for delay in 0 15 30 60 120; do
             if (( delay > 0 )); then
               echo "::warning::Playwright install failed; retrying in ${delay}s"
               sleep "$delay"
             fi
-            if uv run playwright install --with-deps chromium; then
+            if uv run playwright install chromium; then
               exit 0
             fi
           done
@@ -620,7 +616,7 @@ jobs:
       needs.selector.result == 'success' &&
       needs.selector.outputs.decision == 'run_full'
     needs: [selector, quality, factories, migrations, django, playwright, container]
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -709,7 +705,7 @@ jobs:
   scheduled-gate:
     if: always()
     needs: [selector, quality, factories, migrations, django, playwright, container, full-regression]
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
