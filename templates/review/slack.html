@@ -46,7 +46,9 @@
     <h2 id="slack-channels-heading">Find your conversation</h2>
     <ul class="channel-list">
       {% for channel in slack.channels %}
-        <li class="chip chip-plain channel"><code class="mono-code">{{ channel }}</code></li>
+        <li class="chip chip-plain channel">
+          <code class="mono-code">{{ channel }}</code>
+        </li>
       {% endfor %}
     </ul>
   </section>
