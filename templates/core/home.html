@@ -249,6 +249,13 @@
         text-align: right;
       }
 
+      /* Inside the newsletter copy column the link follows the paragraph it
+         belongs to, so it sits on the text's left edge. */
+      .newsletter-more {
+        margin-top: 0.75rem;
+        text-align: left;
+      }
+
       .event-top {
         align-items: center;
         display: flex;
@@ -1209,7 +1216,7 @@
               Subscribe to our weekly newsletter and join our Slack. We'll keep you informed
               about our events, articles, courses, and everything else happening in the Club.
             </p>
-            <p class="band-more">
+            <p class="band-more newsletter-more">
               <a class="band-link" href="{% url 'newsletter' %}">or open the newsletter page →</a>
             </p>
           </div>
