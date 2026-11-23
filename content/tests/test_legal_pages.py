@@ -86,7 +86,7 @@ class LegalRouteTests(TestCase):
                     1,
                 )
                 self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
-                updated = "15 November 2026" if route_name == "privacy" else "3 September 2026"
+                updated = "23 November 2026" if route_name == "privacy" else "3 September 2026"
                 self.assertContains(response, f"Last updated: {updated}")
                 self.assertEqual(self.client.head(path).status_code, 200)
                 self.assertEqual(self.client.post(path).status_code, 405)
