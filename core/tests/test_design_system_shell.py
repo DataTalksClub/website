@@ -363,9 +363,10 @@ class DesignFiveAShellTests(TestCase):
                 self.assertIn("data-academy-cta", body)
                 self.assertIn(
                     "DataTalks.Club Academy is a full-time live program in English for "
-                    "experienced developers in Germany. Start: April 2027.",
+                    "experienced developers in Germany, starting April 2027.",
                     body,
                 )
+                self.assertIn("Read about the Academy", body)
                 self.assertNotIn("bootcamp", body)
 
     def test_every_design_system_page_marks_only_the_entry_it_is(self) -> None:
