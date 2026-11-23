@@ -323,6 +323,10 @@
       var sessions = all('input[name="sessions"]:checked', form).map(function (input) { return input.value; });
       if (kind === 'main' && sessions.length === 0) {
         sessionsError.hidden = false;
+        var firstSession = one('input[name="sessions"]', form);
+        if (firstSession) {
+          firstSession.focus();
+        }
         return;
       }
       if (kind === 'qr' && !qrSession) {

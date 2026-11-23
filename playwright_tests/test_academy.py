@@ -213,7 +213,14 @@ def test_session_registration(page: Page, academy, viewport: dict[str, int], suf
     form = page.locator("#register")
     form.get_by_label("Synthetic session email").fill("synthetic@example.invalid")
     form.get_by_label("Synthetic first name").fill("Synthetic")
-    form.get_by_label("Synthetic session 2").uncheck()
+    # No session is picked by default, and the form needs at least one.
+    for number in (1, 2, 3):
+        expect(form.get_by_label(f"Synthetic session {number}")).not_to_be_checked()
+    form.get_by_role("button", name="Synthetic register").click()
+    expect(form.get_by_role("alert").filter(has_text="Synthetic pick one.")).to_be_visible()
+    assert calls == []
+    form.get_by_label("Synthetic session 1").check()
+    form.get_by_label("Synthetic session 3").check()
     form.get_by_label("Option ai", exact=True).check()
     form.get_by_label("Option job_hunting").check()
     form.get_by_label("Synthetic years").fill("7")

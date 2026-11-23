@@ -27,7 +27,7 @@
           <legend class="field-label">{{ form.sessions_label }}</legend>
           {% for session in sessions %}
             <label class="form-check">
-              <input class="form-check-input" type="checkbox" name="sessions" value="{{ session.id }}" checked>
+              <input class="form-check-input" type="checkbox" name="sessions" value="{{ session.id }}">
               <span class="form-check-label">{{ session.short_label }}</span>
             </label>
           {% endfor %}
