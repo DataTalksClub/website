@@ -65,6 +65,9 @@ Rules for editing:
         --band-ink-bg: var(--ink);
         --green-text: var(--green);
         --page: var(--cream);
+        /* The plate behind a chart image drawn in dark ink: the card in light,
+           and still light in the dark theme so the chart stays legible. */
+        --chart-ground: var(--card);
         --font-sans: "Quicksand", ui-rounded, "Segoe UI", system-ui, -apple-system,
           BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
         --shell: 76rem;
@@ -78,12 +81,12 @@ Rules for editing:
            ordinary column and the platform surfaces share one width; prose
            inside the column stays held to `--measure`. */
         --content-width: 56rem;
-        /* Mutation surfaces use a slightly wider measure than long-form prose,
-           while still keeping controls comfortable on a large screen. */
-        --form-measure: 46rem;
         /* Long-form reading pages (blog, podcast, wiki) hold a narrower
            column so lines stay readable -- owner feedback 2026-11-23. */
         --reading-width: 44rem;
+        /* Mutation surfaces use a slightly wider measure than long-form prose,
+           while still keeping controls comfortable on a large screen. */
+        --form-measure: 46rem;
         /* The drawn circle.  Every round mark the pages draw by hand — step
            discs, promise marks, the play disc, module numbers — carries this
            lopsided radius instead of a true 999px circle, so a mark sitting
@@ -182,6 +185,7 @@ Rules for editing:
         --on-green: #f3fff5;
         --band-ink-bg: #0d0f20;
         --page: #13162a;
+        --chart-ground: #eff1fc;
         /* The extended tokens the 6-series pages use.  Their dark values are the
            mockup's own substitutions (#dfe2f7 -> #2d3565, #f3f0e8 -> #2a2740,
            #6b6034 -> #cbb98a, #1f6b2c -> #93c7a5) and are documented in the
@@ -518,15 +522,15 @@ Rules for editing:
         max-width: var(--content-width);
       }
 
-      /* --- masthead ----------------------------------------------------- */
-
-      .masthead {
-        background: var(--cream);
       /* Long-form reading surfaces (wiki hub/search/special pages). */
       .shell-reading.shell-narrow {
         max-width: var(--reading-width);
       }
 
+      /* --- masthead ----------------------------------------------------- */
+
+      .masthead {
+        background: var(--cream);
         border-bottom: 2px dashed var(--line-soft);
       }
 
@@ -4381,6 +4385,9 @@ Rules for editing:
          reached and driven from a keyboard; the outline says where that focus
          landed. */
       .prose-scroll {
+        background: var(--card);
+        border: 2px solid var(--line-soft);
+        border-radius: 0.7rem;
         overflow-x: auto;
       }
 
@@ -4389,22 +4396,102 @@ Rules for editing:
         outline-offset: 2px;
       }
 
+      /* A table in a body is a card like a quotation: its own surface inside a
+         soft 2px border, a lavender heading row, dashed row dividers as the
+         row lists draw them, and the first column — the row's name — in ink.
+         Figures sit on tabular digits so a column of counts lines up. */
       .prose table {
         border-collapse: collapse;
         font-size: 0.92rem;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.5;
         min-width: 100%;
       }
 
       .prose th,
       .prose td {
         border-bottom: 1.5px dashed var(--line-soft);
-        padding: 0.5rem 0.75rem;
+        padding: 0.65rem 0.95rem;
         text-align: left;
+        vertical-align: top;
       }
 
       .prose th {
         color: var(--ink);
         font-weight: 800;
+      }
+
+      .prose thead th {
+        background: var(--lavender);
+        border-bottom: 2px solid var(--line-soft);
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        padding-block: 0.6rem;
+      }
+
+      .prose tbody td:first-child {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .prose tbody tr:last-child > * {
+        border-bottom: 0;
+      }
+
+      /* A phone has no room for columns, so a headed table stacks: each row
+         becomes a block led by its name, and every other cell prints its
+         column heading above its value — the row-list shape, divided the same
+         way.  The heading row stays in the page for a screen reader. */
+      @media (max-width: 35.99rem) {
+        .prose-scroll:has(thead) {
+          overflow-x: visible;
+        }
+
+        .prose-scroll:has(thead) :is(table, tbody, tr, td) {
+          display: block;
+          min-width: 0;
+        }
+
+        .prose-scroll:has(thead) thead {
+          clip-path: inset(50%);
+          height: 1px;
+          overflow: hidden;
+          position: absolute;
+          white-space: nowrap;
+          width: 1px;
+        }
+
+        .prose-scroll:has(thead) tr {
+          border-bottom: 1.5px dashed var(--line-soft);
+          padding: 0.8rem 1rem;
+        }
+
+        .prose-scroll:has(thead) tbody tr:last-child {
+          border-bottom: 0;
+        }
+
+        .prose-scroll:has(thead) td {
+          border-bottom: 0;
+          padding: 0;
+        }
+
+        .prose-scroll:has(thead) td + td {
+          margin-top: 0.4rem;
+        }
+
+        .prose-scroll:has(thead) td:first-child {
+          font-size: 1rem;
+        }
+
+        .prose-scroll:has(thead) td + td[data-label]::before {
+          color: var(--muted);
+          content: attr(data-label);
+          display: block;
+          font-size: 0.75rem;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+        }
       }
 
       /* The standfirst above a long-form body: one size up from the reading

@@ -82,23 +82,29 @@
       its own frame.  That frame is keyboard reachable and named — the same
       `role="region"` + `tabindex="0"` the Studio tables use — because a
       scrollable box no keyboard can reach is a barrier, not a layout.
+
+      On a phone a headed table stacks each row into a block instead
+      (core/_design_system.html, `.prose-scroll:has(thead)`), so every cell
+      carries its column's heading as `data-label` for the stacked layout to
+      print.  Stacking changes the boxes' display, which some browsers take as
+      a reason to drop the table semantics, so the explicit roles keep them.
     {% endcomment %}
     <div class="prose-scroll" role="region" tabindex="0" aria-label="{{ section.label }}">
-      <table>
+      <table role="table">
         {% if section.head %}
-          <thead>
-            <tr>
+          <thead role="rowgroup">
+            <tr role="row">
               {% for cell in section.head %}
                 <th scope="col">{{ cell|safe }}</th>
               {% endfor %}
             </tr>
           </thead>
         {% endif %}
-        <tbody>
-          {% for row in section.rows %}
-            <tr>
+        <tbody role="rowgroup">
+          {% for row in section.labelled_rows %}
+            <tr role="row">
               {% for cell in row %}
-                <td>{{ cell|safe }}</td>
+                <td role="cell" data-label="{{ cell.label }}">{{ cell.html|safe }}</td>
               {% endfor %}
             </tr>
           {% endfor %}

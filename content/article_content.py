@@ -45,10 +45,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from functools import lru_cache
+from html import unescape as unescape_html
 from typing import Any
 
 import mistune
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.html import strip_tags
 
 from core.home_content import published_display, reading_minutes
 
@@ -148,6 +150,33 @@ class ProseSection:
     label: str = ""
     head: tuple[str, ...] = ()
     rows: tuple[tuple[str, ...], ...] = ()
+
+    @property
+    def labelled_rows(self) -> tuple[tuple[TableCell, ...], ...]:
+        """A table's rows, each cell paired with its column heading as text.
+
+        The phone layout stacks each row and prints the heading beside its
+        cell, which an attribute can only carry as plain text, not as the
+        heading's markup.  A table without a heading row pairs every cell with
+        an empty label.
+        """
+
+        labels = tuple(unescape_html(strip_tags(cell)).strip() for cell in self.head)
+        return tuple(
+            tuple(
+                TableCell(label=labels[index] if index < len(labels) else "", html=cell)
+                for index, cell in enumerate(row)
+            )
+            for row in self.rows
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class TableCell:
+    """One body cell of a table section: its sanitized markup and its column's name."""
+
+    label: str
+    html: str
 
 
 @dataclass(frozen=True, slots=True)
