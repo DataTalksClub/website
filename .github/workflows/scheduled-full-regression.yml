@@ -24,6 +24,12 @@ env:
   # selected deployment target's runner_image (GitHub's ImageOS for the label
   # above); a workflow contract test fails if it drifts.
   VERIFICATION_CONTAINER_RUNNER_IMAGE: ubuntu24-arm64
+  # The planner fingerprints its Python, and the hosted aarch64 container job's
+  # evidence must match it. The self-hosted runner's uv Python store is shared
+  # with other repositories, whose newer uv may have installed a later 3.13
+  # patch that this pinned uv would otherwise pick there; pin the patch that
+  # uv 0.10.11 downloads on the hosted runners so both sides resolve the same one.
+  UV_PYTHON: "3.13.12"
 
 jobs:
   selector:

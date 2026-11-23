@@ -732,6 +732,20 @@ def test_all_workflow_jobs_pin_reviewed_runner_labels() -> None:
             )
 
 
+PLANNED_WORKFLOWS = ("ci.yml", "scheduled-full-regression.yml")
+
+
+def test_planned_workflows_pin_one_python_patch_across_runners() -> None:
+    """The planner (self-hosted) and the container job (hosted) resolve one Python.
+
+    Both fingerprint ``platform.python_version()``; the self-hosted runner's uv
+    store may hold a newer patch than the hosted runners download.
+    """
+    pins = {name: workflow(name)["env"].get("UV_PYTHON") for name in PLANNED_WORKFLOWS}
+    assert len(set(pins.values())) == 1, pins
+    assert re.fullmatch(r"3\.13\.\d+", pins["ci.yml"]), pins
+
+
 def test_pull_request_jobs_on_the_self_hosted_runner_refuse_fork_code() -> None:
     fork_guard = (
         "github.event_name != 'pull_request' || "
