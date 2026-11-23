@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -30,7 +30,7 @@ _MARKDOWN_LINK = re.compile(r"\[([^\]]+)\]\([^)]+\)")
 WAITLIST_LAYOUTS = frozenset({"home", "program"})
 #: The layouts whose Academy bar carries the tagline, as the retired site's did;
 #: the sessions series, its QR form and the legal pages show the bar without it.
-TAGLINE_LAYOUTS = frozenset({"home", "program", "faq", "guide", "confirm"})
+TAGLINE_LAYOUTS = frozenset({"home", "program", "faq", "guide", "confirm", "article"})
 
 
 def absolute(path: str) -> str:
@@ -271,6 +271,24 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
 
     elif layout == "faq":
         schema.append(_faq_schema(data["items"]))
+
+    elif layout == "article":
+        context["published"] = date.fromisoformat(data["published"])
+        schema.append(
+            {
+                "@context": "https://schema.org",
+                "@type": "Article",
+                "headline": data["heading"],
+                "description": page["description"],
+                "url": absolute(page["public_path"]),
+                "mainEntityOfPage": absolute(page["public_path"]),
+                "inLanguage": page["lang"],
+                "datePublished": data["published"],
+                "author": {"@type": "Person", "name": data["author"]},
+                "publisher": {"@type": "Organization", "name": shared["brand"], "url": SITE_ORIGIN},
+                **({"image": absolute(page["og_image"])} if page["og_image"] else {}),
+            }
+        )
 
     context["json_ld"] = json_ld(schema)
     context["sessions_path"] = next(

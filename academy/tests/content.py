@@ -273,7 +273,14 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
                 "speaker_photo": "images/academy/portrait.jpg",
                 "speaker_alt": "Synthetic speaker",
             },
-            "sessions": [_session(1), _session(2), _session(3)],
+            "sessions": [
+                {
+                    **_session(1),
+                    "recap": {"label": "Synthetic recap", "href": "/academy/sessions/recap/"},
+                },
+                _session(2),
+                _session(3),
+            ],
             "rsvp_published": False,
             "audience": {
                 "heading": "Synthetic audience",
@@ -470,8 +477,35 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
             "button": "Synthetic join",
             "list_label": "Synthetic questions and answers",
             "items": [{"question": "Synthetic FAQ question?", "answer": "Synthetic FAQ answer."}],
+            "join": {"heading": "Synthetic FAQ closing", "text": "Synthetic FAQ closing text."},
         },
         "",
+    ),
+    "sessions-recap": (
+        {
+            "layout": "article",
+            "path": "/academy/sessions/recap/",
+            "title": "Synthetic recap title",
+            "description": "Synthetic recap description.",
+            "og_image": "images/academy/og/sessions.png",
+            "sitemap": 9,
+            "eyebrow": "Synthetic session recap",
+            "heading": "Synthetic recap heading",
+            "lead": "Synthetic recap lead.",
+            "author": "Synthetic Author",
+            "published": "2026-11-23",
+            "related": {
+                "heading": "Synthetic read next",
+                "links": [
+                    {"label": "Synthetic AE program", "href": "/academy/agentic-engineering/"},
+                    {"label": "Synthetic outside link", "href": "https://example.invalid/post"},
+                ],
+            },
+            "join": {"heading": "Synthetic recap closing", "text": "Synthetic recap closing text."},
+        },
+        "## Synthetic recap section\n\n"
+        "Synthetic recap body with [a program](/academy/ai-engineering/).\n\n"
+        "- synthetic point\n",
     ),
     "privacy": (
         {

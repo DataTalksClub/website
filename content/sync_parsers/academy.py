@@ -3,8 +3,8 @@
 Academy is ordinary editorial content.  ``academy/*.md`` holds one page per
 file -- structured frontmatter for the parts a page lays out (hero, outcomes,
 syllabus, sessions, FAQ items, form copy), and a Markdown body for the pages
-that are prose (the privacy notice, the Impressum).  ``academy/shared.yaml``
-holds the copy several pages share: the facts strip, the instructor, the
+that are prose (the privacy notice, the Impressum, a session recap, a guide).
+``academy/shared.yaml`` holds the copy several pages share: the facts strip, the instructor, the
 admission steps, the waitlist form.  The artwork lives in ``images/academy/``
 and is published by the media parser like every other editorial image.
 
@@ -22,6 +22,7 @@ A repository without ``academy/`` publishes no Academy, and the routes 404.
 from __future__ import annotations
 
 import re
+from datetime import date
 from pathlib import PurePosixPath
 from typing import Any
 
@@ -48,6 +49,7 @@ LANGUAGES = ("en", "de")
 _PATH = re.compile(r"/academy/(?:[a-z0-9][a-z0-9-]*/){0,2}\Z")
 _KEY = re.compile(r"[a-z0-9][a-z0-9_-]*\Z")
 _UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z")
+_DATE = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
 
 
 class Optional:
@@ -60,7 +62,8 @@ class Optional:
 # Leaf specs: "text" a plain string, "markdown" a string that may carry inline
 # Markdown, "href" a site path below /academy/, an https URL or a mailto link,
 # "url" an https URL, "key" a lower-case identifier, "image" a file below
-# images/academy/, "utc" an ISO UTC instant, "int", "bool".
+# images/academy/, "utc" an ISO UTC instant, "date" an ISO calendar date
+# (quoted, so YAML keeps it a string), "int", "bool".
 LINK = {"label": "text", "href": "href"}
 QUESTION = {"question": "text", "answer": "markdown"}
 FACTS = {"label": "text", "items": [{"label": "text", "value": "text"}]}
@@ -144,6 +147,8 @@ LAYOUTS: dict[str, dict[str, Any]] = {
                 "zoom_url": "url",
                 "meetup_url": Optional("url"),
                 "hero_time": Optional("text"),
+                # The written recap of a session that has happened.
+                "recap": Optional(LINK),
             }
         ],
         "rsvp_published": "bool",
@@ -289,12 +294,26 @@ LAYOUTS: dict[str, dict[str, Any]] = {
         "button": "text",
         "list_label": "text",
         "items": [QUESTION],
+        # The closing waitlist panel under the questions.
+        "join": Optional({"heading": "text", "text": "text"}),
     },
     "legal": {"heading": "text"},
+    # A free-form page read as prose -- a session recap, a guide: a heading
+    # and lead over a Markdown body, the pages it points on to, and one
+    # closing waitlist panel.
+    "article": {
+        "eyebrow": "text",
+        "heading": "text",
+        "lead": "text",
+        "author": "text",
+        "published": "date",
+        "related": Optional({"heading": "text", "links": [LINK]}),
+        "join": {"heading": "text", "text": "text"},
+    },
 }
 
 #: The layouts whose page is a Markdown body; every other layout has none.
-BODY_LAYOUTS = frozenset({"legal"})
+BODY_LAYOUTS = frozenset({"legal", "article"})
 
 SHARED = {
     "brand": "text",
@@ -444,6 +463,13 @@ class _Validator:
                 self.fail(field)
         elif spec == "utc":
             if not _UTC.fullmatch(value):
+                self.fail(field)
+        elif spec == "date":
+            if not _DATE.fullmatch(value):
+                self.fail(field)
+            try:
+                date.fromisoformat(value)
+            except ValueError:
                 self.fail(field)
         elif spec == "url":
             try:

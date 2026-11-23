@@ -1,0 +1,14 @@
+{% comment %}
+  The closing mint panel of a reading page: one heading, one sentence and
+  the one waitlist action, which lands on the home page's signup card.
+  join: heading/text.
+{% endcomment %}
+<section class="academy-section" aria-labelledby="join-heading">
+  <div class="panel panel-mint panel-outlined academy-closing academy-closing-action">
+    <div class="academy-closing-copy">
+      <h2 id="join-heading">{{ join.heading }}</h2>
+      <p>{{ join.text }}</p>
+    </div>
+    {% include "core/_button.html" with href=academy_root|add:"#signup-hero" label=shared.waitlist_button variant="primary" %}
+  </div>
+</section>

@@ -31,6 +31,7 @@ SITEMAP_PAGES = (
     "/academy/faq/",
     "/academy/privacy/",
     "/academy/impressum/",
+    "/academy/sessions/recap/",
 )
 ALL_PAGES = (*SITEMAP_PAGES, "/academy/confirm/", "/academy/sessions/materials/")
 TEMPLATES = (
@@ -42,6 +43,7 @@ TEMPLATES = (
     "guide",
     "faq",
     "legal",
+    "article",
 )
 
 
@@ -104,6 +106,7 @@ class AcademyPageTests(TestCase):
             "/academy/faq/",
             "/academy/bildungsgutschein/",
             "/academy/confirm/",
+            "/academy/sessions/recap/",
         }
         for path in ALL_PAGES:
             with self.subTest(path=path):
@@ -189,9 +192,62 @@ class AcademyPageTests(TestCase):
         self.assertIn("Synthetic: for English, check this page:", note)
         self.assertIn('href="/academy/#funding">Synthetic English page</a>', note)
 
+    def test_an_article_reads_as_prose_and_closes_on_the_waitlist(self) -> None:
+        response = self.client.get("/academy/sessions/recap/")
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        header = body[: body.index("content-page-content")]
+        self.assertIn('<h1 id="academy-heading">Synthetic recap heading</h1>', header)
+        self.assertIn("Synthetic recap lead.", header)
+        self.assertIn('<time datetime="2026-11-23">23 November 2026</time>', header)
+        self.assertIn("Synthetic Author", header)
+        content = body[body.index("content-page-content") :]
+        self.assertIn("<h2>Synthetic recap section</h2>", content)
+        self.assertIn('<a href="/academy/ai-engineering/">a program</a>', content)
+        self.assertIn("<li>synthetic point</li>", content)
+        self.assertIn('href="/academy/agentic-engineering/">Synthetic AE program</a>', content)
+        self.assertIn('href="https://example.invalid/post">Synthetic outside link</a>', content)
+        # One closing action, to the waitlist card on the home page.
+        closing = content[content.index('id="join-heading"') :]
+        closing = closing[: closing.index("</section>")]
+        self.assertIn("Synthetic recap closing text.", closing)
+        self.assertIn('href="/academy/#signup-hero"', closing)
+        self.assertIn("Join the synthetic list", closing)
+        self.assertEqual(content.count('id="join-heading"'), 1)
+        self.assertNotIn("data-academy-signup", body)
+        self.assertContains(
+            response,
+            '<link rel="canonical" href="https://datatalks.club/academy/sessions/recap/">',
+            html=False,
+        )
+        self.assertNotContains(response, "noindex")
+        documents = [
+            json.loads(match)
+            for match in re.findall(r'<script type="application/ld\+json">(.*?)</script>', body)
+        ]
+        self.assertEqual([document["@type"] for document in documents], ["Article"])
+        self.assertEqual(documents[0]["headline"], "Synthetic recap heading")
+        self.assertEqual(documents[0]["datePublished"], "2026-11-23")
+        self.assertEqual(documents[0]["author"], {"@type": "Person", "name": "Synthetic Author"})
+        self.assertEqual(documents[0]["url"], "https://datatalks.club/academy/sessions/recap/")
+
+    def test_a_session_links_its_recap_and_the_faq_closes_on_the_waitlist(self) -> None:
+        sessions = self.client.get("/academy/sessions/").content.decode()
+        cards = sessions.split('class="card academy-session-card"')[1:]
+        self.assertIn('href="/academy/sessions/recap/">Synthetic recap</a>', cards[0])
+        self.assertNotIn('class="academy-session-recap"', cards[1] + cards[2])
+        faq = self.client.get("/academy/faq/").content.decode()
+        closing = faq[faq.index('id="join-heading"') :]
+        closing = closing[: closing.index("</section>")]
+        self.assertIn("Synthetic FAQ closing text.", closing)
+        self.assertIn('href="/academy/#signup-hero"', closing)
+
     def test_the_optional_copy_draws_nothing_when_absent(self) -> None:
         pages = fixture.pages_copy()
         del pages["bildungsgutschein"][0]["english"]
+        del pages["faq"][0]["join"]
+        del pages["sessions-recap"][0]["related"]
+        del pages["sessions"][0]["sessions"][0]["recap"]
         shared = {
             key: value
             for key, value in fixture.SHARED.items()
@@ -210,8 +266,11 @@ class AcademyPageTests(TestCase):
                     'class="callout callout-info academy-english"',
                     'class="academy-contact"',
                     'class="academy-other-track"',
+                    'class="academy-session-recap"',
+                    'id="related-heading"',
                 ):
                     self.assertNotIn(marker, body)
+        self.assertNotIn('id="join-heading"', self.client.get("/academy/faq/").content.decode())
 
     def test_canonical_open_graph_and_language(self) -> None:
         response = self.client.get("/academy/agentic-engineering/")
@@ -348,6 +407,7 @@ class AcademyPageTests(TestCase):
             self.assertTrue(umami_public_path(path), path)
         self.assertFalse(umami_public_path("/academy/confirm/"))
         self.assertFalse(umami_public_path("/academy/sessions/materials/"))
+        self.assertTrue(umami_public_path("/academy/guides/synthetic-guide/"))
         home = self.client.get("/academy/", HTTP_HOST="prod.datatalks.club")
         self.assertContains(home, 'data-umami-page-path="/academy/"')
         confirm = self.client.get(
@@ -471,6 +531,17 @@ class AcademyParserTests(TestCase):
             "body on a structured page": lambda pages: pages.update(faq=(pages["faq"][0], "Body")),
             "duplicate session": lambda pages: pages["sessions"][0]["sessions"][1].update(
                 id="session-1"
+            ),
+            "article without a body": lambda pages: pages.update(
+                {"sessions-recap": (pages["sessions-recap"][0], "")}
+            ),
+            "article date": lambda pages: pages["sessions-recap"][0].update(published="2026-02-30"),
+            "article date shape": lambda pages: pages["sessions-recap"][0].update(
+                published="23 Nov 2026"
+            ),
+            "article without its closing": lambda pages: pages["sessions-recap"][0].pop("join"),
+            "unsafe recap link": lambda pages: pages["sessions"][0]["sessions"][0]["recap"].update(
+                href="javascript:x"
             ),
         }
         for name, change in cases.items():

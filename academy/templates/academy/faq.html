@@ -45,4 +45,7 @@
     {% include "academy/_faq.html" with items=data.items prefix="question" label="" %}
     {% include "academy/_contact.html" %}
   </section>
+  {% if data.join %}
+    {% include "academy/_waitlist_closing.html" with join=data.join %}
+  {% endif %}
 {% endblock %}

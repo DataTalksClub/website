@@ -1,0 +1,61 @@
+{% extends "core/content_page.html" %}
+{% load academy_text %}
+{% comment %}
+  A free-form Academy page read as prose (a session recap, a guide): the
+  Academy bar, the heading, lede and byline, then the Markdown body at the
+  reading measure, the pages it points on to, and the one closing waitlist
+  panel.  Copy: the page's own file in academy/.
+{% endcomment %}
+
+{% block document_title %}
+  {{ page.title }}
+{% endblock %}
+
+{% block metadata %}
+  {% include "academy/_metadata.html" %}
+{% endblock %}
+
+{% block page_styles %}
+  {% include "academy/_styles.html" %}
+{% endblock %}
+
+{% block header_band_class %}
+  academy-hero
+{% endblock %}
+
+{% block header_attributes %}
+  aria-labelledby="academy-heading"
+{% endblock %}
+
+{% block page_header %}
+  {% include "academy/_bar.html" %}
+  <div class="academy-hero-copy">
+    <p class="kicker">{{ data.eyebrow }}</p>
+    <h1 id="academy-heading">{{ data.heading }}</h1>
+    <p class="academy-lede">{{ data.lead }}</p>
+    <p class="mono-note academy-byline">
+      {{ data.author }}, <time datetime="{{ data.published }}">{{ published|date:"j F Y" }}</time>
+    </p>
+  </div>
+{% endblock %}
+
+{% block page_content %}
+  <article class="academy-reading">
+    <div class="prose prose-reading">
+      {{ page.body|academy_markdown }}
+    </div>
+  </article>
+  {% if data.related %}
+    <section class="academy-section academy-reading" aria-labelledby="related-heading">
+      <h2 id="related-heading">{{ data.related.heading }}</h2>
+      <ul class="academy-related">
+        {% for link in data.related.links %}
+          <li>
+            <a class="band-link" href="{{ link.href }}">{{ link.label }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+  {% include "academy/_waitlist_closing.html" with join=data.join %}
+{% endblock %}
