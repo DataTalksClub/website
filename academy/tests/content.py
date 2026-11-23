@@ -391,53 +391,50 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
             "title": "Synthetischer Leitfaden",
             "description": "Synthetische Beschreibung.",
             "sitemap": 5,
-            "hero": {
-                "eyebrow": "Synthetic Academy",
-                "headline": "Synthetischer Leitfaden",
-                "lead": "Synthetischer Vorspann.",
-                "funding_line": "Synthetische Förderung.",
+            "hero": {"eyebrow": "Synthetic Academy", "headline": "Synthetischer Leitfaden"},
+            "intro": {
+                "heading": "Synthetische erste Frage?",
+                "paragraphs": ["Synthetischer Vorspann.", "Synthetischer zweiter Absatz."],
             },
             "facts": {
                 "label": "Synthetische Fakten",
                 "items": [{"label": "START", "value": "Synthetisch"}],
             },
-            "fit": {
-                "heading": "Synthetisch für wen",
-                "for_title": "Passend",
-                "for": ["Synthetisch passend."],
-                "not_title": "Nicht passend",
-                "not": ["Synthetisch nicht passend."],
-            },
             "programs": {
-                "heading": "Synthetische Programme",
-                "intro": "Synthetische Einleitung.",
                 "items": [
                     {
                         "slug": "agentic-engineering",
-                        "name": "Agentic Engineering",
+                        "heading": "Synthetische Programmfrage?",
                         "summary": "Synthetische Zusammenfassung.",
                         "basis": "Synthetische Grundlage.",
-                        "button": "Synthetisch auf die Liste",
+                        "button": "Synthetisch Agentic",
                     }
                 ],
             },
-            "guide": {
-                "heading": "Synthetischer Ratgeber",
-                "paragraphs": ["Synthetischer Absatz."],
-                "steps_title": "Synthetische Schritte",
-                "steps": ["Synthetischer Schritt."],
-                "links": [{"label": "Synthetischer Link", "href": "https://example.invalid/guide"}],
+            "fit": {"heading": "Synthetisch für wen?", "paragraphs": ["Synthetisch passend."]},
+            "funding": {
+                "heading": "Synthetische Förderfrage?",
+                "paragraphs": [
+                    "Synthetischer Absatz.",
+                    "Siehe [Synthetischer Link](https://example.invalid/guide).",
+                ],
+            },
+            "faq": {
+                "heading": "Synthetische häufige Fragen",
+                "items": [
+                    {"question": "Synthetische Frage?", "answer": "Synthetische Antwort."}
+                ],
             },
             "join": {
                 "heading": "Synthetisch beitreten",
                 "text": "Synthetischer Text.",
-                "actions": [
-                    {
-                        "label": "Synthetisch Agentic",
-                        "href": "/academy/agentic-engineering/#signup-hero",
-                    }
+                "action": {
+                    "label": "Synthetisch auf die Liste",
+                    "href": "/academy/?utm_source=synthetic&utm_medium=article#signup-hero",
+                },
+                "links": [
+                    {"label": "Synthetisch Agentic", "href": "/academy/agentic-engineering/"}
                 ],
-                "sessions_label": "Synthetische Sessions",
             },
         },
         "",

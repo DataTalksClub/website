@@ -361,8 +361,12 @@ class DesignFiveAShellTests(TestCase):
                 ]
                 self.assertEqual(academy, ["/academy/"])
                 self.assertIn("data-academy-cta", body)
-                self.assertIn("Thinking about a full-time intensive bootcamp?", body)
-                self.assertIn("Check out DataTalks.Club Academy.", body)
+                self.assertIn(
+                    "DataTalks.Club Academy is a full-time live program in English for "
+                    "experienced developers in Germany. Start: April 2027.",
+                    body,
+                )
+                self.assertNotIn("bootcamp", body)
 
     def test_every_design_system_page_marks_only_the_entry_it_is(self) -> None:
         expected_current = {

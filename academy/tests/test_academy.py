@@ -127,6 +127,30 @@ class AcademyPageTests(TestCase):
         )
         self.assertNotContains(self.client.get("/academy/faq/"), 'content="noindex"')
 
+    def test_the_german_guide_asks_its_questions_and_publishes_an_faq_schema(self) -> None:
+        response = self.client.get("/academy/bildungsgutschein/")
+        body = response.content.decode()
+        for text in (
+            "Synthetische erste Frage?",
+            "Synthetische Programmfrage?",
+            "Synthetisch für wen?",
+            "Synthetische Förderfrage?",
+            "Synthetische Frage?",
+            "Synthetische Antwort.",
+        ):
+            self.assertContains(response, text)
+        self.assertContains(response, 'href="https://example.invalid/guide"')
+        self.assertContains(
+            response, 'href="/academy/?utm_source=synthetic&amp;utm_medium=article#signup-hero"'
+        )
+        documents = [
+            json.loads(match)
+            for match in re.findall(r'<script type="application/ld\+json">(.*?)</script>', body)
+        ]
+        faq = next(item for item in documents if item.get("@type") == "FAQPage")
+        self.assertEqual(faq["mainEntity"][0]["name"], "Synthetische Frage?")
+        self.assertEqual(faq["mainEntity"][0]["acceptedAnswer"]["text"], "Synthetische Antwort.")
+
     def test_structured_data_follows_the_content(self) -> None:
         body = self.client.get("/academy/ai-engineering/").content.decode()
         documents = [

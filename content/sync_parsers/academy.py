@@ -47,6 +47,8 @@ LANGUAGES = ("en", "de")
 
 _PATH = re.compile(r"/academy/(?:[a-z0-9][a-z0-9-]*/){0,2}\Z")
 _KEY = re.compile(r"[a-z0-9][a-z0-9_-]*\Z")
+#: An optional campaign query on an Academy link: utm_* parameters only.
+_CAMPAIGN_QUERY = re.compile(r"(?:utm_[a-z]+=[A-Za-z0-9_.-]+(?:&utm_[a-z]+=[A-Za-z0-9_.-]+)*)?\Z")
 _UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z")
 
 
@@ -244,40 +246,28 @@ LAYOUTS: dict[str, dict[str, Any]] = {
         },
     },
     "guide": {
-        "hero": {"eyebrow": "text", "headline": "text", "lead": "text", "funding_line": "text"},
+        "hero": {"eyebrow": "text", "headline": "text"},
+        "intro": {"heading": "text", "paragraphs": ["text"]},
         "facts": FACTS,
-        "fit": {
-            "heading": "text",
-            "for_title": "text",
-            "for": ["text"],
-            "not_title": "text",
-            "not": ["text"],
-        },
         "programs": {
-            "heading": "text",
-            "intro": "text",
             "items": [
                 {
                     "slug": "key",
-                    "name": "text",
+                    "heading": "text",
                     "summary": "text",
                     "basis": "text",
                     "button": "text",
                 }
             ],
         },
-        "guide": {
-            "heading": "text",
-            "paragraphs": ["text"],
-            "steps_title": "text",
-            "steps": ["text"],
-            "links": [LINK],
-        },
+        "fit": {"heading": "text", "paragraphs": ["text"]},
+        "funding": {"heading": "text", "paragraphs": ["markdown"]},
+        "faq": {"heading": "text", "items": [QUESTION]},
         "join": {
             "heading": "text",
             "text": "text",
-            "actions": [LINK],
-            "sessions_label": "text",
+            "action": LINK,
+            "links": [LINK],
         },
     },
     "faq": {
@@ -432,7 +422,11 @@ class _Validator:
                 self.fail(field)
         elif spec == "href":
             if not (
-                (value.startswith("/academy/") and _PATH.fullmatch(value.split("#", 1)[0]))
+                (
+                    value.startswith("/academy/")
+                    and _PATH.fullmatch(value.split("#", 1)[0].split("?", 1)[0])
+                    and _CAMPAIGN_QUERY.fullmatch(value.split("#", 1)[0].partition("?")[2])
+                )
                 or value.startswith("mailto:")
             ):
                 self.leaf("url", value, field)

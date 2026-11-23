@@ -1,11 +1,11 @@
 {% extends "core/content_page.html" %}
-{% load static breadcrumbs %}
+{% load static breadcrumbs academy_text %}
 {% comment %}
   The German Bildungsgutschein guide (/academy/bildungsgutschein/, lang="de").
-  The cream header answers the question in one paragraph and offers both
-  waitlists; below the seam, the facts strip, who it is for, the two programs
-  as cards, how the voucher works, and the way in.  Copy:
-  academy/bildungsgutschein.md.
+  The cream header asks the first question and answers it; below the seam, the
+  facts strip, one section per question (the two programs, who it is for, how
+  the funding works), the FAQ as folds (with FAQPage structured data) and the
+  one waitlist button.  Copy: academy/bildungsgutschein.md.
 {% endcomment %}
 
 {% block document_title %}
@@ -30,26 +30,35 @@
 
 {% block page_header %}
   {% breadcrumbs shared.brand academy_root %}
-  {% comment %}
-    The breadcrumb already names the Academy; an eyebrow repeating it is dropped.
-  {% endcomment %}
   {% if data.hero.eyebrow != shared.brand %}
     <p class="kicker">{{ data.hero.eyebrow }}</p>
   {% endif %}
   <h1 id="academy-heading">{{ data.hero.headline }}</h1>
-  <p class="academy-lede">{{ data.hero.lead }}</p>
-  <p class="academy-seats">
-    <span class="status-pill status-pill-open academy-pill">{{ data.hero.funding_line }}</span>
-  </p>
-  <div class="academy-actions">
-    {% for action in data.join.actions %}
-      {% include "core/_button.html" with href=action.href label=action.label variant=forloop.first|yesno:"primary,secondary" %}
-    {% endfor %}
-  </div>
+  <h2 class="academy-question">{{ data.intro.heading }}</h2>
+  {% for paragraph in data.intro.paragraphs %}
+    <p class="academy-lede">{{ paragraph }}</p>
+  {% endfor %}
 {% endblock %}
 
 {% block page_content %}
   {% include "academy/_facts.html" with facts=data.facts %}
+
+  {% for item in guide_programs %}
+    <section class="academy-section" aria-labelledby="program-{{ item.slug }}-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="program-{{ item.slug }}-heading">{{ item.heading }}</h2>
+        </div>
+      </div>
+      <div class="prose">
+        <p>{{ item.summary }}</p>
+        <p>{{ item.basis }}</p>
+      </div>
+      <div class="academy-actions">
+        {% include "core/_button.html" with href=item.path label=item.button variant="secondary" %}
+      </div>
+    </section>
+  {% endfor %}
 
   <section class="academy-section" aria-labelledby="fit-heading">
     <div class="band-head">
@@ -57,69 +66,33 @@
         <h2 id="fit-heading">{{ data.fit.heading }}</h2>
       </div>
     </div>
-    <div class="card-grid card-grid-2">
-      <div class="card">
-        <h3>{{ data.fit.for_title }}</h3>
-        <ul class="academy-card-list">
-          {% for item in data.fit.for %}
-            <li>{{ item }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-      <div class="card">
-        <h3>{{ data.fit.not_title }}</h3>
-        <ul class="academy-card-list">
-          {% for item in data.fit.not %}
-            <li>{{ item }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <section class="academy-section" aria-labelledby="programs-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="programs-heading">{{ data.programs.heading }}</h2>
-        <p>{{ data.programs.intro }}</p>
-      </div>
-    </div>
-    <div class="card-grid card-grid-2">
-      {% for item in guide_programs %}
-        <article class="card academy-track-card">
-          <h3>{{ item.name }}</h3>
-          <p>{{ item.summary }}</p>
-          <p>{{ item.basis }}</p>
-          {% include "core/_button.html" with href=item.path label=item.button variant="primary" %}
-        </article>
+    <div class="prose">
+      {% for paragraph in data.fit.paragraphs %}
+        <p>{{ paragraph }}</p>
       {% endfor %}
     </div>
   </section>
 
-  <section class="academy-section" aria-labelledby="guide-heading">
+  <section class="academy-section" aria-labelledby="funding-heading">
     <div class="band-head">
       <div>
-        <h2 id="guide-heading">{{ data.guide.heading }}</h2>
+        <h2 id="funding-heading">{{ data.funding.heading }}</h2>
       </div>
     </div>
     <div class="prose">
-      {% for paragraph in data.guide.paragraphs %}
-        <p>{{ paragraph }}</p>
+      {% for paragraph in data.funding.paragraphs %}
+        <p>{{ paragraph|academy_inline }}</p>
       {% endfor %}
-      <h3>{{ data.guide.steps_title }}</h3>
-      <ol>
-        {% for step in data.guide.steps %}
-          <li>{{ step }}</li>
-        {% endfor %}
-      </ol>
-      <ul>
-        {% for link in data.guide.links %}
-          <li>
-            <a href="{{ link.href }}" target="_blank" rel="noopener">{{ link.label }}</a>
-          </li>
-        {% endfor %}
-      </ul>
     </div>
+  </section>
+
+  <section class="academy-section" aria-labelledby="faq-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="faq-heading">{{ data.faq.heading }}</h2>
+      </div>
+    </div>
+    {% include "academy/_faq.html" with items=data.faq.items prefix="question" label=data.faq.heading %}
   </section>
 
   <section class="academy-section" aria-labelledby="join-heading">
@@ -128,13 +101,15 @@
         <h2 id="join-heading">{{ data.join.heading }}</h2>
         <p>{{ data.join.text }}</p>
         <div class="academy-actions">
-          {% for action in data.join.actions %}
-            {% include "core/_button.html" with href=action.href label=action.label variant=forloop.first|yesno:"primary,secondary" %}
-          {% endfor %}
+          {% include "core/_button.html" with href=data.join.action.href label=data.join.action.label variant="primary" %}
         </div>
-        <p>
-          <a class="band-link" href="{{ sessions_path }}">{{ data.join.sessions_label }}</a>
-        </p>
+        <ul class="academy-links-inline">
+          {% for link in data.join.links %}
+            <li>
+              <a class="band-link" href="{{ link.href }}">{{ link.label }}</a>
+            </li>
+          {% endfor %}
+        </ul>
       </div>
     </div>
   </section>
