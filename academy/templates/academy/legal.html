@@ -1,9 +1,9 @@
 {% extends "core/content_page.html" %}
-{% load breadcrumbs academy_text %}
+{% load academy_text %}
 {% comment %}
-  The Academy's legal pages (/academy/privacy/, /academy/impressum/): a heading
-  and a Markdown body read as prose.  Copy: academy/privacy.md and
-  academy/impressum.md.
+  The Academy's legal pages (/academy/privacy/, /academy/impressum/): the
+  Academy bar, a heading, and a Markdown body read as prose at the reading
+  measure.  Copy: academy/privacy.md and academy/impressum.md.
 {% endcomment %}
 
 {% block document_title %}
@@ -27,7 +27,7 @@
 {% endblock %}
 
 {% block page_header %}
-  {% breadcrumbs shared.brand academy_root %}
+  {% include "academy/_bar.html" %}
   <h1 id="academy-heading">{{ data.heading }}</h1>
 {% endblock %}
 
@@ -35,5 +35,4 @@
   <div class="prose prose-reading">
     {{ page.body|academy_markdown }}
   </div>
-  {% include "academy/_links.html" with links=shared.footer.links copyright=shared.footer.copyright other_program=None %}
 {% endblock %}

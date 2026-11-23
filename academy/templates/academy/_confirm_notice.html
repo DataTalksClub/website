@@ -1,0 +1,11 @@
+{% comment %}
+  The confirmation warning every Academy signup form and its pending state
+  carry, as the system's attention callout rather than fineprint: without the
+  double opt-in nobody receives the session link or any email.  Copy:
+  shared.confirm_notice.
+{% endcomment %}
+{% if shared.confirm_notice %}
+  <p class="callout callout-attention academy-confirm-notice" data-confirm-notice>
+    {{ shared.confirm_notice }}
+  </p>
+{% endif %}

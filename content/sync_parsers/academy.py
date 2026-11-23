@@ -81,7 +81,7 @@ LAYOUTS: dict[str, dict[str, Any]] = {
     "home": {
         "hero": {"eyebrow": "text", "headline": "text", "lead": "text", "links": [LINK]},
         "tracks": {"label": "text", "button_prefix": "text", "outcomes": ["int"]},
-        "funding": {"heading": "text", "paragraphs": ["text"]},
+        "funding": {"heading": "text", "paragraphs": ["text"], "link": Optional(LINK)},
         "schema": {
             "organization": {"name": "text", "url": "url", "same_as": ["url"]},
         },
@@ -202,7 +202,7 @@ LAYOUTS: dict[str, dict[str, Any]] = {
             "note": "text",
             "alarm_prefix": "text",
         },
-        "footer_links": [LINK],
+        "footer_links": Optional([LINK]),
         "schema": {
             "location_name": "text",
             "organizer": "text",
@@ -245,6 +245,8 @@ LAYOUTS: dict[str, dict[str, Any]] = {
     },
     "guide": {
         "hero": {"eyebrow": "text", "headline": "text", "lead": "text", "funding_line": "text"},
+        # The German page's pointer to the English page with the same facts.
+        "english": Optional({"text": "text", "link": LINK}),
         "facts": FACTS,
         "fit": {
             "heading": "text",
@@ -299,6 +301,16 @@ SHARED = {
     "contact_email": "text",
     "seat_caption": "text",
     "waitlist_button": "text",
+    # The Academy's own bar under the site masthead: its wordmark, tagline and
+    # section links (its waitlist action reuses ``waitlist_button``).
+    "header": Optional({"wordmark": "text", "tagline": "text", "label": "text", "links": [LINK]}),
+    # The program pages' sticky waitlist bar.
+    "sticky": Optional({"caption": "text"}),
+    # The contact line under the questions, one Markdown sentence.
+    "contact": Optional("markdown"),
+    "other_track": Optional("text"),
+    # Every signup form and its confirmation-pending state say this plainly.
+    "confirm_notice": Optional("text"),
     "facts": FACTS,
     "hero": {"instructor_line": "text", "honesty": "text"},
     "instructor": {
@@ -315,8 +327,15 @@ SHARED = {
         "for_shared": ["text"],
         "not": ["markdown"],
     },
-    "syllabus": {"heading": "text", "intro": "text", "produce_label": "text"},
-    "funding": {"heading": "text", "paragraphs": ["text"], "link": LINK},
+    # ``produce_label`` is no longer drawn (each module's outcome reads on
+    # its own under the title); still accepted until the content drops it.
+    "syllabus": {"heading": "text", "intro": "text", "produce_label": Optional("text")},
+    "funding": {
+        "heading": "text",
+        "paragraphs": ["text"],
+        "link": LINK,
+        "guide_link": Optional(LINK),
+    },
     "admission": {
         "heading": "text",
         "body": "text",
@@ -329,7 +348,10 @@ SHARED = {
         "items": [{"question": "text", "answer": Optional("markdown")}],
     },
     "join": {"heading": "text", "text": "text"},
-    "footer": {"links": [LINK], "copyright": "text", "other_track": "text"},
+    # Nothing draws it any more: the Academy has no footer of its own under the
+    # site's.  It is still accepted so the content tree can drop it after this
+    # parser ships, instead of failing the sync in between.
+    "footer": Optional({"links": [LINK], "copyright": "text", "other_track": "text"}),
     "signup": {
         "program_label": "text",
         "name_label": "text",

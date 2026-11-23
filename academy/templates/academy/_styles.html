@@ -2,10 +2,14 @@
   The Academy pages' own rules, included by every Academy page inside its
   stylesheet straight after the shared design system (the same arrangement as
   the account entrance family's _entrance_styles.html).  Nothing here is a new
-  primitive: the pages draw the system's bands, cards, chips, CTAs, spec strip,
-  module accordion, FAQ folds and form fields, and these rules only lay them out
-  -- the hero beside its waitlist card, the numbered lists, the closing panel.
-  Every colour is a token, so both themes hold.
+  primitive: the pages draw the system's bands, cards, filter pills, CTAs,
+  spec strip, callouts, module accordion, FAQ folds, list rows and form fields,
+  and these rules only lay them out.  The landing pages (home, programs,
+  sessions, the German guide) follow the course family landing: the full
+  shell through .shell-breakout, and every chapter the same frame, a dashed
+  seam above a real .band-head.  The reading pages (FAQ, legal, the QR form,
+  confirm) keep the ordinary content column.  Spacing comes from the system's
+  scale and every colour is a token, so both themes hold.
 {% endcomment %}
       /* The tail below the last band continues the lavender content ground. */
       :root {
@@ -13,10 +17,19 @@
       }
 
       /* The form primitives set their own display, which would otherwise win
-         over the hidden attribute the forms toggle (errors, success states). */
+         over the hidden attribute the forms toggle (errors, success states,
+         the sticky bar). */
       .academy-form-card [hidden],
-      .academy-form-card[hidden] {
+      .academy-form-card[hidden],
+      .academy-sticky[hidden] {
         display: none !important;
+      }
+
+      /* A heading the forms move focus to after a result is announced, not
+         operated, so it draws no control ring (as #main-content does not). */
+      [data-confirm-title]:focus,
+      [data-success-title]:focus {
+        outline: none;
       }
 
       /* A status pill is one line of state by default; the Academy's pills
@@ -27,23 +40,60 @@
         white-space: normal;
       }
 
-      /* A heading the forms move focus to after a result is announced, not
-         operated, so it draws no control ring (as #main-content does not). */
-      [data-confirm-title]:focus,
-      [data-success-title]:focus {
-        outline: none;
+      /* --- the Academy bar --------------------------------------------- */
+
+      .academy-bar {
+        align-items: center;
+        border-bottom: 2px dashed var(--line-soft);
+        display: grid;
+        gap: 0.75rem 1.5rem;
+        grid-template-columns: minmax(0, 1fr) auto;
+        margin-bottom: 2rem;
+        padding-bottom: 1.25rem;
       }
 
-      .academy-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
+      .academy-bar-brand {
+        align-items: baseline;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 0.85rem;
+        min-width: 0;
       }
+
+      .academy-wordmark {
+        align-items: center;
+        color: var(--ink);
+        display: inline-flex;
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: -0.015em;
+        min-height: 2.75rem;
+        text-decoration: none;
+      }
+
+      .academy-wordmark:hover {
+        color: var(--indigo);
+      }
+
+      .academy-tagline {
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-weight: 600;
+      }
+
+      .academy-bar-nav {
+        grid-column: 1 / -1;
+      }
+
+      /* --- the header ------------------------------------------------------ */
 
       .academy-hero-inner {
         display: grid;
-        gap: 1.75rem 2.25rem;
+        gap: 2rem 3rem;
       }
 
-      .academy-hero-inner > * {
+      .academy-hero-inner > *,
+      .academy-hero-copy {
         min-width: 0;
       }
 
@@ -65,24 +115,37 @@
 
       .academy-note {
         color: var(--body-text);
-        margin-top: 0.85rem;
+        margin-top: 1rem;
         max-width: var(--measure);
       }
 
-      .academy-hero-links,
       .academy-actions {
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem 1.25rem;
-        margin-top: 1.25rem;
+        gap: 0.75rem 1rem;
+        margin-top: 1.5rem;
       }
 
-      .academy-hero-links .band-link,
-      .academy-links .band-link {
+      .academy-inline-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 1.5rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .academy-inline-links .band-link,
+      .academy-other-track .band-link,
+      .academy-closing-copy .band-link {
         align-items: center;
         display: inline-flex;
         min-height: 2.75rem;
+      }
+
+      .academy-hero-links {
+        margin-top: 1rem;
       }
 
       .academy-person {
@@ -108,27 +171,38 @@
       }
 
       .academy-seats {
-        margin-top: 0.75rem;
+        margin-top: 1rem;
       }
 
-      .academy-aside {
-        display: grid;
-        gap: 0.75rem;
-      }
-
-      .academy-aside > .mono-note {
-        color: var(--body-text);
+      /* The German page's English pointer: an information callout set at the
+         reading measure, between the heading and the German lede. */
+      .academy-english {
+        margin-top: 1rem;
+        max-width: var(--measure);
       }
 
       /* --- the waitlist and session forms ------------------------------- */
 
       .academy-form-card {
-        gap: 1rem;
-        padding: 1.25rem;
+        gap: 1.25rem;
+        padding: 1.5rem;
+      }
+
+      .academy-card-head {
+        border-bottom: 2px dashed var(--line-soft);
+        display: grid;
+        gap: 0.5rem;
+        justify-items: start;
+        padding-bottom: 1.25rem;
+      }
+
+      .academy-card-head p {
+        color: var(--body-text);
+        font-size: 0.92rem;
       }
 
       .academy-form-card .cmp-form {
-        gap: 1rem;
+        gap: 1.25rem;
         max-width: none;
       }
 
@@ -146,23 +220,46 @@
         padding: 0;
       }
 
-      .academy-email-row {
-        display: grid;
-        gap: 0.6rem;
-      }
-
-      .academy-email-row .cta {
-        justify-content: center;
-      }
-
+      /* A choice group is an even grid of option rows: as many equal columns
+         as the card holds at 10rem, so short options sit side by side without
+         ragged wrapping, and a long option list stays one column. */
       .academy-choices {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0 1.25rem;
+        display: grid;
+        gap: 0 1rem;
+        grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
       }
 
-      .academy-years {
-        max-width: 8rem;
+      .academy-choices-stack {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .academy-choices .form-check,
+      .academy-form-card .form-check {
+        align-items: flex-start;
+        padding-block: 0.6rem;
+      }
+
+      .academy-form-card .form-check-input {
+        margin-top: 0.15rem;
+      }
+
+      .academy-years .field-input {
+        max-width: 10rem;
+      }
+
+      .academy-form-actions {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .academy-form-actions .cta {
+        width: 100%;
+      }
+
+      .academy-confirm-notice {
+        color: var(--ink);
+        font-size: 0.95rem;
+        font-weight: 700;
       }
 
       .academy-fineprint {
@@ -171,76 +268,135 @@
       }
 
       .academy-fineprint a,
-      .academy-success a:not(.cta) {
+      .academy-success a:not(.cta),
+      .academy-contact a {
         color: var(--indigo);
       }
 
       .academy-success {
         display: grid;
-        gap: 0.75rem;
+        gap: 0.85rem;
       }
 
       .academy-success h2,
       .academy-success h3 {
-        font-size: 1.25rem;
+        font-size: 1.35rem;
+      }
+
+      .academy-success h4 {
+        font-size: 1.05rem;
+      }
+
+      .academy-success .cta {
+        justify-self: start;
+      }
+
+      .academy-success-group {
+        border-top: 2px dashed var(--line-soft);
+        display: grid;
+        gap: 0.5rem;
+        padding-top: 1rem;
+      }
+
+      .academy-success-group .academy-actions {
+        margin-top: 0.25rem;
       }
 
       .academy-question {
         display: grid;
-        gap: 0.45rem;
+        gap: 0.5rem;
       }
 
       .academy-question p {
         color: var(--ink);
-        font-size: 0.9rem;
+        font-size: 0.92rem;
         font-weight: 700;
       }
 
       .academy-calendar-links {
         display: grid;
         gap: 0.35rem;
-        padding-left: 1.1rem;
+        list-style: disc;
+        padding-left: 1.25rem;
       }
 
-      /* --- content sections --------------------------------------------- */
+      /* --- chapters ------------------------------------------------------ */
 
-      .academy-section + .academy-section {
-        margin-top: 2.75rem;
+      .academy-section {
+        border-top: 2px dashed var(--line-soft);
+        margin-top: 3rem;
+        padding-top: 2.75rem;
+      }
+
+      .academy-section:first-child {
+        border-top: 0;
+        margin-top: 0;
+        padding-top: 0.5rem;
+      }
+
+      .academy-section h2 {
+        letter-spacing: -0.02em;
+        scroll-margin-top: 1.5rem;
       }
 
       .academy-section .band-head {
-        margin-bottom: 1.25rem;
+        margin-bottom: 1.5rem;
       }
 
       .academy-section .band-head p {
         color: var(--body-text);
+        max-width: var(--measure);
+      }
+
+      /* Running copy in a chapter stays at the reading measure even though
+         the chapter spans the full shell. */
+      .academy-section .prose {
+        max-width: var(--measure);
+      }
+
+      .academy-subhead {
+        font-size: 1.1rem;
+        margin: 1.5rem 0 1rem;
       }
 
       .academy-numbered {
         display: grid;
-        gap: 0.85rem;
+        gap: 1rem;
         list-style: none;
         margin: 0;
+        max-width: var(--measure);
         padding: 0;
       }
 
       .academy-numbered > li {
         align-items: start;
         display: grid;
-        gap: 0.75rem;
+        gap: 0.85rem;
         grid-template-columns: auto minmax(0, 1fr);
       }
 
-      .academy-numbered .module-number {
-        margin-top: 0.1rem;
+      .academy-numbered > li > span:last-child {
+        color: var(--body-text);
+        padding-top: 0.2rem;
       }
 
-      .academy-track-card h2 {
-        font-size: clamp(1.4rem, 3vw, 1.87rem);
+      .academy-track-card {
+        gap: 0.75rem;
+        padding: 1.5rem;
       }
 
-      .academy-track-card .academy-headline,
-      .academy-headline {
+      .academy-track-card h3,
+      .academy-fit-card h2 {
+        font-size: 1.35rem;
+      }
+
+      .academy-track-card p {
+        color: var(--body-text);
+      }
+
+      /* The program's promise under its name, set the way a course title's
+         ship line is. */
+      .academy-track-card .academy-headline {
         color: var(--green-ship);
         font-style: italic;
         font-weight: 700;
@@ -252,12 +408,16 @@
       }
 
       .academy-track-card .academy-numbered {
-        margin-block: 0.5rem 1rem;
+        margin-block: 0.5rem 1.25rem;
       }
 
       .academy-facts {
-        grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-        margin-bottom: 0;
+        grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+      }
+
+      /* A program's facts close its title block, as a course's do. */
+      .academy-hero-facts {
+        margin-top: 2.5rem;
       }
 
       .academy-facts dt {
@@ -266,14 +426,48 @@
 
       .academy-facts dd {
         color: var(--ink);
+        font-size: 0.95rem;
         font-weight: 700;
         margin: 0;
+      }
+
+      .academy-funding {
+        margin-top: 1.5rem;
+      }
+
+      .academy-funding h3 {
+        font-size: 1.05rem;
+      }
+
+      .academy-split {
+        align-items: start;
+        display: grid;
+        gap: 2rem 3rem;
+      }
+
+      .academy-project,
+      .academy-steps-card {
+        align-content: start;
+      }
+
+      .academy-project h3,
+      .academy-steps-card h3 {
+        font-size: 1.15rem;
+      }
+
+      .academy-project p {
+        color: var(--body-text);
+      }
+
+      .academy-steps-card {
+        gap: 1rem;
+        padding: 1.5rem;
       }
 
       .academy-instructor {
         align-items: start;
         display: grid;
-        gap: 1.25rem 2rem;
+        gap: 1.5rem 2.5rem;
       }
 
       .academy-instructor img {
@@ -282,35 +476,31 @@
         border-radius: 0.9rem;
         box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
         height: auto;
-        max-width: 14rem;
+        max-width: 12rem;
         object-fit: cover;
         width: 100%;
       }
 
-      .academy-instructor .prose + .academy-proof {
-        margin-top: 1rem;
+      .academy-instructor-copy {
+        display: grid;
+        gap: 0.75rem;
       }
 
-      .academy-proof {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.25rem 1.25rem;
-        list-style: none;
-        margin: 0;
-        padding: 0;
-      }
-
-      .academy-proof a {
-        align-items: center;
-        display: inline-flex;
-        min-height: 2.75rem;
+      .academy-fit-card {
+        gap: 0.85rem;
+        padding: 1.5rem;
       }
 
       .academy-card-list {
         display: grid;
-        gap: 0.5rem;
+        gap: 0.6rem;
+        list-style: disc;
         margin: 0;
-        padding-left: 1.15rem;
+        padding-left: 1.25rem;
+      }
+
+      .academy-card-list li {
+        color: var(--body-text);
       }
 
       .academy-card-list a {
@@ -327,9 +517,9 @@
       .academy-modules > li {
         border-bottom: 1.5px dashed var(--line-soft);
         display: grid;
-        gap: 0.3rem 0.75rem;
+        gap: 0.35rem 0.75rem;
         grid-template-columns: 2rem minmax(0, 1fr);
-        padding-block: 0.75rem;
+        padding-block: 0.85rem;
       }
 
       .academy-modules > li:last-child {
@@ -339,119 +529,201 @@
       .academy-module-number {
         color: var(--indigo);
         font-family: var(--font-mono);
-        font-size: 0.8rem;
+        font-size: 0.85rem;
         padding-top: 0.15rem;
       }
 
       .academy-modules h3 {
-        font-size: 1rem;
+        font-size: 1.05rem;
       }
 
       .academy-modules p,
       .academy-modules ul {
         color: var(--body-text);
-        font-size: 0.95rem;
-        margin-top: 0.3rem;
+        margin-top: 0.35rem;
       }
 
       .academy-modules ul {
-        padding-left: 1.1rem;
-      }
-
-      .academy-modules .module-body {
-        margin-left: 0;
-        padding: 0 0.95rem 0.5rem;
+        list-style: disc;
+        padding-left: 1.25rem;
       }
 
       .academy-module-list .module-body {
         margin-left: 0;
-        padding-inline: 0.95rem;
+        padding: 0 1rem 0.5rem;
       }
 
-      .academy-produce .mono-label {
-        color: var(--indigo);
-        margin-right: 0.35rem;
+
+      .academy-steps {
+        gap: 1.25rem;
+        grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .academy-steps .card {
+        gap: 0.6rem;
+        padding: 1.25rem;
+      }
+
+      .academy-steps h4 {
+        font-size: 1.05rem;
+      }
+
+      .academy-steps p {
+        color: var(--body-text);
+      }
+
+      .academy-section .row-list,
+      .academy-reading .row-list {
+        max-width: 52rem;
+      }
+
+      .academy-contact {
+        color: var(--body-text);
+        margin-top: 1.25rem;
       }
 
       .academy-closing {
+        align-items: start;
         display: grid;
-        gap: 1.5rem;
-        padding: 1.5rem;
+        gap: 1.5rem 2.5rem;
+        padding: 1.75rem 2rem;
       }
 
       .academy-closing h2 {
         font-size: clamp(1.4rem, 3vw, 1.87rem);
       }
 
-      .academy-closing p {
+      .academy-closing-copy {
+        display: grid;
+        gap: 0.6rem;
+        justify-items: start;
+      }
+
+      .academy-closing-copy p {
         color: var(--body-text);
-        margin-top: 0.5rem;
+        max-width: var(--measure);
       }
 
-      /* The reset clears list markers; these lists are bulleted copy. */
-      .academy-session-card ul,
-      .academy-card-list,
-      .academy-modules ul {
-        list-style: disc;
+      .academy-closing-buttons {
+        margin-top: 0;
       }
 
-      .academy-session-list {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-      }
-
-      .academy-session-card .mono-label {
-        color: var(--indigo);
-      }
-
-      .academy-session-card h3 {
-        font-size: 1.1rem;
-      }
-
-      .academy-session-card ul {
-        padding-left: 1.1rem;
-      }
+      /* --- the free sessions --------------------------------------------- */
 
       .academy-hero-sessions {
-        display: grid;
-        gap: 0.5rem;
         list-style: none;
-        margin: 1.25rem 0 0;
+        margin: 1.5rem 0 0;
         max-width: var(--measure);
         padding: 0;
+        --row-cols: 8.5rem minmax(0, 1fr);
       }
 
-      .academy-hero-sessions li {
-        border-bottom: 1.5px dashed var(--line-soft);
-        display: grid;
-        gap: 0.15rem;
-        padding-bottom: 0.5rem;
+      .academy-hero-sessions .list-row {
+        align-items: baseline;
+        gap: 0.2rem 1.25rem;
+        padding-block: 0.75rem;
       }
 
       .academy-hero-sessions .mono-note {
         color: var(--indigo);
       }
 
-      .academy-links {
-        border-top: 2px dashed var(--line-soft);
-        display: grid;
-        gap: 0.5rem;
-        margin-top: 2.75rem;
-        padding-top: 1.25rem;
+      .academy-hero-session-title {
+        color: var(--ink);
+        font-weight: 700;
       }
 
-      .academy-links ul {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0 1.25rem;
+      .academy-session-list,
+      .academy-numbers {
+        display: grid;
+        gap: 1.25rem;
         list-style: none;
         margin: 0;
         padding: 0;
       }
 
-      .academy-links .mono-note {
-        color: var(--muted);
+      .academy-session-card {
+        display: grid;
+        gap: 1rem 2rem;
+        padding: 1.5rem;
+      }
+
+      .academy-session-when {
+        align-items: center;
+        display: flex;
+        gap: 0.75rem;
+      }
+
+      .academy-session-when .module-number {
+        grid-row: auto;
+      }
+
+      .academy-session-body {
+        display: grid;
+        gap: 0.6rem;
+        max-width: var(--measure);
+      }
+
+      .academy-session-body h3 {
+        font-size: 1.15rem;
+      }
+
+      .academy-session-body p,
+      .academy-session-body li,
+      .academy-numbers p {
+        color: var(--body-text);
+        font-size: 1rem;
+      }
+
+      .academy-session-body ul {
+        display: grid;
+        gap: 0.3rem;
+        list-style: disc;
+        padding-left: 1.25rem;
+      }
+
+      .academy-numbers .card {
+        padding: 1.25rem 1.5rem;
+      }
+
+      .academy-numbers p {
+        color: var(--body-text);
+      }
+
+      .academy-numbers a {
+        color: var(--indigo);
+      }
+
+      /* --- the sticky waitlist bar (program pages) ------------------------ */
+
+      .academy-sticky {
+        align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        bottom: 1rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        display: flex;
+        gap: 0.75rem 1rem;
+        padding: 0.5rem 0.6rem 0.5rem 1rem;
+        position: fixed;
+        right: 1rem;
+        /* Under the analytics notice (90) and the menus (60): it is a
+           shortcut, never the thing in front. */
+        z-index: 50;
+      }
+
+      /* --- reading pages ---------------------------------------------------- */
+
+      .academy-reading {
+        max-width: 52rem;
+      }
+
+      .academy-form-page {
+        max-width: var(--form-measure);
       }
 
       .academy-confirm {
@@ -459,6 +731,10 @@
         gap: 1rem;
         max-width: var(--measure);
         padding: 1.5rem;
+      }
+
+      .academy-confirm p {
+        color: var(--body-text);
       }
 
       .academy-confirm .cta {
@@ -469,39 +745,123 @@
         color: var(--olive);
       }
 
-      @media (min-width: 62rem) {
-        .academy-hero-inner {
-          align-items: start;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 23rem);
-        }
+      /* --- wide ------------------------------------------------------------- */
 
+      @media (min-width: 48rem) {
         .academy-instructor {
-          grid-template-columns: 14rem minmax(0, 1fr);
+          grid-template-columns: 12rem minmax(0, 1fr);
         }
 
-        .academy-closing {
-          align-items: start;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 23rem);
-          padding: 2rem;
+        .academy-session-card {
+          grid-template-columns: 13rem minmax(0, 1fr);
         }
-      }
 
-      @media (min-width: 30rem) {
-        .academy-email-row {
+        .academy-session-when {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .academy-closing-action {
+          align-items: center;
           grid-template-columns: minmax(0, 1fr) auto;
         }
       }
 
+      @media (min-width: 62rem) {
+        .academy-hero-inner {
+          align-items: start;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 26rem);
+        }
+
+        .academy-hero-wide-form {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 30rem);
+        }
+
+        .academy-split {
+          grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+        }
+
+        .academy-closing {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 26rem);
+          padding: 2rem 2.5rem;
+        }
+
+        .academy-closing-action {
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+      }
+
+      /* --- narrow: reshape, not reflow ------------------------------------- */
+
       @media (max-width: 47.99rem) {
+        /* The bar keeps the wordmark beside its action (the tagline wraps
+           under the wordmark), and the section's pages become one swipeable
+           pill row instead of three wrapped rows above the heading.  The
+           row scrolls inside itself, so the page never scrolls sideways. */
+        .academy-bar {
+          align-items: start;
+          gap: 0.75rem 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .academy-bar-nav {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          padding-bottom: 0.35rem;
+          scrollbar-width: none;
+        }
+
+        .academy-bar-nav::-webkit-scrollbar {
+          display: none;
+        }
+
+        .academy-bar-nav .filter-pill {
+          flex: none;
+          white-space: nowrap;
+        }
+
         .academy-hero h1 {
           max-width: none;
+        }
+
+        .academy-lede {
+          font-size: 1.05rem;
+        }
+
+        .academy-form-card,
+        .academy-track-card,
+        .academy-fit-card,
+        .academy-session-card,
+        .academy-steps-card {
+          padding: 1.25rem;
+        }
+
+        .academy-section {
+          margin-top: 2.25rem;
+          padding-top: 2rem;
         }
 
         .academy-instructor img {
           max-width: 9rem;
         }
 
-        .academy-email-row .cta {
+        .academy-closing {
+          padding: 1.35rem;
+        }
+
+        .academy-track-card .cta,
+        .academy-closing .cta,
+        .academy-actions .cta {
+          justify-content: center;
           width: 100%;
+        }
+
+        /* On a phone the bar spans the foot of the screen. */
+        .academy-sticky {
+          justify-content: space-between;
+          left: 0.75rem;
+          right: 0.75rem;
+          bottom: 0.75rem;
         }
       }

@@ -1,10 +1,13 @@
 {% extends "core/content_page.html" %}
-{% load static breadcrumbs %}
+{% load static %}
 {% comment %}
-  The German Bildungsgutschein guide (/academy/bildungsgutschein/, lang="de").
-  The cream header answers the question in one paragraph and offers both
-  waitlists; below the seam, the facts strip, who it is for, the two programs
-  as cards, how the voucher works, and the way in.  Copy:
+  The German Bildungsgutschein guide (/academy/bildungsgutschein/, lang="de"),
+  composed like the program pages.  The cream header opens with the Academy
+  bar, then the answer in one paragraph, the English pointer (lang="en") to
+  the English page that carries the same programs and funding facts, the
+  funding line and both waitlists.  Below the seam every chapter is the same
+  frame: the facts strip, who it is for, the two programs as cards, how the
+  voucher works, and the closing mint panel.  Copy:
   academy/bildungsgutschein.md.
 {% endcomment %}
 
@@ -29,115 +32,134 @@
 {% endblock %}
 
 {% block page_header %}
-  {% breadcrumbs shared.brand academy_root %}
-  {% comment %}
-    The breadcrumb already names the Academy; an eyebrow repeating it is dropped.
-  {% endcomment %}
-  {% if data.hero.eyebrow != shared.brand %}
-    <p class="kicker">{{ data.hero.eyebrow }}</p>
-  {% endif %}
-  <h1 id="academy-heading">{{ data.hero.headline }}</h1>
-  <p class="academy-lede">{{ data.hero.lead }}</p>
-  <p class="academy-seats">
-    <span class="status-pill status-pill-open academy-pill">{{ data.hero.funding_line }}</span>
-  </p>
-  <div class="academy-actions">
-    {% for action in data.join.actions %}
-      {% include "core/_button.html" with href=action.href label=action.label variant=forloop.first|yesno:"primary,secondary" %}
-    {% endfor %}
+  <div class="academy-landing shell-breakout">
+    {% include "academy/_bar.html" %}
+    <div class="academy-hero-copy">
+      {% comment %}
+        The Academy bar already names the Academy; an eyebrow repeating it is dropped.
+      {% endcomment %}
+      {% if data.hero.eyebrow != shared.brand %}
+        <p class="kicker">{{ data.hero.eyebrow }}</p>
+      {% endif %}
+      <h1 id="academy-heading">{{ data.hero.headline }}</h1>
+      {% if data.english %}
+        <p class="callout callout-info academy-english" lang="en">
+          <span>
+            {{ data.english.text }}
+            <a class="band-link" href="{{ data.english.link.href }}">{{ data.english.link.label }}</a>
+          </span>
+        </p>
+      {% endif %}
+      <p class="academy-lede">{{ data.hero.lead }}</p>
+      <p class="academy-seats">
+        <span class="status-pill status-pill-open academy-pill">{{ data.hero.funding_line }}</span>
+      </p>
+      <div class="academy-actions">
+        {% for action in data.join.actions %}
+          {% include "core/_button.html" with href=action.href label=action.label variant=forloop.first|yesno:"primary,secondary" %}
+        {% endfor %}
+      </div>
+    </div>
   </div>
 {% endblock %}
 
 {% block page_content %}
-  {% include "academy/_facts.html" with facts=data.facts %}
+  <div class="academy-landing shell-breakout">
+    {% include "academy/_facts.html" with facts=data.facts funding=None %}
 
-  <section class="academy-section" aria-labelledby="fit-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="fit-heading">{{ data.fit.heading }}</h2>
+    <section class="academy-section" aria-labelledby="fit-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="fit-heading">{{ data.fit.heading }}</h2>
+        </div>
       </div>
-    </div>
-    <div class="card-grid card-grid-2">
-      <div class="card">
-        <h3>{{ data.fit.for_title }}</h3>
-        <ul class="academy-card-list">
-          {% for item in data.fit.for %}
-            <li>{{ item }}</li>
-          {% endfor %}
-        </ul>
+      <div class="card-grid card-grid-2">
+        <div class="card academy-fit-card">
+          <h3>{{ data.fit.for_title }}</h3>
+          <ul class="academy-card-list">
+            {% for item in data.fit.for %}
+              <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="card academy-fit-card">
+          <h3>{{ data.fit.not_title }}</h3>
+          <ul class="academy-card-list">
+            {% for item in data.fit.not %}
+              <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        </div>
       </div>
-      <div class="card">
-        <h3>{{ data.fit.not_title }}</h3>
-        <ul class="academy-card-list">
-          {% for item in data.fit.not %}
-            <li>{{ item }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="academy-section" aria-labelledby="programs-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="programs-heading">{{ data.programs.heading }}</h2>
-        <p>{{ data.programs.intro }}</p>
+    <section class="academy-section" aria-labelledby="programs-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="programs-heading">{{ data.programs.heading }}</h2>
+          <p>{{ data.programs.intro }}</p>
+        </div>
       </div>
-    </div>
-    <div class="card-grid card-grid-2">
-      {% for item in guide_programs %}
-        <article class="card academy-track-card">
-          <h3>{{ item.name }}</h3>
-          <p>{{ item.summary }}</p>
-          <p>{{ item.basis }}</p>
-          {% include "core/_button.html" with href=item.path label=item.button variant="primary" %}
-        </article>
-      {% endfor %}
-    </div>
-  </section>
-
-  <section class="academy-section" aria-labelledby="guide-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="guide-heading">{{ data.guide.heading }}</h2>
-      </div>
-    </div>
-    <div class="prose">
-      {% for paragraph in data.guide.paragraphs %}
-        <p>{{ paragraph }}</p>
-      {% endfor %}
-      <h3>{{ data.guide.steps_title }}</h3>
-      <ol>
-        {% for step in data.guide.steps %}
-          <li>{{ step }}</li>
+      <div class="card-grid card-grid-2">
+        {% for item in guide_programs %}
+          <article class="card academy-track-card">
+            <h3>{{ item.name }}</h3>
+            <p>{{ item.summary }}</p>
+            <p>{{ item.basis }}</p>
+            {% include "core/_button.html" with href=item.path label=item.button variant="primary" %}
+          </article>
         {% endfor %}
-      </ol>
-      <ul>
-        {% for link in data.guide.links %}
-          <li>
-            <a href="{{ link.href }}" target="_blank" rel="noopener">{{ link.label }}</a>
-          </li>
-        {% endfor %}
-      </ul>
-    </div>
-  </section>
+      </div>
+    </section>
 
-  <section class="academy-section" aria-labelledby="join-heading">
-    <div class="panel panel-mint panel-outlined academy-closing">
-      <div>
-        <h2 id="join-heading">{{ data.join.heading }}</h2>
-        <p>{{ data.join.text }}</p>
-        <div class="academy-actions">
+    <section class="academy-section" aria-labelledby="guide-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="guide-heading">{{ data.guide.heading }}</h2>
+        </div>
+      </div>
+      <div class="academy-split">
+        <div class="prose">
+          {% for paragraph in data.guide.paragraphs %}
+            <p>{{ paragraph }}</p>
+          {% endfor %}
+          <ul>
+            {% for link in data.guide.links %}
+              <li>
+                <a href="{{ link.href }}" target="_blank" rel="noopener">{{ link.label }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="card academy-steps-card">
+          <h3>{{ data.guide.steps_title }}</h3>
+          <ol class="academy-numbered">
+            {% for step in data.guide.steps %}
+              <li>
+                <span class="module-number" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+                <span>{{ step }}</span>
+              </li>
+            {% endfor %}
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="academy-section" aria-labelledby="join-heading">
+      <div class="panel panel-mint panel-outlined academy-closing academy-closing-action">
+        <div class="academy-closing-copy">
+          <h2 id="join-heading">{{ data.join.heading }}</h2>
+          <p>{{ data.join.text }}</p>
+          <p>
+            <a class="band-link" href="{{ sessions_path }}">{{ data.join.sessions_label }}</a>
+          </p>
+        </div>
+        <div class="academy-actions academy-closing-buttons">
           {% for action in data.join.actions %}
             {% include "core/_button.html" with href=action.href label=action.label variant=forloop.first|yesno:"primary,secondary" %}
           {% endfor %}
         </div>
-        <p>
-          <a class="band-link" href="{{ sessions_path }}">{{ data.join.sessions_label }}</a>
-        </p>
       </div>
-    </div>
-  </section>
-
-  {% include "academy/_links.html" with links=shared.footer.links copyright=shared.footer.copyright other_program=None %}
+    </section>
+  </div>
 {% endblock %}

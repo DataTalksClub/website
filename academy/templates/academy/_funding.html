@@ -1,0 +1,27 @@
+{% comment %}
+  How funding works, as the system's information callout under the facts strip
+  rather than a chapter of its own: a heading, the funding sentences verbatim,
+  and the links on to the German Bildungsgutschein guide and the Agentur's own
+  page.  It keeps the #funding anchor older links and the German page point
+  to.  funding: heading, paragraphs and the optional link / guide_link.
+{% endcomment %}
+<aside class="callout callout-info academy-funding" id="funding" aria-labelledby="funding-heading">
+  <h3 id="funding-heading">{{ funding.heading }}</h3>
+  {% for paragraph in funding.paragraphs %}
+    <p>{{ paragraph }}</p>
+  {% endfor %}
+  {% if funding.guide_link or funding.link %}
+    <ul class="academy-inline-links">
+      {% if funding.guide_link %}
+        <li>
+          <a class="band-link" href="{{ funding.guide_link.href }}">{{ funding.guide_link.label }}</a>
+        </li>
+      {% endif %}
+      {% if funding.link %}
+        <li>
+          <a class="band-link" href="{{ funding.link.href }}">{{ funding.link.label }}</a>
+        </li>
+      {% endif %}
+    </ul>
+  {% endif %}
+</aside>

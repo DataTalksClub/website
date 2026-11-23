@@ -7,12 +7,24 @@
   into the confirmation note and the optional quick questions, each answer a
   second /signup post.  Every word is the synced shared copy.
 
+  The fields are one column at the card's width, the register form's shape:
+  each label over its control, the email at full width, and the submit as a
+  full-width primary action under the fields, so nothing is squeezed into a
+  row and the button's offset shadow has clear space.
+
   form_id         "hero" or "join"; the ids and the #signup-<id> anchor follow it
   choose_program  draw the program select (the Academy home page)
   program         the page's own program, when the page belongs to one
+  intro           open the card with the seat caption and the start line
 {% endcomment %}
 {% with copy=shared.signup %}
   <div class="card academy-form-card" id="signup-{{ form_id }}" data-academy-signup data-api-origin="{{ api_origin }}" data-consent-version="{{ consent_version }}" data-track="{{ program.slug|default:'' }}" data-survey-option="{{ program.survey_option|default:'' }}" data-survey-url="{{ copy.success.survey_url }}">
+    {% if intro %}
+      <div class="academy-card-head">
+        <span class="status-pill status-pill-open academy-pill">{{ shared.seat_caption }}</span>
+        <p>{{ shared.hero.honesty }}</p>
+      </div>
+    {% endif %}
     <form class="cmp-form" novalidate>
       {% if choose_program %}
         <div class="field">
@@ -40,28 +52,30 @@
       </div>
       <div class="field">
         <label class="field-label" for="email-{{ form_id }}">{{ copy.email_label }}</label>
-        <div class="academy-email-row">
-          <input class="field-input" id="email-{{ form_id }}" type="email" name="email" required autocomplete="email" inputmode="email" placeholder="{{ copy.email_placeholder }}" aria-describedby="email-err-{{ form_id }} email-micro-{{ form_id }}">
-          <button class="cta cta-primary cta-compact interactive-lift" type="submit" disabled data-needs-js data-pending-label="{{ copy.busy }}">{{ copy.button }}</button>
-        </div>
+        <input class="field-input" id="email-{{ form_id }}" type="email" name="email" required autocomplete="email" inputmode="email" placeholder="{{ copy.email_placeholder }}" aria-describedby="email-err-{{ form_id }} email-micro-{{ form_id }}">
         <p class="a11y-error" id="email-err-{{ form_id }}" data-error="invalid" hidden>{{ copy.email_error }}</p>
       </div>
       <div class="newsletter-honeypot" aria-hidden="true">
         <input type="text" name="website" tabindex="-1" autocomplete="off">
       </div>
-      <p class="a11y-error" data-error="failed" role="alert" hidden>{{ copy.failed|academy_inline }}</p>
-      <noscript>
-        <p class="a11y-error">{{ copy.noscript|academy_inline }}</p>
-      </noscript>
-      <p class="academy-fineprint" id="email-micro-{{ form_id }}">
-        {{ copy.micro }}
-        <a href="{{ academy_root }}privacy/">{{ copy.privacy_label }}</a>
-      </p>
+      {% include "academy/_confirm_notice.html" %}
+      <div class="academy-form-actions">
+        <button class="cta cta-primary interactive-lift" type="submit" disabled data-needs-js data-pending-label="{{ copy.busy }}">{{ copy.button }}</button>
+        <p class="a11y-error" data-error="failed" role="alert" hidden>{{ copy.failed|academy_inline }}</p>
+        <noscript>
+          <p class="a11y-error">{{ copy.noscript|academy_inline }}</p>
+        </noscript>
+        <p class="academy-fineprint" id="email-micro-{{ form_id }}">
+          {{ copy.micro }}
+          <a href="{{ academy_root }}privacy/">{{ copy.privacy_label }}</a>
+        </p>
+      </div>
     </form>
     <div class="academy-success" data-success hidden>
       <p class="mono-label mono-label-green">{{ copy.success.eyebrow }}</p>
       <h3 tabindex="-1" data-success-title>{{ copy.success.title }}</h3>
       <p>{{ copy.success.text }}</p>
+      {% include "academy/_confirm_notice.html" %}
       <p class="mono-label mono-label-green">{{ copy.success.questions_label }}</p>
       {% for question in copy.success.questions %}
         <div class="academy-question">

@@ -14,7 +14,7 @@ In `DataTalksClub/content`:
 
 | File | What it holds |
 | --- | --- |
-| `academy/shared.yaml` | copy several pages share: brand, facts strip, instructor, fit lists, syllabus labels, funding, admission steps, the program FAQ, the closing waitlist panel, footer links, the waitlist form's labels, errors, quick questions and survey address |
+| `academy/shared.yaml` | copy several pages share: brand, facts strip, instructor, fit lists, syllabus labels, funding, admission steps, the program FAQ, the closing waitlist panel, the Academy bar (`header`: wordmark, tagline, section links), the program pages' sticky caption, the contact line, the confirmation warning every form shows (`confirm_notice`), the waitlist form's labels, errors, quick questions and survey address |
 | `academy/index.md` | `/academy/` (layout `home`) |
 | `academy/agentic-engineering.md`, `academy/ai-engineering.md` | the program pages (layout `program`): hero, outcomes, project, prerequisites, syllabus groups and modules, Course structured data |
 | `academy/sessions.md` | `/academy/sessions/` (layout `sessions`): the session list with dates, Zoom and Meetup links, the registration form copy, and the calendar identity |

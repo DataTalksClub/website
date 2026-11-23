@@ -600,6 +600,12 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
 `.field-input` styles `input`, `select` and `textarea` alike; readonly and disabled
 fields sit on `--sand`.
 
+**A `select` draws the system's chevron, not the platform's.** `select.field-input`
+(and `select.form-control`) sets `appearance: none` and draws the FAQ fold's indigo
+2px V inset from the right edge, with `2.75rem` of right padding kept clear for it.
+The mark is two gradient squares rather than an SVG data URL so it reads the
+`--indigo` token and follows the theme; the invalid state keeps it.
+
 **A disabled field drops to a `--line-soft` edge; a readonly field does not.** WCAG
 1.4.11 exempts an *inactive* component from the 3:1 non-text floor, and readonly is
 still focusable and still in the tab order, so it keeps the full `--line` border.
@@ -786,12 +792,28 @@ The `/academy/` pages (`academy/templates/academy/`) are ordinary content pages:
 each extends `core/content_page.html`, so the masthead, cream header, lavender
 content band and footer are the shared ones. Like the account entrance family they
 share one page-level partial, `academy/_styles.html`, included straight after the
-design system; it only lays out primitives the system already owns — the header's
-heading beside a waitlist `.card`, numbered lists on `.module-number` discs, the
-syllabus as `.module` accordions, facts as the `.spec-strip`, FAQ as `.faq-fold`,
-the closing waitlist on a `.panel-mint`. The forms use `.field`, `.field-input`,
-`.form-check`, `.a11y-error` and the quick-question answers are `.filter-pill`
-toggles.
+design system; it only lays out primitives the system already owns.
+
+- **One footer, the site's.** Every Academy header opens with the Academy bar
+  (`academy/_bar.html`): the wordmark back to `/academy/`, the tagline, the waitlist
+  `.cta-compact`, and the section's pages as `nav.filter-pills` links with
+  `aria-current="page"` on the current one (one swipeable row below 48rem). There is
+  no Academy link footer above the site footer and no breadcrumb.
+- **The landings (home, programs, sessions, the German guide) follow the course
+  family landing**: `.shell-breakout` to the full shell, the heading beside the
+  waitlist (or sessions) `.card`, and every chapter the same frame — a dashed seam
+  and a real `.band-head`. A program carries its facts as the `.spec-strip` at the
+  foot of its title block; long copy stays at `--measure`.
+- Numbered lists sit on `.module-number` discs, the syllabus is `.module`
+  accordions, FAQ is `.faq-fold`, funding is a `.callout-info` (never a chapter for
+  one sentence), the closing waitlist is a `.panel-mint`.
+- **Forms are one column**: every field full width, the submit a full-width
+  `.cta-primary` on its own row, the confirmation warning a `.callout-attention`
+  above it and again in the success state. Choice groups are `fieldset`s whose
+  `.form-check` rows sit in an even grid. The quick-question answers are
+  `.filter-pill` toggles.
+- The program pages' sticky waitlist bar shows only while neither the header nor a
+  waitlist card is on screen, and sits under the analytics notice.
 
 ## The account entrance family
 

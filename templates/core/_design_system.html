@@ -3319,6 +3319,30 @@ Rules for editing:
         color: var(--olive);
       }
 
+      /* A select draws the system's own chevron instead of the platform's
+         tiny arrow pinned to the border: the same indigo, 2px-stroke V as the
+         FAQ fold marker, inset from the right edge with room kept clear for
+         it.  Two gradient squares draw the two arms, so the mark is a token
+         and follows the theme (an SVG data URL cannot read a custom
+         property).  Listed with the invalid state so its sand fill keeps the
+         chevron too. */
+      select.field-input,
+      select.form-control,
+      select.field-input.is-invalid,
+      select.form-control.is-invalid {
+        appearance: none;
+        background-image:
+          linear-gradient(45deg, transparent calc(50% - 1px), var(--indigo) calc(50% - 1px), var(--indigo) calc(50% + 1px), transparent calc(50% + 1px)),
+          linear-gradient(135deg, transparent calc(50% - 1px), var(--indigo) calc(50% - 1px), var(--indigo) calc(50% + 1px), transparent calc(50% + 1px));
+        background-position:
+          right 1.35rem center,
+          right 0.9rem center;
+        background-repeat: no-repeat;
+        background-size: 0.45rem 0.45rem;
+        cursor: pointer;
+        padding-right: 2.75rem;
+      }
+
       .invalid-feedback {
         color: var(--olive);
         font-size: 0.85rem;

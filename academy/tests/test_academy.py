@@ -96,6 +96,123 @@ class AcademyPageTests(TestCase):
                 # The site-wide Academy stripe would link the page to itself.
                 self.assertNotIn("data-academy-cta", body)
 
+    def test_the_academy_bar_replaces_the_retired_header_and_footer(self) -> None:
+        tagline_pages = {
+            "/academy/",
+            "/academy/agentic-engineering/",
+            "/academy/ai-engineering/",
+            "/academy/faq/",
+            "/academy/bildungsgutschein/",
+            "/academy/confirm/",
+        }
+        for path in ALL_PAGES:
+            with self.subTest(path=path):
+                body = self.client.get(path).content.decode()
+                self.assertIn('class="academy-bar"', body)
+                self.assertIn('<a class="academy-wordmark" href="/academy/"', body)
+                self.assertIn("Synthetic wordmark", body)
+                self.assertIn('aria-label="Synthetic section"', body)
+                self.assertEqual("Synthetic tagline" in body, path in tagline_pages)
+                waitlist = (
+                    "#signup-hero"
+                    if path in {"/academy/", *ALL_PAGES[1:3]}
+                    else "/academy/#signup-hero"
+                )
+                self.assertIn(f'academy-bar-cta" href="{waitlist}"', body)
+                # One footer, the site's: no Academy link footer and no copyright line.
+                self.assertNotIn("academy-links", body)
+                self.assertNotIn("©", body)
+                self.assertNotIn('class="breadcrumbs"', body)
+        faq = self.client.get("/academy/faq/").content.decode()
+        self.assertIn(
+            '<a class="filter-pill interactive-lift" href="/academy/faq/" aria-current="page">',
+            faq,
+        )
+        self.assertIn('href="/academy/sessions/" aria-current="false">Synthetic sessions</a>', faq)
+
+    def test_home_keeps_its_anchors_and_the_funding_notice(self) -> None:
+        home = self.client.get("/academy/").content.decode()
+        for anchor in ('id="hero"', 'id="tracks"', 'id="facts"', 'id="funding"'):
+            self.assertIn(anchor, home)
+        funding = home[home.index('id="funding"') :]
+        funding = funding[: funding.index("</aside>")]
+        self.assertIn("Synthetic home funding", funding)
+        self.assertIn("Synthetic home funding text.", funding)
+        self.assertIn('href="/academy/bildungsgutschein/">Synthetic home guide</a>', funding)
+        program = self.client.get("/academy/agentic-engineering/").content.decode()
+        self.assertIn('id="funding"', program)
+        self.assertIn('href="/academy/bildungsgutschein/">Synthetic funding guide</a>', program)
+        self.assertIn('href="https://example.invalid/funding">Synthetic funding link</a>', program)
+
+    def test_every_form_and_pending_state_carries_the_confirmation_notice(self) -> None:
+        notice = "Synthetic important: confirm your email or get nothing."
+        # Each signup card says it in its form and again in its success state.
+        for path, cards in (
+            ("/academy/", 1),
+            ("/academy/agentic-engineering/", 2),
+            ("/academy/ai-engineering/", 2),
+            ("/academy/sessions/", 1),
+            ("/academy/sessions/materials/?session=1", 1),
+        ):
+            with self.subTest(path=path):
+                body = self.client.get(path).content.decode()
+                self.assertEqual(body.count("data-confirm-notice"), cards * 2)
+                self.assertEqual(body.count(notice), cards * 2)
+                for success in body.split("data-success hidden")[1:]:
+                    self.assertIn(notice, success.split("</div>\n  </div>")[0])
+
+    def test_program_pages_close_with_the_other_track_and_a_sticky_bar(self) -> None:
+        program = self.client.get("/academy/ai-engineering/").content.decode()
+        self.assertIn("data-academy-sticky hidden", program)
+        self.assertIn("Synthetic seats, live", program)
+        self.assertIn("Synthetic other track?", program)
+        self.assertIn('href="/academy/agentic-engineering/">Agentic Engineering</a>', program)
+        self.assertIn(f'<a href="mailto:{fixture.CONTACT}">', program)
+        for path in ("/academy/", "/academy/sessions/", "/academy/faq/"):
+            self.assertNotIn("data-academy-sticky", self.client.get(path).content.decode())
+
+    def test_the_sessions_page_keeps_its_form_up_top_and_closes_on_it(self) -> None:
+        body = self.client.get("/academy/sessions/").content.decode()
+        header = body[: body.index("content-page-content")]
+        self.assertIn('id="register"', header)
+        self.assertEqual(header.count('<li class="list-row">'), 3)
+        closing = body[body.index('id="final-heading"') :]
+        self.assertIn('href="#register"', closing[: closing.index("</section>")])
+        self.assertEqual(body.count('class="card academy-session-card"'), 3)
+
+    def test_the_german_guide_points_to_the_english_page(self) -> None:
+        guide = self.client.get("/academy/bildungsgutschein/").content.decode()
+        self.assertIn('<html lang="de"', guide)
+        note = guide[guide.index('class="callout callout-info academy-english"') :]
+        note = note[: note.index("</p>")]
+        self.assertIn('lang="en"', note)
+        self.assertIn("Synthetic: for English, check this page:", note)
+        self.assertIn('href="/academy/#funding">Synthetic English page</a>', note)
+
+    def test_the_optional_copy_draws_nothing_when_absent(self) -> None:
+        pages = fixture.pages_copy()
+        del pages["bildungsgutschein"][0]["english"]
+        shared = {
+            key: value
+            for key, value in fixture.SHARED.items()
+            if key not in {"header", "sticky", "contact", "other_track", "confirm_notice"}
+        }
+        _clear_academy()
+        fixture.publish(fixture.academy_tree(pages=pages, shared=shared))
+        for path in ALL_PAGES:
+            with self.subTest(path=path):
+                body = self.client.get(path).content.decode()
+                self.assertEqual(self.client.get(path).status_code, 200)
+                for marker in (
+                    'class="academy-bar"',
+                    "data-academy-sticky",
+                    "data-confirm-notice",
+                    'class="callout callout-info academy-english"',
+                    'class="academy-contact"',
+                    'class="academy-other-track"',
+                ):
+                    self.assertNotIn(marker, body)
+
     def test_canonical_open_graph_and_language(self) -> None:
         response = self.client.get("/academy/agentic-engineering/")
         self.assertContains(

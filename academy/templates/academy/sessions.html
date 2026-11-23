@@ -1,12 +1,16 @@
 {% extends "core/content_page.html" %}
-{% load static breadcrumbs academy_text %}
+{% load static academy_text %}
 {% comment %}
-  The free session series (/academy/sessions/).  The cream header names the
-  series and its three dates and sends the reader to the registration form,
-  which opens the lavender content: then who it is for, the sessions as cards,
-  who runs them, the numbers behind the first one, and the questions.  The
-  calendars the success state links to are /academy/sessions/<id>.ics, drawn
-  from the same session list.  Copy: academy/sessions.md.
+  The free session series (/academy/sessions/), composed like the program
+  pages.  The cream header opens with the Academy bar, then the series, its
+  dates as dashed list rows and the speaker beside the registration form, so
+  the form is in the first view as it was on the retired site.  Below the
+  seam every chapter is the same frame -- a dashed seam and a band head: who
+  it is for, the sessions one per row, who runs them, the numbers behind the
+  first one, the questions, and the closing mint panel that sends the reader
+  back up to the form.  The calendars the success state links to are
+  /academy/sessions/<id>.ics, drawn from the same session list.  Copy:
+  academy/sessions.md.
 {% endcomment %}
 
 {% block document_title %}
@@ -30,121 +34,134 @@
 {% endblock %}
 
 {% block page_header %}
-  {% breadcrumbs shared.brand academy_root %}
-  <p class="kicker">{{ data.hero.eyebrow }}</p>
-  <h1 id="academy-heading">{{ data.hero.headline }}</h1>
-  <p class="academy-lede">{{ data.hero.lead }}</p>
-  <ul class="academy-hero-sessions">
-    {% for session in sessions %}
-      <li>
-        <span class="mono-note">{{ session.date_label }}, {{ session.hero_time|default:data.series.hero_time }}</span>
-        <span>{{ session.hero_topic }}</span>
-      </li>
-    {% endfor %}
-  </ul>
-  <div class="academy-actions">
-    {% include "core/_button.html" with href="#register" label=data.hero.button variant="primary" %}
-  </div>
-  <p class="academy-note">{{ data.hero.under_button }}</p>
-  <div class="academy-person">
-    <img src="/{{ data.hero.speaker_photo }}" alt="{{ data.hero.speaker_alt }}" width="112" height="112" decoding="async">
-    <p>{{ data.hero.speaker_line }}</p>
+  <div class="academy-landing shell-breakout">
+    {% include "academy/_bar.html" %}
+    <div class="academy-hero-inner academy-hero-wide-form">
+      <div class="academy-hero-copy">
+        <p class="kicker">{{ data.hero.eyebrow }}</p>
+        <h1 id="academy-heading">{{ data.hero.headline }}</h1>
+        <p class="academy-lede">{{ data.hero.lead }}</p>
+        <ol class="row-list academy-hero-sessions">
+          {% for session in sessions %}
+            <li class="list-row">
+              <span class="mono-note">{{ session.date_label }}, {{ session.hero_time|default:data.series.hero_time }}</span>
+              <span class="academy-hero-session-title">{{ session.hero_topic }}</span>
+            </li>
+          {% endfor %}
+        </ol>
+        <p class="academy-note">{{ data.hero.under_button }}</p>
+        <div class="academy-person">
+          <img src="/{{ data.hero.speaker_photo }}" alt="{{ data.hero.speaker_alt }}" width="112" height="112" decoding="async">
+          <p>{{ data.hero.speaker_line }}</p>
+        </div>
+      </div>
+      {% include "academy/_sessions_form.html" with kind="main" %}
+    </div>
   </div>
 {% endblock %}
 
 {% block page_content %}
-  <section class="academy-section" aria-labelledby="register-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="register-heading">{{ data.final.heading }}</h2>
-        <p>{{ data.final.text }}</p>
+  <div class="academy-landing shell-breakout">
+    <section class="academy-section" aria-labelledby="audience-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="audience-heading">{{ data.audience.heading }}</h2>
+        </div>
       </div>
-    </div>
-    {% include "academy/_sessions_form.html" with kind="main" %}
-  </section>
-
-  <section class="academy-section" aria-labelledby="audience-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="audience-heading">{{ data.audience.heading }}</h2>
-      </div>
-    </div>
-    <div class="prose">
-      <p>{{ data.audience.intro }}</p>
-      <ol>
-        {% for item in data.audience.items %}
-          <li>{{ item }}</li>
-        {% endfor %}
-      </ol>
-      <p>{{ data.audience.outro }}</p>
-      <p>{{ data.audience.note|academy_inline }}</p>
-    </div>
-  </section>
-
-  <section class="academy-section" id="sessions" aria-labelledby="schedule-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="schedule-heading">{{ data.schedule.heading }}</h2>
-      </div>
-    </div>
-    <ol class="card-grid card-grid-3 academy-session-list">
-      {% for session in sessions %}
-        <li class="card academy-session-card" data-session-id="{{ session.id }}">
-          <p class="mono-label">{{ session.number|stringformat:"02d" }} · {{ session.weekday_date }}</p>
-          <h3>{{ session.title }}</h3>
-          {% for block in session.blocks %}
-            {% if block.bullets %}
-              <ul>
-                {% for line in block.bullets %}
-                  <li>{{ line }}</li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p>{{ block.text }}</p>
-            {% endif %}
+      <div class="prose">
+        <p>{{ data.audience.intro }}</p>
+        <ul>
+          {% for item in data.audience.items %}
+            <li>{{ item }}</li>
           {% endfor %}
-        </li>
-      {% endfor %}
-    </ol>
-    <p class="academy-note">{{ data.schedule.after }}</p>
-  </section>
-
-  <section class="academy-section" aria-labelledby="host-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="host-heading">{{ data.host.heading }}</h2>
+        </ul>
+        <p>{{ data.audience.outro }}</p>
+        <p>{{ data.audience.note|academy_inline }}</p>
       </div>
-    </div>
-    <div class="prose">
-      <p>{{ data.host.text }}</p>
-    </div>
-  </section>
+    </section>
 
-  <section class="academy-section" aria-labelledby="numbers-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="numbers-heading">{{ data.numbers.heading }}</h2>
+    <section class="academy-section" id="sessions" aria-labelledby="schedule-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="schedule-heading">{{ data.schedule.heading }}</h2>
+        </div>
       </div>
-    </div>
-    <div class="prose">
-      <ol>
-        {% for item in data.numbers.items %}
-          <li>{{ item|academy_inline }}</li>
+      <ol class="academy-session-list">
+        {% for session in sessions %}
+          <li class="card academy-session-card" data-session-id="{{ session.id }}">
+            <div class="academy-session-when">
+              <span class="module-number" aria-hidden="true">{{ session.number|stringformat:"02d" }}</span>
+              <p class="mono-label mono-label-indigo">{{ session.weekday_date }}</p>
+            </div>
+            <div class="academy-session-body">
+              <h3>{{ session.title }}</h3>
+              {% for block in session.blocks %}
+                {% if block.bullets %}
+                  <ul>
+                    {% for line in block.bullets %}
+                      <li>{{ line }}</li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p>{{ block.text }}</p>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </li>
         {% endfor %}
       </ol>
-    </div>
-  </section>
+      <p class="academy-note">{{ data.schedule.after }}</p>
+    </section>
 
-  <section class="academy-section" aria-labelledby="faq-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="faq-heading">{{ data.faq.heading }}</h2>
+    <section class="academy-section" aria-labelledby="host-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="host-heading">{{ data.host.heading }}</h2>
+        </div>
       </div>
-    </div>
-    {% include "academy/_faq.html" with items=data.faq.items prefix="faq" label="" %}
-  </section>
+      <div class="academy-instructor">
+        <img src="/{{ data.hero.speaker_photo }}" alt="{{ data.hero.speaker_alt }}" width="280" height="280" loading="lazy" decoding="async">
+        <div class="prose">
+          <p>{{ data.host.text }}</p>
+        </div>
+      </div>
+    </section>
 
-  {% include "academy/_links.html" with links=data.footer_links copyright="" other_program=None %}
+    <section class="academy-section" aria-labelledby="numbers-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="numbers-heading">{{ data.numbers.heading }}</h2>
+        </div>
+      </div>
+      <ol class="card-grid card-grid-2 academy-numbers">
+        {% for item in data.numbers.items %}
+          <li class="card">
+            <p>{{ item|academy_inline }}</p>
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="academy-section" aria-labelledby="faq-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="faq-heading">{{ data.faq.heading }}</h2>
+        </div>
+      </div>
+      {% include "academy/_faq.html" with items=data.faq.items prefix="faq" label="" %}
+      {% include "academy/_contact.html" %}
+    </section>
+
+    <section class="academy-section" aria-labelledby="final-heading">
+      <div class="panel panel-mint panel-outlined academy-closing academy-closing-action">
+        <div class="academy-closing-copy">
+          <h2 id="final-heading">{{ data.final.heading }}</h2>
+          <p>{{ data.final.text }}</p>
+        </div>
+        {% include "core/_button.html" with href="#register" label=data.hero.button variant="primary" %}
+      </div>
+    </section>
+  </div>
 {% endblock %}
 
 {% block page_scripts %}

@@ -7,6 +7,10 @@
   location, Bildungsgutschein interest, the free text and the opt-in; the QR
   form sends the status, the opt-in and the one session its ?session=N names.
 
+  Every choice group is a fieldset with its legend and its options as an even
+  grid of 44px .form-check rows; the submit is a full-width primary action
+  under the fields, with the confirmation warning just above it.
+
   kind   "main" or "qr"
   page   for "qr", the materials page whose own copy the form uses
 {% endcomment %}
@@ -25,12 +29,14 @@
       {% if kind == "main" %}
         <fieldset>
           <legend class="field-label">{{ form.sessions_label }}</legend>
-          {% for session in sessions %}
-            <label class="form-check">
-              <input class="form-check-input" type="checkbox" name="sessions" value="{{ session.id }}">
-              <span class="form-check-label">{{ session.short_label }}</span>
-            </label>
-          {% endfor %}
+          <div class="academy-choices academy-choices-stack">
+            {% for session in sessions %}
+              <label class="form-check">
+                <input class="form-check-input" type="checkbox" name="sessions" value="{{ session.id }}">
+                <span class="form-check-label">{{ session.short_label }}</span>
+              </label>
+            {% endfor %}
+          </div>
           <p class="a11y-error" data-error="sessions" role="alert" hidden>{{ form.sessions_error }}</p>
         </fieldset>
         <fieldset>
@@ -47,7 +53,7 @@
       {% endif %}
       <fieldset>
         <legend class="field-label">{{ form.status_label }}</legend>
-        <div class="academy-choices">
+        <div class="academy-choices academy-choices-stack">
           {% for option in form.statuses %}
             <label class="form-check">
               <input class="form-check-input" type="radio" name="status" value="{{ option.value }}">
@@ -57,9 +63,9 @@
         </div>
       </fieldset>
       {% if kind == "main" %}
-        <div class="field">
+        <div class="field academy-years">
           <label class="field-label" for="main-years">{{ form.years_label }}</label>
-          <input class="field-input academy-years" id="main-years" type="number" name="years_dev" min="0" max="60" step="1" inputmode="numeric">
+          <input class="field-input" id="main-years" type="number" name="years_dev" min="0" max="60" step="1" inputmode="numeric">
         </div>
         <fieldset>
           <legend class="field-label">{{ form.based_label }}</legend>
@@ -85,7 +91,7 @@
         </fieldset>
         <div class="field">
           <label class="field-label" for="main-free">{{ form.free_text_label }}</label>
-          <textarea class="field-input" id="main-free" name="free_text" rows="2" maxlength="500"></textarea>
+          <textarea class="field-input" id="main-free" name="free_text" rows="3" maxlength="500"></textarea>
         </div>
       {% endif %}
       <label class="form-check">
@@ -95,46 +101,52 @@
       <div class="newsletter-honeypot" aria-hidden="true">
         <input type="text" name="website" tabindex="-1" autocomplete="off">
       </div>
-      {% if kind == "main" %}
-        <button class="cta cta-primary interactive-lift" type="submit" disabled data-needs-js data-pending-label="{{ form.busy }}">{{ form.button }}</button>
-        <p class="a11y-error" data-error="failed" role="alert" hidden>{{ form.failed|academy_inline }}</p>
-        <noscript>
-          <p class="a11y-error">{{ form.noscript|academy_inline }}</p>
-        </noscript>
-        <p class="academy-fineprint">
-          {{ form.micro }}
-          <a href="{{ academy_root }}privacy/">{{ form.privacy_label }}</a>
-        </p>
-      {% else %}
-        <button class="cta cta-primary interactive-lift" type="submit" disabled data-needs-js data-pending-label="{{ data.busy }}">{{ data.button }}</button>
-        <p class="a11y-error" data-error="failed" role="alert" hidden>{{ data.failed|academy_inline }}</p>
-        <noscript>
-          <p class="a11y-error">{{ data.noscript|academy_inline }}</p>
-        </noscript>
-        <p class="academy-fineprint">
-          {{ data.micro }}
-          <a href="{{ academy_root }}privacy/">{{ form.privacy_label }}</a>
-        </p>
-      {% endif %}
+      {% include "academy/_confirm_notice.html" %}
+      <div class="academy-form-actions">
+        {% if kind == "main" %}
+          <button class="cta cta-primary interactive-lift" type="submit" disabled data-needs-js data-pending-label="{{ form.busy }}">{{ form.button }}</button>
+          <p class="a11y-error" data-error="failed" role="alert" hidden>{{ form.failed|academy_inline }}</p>
+          <noscript>
+            <p class="a11y-error">{{ form.noscript|academy_inline }}</p>
+          </noscript>
+          <p class="academy-fineprint">
+            {{ form.micro }}
+            <a href="{{ academy_root }}privacy/">{{ form.privacy_label }}</a>
+          </p>
+        {% else %}
+          <button class="cta cta-primary interactive-lift" type="submit" disabled data-needs-js data-pending-label="{{ data.busy }}">{{ data.button }}</button>
+          <p class="a11y-error" data-error="failed" role="alert" hidden>{{ data.failed|academy_inline }}</p>
+          <noscript>
+            <p class="a11y-error">{{ data.noscript|academy_inline }}</p>
+          </noscript>
+          <p class="academy-fineprint">
+            {{ data.micro }}
+            <a href="{{ academy_root }}privacy/">{{ form.privacy_label }}</a>
+          </p>
+        {% endif %}
+      </div>
     </form>
     <div class="academy-success" data-success hidden>
       {% if kind == "main" %}
         <p class="mono-label mono-label-green">{{ form.success.eyebrow }}</p>
         <h3 tabindex="-1" data-success-title>{{ form.success.title }}</h3>
         <p>{{ form.success.text }}</p>
+        {% include "academy/_confirm_notice.html" %}
         {% if sessions_data.rsvp_published %}
-          <div data-rsvp>
-            <h3>{{ form.success.rsvp_heading }}</h3>
+          <div class="academy-success-group" data-rsvp>
+            <h4>{{ form.success.rsvp_heading }}</h4>
             <p>{{ form.success.rsvp_text }}</p>
-            {% for session in sessions %}
-              {% if session.meetup_url %}
-                <a class="cta cta-primary cta-compact interactive-lift" href="{{ session.meetup_url }}" target="_blank" rel="noopener" data-meetup="{{ session.id }}">{{ form.success.rsvp_button|academy_fill:session.date_label }}</a>
-              {% endif %}
-            {% endfor %}
+            <div class="academy-actions">
+              {% for session in sessions %}
+                {% if session.meetup_url %}
+                  <a class="cta cta-primary cta-compact interactive-lift" href="{{ session.meetup_url }}" target="_blank" rel="noopener" data-meetup="{{ session.id }}">{{ form.success.rsvp_button|academy_fill:session.date_label }}</a>
+                {% endif %}
+              {% endfor %}
+            </div>
           </div>
         {% endif %}
-        <div data-calendar>
-          <h3>{{ form.success.calendar_heading }}</h3>
+        <div class="academy-success-group" data-calendar>
+          <h4>{{ form.success.calendar_heading }}</h4>
           <ul class="academy-calendar-links">
             {% for session in sessions %}
               <li data-calendar-session="{{ session.id }}">
@@ -148,6 +160,7 @@
         </div>
       {% else %}
         <h2 tabindex="-1" data-success-title>{{ data.success }}</h2>
+        {% include "academy/_confirm_notice.html" %}
       {% endif %}
     </div>
   </div>

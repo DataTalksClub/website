@@ -25,7 +25,12 @@
   aria-labelledby="academy-heading"
 {% endblock %}
 
+{% block header_band_class %}
+  academy-hero
+{% endblock %}
+
 {% block page_header %}
+  {% include "academy/_bar.html" %}
   <p class="mono-label mono-label-green" data-confirm-eyebrow>{{ data.eyebrow }}</p>
   <h1 id="academy-heading" tabindex="-1" data-confirm-title>{{ data.heading }}</h1>
 {% endblock %}

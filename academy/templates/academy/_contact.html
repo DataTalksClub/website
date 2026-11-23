@@ -1,0 +1,7 @@
+{% load academy_text %}
+{% comment %}
+  The one contact line under a page's questions.  Copy: shared.contact.
+{% endcomment %}
+{% if shared.contact %}
+  <p class="academy-contact">{{ shared.contact|academy_inline }}</p>
+{% endif %}

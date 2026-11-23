@@ -1,8 +1,15 @@
 {% comment %}
-  The key facts as the system's spec strip: label over value.  facts: a
-  mapping with the strip's accessible label and its label/value items.
+  The key facts as the system's spec strip, label over value, under the
+  chapter's own band head.  facts: a mapping with the heading and its
+  label/value items.  The slot after the strip takes the funding notice on the
+  pages that draw one.
 {% endcomment %}
-<section class="academy-section" aria-label="{{ facts.label }}">
+<section class="academy-section" id="facts" aria-labelledby="facts-heading">
+  <div class="band-head">
+    <div>
+      <h2 id="facts-heading">{{ facts.label }}</h2>
+    </div>
+  </div>
   <dl class="spec-strip academy-facts">
     {% for fact in facts.items %}
       <div class="spec">
@@ -11,4 +18,7 @@
       </div>
     {% endfor %}
   </dl>
+  {% if funding %}
+    {% include "academy/_funding.html" %}
+  {% endif %}
 </section>

@@ -33,6 +33,21 @@ SHARED: dict[str, Any] = {
     "contact_email": CONTACT,
     "seat_caption": "Synthetic seats",
     "waitlist_button": "Join the synthetic list",
+    "header": {
+        "wordmark": "Synthetic wordmark",
+        "tagline": "Synthetic tagline",
+        "label": "Synthetic section",
+        "links": [
+            {"label": "Synthetic AE", "href": "/academy/agentic-engineering/"},
+            {"label": "Synthetic sessions", "href": "/academy/sessions/"},
+            {"label": "Synthetic FAQ", "href": "/academy/faq/"},
+            {"label": "Synthetic Bildungsgutschein", "href": "/academy/bildungsgutschein/"},
+        ],
+    },
+    "sticky": {"caption": "Synthetic seats, live"},
+    "contact": f"Synthetic questions? Write to [{CONTACT}](mailto:{CONTACT}).",
+    "other_track": "Synthetic other track?",
+    "confirm_notice": "Synthetic important: confirm your email or get nothing.",
     "facts": {
         "label": "Synthetic facts",
         "items": [{"label": "START", "value": "Synthetic start"}],
@@ -55,12 +70,12 @@ SHARED: dict[str, Any] = {
     "syllabus": {
         "heading": "Synthetic syllabus",
         "intro": "Synthetic intro.",
-        "produce_label": "You make:",
     },
     "funding": {
         "heading": "Synthetic funding",
         "paragraphs": ["Synthetic funding paragraph."],
         "link": {"label": "Synthetic funding link", "href": "https://example.invalid/funding"},
+        "guide_link": {"label": "Synthetic funding guide", "href": "/academy/bildungsgutschein/"},
     },
     "admission": {
         "heading": "Synthetic admission",
@@ -79,11 +94,6 @@ SHARED: dict[str, Any] = {
         ],
     },
     "join": {"heading": "Synthetic join", "text": "Synthetic join text."},
-    "footer": {
-        "links": [{"label": "Synthetic FAQ", "href": "/academy/faq/"}],
-        "copyright": "Synthetic copyright",
-        "other_track": "Synthetic other track?",
-    },
     "signup": {
         "program_label": "Synthetic program",
         "name_label": "Synthetic name",
@@ -226,6 +236,7 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
             "funding": {
                 "heading": "Synthetic home funding",
                 "paragraphs": ["Synthetic home funding text."],
+                "link": {"label": "Synthetic home guide", "href": "/academy/bildungsgutschein/"},
             },
             "schema": {
                 "organization": {
@@ -325,7 +336,6 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
                 "note": "Synthetic calendar note, with a comma.",
                 "alarm_prefix": "Starting in 15 minutes:",
             },
-            "footer_links": [{"label": "Synthetic Impressum", "href": "/academy/impressum/"}],
             "schema": {
                 "location_name": "Zoom",
                 "organizer": "DataTalks.Club",
@@ -396,6 +406,10 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
                 "headline": "Synthetischer Leitfaden",
                 "lead": "Synthetischer Vorspann.",
                 "funding_line": "Synthetische Förderung.",
+            },
+            "english": {
+                "text": "Synthetic: for English, check this page:",
+                "link": {"label": "Synthetic English page", "href": "/academy/#funding"},
             },
             "facts": {
                 "label": "Synthetische Fakten",

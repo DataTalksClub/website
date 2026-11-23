@@ -1,0 +1,14 @@
+{% comment %}
+  The program pages' sticky waitlist bar: the seat caption and the waitlist
+  action, pinned to the bottom of the window.  It starts hidden and academy.js
+  shows it only while neither the header nor any waitlist card is on screen,
+  so it never sits over a form field or the control in focus; without
+  JavaScript it never appears and the header's own action remains.  Copy:
+  shared.sticky.caption and shared.waitlist_button.
+{% endcomment %}
+{% if shared.sticky %}
+  <div class="academy-sticky" data-academy-sticky hidden>
+    <span class="status-pill status-pill-open">{{ shared.sticky.caption }}</span>
+    <a class="cta cta-primary cta-compact interactive-lift" href="#signup-hero">{{ shared.waitlist_button }}</a>
+  </div>
+{% endif %}
