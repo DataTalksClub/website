@@ -2236,14 +2236,16 @@ Rules for editing:
          ends where the legal links end.  Each icon keeps its 2.75rem target;
          the row's negative inline-start margin pulls the first target out so
          the drawn mark, not its invisible box, sits on the edge, the same way
-         the legal row pulls its own link padding out. */
+         the legal row pulls its own link padding out.  At large text sizes the
+         row and the icon group wrap instead of overflowing the viewport. */
       .site-footer-runtime {
         --footer-mark: 1.25rem;
         --footer-target: 2.75rem;
         align-items: center;
         border-top: 2px dashed var(--line-soft);
         display: flex;
-        gap: var(--space-4);
+        flex-wrap: wrap;
+        gap: 0 var(--space-4);
         grid-area: runtime;
         justify-content: space-between;
         min-width: 0;
@@ -2252,7 +2254,7 @@ Rules for editing:
 
       .site-footer-social {
         display: flex;
-        flex: none;
+        flex-wrap: wrap;
         margin-inline-start: calc((var(--footer-mark) - var(--footer-target)) / 2);
       }
 
