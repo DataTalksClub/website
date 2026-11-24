@@ -161,9 +161,9 @@ def test_docs_and_faq_root_trailing_slash_browser_contract(
     query = "utm_source=oncall%2Btest&x=a%2Fb&blank="
 
     for final_path, alias_path, heading, self_links in (
-        # The hub's own path appears once when the primary navigation still links
-        # there; FAQ deliberately left the global primary navigation.
-        ("/docs/", "/docs", "DataTalks.Club Zoomcamps Notes and Resources", 1),
+        # The hub's own path appears twice when the primary navigation still links
+        # there (masthead and footer); FAQ deliberately left the primary navigation.
+        ("/docs/", "/docs", "DataTalks.Club Zoomcamps Notes and Resources", 2),
         ("/faq/", "/faq", "Frequently Asked Questions", 0),
     ):
         alias = page.request.get(f"{origin}{alias_path}?{query}", max_redirects=0)

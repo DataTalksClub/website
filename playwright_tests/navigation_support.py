@@ -18,7 +18,11 @@ def primary_navigation_link(page: Page, name: str) -> Locator:
     menu = page.get_by_role("button", name="Menu")
     if menu.is_visible() and menu.get_attribute("aria-expanded") != "true":
         menu.click()
-    group_toggle = links.locator(".nav-group", has=link).locator(".nav-group-toggle")
+    # A link in a closed panel is not in the accessibility tree, so the group is
+    # found with hidden links included.  ``has`` is matched inside each group, so
+    # it takes a locator with no root of its own.
+    hidden_link = page.get_by_role("link", name=name, exact=True, include_hidden=True)
+    group_toggle = links.locator(".nav-group").filter(has=hidden_link).locator(".nav-group-toggle")
     if group_toggle.count() and group_toggle.is_visible():
         if group_toggle.get_attribute("aria-expanded") != "true":
             group_toggle.click()
