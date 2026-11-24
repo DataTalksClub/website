@@ -265,7 +265,8 @@ class MainHomepageRoutingTests(TestCase):
             self.assertContains(response, f"core/illustrations/home-simple-{variant}-dark.webp")
         # Site feedback 2026-11-19 (1.1): one neutral ground, one tinted band for
         # the course offer, and no mint anywhere in the homepage's own bands.
-        main = response.content.decode().split('<main id="main-content"', 1)[1].split("</main>", 1)[0]
+        body = response.content.decode()
+        main = body.split('<main id="main-content"', 1)[1].split("</main>", 1)[0]
         grounds = re.findall(r'<section class="band (band-[a-z]+)', main)
         self.assertNotIn("band-mint", grounds)
         self.assertEqual(grounds.count("band-lavender"), 1)
