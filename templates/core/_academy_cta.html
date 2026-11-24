@@ -1,8 +1,9 @@
 {% comment %}
-  Academy stripe: a lavender band just above the closing tour band, shown only
-  on the homepage and the Courses section -- the places a visitor is choosing
-  how to learn.  On every other page it was noise (owner feedback 2026-11-23);
-  the Academy stays reachable from the primary navigation everywhere.
+  Academy stripe: a lavender band just above the footer, shown only in the
+  Courses section -- where a visitor is already choosing a course and may want
+  the full-time intensive option.  The homepage explains Free courses vs
+  Academy in its own dedicated section, and the Academy stays reachable from
+  the primary navigation everywhere.
 
   The destination is a literal path for the same reason as the tour stripe:
   this footer also renders under the compatibility urlconf, which mounts no
@@ -10,7 +11,7 @@
 
   The Academy's own pages leave it out: there it would link a page to itself.
 {% endcomment %}
-{% if not hide_academy_cta %}{% if request.path == "/" or primary_navigation_current == "courses" %}
+{% if not hide_academy_cta and primary_navigation_current == "courses" %}
   <section class="band band-lavender academy-cta-band" aria-labelledby="academy-cta-heading" data-academy-cta>
     <div class="shell academy-cta">
       <div>
@@ -20,4 +21,4 @@
       <a class="cta cta-secondary interactive-lift" href="/academy/">Explore the Academy</a>
     </div>
   </section>
-{% endif %}{% endif %}
+{% endif %}
