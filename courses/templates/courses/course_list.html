@@ -862,7 +862,7 @@
             <a class="band-link catalog-clear" href="{{ clear_filters_href }}" rel="nofollow" data-filter-clear {{ active_filter_chips|yesno:",hidden" }}>Clear all filters</a>
           </div>
           {% if catalog_rows %}
-            <div class="card catalog-empty" data-catalog-empty {{ catalog_visible_count|yesno:",hidden" }}>
+            <div class="card catalog-empty" data-catalog-empty {{ catalog_visible_count|yesno:"hidden," }}>
               <p>
                 <strong>No course matches all of these filters.</strong>
               </p>

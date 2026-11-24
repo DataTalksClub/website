@@ -1,6 +1,7 @@
 """The /courses catalogue after site feedback 3.1 (_docs/audits/2026-11-19-site-feedback.md)."""
 
 import json
+import re
 import tempfile
 from datetime import timedelta
 from pathlib import Path
@@ -13,6 +14,13 @@ from django.utils import timezone
 from courses import catalog_facets
 from courses.models import Cohort, Course, Testimonial, TestimonialPlacement
 from scripts.prod import import_course_catalog_facets
+
+
+def _empty_state_tag(html: str) -> str:
+    """The opening tag of the catalogue's no-match hint."""
+    match = re.search(r"<div[^>]*data-catalog-empty[^>]*>", html)
+    assert match is not None
+    return match.group(0)
 
 
 def _card(html: str, title: str) -> str:
@@ -165,9 +173,13 @@ class CourseCatalogPageTests(TestCase):
     def test_no_match_shows_a_hint_instead_of_an_empty_grid(self):
         html = self.html(topic="mlops", level="beginner")
         self.assertIn("0 of 2 courses", html)
-        empty = html[html.index("data-catalog-empty") - 60 :]
-        self.assertNotIn("hidden", empty[: empty.index(">")])
+        self.assertNotIn("hidden", _empty_state_tag(html))
         self.assertIn("No course matches all of these filters.", html)
+
+    def test_the_no_match_hint_stays_hidden_while_courses_are_listed(self):
+        html = self.html()
+        self.assertIn("2 courses", html)
+        self.assertRegex(_empty_state_tag(html), r"\shidden\b")
 
     def test_unknown_filter_values_are_dropped(self):
         html = self.html(topic="does-not-exist")
