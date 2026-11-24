@@ -92,6 +92,28 @@ Rules for editing:
         /* Mutation surfaces use a slightly wider measure than long-form prose,
            while still keeping controls comfortable on a large screen. */
         --form-measure: 46rem;
+        /* Spacing.  Every margin, padding and gap in page and partial CSS uses
+           one of these (see _docs/design/design-system.md#spacing and
+           core/tests/test_design_spacing_tokens.py).  The scale: */
+        --space-1: 0.25rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.5rem;
+        --space-6: 2rem;
+        --space-7: 3rem;
+        --space-8: 4rem;
+        /* The roles.  Reach for a role first; a bare scale step is for
+           component internals the roles do not name. */
+        --space-inline: var(--space-2); /* icon to label, chip row gap */
+        --space-tight: var(--space-2); /* heading to its subline, label to value */
+        --space-eyebrow: var(--space-3); /* a page header's eyebrow, pill or trail to its h1 */
+        --space-stack: var(--space-4); /* paragraph to paragraph, items in a card */
+        --space-head: var(--space-5); /* a heading block to the content it introduces */
+        --space-grid: var(--space-5); /* between cards in a grid or list of cards */
+        --space-card: var(--space-5); /* card and panel padding */
+        --space-section: var(--space-7); /* between sections inside one band */
+        --space-band: 2.5rem; /* band padding-block; var(--space-7) at >=62rem */
         /* The drawn circle.  Every round mark the pages draw by hand — step
            discs, promise marks, the play disc, module numbers — carries this
            lopsided radius instead of a true 999px circle, so a mark sitting
@@ -209,7 +231,7 @@ Rules for editing:
            lightness that the node text (--ink, near-white here) clears AA
            (7.1:1) instead of the 1.4:1 a flat --gold gave it. */
         --graph-podcast: #5c4b26;
-        --code-comment: #a4a9bd;
+        --code-comment: #aab0c4;
         --code-keyword: #c4b5fd;
         --code-string: #9bd3ac;
         --code-number: #f2b38b;
@@ -302,7 +324,7 @@ Rules for editing:
         border-radius: 0.375rem;
         color: var(--cream);
         left: 0.5rem;
-        padding: 0.65rem 0.9rem;
+        padding: var(--space-3) var(--space-4);
         position: fixed;
         text-decoration: none;
         top: 0.5rem;
@@ -327,7 +349,7 @@ Rules for editing:
       .shell {
         margin-inline: auto;
         max-width: var(--shell);
-        padding-inline: 1rem;
+        padding-inline: var(--space-4);
         width: 100%;
       }
 
@@ -357,7 +379,7 @@ Rules for editing:
         left: 0;
         line-height: 1.4;
         opacity: 0;
-        padding: 0.55rem 0.7rem;
+        padding: var(--space-2) var(--space-3);
         pointer-events: none;
         position: absolute;
         transition: opacity 0.12s ease;
@@ -386,7 +408,7 @@ Rules for editing:
          content (the archive rows). */
       .card-credit {
         margin-top: auto;
-        padding-top: 0.35rem;
+        padding-top: var(--space-2);
       }
 
       /* A folded question and answer.  Both FAQ surfaces — the course FAQ pages
@@ -408,14 +430,15 @@ Rules for editing:
       }
 
       .faq-fold-summary {
-        align-items: baseline;
+        align-items: flex-start;
         cursor: pointer;
         display: flex;
-        gap: 1rem;
+        gap: var(--space-4);
         justify-content: space-between;
+        line-height: 1.3;
         list-style: none;
         min-height: 2.75rem;
-        padding-block: 0.9rem;
+        padding-block: var(--space-3);
       }
 
       /* Safari draws its own disclosure triangle unless this is said. */
@@ -433,6 +456,7 @@ Rules for editing:
       .faq-question-title {
         font-size: 1.05rem;
         font-weight: 700;
+        line-height: inherit;
         min-width: 0;
         overflow-wrap: anywhere;
       }
@@ -448,7 +472,7 @@ Rules for editing:
         border-right: 2px solid var(--indigo);
         flex: none;
         height: 0.5rem;
-        margin-top: 0.25rem;
+        margin-top: var(--space-1);
         transform: rotate(45deg);
         transition: transform 0.15s ease;
         width: 0.5rem;
@@ -456,7 +480,7 @@ Rules for editing:
 
       .faq-fold[open] .faq-fold-marker,
       .row-fold[open] .row-fold-marker {
-        transform: rotate(-135deg);
+        transform: translateY(35%) rotate(-135deg);
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -470,11 +494,11 @@ Rules for editing:
          in a scrolling frame by the page.  A long address breaks instead. */
       .faq-answer {
         overflow-wrap: anywhere;
-        padding-bottom: 1.1rem;
+        padding-bottom: var(--space-3);
       }
 
       .faq-panel {
-        padding: 0.4rem 1.25rem;
+        padding: var(--space-2) var(--space-5);
       }
 
       /* A wide element inside a reading column.  Some content genuinely cannot be
@@ -550,9 +574,9 @@ Rules for editing:
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem 1rem;
+        gap: var(--space-2) var(--space-4);
         justify-content: space-between;
-        padding-block: 0.9rem;
+        padding-block: var(--space-4);
       }
 
       .brand {
@@ -595,7 +619,7 @@ Rules for editing:
          by half the margin: 0.28rem here for the ~0.14rem the mark is off by.  It
          is a margin rather than a transform so the text stays on the pixel grid. */
       .brand-name {
-        margin-block-end: 0.28rem;
+        margin-block-end: var(--space-1);
       }
 
       .doodle {
@@ -634,7 +658,7 @@ Rules for editing:
       .hero-split {
         align-items: start;
         display: grid;
-        gap: 1.5rem 2rem;
+        gap: var(--space-5) var(--space-6);
         grid-template-columns: minmax(0, 1fr) minmax(0, 15rem);
       }
 
@@ -668,7 +692,7 @@ Rules for editing:
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.4rem;
+        gap: var(--space-2);
         justify-content: flex-end;
         /* Narrow screens read brand, theme, menu — the same order as the mockup. */
         order: 2;
@@ -682,7 +706,7 @@ Rules for editing:
       .masthead .mobile-nav > summary,
       .masthead .account-nav > summary {
         font-size: 0.82rem;
-        padding-inline: 0.7rem;
+        padding-inline: var(--space-3);
       }
 
       .nav-link {
@@ -693,7 +717,7 @@ Rules for editing:
         font-size: 0.92rem;
         font-weight: 500;
         min-height: 2.75rem;
-        padding: 0.25rem 0.5rem;
+        padding: var(--space-1) var(--space-2);
         text-decoration: none;
         white-space: nowrap;
       }
@@ -713,10 +737,10 @@ Rules for editing:
         display: inline-flex;
         font: inherit;
         font-weight: 700;
-        gap: 0.45rem;
+        gap: var(--space-2);
         justify-content: center;
         min-height: 2.75rem;
-        padding: 0.3rem 1rem;
+        padding: var(--space-1) var(--space-4);
         text-decoration: none;
         white-space: nowrap;
       }
@@ -746,7 +770,7 @@ Rules for editing:
         font-weight: 700;
         justify-content: center;
         min-height: 2.75rem;
-        padding: 0.3rem 1.15rem;
+        padding: var(--space-1) var(--space-4);
         text-decoration: none;
         white-space: nowrap;
       }
@@ -767,7 +791,7 @@ Rules for editing:
         font-weight: 700;
         justify-content: center;
         min-height: 2.75rem;
-        padding: 0.3rem 1.15rem;
+        padding: var(--space-1) var(--space-4);
         text-decoration: none;
         white-space: nowrap;
       }
@@ -780,7 +804,7 @@ Rules for editing:
         display: block;
         font: inherit;
         min-height: 2.75rem;
-        padding: 0.4rem 0.75rem;
+        padding: var(--space-2) var(--space-3);
         width: 100%;
       }
 
@@ -796,7 +820,7 @@ Rules for editing:
         font-weight: 700;
         justify-content: center;
         min-height: 2.75rem;
-        padding: 0.3rem 1rem;
+        padding: var(--space-1) var(--space-4);
         text-decoration: none;
       }
 
@@ -804,11 +828,11 @@ Rules for editing:
         display: block;
         margin-inline: auto;
         max-width: var(--content-width);
-        padding: 2rem 1.25rem 3rem;
+        padding: var(--space-6) var(--space-5) var(--space-7);
       }
 
       .cb-page-header {
-        margin-bottom: 1.5rem;
+        margin-bottom: var(--space-5);
       }
 
       .cb-page-title {
@@ -816,12 +840,12 @@ Rules for editing:
         font-size: 2rem;
         font-weight: 700;
         letter-spacing: -0.03em;
-        margin: 0 0 0.5rem;
+        margin: 0 0 var(--space-2);
       }
 
       .cb-list {
         display: grid;
-        gap: 1rem;
+        gap: var(--space-4);
         list-style: none;
         margin: 0;
         padding: 0;
@@ -832,14 +856,14 @@ Rules for editing:
         border: 2px solid var(--line);
         border-radius: 1.25rem;
         box-shadow: 6px 6px 0 var(--shadow);
-        padding: 1.1rem 1.2rem;
+        padding: var(--space-4) var(--space-4);
       }
 
       .cb-card-title {
         color: var(--ink);
         font-size: 1.15rem;
         font-weight: 700;
-        margin: 0 0 0.35rem;
+        margin: 0 0 var(--space-2);
       }
 
       .cb-card-meta {
@@ -855,12 +879,12 @@ Rules for editing:
         display: inline-flex;
         font-size: 0.8rem;
         font-weight: 700;
-        padding: 0.15rem 0.6rem;
+        padding: 0.15rem var(--space-2);
       }
 
       .cb-form {
         display: grid;
-        gap: 0.85rem;
+        gap: var(--space-3);
         margin: 0;
       }
 
@@ -869,7 +893,7 @@ Rules for editing:
         border: 2px solid var(--line);
         border-radius: 0.75rem;
         color: var(--ink);
-        padding: 0.85rem 1rem;
+        padding: var(--space-3) var(--space-4);
       }
 
       .cb-empty {
@@ -880,8 +904,8 @@ Rules for editing:
       .cb-pager {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 1.5rem;
+        gap: var(--space-2);
+        margin-top: var(--space-5);
       }
 
       /* The site-wide navigation contract: a toggle plus #site-navigation-links, opened
@@ -903,7 +927,7 @@ Rules for editing:
         font-weight: 700;
         justify-content: center;
         min-height: 2.75rem;
-        padding: 0.3rem 0.7rem;
+        padding: var(--space-1) var(--space-3);
         white-space: nowrap;
       }
 
@@ -924,7 +948,7 @@ Rules for editing:
         display: none;
         gap: 0.1rem;
         min-width: 12rem;
-        padding: 0.5rem;
+        padding: var(--space-2);
         position: absolute;
         right: 0;
         top: calc(100% + 0.4rem);
@@ -951,7 +975,7 @@ Rules for editing:
       .masthead .nav-auth,
       .masthead .signup-button {
         font-size: 0.82rem;
-        padding-inline: 0.6rem;
+        padding-inline: var(--space-2);
       }
 
       /* The auth link reads as an action, not another destination. */
@@ -968,8 +992,8 @@ Rules for editing:
         border-top: 2px dashed var(--line-soft);
         border-radius: 0 0 0.5rem 0.5rem;
         font-size: 0.92rem;
-        margin-top: 0.35rem;
-        padding: 0.4rem 0.5rem 0.25rem;
+        margin-top: var(--space-2);
+        padding: var(--space-2) var(--space-2) var(--space-1);
       }
 
       @media (min-width: 40rem) {
@@ -994,7 +1018,7 @@ Rules for editing:
         justify-content: center;
         list-style: none;
         min-height: 2.75rem;
-        padding: 0.3rem 1rem;
+        padding: var(--space-1) var(--space-4);
       }
 
       .account-nav > summary::-webkit-details-marker {
@@ -1008,7 +1032,7 @@ Rules for editing:
         box-shadow: 0 0.75rem 1.75rem var(--shadow-soft);
         display: grid;
         gap: 0.1rem;
-        padding: 0.5rem;
+        padding: var(--space-2);
         position: absolute;
         right: 0;
         top: calc(100% + 0.5rem);
@@ -1023,16 +1047,16 @@ Rules for editing:
         font-weight: 700;
         letter-spacing: 0.08em;
         margin: 0;
-        padding: 0.35rem 0.6rem 0;
+        padding: var(--space-2) var(--space-2) 0;
         text-transform: uppercase;
       }
 
       .user-menu-identity {
         border-bottom: 2px dashed var(--line-soft);
-        margin: 0 0 0.35rem;
+        margin: 0 0 var(--space-2);
         max-width: 14rem;
         overflow: hidden;
-        padding: 0.1rem 0.6rem 0.5rem;
+        padding: 0.1rem var(--space-2) var(--space-2);
         text-overflow: ellipsis;
         white-space: nowrap;
       }
@@ -1063,12 +1087,12 @@ Rules for editing:
          navigation panel.  Every control keeps its 2.75rem (44px) floor. */
       @media (max-width: 39.99rem) {
         .masthead-inner {
-          column-gap: 0.35rem;
+          column-gap: var(--space-2);
         }
 
         .masthead-actions {
           flex-wrap: nowrap;
-          gap: 0.35rem;
+          gap: var(--space-2);
         }
 
         /* Log in lives in the navigation panel at these widths. */
@@ -1078,7 +1102,7 @@ Rules for editing:
 
         .masthead .signup-button {
           font-size: 0.84rem;
-          padding-inline: 0.45rem;
+          padding-inline: var(--space-2);
           white-space: nowrap;
         }
 
@@ -1092,7 +1116,7 @@ Rules for editing:
         .masthead .pill-button {
           gap: 0;
           min-width: 2.75rem;
-          padding-inline: 0.3rem;
+          padding-inline: var(--space-1);
         }
 
         .masthead .pill-button .dot {
@@ -1104,7 +1128,7 @@ Rules for editing:
 
         .site-navigation-toggle {
           min-width: 2.75rem;
-          padding-inline: 0.3rem;
+          padding-inline: var(--space-1);
         }
 
         .site-navigation-toggle-icon {
@@ -1112,7 +1136,7 @@ Rules for editing:
         }
 
         .masthead .account-nav > summary {
-          padding-inline: 0.6rem;
+          padding-inline: var(--space-2);
         }
 
         /* Visually hidden, still named: these words keep the controls' accessible
@@ -1149,7 +1173,7 @@ Rules for editing:
 
       .band {
         border-bottom: 2px dashed var(--line-soft);
-        padding-block: 2.25rem;
+        padding-block: var(--space-band);
       }
 
       .band-cream {
@@ -1178,7 +1202,7 @@ Rules for editing:
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 1rem 2rem;
+        gap: var(--space-4) var(--space-6);
         justify-content: space-between;
       }
 
@@ -1198,7 +1222,7 @@ Rules for editing:
       .tour-cta p {
         color: #d7d9e6;
         font-size: 0.88rem;
-        margin-top: 0.5rem;
+        margin-top: var(--space-2);
       }
 
       .tour-cta .cta-primary {
@@ -1212,7 +1236,7 @@ Rules for editing:
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 1rem 2rem;
+        gap: var(--space-4) var(--space-6);
         justify-content: space-between;
       }
 
@@ -1230,7 +1254,7 @@ Rules for editing:
 
       .academy-cta p {
         font-size: 0.88rem;
-        margin-top: 0.5rem;
+        margin-top: var(--space-2);
       }
 
       /* Stacked by default; a kicker only moves onto the heading's own row once
@@ -1238,12 +1262,12 @@ Rules for editing:
          section link never goes here: it is the section's `.band-more`. */
       .band-head {
         display: grid;
-        gap: 0.5rem 1.5rem;
-        margin-bottom: 1.5rem;
+        gap: var(--space-tight) var(--space-5);
+        margin-bottom: var(--space-head);
       }
 
       .band-head-secondary {
-        margin-top: 2.75rem;
+        margin-top: var(--space-section);
       }
 
       .band-head h2 {
@@ -1253,7 +1277,7 @@ Rules for editing:
       /* The heading and its subline are one block. */
       .band-head p {
         font-size: 0.9rem;
-        margin-top: 0.4rem;
+        margin-top: var(--space-tight);
         max-width: 58rem;
       }
 
@@ -1277,7 +1301,7 @@ Rules for editing:
          in the heading row, never right-aligned (owner rule 2026-11-24).
          Enforced by core/tests/test_design_section_links.py. */
       .band-more {
-        margin-top: var(--space-4, 1rem);
+        margin-top: var(--space-4, var(--space-4));
       }
 
       /* Breadcrumb trail: the where-am-I line at the top of a detail page
@@ -1346,7 +1370,7 @@ Rules for editing:
         content: "/";
         content: "/" / "";
         flex: none;
-        margin-inline: 0.45rem;
+        margin-inline: var(--space-2);
       }
 
       .breadcrumbs [aria-current="page"] {
@@ -1373,7 +1397,7 @@ Rules for editing:
            control, which grows past its 3.25rem floor. */
         max-width: 100%;
         min-height: 3.25rem;
-        padding: 0.65rem 1.5rem;
+        padding: var(--space-3) var(--space-5);
         text-align: center;
         text-decoration: none;
       }
@@ -1490,13 +1514,13 @@ Rules for editing:
         display: flex;
         flex-direction: column;
         font-size: 0.9rem;
-        gap: 0.6rem;
-        padding: 1rem;
+        gap: var(--space-tight);
+        padding: var(--space-card);
       }
 
       .card-grid {
         display: grid;
-        gap: 1.25rem;
+        gap: var(--space-grid);
       }
 
       /* --- catalogue card ---------------------------------------------------
@@ -1509,8 +1533,8 @@ Rules for editing:
       .catalog-card {
         display: flex;
         flex-direction: column;
-        gap: 0.85rem;
-        padding: 1.25rem;
+        gap: var(--space-3);
+        padding: var(--space-card);
       }
 
       /* The doodles are small scenes -- two or three figures with props on a
@@ -1544,7 +1568,7 @@ Rules for editing:
 
       .catalog-card-body {
         display: grid;
-        gap: 0.5rem;
+        gap: var(--space-2);
       }
 
       .catalog-card-body h3 {
@@ -1667,7 +1691,7 @@ Rules for editing:
         display: inline-flex;
         font-size: 0.72rem;
         letter-spacing: 0.06em;
-        padding: 0.2rem 0.6rem;
+        padding: var(--space-1) var(--space-2);
         text-transform: uppercase;
         white-space: nowrap;
       }
@@ -1733,7 +1757,7 @@ Rules for editing:
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.45rem;
+        gap: var(--space-2);
       }
 
       .story-quote {
@@ -1746,16 +1770,16 @@ Rules for editing:
         align-items: center;
         border-top: 1.5px dashed var(--line-soft);
         display: flex;
-        gap: 0.7rem;
+        gap: var(--space-3);
         justify-content: space-between;
         margin-top: auto;
-        padding-top: 0.75rem;
+        padding-top: var(--space-3);
       }
 
       .story-identity {
         align-items: center;
         display: flex;
-        gap: 0.7rem;
+        gap: var(--space-3);
         min-width: 0;
       }
 
@@ -1773,14 +1797,14 @@ Rules for editing:
         font-size: 0.78rem;
         font-style: italic;
         font-weight: 600;
-        padding: 0.2rem 0.7rem;
+        padding: var(--space-1) var(--space-3);
       }
 
       @media (max-width: 47.99rem) {
         /* A member story states its transition as one mono line. */
         .story-transition {
           font-size: 0.8rem;
-          gap: 0.3rem;
+          gap: var(--space-1);
         }
 
         .story-transition .chip {
@@ -1791,7 +1815,7 @@ Rules for editing:
 
         .story-person {
           border-top: 0;
-          padding-top: 0.3rem;
+          padding-top: var(--space-1);
         }
 
         .story-elapsed {
@@ -1816,7 +1840,7 @@ Rules for editing:
       .person-chip {
         align-items: center;
         display: inline-flex;
-        gap: 0.5rem;
+        gap: var(--space-2);
         max-width: 100%;
         min-width: 0;
       }
@@ -1880,7 +1904,7 @@ Rules for editing:
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.35rem 0.85rem;
+        gap: var(--space-2) var(--space-3);
         min-width: 0;
       }
 
@@ -1895,12 +1919,12 @@ Rules for editing:
          keeps its arrow buttons and keyboard focus) but draws no scrollbar. */
       .catalog-scroller {
         display: grid;
-        gap: 1.25rem;
+        gap: var(--space-5);
         grid-auto-columns: minmax(min(19rem, 100%), 1fr);
         grid-auto-flow: column;
         overflow-x: auto;
-        padding: 0.4rem 0.4rem 0.6rem;
-        margin-inline: -0.4rem;
+        padding: var(--space-2) var(--space-2) var(--space-2);
+        margin-inline: calc(var(--space-2) * -1);
         position: relative;
         scrollbar-width: none;
         scroll-snap-type: x proximity;
@@ -1916,7 +1940,7 @@ Rules for editing:
 
       .scroller-controls {
         display: none;
-        gap: 0.5rem;
+        gap: var(--space-2);
       }
 
       html.js .scroller-controls {
@@ -1978,12 +2002,12 @@ Rules for editing:
          a glance, only how the rest are reached. */
       .stories-scroller {
         display: grid;
-        gap: 1.25rem;
+        gap: var(--space-grid);
         grid-auto-columns: 100%;
         grid-auto-flow: column;
         overflow-x: auto;
-        padding: 0.4rem 0.4rem 0.6rem;
-        margin-inline: -0.4rem;
+        padding: var(--space-2) var(--space-2) var(--space-2);
+        margin-inline: calc(var(--space-2) * -1);
         position: relative;
         scrollbar-width: none;
         scroll-snap-type: x proximity;
@@ -2014,7 +2038,7 @@ Rules for editing:
 
       .site-announcement .shell,
       .impersonation-banner .shell {
-        padding-block: 0.75rem;
+        padding-block: var(--space-3);
       }
 
       .impersonation-return-button {
@@ -2025,7 +2049,7 @@ Rules for editing:
         cursor: pointer;
         font: inherit;
         min-height: 2.75rem;
-        padding: 0.3rem 0.8rem;
+        padding: var(--space-1) var(--space-3);
       }
 
       /* --- shared footer partial ---------------------------------------- */
@@ -2053,12 +2077,12 @@ Rules for editing:
       .site-footer-inner {
         align-items: center;
         display: grid;
-        gap: 0.5rem 2rem;
+        gap: var(--space-2) var(--space-6);
         grid-template-areas:
           "identity"
           "legal"
           "runtime";
-        padding-block: 1.25rem 1rem;
+        padding-block: var(--space-5) var(--space-4);
       }
 
       .site-footer-identity {
@@ -2070,7 +2094,7 @@ Rules for editing:
         align-items: baseline;
         display: inline-flex;
         flex-wrap: wrap;
-        gap: 0.15rem 0.6rem;
+        gap: 0.15rem var(--space-2);
       }
 
       .site-footer-name {
@@ -2087,10 +2111,11 @@ Rules for editing:
         align-items: center;
         border-top: 2px dashed var(--line-soft);
         display: flex;
-        gap: 0.35rem;
+        gap: var(--space-4);
         grid-area: runtime;
+        justify-content: space-between;
         min-width: 0;
-        padding-top: 0.5rem;
+        padding-top: var(--space-2);
       }
 
       .site-footer-legal {
@@ -2098,9 +2123,9 @@ Rules for editing:
         display: flex;
         flex-wrap: wrap;
         font-size: 0.88rem;
-        gap: 0 1rem;
+        gap: 0 var(--space-4);
         grid-area: legal;
-        margin-inline: -0.35rem;
+        margin-inline: calc(var(--space-2) * -1);
       }
 
       .site-footer-legal-control {
@@ -2114,7 +2139,7 @@ Rules for editing:
         line-height: 1.3;
         margin: 0;
         min-height: 2.75rem;
-        padding: 0.5rem 0.35rem;
+        padding: var(--space-2) var(--space-2);
         text-align: left;
         text-decoration: underline;
         text-underline-offset: 0.18em;
@@ -2134,7 +2159,7 @@ Rules for editing:
 
         .site-footer-legal {
           justify-content: flex-end;
-          margin-inline: 0 -0.35rem;
+          margin-inline: 0 calc(var(--space-2) * -1);
         }
       }
 
@@ -2229,8 +2254,8 @@ Rules for editing:
 
       .analytics-preferences-content {
         display: grid;
-        gap: 0.85rem;
-        padding: 1.25rem;
+        gap: var(--space-3);
+        padding: var(--space-5);
       }
 
       .analytics-preferences-content h2 {
@@ -2261,7 +2286,7 @@ Rules for editing:
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.65rem 0.75rem;
+        gap: var(--space-3) var(--space-3);
       }
 
       .analytics-preferences-choice,
@@ -2280,7 +2305,7 @@ Rules for editing:
         cursor: pointer;
         font-size: 0.92rem;
         font-weight: 700;
-        padding: 0.55rem 0.95rem;
+        padding: var(--space-2) var(--space-4);
       }
 
       .analytics-preferences-allow {
@@ -2299,7 +2324,7 @@ Rules for editing:
         color: var(--indigo);
         cursor: pointer;
         font-size: 0.92rem;
-        padding: 0.5rem 0.25rem;
+        padding: var(--space-2) var(--space-1);
         text-decoration: underline;
         text-underline-offset: 0.18em;
       }
@@ -2310,7 +2335,7 @@ Rules for editing:
         display: none;
         font-size: 0.92rem;
         min-height: 2.75rem;
-        padding-inline: 0.25rem;
+        padding-inline: var(--space-1);
         text-underline-offset: 0.18em;
       }
 
@@ -2332,8 +2357,8 @@ Rules for editing:
 
         .analytics-preferences-content {
           font-size: 0.92rem;
-          gap: 0.6rem;
-          padding: 0.9rem 1rem;
+          gap: var(--space-2);
+          padding: var(--space-4) var(--space-4);
         }
 
         .analytics-preferences-content h2 {
@@ -2343,7 +2368,7 @@ Rules for editing:
         .analytics-preferences-choice {
           flex: 1 1 auto;
           font-size: 0.88rem;
-          padding-inline: 0.6rem;
+          padding-inline: var(--space-2);
           white-space: nowrap;
         }
 
@@ -2377,7 +2402,7 @@ Rules for editing:
          admin metric rows. */
       .stat-tiles {
         display: grid;
-        gap: 0.75rem;
+        gap: var(--space-3);
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
@@ -2386,7 +2411,7 @@ Rules for editing:
         border: 2px solid var(--line);
         border-radius: 0.9rem;
         box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
-        padding: 0.9rem 1rem;
+        padding: var(--space-4) var(--space-4);
       }
 
       .stat-tile strong {
@@ -2419,7 +2444,7 @@ Rules for editing:
          match this comment.) */
       .stat-tiles-row .stat-tile {
         min-height: 0;
-        padding-block: 0.8rem;
+        padding-block: var(--space-3);
       }
 
       .stat-tiles-row .stat-tile strong {
@@ -2450,7 +2475,7 @@ Rules for editing:
       .filter-pills {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: var(--space-2);
       }
 
       .filter-pill {
@@ -2466,7 +2491,7 @@ Rules for editing:
         font-weight: 700;
         justify-content: center;
         min-height: 2.75rem;
-        padding: 0.3rem 1.1rem;
+        padding: var(--space-1) var(--space-4);
         text-decoration: none;
         /* A pill never pushes the page sideways: when its label alone is wider
            than the viewport (a zoomed studio section link), the pill caps at its
@@ -2499,9 +2524,9 @@ Rules for editing:
         font-family: var(--font-mono);
         font-size: 0.66rem;
         font-weight: 700;
-        gap: 0.45rem;
+        gap: var(--space-2);
         letter-spacing: 0.09em;
-        padding: 0.25rem 0.65rem;
+        padding: var(--space-1) var(--space-3);
         text-transform: uppercase;
         white-space: nowrap;
       }
@@ -2555,17 +2580,18 @@ Rules for editing:
          public row nests each control in an <li>, the adopted row does not, so each
          rule is written for both shapes. */
       .pagination {
-        margin-top: 2rem;
+        margin-top: var(--space-6);
       }
 
       .pagination-pills {
         align-items: center;
+        gap: var(--space-3);
       }
 
       .pagination-number {
         border-radius: var(--drawn-circle);
         min-width: 2.75rem;
-        padding-inline: 0.5rem;
+        padding-inline: var(--space-2);
       }
 
       .pagination-pills > :nth-child(3n + 2) .pagination-number,
@@ -2582,12 +2608,13 @@ Rules for editing:
          system that carries a word or a glyph does. */
       .pagination-step {
         min-width: 2.75rem;
-        padding-inline: 0.9rem;
+        padding-inline: var(--space-2);
       }
 
       .pagination-gap {
         justify-content: center;
-        min-width: 1.75rem;
+        letter-spacing: 0.1em;
+        min-width: 2.75rem;
       }
 
       /* The little state dot, on a status pill or beside a band heading. */
@@ -2692,15 +2719,15 @@ Rules for editing:
       .spec-strip {
         border-block: 2px dashed var(--line-soft);
         display: grid;
-        gap: 1rem 1.25rem;
+        gap: var(--space-4) var(--space-5);
         grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
-        padding-block: 1rem;
+        padding-block: var(--space-4);
         text-align: center;
       }
 
       .spec {
         display: grid;
-        gap: 0.2rem;
+        gap: var(--space-1);
       }
 
       .spec strong {
@@ -2722,9 +2749,9 @@ Rules for editing:
       .list-row {
         align-items: start;
         display: grid;
-        gap: 0.35rem 1.5rem;
+        gap: var(--space-2) var(--space-5);
         grid-template-columns: minmax(0, 1fr);
-        padding-block: 0.9rem;
+        padding-block: var(--space-4);
       }
 
       @media (min-width: 48rem) {
@@ -2747,7 +2774,7 @@ Rules for editing:
       .archive-row {
         --row-cols: 7rem minmax(0, 1fr);
         align-items: start;
-        column-gap: 1.25rem;
+        column-gap: var(--space-5);
       }
 
       /* A record with no date gives the rail back to the card instead of
@@ -2758,7 +2785,7 @@ Rules for editing:
 
       /* The rail meets the card's first line rather than its top edge. */
       .archive-date {
-        padding-top: 0.9rem;
+        padding-top: var(--space-4);
       }
 
       .archive-card {
@@ -2766,9 +2793,9 @@ Rules for editing:
         border: 1px solid var(--line-soft);
         box-shadow: none;
         flex-direction: row;
-        gap: 0.9rem;
+        gap: var(--space-4);
         min-width: 0;
-        padding: 0.9rem 1rem;
+        padding: var(--space-4) var(--space-4);
       }
 
       @media (hover: hover) and (pointer: fine) {
@@ -2784,7 +2811,7 @@ Rules for editing:
       .archive-body {
         display: grid;
         flex: 1;
-        gap: 0.3rem;
+        gap: var(--space-1);
         justify-items: start;
         min-width: 0;
       }
@@ -2807,7 +2834,7 @@ Rules for editing:
       .archive-marks {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.4rem;
+        gap: var(--space-2);
       }
 
       /* Enough of the record to know whether it is for you; a book summary runs
@@ -2827,9 +2854,9 @@ Rules for editing:
       .archive-tags {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.4rem;
+        gap: var(--space-2);
         list-style: none;
-        margin: 0.2rem 0 0;
+        margin: var(--space-1) 0 0;
         padding: 0;
       }
 
@@ -2846,7 +2873,7 @@ Rules for editing:
       }
 
       .episode-row .play-disc {
-        margin-top: 0.9rem;
+        margin-top: var(--space-4);
       }
 
       .episode-row .archive-body > .mono-label {
@@ -2888,17 +2915,17 @@ Rules for editing:
       }
 
       .row-fold-summary {
-        align-items: center;
+        align-items: flex-start;
         color: var(--indigo);
         cursor: pointer;
         display: flex;
         font-family: var(--font-mono);
         font-size: 0.78rem;
-        gap: 0.5rem;
+        gap: var(--space-2);
         letter-spacing: 0.06em;
         list-style: none;
         min-height: 2.75rem;
-        padding-block: 0.9rem;
+        padding-block: var(--space-3);
         text-transform: uppercase;
       }
 
@@ -2989,10 +3016,10 @@ Rules for editing:
          The same shape carries transcript rows with a speaker mark. */
       .timestamp-row {
         border-bottom: 1.5px dashed var(--line-soft);
-        column-gap: 0.75rem;
+        column-gap: var(--space-3);
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
-        padding-block: 0.7rem;
+        padding-block: var(--space-3);
       }
 
       .timestamp-mark {
@@ -3062,14 +3089,14 @@ Rules for editing:
       .stage-card-step {
         align-items: center;
         display: flex;
-        gap: 0.7rem;
+        gap: var(--space-3);
         margin-top: auto;
       }
 
       .stage-card-rail {
         gap: 0;
         overflow: visible;
-        padding: 1.5rem 1.5rem 1.35rem;
+        padding: var(--space-5) var(--space-5) var(--space-5);
         position: relative;
         z-index: 1;
       }
@@ -3080,7 +3107,7 @@ Rules for editing:
          rule. */
       .stage-card-rail .step-number {
         background: var(--card);
-        left: 1.25rem;
+        left: var(--space-5);
         position: absolute;
         top: 0;
         transform: translateY(-50%);
@@ -3109,7 +3136,7 @@ Rules for editing:
         display: flex;
         height: 11.5rem;
         justify-content: center;
-        margin-top: 1rem;
+        margin-top: var(--space-4);
       }
 
       .stage-card-figure .doodle-variants {
@@ -3129,14 +3156,14 @@ Rules for editing:
       .stage-card-rail h3 {
         font-size: 1.32rem;
         letter-spacing: -0.02em;
-        margin: 1rem 0 0;
+        margin: var(--space-4) 0 0;
         text-wrap: pretty;
       }
 
       .stage-card-rail > p {
         color: var(--body-text);
         line-height: 1.55;
-        margin: 0.55rem 0 1.1rem;
+        margin: var(--space-2) 0 var(--space-4);
       }
 
       /* The rail card stays a card at every width down to 61.99rem: only its
@@ -3145,7 +3172,7 @@ Rules for editing:
          reshape is the grid's own rule (`.journey-grid`), not the card's. */
       @media (max-width: 61.99rem) {
         .stage-card-rail {
-          padding: 1.35rem 1.15rem 1.15rem;
+          padding: var(--space-5) var(--space-4) var(--space-4);
         }
 
         .stage-card-figure {
@@ -3169,10 +3196,10 @@ Rules for editing:
           border-bottom: 1.5px dashed var(--line-soft);
           border-radius: 0;
           box-shadow: none;
-          column-gap: 0.7rem;
+          column-gap: var(--space-3);
           display: grid;
           grid-template-columns: auto minmax(0, 1fr);
-          padding: 0 0 0.8rem;
+          padding: 0 0 var(--space-3);
           row-gap: 0.1rem;
         }
 
@@ -3182,7 +3209,7 @@ Rules for editing:
 
         .stage-card:not(.stage-card-rail) .doodle {
           grid-column: 1 / span 2;
-          margin-bottom: 0.6rem;
+          margin-bottom: var(--space-2);
         }
 
         .stage-card:not(.stage-card-rail) .step-number {
@@ -3204,7 +3231,7 @@ Rules for editing:
          summary lavender and keeps the ink border. */
       .module-list {
         display: grid;
-        gap: 0.6rem;
+        gap: var(--space-2);
       }
 
       .module {
@@ -3219,10 +3246,10 @@ Rules for editing:
         align-items: center;
         cursor: pointer;
         display: grid;
-        gap: 0.1rem 0.75rem;
+        gap: 0.1rem var(--space-3);
         grid-template-columns: auto minmax(0, 1fr) auto auto;
         list-style: none;
-        padding: 0.8rem 0.95rem;
+        padding: var(--space-3) var(--space-4);
       }
 
       .module[open] > summary {
@@ -3292,18 +3319,18 @@ Rules for editing:
       .module-body {
         border-top: 1.5px dashed var(--line-soft);
         display: grid;
-        margin-left: 3.6rem;
-        padding: 0.2rem 0.95rem 0.9rem 0;
+        margin-left: var(--space-8);
+        padding: var(--space-1) var(--space-4) var(--space-4) 0;
       }
 
       .module-fact {
         border-bottom: 1.5px dashed var(--line-soft);
-        column-gap: 0.75rem;
+        column-gap: var(--space-3);
         display: grid;
         font-size: 0.9rem;
         grid-template-columns: 4.25rem minmax(0, 1fr);
         margin: 0;
-        padding-block: 0.55rem;
+        padding-block: var(--space-2);
       }
 
       .module-fact:last-child {
@@ -3315,7 +3342,7 @@ Rules for editing:
         font-family: var(--font-mono);
         font-size: 0.68rem;
         letter-spacing: 0.06em;
-        padding-top: 0.2rem;
+        padding-top: var(--space-1);
         text-transform: uppercase;
       }
 
@@ -3336,20 +3363,20 @@ Rules for editing:
          grouping. */
       .cmp-form {
         display: grid;
-        gap: 1.25rem;
+        gap: var(--space-5);
         max-width: var(--form-measure);
         width: 100%;
       }
 
       .cmp-form-fields {
         display: grid;
-        gap: 1.25rem;
+        gap: var(--space-5);
         width: 100%;
       }
 
       .learning-in-public-controls {
         display: grid;
-        gap: 0.5rem;
+        gap: var(--space-2);
       }
 
       /* One learning-in-public link plus its own "Remove" control: saving one
@@ -3359,7 +3386,7 @@ Rules for editing:
       .link-row {
         align-items: flex-start;
         display: flex;
-        gap: 0.5rem;
+        gap: var(--space-2);
       }
 
       .link-row-field {
@@ -3370,22 +3397,22 @@ Rules for editing:
       .cmp-form-meta {
         color: var(--body-text);
         display: grid;
-        gap: 0.35rem;
+        gap: var(--space-2);
       }
 
       .cmp-form-actions {
         border-top: 2px dashed var(--line-soft);
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-top: 0.25rem;
-        padding-top: 1.25rem;
+        gap: var(--space-3);
+        margin-top: var(--space-1);
+        padding-top: var(--space-5);
       }
 
       /* Form fields: the register form and learner mutation surfaces. */
       .field {
         display: grid;
-        gap: 0.35rem;
+        gap: var(--space-2);
       }
 
       .field-label {
@@ -3402,7 +3429,7 @@ Rules for editing:
         color: var(--ink);
         font: inherit;
         min-height: 2.75rem;
-        padding: 0.65rem 0.8rem;
+        padding: var(--space-3) var(--space-3);
         width: 100%;
       }
 
@@ -3458,9 +3485,9 @@ Rules for editing:
           right 1.35rem center,
           right 0.9rem center;
         background-repeat: no-repeat;
-        background-size: 0.45rem 0.45rem;
+        background-size: 8px 8px;
         cursor: pointer;
-        padding-right: 2.75rem;
+        padding-right: var(--space-7);
       }
 
       .invalid-feedback {
@@ -3480,7 +3507,7 @@ Rules for editing:
         color: var(--olive);
         font-weight: 700;
         overflow-wrap: anywhere;
-        padding: 0.65rem 0.8rem;
+        padding: var(--space-3) var(--space-3);
       }
 
       /* One option row.  The copied form field names remain intact, while the
@@ -3489,7 +3516,7 @@ Rules for editing:
       .form-check {
         align-items: center;
         display: flex;
-        gap: 0.6rem;
+        gap: var(--space-2);
         min-height: 2.75rem;
       }
 
@@ -3536,8 +3563,8 @@ Rules for editing:
         border-radius: 0.9rem;
         color: var(--ink);
         display: grid;
-        gap: 0.6rem;
-        padding: 1rem 1.15rem;
+        gap: var(--space-2);
+        padding: var(--space-4) var(--space-4);
       }
 
       .a11y-error-summary h2 {
@@ -3546,9 +3573,9 @@ Rules for editing:
 
       .a11y-error-summary ul {
         display: grid;
-        gap: 0.35rem;
+        gap: var(--space-2);
         list-style: disc;
-        padding-inline-start: 1.25rem;
+        padding-inline-start: var(--space-5);
       }
 
       .a11y-error-summary li {
@@ -3564,7 +3591,7 @@ Rules for editing:
         color: var(--body-text);
         display: block;
         font-size: 0.85rem;
-        margin-top: 0.35rem;
+        margin-top: var(--space-2);
       }
 
       .a11y-error {
@@ -3572,7 +3599,7 @@ Rules for editing:
         display: block;
         font-size: 0.85rem;
         font-weight: 700;
-        margin-top: 0.35rem;
+        margin-top: var(--space-2);
       }
 
       /* The featured slab: one white slab with a thick ink outline, the
@@ -3587,15 +3614,15 @@ Rules for editing:
         border-radius: 1.5rem;
         box-shadow: 0.45rem 0.45rem 0 var(--shadow-soft);
         display: grid;
-        gap: 2rem;
+        gap: var(--space-6);
         grid-template-columns: minmax(0, 1fr);
-        padding: 1.9rem 2.1rem;
+        padding: var(--space-6) var(--space-6);
       }
 
       .featured-main {
         align-content: start;
         display: grid;
-        gap: 0.85rem;
+        gap: var(--space-3);
       }
 
       .featured-main h3 {
@@ -3620,15 +3647,15 @@ Rules for editing:
         border-top: 1.5px solid var(--line-soft);
         color: var(--muted);
         font-size: 0.88rem;
-        padding-top: 0.85rem;
+        padding-top: var(--space-3);
       }
 
       .featured-actions {
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-top: 0.5rem;
+        gap: var(--space-3);
+        margin-top: var(--space-2);
       }
 
       .featured-build {
@@ -3636,8 +3663,8 @@ Rules for editing:
         background: var(--mint);
         border-radius: 1.1rem;
         display: grid;
-        gap: 0.75rem;
-        padding: 1.35rem 1.5rem;
+        gap: var(--space-3);
+        padding: var(--space-5) var(--space-5);
       }
 
       .featured-build h4 {
@@ -3646,14 +3673,14 @@ Rules for editing:
 
       .featured-build ul {
         display: grid;
-        gap: 0.6rem;
+        gap: var(--space-2);
       }
 
       .featured-build li {
         align-items: flex-start;
         display: flex;
         font-size: 0.92rem;
-        gap: 0.6rem;
+        gap: var(--space-2);
         line-height: 1.45;
       }
 
@@ -3665,7 +3692,7 @@ Rules for editing:
         /* Inside a wrapping action row (the cohort hero's) the notice takes a
            row of its own, and the buttons after it keep their own size. */
         flex: 1 1 100%;
-        gap: 0.6rem;
+        gap: var(--space-2);
         justify-items: start;
       }
 
@@ -3678,8 +3705,8 @@ Rules for editing:
       .panel {
         border-radius: 1.1rem;
         display: grid;
-        gap: 0.75rem;
-        padding: 1.35rem 1.5rem;
+        gap: var(--space-3);
+        padding: var(--space-5) var(--space-5);
       }
 
       .panel-outlined {
@@ -3706,8 +3733,8 @@ Rules for editing:
         border-radius: 0.7rem;
         color: var(--body-text);
         display: grid;
-        gap: 0.45rem;
-        padding: 1rem 1.15rem;
+        gap: var(--space-2);
+        padding: var(--space-4) var(--space-4);
       }
 
       .callout-info {
@@ -3739,7 +3766,7 @@ Rules for editing:
         align-items: baseline;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: var(--space-2);
       }
 
       .callout-score strong {
@@ -3760,7 +3787,7 @@ Rules for editing:
         display: grid;
         gap: 0.15rem;
         /* The date meets the card's first line rather than its top edge. */
-        padding-top: 0.85rem;
+        padding-top: var(--space-3);
       }
 
       .when strong {
@@ -3802,7 +3829,7 @@ Rules for editing:
         border: 2px solid var(--line);
         border-radius: 0.9rem;
         box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
-        padding: 1rem;
+        padding: var(--space-4);
       }
 
       /* Two arrangements of the same drawing are in the markup: a landscape
@@ -3920,7 +3947,7 @@ Rules for editing:
         color: var(--ink);
         font-size: 0.74rem;
         font-weight: 600;
-        padding: 0.22rem 0.6rem;
+        padding: var(--space-1) var(--space-2);
         text-align: center;
         text-decoration: none;
       }
@@ -3930,7 +3957,7 @@ Rules for editing:
       .graph-cloud {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.4rem;
+        gap: var(--space-2);
       }
 
       /* The complete list of a node type, folded away behind its ways in: a
@@ -3938,8 +3965,8 @@ Rules for editing:
          summary its keyboard behaviour and its announced state for free. */
       .graph-index {
         border-top: 1.5px dashed var(--line-soft);
-        margin-top: 1.1rem;
-        padding-top: 0.9rem;
+        margin-top: var(--space-4);
+        padding-top: var(--space-4);
       }
 
       .graph-index-summary {
@@ -3947,7 +3974,7 @@ Rules for editing:
         cursor: pointer;
         font-size: 0.85rem;
         font-weight: 600;
-        padding: 0.3rem 0;
+        padding: var(--space-1) 0;
       }
 
       .graph-index-summary:focus-visible {
@@ -3956,7 +3983,7 @@ Rules for editing:
       }
 
       .graph-index-cloud {
-        margin-top: 0.8rem;
+        margin-top: var(--space-3);
       }
 
       .graph-legend {
@@ -3966,22 +3993,22 @@ Rules for editing:
         display: flex;
         flex-wrap: wrap;
         font-size: 0.74rem;
-        gap: 0.4rem 1.1rem;
+        gap: var(--space-2) var(--space-4);
         justify-content: space-between;
-        margin-top: 1rem;
-        padding-top: 0.85rem;
+        margin-top: var(--space-4);
+        padding-top: var(--space-3);
       }
 
       .legend-key {
         align-items: center;
         display: inline-flex;
-        gap: 0.9rem;
+        gap: var(--space-4);
       }
 
       .legend-key span {
         align-items: center;
         display: inline-flex;
-        gap: 0.35rem;
+        gap: var(--space-2);
       }
 
       .legend-swatch {
@@ -4012,7 +4039,7 @@ Rules for editing:
 
       .topic-list {
         display: grid;
-        gap: 0.5rem;
+        gap: var(--space-2);
       }
 
       .topic {
@@ -4020,7 +4047,7 @@ Rules for editing:
         border: 2px solid var(--line);
         border-radius: 0.7rem;
         display: block;
-        padding: 0.55rem 0.85rem;
+        padding: var(--space-2) var(--space-3);
         text-decoration: none;
       }
 
@@ -4050,7 +4077,7 @@ Rules for editing:
        * ------------------------------------------------------------------ */
 
       .prose > * + * {
-        margin-top: 1rem;
+        margin-top: var(--space-4);
       }
 
       .prose h2 {
@@ -4062,16 +4089,16 @@ Rules for editing:
       }
 
       .prose > * + h2 {
-        margin-top: 2rem;
+        margin-top: var(--space-6);
       }
 
       .prose > * + h3 {
-        margin-top: 1.5rem;
+        margin-top: var(--space-5);
       }
 
       .prose > h2 + *,
       .prose > h3 + * {
-        margin-top: 0.75rem;
+        margin-top: var(--space-3);
       }
 
       .prose a {
@@ -4095,11 +4122,11 @@ Rules for editing:
          a marker rather than a real <li> inside a list the source never marks. */
       .prose-item {
         display: list-item;
-        margin-left: 1.25rem;
+        margin-left: var(--space-5);
       }
 
       .prose-item + .prose-item {
-        margin-top: 0.4rem;
+        margin-top: var(--space-2);
       }
 
       /* Search row: a labelled query field and its primary submit button on
@@ -4109,7 +4136,7 @@ Rules for editing:
       .search-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.6rem;
+        gap: var(--space-2);
         max-width: 34rem;
       }
 
@@ -4155,7 +4182,7 @@ Rules for editing:
         border-radius: 0.6rem;
         font-size: 0.92rem;
         min-height: 2.75rem;
-        padding: 0.45rem 1.1rem;
+        padding: var(--space-2) var(--space-4);
       }
 
       /* ------------------------------------------------------------------ *
@@ -4211,13 +4238,13 @@ Rules for editing:
       .prose > * + h4,
       .prose > * + h5,
       .prose > * + h6 {
-        margin-top: 1.5rem;
+        margin-top: var(--space-5);
       }
 
       .prose > h4 + *,
       .prose > h5 + *,
       .prose > h6 + * {
-        margin-top: 0.75rem;
+        margin-top: var(--space-3);
       }
 
       /* Where a body's blocks really are a list — consecutive list items the
@@ -4226,7 +4253,7 @@ Rules for editing:
          rhythm; the reader of a screen reader also hears how many items. */
       .prose ul,
       .prose ol {
-        padding-left: 1.25rem;
+        padding-left: var(--space-5);
       }
 
       .prose ul {
@@ -4238,7 +4265,7 @@ Rules for editing:
       }
 
       .prose li + li {
-        margin-top: 0.4rem;
+        margin-top: var(--space-2);
       }
 
       .prose strong,
@@ -4256,7 +4283,7 @@ Rules for editing:
         border-radius: 0.7rem;
         color: var(--ink);
         font-style: italic;
-        padding: 0.85rem 1.1rem;
+        padding: var(--space-3) var(--space-4);
       }
 
       .prose code {
@@ -4266,7 +4293,7 @@ Rules for editing:
         color: var(--ink);
         font-family: var(--font-mono);
         font-size: 0.85em;
-        padding: 0.1rem 0.3rem;
+        padding: 0.1rem var(--space-1);
       }
 
       /* A code sample wraps rather than scrolling.  The FAQ pages settled this
@@ -4285,7 +4312,7 @@ Rules for editing:
         line-height: 1.65;
         margin: 0;
         overflow-wrap: anywhere;
-        padding: 1rem 1.1rem;
+        padding: var(--space-4) var(--space-4);
         tab-size: 2;
         white-space: pre-wrap;
         word-break: break-word;
@@ -4368,7 +4395,6 @@ Rules for editing:
          the compact padding it has with JavaScript disabled, and the control
          floats over the first line's right margin instead. */
       .prose .code-block {
-        margin: 0;
         position: relative;
       }
 
@@ -4411,7 +4437,7 @@ Rules for editing:
         min-height: 2rem;
         min-width: 3rem;
         opacity: 0;
-        padding: 0.2rem 0.55rem;
+        padding: var(--space-1) var(--space-2);
         position: absolute;
         right: 0.6rem;
         top: 0.9rem;
@@ -4455,7 +4481,7 @@ Rules for editing:
         }
 
         .prose .code-block pre {
-          padding-top: 2.9rem;
+          padding-top: var(--space-7);
         }
       }
 
@@ -4505,14 +4531,14 @@ Rules for editing:
          margin has no effect on an inline element, which is why this can be
          written once for everything the fragment contains. */
       .prose-embed * + * {
-        margin-top: 0.75rem;
+        margin-top: var(--space-3);
       }
 
       .prose figcaption,
       .prose-caption {
         color: var(--muted);
         font-size: 0.85rem;
-        margin-top: 0.5rem;
+        margin-top: var(--space-2);
       }
 
       /* Said out loud rather than left as a gap: a body element this site cannot
@@ -4521,12 +4547,12 @@ Rules for editing:
       .prose-unavailable {
         border: 2px dashed var(--line-soft);
         border-radius: 0.9rem;
-        padding: 1.1rem 1.25rem;
+        padding: var(--space-4) var(--space-5);
         text-align: center;
       }
 
       .prose-unavailable figcaption {
-        margin-top: 0.35rem;
+        margin-top: var(--space-2);
       }
 
       /* A survey chart in a body: a framed block like a table — its own card
@@ -4538,14 +4564,14 @@ Rules for editing:
         background: var(--card);
         border: 2px solid var(--line-soft);
         border-radius: 0.7rem;
-        padding: 1rem 1.1rem;
+        padding: var(--space-4) var(--space-4);
       }
 
       .prose-chart-title {
         color: var(--ink);
         font-weight: 700;
         line-height: 1.35;
-        margin-bottom: 0.75rem;
+        margin-bottom: var(--space-3);
       }
 
       .prose-chart-plot {
@@ -4572,7 +4598,7 @@ Rules for editing:
       .prose hr {
         border: 0;
         border-top: 2px dashed var(--line-soft);
-        margin-block: 2rem;
+        margin-block: var(--space-6);
       }
 
       /* Wrap a table in `.prose-scroll` so a wide one scrolls by itself.  The
@@ -4606,7 +4632,7 @@ Rules for editing:
       .prose th,
       .prose td {
         border-bottom: 1.5px dashed var(--line-soft);
-        padding: 0.65rem 0.95rem;
+        padding: var(--space-3) var(--space-4);
         text-align: left;
         vertical-align: top;
       }
@@ -4622,7 +4648,7 @@ Rules for editing:
         font-size: 0.82rem;
         font-weight: 700;
         letter-spacing: 0.01em;
-        padding-block: 0.6rem;
+        padding-block: var(--space-2);
       }
 
       .prose tbody td:first-child {
@@ -4659,7 +4685,7 @@ Rules for editing:
 
         .prose-scroll:has(thead) tr {
           border-bottom: 1.5px dashed var(--line-soft);
-          padding: 0.8rem 1rem;
+          padding: var(--space-3) var(--space-4);
         }
 
         .prose-scroll:has(thead) tbody tr:last-child {
@@ -4672,7 +4698,7 @@ Rules for editing:
         }
 
         .prose-scroll:has(thead) td + td {
-          margin-top: 0.4rem;
+          margin-top: var(--space-2);
         }
 
         .prose-scroll:has(thead) td:first-child {
@@ -4705,7 +4731,7 @@ Rules for editing:
 
       @media (max-width: 47.99rem) {
         .card-grid-3 {
-          gap: 0.9rem;
+          gap: var(--space-grid);
         }
 
         /* The catalogue stays a carousel at every width; phones just see a
@@ -4722,7 +4748,7 @@ Rules for editing:
 
       @media (min-width: 40rem) {
         .shell {
-          padding-inline: 1.25rem;
+          padding-inline: var(--space-5);
         }
 
         .card-grid-2 {
@@ -4731,8 +4757,8 @@ Rules for editing:
       }
 
       @media (min-width: 62rem) {
-        .band {
-          padding-block: 2.9rem;
+        :root {
+          --space-band: var(--space-7);
         }
 
         .card-grid-3 {
@@ -4742,7 +4768,7 @@ Rules for editing:
         /* Member stories show three cards at a time here, the same density
            `.card-grid-3` showed as a static grid before the carousel. */
         .stories-scroller {
-          grid-auto-columns: calc((100% - 2 * 1.25rem) / 3);
+          grid-auto-columns: calc((100% - 2 * var(--space-grid)) / 3);
         }
       }
 
@@ -4776,11 +4802,11 @@ Rules for editing:
         .masthead .nav-auth,
         .masthead .signup-button {
           font-size: 0.9rem;
-          padding-inline: 0.95rem;
+          padding-inline: var(--space-4);
         }
 
         .masthead .nav-link {
-          padding-inline: 0.35rem;
+          padding-inline: var(--space-2);
         }
 
         .band-head {
@@ -4799,7 +4825,7 @@ Rules for editing:
         .masthead .pill-button,
         .masthead .account-nav > summary {
           font-size: 0.95rem;
-          padding-inline: 1rem;
+          padding-inline: var(--space-4);
         }
       }
 
@@ -4809,7 +4835,7 @@ Rules for editing:
 
       .newsletter-panel {
         display: grid;
-        gap: 1.5rem;
+        gap: var(--space-5);
         align-items: center;
       }
 
@@ -4824,14 +4850,14 @@ Rules for editing:
         border: 2px solid var(--line);
         border-radius: 0.9rem;
         box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
-        margin-top: 1.25rem;
-        padding: 1.25rem;
+        margin-top: var(--space-5);
+        padding: var(--space-5);
       }
 
       .newsletter-form-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
+        gap: var(--space-3);
         align-items: stretch;
       }
 
@@ -4851,7 +4877,7 @@ Rules for editing:
       .newsletter-status {
         font-size: 0.92rem;
         font-weight: 700;
-        margin: 0.75rem 0 0;
+        margin: var(--space-3) 0 0;
         color: var(--body-text);
       }
 
@@ -4859,7 +4885,7 @@ Rules for editing:
         color: var(--muted);
         font-size: 0.85rem;
         line-height: 1.45;
-        margin: 0.6rem 0 0;
+        margin: var(--space-2) 0 0;
       }
 
       .newsletter-status.is-success {

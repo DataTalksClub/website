@@ -33,28 +33,28 @@
        * ------------------------------------------------------------------ */
 
       .enrollment-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
+        margin-bottom: var(--space-2);
+        margin-top: calc(var(--space-3) * -1);
       }
 
       .enrollment-hero h1 {
         font-size: clamp(1.7rem, 3.4vw, 2.5rem);
         letter-spacing: -0.025em;
-        margin-top: 0.6rem;
+        margin-top: var(--space-eyebrow);
       }
 
       .enrollment-lede {
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: 0.75rem;
+        margin-top: var(--space-stack);
       }
 
       .enrollment-back {
-        margin-top: 1.25rem;
+        margin-top: var(--space-5);
       }
 
       .enrollment-fields {
         display: grid;
-        gap: 1.25rem;
+        gap: var(--space-5);
       }
 
       /* The bound fields keep the widget classes courses/views/forms.py gives
@@ -67,7 +67,7 @@
         color: var(--ink);
         font: inherit;
         min-height: 2.75rem;
-        padding: 0.65rem 0.8rem;
+        padding: var(--space-3) var(--space-3);
         width: 100%;
       }
 
@@ -80,8 +80,8 @@
         border-radius: 0.5rem;
         color: var(--ink);
         font-size: 0.9rem;
-        margin-top: 0.5rem;
-        padding: 0.5rem 0.7rem;
+        margin-top: var(--space-2);
+        padding: var(--space-2) var(--space-3);
       }
 
       /* The shared form-level error summary (core/templates/accessibility/)
@@ -94,9 +94,9 @@
         border-radius: 0.9rem;
         color: var(--ink);
         display: grid;
-        gap: 0.6rem;
-        margin-bottom: 1.5rem;
-        padding: 1rem 1.15rem;
+        gap: var(--space-2);
+        margin-bottom: var(--space-5);
+        padding: var(--space-4) var(--space-4);
       }
 
       .a11y-error-summary h2 {
@@ -105,9 +105,9 @@
 
       .a11y-error-summary ul {
         display: grid;
-        gap: 0.35rem;
+        gap: var(--space-2);
         list-style: disc;
-        padding-inline-start: 1.25rem;
+        padding-inline-start: var(--space-5);
       }
 
       .a11y-error-summary li {
@@ -121,7 +121,7 @@
       .toggle-row {
         align-items: start;
         display: grid;
-        gap: 0.75rem;
+        gap: var(--space-3);
         grid-template-columns: 2.6rem minmax(0, 1fr);
       }
 
@@ -166,7 +166,7 @@
 
       .toggle-copy {
         display: grid;
-        gap: 0.2rem;
+        gap: var(--space-1);
       }
 
       .toggle-label {
@@ -181,7 +181,7 @@
 
       .toggle-list {
         display: grid;
-        gap: 1.1rem;
+        gap: var(--space-4);
       }
 
       /* The certificate this enrollment has, or has not, earned: a mono label
@@ -189,9 +189,9 @@
       .enrollment-certificate {
         border-top: 2px dashed var(--line-soft);
         display: grid;
-        gap: 0.2rem;
-        margin-top: 1.5rem;
-        padding-top: 1.25rem;
+        gap: var(--space-1);
+        margin-top: var(--space-5);
+        padding-top: var(--space-5);
       }
 
       .enrollment-note {
@@ -200,7 +200,7 @@
       }
 
       .enrollment-actions {
-        margin-top: 1.75rem;
+        margin-top: var(--space-6);
       }
 
       @media (prefers-reduced-motion: reduce) {

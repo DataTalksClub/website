@@ -21,11 +21,10 @@
 
   /* --- hero: the family landing's hero (.family-hero-inner / -art / h1 /
          -lede / -commitment / -actions), the same grid, sizes and art slot */
-  .content-page-header { padding-block: 2.5rem; }
   .tour-hero-inner {
     align-items: center;
     display: grid;
-    gap: 1.5rem 2rem;
+    gap: var(--space-5) var(--space-6);
     grid-template-columns: minmax(0, 1fr) minmax(0, 18rem);
   }
   .tour-hero-inner > * { min-width: 0; }
@@ -39,7 +38,7 @@
     color: var(--body-text);
     font-size: 1.15rem;
     line-height: 1.6;
-    margin-top: 1rem;
+    margin-top: var(--space-stack);
     max-width: var(--measure);
   }
   .tour-lede strong { color: var(--ink); }
@@ -47,8 +46,8 @@
     align-items: center;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem 1.25rem;
-    margin-top: 1.5rem;
+    gap: var(--space-3) var(--space-5);
+    margin-top: var(--space-head);
   }
   .tour-hero-actions .cta { min-height: 3.25rem; }
   .tour-hero-art {
@@ -62,7 +61,7 @@
   /* --- who's here: the family landing's opening tiles (.stat-tiles reused,
          four across), under the section's own band-head like every other
          section on the page */
-  .tour-stat-tiles .stat-tile { min-height: 0; padding-block: 0.8rem; }
+  .tour-stat-tiles .stat-tile { min-height: 0; padding-block: var(--space-3); }
   .tour-stat-tiles strong {
     font-size: clamp(1.35rem, 2vw, 1.75rem);
     font-variant-numeric: tabular-nums;
@@ -78,8 +77,8 @@
          now takes the same treatment. */
   .tour-chapter {
     border-top: 2px solid var(--line);
-    margin-top: 3.5rem;
-    padding-top: 2.5rem;
+    margin-top: var(--space-section);
+    padding-top: var(--space-section);
   }
   .tour-chapter .band-head h2 {
     font-size: clamp(1.4rem, 3vw, 1.87rem);
@@ -108,14 +107,14 @@
          community works, not instructions to follow in order.  The note
          under the week steps is the one place the page states what varies
          by course, so it reads as plain body copy after the cards. */
-  .tour-week-note { color: var(--body-text); margin-top: 1.25rem; max-width: 46rem; }
+  .tour-week-note { color: var(--body-text); margin-top: var(--space-5); max-width: 46rem; }
 
   /* --- member stories: the homepage member-story card drawn three across,
          one attributed voice per card with its own source link. */
-  .tour-voice { gap: 0.75rem; padding: 1.25rem 1.4rem; }
+  .tour-voice { gap: var(--space-3); padding: var(--space-5) var(--space-5); }
   .tour-voice .story-quote { font-size: 0.98rem; line-height: 1.55; }
   .tour-voice .story-context { display: block; }
-  .tour-voice .story-source { font-size: 0.85rem; margin-top: 0.25rem; }
+  .tour-voice .story-source { font-size: 0.85rem; margin-top: var(--space-1); }
 
   /* --- events: the events-index date rail beside the title, on list rows */
   .tour-events .list-row { --row-cols: 11rem minmax(0, 1fr); }
@@ -125,26 +124,26 @@
   .tour-events h3 a { color: var(--ink); }
 
   /* --- everything else: one card per thing, whole-card links */
-  .tour-thing { gap: 0.5rem; padding: 1.15rem 1.25rem; }
+  .tour-thing { gap: var(--space-2); padding: var(--space-4) var(--space-5); }
   .tour-thing h3 { font-size: 1.1rem; }
   .tour-thing h3 a { color: var(--ink); text-decoration: none; }
   .tour-thing p { color: var(--body-text); font-size: 0.9rem; }
-  .tour-thing .mono-note { margin-top: auto; padding-top: 0.5rem; }
+  .tour-thing .mono-note { margin-top: auto; padding-top: var(--space-2); }
 
   /* --- norm and facet cards: the homepage climb-card's own shape (a
          heading, then a description line), three real cards across */
   .tour-norms {
     display: grid;
-    gap: 1.25rem;
+    gap: var(--space-5);
     list-style: none;
     margin: 0;
     padding: 0;
   }
-  .tour-norm-head { align-items: center; display: flex; gap: 0.65rem; }
+  .tour-norm-head { align-items: center; display: flex; gap: var(--space-3); }
   .tour-norm p { color: var(--body-text); margin: 0; }
   .tour-norm strong { color: var(--ink); }
   @media (min-width: 62rem) {
-    .tour-norms { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem 2rem; }
+    .tour-norms { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5) var(--space-6); }
   }
 
   /* --- founder story: the member-story card at the chapter width, the two
@@ -152,10 +151,10 @@
          matching the design system -- "how it started" and "why it's free"
          are two different quotes, not a repeating grid, so they read in
          sequence rather than side by side. */
-  .tour-story { padding: 1.5rem 1.75rem; }
-  .tour-story-quotes { display: grid; gap: 1.25rem; }
+  .tour-story { padding: var(--space-5) var(--space-6); }
+  .tour-story-quotes { display: grid; gap: var(--space-5); }
   .tour-story .story-quote { font-size: 1.08rem; line-height: 1.6; }
-  .tour-story-quotes > div { display: grid; gap: 0.45rem; }
+  .tour-story-quotes > div { display: grid; gap: var(--space-2); }
 
   /* --- closing: the site-wide tour stripe's own shape (.tour-cta on ink),
          drawn full-bleed and flush with the band's foot.  The page hides that
@@ -165,15 +164,15 @@
   .tour-close {
     --breakout-width: 100vw;
     background: var(--band-ink-bg);
-    margin-bottom: -2.25rem;
-    margin-top: 3.5rem;
-    padding: clamp(1.75rem, 3.5vw, 2.75rem) 1rem;
+    margin-bottom: calc(var(--space-band) * -1);
+    margin-top: var(--space-7);
+    padding: clamp(var(--space-6), 3.5vw, var(--space-7)) var(--space-4);
   }
   .tour-close-inner {
     align-items: center;
     display: flex;
     flex-wrap: wrap;
-    gap: 1.5rem;
+    gap: var(--space-5);
     justify-content: space-between;
     margin-inline: auto;
     max-width: var(--shell);
@@ -181,13 +180,10 @@
   .tour-close-inner > div { flex: 1 1 26rem; }
   .tour-close-inner > .cta { flex: none; }
   .tour-close h2 { color: #ffffff; font-size: clamp(1.15rem, 2.4vw, 1.55rem); }
-  .tour-close p { color: var(--tour-close-sub); font-size: 0.88rem; margin-top: 0.5rem; }
-  .tour-close p + p { margin-top: 0.25rem; }
+  .tour-close p { color: var(--tour-close-sub); font-size: 0.88rem; margin-top: var(--space-2); }
+  .tour-close p + p { margin-top: var(--space-1); }
   .tour-close a:not(.cta) { color: #ffffff; text-underline-offset: 0.2em; }
   .tour-close .cta-primary { border-color: #ffffff; box-shadow: none; }
-  @media (min-width: 62rem) {
-    .tour-close { margin-bottom: -2.9rem; }
-  }
 
   /* The negative bottom margin cancels the band's own padding, the same way
      /courses pulls its stats stripe up into the seam, so the ink runs to the
@@ -201,7 +197,7 @@
     .tour-hero-inner { grid-template-columns: minmax(0, 1fr); }
     .tour-hero-art { justify-self: center; max-width: 12rem; }
     .tour-hero-actions .cta { justify-content: center; width: 100%; }
-    .tour-chapter { margin-top: 2.5rem; padding-top: 1.75rem; }
+    .tour-chapter { margin-top: var(--space-section); padding-top: var(--space-section); }
 
     /* The "more" cards give up their surface and read as the homepage's
        dashed list: drawing on the left, words on the right.  The course
@@ -213,12 +209,11 @@
       border-bottom: 1.5px dashed var(--line-soft);
       border-radius: 0;
       box-shadow: none;
-      padding: 0 0 0.9rem;
+      padding: 0 0 var(--space-4);
     }
-    .card-grid-3.tour-cards { gap: 0.9rem; }
+    .card-grid-3.tour-cards { gap: var(--space-4); }
     .tour-thing .mono-note { padding-top: 0.15rem; }
 
-    .tour-close { margin-bottom: -2.25rem; }
     .tour-close-inner > .cta { justify-content: center; width: 100%; }
   }
 {% endblock %}

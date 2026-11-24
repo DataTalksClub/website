@@ -135,18 +135,18 @@
         margin: 0;
         padding: 0;
         display: grid;
-        gap: 0.75rem;
+        gap: var(--space-3);
       }
 
       .unsubscribe-options legend {
-        margin-bottom: 0.75rem;
+        margin-bottom: var(--space-3);
       }
 
       .unsubscribe-option {
         display: flex;
-        gap: 0.75rem;
+        gap: var(--space-3);
         align-items: flex-start;
-        padding: 0.9rem 1rem;
+        padding: var(--space-4) var(--space-4);
         border: 2px solid var(--line);
         border-radius: 0.75rem;
         background: var(--card);
@@ -156,7 +156,7 @@
       }
 
       .unsubscribe-option input {
-        margin-top: 0.25rem;
+        margin-top: var(--space-1);
         /* The control itself is a tap target, not just its label. */
         width: 1.15rem;
         height: 1.15rem;
@@ -165,7 +165,7 @@
 
       .unsubscribe-option-text {
         display: grid;
-        gap: 0.2rem;
+        gap: var(--space-1);
       }
 
       .unsubscribe-option-text span {
@@ -173,7 +173,7 @@
       }
 
       .unsubscribe-form .cta {
-        margin-top: 1.5rem;
+        margin-top: var(--space-5);
       }
 
       @media (max-width: 47.99rem) {

@@ -166,13 +166,91 @@ the biggest sizes). The prose rows apply **only inside `.prose`**. A body's own
 headings stay below the band `h2`, so a section of prose never competes with the
 heading of the band it sits in.
 
-## Spacing, radius, borders, shadows
+## Spacing
 
-- **Spacing scale**: `0.35 / 0.5 / 0.6 / 0.75 / 0.85 / 1 / 1.25 / 1.5 / 2 / 2.5rem`.
-  Card gap `0.6rem` inside, `1.25rem` between cards (`0.9rem` between narrow rows).
-- **Band padding**: `padding-block: 2.25rem`, growing to `2.9rem` at ≥62rem.
-- **Shell**: `.shell` centres content at `--shell` = `76rem`, `padding-inline: 1rem`
-  (`1.25rem` at ≥40rem).
+Every margin, padding and gap in page and partial CSS is a token from one scale,
+defined once in `templates/core/_design_system.html` `:root`. Spacing has no theme,
+so dark mode redefines nothing.
+
+### The scale
+
+| Token | Value |
+| --- | --- |
+| `--space-1` | `0.25rem` |
+| `--space-2` | `0.5rem` |
+| `--space-3` | `0.75rem` |
+| `--space-4` | `1rem` |
+| `--space-5` | `1.5rem` |
+| `--space-6` | `2rem` |
+| `--space-7` | `3rem` |
+| `--space-8` | `4rem` |
+
+### The roles
+
+Reach for a role first. A role names *why* two things are apart, so the same
+relationship gets the same distance on every page. A bare scale step is for
+component internals no role names (a pill's padding, a table cell, a form row).
+
+| Role | Value | Where it applies | Examples |
+| --- | --- | --- | --- |
+| `--space-inline` | `--space-2` | icon ↔ label, a row of chips or pills | `.past-supporters`, chip rows |
+| `--space-tight` | `--space-2` | a heading ↔ its own subline; label ↔ value | `.band-head p`, `.band-head` row gap, `.card` gap (title ↔ text) |
+| `--space-eyebrow` | `--space-3` | a page header's eyebrow, kicker, status pill or breadcrumb trail ↔ its `h1` — one value on every page header | `.*-hero h1`, `.person-identity h1`, `.article-hero .breadcrumbs`, `.course-hero .breadcrumbs`, `.event-head` |
+| `--space-stack` | `--space-4` | paragraph ↔ paragraph; `h1` ↔ hero lede; blocks inside a card | `.prose > * + *`, `.*-lede` |
+| `--space-head` | `--space-5` | a heading block ↔ the content it introduces (including an FAQ block under its heading); hero lede ↔ hero actions | `.band-head`, `.article-faq`, `.sponsor-section-heading`, `.module-section-heading`, `.admin-head`, `.*-hero-actions` |
+| `--space-grid` | `--space-5` | between cards in a grid, list or scroller of cards | `.card-grid`, `.catalog-scroller`, `.stories-scroller`, `.featured-supporters`, `.episode-navigation` |
+| `--space-card` | `--space-5` | card and panel padding | `.card`, `.catalog-card`, `.faq-panel` (block padding less the rows' own `--space-3`) |
+| `--space-section` | `--space-7` | between sections inside one band | `.band-head-secondary`, `.family-chapter`, `.member-home-section + …`, `.docs-chapter`, `.course-certificate`, `.course-closing` |
+| `--space-band` | `2.5rem`, `--space-7` at ≥62rem | a band's `padding-block` (and the page header, which is a band) | `.band`, full-bleed breakouts that act as bands (`.zoomcamp-steps`, `.courses-faq`) |
+
+Two shapes recur and have one answer each:
+
+- **Section seams.** A section divided from the previous one by a rule takes
+  `margin-top: var(--space-section)` *and* `padding-top: var(--space-section)` —
+  the section distance on each side of the rule. A section without a rule takes
+  only the margin (`.band-head-secondary`).
+- **Cancelling a band's padding.** An element that must run flush to its band's
+  edge (an ink closing strip, a full-bleed last section) pulls itself out with
+  `calc(var(--space-band) * -1)`, never with a copied literal, so it follows the
+  band at every width.
+
+Prose is a typographic context, not a stack of sections: inside `.prose` a heading
+sits `--space-6` (`h2`) or `--space-5` (`h3`–`h6`) below the block before it and
+`--space-3` above the block it heads, and blocks are `--space-stack` apart.
+
+### Rules
+
+1. Every `margin*`, `padding*`, `gap`, `row-gap`, `column-gap` and `inset*` value in
+   page and partial CSS is `0`, `auto`, a `--space-*` token, or an expression of
+   tokens (`calc(var(--space-2) * -1)`, `clamp(var(--space-5), 4vw, var(--space-7))`).
+2. Heading → content is always `--space-head`. Do not put a margin on a section `h2`
+   to space it from its content; wrap it in `.band-head` and let the head carry it.
+   Do not add a `margin-top` to the first block after a `.band-head`.
+3. Sections inside one band are always `--space-section` apart.
+4. A grid's column formula uses the same token as its gap
+   (`calc((100% - 3 * var(--space-grid)) / 4)`), so the two cannot drift.
+5. Off-scale literals are allowed only for hairline optical nudges of at most
+   `0.15rem` / `2px`, and for reviewed optical alignments listed with a reason in
+   the test's `ALLOWED` table (the wordmark's `0.28rem` lift). Component sizes —
+   `min-height`, `width`, the 2.75rem target height, `font-size`,
+   `scroll-margin-top` — are not spacing and are not scanned.
+6. HTML email templates keep literal pixels: mail clients do not support custom
+   properties.
+
+### Enforcement
+
+`core/tests/test_design_spacing_tokens.py` scans every template under
+`templates/` and `*/templates/` (CSS comments stripped) and fails on any raw
+`rem`/`px` literal in a spacing declaration outside the hairline limit and its
+`ALLOWED` table. It also pins the scale values, the role names, and the structural
+rules (`.band`, `.band-head`, `.band-head-secondary`, `.card-grid`) to their roles.
+Adding an `ALLOWED` row is a design decision with a written reason, not a way to
+silence the test.
+
+## Shell, measure, radius, borders, shadows
+
+- **Shell**: `.shell` centres content at `--shell` = `76rem`, `padding-inline:
+  var(--space-4)` (`var(--space-5)` at ≥40rem).
 - **Measure**: `--measure` = `38rem`, about 70 characters. `.prose-reading` and
   `.prose-lede` are held to it. Ordinary pages use `--content-width` = `56rem`
   (the course platform's `.app-content-shell` width) through `.content-shell`
@@ -319,7 +397,8 @@ to this document — do not fork it locally.
   subline `p`, and optionally a `.kicker` on the right. Stacked on narrow screens; from
   69rem the kicker sits on the heading's baseline row. It never holds a link — a
   section's link is its `.band-more` (see **Section links**).
-  `.band-head-secondary` adds top margin for a second head inside one band.
+  `.band-head-secondary` adds `--space-section` above a second head inside one band;
+  the head itself sits `--space-head` above its content.
 
   ```html
   <div class="band-head">
@@ -356,7 +435,7 @@ to this document — do not fork it locally.
 ### Cards and chips
 
 - **`.card`** — white slab, 2px ink border, `0.9rem` radius, hard shadow, column flex
-  with `gap: 0.6rem`. `margin-top: auto` on a child pins it to the card foot.
+  with `gap: var(--space-tight)` and `padding: var(--space-card)`. `margin-top: auto` on a child pins it to the card foot.
 - **`.card-grid`** + **`.card-grid-2` / `.card-grid-3`** — the band's card columns;
   they collapse to one column on narrow screens.
 - **`.interactive-card.interactive-lift`** — the whole-card link treatment. Hover and
@@ -585,6 +664,28 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
   does the work: keyboard behaviour and announced expanded state come free and it
   opens with JavaScript off. A bare "Show more" makes the reader click to find out how
   much they are in for.
+
+- **FAQ fold (`.faq-panel` + `.faq-fold`)** — the one way the site writes a list of
+  questions: the article FAQ, the course-family FAQ, the `/faq/` pages and the
+  dashboard's per-homework breakdown all draw it.
+
+  ```html
+  <div class="faq-panel panel panel-outlined">
+    <details class="faq-fold" id="…">
+      <summary class="faq-fold-summary">
+        <h3 class="faq-question-title">Question?</h3>
+        <span class="faq-fold-marker" aria-hidden="true"></span>
+      </summary>
+      <div class="prose faq-answer">…</div>
+    </details>
+  </div>
+  ```
+
+  A white card padded `--space-card` (block padding less the rows' own), rows
+  `--space-3` above and below with a dashed rule between them, the chevron centred on
+  the question's first line in both states, and `--space-head` below the heading that
+  introduces it. A page does not restyle the fold or wrap it in a `.row-list` (that
+  draws a second rule under each row).
 
 - **Timestamp rows** — `.timestamp-row` with a `.timestamp-mark` and a `p`. The same
   shape carries transcript rows with the speaker name as the mark.
@@ -1033,7 +1134,8 @@ with a hero banner (which already sets the title) the `h1` is visually hidden.
 4. Reach for the inventory before writing CSS. New page CSS is for layout that is
    genuinely page-specific. If a primitive is missing, add it to the partial and to
    this document — do not fork it locally.
-5. Colours only via tokens; mono only via `--font-mono`; sizes from the type scale.
+5. Colours only via tokens; mono only via `--font-mono`; sizes from the type scale;
+   every margin, padding and gap from the spacing roles or scale (see Spacing).
 6. Design the narrow layout deliberately (reshape, not reflow) in the page's own
    `@media (max-width: 47.99rem)` block.
 7. Keep the template readable: one opening tag per line, structural template tags

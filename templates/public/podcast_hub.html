@@ -47,28 +47,28 @@
       }
 
       .podcast-hero h1 {
-        margin-top: 0.6rem;
+        margin-top: var(--space-eyebrow);
         max-width: 18ch;
       }
 
       .podcast-lede {
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: 1rem;
+        margin-top: var(--space-stack);
         max-width: 36rem;
       }
 
       .podcast-subscribe {
         color: var(--muted);
         font-size: 0.92rem;
-        margin-top: 0.75rem;
+        margin-top: var(--space-3);
         max-width: 36rem;
       }
 
       .podcast-platforms {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 1rem;
+        gap: var(--space-2);
+        margin-top: var(--space-4);
       }
 
       /* An episode row is the archive row the blog and the books archive draw,
@@ -82,13 +82,13 @@
          then every season as its own target. */
       .season-groups {
         display: grid;
-        gap: 0.85rem;
+        gap: var(--space-3);
       }
 
       .season-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: var(--space-2);
       }
 
       /* Body text, not the muted grey: this note sits on the lavender band, where
@@ -96,7 +96,7 @@
       .season-note {
         color: var(--body-text);
         font-size: 0.9rem;
-        margin-top: 1.25rem;
+        margin-top: var(--space-5);
       }
 
     </style>

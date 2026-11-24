@@ -32,19 +32,19 @@
       /* The breadcrumb links carry the system's 2.75rem target height, so the
          row brings its own air; fold most of it into the band's top padding. */
       .complaint-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
+        margin-bottom: var(--space-2);
+        margin-top: calc(var(--space-3) * -1);
       }
 
       .complaint-hero-inner {
         display: grid;
-        gap: 0.6rem;
+        gap: var(--space-2);
         justify-items: start;
       }
 
       .complaint-form {
         display: grid;
-        gap: 1.25rem;
+        gap: var(--space-5);
         max-width: 42rem;
       }
 
@@ -52,8 +52,8 @@
         border-top: 2px dashed var(--line-soft);
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
-        padding-top: 1.25rem;
+        gap: var(--space-3);
+        padding-top: var(--space-5);
       }
 
       /* The two widgets are built in courses/views/forms.py and arrive carrying
@@ -67,7 +67,7 @@
         color: var(--ink);
         font: inherit;
         min-height: 2.75rem;
-        padding: 0.65rem 0.8rem;
+        padding: var(--space-3) var(--space-3);
         width: 100%;
       }
 
@@ -77,7 +77,7 @@
         color: var(--olive);
         font-size: 0.85rem;
         font-weight: 700;
-        margin-top: 0.4rem;
+        margin-top: var(--space-2);
       }
 
       /* --- narrow layout ------------------------------------------------- */

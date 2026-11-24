@@ -224,7 +224,7 @@
     background: var(--card);
     border: 2px solid var(--line-soft);
     border-radius: 0.7rem;
-    padding: 1rem 1.15rem;
+    padding: var(--space-4) var(--space-4);
   }
 
   .submission-band .callout-attention {
@@ -233,14 +233,14 @@
 
   .homework-state-notices {
     display: grid;
-    gap: 0.9rem;
+    gap: var(--space-4);
     max-width: var(--form-measure);
   }
 
   /* The gap under the notice belongs to the notice, so a state with nothing
      to say leaves no hole at the top of the band. */
   .homework-state-notices > .callout:last-child {
-    margin-bottom: 2rem;
+    margin-bottom: var(--space-6);
   }
 
   /* `.cmp-form` is now a measure rather than a box, and a disabled control's
@@ -252,7 +252,7 @@
 
   .homework-facts {
     display: grid;
-    gap: 0.5rem;
+    gap: var(--space-2);
     justify-items: start;
   }
 
@@ -284,23 +284,23 @@
     align-items: baseline;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.35rem 0.75rem;
+    gap: var(--space-2) var(--space-3);
   }
 
   /* Questions read as units through space, never through boxes. */
   .homework-questions {
-    gap: 2rem;
+    gap: var(--space-6);
   }
 
   .homework-form .submission-support {
-    margin-bottom: 1.25rem;
+    margin-bottom: var(--space-5);
   }
 
   .question {
     background: transparent;
     border: 0;
     display: grid;
-    gap: 0.75rem;
+    gap: var(--space-3);
     margin: 0;
     min-inline-size: 0;
     padding: 0;
@@ -315,7 +315,7 @@
   .question-head {
     align-items: start;
     display: flex;
-    gap: 0.85rem;
+    gap: var(--space-3);
     width: 100%;
   }
 
@@ -355,10 +355,10 @@
     display: flex;
     flex: 1 1 auto;
     flex-wrap: wrap;
-    gap: 0.25rem 0.85rem;
+    gap: var(--space-1) var(--space-3);
     justify-content: space-between;
     min-width: 0;
-    padding-top: 0.2rem;
+    padding-top: var(--space-1);
   }
 
   .question-text {
@@ -382,8 +382,8 @@
 
   .question-body {
     display: grid;
-    gap: 0.5rem;
-    padding-inline-start: 3.1rem;
+    gap: var(--space-2);
+    padding-inline-start: var(--space-7);
   }
 
   @media (max-width: 47.99rem) {
@@ -394,7 +394,7 @@
 
   .question-options {
     display: grid;
-    gap: 0.5rem;
+    gap: var(--space-2);
   }
 
   /* One option = one full-width row that is the entire hit target, not just
@@ -408,7 +408,7 @@
     border: 2px solid var(--line-soft);
     border-radius: 0.625rem;
     cursor: pointer;
-    padding: 0.5rem 0.85rem;
+    padding: var(--space-2) var(--space-3);
   }
 
   .question-options .form-check:hover {
@@ -455,7 +455,7 @@
   .option-answer-incorrect .form-check-label::after {
     font-size: 0.85rem;
     font-weight: 700;
-    margin-inline-start: 0.4rem;
+    margin-inline-start: var(--space-2);
   }
 
   .option-answer-correct .form-check-label::after {
@@ -479,7 +479,7 @@
     color: var(--olive);
     font-size: 0.85rem;
     font-weight: 700;
-    padding: 0.5rem 0.75rem;
+    padding: var(--space-2) var(--space-3);
   }
 
   /* Grading marks on a free-form answer: page-specific state, not a variant
@@ -506,7 +506,7 @@
      (finding 1, 20). */
   .work-surface {
     display: grid;
-    gap: 2rem;
+    gap: var(--space-6);
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -515,7 +515,7 @@
       --rail-width: 17rem;
       --breakout-width: min(calc(var(--form-measure) + var(--rail-width) + 3rem), calc(100vw - 2.5rem));
       align-items: start;
-      gap: 3rem;
+      gap: var(--space-7);
       grid-template-columns: minmax(0, var(--form-measure)) var(--rail-width);
       margin-inline: calc((100% - var(--breakout-width)) / 2);
       max-width: none;
@@ -536,7 +536,7 @@
 
   .field-group {
     display: grid;
-    gap: 0.35rem;
+    gap: var(--space-2);
   }
 
   .field-group-legend {
@@ -547,13 +547,13 @@
 
   .field-pair {
     display: grid;
-    gap: 0.85rem;
-    margin-top: 0.35rem;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
   }
 
   @media (min-width: 40rem) {
     .field-pair {
-      gap: 1.25rem;
+      gap: var(--space-5);
       grid-template-columns: repeat(2, minmax(0, 12rem));
     }
   }
@@ -561,7 +561,7 @@
   .unit-input {
     align-items: center;
     display: flex;
-    gap: 0.5rem;
+    gap: var(--space-2);
   }
 
   .unit-input .field-input {
@@ -582,15 +582,15 @@
   @media (min-width: 62rem) {
     .rail {
       display: grid;
-      gap: 1rem;
+      gap: var(--space-4);
       position: sticky;
       top: 1rem;
     }
   }
 
   .rail .card {
-    gap: 0.85rem;
-    padding: 1.15rem;
+    gap: var(--space-3);
+    padding: var(--space-4);
   }
 
   .rail h2 {
@@ -613,7 +613,7 @@
   .question-map {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: var(--space-2);
   }
 
   .question-map a {
@@ -653,7 +653,7 @@
     border-top: 1.5px dashed var(--line-soft);
     display: grid;
     gap: 0.15rem;
-    padding-top: 0.75rem;
+    padding-top: var(--space-3);
   }
 
   .rail-facts strong {
@@ -673,10 +673,10 @@
     bottom: 0.75rem;
     box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-3);
     justify-content: space-between;
-    margin-top: 1.5rem;
-    padding: 0.65rem 0.65rem 0.65rem 1rem;
+    margin-top: var(--space-5);
+    padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
     position: sticky;
   }
 

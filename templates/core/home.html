@@ -48,7 +48,7 @@
       .hero-grid {
         align-items: center;
         display: grid;
-        gap: 2rem;
+        gap: var(--space-6);
       }
 
       .hero h1 {
@@ -59,20 +59,20 @@
 
       .hero-lede {
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: 1.25rem;
+        margin-top: var(--space-5);
         max-width: 33rem;
       }
 
       .hero-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-top: 1.5rem;
+        gap: var(--space-3);
+        margin-top: var(--space-5);
       }
 
       .hero-figure {
         display: grid;
-        gap: 0.85rem;
+        gap: var(--space-3);
         justify-items: center;
       }
 
@@ -135,7 +135,7 @@
       /* Keep the supporting catalogue visually separate from the featured
          course instead of letting two heavy card outlines touch. */
       .catalog-scroller {
-        margin-top: 1.25rem;
+        margin-top: var(--space-5);
       }
 
       /* Both strips are scroll containers, and `overflow-x: auto` clips on both
@@ -165,7 +165,7 @@
       }
 
       .catalog-scroller-controls {
-        margin-top: 0.75rem;
+        margin-top: var(--space-3);
       }
 
       /* --- comparison (Free courses vs Academy) --------------------------- */
@@ -173,7 +173,7 @@
       .comparison-card {
         display: flex;
         flex-direction: column;
-        gap: 0.9rem;
+        gap: var(--space-4);
       }
 
       .comparison-card h3 {
@@ -187,9 +187,9 @@
 
       .comparison-points {
         display: grid;
-        gap: 0.6rem;
+        gap: var(--space-2);
         list-style: none;
-        margin: 0.25rem 0 0.5rem;
+        margin: var(--space-1) 0 var(--space-2);
         padding: 0;
       }
 
@@ -197,24 +197,24 @@
         align-items: flex-start;
         display: flex;
         font-size: 0.92rem;
-        gap: 0.6rem;
+        gap: var(--space-2);
       }
 
       .comparison-action {
         margin-top: auto;
-        padding-top: 0.5rem;
+        padding-top: var(--space-2);
       }
 
       /* --- promises ----------------------------------------------------- */
 
       .promise-grid {
         display: grid;
-        gap: 1rem;
+        gap: var(--space-4);
       }
 
       .sponsor-grid {
         display: grid;
-        gap: 1rem;
+        gap: var(--space-4);
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
@@ -223,7 +223,7 @@
         display: flex;
         justify-content: center;
         min-height: 8rem;
-        padding: 1.4rem;
+        padding: var(--space-5);
       }
 
       .sponsor-card img {
@@ -243,7 +243,7 @@
         display: grid;
         gap: 0.15rem;
         grid-template-columns: auto 1fr;
-        column-gap: 0.6rem;
+        column-gap: var(--space-2);
         font-size: 0.85rem;
       }
 
@@ -283,13 +283,13 @@
       /* Inside the newsletter copy column the link follows the paragraph it
          belongs to, so it sits closer to it than a section's own link. */
       .newsletter-more {
-        margin-top: 0.75rem;
+        margin-top: var(--space-3);
       }
 
       .event-top {
         align-items: center;
         display: flex;
-        gap: 0.75rem;
+        gap: var(--space-3);
         justify-content: space-between;
       }
 
@@ -302,20 +302,20 @@
       .event-details {
         border-top: 1.5px dashed var(--line-soft);
         margin-top: auto;
-        padding-top: 0.85rem;
+        padding-top: var(--space-3);
       }
 
       /* --- latest ------------------------------------------------------- */
 
       .latest-grid {
         display: grid;
-        gap: 2rem;
+        gap: var(--space-6);
       }
 
       .latest-item {
         align-items: flex-start;
         display: flex;
-        gap: 0.9rem;
+        gap: var(--space-4);
       }
 
       .latest-icon {
@@ -367,14 +367,14 @@
       .latest-meta {
         color: var(--muted);
         font-size: 0.88rem;
-        margin-top: 0.3rem;
+        margin-top: var(--space-1);
       }
 
       /* --- wiki graph --------------------------------------------------- */
 
       .wiki-grid {
         display: grid;
-        gap: 1.25rem;
+        gap: var(--space-5);
       }
 
       /* The drawing itself — `.graph-svg` and the legend's edge key — is a
@@ -386,8 +386,8 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.55rem 0.85rem;
-        margin-bottom: 0.85rem;
+        gap: var(--space-2) var(--space-3);
+        margin-bottom: var(--space-3);
       }
 
       .home-graph-tool {
@@ -399,7 +399,7 @@
         font: inherit;
         font-size: 0.82rem;
         font-weight: 600;
-        padding: 0.28rem 0.8rem;
+        padding: var(--space-1) var(--space-3);
         transition: background 0.15s ease, transform 0.15s ease;
       }
 
@@ -426,7 +426,7 @@
       .home-graph-status {
         color: var(--muted);
         font-size: 0.82rem;
-        margin: 0 0 0.75rem;
+        margin: 0 0 var(--space-3);
       }
 
       /* Always in flow once the JS-driven explorer takes over (see
@@ -435,7 +435,7 @@
          one would take, so re-centring on a hub with 8 or fewer connections
          never shrinks the frame relative to one with more. */
       .home-graph-more {
-        margin-top: 0.75rem;
+        margin-top: var(--space-3);
       }
 
       .home-graph-more summary {
@@ -453,9 +453,9 @@
 
       .home-graph-more-list {
         display: grid;
-        gap: 0.35rem;
+        gap: var(--space-2);
         list-style: none;
-        margin: 0.65rem 0 0;
+        margin: var(--space-3) 0 0;
         padding: 0;
       }
 
@@ -468,7 +468,7 @@
         font: inherit;
         font-size: 0.78rem;
         font-weight: 600;
-        padding: 0.28rem 0.7rem;
+        padding: var(--space-1) var(--space-3);
         text-align: left;
         transition: background 0.15s ease, transform 0.15s ease;
         width: 100%;
@@ -576,7 +576,7 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 1.5rem;
+        gap: var(--space-5);
         justify-content: space-between;
       }
 
@@ -596,7 +596,7 @@
       .closing p {
         color: #d7d9e6;
         font-size: 0.88rem;
-        margin-top: 0.5rem;
+        margin-top: var(--space-2);
       }
 
       .closing-link {
@@ -634,7 +634,7 @@
           border-radius: 0;
           box-shadow: none;
           gap: 0.15rem;
-          padding: 0 0 0.8rem;
+          padding: 0 0 var(--space-3);
         }
 
         .event-card .chip,
@@ -650,12 +650,12 @@
            narrow screen that reads as a mistake, so it takes the shared card inset. */
         .featured {
           border-radius: 1.1rem;
-          gap: 1.1rem;
-          padding: 1rem;
+          gap: var(--space-4);
+          padding: var(--space-4);
         }
 
         .featured-build {
-          padding: 0.9rem 1rem;
+          padding: var(--space-4) var(--space-4);
         }
       }
 
@@ -665,12 +665,12 @@
         /* The design separates the two columns with the same dashed rule the bands use. */
         .latest-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 2.5rem;
+          gap: var(--space-7);
         }
 
         .latest-grid > * + * {
           border-left: 2px dashed var(--line-soft);
-          padding-left: 2.5rem;
+          padding-left: var(--space-7);
         }
 
         .promise-grid {
@@ -680,7 +680,7 @@
 
       @media (min-width: 62rem) {
         .hero-grid {
-          gap: 2.5rem;
+          gap: var(--space-7);
           grid-template-columns: minmax(0, 1.32fr) minmax(0, 1fr);
         }
 
@@ -706,7 +706,7 @@
 
         .wiki-grid {
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-          gap: 1.75rem;
+          gap: var(--space-6);
         }
       }
 

@@ -15,13 +15,13 @@
       }
 
       .module-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
+        margin-bottom: var(--space-2);
+        margin-top: calc(var(--space-3) * -1);
       }
 
       .module-hero-inner {
         display: grid;
-        gap: 0.65rem;
+        gap: var(--space-3);
       }
 
       .module-hero h1 {
@@ -30,15 +30,15 @@
       }
 
       .module-section + .module-section {
-        margin-top: 2rem;
+        margin-top: var(--space-6);
       }
 
       .module-section-heading {
         align-items: baseline;
         display: flex;
-        gap: 0.65rem;
+        gap: var(--space-3);
         justify-content: space-between;
-        margin-bottom: 1rem;
+        margin-bottom: var(--space-head);
       }
 
       {% comment %}
@@ -65,10 +65,10 @@
       .lesson-row {
         align-items: center;
         display: grid;
-        gap: 0.9rem;
+        gap: var(--space-4);
         grid-template-columns: 2rem minmax(0, 1fr) auto;
         min-height: 4.5rem;
-        padding: 0.75rem 1rem;
+        padding: var(--space-3) var(--space-4);
       }
 
       .lesson-row + .lesson-row {
@@ -95,7 +95,7 @@
         color: var(--ink);
         font-weight: 700;
         min-height: 2.75rem;
-        padding-block: 0.55rem;
+        padding-block: var(--space-2);
         text-decoration: none;
       }
 
@@ -114,13 +114,13 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 1rem;
+        gap: var(--space-4);
         justify-content: space-between;
       }
 
       .homework-card-copy {
         display: grid;
-        gap: 0.25rem;
+        gap: var(--space-1);
       }
 
       .homework-card-copy p {

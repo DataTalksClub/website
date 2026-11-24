@@ -30,13 +30,13 @@
       /* The breadcrumb links carry the system's 2.75rem target height, so the
          row brings its own air; fold most of it into the band's top padding. */
       .stats-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
+        margin-bottom: var(--space-2);
+        margin-top: calc(var(--space-3) * -1);
       }
 
       .stats-hero-inner {
         display: grid;
-        gap: 0.75rem;
+        gap: var(--space-3);
         justify-items: start;
       }
 
@@ -47,7 +47,7 @@
       }
 
       .stats-headline {
-        margin-top: 0.4rem;
+        margin-top: var(--space-2);
         width: 100%;
       }
 
@@ -77,8 +77,8 @@
 
       .stats-table th,
       .stats-table td {
-        padding-block: 0.75rem;
-        padding-inline-end: 1.25rem;
+        padding-block: var(--space-3);
+        padding-inline-end: var(--space-5);
         vertical-align: top;
       }
 
@@ -94,7 +94,7 @@
         font-size: 0.66rem;
         font-weight: 700;
         letter-spacing: 0.09em;
-        padding-block: 0.4rem 0.6rem;
+        padding-block: var(--space-2) var(--space-2);
         text-transform: uppercase;
         white-space: nowrap;
       }
@@ -135,7 +135,7 @@
 
       .stats-question-main {
         display: grid;
-        gap: 0.5rem;
+        gap: var(--space-2);
         min-width: 0;
       }
 
@@ -151,21 +151,21 @@
 
       .stats-options {
         display: grid;
-        gap: 0.5rem;
+        gap: var(--space-2);
       }
 
       /* One answer option: its index, its text, the share that chose it drawn
          on the system's progress track, and the count in words. */
       .stats-option {
         display: grid;
-        gap: 0.2rem;
+        gap: var(--space-1);
       }
 
       .stats-option-label {
         color: var(--body-text);
         display: flex;
         flex-wrap: wrap;
-        gap: 0.35rem 0.6rem;
+        gap: var(--space-2) var(--space-2);
       }
 
       .stats-option-index {
@@ -181,7 +181,7 @@
       .stats-option-share {
         align-items: center;
         display: grid;
-        gap: 0.6rem;
+        gap: var(--space-2);
         grid-template-columns: minmax(0, 1fr) 6rem;
       }
 
@@ -202,7 +202,7 @@
         color: var(--body-text);
         font-family: var(--font-mono);
         font-size: 0.85rem;
-        margin-top: 1.5rem;
+        margin-top: var(--space-5);
       }
 
       /* --- narrow layout ------------------------------------------------- */

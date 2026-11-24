@@ -21,13 +21,13 @@
       }
 
       .module-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
+        margin-bottom: var(--space-2);
+        margin-top: calc(var(--space-3) * -1);
       }
 
       .module-hero-inner {
         display: grid;
-        gap: 0.65rem;
+        gap: var(--space-3);
       }
 
       .module-hero h1 {
@@ -44,8 +44,8 @@
 
       .module-section + .module-section {
         border-top: 2px dashed var(--line-soft);
-        margin-top: 2.75rem;
-        padding-top: 2.5rem;
+        margin-top: var(--space-7);
+        padding-top: var(--space-7);
       }
 
       .lesson-list {
@@ -59,9 +59,9 @@
       .lesson-row {
         align-items: center;
         display: grid;
-        gap: 0.9rem;
+        gap: var(--space-4);
         grid-template-columns: 2.1rem minmax(0, 1fr);
-        padding: 0.45rem 1.15rem;
+        padding: var(--space-2) var(--space-4);
       }
 
       /* The shared disc spans the accordion summary's two lines; a lesson
@@ -112,13 +112,13 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem 1rem;
+        gap: var(--space-2) var(--space-4);
         justify-content: space-between;
       }
 
       .module-next .mono-label {
         display: block;
-        margin-bottom: 0.25rem;
+        margin-bottom: var(--space-1);
       }
 
       .module-next-title {
@@ -132,7 +132,7 @@
       }
 
       .delivery-panel {
-        margin-top: 2rem;
+        margin-top: var(--space-6);
       }
 
       @media (max-width: 47.99rem) {

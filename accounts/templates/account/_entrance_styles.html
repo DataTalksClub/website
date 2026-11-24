@@ -26,27 +26,27 @@
 .entrance-hero h1 {
   font-size: clamp(1.7rem, 3.4vw, 2.5rem);
   letter-spacing: -0.025em;
-  margin-top: 0.6rem;
+  margin-top: var(--space-eyebrow);
 }
 
 .entrance-lede {
   font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-  margin-top: 0.75rem;
+  margin-top: var(--space-stack);
   max-width: var(--measure);
 }
 
 .entrance-alternative {
   color: var(--body-text);
   font-size: 0.92rem;
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 /* The decision panel follows the sign-in card's shared `.card` type scale and
    spacing, so the two account forms read as one entrance flow. */
 .entrance-panel {
   font-size: 0.9rem;
-  gap: 1rem;
-  padding: 1.35rem;
+  gap: var(--space-4);
+  padding: var(--space-5);
 }
 
 .entrance-panel h2 {
@@ -55,7 +55,7 @@
 
 .entrance-form {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 /* The allauth signup, reset-request and set-password forms render plain
@@ -73,7 +73,7 @@
   color: var(--ink);
   font: inherit;
   min-height: 2.75rem;
-  padding: 0.65rem 0.8rem;
+  padding: var(--space-3) var(--space-3);
   width: 100%;
 }
 
@@ -95,13 +95,13 @@
   color: var(--body-text);
   font-size: 0.82rem;
   line-height: 1.5;
-  margin-top: 1rem;
+  margin-top: var(--space-4);
 }
 
 .entrance-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 /* A state note: sand under ink, the pairing the system already uses for a
@@ -114,19 +114,19 @@
   color: var(--ink);
   display: grid;
   font-size: 0.92rem;
-  gap: 0.35rem;
-  padding: 0.85rem 1rem;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
 }
 
 /* The provider stack: one full-width control per configured provider, so the
    three read as one decision rather than as a row that rewraps by width. */
 .provider-choices {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .provider-choice {
-  gap: 0.6rem;
+  gap: var(--space-2);
   width: 100%;
 }
 
@@ -145,10 +145,10 @@
   display: grid;
   font-family: var(--font-mono);
   font-size: 0.72rem;
-  gap: 0.85rem;
+  gap: var(--space-3);
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   letter-spacing: 0.1em;
-  margin-block: 1.5rem;
+  margin-block: var(--space-5);
   text-transform: uppercase;
 }
 
@@ -165,7 +165,7 @@
      form is a tall page at 360px, so the space between the two ways in
      closes rather than the controls shrinking. */
   .entrance-panel {
-    padding: 1.1rem;
+    padding: var(--space-4);
   }
 
   .entrance-actions {
@@ -177,6 +177,6 @@
   }
 
   .entrance-or {
-    margin-block: 1.15rem;
+    margin-block: var(--space-4);
   }
 }

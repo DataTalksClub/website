@@ -70,7 +70,7 @@
       /* The reading band carries the prose to the foot of the page, so it needs
          the room the hero's bottom padding would otherwise have left. */
       .article-read {
-        padding-top: 1.6rem;
+        padding-top: var(--space-5);
       }
 
       /* One column at the ordinary content width every non-landing page
@@ -94,12 +94,12 @@
       /* The sponsorship disclosure opens the reading band, above the first
          paragraph, and the body starts on the ordinary prose rhythm below it. */
       .article-sponsor {
-        margin-bottom: 1.6rem;
+        margin-bottom: var(--space-5);
       }
 
       /* The body resumes after a FAQ the author placed mid-article. */
       .article-body-after-faq {
-        margin-top: 1.6rem;
+        margin-top: var(--space-5);
       }
 
       /* Inline images (covers, diagrams) are held to a modest height and
@@ -114,13 +114,13 @@
       }
 
       .article-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
+        margin-bottom: var(--space-2);
+        margin-top: calc(var(--space-3) * -1);
       }
 
       .article-head {
         display: grid;
-        gap: 0.9rem;
+        gap: var(--space-4);
         justify-items: start;
       }
 
@@ -135,7 +135,7 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.35rem 0.85rem;
+        gap: var(--space-2) var(--space-3);
       }
 
       .article-byline-label {
@@ -146,7 +146,7 @@
       .article-author {
         align-items: center;
         display: inline-flex;
-        gap: 0.5rem;
+        gap: var(--space-2);
       }
 
       .article-author a {
@@ -181,7 +181,7 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.35rem;
+        gap: var(--space-2);
       }
 
       /* A run of charts (a survey's breakdowns) reads two to a row once the
@@ -193,7 +193,7 @@
         .article-body .prose-chart:has(+ .prose-chart),
         .article-body .prose-chart + .prose-chart {
           float: left;
-          margin-bottom: 1rem;
+          margin-bottom: var(--space-4);
           width: calc(50% - 0.6rem);
         }
         .article-body .prose-chart + .prose-chart,
@@ -227,7 +227,7 @@
          and the questions start.  Everything inside it is the shared .faq-fold
          primitive from the design system. */
       .article-faq {
-        margin-top: 1.6rem;
+        margin-top: var(--space-5);
       }
 
       /* ------------------------------------------------------------------ *
@@ -242,8 +242,8 @@
          a panel with its own edge, so a reader can see where the writing stops
          and the questions start. */
       .article-faq {
-        margin-top: 1.6rem;
-        padding: 0.4rem 1.25rem;
+        margin-top: var(--space-5);
+        padding: var(--space-2) var(--space-5);
       }
 
       /* Each question folds.  <details> gives the keyboard behaviour and the
@@ -262,11 +262,11 @@
         align-items: baseline;
         cursor: pointer;
         display: flex;
-        gap: 1rem;
+        gap: var(--space-4);
         justify-content: space-between;
         list-style: none;
         min-height: 2.75rem;
-        padding-block: 0.9rem;
+        padding-block: var(--space-4);
       }
 
       /* Safari draws its own disclosure triangle unless this is said. */
@@ -296,7 +296,7 @@
         border-right: 2px solid var(--indigo);
         flex: none;
         height: 0.5rem;
-        margin-top: 0.25rem;
+        margin-top: var(--space-1);
         transform: rotate(45deg);
         transition: transform 0.15s ease;
         width: 0.5rem;
@@ -317,7 +317,7 @@
          breaks rather than widening the column. */
       .faq-answer {
         overflow-wrap: anywhere;
-        padding-bottom: 1.1rem;
+        padding-bottom: var(--space-4);
       }
 
       /* ------------------------------------------------------------------ *
@@ -331,7 +331,7 @@
       /* The section starts on the paragraph rhythm the prose above it ends on,
          and its rows already carry their own dividers. */
       .article-faq {
-        margin-top: 1.1rem;
+        margin-top: var(--space-4);
       }
 
       /* A question is a row in a grid, so it says so: without the zero minimum
@@ -339,15 +339,15 @@
          scroll the whole page sideways. */
       .faq-question {
         min-width: 0;
-        padding-block: 1.5rem;
+        padding-block: var(--space-5);
         scroll-margin-top: 1.5rem;
       }
 
       .faq-question-head {
         display: grid;
-        gap: 0.35rem 1rem;
+        gap: var(--space-2) var(--space-4);
         grid-template-columns: minmax(0, 1fr);
-        margin-bottom: 0.6rem;
+        margin-bottom: var(--space-2);
       }
 
       /* A recovered question is a line of source text and some carry a product
@@ -378,11 +378,11 @@
         /* Narrow: the trail keeps its own line above a tighter head, so the
            opening screen belongs to the title. */
         .article-hero .breadcrumbs {
-          margin-top: -0.5rem;
+          margin-top: calc(var(--space-2) * -1);
         }
 
         .article-head {
-          gap: 0.7rem;
+          gap: var(--space-3);
         }
       }
     </style>

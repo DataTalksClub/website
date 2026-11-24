@@ -94,7 +94,7 @@
          margins collapse through an empty element, so a page that carries no
          date or no standfirst loses that line's space with it. */
       .text-page-head > * + * {
-        margin-top: 0.9rem;
+        margin-top: var(--space-4);
       }
 
       /* A document's title; a hub built on this page (the Slack page) takes
@@ -107,7 +107,7 @@
       /* The optional notice a page uses to qualify the document below it, as an
          outlined panel at the reading column's width. */
       .text-page-notice {
-        margin-top: 2rem;
+        margin-top: var(--space-6);
         max-width: var(--measure);
       }
 
@@ -116,7 +116,7 @@
       }
 
       .text-page-body {
-        margin-top: 2rem;
+        margin-top: var(--space-6);
       }
 
       /* The 2rem separates the body from a notice above it.  With no notice
@@ -131,20 +131,20 @@
       .text-page-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-top: 1.75rem;
+        gap: var(--space-3);
+        margin-top: var(--space-6);
       }
 
       @media (max-width: 47.99rem) {
         /* Narrow: the opening block tightens so the first clause of the
            document is reached in one screen rather than two. */
         .text-page-head > * + * {
-          margin-top: 0.7rem;
+          margin-top: var(--space-3);
         }
 
         .text-page-notice,
         .text-page-body {
-          margin-top: 1.5rem;
+          margin-top: var(--space-5);
         }
 
         /* Each action becomes a full-width tap target rather than a sliver. */

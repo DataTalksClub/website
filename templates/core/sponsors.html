@@ -15,19 +15,19 @@
   }
   .sponsors-lede {
     font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-    margin-top: 1rem;
+    margin-top: var(--space-stack);
     max-width: 36rem;
   }
   .sponsor-section + .sponsor-section {
     border-top: 2px solid color-mix(in srgb, var(--line) 55%, transparent);
-    margin-top: clamp(2.5rem, 7vw, 5rem);
-    padding-top: clamp(2.5rem, 7vw, 5rem);
+    margin-top: var(--space-section);
+    padding-top: var(--space-section);
   }
-  .sponsor-section-heading { max-width: 46rem; margin-bottom: 1.5rem; }
-  .sponsor-section-heading h2 { font-size: clamp(1.55rem, 4vw, 2.35rem); margin: 0 0 0.65rem; }
+  .sponsor-section-heading { max-width: 46rem; margin-bottom: var(--space-head); }
+  .sponsor-section-heading h2 { font-size: clamp(1.55rem, 4vw, 2.35rem); margin: 0 0 var(--space-tight); }
   .sponsor-section-heading p, .featured-supporter p { color: var(--muted); }
   .sponsor-section-heading p { margin: 0; }
-  .featured-supporters { display: grid; gap: 1rem; list-style: none; margin: 0; padding: 0; }
+  .featured-supporters { display: grid; gap: var(--space-grid); list-style: none; margin: 0; padding: 0; }
   /* The system's card surface, so the dark theme restates it; the logo keeps
      a light plate (--chart-ground) because sponsor marks are drawn for white. */
   .featured-supporter {
@@ -36,8 +36,8 @@
     border: 2px solid var(--line);
     border-radius: 0.9rem;
     display: grid;
-    gap: 1.25rem;
-    padding: clamp(1.25rem, 4vw, 2rem);
+    gap: var(--space-5);
+    padding: clamp(var(--space-5), 4vw, var(--space-6));
     scroll-margin-top: 6rem;
   }
   .featured-supporter-logo {
@@ -47,7 +47,7 @@
     display: flex;
     justify-content: center;
     min-height: 5rem;
-    padding: 0.75rem;
+    padding: var(--space-3);
   }
   .featured-supporter img {
     display: block;
@@ -55,15 +55,15 @@
     max-width: min(100%, 12rem);
     object-fit: contain;
   }
-  .featured-supporter h2 { font-size: clamp(1.35rem, 3vw, 1.75rem); margin: 0 0 0.5rem; }
-  .featured-supporter p { margin: 0 0 0.8rem; }
-  .past-supporters { display: flex; flex-wrap: wrap; gap: 0.55rem; list-style: none; margin: 0; padding: 0; }
+  .featured-supporter h2 { font-size: clamp(1.35rem, 3vw, 1.75rem); margin: 0 0 var(--space-2); }
+  .featured-supporter p { margin: 0 0 var(--space-3); }
+  .past-supporters { display: flex; flex-wrap: wrap; gap: var(--space-inline); list-style: none; margin: 0; padding: 0; }
   .past-supporters li {
     background: var(--card);
     border: 1.5px solid var(--line);
     border-radius: 999px;
     font-weight: 700;
-    padding: 0.5rem 0.85rem;
+    padding: var(--space-2) var(--space-3);
   }
   @media (min-width: 44rem) {
     .featured-supporter { grid-template-columns: minmax(9rem, 0.75fr) minmax(0, 2fr); }
