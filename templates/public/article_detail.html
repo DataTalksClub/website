@@ -114,7 +114,7 @@
       }
 
       .article-hero .breadcrumbs {
-        margin-bottom: var(--space-2);
+        margin-bottom: var(--space-eyebrow);
         margin-top: calc(var(--space-3) * -1);
       }
 
@@ -184,6 +184,15 @@
         gap: var(--space-2);
       }
 
+      /* The legacy page drew these plots directly on transparent canvases, in
+         dark ink: they sit on a plate of their own (--chart-ground stays light
+         in the dark theme, or a chart's title would vanish into the band). */
+      .article-body .prose-chart img {
+        background: var(--chart-ground);
+        border: 2px solid var(--line-soft);
+        border-radius: 0.7rem;
+        padding: var(--space-2);
+      }
       /* A run of charts (a survey's breakdowns) reads two to a row once the
          column has room, instead of a long stack of single plots.  Position in
          the run alternates the side and each new pair clears the last, so a
@@ -214,164 +223,13 @@
         }
       }
 
-      /* ------------------------------------------------------------------ *
-       * The recovered FAQ section, drawn with the course FAQ page's own marks
-       * (templates/review/faq_detail.html) so the site keeps one way of
-       * writing a question and an answer.  It sits inside the reading band, at
-       * the position the article body put it, under the heading the body
-       * already carries — this stylesheet gives it no heading of its own.
-       * ------------------------------------------------------------------ */
-
-      /* The FAQ is its own block at the foot of the article, not more article:
-         a panel with its own edge, so a reader can see where the writing stops
-         and the questions start.  Everything inside it is the shared .faq-fold
-         primitive from the design system. */
+      /* The recovered FAQ: the shared fold component (.faq-panel + .faq-fold
+         from the design system), so the site keeps one way of writing a
+         question and an answer.  It sits under the heading the article body
+         already carries, the head's distance below it. */
+      .prose > .article-faq,
       .article-faq {
-        margin-top: var(--space-5);
-      }
-
-      /* ------------------------------------------------------------------ *
-       * The recovered FAQ section, drawn with the course FAQ page's own marks
-       * (templates/review/faq_detail.html) so the site keeps one way of
-       * writing a question and an answer.  It sits inside the reading band, at
-       * the position the article body put it, under the heading the body
-       * already carries — this stylesheet gives it no heading of its own.
-       * ------------------------------------------------------------------ */
-
-      /* The FAQ is its own block at the foot of the article, not more article:
-         a panel with its own edge, so a reader can see where the writing stops
-         and the questions start. */
-      .article-faq {
-        margin-top: var(--space-5);
-        padding: var(--space-2) var(--space-5);
-      }
-
-      /* Each question folds.  <details> gives the keyboard behaviour and the
-         announced expanded state for free, and it still works with JavaScript
-         off, which a scripted accordion would not. */
-      .faq-fold {
-        border-top: 1.5px dashed var(--line-soft);
-        min-width: 0;
-      }
-
-      .faq-fold:first-child {
-        border-top: 0;
-      }
-
-      .faq-fold-summary {
-        align-items: baseline;
-        cursor: pointer;
-        display: flex;
-        gap: var(--space-4);
-        justify-content: space-between;
-        list-style: none;
-        min-height: 2.75rem;
-        padding-block: var(--space-4);
-      }
-
-      /* Safari draws its own disclosure triangle unless this is said. */
-      .faq-fold-summary::-webkit-details-marker {
-        display: none;
-      }
-
-      .faq-fold-summary:focus-visible {
-        outline: 3px solid var(--focus);
-        outline-offset: 2px;
-      }
-
-      /* A recovered question is a line of source text and some carry a product
-         name with no space in it, so the title breaks rather than widening the
-         page. */
-      .faq-question-title {
-        font-size: 1.05rem;
-        font-weight: 700;
-        min-width: 0;
-        overflow-wrap: anywhere;
-      }
-
-      /* The marker is drawn rather than typed, so it needs no icon font: a
-         chevron that turns a quarter when the question opens. */
-      .faq-fold-marker {
-        border-bottom: 2px solid var(--indigo);
-        border-right: 2px solid var(--indigo);
-        flex: none;
-        height: 0.5rem;
-        margin-top: var(--space-1);
-        transform: rotate(45deg);
-        transition: transform 0.15s ease;
-        width: 0.5rem;
-      }
-
-      .faq-fold[open] .faq-fold-marker {
-        transform: rotate(-135deg);
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .faq-fold-marker {
-          transition: none;
-        }
-      }
-
-      /* An answer is one rendered fragment, so nothing inside it can be wrapped
-         in a scrolling frame from this template.  A long address therefore
-         breaks rather than widening the column. */
-      .faq-answer {
-        overflow-wrap: anywhere;
-        padding-bottom: var(--space-4);
-      }
-
-      /* ------------------------------------------------------------------ *
-       * The recovered FAQ section, drawn with the course FAQ page's own marks
-       * (templates/review/faq_detail.html) so the site keeps one way of
-       * writing a question and an answer.  It sits inside the reading band, at
-       * the position the article body put it, under the heading the body
-       * already carries — this stylesheet gives it no heading of its own.
-       * ------------------------------------------------------------------ */
-
-      /* The section starts on the paragraph rhythm the prose above it ends on,
-         and its rows already carry their own dividers. */
-      .article-faq {
-        margin-top: var(--space-4);
-      }
-
-      /* A question is a row in a grid, so it says so: without the zero minimum
-         the widest unwrapped line in an answer would set the row's width and
-         scroll the whole page sideways. */
-      .faq-question {
-        min-width: 0;
-        padding-block: var(--space-5);
-        scroll-margin-top: 1.5rem;
-      }
-
-      .faq-question-head {
-        display: grid;
-        gap: var(--space-2) var(--space-4);
-        grid-template-columns: minmax(0, 1fr);
-        margin-bottom: var(--space-2);
-      }
-
-      /* A recovered question is a line of source text and some carry a product
-         name with no space in it, so the title breaks rather than widening the
-         page. */
-      .faq-question-title {
-        font-size: 1.1rem;
-        min-width: 0;
-        overflow-wrap: anywhere;
-      }
-
-      /* An answer is one rendered fragment, so nothing inside it can be wrapped
-         in a scrolling frame from this template.  A long address therefore
-         breaks rather than widening the column. */
-      .faq-answer {
-        overflow-wrap: anywhere;
-      }
-
-      /* Wide: the question head lays its title and marker out on one row. */
-      @media (min-width: 48rem) {
-        .faq-question-head {
-          align-items: baseline;
-          grid-template-columns: minmax(0, 1fr) auto;
-        }
+        margin-top: var(--space-head);
       }
 
       @media (max-width: 47.99rem) {
