@@ -29,11 +29,10 @@ from django.db import transaction
 from community_base.events.models import Event
 from content.models import EventSource
 from events.identity import (
-    DEFAULT_STARTS_AT,
     EventIdentityError,
+    create_event_identity,
     ensure_public_id_sequence,
 )
-from events.lifecycle import PUBLISHED_STATUS
 from events.slugs import event_title_slug
 
 #: Bumped from 1 (schema history was collapsed) to 3 to 4. Version 2 required every
@@ -216,10 +215,30 @@ def load_identity_manifest(path: Path) -> IdentityManifest:
 
 
 @transaction.atomic
-def import_identity_manifest(*, path: Path, dry_run: bool = False) -> IdentityImportReport:
-    """Validate and atomically apply the reviewed manifest; replay is an idempotent no-op."""
+def import_identity_manifest(
+    *, path: Path, content_path: Path | None = None, dry_run: bool = False
+) -> IdentityImportReport:
+    """Validate and atomically apply the reviewed manifest; replay is an idempotent no-op.
+
+    Every event has a type and a speaker from the moment it exists
+    (:func:`events.identity.create_event_identity`), and the manifest carries
+    neither, so a row is created only from the reviewed content record that
+    describes it (``content_path``, the same file ``import_events.import_content``
+    applies next).  A manifest entry the database lacks and the content does
+    not describe with a type and a speaker refuses the whole import.
+    """
 
     manifest = load_identity_manifest(path)
+    content: dict[uuid.UUID, Any] = {}
+    if content_path is not None:
+        from events.content_import import EventContentImportError, load_reviewed_event_content
+
+        try:
+            content = {
+                record.identity_id: record for record in load_reviewed_event_content(content_path)
+            }
+        except EventContentImportError as exc:
+            raise EventIdentityError("event_content_unreadable") from exc
     existing = {
         event.content_id: event
         for event in Event.objects.filter(content_id__in=[item.id for item in manifest.events])
@@ -254,6 +273,9 @@ def import_identity_manifest(*, path: Path, dry_run: bool = False) -> IdentityIm
         if by_id is not None and by_id.public_id != item.public_id:
             raise EventIdentityError("public_id_renumber_forbidden")
         if by_id is None or by_id_source is None:
+            record = content.get(item.id)
+            if record is None or not record.type or not record.speakers:
+                raise EventIdentityError("event_type_or_speakers_missing")
             created += 1
         elif (
             by_id.title != item.title
@@ -264,28 +286,22 @@ def import_identity_manifest(*, path: Path, dry_run: bool = False) -> IdentityIm
             updated += 1
         if not dry_run:
             if by_id is None or by_id_source is None:
-                # The shared row cannot exist without a schedule and the
-                # manifest does not carry one; the content import reconciles
-                # the real start within the same run (#412).
-                event = Event(
-                    content_id=item.id,
-                    public_id=item.public_id,
+                record = content[item.id]
+                event = create_event_identity(
                     title=item.title,
-                    slug=event_title_slug(item.title),
-                    status=PUBLISHED_STATUS,
-                    start_datetime=DEFAULT_STARTS_AT,
-                    source_repo=item.source.repository,
-                    source_path=item.source_path,
-                    source_commit=item.source.revision,
-                )
-                event.save()
-                EventSource.objects.create(
-                    event=event,
-                    repository=item.source.repository,
-                    revision=item.source.revision,
+                    event_type=record.type,
+                    speakers=[(speaker.key, speaker.name) for speaker in record.speakers],
+                    starts_at=record.starts_at,
+                    ends_at=record.ends_at,
+                    season=record.season,
+                    episode=record.episode,
+                    source_repository=item.source.repository,
+                    source_revision=item.source.revision,
                     source_key=item.source.source_key,
                     source_path=item.source_path,
                     source_checksum=item.source_checksum,
+                    event_id=item.id,
+                    public_id=item.public_id,
                 )
             else:
                 assert by_id_source is not None

@@ -21,7 +21,7 @@ from scripts.prod.identity_manifest import (
     import_identity_manifest,
     parse_identity_manifest,
 )
-from test_support.reference_data import EVENT_IDENTITY_MANIFEST
+from test_support.reference_data import EVENT_CONTENT, EVENT_IDENTITY_MANIFEST
 
 # The synthetic reference fixture's own event count (test_support/fixtures/
 # reference/event_identity_manifest.json), read from the manifest itself
@@ -94,13 +94,15 @@ class EventIdentityManifestTests(TestCase):
         Event.objects.all().delete()
         EventPublicIdSequence.objects.all().delete()
 
-        report = import_identity_manifest(path=EVENT_IDENTITY_MANIFEST)
+        report = import_identity_manifest(path=EVENT_IDENTITY_MANIFEST, content_path=EVENT_CONTENT)
 
         self.assertEqual(report.events_created, EVENT_FIXTURE_TOTAL)
         self.assertEqual(
             EventPublicIdSequence.objects.get(pk=1).next_public_id, EVENT_FIXTURE_TOTAL + 1
         )
         allocated = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Allocated after a bootstrap import",
             source_repository="DataTalksClub/test",
             source_revision="a" * 40,

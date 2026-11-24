@@ -194,17 +194,21 @@ def provider_source_identity(*, provider: str, external_event_identifier: str) -
 
 
 def create_provider_event_identity(
-    *, provider: str, external_event_identifier: str, title: str, start_at: str | None = None
+    *,
+    provider: str,
+    external_event_identifier: str,
+    title: str,
+    event_type: str,
+    speakers: Any,
+    start_at: str | None = None,
 ) -> Event:
     """Mint an Event identity for one provider event, using the shared allocator.
 
-    This is plumbing, not editorial review: title, the export's start instant
-    and a canonical ``/events/<public_id>/<slug>`` path -- nothing that renders
-    a registration count.  The identity is a draft until an ingest leg gives it
-    a type and a speaker (:mod:`events.publication`).  It calls
-    :func:`events.identity.create_event_identity` -- the same atomic,
-    allocator-safe machinery the reviewed manifest import uses -- rather than
-    re-deriving a public ID or canonical path here.
+    A provider export names no type and no speakers, and no event may exist
+    without them, so the caller supplies both from a reviewed source
+    (``scripts/prod/import_events.EventMetadataIndex``).  It calls
+    :func:`events.identity.create_event_identity` -- the only creation path --
+    rather than re-deriving a public ID or canonical path here.
 
     Callers own idempotency: check
     :func:`events.identity.resolve_source_identity` with
@@ -212,21 +216,17 @@ def create_provider_event_identity(
     resolves. This function always inserts.
     """
 
-    from events.lifecycle import DRAFT
-
     source = provider_source_identity(
         provider=provider, external_event_identifier=external_event_identifier
     )
-    # A draft, never a published row: a provider export names no type and no
-    # speakers, and a published event must carry both (events.publication).
-    # The event ingest publishes it once a reviewed source has filled them.
     return create_event_identity(
         title=title,
+        event_type=event_type,
+        speakers=speakers,
         starts_at=datetime.fromisoformat(start_at) if start_at else None,
         source_repository=source.repository,
         source_revision=source.revision,
         source_key=source.source_key,
-        status=DRAFT,
     )
 
 
@@ -284,9 +284,7 @@ class ExistingEventIndex:
     def __init__(self, events: Any = None) -> None:
         self._by_dated_title: dict[tuple[str, str], list[Event]] = {}
         self._dates_by_title: dict[str, set[str]] = {}
-        for event in Event.objects.select_related(
-            "source_identity"
-        ) if events is None else events:
+        for event in Event.objects.select_related("source_identity") if events is None else events:
             date = canonical_event_date(event.source_identity.source_key)
             if date is None:
                 continue
@@ -539,9 +537,7 @@ def resolve_registrant_identity(normalized_email: str) -> tuple[EventRegistrantI
     """
 
     account = (
-        User.objects.filter(identity__normalized_email=normalized_email)
-        .order_by("pk")
-        .first()
+        User.objects.filter(identity__normalized_email=normalized_email).order_by("pk").first()
     )
     if account is not None:
         identity, _ = EventRegistrantIdentity.objects.get_or_create(account=account)
@@ -717,7 +713,9 @@ def resolve_pending_events(
         for external_event_identifier, event_pk in EventRegistrantImportProgress.objects.filter(
             provider=provider,
             event__isnull=False,
-            external_event_identifier__in=[item.external_event_identifier for item, *_ in proposals],
+            external_event_identifier__in=[
+                item.external_event_identifier for item, *_ in proposals
+            ],
         ).values_list("external_event_identifier", "event_id")
     }
     accepted: list[FallbackMatch] = []
@@ -1164,9 +1162,7 @@ def _plan_one_event(
             skipped += 1
             continue
         writable += 1
-        account = (
-            User.objects.filter(identity__normalized_email=email).order_by("pk").first()
-        )
+        account = User.objects.filter(identity__normalized_email=email).order_by("pk").first()
         if account is not None:
             matched_account += 1
             # An account's normalized_email is the consolidation key; the

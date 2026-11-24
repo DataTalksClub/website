@@ -225,7 +225,13 @@ class NewEventIdentityDiscoveryTests(TestCase):
         scratch = Path(settings.BASE_DIR) / ".tmp"
         scratch.mkdir(exist_ok=True)
         self.temporary = tempfile.TemporaryDirectory(dir=scratch)
-        self.root = Path(self.temporary.name)
+        self.root = Path(self.temporary.name) / "luma"
+        self.root.mkdir()
+        # The reviewed source of every new event's type and speakers; the Luma
+        # export directory itself may hold nothing but the export pairs.
+        self.events_yaml = Path(self.temporary.name) / "events.yaml"
+        self.events_yaml.write_text("[]\n", encoding="utf-8")
+        self.yaml_entries: list[str] = []
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
@@ -239,6 +245,7 @@ class NewEventIdentityDiscoveryTests(TestCase):
         title: str,
         start_at: str,
         statuses: tuple[str, ...],
+        described: bool = True,
     ) -> None:
         _write_luma_pair(
             self.root,
@@ -249,6 +256,15 @@ class NewEventIdentityDiscoveryTests(TestCase):
             start_at=start_at,
             statuses=statuses,
         )
+        if described:
+            self.yaml_entries.append(
+                f"- time: 2000-01-01 00:00:00\n"
+                f"  title: {json.dumps(title)}\n"
+                f"  type: webinar\n"
+                f"  speakers: [synthetic-speaker]\n"
+                f"  link: {event_url}\n"
+            )
+            self.events_yaml.write_text("".join(self.yaml_entries), encoding="utf-8")
 
     def test_creates_an_identity_for_a_genuinely_new_event(self) -> None:
         from community_base.events.models import Event
@@ -265,7 +281,9 @@ class NewEventIdentityDiscoveryTests(TestCase):
         )
 
         before = Event.objects.count()
-        report = discover_new_luma_event_identities(luma_source=self.root)
+        report = discover_new_luma_event_identities(
+            luma_source=self.root, events_yaml=self.events_yaml
+        )
 
         self.assertEqual(report["provider"], "luma")
         self.assertEqual(report["candidate_total"], 1)
@@ -285,12 +303,67 @@ class NewEventIdentityDiscoveryTests(TestCase):
         self.assertEqual(event.public_id, created["public_id"])
         self.assertEqual(canonical_detail_path(event.content_id), created["canonical_path"])
 
+    def test_a_new_event_is_created_with_the_type_and_speakers_its_source_names(self) -> None:
+        from events.identity import decode_event_tags
+        from scripts.prod.import_events import discover_new_luma_event_identities
+
+        self._write_luma_event(
+            "2026-09-09_described_evt-described",
+            event_id="evt-Described",
+            event_url="https://luma.com/described",
+            title="A Described Event",
+            start_at="2026-09-09T10:00:00.000Z",
+            statuses=("approved",),
+        )
+
+        report = discover_new_luma_event_identities(
+            luma_source=self.root, events_yaml=self.events_yaml
+        )
+
+        self.assertEqual(report["created_total"], 1)
+        event = EventSource.objects.get(source_key="evt-Described").event
+        self.assertEqual(decode_event_tags(event.tags)[0], "webinar")
+        self.assertEqual(
+            list(event.hosts.values_list("external_ref", flat=True)), ["synthetic-speaker"]
+        )
+        self.assertEqual(event.status, "upcoming")
+
+    def test_a_new_event_no_source_describes_is_reported_and_not_created(self) -> None:
+        from community_base.events.models import Event
+        from scripts.prod.import_events import discover_new_luma_event_identities
+
+        self._write_luma_event(
+            "2026-09-10_undescribed_evt-undescribed",
+            event_id="evt-Undescribed",
+            event_url="https://luma.com/undescribed",
+            title="An Undescribed Event",
+            start_at="2026-09-10T10:00:00.000Z",
+            statuses=("approved",),
+            described=False,
+        )
+        before = Event.objects.count()
+
+        with_source = discover_new_luma_event_identities(
+            luma_source=self.root, events_yaml=self.events_yaml
+        )
+        without_source = discover_new_luma_event_identities(luma_source=self.root)
+
+        for report in (with_source, without_source):
+            self.assertEqual(report["created_total"], 0)
+            self.assertEqual(report["pending_total"], 1)
+            self.assertEqual(
+                report["pending_events"][0]["external_event_identifier"], "evt-Undescribed"
+            )
+        self.assertEqual(Event.objects.count(), before)
+
     def _canonical_event(self, *, title: str, source_key: str):
         """One event shaped like a reviewed-manifest entry: a dated legacy source key."""
 
         from events.identity import create_event_identity
 
         return create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title=title,
             source_repository="DataTalksClub/datatalksclub.github.io",
             source_revision="a" * 40,
@@ -324,7 +397,9 @@ class NewEventIdentityDiscoveryTests(TestCase):
         )
 
         before = Event.objects.count()
-        report = discover_new_luma_event_identities(luma_source=self.root)
+        report = discover_new_luma_event_identities(
+            luma_source=self.root, events_yaml=self.events_yaml
+        )
 
         self.assertEqual(report["created_total"], 0)
         self.assertEqual(report["existing_event_total"], 1)
@@ -336,7 +411,9 @@ class NewEventIdentityDiscoveryTests(TestCase):
         # Recognising it must not have attached anything to the event we kept.
         existing.refresh_from_db()
         self.assertEqual(existing.source_identity.source_key, "2026-09-08-an-event-we-already-have")
-        self.assertEqual(existing.source_identity.repository, "DataTalksClub/datatalksclub.github.io")
+        self.assertEqual(
+            existing.source_identity.repository, "DataTalksClub/datatalksclub.github.io"
+        )
 
     def test_recognising_an_event_we_already_have_replays_as_a_no_op(self) -> None:
         from community_base.events.models import Event
@@ -355,9 +432,13 @@ class NewEventIdentityDiscoveryTests(TestCase):
             statuses=("approved",),
         )
 
-        first = discover_new_luma_event_identities(luma_source=self.root)
+        first = discover_new_luma_event_identities(
+            luma_source=self.root, events_yaml=self.events_yaml
+        )
         before = Event.objects.count()
-        second = discover_new_luma_event_identities(luma_source=self.root)
+        second = discover_new_luma_event_identities(
+            luma_source=self.root, events_yaml=self.events_yaml
+        )
 
         self.assertEqual((first["created_total"], second["created_total"]), (0, 0))
         self.assertEqual((first["existing_event_total"], second["existing_event_total"]), (1, 1))
@@ -385,7 +466,9 @@ class NewEventIdentityDiscoveryTests(TestCase):
         )
 
         before = Event.objects.count()
-        report = discover_new_luma_event_identities(luma_source=self.root)
+        report = discover_new_luma_event_identities(
+            luma_source=self.root, events_yaml=self.events_yaml
+        )
 
         self.assertEqual(report["created_total"], 0)
         self.assertEqual(report["existing_event_total"], 0)
@@ -412,7 +495,9 @@ class NewEventIdentityDiscoveryTests(TestCase):
         )
 
         before = Event.objects.count()
-        report = discover_new_luma_event_identities(luma_source=self.root)
+        report = discover_new_luma_event_identities(
+            luma_source=self.root, events_yaml=self.events_yaml
+        )
 
         self.assertEqual(report["created_total"], 1)
         self.assertEqual(report["existing_event_total"], 0)
@@ -435,7 +520,9 @@ class NewEventIdentityDiscoveryTests(TestCase):
         )
 
         before = Event.objects.count()
-        report = discover_new_luma_event_identities(luma_source=self.root)
+        report = discover_new_luma_event_identities(
+            luma_source=self.root, events_yaml=self.events_yaml
+        )
 
         self.assertEqual(report["created_total"], 0)
         self.assertEqual(report["undated_total"], 1)
@@ -455,11 +542,15 @@ class NewEventIdentityDiscoveryTests(TestCase):
             statuses=("approved",),
         )
 
-        first = discover_new_luma_event_identities(luma_source=self.root)
+        first = discover_new_luma_event_identities(
+            luma_source=self.root, events_yaml=self.events_yaml
+        )
         self.assertEqual(first["created_total"], 1)
         after_first = Event.objects.count()
 
-        second = discover_new_luma_event_identities(luma_source=self.root)
+        second = discover_new_luma_event_identities(
+            luma_source=self.root, events_yaml=self.events_yaml
+        )
 
         self.assertEqual(second["created_total"], 0)
         self.assertEqual(second["already_tracked_total"], 1)
@@ -479,7 +570,9 @@ class NewEventIdentityDiscoveryTests(TestCase):
         )
 
         before = Event.objects.count()
-        report = discover_new_luma_event_identities(luma_source=self.root, apply=False)
+        report = discover_new_luma_event_identities(
+            luma_source=self.root, apply=False, events_yaml=self.events_yaml
+        )
 
         self.assertEqual(report["applied"], False)
         self.assertEqual(report["created_total"], 1)
@@ -507,7 +600,9 @@ class NewEventIdentityDiscoveryTests(TestCase):
         )
 
         before = Event.objects.count()
-        report = discover_new_luma_event_identities(luma_source=self.root)
+        report = discover_new_luma_event_identities(
+            luma_source=self.root, events_yaml=self.events_yaml
+        )
 
         self.assertEqual(report["created_total"], 0)
         self.assertEqual(report["already_tracked_total"], 0)
@@ -532,7 +627,9 @@ class NewEventIdentityDiscoveryTests(TestCase):
         raw_csv_row_total = len(statuses)
         raw_approved_total = sum(1 for status in statuses if status == "approved")
 
-        report = discover_new_luma_event_identities(luma_source=self.root)
+        report = discover_new_luma_event_identities(
+            luma_source=self.root, events_yaml=self.events_yaml
+        )
 
         created = report["created_events"][0]
         self.assertEqual(created["eligible_count"], raw_approved_total)
@@ -572,12 +669,16 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
         from scripts.prod.registrant_import import create_provider_event_identity
 
         keep = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="An Event We Already Have",
             source_repository="DataTalksClub/datatalksclub.github.io",
             source_revision="a" * 40,
             source_key="2026-09-08-an-event-we-already-have",
         )
         duplicate = create_provider_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider="luma",
             external_event_identifier="evt-Known",
             title="An Event We Already Have",
@@ -671,6 +772,8 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
         from scripts.prod.registrant_import import create_provider_event_identity
 
         created = create_provider_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider="luma",
             external_event_identifier="evt-GenuinelyNew",
             title="A Genuinely New Event",
@@ -790,9 +893,20 @@ class EventsYamlDuplicateTests(TestCase):
             start_at=start_at,
             statuses=("approved",),
         )
-        return create_provider_event_identity(
-            provider="luma", external_event_identifier=event_id, title=title, start_at=start_at
+        event = create_provider_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
+            provider="luma",
+            external_event_identifier=event_id,
+            title=title,
+            start_at=start_at,
         )
+        # A row the unguarded discovery wrote before every event had to carry a
+        # type and a speaker -- the shape the events.yaml backfill repairs.
+        event.tags = []
+        event.save(update_fields=["tags"])
+        event.event_host_links.all().delete()
+        return event
 
     def _manifest_event(self, *, title: str, source_key: str, start: str):
         from datetime import datetime
@@ -800,6 +914,7 @@ class EventsYamlDuplicateTests(TestCase):
         from events.identity import create_event_identity
 
         return create_event_identity(
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title=title,
             starts_at=datetime.fromisoformat(start),
             source_repository="DataTalksClub/datatalksclub.github.io",
@@ -853,7 +968,7 @@ class EventsYamlDuplicateTests(TestCase):
         self.assertEqual(replay["created_total"], 0)
         self.assertEqual(replay["enriched_total"], 0)
 
-    def test_a_discovered_event_stays_a_draft_until_the_file_completes_it(self) -> None:
+    def test_a_legacy_draft_is_published_once_the_file_completes_it(self) -> None:
         from scripts.prod.import_events import import_events_yaml
 
         luma = self._luma_event(
@@ -862,9 +977,8 @@ class EventsYamlDuplicateTests(TestCase):
             start_at="2099-12-03T11:30:00+00:00",
             slug="synthdraft",
         )
-        # A provider export names no type and no speaker, so discovery never
-        # publishes what it mints (events.publication).
-        self.assertEqual(luma.status, "draft")
+        luma.status = "draft"
+        luma.save(update_fields=["status"])
         path = self._yaml(
             "- time: 2099-12-03 12:30:00\n"
             "  title: 'Synthetic Draft Until Complete'\n"
@@ -883,7 +997,7 @@ class EventsYamlDuplicateTests(TestCase):
         self.assertEqual(luma.status, "upcoming")
         self.assertEqual(report["published_total"], 1)
 
-    def test_a_file_entry_without_a_speaker_creates_a_draft_not_a_public_event(self) -> None:
+    def test_a_file_entry_without_a_speaker_creates_nothing(self) -> None:
         from community_base.events.models import Event
 
         from scripts.prod.import_events import import_events_yaml
@@ -894,12 +1008,13 @@ class EventsYamlDuplicateTests(TestCase):
             "  type: webinar\n"
         )
 
+        dry = import_events_yaml(path=path, apply=False)
         report = import_events_yaml(path=path, apply=True)
 
-        self.assertEqual(report["created_total"], 1)
-        self.assertEqual(report["unpublished_incomplete_events"][0]["missing"], ["speakers"])
-        event = Event.objects.get(title="Synthetic Entry Without Speakers")
-        self.assertEqual(event.status, "draft")
+        for result in (dry, report):
+            self.assertEqual(result["created_total"], 0)
+            self.assertEqual(result["incomplete_entries"][0]["missing"], ["speakers"])
+        self.assertFalse(Event.objects.filter(title="Synthetic Entry Without Speakers").exists())
 
     def test_enrich_only_fills_matched_events_and_creates_nothing(self) -> None:
         from community_base.events.models import Event
@@ -1024,7 +1139,9 @@ class EventsYamlDuplicateTests(TestCase):
         self.assertEqual(Event.objects.count(), before)
         manifest.refresh_from_db()
         self.assertEqual(manifest.materials, [])
-        self.assertFalse(manifest.hosts.exists())
+        self.assertEqual(
+            list(manifest.hosts.values_list("external_ref", flat=True)), ["synthetic-speaker"]
+        )
 
     def test_a_luma_url_on_another_date_is_not_the_same_occurrence(self) -> None:
         """A reused Luma listing: same URL, a different day.  Reported, then created."""
@@ -1040,6 +1157,8 @@ class EventsYamlDuplicateTests(TestCase):
         path = self._yaml(
             "- time: 2099-04-14 17:00:00\n"
             "  title: 'Synthetic Reused Listing'\n"
+            "  type: webinar\n"
+            "  speakers: [synthetic-speaker]\n"
             "  link: https://lu.ma/SynthReused\n"
         )
 
@@ -1058,11 +1177,13 @@ class EventsYamlDuplicateTests(TestCase):
         from scripts.prod.import_events import import_events_yaml
 
         self._manifest_event(
-            title="Synthetic Twin Session", source_key="synthetic-twin-a",
+            title="Synthetic Twin Session",
+            source_key="synthetic-twin-a",
             start="2099-03-01T16:00:00+00:00",
         )
         self._manifest_event(
-            title="Synthetic Twin Session", source_key="synthetic-twin-b",
+            title="Synthetic Twin Session",
+            source_key="synthetic-twin-b",
             start="2099-03-01T16:00:00+00:00",
         )
         before = Event.objects.count()
@@ -1090,10 +1211,16 @@ class EventsYamlDuplicateTests(TestCase):
         path = self._yaml(
             "- time: 2099-05-05 17:00:00\n"
             "  title: 'Synthetic Known Event'\n"
+            "  type: webinar\n"
+            "  speakers: [synthetic-speaker]\n"
             "- time: 2099-06-06 17:00:00\n"
             "  title: 'Synthetic Brand New Event'\n"
+            "  type: webinar\n"
+            "  speakers: [synthetic-speaker]\n"
             "- time: 2099-06-06 17:00:00\n"
             "  title: 'Synthetic Brand-New Event'\n"
+            "  type: webinar\n"
+            "  speakers: [synthetic-speaker]\n"
         )
 
         dry = import_events_yaml(path=path, apply=False)
@@ -1106,9 +1233,7 @@ class EventsYamlDuplicateTests(TestCase):
                 ("Synthetic Brand-New Event", "earlier_entry_in_this_file"),
             ],
         )
-        self.assertEqual(
-            [c["title"] for c in dry["created_events"]], ["Synthetic Brand New Event"]
-        )
+        self.assertEqual([c["title"] for c in dry["created_events"]], ["Synthetic Brand New Event"])
 
         applied = import_events_yaml(path=path, apply=True)
 
@@ -1131,7 +1256,9 @@ class EventsYamlDuplicateTests(TestCase):
             slug="synthreviewed",
         )
         host = Host.objects.create(
-            slug="synthetic-reviewed-host", name="Reviewed", kind="speaker",
+            slug="synthetic-reviewed-host",
+            name="Reviewed",
+            kind="speaker",
             external_ref="synthetic-reviewed-host",
         )
         EventHost.objects.create(event=luma, host=host, role="speaker", position=0)
@@ -1278,8 +1405,12 @@ class EventsYamlDuplicateTests(TestCase):
         path = self._yaml(
             "- time: 2099-10-10 10:00:00\n"
             "  title: 'Synthetic Office Hours'\n"
+            "  type: webinar\n"
+            "  speakers: [synthetic-speaker]\n"
             "- time: 2099-10-10 17:00:00\n"
             "  title: 'Synthetic Office Hours'\n"
+            "  type: webinar\n"
+            "  speakers: [synthetic-speaker]\n"
         )
 
         report = import_events_yaml(path=path, apply=True)

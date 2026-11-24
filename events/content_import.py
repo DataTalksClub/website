@@ -346,6 +346,10 @@ def _record(value: Any) -> ReviewedEventContent:
     parsed_speakers = tuple(_speaker(item) for item in speakers)
     if len({speaker.key for speaker in parsed_speakers}) != len(parsed_speakers):
         raise EventContentImportError("event_content_speaker_key_duplicated")
+    # Every event has at least one speaker (events.identity.create_event_identity);
+    # a record without one would strip the row's speakers on apply.
+    if not parsed_speakers:
+        raise EventContentImportError("event_content_speakers_missing")
 
     return ReviewedEventContent(
         identity_id=parsed_id,
@@ -399,14 +403,19 @@ def _matches(event: Event, record: ReviewedEventContent | NewEventContent) -> bo
         and episode == record.episode
         and event.description_html == record.description_html
         and event.description == record.description_text
-        and [
-            (link.host.external_ref, link.host.name, link.position)
-            for link in event.event_host_links.all()
-        ]
-        == [
-            (speaker.key, speaker.name, position)
-            for position, speaker in enumerate(record.speakers)
-        ]
+        and (
+            # A staged new-event record states no speakers (its description
+            # export carries no reviewed list) and leaves the row's own alone.
+            not record.speakers
+            or [
+                (link.host.external_ref, link.host.name, link.position)
+                for link in event.event_host_links.all()
+            ]
+            == [
+                (speaker.key, speaker.name, position)
+                for position, speaker in enumerate(record.speakers)
+            ]
+        )
         and (event.materials or [])
         == [{"label": link.label, "url": link.url} for link in record.links]
     )
@@ -442,7 +451,10 @@ def _apply(event: Event, record: ReviewedEventContent | NewEventContent) -> None
     # Speakers are an ordered set the record owns outright: a re-run replaces
     # them rather than merging into them.  The host row itself is shared across
     # events -- one person is one row, keyed by the source key a credit names
-    # them with.
+    # them with.  A record that states no speakers (a staged new-event
+    # description) keeps the row's: no event may be left without one.
+    if not record.speakers:
+        return
     event.event_host_links.all().delete()
     for position, speaker in enumerate(record.speakers):
         # The display name is the host's own attribute, global across every

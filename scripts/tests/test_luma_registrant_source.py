@@ -261,11 +261,13 @@ class LumaRegistrantSourceTests(LumaRegistrantExportMixin, TestCase):
         self.assertEqual(EventRegistration.objects.count(), 0)
 
     def test_an_export_is_imported_and_consolidated_end_to_end(self) -> None:
-        account = User.objects.create(
-            username="existing-learner", email="learner@example.invalid"
-        )
+        account = User.objects.create(username="existing-learner", email="learner@example.invalid")
         create_provider_event_identity(
-            provider=PROVIDER, external_event_identifier="evt-1", title="Event One"
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
+            provider=PROVIDER,
+            external_event_identifier="evt-1",
+            title="Event One",
         )
         self._write_event(
             stem="e1",
@@ -289,7 +291,11 @@ class LumaRegistrantSourceTests(LumaRegistrantExportMixin, TestCase):
         """The resume guarantee, observed from outside: no file, no reopen."""
 
         create_provider_event_identity(
-            provider=PROVIDER, external_event_identifier="evt-1", title="Event One"
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
+            provider=PROVIDER,
+            external_event_identifier="evt-1",
+            title="Event One",
         )
         self._write_event(
             stem="e1",
@@ -438,7 +444,11 @@ class LumaIdentityResolutionIntegrationTests(LumaRegistrantExportMixin, TestCase
         """
 
         create_provider_event_identity(
-            provider=PROVIDER, external_event_identifier="evt-2", title="Event Two"
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
+            provider=PROVIDER,
+            external_event_identifier="evt-2",
+            title="Event Two",
         )
         self._write_event(
             stem="e2",
@@ -500,6 +510,8 @@ class LumaTitleAndStartFallbackTests(LumaRegistrantExportMixin, TestCase):
     def test_an_unminted_event_attaches_to_the_manifest_event_it_is(self) -> None:
         # The legacy site's nominal 17:00 Berlin; Luma held it at 12:30 that day.
         event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Synthetic Luma Fallback Event",
             starts_at=datetime(2023, 10, 17, 15, 0, tzinfo=UTC),
             source_repository="DataTalksClub/datatalksclub.github.io",

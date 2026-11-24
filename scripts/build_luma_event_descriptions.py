@@ -19,7 +19,7 @@ What a run does, per description file:
 1. pairs it with its ``_json`` checkpoint and resolves the event by the
    provider's own event id -- the exact ``source_key`` the identity was minted
    under.  It never creates an event and never matches on a title or a slug, so
-   run ``import_events.py --discover-new-events-only`` first for an event this
+   run ``import_events.py --discover-new-events-only --events-yaml ...`` first for an event this
    database has not seen;
 2. takes ``starts_at`` from that checkpoint and ``type`` from the reviewed input
    file at ``_docs/migration-data/local-event-type-input.json``.  An export the

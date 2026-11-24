@@ -88,7 +88,11 @@ class RegistrantImportTestCase(TestCase):
 
     def _mint_event(self, *, event_id: str, title: str) -> Event:
         return create_provider_event_identity(
-            provider=PROVIDER, external_event_identifier=event_id, title=title
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
+            provider=PROVIDER,
+            external_event_identifier=event_id,
+            title=title,
         )
 
 
@@ -683,6 +687,8 @@ class ProviderEventIdentityTests(TestCase):
 
     def test_creates_a_real_event_with_a_luma_source_identity(self) -> None:
         event = create_provider_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider="luma",
             external_event_identifier="evt-BrandNew",
             title="A Brand New Event",
@@ -704,6 +710,8 @@ class ProviderEventIdentityTests(TestCase):
 
     def test_resolve_source_identity_finds_it_by_provider_and_external_id(self) -> None:
         created = create_provider_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider="luma",
             external_event_identifier="evt-Findable",
             title="Findable Event",
@@ -720,10 +728,18 @@ class ProviderEventIdentityTests(TestCase):
 
     def test_luma_and_eventbrite_ids_never_collide(self) -> None:
         luma_event = create_provider_event_identity(
-            provider="luma", external_event_identifier="shared-id", title="Luma Event"
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
+            provider="luma",
+            external_event_identifier="shared-id",
+            title="Luma Event",
         )
         eventbrite_event = create_provider_event_identity(
-            provider="eventbrite", external_event_identifier="shared-id", title="Eventbrite Event"
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
+            provider="eventbrite",
+            external_event_identifier="shared-id",
+            title="Eventbrite Event",
         )
 
         self.assertNotEqual(luma_event.id, eventbrite_event.id)
@@ -731,7 +747,11 @@ class ProviderEventIdentityTests(TestCase):
     def test_unsupported_provider_is_rejected(self) -> None:
         with self.assertRaisesMessage(EventIdentityError, "unsupported_provider"):
             create_provider_event_identity(
-                provider="meetup", external_event_identifier="evt-1", title="Meetup Event"
+                event_type="webinar",
+                speakers=[("synthetic-speaker", "Synthetic Speaker")],
+                provider="meetup",
+                external_event_identifier="evt-1",
+                title="Meetup Event",
             )
 
 
@@ -744,6 +764,8 @@ class ExistingEventIndexTests(TestCase):
 
     def _canonical(self, *, title: str, source_key: str) -> Event:
         return create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title=title,
             source_repository="DataTalksClub/datatalksclub.github.io",
             source_revision="a" * 40,
@@ -832,6 +854,8 @@ class ExistingEventIndexTests(TestCase):
         """
 
         create_provider_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider="luma",
             external_event_identifier="evt-Undated",
             title="An Undated Provider Event",
@@ -854,6 +878,8 @@ class _FallbackFixtures(RegistrantImportTestCase):
 
     def _manifest_event(self, *, title: str, source_key: str, start: datetime) -> Event:
         return create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title=title,
             starts_at=start,
             source_repository="DataTalksClub/datatalksclub.github.io",
@@ -999,6 +1025,8 @@ class TitleAndStartFallbackTests(_FallbackFixtures):
         """Refresh replaces one event's provider rows wholesale; two writers would erase."""
 
         minted = create_provider_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider=PROVIDER,
             external_event_identifier="evt-own",
             title="Synthetic Shared Listing",
@@ -1074,6 +1102,8 @@ class EventOccurrenceIndexTests(TestCase):
 
     def _event(self, *, title: str, source_key: str, start: datetime) -> Event:
         return create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title=title,
             starts_at=start,
             source_repository="DataTalksClub/datatalksclub.github.io",

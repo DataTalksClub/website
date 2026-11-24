@@ -232,8 +232,26 @@ class NewEventContentImportTests(TestCase):
         )
         import_new_event_content(path=self._stage([record]))
 
+        replacement = _record(
+            self.event,
+            speakers=[{"key": "grace", "name": "Grace", "public_path": "/people/grace"}],
+        )
+        import_new_event_content(path=self._stage([replacement]))
+
+        self.event.refresh_from_db()
+        self.assertEqual(list(self.event.hosts.values_list("external_ref", flat=True)), ["grace"])
+        self.assertEqual(self.event.materials, [])
+
+    def test_a_record_stating_no_speakers_keeps_the_events_own(self) -> None:
+        # No event may be left without a speaker: a staged description record,
+        # which carries no reviewed speaker list, never empties the row's.
+        from community_base.events.models import EventHost, Host
+
+        host = Host.objects.create(name="Ada", slug="ada", external_ref="ada", kind="speaker")
+        EventHost.objects.create(event=self.event, host=host, position=0, role="speaker")
+        before = list(self.event.hosts.values_list("external_ref", flat=True))
+
         import_new_event_content(path=self._stage([_record(self.event)]))
 
         self.event.refresh_from_db()
-        self.assertEqual(self.event.event_host_links.count(), 0)
-        self.assertEqual(self.event.materials, [])
+        self.assertEqual(list(self.event.hosts.values_list("external_ref", flat=True)), before)

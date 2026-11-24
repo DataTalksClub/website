@@ -894,13 +894,18 @@ an identity. Nothing is *attached* by title or date: a recognised event keeps it
 source key and gains no alias, no provider id and no registration count — discovery
 simply declines to create.
 
-**A discovered identity is a draft.** A Luma export names no event type and no
-speakers, and a published event must carry both (`events/publication.py`). The
-`--events-yaml` leg or the staged new-event content publishes the draft once it has
-them, and a full `run()` refuses to finish while any published event lacks either.
-`--events-yaml --events-yaml-enrich-only` is the backfill mode: it fills and publishes
-matched events and never creates one. Use it when `_data/events.yaml` has moved an
-entry to a new date, because a normal run would create a second event for it.
+**No event exists without a type and a speaker.** `events.identity.create_event_identity`
+is the only creation path and refuses either missing. A Luma export names neither,
+so discovery creates an event only when `_data/events.yaml` describes it (same Luma
+link, or same Berlin date and title) with a type and speakers. `--discover-new-events-only`
+therefore takes `--events-yaml` too; anything undescribed is reported under
+`pending_events` and created by a later run once the file names its type and
+speakers. The identity manifest likewise creates each event with the type and
+speakers of its reviewed content record. A full `run()` refuses to finish while any
+published event lacks either, which is how rows written before the rule surface.
+`--events-yaml --events-yaml-enrich-only` is the backfill mode for those rows: it
+fills and publishes matched events and never creates one. Use it when `_data/events.yaml`
+has moved an entry to a new date, because a normal run would create a second event for it.
 
 **Reconciling a database that ran the unguarded version.** Guarding discovery stops new
 duplicates and does nothing about rows already written, so

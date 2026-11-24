@@ -85,15 +85,24 @@ def _main_checkout_root() -> Path:
 # --------------------------------------------------------------------------
 
 
-def import_identities(*, manifest: Path | None = None, apply: bool = True) -> dict[str, Any]:
-    """Import the reviewed identity manifest atomically."""
+def import_identities(
+    *, manifest: Path | None = None, content: Path | None = None, apply: bool = True
+) -> dict[str, Any]:
+    """Import the reviewed identity manifest atomically.
+
+    ``content`` is the reviewed content file: an event is created already
+    carrying the type and speakers its record names, because no event may exist
+    without them (:func:`events.identity.create_event_identity`).
+    """
 
     from events.identity import EventIdentityError
     from scripts.prod.identity_manifest import import_identity_manifest
 
     try:
         report = import_identity_manifest(
-            path=manifest or IDENTITY_MANIFEST_PATH, dry_run=not apply
+            path=manifest or IDENTITY_MANIFEST_PATH,
+            content_path=content or EVENT_CONTENT_PATH,
+            dry_run=not apply,
         )
     except (EventIdentityError, OSError, ValueError) as error:
         raise EventImportError("identity_manifest_invalid") from error
@@ -253,10 +262,112 @@ def import_eventbrite_descriptions(
 # discovery from creating a second Event for a row already in the database.
 
 
+@dataclass(frozen=True, slots=True)
+class EventMetadata:
+    """The type and speakers a reviewed source names for one event."""
+
+    event_type: str
+    speakers: tuple[tuple[str, str], ...]
+
+
+class EventMetadataIndex:
+    """Type and speakers for provider events, read from ``_data/events.yaml``.
+
+    An export event is described by the entry whose ``link`` names the same
+    Luma event, or else by the single entry on the same Europe/Berlin date with
+    the same normalized title.  An entry without a type or without speakers
+    describes nothing, and two candidate entries describe nothing either.
+    """
+
+    def __init__(self) -> None:
+        self.by_url: dict[str, EventMetadata] = {}
+        self.by_day_title: dict[tuple[str, str], list[EventMetadata]] = {}
+
+    @classmethod
+    def from_events_yaml(cls, path: Path) -> EventMetadataIndex:
+        import yaml
+
+        from content.models import SyncedDocument
+        from scripts.prod.registrant_import import normalize_match_title
+
+        try:
+            entries = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, yaml.YAMLError) as error:
+            raise EventImportError("events_yaml_unreadable") from error
+        if not isinstance(entries, list):
+            raise EventImportError("events_yaml_invalid")
+        people_names = dict(
+            SyncedDocument.objects.filter(
+                source__slug="dtc-main-site", content_kind="people"
+            ).values_list("slug", "title")
+        )
+        berlin = ZoneInfo("Europe/Berlin")
+        index = cls()
+        for entry in entries:
+            if not isinstance(entry, dict) or entry.get("time") is None:
+                continue
+            title = str(entry.get("title") or "").strip()
+            event_type = str(entry.get("type") or "").strip()
+            keys = [str(key).strip() for key in (entry.get("speakers") or []) if str(key).strip()]
+            if not title or not event_type or not keys:
+                continue
+            try:
+                starts_at = _parse_events_yaml_timestamp(entry["time"])
+            except EventImportError:
+                continue
+            described = EventMetadata(
+                event_type=event_type,
+                speakers=tuple((key, people_names.get(key) or key) for key in keys),
+            )
+            url_key = _luma_url_key(entry.get("link"))
+            if url_key is not None:
+                index.by_url[url_key] = described
+            day = starts_at.astimezone(berlin).date().isoformat()
+            index.by_day_title.setdefault((day, normalize_match_title(title)), []).append(described)
+        return index
+
+    def lookup(self, item: Any) -> EventMetadata | None:
+        from events.identity import provider_event_date
+        from scripts.prod.registrant_import import normalize_match_title
+
+        url_key = _luma_url_key(getattr(item, "event_url", None))
+        if url_key is not None and url_key in self.by_url:
+            return self.by_url[url_key]
+        day = _provider_berlin_date(item.start_at) or provider_event_date(item.start_at or "")
+        if day is None:
+            return None
+        candidates = self.by_day_title.get((day, normalize_match_title(item.title)), [])
+        return candidates[0] if len(candidates) == 1 else None
+
+
+def _provider_berlin_date(start_at: str | None) -> str | None:
+    if not start_at:
+        return None
+    try:
+        parsed = datetime.fromisoformat(start_at.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(ZoneInfo("Europe/Berlin")).date().isoformat()
+
+
 def discover_new_provider_events(
-    *, provider: str, discovered: tuple[Any, ...], apply: bool = True
+    *,
+    provider: str,
+    discovered: tuple[Any, ...],
+    apply: bool = True,
+    metadata: EventMetadataIndex | None = None,
 ) -> dict[str, Any]:
     """Create identities for provider events this database has never tracked.
+
+    No event may exist without a type and a speaker
+    (:func:`events.identity.create_event_identity`), and a provider export names
+    neither.  ``metadata`` supplies them from a reviewed source -- the legacy
+    ``_data/events.yaml`` entry with the same Luma link, or the same Berlin date
+    and title.  A genuinely new event the source does not describe with both is
+    not created: it is reported under ``pending_events`` and created by a later
+    run once the source names its type and speakers.
 
     ``discovered`` items only need ``external_event_identifier``, ``title``,
     ``start_at`` and ``eligible_count`` attributes -- shaped for
@@ -309,6 +420,7 @@ def discover_new_provider_events(
     existing_events: list[dict[str, Any]] = []
     ambiguous: list[dict[str, Any]] = []
     undated: list[dict[str, Any]] = []
+    pending: list[dict[str, Any]] = []
     already_tracked = 0
     for item in discovered:
         source = provider_source_identity(
@@ -391,6 +503,20 @@ def discover_new_provider_events(
         # because a different date is a different event until a human says so.
         if match.other_dates_with_this_title:
             entry["existing_event_dates_with_this_title"] = list(match.other_dates_with_this_title)
+        described = metadata.lookup(item) if metadata is not None else None
+        if described is None:
+            # The provider id is public (it is part of the event's public URL).
+            pending.append(
+                {
+                    **entry,
+                    "external_event_identifier": item.external_event_identifier,
+                    "reason": (
+                        "New, but no reviewed source names its type and speakers, "
+                        "and no event may exist without them. Nothing was created."
+                    ),
+                }
+            )
+            continue
         if not apply:
             created.append({**entry, "public_id": None, "canonical_path": None, "dry_run": True})
             continue
@@ -400,6 +526,8 @@ def discover_new_provider_events(
                 external_event_identifier=item.external_event_identifier,
                 title=item.title,
                 start_at=item.start_at,
+                event_type=described.event_type,
+                speakers=described.speakers,
             )
         except EventIdentityError as error:
             raise EventImportError("provider_event_identity_invalid") from error
@@ -429,13 +557,17 @@ def discover_new_provider_events(
         "undated_events": undated,
         "no_metadata_total": len(no_metadata),
         "no_metadata_events": no_metadata,
+        "pending_total": len(pending),
+        "pending_events": pending,
         "created_total": len(created),
         "created_events": created,
         "applied": apply,
     }
 
 
-def discover_new_luma_event_identities(*, luma_source: Path, apply: bool = True) -> dict[str, Any]:
+def discover_new_luma_event_identities(
+    *, luma_source: Path, apply: bool = True, events_yaml: Path | None = None
+) -> dict[str, Any]:
     """Read a Luma export directory directly and create identities for new events.
 
     Unlike ``derive_luma`` (below), this never requires the export to match a
@@ -453,7 +585,10 @@ def discover_new_luma_event_identities(*, luma_source: Path, apply: bool = True)
         discovered = discover_luma_events(luma_source)
     except RegistrantImportError as error:
         raise EventImportError("luma_discovery_failed") from error
-    return discover_new_provider_events(provider="luma", discovered=discovered, apply=apply)
+    metadata = EventMetadataIndex.from_events_yaml(events_yaml) if events_yaml else None
+    return discover_new_provider_events(
+        provider="luma", discovered=discovered, apply=apply, metadata=metadata
+    )
 
 
 # --------------------------------------------------------------------------
@@ -1190,12 +1325,10 @@ def import_events_yaml(
             if not create:
                 not_created.append({**described, "date": local_date})
                 continue
-            # Published (upcoming vs past is derived from the schedule, see
-            # events.lifecycle) -- unless the entry names no type or no speaker,
-            # which a published event must carry (events.publication): such an
-            # entry lands as a draft and is reported, never shown incomplete.
-            status = PUBLISHED_STATUS if event_type and speaker_keys else DRAFT
-            if status == DRAFT:
+            # No event may exist without a type and a speaker
+            # (events.identity.create_event_identity): an entry missing either
+            # creates nothing and is reported for a person to complete.
+            if not event_type or not speaker_keys:
                 unpublished.append(
                     {
                         **described,
@@ -1206,6 +1339,9 @@ def import_events_yaml(
                         ],
                     }
                 )
+                continue
+            # Published; upcoming vs past is derived from the schedule (events.lifecycle).
+            status = PUBLISHED_STATUS
             if not apply:
                 planned_pk -= 1
                 created_pks.add(planned_pk)
@@ -1236,17 +1372,15 @@ def import_events_yaml(
                     source_path=LEGACY_EVENTS_YAML_PATH,
                     source_checksum=checksum,
                     event_type=event_type,
+                    speakers=[(key, people_names.get(key) or key) for key in speaker_keys],
                     season=season,
                     episode=episode,
                     status=status,
+                    fields={"timezone": "Europe/Berlin", "materials": materials},
                 )
             except EventIdentityError as error:
                 raise EventImportError("events_yaml_identity_invalid") from error
 
-            event.timezone = "Europe/Berlin"
-            event.materials = materials
-            event.save(update_fields=["timezone", "materials"])
-            _attach_yaml_speakers(event, speaker_keys, people_names)
             index.add(event, legacy_key=source_key, luma_key=luma_key)
             created_pks.add(event.pk)
 
@@ -1272,9 +1406,9 @@ def import_events_yaml(
             # Discovered drafts this file completed, so they are now public.
             "published_total": len(published),
             "published_events": published,
-            # Entries created as drafts because they name no type or no speaker.
-            "unpublished_incomplete_total": len(unpublished),
-            "unpublished_incomplete_events": unpublished,
+            # Entries not created because they name no type or no speaker.
+            "incomplete_entry_total": len(unpublished),
+            "incomplete_entries": unpublished,
             "ambiguous_total": len(ambiguous),
             "ambiguous_events": ambiguous,
             "provider_url_date_conflict_total": len(url_date_conflicts),
@@ -1358,7 +1492,9 @@ def _run_legs(
     :func:`run` rather than an indent level wrapped around a hundred of them.
     """
 
-    identities = import_identities(manifest=identity_manifest, apply=True)
+    identities = import_identities(
+        manifest=identity_manifest, content=event_content_source, apply=True
+    )
     content = import_content(source=event_content_source, apply=True)
     # Description *authoring* precedence, distinct from content bootstrap
     # above: runs only after `content` so the EventContent row it overwrites
@@ -1370,7 +1506,9 @@ def _run_legs(
     # reviewed-manifest replay) -- an operator reading the report must not
     # mistake an automatic creation for the reviewed manifest changing.
     new_event_identities = {
-        "luma": discover_new_luma_event_identities(luma_source=luma_source, apply=True),
+        "luma": discover_new_luma_event_identities(
+            luma_source=luma_source, apply=True, events_yaml=events_yaml
+        ),
     }
     # Straight after the identities it depends on, and under its own key: the
     # 421 reviewed records and the staged descriptions for discovered events are
@@ -1517,7 +1655,7 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("--dry-run applies to --discover-new-events-only or --events-yaml")
         configure_target(parser, args)
         report: dict[str, Any]
-        if args.events_yaml is not None:
+        if args.events_yaml is not None and not args.discover_new_events_only:
             luma_source = args.luma_source.resolve()
             report = {
                 "events_yaml": import_events_yaml(
@@ -1552,11 +1690,17 @@ def main(argv: list[str] | None = None) -> int:
             report = {
                 "applied": apply,
                 "identities": import_identities(
-                    manifest=args.identity_manifest.resolve(), apply=apply
+                    manifest=args.identity_manifest.resolve(),
+                    content=args.event_content.resolve(),
+                    apply=apply,
                 ),
                 "new_event_identities": {
+                    # The type and speakers a new event must be created with
+                    # come from --events-yaml; without it nothing is created.
                     "luma": discover_new_luma_event_identities(
-                        luma_source=args.luma_source.resolve(), apply=apply
+                        luma_source=args.luma_source.resolve(),
+                        apply=apply,
+                        events_yaml=args.events_yaml.resolve() if args.events_yaml else None,
                     ),
                 },
                 # The identities this mode creates are exactly what the staged
