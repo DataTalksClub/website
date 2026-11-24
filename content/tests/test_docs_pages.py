@@ -212,7 +212,7 @@ class DocsHubTests(TestCase):
 
         self.assertIn('class="hero-art"', body)
         # The hub holds the ordinary content column, as every docs page does.
-        self.assertNotIn('shell-breakout', body)
+        self.assertNotIn("shell-breakout", body)
         self.assertIn("course-learning", body)
         self.assertIn("doodle-light", body)
 
@@ -277,9 +277,7 @@ class DocsSearchTests(TestCase):
         response = self.client.get(DOCS_ROOT_PATH)
 
         self.assertContains(response, 'class="field-label" for="docs-query"')
-        self.assertContains(
-            response, 'placeholder="e.g. certificate, GCP credits"'
-        )
+        self.assertContains(response, 'placeholder="e.g. certificate, GCP credits"')
         self.assertNotContains(response, '<label class="sr-only" for="docs-query">')
 
 

@@ -276,7 +276,9 @@ class BooksArchiveContractTests(TestCase):
 
         for page_number, body in enumerate(pages, start=1):
             with self.subTest(page=page_number):
-                self.assertIn('<h1 class="page-title" id="collection-heading">Book of the Week</h1>', body)
+                self.assertIn(
+                    '<h1 class="page-title" id="collection-heading">Book of the Week</h1>', body
+                )
                 self.assertIn(
                     "Each week we have a book author coming to DataTalks.Club to answer "
                     "your questions",

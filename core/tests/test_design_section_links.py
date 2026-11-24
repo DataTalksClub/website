@@ -24,7 +24,19 @@ TEMPLATE_ROOTS = (
 # The Academy pages are being rebuilt in a separate change; their section links
 # move to `.band-more` with that work, and this entry goes with it.
 PENDING_REDESIGN = {"academy/templates/academy/home.html"}
-VOID_ELEMENTS = {"area", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "wbr"}
+VOID_ELEMENTS = {
+    "area",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "source",
+    "wbr",
+}
 
 
 class _BandHeadLinks(HTMLParser):

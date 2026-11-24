@@ -228,7 +228,10 @@ class WikiCataloguePaginationTests(TestCase):
             with self.subTest(path=path):
                 body = self.client.get(path).content.decode()
                 explore = body.split('aria-label="Wiki exploration"', 1)[1].split("</nav>", 1)[0]
-                self.assertIn('<h1 class="page-title" id="wiki-heading">DataTalks.Club Podcast Wiki</h1>', body)
+                self.assertIn(
+                    '<h1 class="page-title" id="wiki-heading">DataTalks.Club Podcast Wiki</h1>',
+                    body,
+                )
                 self.assertIn('name="q"', body)
                 self.assertIn('aria-label="Wiki exploration"', body)
                 self.assertIn(f'href="{reverse("wiki-graph")}"', explore)
