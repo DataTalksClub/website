@@ -73,24 +73,10 @@
         margin-top: 1rem;
       }
 
-      /* The episode surface uses the lighter archive-card frame.  Its
-         season/episode line is metadata, not a status control: it stays plain
-         and blue inside the card. */
-      .episode-row > .archive-card {
-        border-radius: 0.9rem;
-      }
-
-      .episode-row .play-disc {
-        margin-top: 0.9rem;
-      }
-
-      .episode-row .archive-body > .mono-label {
-        color: var(--indigo);
-      }
-
       /* An episode row is the archive row the blog and the books archive draw,
-         with the play disc as its leading mark: `.archive-row` in the design
-         system partial above, through `public/_archive_row.html`.  The hub omits
+         with the play disc as its leading mark: `.archive-row` and `.episode-row`
+         in the design system partial above, through `public/_archive_row.html`,
+         so an episode page's related episodes draw the same row.  The hub omits
          its optional date rail so episode cards use the full reading width;
          publication metadata remains on each episode's detail page. */
 
