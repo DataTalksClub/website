@@ -44,12 +44,27 @@ Articles remain UTF-8 Markdown with one leading YAML front-matter mapping. Their
 non-empty. Unknown front-matter fields remain available as source metadata. HTML, URLs, and the
 small allowlist of legacy Liquid includes are validated and rendered by website-owned code.
 
-Ten articles end with a frequently-asked-questions section written as
-`{% include faq-accordion.html faqs=site.data.faqs.<key> %}`. The include names a data file in
-`DataTalksClub/datatalksclub.github.io` under `_data/faqs/`, so the pairs are not in this source at
-all and an article file alone cannot supply them. The website recovers them into
-`content/article_faq.json`; see [article FAQ recovery](article-faq-recovery.md), which also records
-the upstream change that would retire the recovery.
+An article's frequently-asked-questions pairs live in its own front matter, as a `faq:` list of
+`question`/`answer` mappings. Where the body should show them, it keeps the legacy marker line
+`{% include faq-accordion.html ... %}` (its arguments are ignored): the articles parser turns that
+line into a typed `faq` block, and the page draws the FAQ panel exactly there, so the body's own FAQ
+heading sits directly above the panel and anything written after the marker follows it. A body with
+`faq:` but no marker gets the panel after its last block. A marker without `faq:`, or a second
+marker, is refused by the sync.
+
+A sponsored article declares its sponsor in front matter rather than in a hand-written note:
+
+```yaml
+sponsor:
+  name: Arize
+  url: https://arize.com/
+```
+
+The page then opens the reading column with one disclosure, "This post is sponsored by <name>. We
+thank the <name> team for their ongoing support of the community.", drawn as the shared quiet
+callout. It sits at the top, before the first paragraph, so a reader knows the post is sponsored
+before reading it (the usual practice for sponsored content, and what disclosure guidance asks
+for). `name` must be non-empty and `url` an `https://` address; anything else is refused.
 
 Podcast episode files are UTF-8 YAML mappings at `podcasts/<slug>.yaml`. Required identity fields
 include `slug`, exact `legacy_path`, `title`, `description`, `season`, `episode`, `guests`, and

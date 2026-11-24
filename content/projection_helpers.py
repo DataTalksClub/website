@@ -507,10 +507,15 @@ def _body_blocks(body: str, *, preserve_links: bool = False) -> list[dict[str, A
 #     answers are rendered.  Nothing in this file emits HTML.
 #
 # Liquid remains stripped on purpose: `{% include ... %}` addressed a legacy Jekyll
-# site whose partials do not exist here, and the FAQ accordions it pulled in were
-# recovered separately (content/article_faq.py).
+# site whose partials do not exist here.  One include is translated rather than
+# dropped: `{% include faq-accordion.html ... %}` marked where the article's FAQ
+# accordion sat.  The questions themselves travel in the frontmatter `faq:`
+# section (content/article_faq.py); the marker becomes a typed `faq` block so the
+# page draws the FAQ at the author's position -- under the body's own FAQ
+# heading, before anything the author wrote after it.
 # ---------------------------------------------------------------------------
 
+ARTICLE_FAQ_MARKER = re.compile(r"^\{%-?\s*include\s+faq-accordion\.html\b[^%]*-?%\}$")
 ARTICLE_FENCE = re.compile(r"^(`{3,}|~{3,})[ \t]*([A-Za-z0-9_+#.-]{0,32})[ \t]*$")
 ARTICLE_ORDERED_ITEM = re.compile(r"^\d{1,3}[.)][ \t]+(.+)$")
 ARTICLE_UNORDERED_ITEM = re.compile(r"^[-*+][ \t]+(.+)$")
@@ -1124,6 +1129,12 @@ def _article_blocks(
             blocks.append(block)
             continue
         index += 1
+        if ARTICLE_FAQ_MARKER.fullmatch(line) is not None:
+            flush()
+            if any(block.get("kind") == "faq" for block in blocks):
+                raise ProjectionBuildError("article FAQ marker repeated")
+            blocks.append({"kind": "faq"})
+            continue
         heading = HEADING.match(line)
         if heading is not None:
             flush()

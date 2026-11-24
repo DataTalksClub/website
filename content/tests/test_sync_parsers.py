@@ -36,6 +36,7 @@ from content.media_store import (
 )
 from content.media_store import media_store as public_media_store
 from content.models import SyncedDocument
+from content.projection_helpers import ProjectionBuildError
 from content.sync_parsers.base import ContentParserError, upsert_document
 from content.sync_parsers.course import COURSE_SOURCE_SLUGS
 
@@ -355,6 +356,79 @@ class ArticlesParserTests(_CheckoutCase):
             item.data["record"]["faq"],
             [{"id": "faq-what-is-this", "question": "What is this?", "answer": "A test."}],
         )
+
+    def _discover_one(self, markdown: str) -> dict:
+        parser = get_parser("article")
+        tree = {"articles/2024-03-07-hello-world.md": markdown.encode()}
+        with self.checkout(tree) as checkout:
+            (item,) = parser.discover(checkout, _source("dtc-content"))
+        return item.data["record"]
+
+    def test_faq_include_becomes_a_typed_block_where_the_body_placed_it(self) -> None:
+        # The legacy accordion include sat under the body's own FAQ heading and
+        # before a closing note; the FAQ must render at that position.
+        markdown = (
+            _article_markdown().replace(
+                "---\n", "---\nfaq:\n- question: What is this?\n  answer: 'A test.'\n", 1
+            )
+            + "\n## FAQs\n\n"
+            "{% include faq-accordion.html faqs=site.data.faqs.hello-world %}\n"
+            "\n<em>A closing note.</em>\n"
+        )
+        blocks = self._discover_one(markdown)["blocks"]
+        kinds = [block["kind"] for block in blocks]
+        self.assertEqual(kinds.count("faq"), 1)
+        position = kinds.index("faq")
+        self.assertEqual(blocks[position], {"kind": "faq"})
+        self.assertEqual(blocks[position - 1]["kind"], "heading")
+        self.assertEqual(blocks[position - 1]["text"], "FAQs")
+        self.assertIn("A closing note.", blocks[position + 1]["text"])
+        self.assertFalse(any("include" in str(block.get("text", "")) for block in blocks))
+
+    def test_frontmatter_faq_without_a_marker_has_no_faq_block(self) -> None:
+        markdown = _article_markdown().replace(
+            "---\n", "---\nfaq:\n- question: What is this?\n  answer: 'A test.'\n", 1
+        )
+        record = self._discover_one(markdown)
+        self.assertNotIn("faq", [block["kind"] for block in record["blocks"]])
+        self.assertEqual(len(record["faq"]), 1)
+
+    def test_faq_marker_without_frontmatter_faq_is_refused(self) -> None:
+        markdown = _article_markdown() + "\n{% include faq-accordion.html faqs=x %}\n"
+        with self.assertRaises(ContentParserError):
+            self._discover_one(markdown)
+
+    def test_repeated_faq_marker_is_refused(self) -> None:
+        marker = "\n{% include faq-accordion.html faqs=x %}\n"
+        markdown = (
+            _article_markdown().replace(
+                "---\n", "---\nfaq:\n- question: What is this?\n  answer: 'A test.'\n", 1
+            )
+            + marker
+            + marker
+        )
+        with self.assertRaisesRegex(ProjectionBuildError, "FAQ marker repeated"):
+            self._discover_one(markdown)
+
+    def test_frontmatter_sponsor_is_validated(self) -> None:
+        markdown = _article_markdown().replace(
+            "---\n", "---\nsponsor:\n  name: Arize\n  url: https://arize.com/\n", 1
+        )
+        self.assertEqual(
+            self._discover_one(markdown)["sponsor"], {"name": "Arize", "url": "https://arize.com/"}
+        )
+        self.assertIsNone(self._discover_one(_article_markdown())["sponsor"])
+
+    def test_malformed_sponsor_is_refused(self) -> None:
+        for sponsor in (
+            "sponsor: Arize\n",
+            "sponsor:\n  name: Arize\n",
+            "sponsor:\n  name: Arize\n  url: javascript:alert(1)\n",
+            "sponsor:\n  name: Arize\n  url: http://arize.com/\n",
+            "sponsor:\n  name: ''\n  url: https://arize.com/\n",
+        ):
+            with self.subTest(sponsor=sponsor), self.assertRaises(ContentParserError):
+                self._discover_one(_article_markdown().replace("---\n", "---\n" + sponsor, 1))
 
     def test_ignores_other_sources_and_undated_names(self) -> None:
         other = _source("some-other-site")
