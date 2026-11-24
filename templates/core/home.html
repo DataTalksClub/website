@@ -822,8 +822,9 @@
             </p>
             <div class="hero-actions">
               <a class="cta cta-primary interactive-lift" href="{% url 'course_list' %}">Explore free courses</a>
-              <a class="cta cta-secondary interactive-lift" href="{{ account_entry.landing_create_url }}">Join the community</a>
+              <a class="cta cta-secondary interactive-lift" href="{{ account_entry.landing_create_url }}">Create free account</a>
             </div>
+            <p class="cta-hint">Free account: access to courses, homework submissions, and Slack.</p>
           </div>
           <div class="hero-figure">
             {% include "core/_home_illustration.html" with variant="hero" %}
@@ -1322,7 +1323,7 @@
             <p class="mono-label">Newsletter</p>
             <h2 id="newsletter-heading">Get the weekly DataTalks.Club digest</h2>
             <p>
-              Subscribe to our weekly newsletter and join our Slack. We'll keep you informed
+              Subscribe to our weekly newsletter. We'll keep you informed
               about our events, articles, courses, and everything else happening in the Club.
             </p>
             <p class="band-more newsletter-more">
@@ -1351,7 +1352,7 @@
               whenever you want it.
             </p>
           </div>
-          <a class="cta cta-primary interactive-lift" href="{{ account_entry.landing_create_url }}">Create your free account</a>
+          <a class="cta cta-primary interactive-lift" href="{{ account_entry.landing_create_url }}">Create free account</a>
         </div>
       </section>
     </main>

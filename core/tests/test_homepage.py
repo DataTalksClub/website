@@ -246,13 +246,24 @@ class MainHomepageRoutingTests(TestCase):
             "Learn the fundamentals. Build real projects. Share your work.",
         )
         self.assertContains(response, "Explore free courses")
-        self.assertContains(response, "Join the community")
+        self.assertContains(response, "Create free account")
         self.assertContains(
             response,
             '<a class="cta cta-secondary interactive-lift" '
-            f'href="{reverse("account_signup")}">Join the community</a>',
+            f'href="{reverse("account_signup")}">Create free account</a>',
             html=True,
         )
+        self.assertContains(
+            response,
+            "Free account: access to courses, homework submissions, and Slack.",
+        )
+        self.assertContains(response, "Subscribe")
+        self.assertContains(
+            response,
+            "One weekly email with community news, events, and courses.",
+        )
+        self.assertNotContains(response, "and join our Slack")
+        self.assertNotContains(response, "data-academy-cta")
         self.assertContains(response, "From following tutorials to building your own projects.")
         # Site feedback 2026-11-19 (1.3): each climb card names its step directly,
         # with one short line under it.

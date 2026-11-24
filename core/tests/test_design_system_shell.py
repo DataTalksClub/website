@@ -353,9 +353,9 @@ class DesignFiveAShellTests(TestCase):
 
     def test_every_design_system_page_reaches_the_academy(self) -> None:
         """The Academy sits in the primary row on every page; the closing stripe
-        shows only on the homepage and the Courses section."""
+        shows only on the Courses section (the homepage ends with its own CTA)."""
 
-        stripe_pages = {"home", "courses index", "course page"}
+        stripe_pages = {"courses index", "course page"}
         for name, body in self.rendered_pages().items():
             with self.subTest(page=name):
                 academy = [

@@ -252,9 +252,10 @@
         {% if counts.wiki %}Browse the member-written wiki's {{ counts.wiki }} topic{{ counts.wiki|pluralize }}.{% endif %}
       </p>
       <div class="tour-hero-actions">
-        <a class="cta cta-primary interactive-lift" href="{{ account_entry.landing_create_url }}">Create your free account</a>
-        <a class="cta cta-secondary interactive-lift" href="{% url 'slack' %}">Join the Slack</a>
+        <a class="cta cta-primary interactive-lift" href="{{ account_entry.landing_create_url }}">Create free account</a>
+        <a class="cta cta-secondary interactive-lift" href="{% url 'slack' %}">Join Slack</a>
       </div>
+      <p class="cta-hint">Free account: access to courses, homework, and Slack. Or request Slack access directly.</p>
     </div>
     {% comment %}
       A community scene made for this page. The course cards below each carry
@@ -634,7 +635,7 @@
           <p>{{ tour_content.close_intro }}</p>
         {% endif %}
       </div>
-      <a class="cta cta-primary interactive-lift" href="{{ account_entry.landing_create_url }}">Create your free account</a>
+      <a class="cta cta-primary interactive-lift" href="{{ account_entry.landing_create_url }}">Create free account</a>
     </div>
   </section>
 {% endblock %}

@@ -223,7 +223,7 @@ class CreateAccountCallsToActionTests(ProviderCacheResetTestCase):
                 response = self.client.get(path)
 
                 self.assertEqual(response.status_code, 200)
-                self.assertContains(response, 'href="/accounts/signup/">Create your free account')
+                self.assertContains(response, 'href="/accounts/signup/">Create free account')
         choice = self.client.get("/accounts/signup/")
         self.assertContains(choice, "Continue with Google")
 

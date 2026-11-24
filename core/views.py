@@ -114,6 +114,7 @@ def home(request: HttpRequest):
         "core/home.html",
         {
             "canonical_url": "https://datatalks.club/",
+            "hide_academy_cta": True,
             "hide_tour_cta": True,
             "upcoming_events": upcoming,
             "recent_events": events.recent[:1],
