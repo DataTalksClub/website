@@ -85,11 +85,26 @@ urlpatterns = [
         {"target": "/sponsors"},
         name="sponsors-slash-redirect",
     ),
-    path("tour", core_views.tour, name="tour"),
+    path("about", core_views.tour, name="about"),
+    path(
+        "about/",
+        public_views.permanent_public_redirect,
+        {"target": "/about"},
+        name="about-slash-redirect",
+    ),
+    # The About page was published as the tour.  Both spellings of the old
+    # address stay as one-hop permanent redirects, so a link in the wild, an
+    # email or a bookmark reaches the page rather than a 404.
+    path(
+        "tour",
+        public_views.permanent_public_redirect,
+        {"target": "/about"},
+        name="tour-redirect",
+    ),
     path(
         "tour/",
         public_views.permanent_public_redirect,
-        {"target": "/tour"},
+        {"target": "/about"},
         name="tour-slash-redirect",
     ),
     # The media kit is not a page of this site. Keeping a second copy here

@@ -216,9 +216,9 @@ class CreateAccountCallsToActionTests(ProviderCacheResetTestCase):
         choice = self.client.get("/accounts/signup/?next=%2Fcourses")
         self.assertContains(choice, "/accounts/github/login/?next=%2Fcourses")
 
-    def test_home_and_tour_create_account_ctas_lead_to_the_provider_choice(self) -> None:
+    def test_home_and_about_create_account_ctas_lead_to_the_provider_choice(self) -> None:
         configure_site_providers(*ALL_PROVIDERS)
-        for path in ("/", "/tour"):
+        for path in ("/", "/about"):
             with self.subTest(path=path):
                 response = self.client.get(path)
 

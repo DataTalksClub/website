@@ -1,0 +1,44 @@
+{% comment %}
+  How the community started, and why it stays free: a database record
+  (``content.tour_content``) carrying the editor's setup, the founder's own
+  contiguous quotation, the neutral caption and the source link.  No stitched
+  fragments and no invented portrait: a database without the founder's people
+  record draws the shared striped stand-in.
+
+  The About page draws it at chapter width; the homepage's About band draws the
+  same card in a narrower column.
+{% endcomment %}
+<figure class="card founder-story">
+  <div class="founder-story-quotes">
+    {% if tour_content.founder_context %}
+      <div>
+        <span class="mono-label">How it started</span>
+        <blockquote class="story-quote">{{ tour_content.founder_context }}</blockquote>
+      </div>
+    {% endif %}
+    {% if tour_content.founder_quote %}
+      <div>
+        <span class="mono-label">Why it's free</span>
+        <blockquote class="story-quote">“{{ tour_content.founder_quote }}”</blockquote>
+      </div>
+    {% endif %}
+  </div>
+  <figcaption class="story-person">
+    <span class="story-identity">
+      {% if founder and founder.media_available %}
+        <img class="avatar" src="{{ founder.image_path }}" alt="" loading="lazy">
+      {% else %}
+        <span class="avatar" aria-hidden="true"></span>
+      {% endif %}
+      <span>
+        <strong>
+          <a href="{{ tour_content.founder_source_url }}" target="_blank" rel="noopener noreferrer">
+            {{ tour_content.founder_name }}
+            <span class="sr-only"> (opens in a new tab)</span>
+          </a>
+        </strong>
+        <span class="story-context">{{ tour_content.founder_attribution }}</span>
+      </span>
+    </span>
+  </figcaption>
+</figure>

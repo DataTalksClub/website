@@ -76,6 +76,43 @@
         justify-items: center;
       }
 
+      /* --- about the community --------------------------------------------
+         The About page's own blocks, reused: its intro line, the shared
+         "Who's here" strip (core/_community_stats.html) and the shared founder
+         story (core/_founder_story.html).  Wide, the facts sit beside the story
+         so the quotes keep a readable measure; narrow, the story stacks under
+         the facts.  Either block alone takes the whole row. */
+      .about-grid {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      .about-part {
+        display: grid;
+        gap: 0.9rem;
+      }
+
+      .about-part h3 {
+        font-size: 1.1rem;
+      }
+
+      /* The grid's own gap sets the survey link off the tiles. */
+      .about-part .band-more {
+        margin-top: 0;
+      }
+
+      @media (min-width: 62rem) {
+        .about-grid {
+          gap: 2rem 2.5rem;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+        }
+
+        /* Only one block published: it takes the whole row rather than a column. */
+        .about-grid > :only-child {
+          grid-column: 1 / -1;
+        }
+      }
+
       /* --- the climb ------------------------------------------------------
          The climb card itself (.stage-card/.stage-card-step/...) is a
          shared component, drawn once in core/_stage_card.html so a course
@@ -791,6 +828,46 @@
           </div>
         </div>
       </section>
+
+      {% if tour_content.stats or tour_content.founder_name %}
+        {% comment %}
+          What the community is, answered with the About page's own blocks: its
+          one-line introduction, the survey figures and the founder story.  All
+          three are the same published record that page renders, so the homepage
+          states nothing the About page does not, and with no record published
+          (or no database to read one) the whole band is absent.
+        {% endcomment %}
+        <section class="band band-lavender home-about" aria-labelledby="about-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="about-heading">What is DataTalks.Club?</h2>
+                {% if tour_content.hero_intro %}
+                  <p>{{ tour_content.hero_intro }}</p>
+                {% endif %}
+              </div>
+              <a class="band-link" href="{% url 'about' %}">about DataTalks.Club →</a>
+            </div>
+            <div class="about-grid">
+              {% if tour_content.stats %}
+                <div class="about-part">
+                  <h3>Who's here</h3>
+                  {% include "core/_community_stats.html" with tour_content=tour_content only %}
+                  <p class="band-more">
+                    <a class="band-link" href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full survey →</a>
+                  </p>
+                </div>
+              {% endif %}
+              {% if tour_content.founder_name %}
+                <div class="about-part">
+                  <h3>How it started, and why it's free</h3>
+                  {% include "core/_founder_story.html" with tour_content=tour_content founder=founder only %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
 
       <section class="band band-lavender" aria-labelledby="climb-heading">
         <div class="shell">

@@ -1,0 +1,22 @@
+{% comment %}
+  "Who's here": the community's own survey figures, drawn as the shared stat
+  tiles.  The figures are a database record (``content.tour_content``), so the
+  strip states no number of its own and renders only for a published record.
+
+  Both pages that introduce the community draw it from this one file: the About
+  page under its own chapter heading, the homepage inside its About band.  The
+  About page passes the design system's one-row variant (``tiles_variant``); the
+  homepage leaves it out and keeps the base two-by-two grid.
+{% endcomment %}
+{% if tiles_variant %}
+  <div class="stat-tiles {{ tiles_variant }} community-stats">
+{% else %}
+  <div class="stat-tiles community-stats">
+{% endif %}
+  {% for stat in tour_content.stats %}
+    <div class="stat-tile">
+      <strong>{{ stat.value }}</strong>
+      <span>{{ stat.label }}</span>
+    </div>
+  {% endfor %}
+</div>

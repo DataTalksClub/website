@@ -708,7 +708,7 @@ def public_events_hub_sponsors(*, using: str = "default") -> tuple[JsonObject, .
 
 
 def public_sponsors(*, using: str = "default") -> tuple[JsonObject, ...]:
-    """Return the full public-directory featured band: ``/sponsors`` and ``/tour``.
+    """Return the full public-directory featured band: ``/sponsors`` and ``/about``.
 
     Every enabled, active sponsor in the ``public_directory`` placement, not
     only the ``featured_on_home`` ones -- see :func:`public_home_sponsors` for
