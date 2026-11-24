@@ -25,6 +25,7 @@ import re
 from datetime import date
 from pathlib import PurePosixPath
 from typing import Any
+from urllib.parse import parse_qsl, urlsplit
 
 from community_base.content_sync.orchestration import UpsertResult
 from community_base.content_sync.parsers import SourceItem, register_parser
@@ -53,6 +54,7 @@ _SITE_PATH = re.compile(r"/(?:[A-Za-z0-9][A-Za-z0-9._-]*/?)*\Z")
 _KEY = re.compile(r"[a-z0-9][a-z0-9_-]*\Z")
 _UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z")
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
+_YOUTUBE_ID = re.compile(r"[A-Za-z0-9_-]{11}\Z")
 
 
 class Optional:
@@ -66,8 +68,9 @@ class Optional:
 # Markdown, "href" an Academy page, another path on this site, an https URL or
 # a mailto link,
 # "url" an https URL, "key" a lower-case identifier, "image" a file below
-# images/academy/, "utc" an ISO UTC instant, "date" an ISO calendar date
-# (quoted, so YAML keeps it a string), "int", "bool".
+# images/academy/, "document" a PDF below images/academy/, "youtube" an https
+# youtube.com or youtu.be video link, "utc" an ISO UTC instant, "date" an ISO
+# calendar date (quoted, so YAML keeps it a string), "int", "bool".
 LINK = {"label": "text", "href": "href"}
 QUESTION = {"question": "text", "answer": "markdown"}
 FACTS = {"label": "text", "items": [{"label": "text", "value": "text"}]}
@@ -195,6 +198,9 @@ LAYOUTS: dict[str, dict[str, Any]] = {
                 "hero_time": Optional("text"),
                 # The written recap of a session that has happened.
                 "recap": Optional(LINK),
+                # The calendar SEQUENCE: raised when a published session moves,
+                # so calendar clients update the event instead of ignoring it.
+                "sequence": Optional("int"),
             }
         ],
         "rsvp_published": "bool",
@@ -376,6 +382,10 @@ LAYOUTS: dict[str, dict[str, Any]] = {
             "href": Optional("href"),
             "label": Optional("text"),
         },
+        # A session recap's recording and slides.  Either one draws the
+        # recording frame; without ``recording`` it says the video is coming.
+        "recording": Optional("youtube"),
+        "slides": Optional("document"),
     },
 }
 
@@ -573,13 +583,49 @@ class _Validator:
                     self.fail(field)
             elif not value.startswith("mailto:"):
                 self.leaf("url", value, field)
-        elif spec == "image":
+        elif spec in {"image", "document"}:
             path = PurePosixPath(value)
             if not value.startswith(IMAGE_PREFIX) or ".." in path.parts or value not in self.files:
+                self.fail(field)
+            if (path.suffix.lower() == ".pdf") != (spec == "document"):
+                self.fail(field)
+        elif spec == "youtube":
+            if not youtube_video_id(value):
                 self.fail(field)
         else:  # pragma: no cover - a schema typo, not a source defect
             raise AssertionError(spec)
         return value
+
+
+def youtube_video_id(url: str) -> str:
+    """The video id of an https youtube.com / youtu.be video link, else ``""``."""
+
+    parsed = urlsplit(url)
+    if parsed.scheme != "https" or parsed.username or parsed.password or parsed.port:
+        return ""
+    host = (parsed.hostname or "").removeprefix("www.")
+    candidate = ""
+    if host == "youtu.be":
+        candidate = parsed.path.strip("/")
+    elif host in {"youtube.com", "m.youtube.com"}:
+        if parsed.path == "/watch":
+            candidate = dict(parse_qsl(parsed.query)).get("v", "")
+        else:
+            prefix, _, rest = parsed.path.strip("/").partition("/")
+            if prefix in {"embed", "live", "shorts"}:
+                candidate = rest
+    return candidate if _YOUTUBE_ID.fullmatch(candidate) else ""
+
+
+def _video(data: dict[str, Any]) -> dict[str, str] | None:
+    video_id = youtube_video_id(data["recording"]) if data.get("recording") else ""
+    if not video_id:
+        return None
+    return {
+        "id": video_id,
+        "watch_url": f"https://www.youtube.com/watch?v={video_id}",
+        "embed_url": f"https://www.youtube-nocookie.com/embed/{video_id}?rel=0",
+    }
 
 
 def _files(checkout) -> frozenset[str]:
@@ -655,6 +701,8 @@ def parse_page(checkout, relative: str, files: frozenset[str]) -> dict[str, Any]
         "og_image": f"/{data['og_image']}" if data.get("og_image") else "",
         "sitemap": data.get("sitemap"),
         "noindex": data.get("noindex", False),
+        # The recording a recap embeds, derived from its ``recording`` link.
+        "video": _video(data),
         "data": data,
         "body": body.strip(),
         "checksum": checksum,

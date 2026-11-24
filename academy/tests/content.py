@@ -19,6 +19,7 @@ import yaml
 PNG = b"\x89PNG\r\n\x1a\nsynthetic"
 JPEG = b"\xff\xd8\xffsynthetic\xff\xd9"
 SVG = b"<svg xmlns='http://www.w3.org/2000/svg'></svg>"
+PDF = b"%PDF-1.4\nsynthetic\n%%EOF\n"
 
 LINK = {"label": "Synthetic link", "href": "/academy/faq/"}
 CONTACT = "test@example.invalid"
@@ -542,6 +543,7 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
                 "items": [{"question": "Synthetic recap question?", "answer": "Synthetic answer."}],
             },
             "join": {"heading": "Synthetic recap closing", "text": "Synthetic recap closing text."},
+            "slides": "images/academy/slides/session-1.pdf",
         },
         "## Synthetic recap section\n\n"
         "Synthetic recap body with [a program](/academy/ai-engineering/).\n\n"
@@ -615,6 +617,7 @@ IMAGES = {
     "images/academy/og/ai-engineering.png": PNG,
     "images/academy/og/sessions.png": PNG,
     "images/academy/qr/session-1.svg": SVG,
+    "images/academy/slides/session-1.pdf": PDF,
 }
 
 

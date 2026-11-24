@@ -57,6 +57,7 @@ def _event(session: Mapping[str, Any], page: Mapping[str, Any]) -> list[str]:
         f"DTSTAMP:{calendar['stamp']}",
         f"DTSTART:{_stamp(session['starts'])}",
         f"DTEND:{_stamp(session['ends'])}",
+        *([f"SEQUENCE:{session['sequence']}"] if session.get("sequence") else []),
         f"SUMMARY:{_escape(title)}",
         f"DESCRIPTION:{_escape(description)}",
         f"LOCATION:{_escape(session['zoom_url'])}",
