@@ -952,8 +952,8 @@ section, is the blueprint in `_docs/design/landing-pages.md`.
 - **The hero is the course family hero's title block**: heading and a 2-3
   sentence lede, one primary action (the waitlist, or "Choose my sessions"),
   one credibility line (portrait and sentence), and the key facts at its foot
-  as the courses index's `.stat-tiles` (value over label), two rows of
-  three. Only the home hero carries a
+  as the compact `.spec-strip` a course family landing closes its title block
+  with (label over value), two rows of three. Only the home hero carries a
   drawing (light/dark `.doodle-variants`, dropped below 48rem as the homepage
   hero drops its own). No form, link list or status pill beside or above the
   copy.
