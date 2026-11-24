@@ -9,17 +9,21 @@ owner's rule: it must not be possible to have one.
 The rule is enforced where events are written, never patched over where they
 are read:
 
-* Studio and the management API (``events.admin_services``) refuse to publish an
-  event that lacks either, and refuse an edit that would strip either from a
-  published one;
-* provider discovery (``scripts/prod/import_events.py``) mints new identities as
-  drafts, and an ingest leg publishes one only once it is complete;
-* the event ingest pipeline fails its whole run if it would leave any published
-  event incomplete, and ``scripts/verify_local_dataset.py`` refuses such a
-  dataset.
+* ``events.identity.create_event_identity`` is the only code that creates an
+  event, and it refuses one without a type or a speaker -- draft or not -- and
+  writes the row and its speakers in one transaction
+  (``events/tests/test_event_creation_paths.py`` keeps it the only path);
+* Studio and the management API (``events.admin_services``) create through it,
+  and refuse an edit that would strip either from any event;
+* provider discovery (``scripts/prod/import_events.py``) creates an event only
+  when a reviewed source names its type and speakers, and reports the rest;
+* the event ingest pipeline fails its whole run if any published event is
+  incomplete, and ``scripts/verify_local_dataset.py`` refuses such a dataset --
+  which is how rows written before the rule are found.
 
-The two pieces live on different tables (the type rides in ``Event.tags``, the
-speakers are ``EventHost`` rows), so a database constraint cannot express it.
+The type rides in ``Event.tags`` and the speakers are ``EventHost`` rows on a
+model the shared ``community_base`` package owns, so no column constraint can
+express the rule on its own.
 """
 
 from __future__ import annotations

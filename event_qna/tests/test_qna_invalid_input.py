@@ -26,6 +26,8 @@ from events.identity import create_event_identity
 class InvalidInputTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Invalid input test event",
             source_repository="DataTalksClub/events",
             source_revision="c" * 40,

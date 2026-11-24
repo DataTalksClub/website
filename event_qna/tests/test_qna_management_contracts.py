@@ -36,6 +36,8 @@ from management_auth.services import create_principal, issue_credential_once
 class ManagementContractTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Adapter contract test event",
             source_repository="DataTalksClub/events",
             source_revision="0" * 40,

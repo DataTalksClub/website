@@ -46,6 +46,8 @@ class EventIdentityTests(TestCase):
         # tied to how many events the fixture happens to carry.
         expected_first_public_id = EventPublicIdSequence.objects.get(pk=1).next_public_id
         first = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Identity fixture",
             source_repository="DataTalksClub/test",
             source_revision="a" * 40,
@@ -56,6 +58,8 @@ class EventIdentityTests(TestCase):
         self.assertEqual(first_public_id, expected_first_public_id)
         first.delete()
         second = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Second identity fixture",
             source_repository="DataTalksClub/test",
             source_revision="a" * 40,
@@ -74,6 +78,8 @@ class EventIdentityTests(TestCase):
 
     def test_title_change_updates_only_cosmetic_slug(self) -> None:
         event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Identity fixture",
             source_repository="DataTalksClub/test",
             source_revision="a" * 40,
@@ -215,6 +221,8 @@ class EventIdentityRouteTests(TestCase):
 
     def test_long_event_slug_uses_short_canonical_and_stale_slug_redirects(self) -> None:
         event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title=(
                 "How to work with AI coding agents: spec-driven development "
                 "context and loop engineering workflows"

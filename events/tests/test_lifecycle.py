@@ -89,6 +89,8 @@ class DerivedStatusBoundaryTests(SimpleTestCase):
 class DerivedStatusQueryTests(TestCase):
     def _make(self, title: str, status: str, start: datetime, end: datetime | None) -> Event:
         event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title=title,
             starts_at=start,
             ends_at=end,
@@ -155,6 +157,8 @@ class ReadersUseTheDerivedStatusTests(TestCase):
         """A long-past event still stored as ``upcoming``, as production holds 466 of."""
 
         return create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Deploying models with AWS Sagemaker",
             starts_at=datetime(2020, 11, 10, 17, 0, tzinfo=UTC),
             source_repository="DataTalksClub/test",
@@ -166,6 +170,8 @@ class ReadersUseTheDerivedStatusTests(TestCase):
     def _future_event(self) -> Event:
         start = timezone.now() + timedelta(days=3)
         return create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Future lifecycle webinar",
             starts_at=start,
             ends_at=start + HOUR,

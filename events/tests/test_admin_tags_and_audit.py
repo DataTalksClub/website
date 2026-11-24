@@ -40,6 +40,7 @@ def _payload(**overrides: object) -> dict[str, object]:
     payload: dict[str, object] = {
         "title": "Audit Webinar",
         "type": "webinar",
+        "speakers": ["synthetic-rich-profile"],
         "description": "Talking about audits.",
         "start_datetime": start.isoformat(),
         "end_datetime": (start + timedelta(hours=1)).isoformat(),

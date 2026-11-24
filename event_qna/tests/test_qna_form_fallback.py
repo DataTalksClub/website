@@ -22,6 +22,8 @@ from events.identity import create_event_identity
 class EventQnaFormFallbackTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Form fallback test event",
             source_repository="DataTalksClub/events",
             source_revision="e" * 40,

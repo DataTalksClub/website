@@ -28,6 +28,8 @@ from management_auth.services import create_principal, issue_credential_once
 class PrincipalNamespaceIsolationTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Idempotency namespace test event",
             source_repository="DataTalksClub/events",
             source_revision="d" * 40,

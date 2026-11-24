@@ -62,6 +62,8 @@ def _embedded_config(response) -> dict[str, Any]:
 class PublicConfigContractTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Public config test event",
             source_repository="DataTalksClub/events",
             source_revision="3" * 40,

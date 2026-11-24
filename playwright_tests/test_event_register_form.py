@@ -24,6 +24,7 @@ SCREENSHOTS = Path(".tmp/screenshots/event-register-form")
 
 def _event_path(*, title: str, days: int) -> str:
     event = create_event_identity(
+        speakers=[("synthetic-speaker", "Synthetic Speaker")],
         title=title,
         starts_at=timezone.now() + timedelta(days=days),
         source_repository="synthetic/event-register-form",

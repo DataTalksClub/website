@@ -47,26 +47,38 @@ class AdminPublicationRuleTests(_WithSpeaker):
         before = Event.objects.count()
         with self.assertRaises(EventAdminError) as caught:
             create_event(_payload(speakers=[]))
-        self.assertEqual(caught.exception.code, "event_not_publishable")
+        self.assertEqual(caught.exception.code, "event_speakers_required")
         self.assertIn("speakers", str(caught.exception))
         self.assertEqual(Event.objects.count(), before)
 
     def test_create_and_publish_without_a_type_is_refused(self) -> None:
         with self.assertRaises(EventAdminError) as caught:
             create_event(_payload(type=None))
-        self.assertEqual(caught.exception.code, "event_not_publishable")
+        self.assertEqual(caught.exception.code, "event_type_required")
         self.assertIn("type", str(caught.exception))
 
-    def test_an_incomplete_draft_is_allowed_but_cannot_be_published(self) -> None:
-        draft = create_event(_payload(speakers=[], publish=False))["event"]
-        self.assertEqual(draft["status"], "draft")
-        with self.assertRaises(EventAdminError):
-            publish_event_action(event_id=draft["id"])
-        self.assertEqual(Event.objects.get(content_id=draft["id"]).status, "draft")
+    def test_not_even_a_draft_can_be_created_without_a_type_or_a_speaker(self) -> None:
+        before = Event.objects.count()
+        with self.assertRaises(EventAdminError) as no_speaker:
+            create_event(_payload(speakers=[], publish=False))
+        with self.assertRaises(EventAdminError) as no_type:
+            create_event(_payload(type=None, publish=False))
+        self.assertEqual(no_speaker.exception.code, "event_speakers_required")
+        self.assertEqual(no_type.exception.code, "event_type_required")
+        self.assertEqual(Event.objects.count(), before)
 
-        update_event({"speakers": ["alexeygrigorev"]}, event_id=draft["id"])
+    def test_a_complete_draft_publishes_later(self) -> None:
+        draft = create_event(_payload(publish=False))["event"]
+        self.assertEqual(draft["status"], "draft")
         published = publish_event_action(event_id=draft["id"])["event"]
         self.assertEqual(published["status"], "upcoming")
+
+    def test_an_edit_cannot_strip_the_type_or_speakers_from_a_draft(self) -> None:
+        draft = create_event(_payload(publish=False))["event"]
+        with self.assertRaises(EventAdminError):
+            update_event({"speakers": []}, event_id=draft["id"])
+        with self.assertRaises(EventAdminError):
+            update_event({"type": ""}, event_id=draft["id"])
 
     def test_an_edit_cannot_strip_the_type_or_speakers_from_a_published_event(self) -> None:
         event = create_event(_payload())["event"]
@@ -81,6 +93,8 @@ class AdminPublicationRuleTests(_WithSpeaker):
 class IncompletePublishedEventsTests(_WithSpeaker):
     def test_reports_published_events_missing_a_type_or_a_speaker_but_not_drafts(self) -> None:
         bare = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Bare Published Event",
             starts_at=timezone.now() + timedelta(days=3),
             source_repository="synthetic/source",
@@ -88,6 +102,8 @@ class IncompletePublishedEventsTests(_WithSpeaker):
             source_key="bare-published",
         )
         create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Bare Draft Event",
             starts_at=timezone.now() + timedelta(days=3),
             source_repository="synthetic/source",
@@ -96,6 +112,13 @@ class IncompletePublishedEventsTests(_WithSpeaker):
             status="draft",
         )
         create_event(_payload(title="Complete Published Event"))
+        # Rows written before every event had to carry both -- the shape the
+        # report exists to find.
+        for title in ("Bare Published Event", "Bare Draft Event"):
+            row = Event.objects.get(title=title)
+            row.tags = []
+            row.save(update_fields=["tags"])
+            row.event_host_links.all().delete()
 
         mine = {"Bare Published Event", "Bare Draft Event", "Complete Published Event"}
         incomplete = [item for item in incomplete_published_events() if item["title"] in mine]
@@ -132,3 +155,38 @@ class PublishAvoidsSeriesEnrolmentLockTests(_WithSpeaker):
             published = publish_event_action(event_id=created["id"])["event"]
         self.assertEqual(published["status"], "upcoming")
         self.assertIsNotNone(published["public_id"])
+
+
+class CreationServiceTests(TestCase):
+    """The one creation path refuses an event without a type or a speaker."""
+
+    def _create(self, **overrides: object) -> Event:
+        values: dict[str, object] = {
+            "title": "Creation Rule Event",
+            "event_type": "podcast",
+            "speakers": [("synthetic-speaker", "Synthetic Speaker")],
+            "source_repository": "synthetic/source",
+            "source_revision": "r1",
+            "source_key": "creation-rule",
+        }
+        values.update(overrides)
+        return create_event_identity(**values)  # type: ignore[arg-type]
+
+    def test_an_event_exists_with_its_type_and_speakers_from_the_start(self) -> None:
+        event = self._create()
+        self.assertEqual(publication_gaps(event), ())
+
+    def test_no_type_or_no_speaker_writes_nothing(self) -> None:
+        from events.identity import EventIdentityError
+
+        before = Event.objects.count()
+        for overrides, code in (
+            ({"event_type": None}, "event_type_required"),
+            ({"event_type": "  "}, "event_type_required"),
+            ({"speakers": []}, "event_speakers_required"),
+            ({"speakers": [("", "Nobody")]}, "event_speaker_key_blank"),
+        ):
+            with self.subTest(code=code), self.assertRaises(EventIdentityError) as caught:
+                self._create(**overrides)
+            self.assertEqual(str(caught.exception), code)
+        self.assertEqual(Event.objects.count(), before)

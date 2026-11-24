@@ -138,7 +138,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-llm-deep-dive",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2026-01-29T00:00:00+00:00",
   "title": "Synthetic LLM Deep Dive",
   "type": "webinar"
@@ -282,7 +288,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-office-hours-session",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2026-02-26T00:00:00+00:00",
   "title": "Synthetic Office Hours Session",
   "type": "webinar"
@@ -426,7 +438,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-001",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-01-04T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 001",
   "type": "workshop"
@@ -450,7 +468,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-002",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-01-07T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 002",
   "type": "podcast"
@@ -474,7 +498,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-003",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-01-10T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 003",
   "type": "conference"
@@ -498,7 +528,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-004",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-01-13T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 004",
   "type": "webinar"
@@ -522,7 +558,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-005",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-01-16T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 005",
   "type": "workshop"
@@ -546,7 +588,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-006",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-01-19T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 006",
   "type": "podcast"
@@ -570,7 +618,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-007",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-01-22T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 007",
   "type": "conference"
@@ -594,7 +648,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-008",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-01-25T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 008",
   "type": "webinar"
@@ -618,7 +678,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-009",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-01-28T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 009",
   "type": "workshop"
@@ -642,7 +708,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-010",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-01-31T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 010",
   "type": "podcast"
@@ -666,7 +738,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-011",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-02-03T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 011",
   "type": "conference"
@@ -690,7 +768,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-012",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-02-06T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 012",
   "type": "webinar"
@@ -714,7 +798,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-013",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-02-09T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 013",
   "type": "workshop"
@@ -738,7 +828,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-014",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-02-12T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 014",
   "type": "podcast"
@@ -762,7 +858,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-015",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-02-15T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 015",
   "type": "conference"
@@ -786,7 +888,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-016",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-02-18T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 016",
   "type": "webinar"
@@ -810,7 +918,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-017",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-02-21T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 017",
   "type": "workshop"
@@ -834,7 +948,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-018",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-02-24T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 018",
   "type": "podcast"
@@ -858,7 +978,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-019",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-02-27T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 019",
   "type": "conference"
@@ -882,7 +1008,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-020",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-03-02T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 020",
   "type": "webinar"
@@ -906,7 +1038,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-021",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-03-05T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 021",
   "type": "workshop"
@@ -930,7 +1068,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-022",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-03-08T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 022",
   "type": "podcast"
@@ -954,7 +1098,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-023",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-03-11T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 023",
   "type": "conference"
@@ -978,7 +1128,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-024",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-03-14T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 024",
   "type": "webinar"
@@ -1002,7 +1158,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-025",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-03-17T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 025",
   "type": "workshop"
@@ -1026,7 +1188,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-026",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-03-20T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 026",
   "type": "podcast"
@@ -1050,7 +1218,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-027",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-03-23T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 027",
   "type": "conference"
@@ -1074,7 +1248,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-028",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-03-26T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 028",
   "type": "webinar"
@@ -1098,7 +1278,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-029",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-03-29T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 029",
   "type": "workshop"
@@ -1122,7 +1308,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-030",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-04-01T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 030",
   "type": "podcast"
@@ -1146,7 +1338,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-031",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-04-04T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 031",
   "type": "conference"
@@ -1170,7 +1368,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-032",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-04-07T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 032",
   "type": "webinar"
@@ -1194,7 +1398,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-033",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-04-10T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 033",
   "type": "workshop"
@@ -1218,7 +1428,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-034",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-04-13T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 034",
   "type": "podcast"
@@ -1242,7 +1458,13 @@
   "record_schema_version": 2,
   "season": null,
   "slug": "synthetic-bulk-past-event-035",
-  "speakers": [],
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
   "starts_at": "2025-04-16T00:00:00+00:00",
   "title": "Synthetic Bulk Past Event 035",
   "type": "conference"

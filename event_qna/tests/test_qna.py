@@ -20,6 +20,8 @@ from management_auth.services import create_principal, issue_credential_once
 class EventQnaServiceTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Native Q&A test event",
             source_repository="DataTalksClub/events",
             source_revision="a" * 40,
@@ -104,6 +106,8 @@ class EventQnaServiceTests(TestCase):
 class EventQnaHttpTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="HTTP Q&A test event",
             source_repository="DataTalksClub/events",
             source_revision="b" * 40,
@@ -217,6 +221,8 @@ class EventQnaHttpTests(TestCase):
 class EventQnaManagementTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Management Q&A test event",
             source_repository="DataTalksClub/events",
             source_revision="c" * 40,

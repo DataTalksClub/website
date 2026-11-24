@@ -40,6 +40,8 @@ def _qna_urls(event: Any) -> dict[str, str]:
 class PublicModerationTestBase(TestCase):
     def make_event(self):
         event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Public moderation test event",
             source_repository="DataTalksClub/events",
             source_revision=uuid.uuid4().hex,

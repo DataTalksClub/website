@@ -34,7 +34,13 @@ from event_registrants.models import (
     EventRegistrationMeta,
 )
 
-from .identity import decode_event_tags, encode_event_tags, host_profile_url, package_kind_for_type
+from .identity import (
+    create_event_identity,
+    decode_event_tags,
+    encode_event_tags,
+    host_profile_url,
+    package_kind_for_type,
+)
 from .lifecycle import (
     ARCHIVED,
     CANCELLED,
@@ -540,33 +546,46 @@ def create_event(
         }
     )
 
-    event = Event.objects.create(
-        content_id=uuid.uuid4(),
-        slug=slug,
-        title=title,
-        description=description,
-        description_html=_render_markdown(description),
-        kind=kind,
-        platform=platform,
-        start_datetime=start_dt,
-        end_datetime=end_dt,
-        timezone=tz_name,
-        location=location,
-        zoom_join_url=zoom_join_url,
-        recording_url=recording_url,
-        tags=_encode_all_tags(
-            event_type=event_type,
-            season=season,
-            episode=episode,
-            display_tags=display_tags,
-        ),
-        materials=materials,
-        status="draft",
-    )
+    # Every event has a type and a speaker from the moment it exists, draft or
+    # not (events.identity.create_event_identity is the only creation path).
+    if event_type is None:
+        raise EventAdminError(
+            "type is required: every event needs a type.", code="event_type_required"
+        )
+    speaker_shorts = data.get("speakers")
+    if not isinstance(speaker_shorts, list) or not [
+        item for item in speaker_shorts if str(item).strip()
+    ]:
+        raise EventAdminError(
+            "speakers is required: every event needs at least one speaker.",
+            code="event_speakers_required",
+        )
+    hosts = [_resolve_or_create_speaker(str(item)) for item in speaker_shorts if str(item).strip()]
+    _reject_cyrillic({"tags": [str(tag).strip() for tag in display_tags if str(tag).strip()]})
 
-    speakers = data.get("speakers")
-    if isinstance(speakers, list):
-        _sync_event_speakers(event, [str(item) for item in speakers])
+    event = create_event_identity(
+        title=title,
+        event_type=event_type,
+        speakers=hosts,
+        starts_at=start_dt,
+        ends_at=end_dt,
+        season=season,
+        episode=episode,
+        display_tags=display_tags,
+        status="draft",
+        fields={
+            "slug": slug,
+            "description": description,
+            "description_html": _render_markdown(description),
+            "kind": kind,
+            "platform": platform,
+            "timezone": tz_name,
+            "location": location,
+            "zoom_join_url": zoom_join_url,
+            "recording_url": recording_url,
+            "materials": materials,
+        },
+    )
 
     reminders_enabled, reminder_intervals = _normalize_reminder_intervals(
         data.get("reminder_intervals")
@@ -703,9 +722,9 @@ def update_event(
 
     if data.get("publish") is True and event.status == "draft":
         event = _publish(event)
-    elif is_published(event):
-        # An edit may not strip the type or the last speaker from a published
-        # event; the transaction rolls the whole edit back.
+    else:
+        # An edit may not strip the type or the last speaker from any event,
+        # draft or published; the transaction rolls the whole edit back.
         try:
             require_publishable(event)
         except EventNotPublishable as exc:

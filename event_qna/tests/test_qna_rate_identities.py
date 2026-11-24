@@ -46,6 +46,8 @@ def _seed_ip_bucket(scope: str, ip: str, *, window_seconds: int, hits: int) -> N
 class RateIdentityTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Rate identity test event",
             source_repository="DataTalksClub/events",
             source_revision="e" * 40,
@@ -120,6 +122,8 @@ class RateIdentityTests(TestCase):
 
     def test_cohost_redemption_is_one_global_ip_budget_across_events(self) -> None:
         other = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Rate identity second event",
             source_repository="DataTalksClub/events",
             source_revision="f" * 40,

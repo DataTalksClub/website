@@ -82,6 +82,8 @@ class StudioDesignFiveAShellTests(TestCase):
             metadata={"summary": "Fixture for the Studio design system shell contract."},
         )
         cls.event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Shell Contract Event",
             source_repository="DataTalksClub/shell-contract",
             source_revision="a" * 40,

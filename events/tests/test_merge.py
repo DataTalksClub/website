@@ -55,6 +55,8 @@ def _identity(label: str) -> EventRegistrantIdentity:
 class MergeFixture(TestCase):
     def setUp(self) -> None:
         self.keep = create_event_identity(
+            event_type="podcast",
+            speakers=[("speakerone", "Speaker One")],
             title="Machine Learning Engineering in Finance",
             starts_at=datetime(2024, 1, 15, 16, 0, tzinfo=UTC),
             source_repository=LEGACY_REPOSITORY,
@@ -64,18 +66,21 @@ class MergeFixture(TestCase):
         self.keep.description_html = "<p>A reviewed description.</p>"
         self.keep.description = "A reviewed description."
         self.keep.save(update_fields=["description_html", "description", "updated_at"])
-        speaker = Host.objects.create(
-            name="Speaker One", slug="speakerone", external_ref="speakerone"
-        )
-        EventHost.objects.create(event=self.keep, host=speaker, role="speaker", position=0)
 
         self.duplicate = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Machine Learning Engineering in Finances",
             starts_at=datetime(2024, 1, 15, 11, 30, tzinfo=UTC),
             source_repository=LUMA_REPOSITORY,
             source_revision=LUMA_REVISION,
             source_key="evt-Synthetic1",
         )
+        # The duplicate is shaped like the Luma rows written before every event
+        # had to carry a type and a speaker: neither.
+        self.duplicate.tags = []
+        self.duplicate.save(update_fields=["tags"])
+        self.duplicate.event_host_links.all().delete()
         self.identities = [_identity(f"person-{index}") for index in range(3)]
         for identity in self.identities:
             EventRegistration.objects.create(
@@ -213,6 +218,8 @@ class ApplyTests(MergeFixture):
     def test_a_chain_of_merges_repoints_the_earlier_merge(self) -> None:
         merge_pair(self.pair, apply=True)
         survivor = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="The Real Survivor",
             starts_at=datetime(2024, 1, 15, 16, 0, tzinfo=UTC),
             source_repository=LEGACY_REPOSITORY,
@@ -291,6 +298,8 @@ class RefusalTests(MergeFixture):
         # Created here rather than read from seeded reference data, which only
         # the SQLite harness loads.
         other = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="A Different Event",
             starts_at=datetime(2024, 1, 15, 16, 0, tzinfo=UTC),
             source_repository=LEGACY_REPOSITORY,
@@ -304,6 +313,8 @@ class RefusalTests(MergeFixture):
 
     def test_an_error_mid_run_names_the_pairs_already_committed(self) -> None:
         second = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="A Second Event",
             starts_at=datetime(2024, 2, 1, 16, 0, tzinfo=UTC),
             source_repository=LEGACY_REPOSITORY,
@@ -311,6 +322,8 @@ class RefusalTests(MergeFixture):
             source_key="2024-02-01-a-second-event",
         )
         second_duplicate = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="A Second Event",
             starts_at=datetime(2024, 2, 1, 11, 30, tzinfo=UTC),
             source_repository=LUMA_REPOSITORY,
@@ -399,6 +412,8 @@ class RetiredUrlTests(MergeFixture):
 
         with self.assertRaisesMessage(EventIdentityError, "event_public_id_retired"):
             create_event_identity(
+                event_type="webinar",
+                speakers=[("synthetic-speaker", "Synthetic Speaker")],
                 title="Someone Else",
                 source_repository=LEGACY_REPOSITORY,
                 source_revision="a" * 40,
@@ -432,7 +447,11 @@ class MergedSourceIdentityTests(MergeFixture):
 
         with self.assertRaisesMessage(EventIdentityError, "source_identity_merged"):
             create_provider_event_identity(
-                provider="luma", external_event_identifier="evt-Synthetic1", title="Again"
+                event_type="webinar",
+                speakers=[("synthetic-speaker", "Synthetic Speaker")],
+                provider="luma",
+                external_event_identifier="evt-Synthetic1",
+                title="Again",
             )
 
     def test_discovery_treats_the_merged_provider_event_as_already_tracked(self) -> None:
@@ -555,7 +574,19 @@ class LumaStartTimeBoundaryTests(TestCase):
                 }
             )
 
-        discover_new_luma_event_identities(luma_source=self.root, apply=True)
+        events_yaml = Path(settings.BASE_DIR) / ".tmp" / f"winter-{self.id()}.yaml"
+        events_yaml.write_text(
+            "- time: 2024-01-15 12:30:00\n"
+            "  title: 'A Winter Podcast Nobody Else Has'\n"
+            "  type: podcast\n"
+            "  speakers: [synthetic-speaker]\n"
+            "  link: https://luma.com/winter\n",
+            encoding="utf-8",
+        )
+        self.addCleanup(events_yaml.unlink)
+        discover_new_luma_event_identities(
+            luma_source=self.root, apply=True, events_yaml=events_yaml
+        )
 
         source = provider_source_identity(
             provider="luma", external_event_identifier="evt-WinterTime"

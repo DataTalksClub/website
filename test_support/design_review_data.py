@@ -53,10 +53,8 @@ QNA_REVIEW_EVENT_PUBLIC_ID = 1
 def ensure_checked_event_identity_snapshot() -> Event:
     """Restore the complete checked identity map after transactional test flushes.
 
-    The product importer also provisions one durable Q&A job per identity. Rendered
-    review tests need only the normal public-route mapping, so test support inserts
-    missing checked identity rows directly and leaves jobs, aliases, and projection
-    files untouched.
+    Missing checked identity rows are created through the one event creation
+    path, with the type and speakers the synthetic content fixture names.
     """
 
     manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
@@ -67,7 +65,8 @@ def ensure_checked_event_identity_snapshot() -> Event:
         for event in existing.values()
         if event.public_id is not None
     }
-    missing: list[Event] = []
+    from events.identity import create_event_identity
+
     for item in manifest.events:
         current = existing.get(item.id)
         if current is not None:
@@ -81,24 +80,23 @@ def ensure_checked_event_identity_snapshot() -> Event:
         if item.public_id in existing_public_ids:
             raise RuntimeError("checked public event ID conflicts with test DB")
         record = schedules[str(item.id)]
-        missing.append(
-            Event(
-                content_id=item.id,
-                public_id=item.public_id,
-                title=item.title,
-                slug=item.slug,
-                status="upcoming",
-                start_datetime=datetime.fromisoformat(record["starts_at"]),
-                end_datetime=(
-                    datetime.fromisoformat(record["ends_at"]) if record.get("ends_at") else None
-                ),
-                source_repo=item.source.repository,
-                source_path=item.source_path,
-                source_commit=item.source.revision,
-            )
+        # Through the one creation path: no event exists without a type and a
+        # speaker (events.identity.create_event_identity).
+        create_event_identity(
+            title=item.title,
+            event_type=record.get("type"),
+            speakers=[(speaker["key"], speaker["name"]) for speaker in record["speakers"]],
+            starts_at=datetime.fromisoformat(record["starts_at"]),
+            ends_at=datetime.fromisoformat(record["ends_at"]) if record.get("ends_at") else None,
+            source_repository=item.source.repository,
+            source_revision=item.source.revision,
+            source_key=item.source.source_key,
+            source_path=item.source_path,
+            source_checksum=item.source_checksum,
+            event_id=item.id,
+            public_id=item.public_id,
+            provision_qna=False,
         )
-    if missing:
-        Event.objects.bulk_create(missing)
     return Event.objects.get(public_id=QNA_REVIEW_EVENT_PUBLIC_ID)
 
 

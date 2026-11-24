@@ -23,6 +23,8 @@ from events.identity import create_event_identity
 class EventQnaLifecycleEtagTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Lifecycle ETag test event",
             source_repository="DataTalksClub/events",
             source_revision="c" * 40,
@@ -80,6 +82,8 @@ class EventQnaLifecycleEtagTests(TestCase):
 class EventQnaLifecyclePollContractTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Lifecycle poll test event",
             source_repository="DataTalksClub/events",
             source_revision="d" * 40,

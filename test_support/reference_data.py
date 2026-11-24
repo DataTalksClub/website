@@ -88,65 +88,41 @@ def event_schedules() -> dict[str, dict]:
 
 
 def load_event_identities() -> int:
-    """Insert the synthetic event rows exactly as they are checked in.
+    """Create the synthetic event rows through the one event creation path.
 
     Each manifest identity becomes one shared ``events.Event`` row (its
     ``content_id`` is the site identity UUID) plus one ``content.EventSource``
-    provenance row, scheduled from the synthetic content fixture.
+    provenance row, scheduled from the synthetic content fixture and created
+    with the type and speakers that fixture names -- no event exists without
+    them (:func:`events.identity.create_event_identity`).
     """
 
-    from community_base.events.models import Event
-
-    from content.models import EventSource
-    from events.identity import (
-        encode_event_tags,
-        ensure_public_id_sequence,
-        package_kind_for_type,
-    )
+    from events.identity import create_event_identity, ensure_public_id_sequence
     from scripts.prod.identity_manifest import load_identity_manifest
 
     manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
     schedules = event_schedules()
-    events = []
-    sources = []
     for item in manifest.events:
         record = schedules[str(item.id)]
-        starts_at = datetime.fromisoformat(record["starts_at"])
-        ends_at = datetime.fromisoformat(record["ends_at"]) if record.get("ends_at") else None
-        events.append(
-            Event(
-                content_id=item.id,
-                public_id=item.public_id,
-                title=item.title,
-                slug=item.slug,
-                status="upcoming",
-                start_datetime=starts_at,
-                end_datetime=ends_at,
-                kind=package_kind_for_type(record.get("type")),
-                tags=encode_event_tags(
-                    event_type=record.get("type"),
-                    season=record.get("season"),
-                    episode=record.get("episode"),
-                ),
-                source_repo=item.source.repository,
-                source_path=item.source_path,
-                source_commit=item.source.revision,
-            )
+        create_event_identity(
+            title=item.title,
+            event_type=record.get("type"),
+            speakers=[(speaker["key"], speaker["name"]) for speaker in record["speakers"]],
+            starts_at=datetime.fromisoformat(record["starts_at"]),
+            ends_at=datetime.fromisoformat(record["ends_at"]) if record.get("ends_at") else None,
+            season=record.get("season"),
+            episode=record.get("episode"),
+            source_repository=item.source.repository,
+            source_revision=item.source.revision,
+            source_key=item.source.source_key,
+            source_path=item.source_path,
+            source_checksum=item.source_checksum,
+            event_id=item.id,
+            public_id=item.public_id,
+            provision_qna=False,
         )
-        sources.append(
-            EventSource(
-                event=events[-1],
-                repository=item.source.repository,
-                revision=item.source.revision,
-                source_key=item.source.source_key,
-                source_path=item.source_path,
-                source_checksum=item.source_checksum,
-            )
-        )
-    Event.objects.bulk_create(events)
-    EventSource.objects.bulk_create(sources)
     ensure_public_id_sequence()
-    return len(events)
+    return len(manifest.events)
 
 
 def load_event_content() -> int:

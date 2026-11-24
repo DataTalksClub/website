@@ -41,6 +41,8 @@ def _seed_bucket(scope: str, *, window_seconds: int, started_at: datetime, hits:
 class RetentionContractTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            event_type="webinar",
+            speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Retention contract test event",
             source_repository="DataTalksClub/events",
             source_revision="0" * 40,
