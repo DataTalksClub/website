@@ -223,6 +223,14 @@ class EventAdminAPITests(TestCase):
         self.assertEqual(cancel_resp.json()["event"]["status"], "cancelled")
 
     def test_draft_publish_and_complete(self) -> None:
+        # Only an event with a type and a speaker can be published.
+        speaker = self.client.post(
+            "/api/v1/admin/events/speakers",
+            data=json.dumps({"short": "alexeygrigorev", "name": "Alexey Grigorev"}),
+            content_type="application/json",
+            headers=self.auth_headers,
+        )
+        self.assertEqual(speaker.status_code, 201, speaker.content)
         start = (timezone.now() + timedelta(days=30)).replace(microsecond=0)
         resp = self.client.post(
             "/api/v1/admin/events",
@@ -232,6 +240,7 @@ class EventAdminAPITests(TestCase):
                     "type": "podcast",
                     "season": 20,
                     "episode": 5,
+                    "speakers": ["alexeygrigorev"],
                     "start_datetime": start.isoformat(),
                     "publish": False,
                 }
