@@ -33,7 +33,6 @@
 
 {% block page_header %}
   <div class="academy-landing shell-breakout">
-    {% include "academy/_bar.html" %}
     <div class="academy-hero-copy">
       {% comment %}
         The Academy bar already names the Academy; an eyebrow repeating it is dropped.
@@ -146,7 +145,7 @@
     </section>
 
     <section class="academy-section" aria-labelledby="join-heading">
-      <div class="panel panel-mint panel-outlined academy-closing academy-closing-action">
+      <div class="panel panel-mint panel-outlined academy-closing academy-closing-stacked">
         <div class="academy-closing-copy">
           <h2 id="join-heading">{{ data.join.heading }}</h2>
           <p>{{ data.join.text }}</p>

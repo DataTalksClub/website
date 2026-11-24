@@ -16,6 +16,17 @@
         --page: var(--lavender);
       }
 
+      /* Every Academy page — landings, FAQ, guides, legal, the QR form —
+         sits in the ordinary content column, so the Academy bar and the page
+         edges stay put between pages, and blocks fill that column instead of
+         stopping at the prose measure and leaving a dead strip on the right
+         (owner feedback 2026-11-24). */
+
+      .academy-landing.shell-breakout {
+        margin-inline: 0;
+        width: auto;
+      }
+
       /* The form primitives set their own display, which would otherwise win
          over the hidden attribute the forms toggle (errors, success states,
          the sticky bar). */
@@ -38,51 +49,6 @@
       .academy-pill {
         text-align: left;
         white-space: normal;
-      }
-
-      /* --- the Academy bar --------------------------------------------- */
-
-      .academy-bar {
-        align-items: center;
-        border-bottom: 2px dashed var(--line-soft);
-        display: grid;
-        gap: 0.75rem 1.5rem;
-        grid-template-columns: minmax(0, 1fr) auto;
-        margin-bottom: 2rem;
-        padding-bottom: 1.25rem;
-      }
-
-      .academy-bar-brand {
-        align-items: baseline;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0 0.85rem;
-        min-width: 0;
-      }
-
-      .academy-wordmark {
-        align-items: center;
-        color: var(--ink);
-        display: inline-flex;
-        font-size: 1.35rem;
-        font-weight: 800;
-        letter-spacing: -0.015em;
-        min-height: 2.75rem;
-        text-decoration: none;
-      }
-
-      .academy-wordmark:hover {
-        color: var(--indigo);
-      }
-
-      .academy-tagline {
-        color: var(--muted);
-        font-size: 0.92rem;
-        font-weight: 600;
-      }
-
-      .academy-bar-nav {
-        grid-column: 1 / -1;
       }
 
       /* --- the header ------------------------------------------------------ */
@@ -110,13 +76,11 @@
         font-size: 1.15rem;
         line-height: 1.6;
         margin-top: 1rem;
-        max-width: var(--measure);
       }
 
       .academy-note {
         color: var(--body-text);
         margin-top: 1rem;
-        max-width: var(--measure);
       }
 
       .academy-actions {
@@ -155,7 +119,6 @@
         display: flex;
         gap: 0.85rem;
         margin-top: 1.5rem;
-        max-width: var(--measure);
       }
 
       .academy-person img {
@@ -180,7 +143,6 @@
          reading measure, between the heading and the German lede. */
       .academy-english {
         margin-top: 1rem;
-        max-width: var(--measure);
       }
 
       /* --- the waitlist and session forms ------------------------------- */
@@ -347,13 +309,11 @@
 
       .academy-section .band-head p {
         color: var(--body-text);
-        max-width: var(--measure);
       }
 
       /* Running copy in a chapter stays at the reading measure even though
          the chapter spans the full shell. */
       .academy-section .prose {
-        max-width: var(--measure);
       }
 
       .academy-subhead {
@@ -366,7 +326,6 @@
         gap: 1rem;
         list-style: none;
         margin: 0;
-        max-width: var(--measure);
         padding: 0;
       }
 
@@ -413,8 +372,15 @@
         margin-block: 0.5rem 1.25rem;
       }
 
+      /* Six facts: two rows of three, never five and an orphan. */
       .academy-facts {
-        grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      @media (min-width: 40rem) {
+        .academy-facts {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
       }
 
       /* A program's facts close its title block, as a course's do. */
@@ -579,7 +545,7 @@
 
       .academy-section .row-list,
       .academy-reading .row-list {
-        max-width: 52rem;
+        max-width: none;
       }
 
       .academy-contact {
@@ -606,11 +572,17 @@
 
       .academy-closing-copy p {
         color: var(--body-text);
-        max-width: var(--measure);
       }
 
       .academy-closing-buttons {
         margin-top: 0;
+      }
+
+      /* Two actions (the German guide's one per program) do not fit beside
+         the copy without squeezing it into a sliver, so that panel stacks:
+         heading and text across the full width, the buttons in a row below. */
+      .academy-closing.academy-closing-stacked {
+        grid-template-columns: minmax(0, 1fr);
       }
 
       /* --- the free sessions --------------------------------------------- */
@@ -618,7 +590,6 @@
       .academy-hero-sessions {
         list-style: none;
         margin: 1.5rem 0 0;
-        max-width: var(--measure);
         padding: 0;
         --row-cols: 8.5rem minmax(0, 1fr);
       }
@@ -666,7 +637,6 @@
       .academy-session-body {
         display: grid;
         gap: 0.6rem;
-        max-width: var(--measure);
       }
 
       .academy-session-body h3 {
@@ -721,7 +691,7 @@
       /* --- reading pages ---------------------------------------------------- */
 
       .academy-reading {
-        max-width: 52rem;
+        max-width: none;
       }
 
       .academy-byline {
@@ -746,7 +716,6 @@
       .academy-confirm {
         display: grid;
         gap: 1rem;
-        max-width: var(--measure);
         padding: 1.5rem;
       }
 
@@ -788,7 +757,7 @@
       @media (min-width: 62rem) {
         .academy-hero-inner {
           align-items: start;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 26rem);
+          grid-template-columns: minmax(0, 1fr) minmax(0, 24rem);
         }
 
         .academy-hero-wide-form {
@@ -812,32 +781,6 @@
       /* --- narrow: reshape, not reflow ------------------------------------- */
 
       @media (max-width: 47.99rem) {
-        /* The bar keeps the wordmark beside its action (the tagline wraps
-           under the wordmark), and the section's pages become one swipeable
-           pill row instead of three wrapped rows above the heading.  The
-           row scrolls inside itself, so the page never scrolls sideways. */
-        .academy-bar {
-          align-items: start;
-          gap: 0.75rem 1rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .academy-bar-nav {
-          flex-wrap: nowrap;
-          overflow-x: auto;
-          padding-bottom: 0.35rem;
-          scrollbar-width: none;
-        }
-
-        .academy-bar-nav::-webkit-scrollbar {
-          display: none;
-        }
-
-        .academy-bar-nav .filter-pill {
-          flex: none;
-          white-space: nowrap;
-        }
-
         .academy-hero h1 {
           max-width: none;
         }

@@ -98,40 +98,17 @@ class AcademyPageTests(TestCase):
                 # The site-wide Academy stripe would link the page to itself.
                 self.assertNotIn("data-academy-cta", body)
 
-    def test_the_academy_bar_replaces_the_retired_header_and_footer(self) -> None:
-        tagline_pages = {
-            "/academy/",
-            "/academy/agentic-engineering/",
-            "/academy/ai-engineering/",
-            "/academy/faq/",
-            "/academy/bildungsgutschein/",
-            "/academy/confirm/",
-            "/academy/sessions/recap/",
-        }
+    def test_pages_carry_no_academy_bar_and_one_footer(self) -> None:
+        # The Academy sub-nav bar was removed (owner, 2026-11-24): the site
+        # masthead's Academy link and the pages' own links do the navigating.
         for path in ALL_PAGES:
             with self.subTest(path=path):
                 body = self.client.get(path).content.decode()
-                self.assertIn('class="academy-bar"', body)
-                self.assertIn('<a class="academy-wordmark" href="/academy/"', body)
-                self.assertIn("Synthetic wordmark", body)
-                self.assertIn('aria-label="Synthetic section"', body)
-                self.assertEqual("Synthetic tagline" in body, path in tagline_pages)
-                waitlist = (
-                    "#signup-hero"
-                    if path in {"/academy/", *ALL_PAGES[1:3]}
-                    else "/academy/#signup-hero"
-                )
-                self.assertIn(f'academy-bar-cta" href="{waitlist}"', body)
+                self.assertNotIn("academy-bar", body)
                 # One footer, the site's: no Academy link footer and no copyright line.
                 self.assertNotIn("academy-links", body)
                 self.assertNotIn("©", body)
                 self.assertNotIn('class="breadcrumbs"', body)
-        faq = self.client.get("/academy/faq/").content.decode()
-        self.assertIn(
-            '<a class="filter-pill interactive-lift" href="/academy/faq/" aria-current="page">',
-            faq,
-        )
-        self.assertIn('href="/academy/sessions/" aria-current="false">Synthetic sessions</a>', faq)
 
     def test_home_keeps_its_anchors_and_the_funding_notice(self) -> None:
         home = self.client.get("/academy/").content.decode()
@@ -264,7 +241,6 @@ class AcademyPageTests(TestCase):
                 for marker in (
                     'id="funding"',
                     'id="funding-heading"',
-                    'class="academy-bar"',
                     "data-academy-sticky",
                     "data-confirm-notice",
                     'class="callout callout-info academy-english"',
