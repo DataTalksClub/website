@@ -5,6 +5,7 @@ from playwright.sync_api import Browser, Page, ViewportSize, expect
 
 from content.podcast_content import ordered_podcasts, podcast_seasons
 from playwright_tests.accessibility_support import assert_accessible_page
+from playwright_tests.navigation_support import primary_navigation_link
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-132")
 # The design system rebuild (issue #179) gave the index the mockup's own headline; the
@@ -97,11 +98,7 @@ def test_homepage_latest_episode_and_global_podcast_journey(page: Page, live_ser
         f"https://datatalks.club{latest['public_path']}",
     )
 
-    page.locator("#site-navigation-links").get_by_role(
-        "link",
-        name="Podcast",
-        exact=True,
-    ).click()
+    primary_navigation_link(page, "Podcast").click()
     expect(page).to_have_url(f"{origin}/podcast")
     expect(
         page.get_by_role("heading", name=f"Season {_season_numbers()[0]}", exact=True)

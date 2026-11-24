@@ -4,8 +4,52 @@
 
 {% include "core/_tour_cta.html" %}
 
+{% url 'newsletter' as site_footer_newsletter_url %}
+{% url 'sponsors' as site_footer_sponsors_url %}
 <footer class="site-footer">
   <div class="shell site-footer-inner">
+    {% comment %}
+      The footer is where people look for "everything else" (site feedback 2.2):
+      the masthead's sections again, grouped the same way and read from the same
+      database-owned menu, then the newsletter and sponsorship (Sponsors left the
+      masthead for this column); the social icons sit in the row below.  Academy is the one
+      section left out: the owner removed it from the footer, and the Academy
+      stripe above is its route here (core/tests/test_homepage.py).
+    {% endcomment %}
+    <div class="site-footer-sections">
+      <nav class="site-footer-nav" aria-label="Footer">
+        {% for group in primary_navigation_groups %}
+          <div class="site-footer-column">
+            <p class="site-footer-heading">{{ group.label }}</p>
+            <ul class="site-footer-list">
+              {% for item in group.items %}
+                {% if item.current_key != "academy" %}
+                  <li>
+                    <a class="site-footer-nav-link app-link" href="{{ item.href }}">{{ item.label }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+            </ul>
+          </div>
+        {% endfor %}
+        <div class="site-footer-column">
+          <p class="site-footer-heading">Stay in touch</p>
+          <ul class="site-footer-list">
+            {% if site_footer_newsletter_url %}
+              <li>
+                <a class="site-footer-nav-link app-link" href="{{ site_footer_newsletter_url }}">Newsletter</a>
+              </li>
+            {% endif %}
+            {% if site_footer_sponsors_url %}
+              <li>
+                <a class="site-footer-nav-link app-link" href="{{ site_footer_sponsors_url }}">Sponsors</a>
+              </li>
+            {% endif %}
+          </ul>
+        </div>
+      </nav>
+    </div>
+
     <div class="site-footer-identity">
       <span class="site-footer-brand">
         <span class="site-footer-name">DataTalks.Club</span>

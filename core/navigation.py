@@ -88,6 +88,19 @@ DEFAULT_PRIMARY_NAVIGATION: tuple[tuple[str, str, str, int, bool], ...] = (
     ("sponsors", "Sponsors", "sponsors", 9, True),
     ("slack", "Slack", "slack", 10, True),
 )
+# Ten same-weight links gave a first-time visitor no idea what mattered, so the
+# masthead groups the stored entries by what they are for.  Membership is keyed
+# by the entry's current key (one per target), so a relabelled or reordered entry
+# stays in its group.
+NAVIGATION_GROUPS: tuple[tuple[str, str, frozenset[str]], ...] = (
+    ("learn", "Learn", frozenset({"courses", "academy", "docs", "faq"})),
+    ("community", "Community", frozenset({"events", "podcast", "books", "slack"})),
+    ("read", "Read", frozenset({"blog", "wiki"})),
+)
+_GROUP_BY_CURRENT_KEY = {
+    current_key: key for key, _label, members in NAVIGATION_GROUPS for current_key in members
+}
+MASTHEAD_EXCLUDED_CURRENT_KEYS = frozenset({"sponsors"})
 BASE_WRITE_REDACTED = (
     "authorization",
     "body",
@@ -494,6 +507,46 @@ def _public_entries(entries: object) -> tuple[JsonObject, ...]:
             }
         )
     return tuple(resolved)
+
+
+def group_primary_navigation(
+    entries: tuple[JsonObject, ...],
+    current_key: str = "",
+) -> tuple[tuple[JsonObject, ...], tuple[JsonObject, ...]]:
+    """Split resolved public entries into the masthead's groups and its loose links.
+
+    The menu itself stays database-owned; only its presentation is grouped here.
+    Each group keeps the stored order of its entries, and a group with no visible
+    entry is dropped.  Sponsors lives in the footer, so the masthead leaves it
+    out.  An entry no group claims (Home, say) stays a plain link after the groups.
+    A group is current when the page's ``current_key`` belongs to one of its entries.
+    """
+
+    by_current_key: dict[str, list[JsonObject]] = {}
+    loose: list[JsonObject] = []
+    for item in entries:
+        item_key = item.get("current_key")
+        if item_key in MASTHEAD_EXCLUDED_CURRENT_KEYS:
+            continue
+        if isinstance(item_key, str) and item_key in _GROUP_BY_CURRENT_KEY:
+            by_current_key.setdefault(_GROUP_BY_CURRENT_KEY[item_key], []).append(item)
+        else:
+            loose.append(item)
+    groups: list[JsonObject] = []
+    for key, label, _members in NAVIGATION_GROUPS:
+        items = by_current_key.get(key)
+        if not items:
+            continue
+        groups.append(
+            {
+                "key": key,
+                "label": label,
+                "items": items,
+                "current": bool(current_key)
+                and any(item.get("current_key") == current_key for item in items),
+            }
+        )
+    return tuple(groups), tuple(loose)
 
 
 def _same_entries(

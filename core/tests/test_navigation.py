@@ -24,6 +24,7 @@ from core.navigation import (
     InvalidSiteNavigation,
     SiteNavigationRevisionConflict,
     default_navigation_entries,
+    group_primary_navigation,
     public_primary_navigation,
     query_site_navigation,
     replace_site_navigation,
@@ -293,6 +294,39 @@ class PublicNavigationTests(TestCase):
         self.assertContains(home, f'href="{reverse("home")}"')
         self.assertContains(events, 'aria-current="page"')
         self.assertContains(events, ">Gatherings</a>")
+
+    def test_masthead_groups_entries_and_leaves_sponsors_to_the_footer(self) -> None:
+        groups, loose = group_primary_navigation(public_primary_navigation(), "wiki")
+        self.assertEqual(
+            [(group["label"], [item["label"] for item in group["items"]]) for group in groups],
+            [
+                ("Learn", ["Courses", "Academy", "Docs"]),
+                ("Community", ["Events", "Podcast", "Books", "Slack"]),
+                ("Read", ["Blog", "Wiki"]),
+            ],
+        )
+        self.assertEqual([group["current"] for group in groups], [False, False, True])
+        self.assertEqual(loose, ())
+
+    def test_relabelled_entries_keep_their_group_and_ungrouped_ones_stay_loose(self) -> None:
+        replace_menu(
+            [
+                {**default_entries()[0], "label": "Gatherings"},
+                *default_entries()[1:],
+                {
+                    "key": "home",
+                    "label": "Home",
+                    "target": "home",
+                    "position": 11,
+                    "visible": True,
+                },
+            ]
+        )
+        groups, loose = group_primary_navigation(public_primary_navigation())
+        community = next(group for group in groups if group["key"] == "community")
+        self.assertEqual(community["items"][0]["label"], "Gatherings")
+        self.assertEqual([item["label"] for item in loose], ["Home"])
+        self.assertFalse(any(group["current"] for group in groups))
 
     def test_public_database_failure_keeps_the_default_menu(self) -> None:
         with mock.patch(

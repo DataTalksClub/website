@@ -415,7 +415,10 @@ class ArticlePageTests(TestCase):
         self.assertContains(response, '<a href="/blog">Blog</a>', html=True)
         self.assertContains(response, '<li aria-current="page">')
         # The trail is the only way back; the page does not also grow a back-link.
-        self.assertEqual(response.content.decode().count('href="/blog"'), 2)
+        # Above the site footer (which lists Blog among its sections) that is the
+        # masthead's entry plus the trail.
+        page = response.content.decode().split('<footer class="site-footer">', 1)[0]
+        self.assertEqual(page.count('href="/blog"'), 2)
 
     def test_the_byline_keeps_every_author_their_link_and_their_portrait(self) -> None:
         article = next(
