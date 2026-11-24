@@ -131,7 +131,8 @@ class SlackPageTests(TestCase):
         self.assertIn('href="/community/slack/"', self.body)
         self.assertRegex(
             self.body,
-            r'<a\s+class="cta cta-primary cta-compact interactive-lift"\s+href="/community/slack/"\s*>\s*Join Slack\s*</a>',
+            r'<a\s+class="cta cta-primary cta-compact interactive-lift"'
+            r'\s+href="/community/slack/"\s*>\s*Join Slack\s*</a>',
         )
         self.assertIn(
             "Contact the community team and they will reply with the appropriate next step.",
