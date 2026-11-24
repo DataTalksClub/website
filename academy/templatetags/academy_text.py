@@ -18,10 +18,11 @@ from django import template
 from django.utils.safestring import SafeString, mark_safe
 
 from content.services import sanitize_rendered_html
+from core.markdown_actions import markdown_buttons
 
 register = template.Library()
 
-_MARKDOWN = mistune.create_markdown(escape=True, plugins=["table"])
+_MARKDOWN = mistune.create_markdown(escape=True, plugins=["table", markdown_buttons])
 _TABLE = re.compile(r"<table>.*?</table>", re.S)
 _SINGLE_PARAGRAPH = re.compile(r"\A<p>(.*)</p>\s*\Z", re.S)
 

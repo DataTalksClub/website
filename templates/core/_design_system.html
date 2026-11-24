@@ -4023,6 +4023,14 @@ Rules for editing:
         text-underline-offset: 0.2em;
       }
 
+      /* A call to action written in a Markdown body as a marked standalone
+         link (core/markdown_actions.py).  The reading column's looser
+         line-height would draw it taller than every other .cta, so it keeps
+         the page's. */
+      .prose-action .cta {
+        line-height: 1.6;
+      }
+
       /* Source paragraphs carry their own line breaks; the block keeps them. */
       .prose-paragraph {
         white-space: pre-line;

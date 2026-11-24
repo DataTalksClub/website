@@ -542,6 +542,7 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
         },
         "## Synthetic recap section\n\n"
         "Synthetic recap body with [a program](/academy/ai-engineering/).\n\n"
+        "[Synthetic body action](https://example.invalid/apply){.button}\n\n"
         "- synthetic point\n\n"
         "| Synthetic | Table |\n|---|---|\n| one | two |\n",
     ),

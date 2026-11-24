@@ -57,6 +57,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils.html import strip_tags
 
 from core.home_content import published_display, reading_minutes
+from core.markdown_actions import markdown_buttons
 
 from .article_charts import ArticleChart, chart_view
 from .article_faq import ArticleFaq, FaqQuestion
@@ -87,7 +88,9 @@ class Author:
     media_available: bool
 
 
-_MARKDOWN = mistune.create_markdown(escape=False, plugins=("strikethrough", "table"))
+_MARKDOWN = mistune.create_markdown(
+    escape=False, plugins=("strikethrough", "table", markdown_buttons)
+)
 
 # The elements that cannot legally sit inside a paragraph.  A fragment carrying
 # any of them is drawn as a block instead of being unwrapped into one.

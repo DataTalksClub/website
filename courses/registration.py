@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, urlparse
 import bleach
 import mistune
 
+from core.markdown_actions import BUTTON_CLASS_VALUES, BUTTON_PARAGRAPH_CLASS, markdown_buttons
 from core.seo import PRODUCTION_CANONICAL_HOST
 
 COUNTRIES_CONFIG_PATH = Path(__file__).with_name("countries.txt")
@@ -157,7 +158,10 @@ ALLOWED_MARKDOWN_TAGS = [
     "ul",
 ]
 ALLOWED_MARKDOWN_ATTRIBUTES = {
-    "a": ["href", "title", "rel", "target"],
+    # ``class`` on a link and a paragraph exists only for the body button
+    # (``core.markdown_actions``); ``_allowed_markdown_attribute`` admits the
+    # exact class strings that plugin writes and nothing else.
+    "a": ["class", "href", "title", "rel", "target"],
     # A fenced block carries its language as ``class="language-<name>"`` on the
     # ``code`` element.  That single class is the only thing the browser's code
     # runtime reads out of a sanitized body, and without it every course sample
@@ -168,6 +172,7 @@ ALLOWED_MARKDOWN_ATTRIBUTES = {
     "code": ["class"],
     "div": ["aria-label", "class", "role", "tabindex"],
     "img": ["alt", "height", "loading", "src", "title", "width"],
+    "p": ["class"],
     "td": ["colspan", "rowspan"],
     "th": ["colspan", "rowspan", "scope"],
 }
@@ -288,6 +293,10 @@ def _allowed_markdown_attribute(tag: str, name: str, value: str) -> bool:
         # writes raw ``<code class="...">`` cannot borrow a site class, and a
         # list of classes is rejected outright rather than filtered down.
         return bool(_CODE_LANGUAGE_CLASS_RE.match(value.strip()))
+    if tag == "a" and name == "class":
+        return value in BUTTON_CLASS_VALUES
+    if tag == "p" and name == "class":
+        return value == BUTTON_PARAGRAPH_CLASS
     if tag == "img" and name == "src":
         # Repository-relative sources are resolved before rendering.  Anything
         # still relative here cannot be fetched from this site, and ``data:``
@@ -352,7 +361,7 @@ def _course_tables(markdown: mistune.Markdown) -> None:
 # instead of printing it as literal source.  It is not a trust decision: every
 # rendered fragment still passes the allowlist in ``render_markdown`` below.
 _COURSE_MARKDOWN = mistune.create_markdown(
-    renderer=_CourseMarkdownRenderer(escape=False), plugins=[_course_tables]
+    renderer=_CourseMarkdownRenderer(escape=False), plugins=[_course_tables, markdown_buttons]
 )
 
 

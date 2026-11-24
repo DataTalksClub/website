@@ -416,6 +416,8 @@ to this document — do not fork it locally.
   `.cta-secondary` (card surface, ink text), `.cta-subtle` (transparent),
   `.cta-ink` (ink fill, cream text, bubble shadow), `.cta-lift` (bubble shadow on any
   CTA), `.cta-compact` (row-sized: `min-height: 2.75rem`).
+  A CTA inside a Markdown body uses the `{.button}` marker (`{.button-primary}` for the primary
+  variant); see `_docs/content-authoring.md`.
 - **`.pill-button`** — round bordered control (theme toggle, subscribe links) with an
   optional `.dot` swatch: `.dot-green`, `.dot-bubble`, `.dot-clay`, `.dot-gold`.
 - **`.signup-button`** — the masthead's green sign-up pill.
@@ -691,6 +693,9 @@ Modifiers:
   `--ink`. The SVG has no `viewBox`: bar lengths are percentages of the column and
   rows are fixed pixel heights, so text stays at body size on a phone.
 - **`.prose-caption`** / `figcaption` — `--muted` at the meta size.
+- **`.prose-action`** — a CTA inside a body uses the `{.button}` marker: a standalone
+  `[Label](url){.button}` line renders as this paragraph holding the shared `.cta` control
+  (`core.markdown_actions`, documented in `_docs/content-authoring.md`).
 
 A richer body also carries `h4`–`h6` continuing the ladder, real `ul`/`ol`/`li`,
 `--ink` strong, an italic `blockquote` on the card surface inside a soft 2px border,

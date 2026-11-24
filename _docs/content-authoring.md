@@ -131,6 +131,35 @@ rendered HTML while retaining raw source and management-only omission evidence. 
 not available to later revisions; edit those articles to repository-owned media before the next
 accepted content commit.
 
+## Call-to-action buttons in a body
+
+A Markdown body (an article, an Academy page, a documentation page, a course page) turns a link
+into the site's button by putting the link alone on its own line and marking it:
+
+```markdown
+Subscribe to get the rest of the articles as they're published:
+
+[Subscribe to the Substack](https://aishippingblog.com/){.button}
+```
+
+- `{.button}` is the secondary action (card surface, ink text) and is the default choice.
+  `{.button-primary}` is the green primary action; use it only for the one thing the page is
+  asking the reader to do.
+- The line must hold nothing but the link and the marker. A marker after a link inside a sentence,
+  in a list item, or spelled any other way (`{.btn}`, `{.button-red}`) is dropped and the link stays
+  an ordinary link, so the marker never shows as text. No other class can come from content.
+- The destination is `https://`, `http://`, `mailto:`, a site path (`/academy/`) or a fragment. An
+  outside destination gets `rel="noopener noreferrer"`; course pages also open it in a new tab, as
+  they do every outside link.
+- Keep "→" and other decoration out of the label; the button is the affordance. One button per
+  section at most, for a genuine call to action (subscribe, register, apply, join, sign up), never
+  for an ordinary reference link.
+- Do not hand-write a button in raw HTML with inline styles; the sanitizer strips the styling and
+  the reader gets a plain link.
+
+It renders as `<p class="prose-action">` holding the `templates/core/_button.html` control
+(`cta cta-secondary interactive-lift`, or `cta-primary`). The parser is `core.markdown_actions`.
+
 ## Editing and provenance
 
 The operator-facing edit action opens the one authoritative file on the `main` branch of

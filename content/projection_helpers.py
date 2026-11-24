@@ -33,6 +33,7 @@ from content.podcast_resources import (
     normalize_podcast_resource,
 )
 from content.public_text import strip_target_attributes_from_links
+from core.markdown_actions import strip_link_markers
 from courses.services.course_family_identity import (
     family_and_year_from_edition_slug,
 )
@@ -411,6 +412,7 @@ def _slugify(value: str) -> str:
 def _plain_inline(value: str) -> str:
     value = LIQUID.sub("", value)
     value = strip_target_attributes_from_links(value)
+    value = strip_link_markers(value)
     value = MARKDOWN_IMAGE.sub(lambda match: match.group(1), value)
     value = MARKDOWN_LINK.sub(lambda match: match.group(1), value)
 

@@ -206,6 +206,14 @@ class AcademyPageTests(TestCase):
         self.assertIn("<h2>Synthetic recap section</h2>", content)
         self.assertIn('<a href="/academy/ai-engineering/">a program</a>', content)
         self.assertIn("<li>synthetic point</li>", content)
+        # A marked standalone link in the body is the shared secondary action.
+        self.assertIn(
+            '<p class="prose-action"><a class="cta cta-secondary interactive-lift" '
+            'href="https://example.invalid/apply" rel="noopener noreferrer">'
+            "Synthetic body action</a></p>",
+            content,
+        )
+        self.assertNotIn("{.button}", body)
         self.assertIn('href="/academy/agentic-engineering/">Synthetic AE program</a>', content)
         self.assertIn('href="https://example.invalid/post">Synthetic outside link</a>', content)
         # A table scrolls inside the system's named frame.
