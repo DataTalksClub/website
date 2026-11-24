@@ -40,6 +40,8 @@ def test_course_art_preserves_theme_geometry_and_course_actions(
     art = page.locator(".family-hero-art")
     images = art.locator("img")
     expect(images).to_have_count(2)
+    # A phone gets the title, lede and action; the drawing is for wider screens.
+    narrow = width < 768
     images.evaluate_all("imgs => Promise.all(imgs.map(img => img.decode()))")
     for image in images.all():
         expect(image).to_have_attribute("alt", "")
@@ -53,15 +55,18 @@ def test_course_art_preserves_theme_geometry_and_course_actions(
         if theme == "dark":
             page.locator("#dark-mode-toggle").click()
             expect(page.locator("body.dark-mode")).to_have_count(1)
-        expect(art.locator("img:visible")).to_have_count(1)
-        expect(art.locator(f".doodle-{theme}")).to_be_visible()
-        assert art.bounding_box() == slot_before
+        if narrow:
+            expect(art).to_be_hidden()
+        else:
+            expect(art.locator("img:visible")).to_have_count(1)
+            expect(art.locator(f".doodle-{theme}")).to_be_visible()
+            assert art.bounding_box() == slot_before
         assert page.locator("main h1").bounding_box() == heading_before
         assert page.evaluate(
             "document.documentElement.scrollWidth <= document.documentElement.clientWidth"
         )
         registration_url = reverse("registration_campaign", kwargs={"campaign_slug": campaign.slug})
-        action = page.locator(".family-hero-actions a[href='#register-heading']")
+        action = page.locator(f".family-hero-actions a[href='{registration_url}']")
         expect(action).to_be_visible()
         action.focus()
         expect(action).to_be_focused()

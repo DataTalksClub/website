@@ -203,7 +203,8 @@ def test_homepage_cards_keep_the_viewport_aligned_and_use_the_static_cue(
     live_server,
     homepage_course_catalog: None,
 ) -> None:
-    axis_by_width = {1440: 132, 1280: 52, 1024: 20, 768: 20, 390: 16}
+    # The shell gutter is --space-4 below 40rem and --space-5 from there.
+    axis_by_width = {1440: 136, 1280: 56, 1024: 24, 768: 24, 390: 16}
     for width, height in ((1440, 900), (1280, 900), (1024, 800), (768, 1000), (390, 844)):
         context = browser.new_context(viewport={"width": width, "height": height})
         page = context.new_page()

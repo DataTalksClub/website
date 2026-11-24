@@ -92,7 +92,7 @@ def test_public_home_and_hubs(
     expect(page.get_by_role("heading", name="Events", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name="Latest podcast episode", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name="Latest article", exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name="Community knowledgebase", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Community knowledge base", exact=True)).to_be_visible()
     featured_course = page.locator("[data-featured-course]")
     expect(featured_course).to_have_count(1)
     expect(featured_course.get_by_role("heading", name="AI Dev Tools Zoomcamp")).to_be_visible()

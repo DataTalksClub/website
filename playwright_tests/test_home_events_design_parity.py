@@ -24,7 +24,7 @@ DARK_SURFACE_BACKGROUND = "rgb(13, 17, 23)"
 # to lavender so the ground below the last band matches those templates.
 CREAM_PAGE_BACKGROUND = "rgb(253, 250, 243)"
 LAVENDER_PAGE_BACKGROUND = "rgb(239, 241, 252)"
-DARK_PAGE_BACKGROUND = "rgb(19, 22, 42)"
+DARK_PAGE_BACKGROUND = "rgb(34, 37, 48)"
 HOME_HEADING = "Learn the fundamentals. Build real projects. Share your work."
 EVENTS_HEADING = "Something happening every week"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
