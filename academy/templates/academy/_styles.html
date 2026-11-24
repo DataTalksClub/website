@@ -20,11 +20,9 @@
       }
 
       /* The form primitives set their own display, which would otherwise win
-         over the hidden attribute the forms toggle (errors, success states,
-         the sticky bar). */
+         over the hidden attribute the forms toggle (errors, success states). */
       .academy-join [hidden],
-      .academy-join[hidden],
-      .academy-sticky[hidden] {
+      .academy-join[hidden] {
         display: none !important;
       }
 
@@ -739,25 +737,6 @@
         color: var(--indigo);
       }
 
-      /* --- the sticky waitlist bar (program pages) ------------------------- */
-
-      .academy-sticky {
-        align-items: center;
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        bottom: 1rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
-        display: flex;
-        gap: 0.75rem 1rem;
-        padding: 0.5rem 0.6rem 0.5rem 1rem;
-        position: fixed;
-        right: 1rem;
-        /* Under the analytics notice (90) and the menus (60): it is a
-           shortcut, never the thing in front. */
-        z-index: 50;
-      }
-
       /* --- the reading column (articles, legal pages) ---------------------- *
        * The blog article's column: the reading width, centred, with the
        * heading, standfirst, date and byline on the same column as the body
@@ -921,11 +900,4 @@
           display: none;
         }
 
-        /* On a phone the bar spans the foot of the screen. */
-        .academy-sticky {
-          justify-content: space-between;
-          left: 0.75rem;
-          right: 0.75rem;
-          bottom: 0.75rem;
-        }
       }

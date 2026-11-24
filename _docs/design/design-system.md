@@ -843,8 +843,8 @@ section, is the blueprint in `_docs/design/landing-pages.md`.
   their own drawn with the same rows (`academy/_weeks.html`).
 - **One waitlist form per page.** On the home and program pages it closes the
   page in the mint `.panel` (heading, the limited seats and how you get in on
-  the left, the form card on the right); the hero action and the sticky bar
-  point to it (`#signup-hero`). The sessions registration is the first chapter
+  the left, the form card on the right); the hero action points to it
+  (`#signup-hero`). There is no floating waitlist bar. The sessions registration is the first chapter
   under the header, on the `.featured` slab. Reading pages close on a mint
   panel with one action to the waitlist.
 - **Forms are one column**: every field full width over a full-width
@@ -857,8 +857,8 @@ section, is the blueprint in `_docs/design/landing-pages.md`.
   a session that has already happened is not offered.
 - Lists of articles are the shared archive row (`public/_archive_row.html`);
   FAQ is `.faq-fold`; an article's Markdown tables sit in `.prose-scroll`.
-- The program pages' sticky waitlist bar shows only while neither the header
-  nor the waitlist form is on screen, and sits under the analytics notice.
+- On a program page the questions come last, right before the closing
+  waitlist.
 
 ## The account entrance family
 
