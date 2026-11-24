@@ -184,15 +184,6 @@
         gap: 0.35rem;
       }
 
-      /* The legacy page drew these plots directly on transparent canvases, in
-         dark ink: they sit on a plate of their own (--chart-ground stays light
-         in the dark theme, or a chart's title would vanish into the band). */
-      .article-body .prose-chart img {
-        background: var(--chart-ground);
-        border: 2px solid var(--line-soft);
-        border-radius: 0.7rem;
-        padding: 0.4rem;
-      }
       /* A run of charts (a survey's breakdowns) reads two to a row once the
          column has room, instead of a long stack of single plots.  Position in
          the run alternates the side and each new pair clears the last, so a

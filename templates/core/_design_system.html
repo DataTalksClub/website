@@ -68,6 +68,11 @@ Rules for editing:
         /* The plate behind a chart image drawn in dark ink: the card in light,
            and still light in the dark theme so the chart stays legible. */
         --chart-ground: var(--card);
+        /* The bar in an article's survey chart (_prose_blocks.html): the brand
+           indigo in light; in dark a mid indigo, since --indigo there is pale
+           enough to read as grey (checked with the dataviz palette validator
+           against --card in each theme). */
+        --chart-bar: var(--indigo);
         --font-sans: "Quicksand", ui-rounded, "Segoe UI", system-ui, -apple-system,
           BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
         --shell: 76rem;
@@ -186,6 +191,7 @@ Rules for editing:
         --band-ink-bg: #0d0f20;
         --page: #13162a;
         --chart-ground: #eff1fc;
+        --chart-bar: #7f88e6;
         /* The extended tokens the 6-series pages use.  Their dark values are the
            mockup's own substitutions (#dfe2f7 -> #2d3565, #f3f0e8 -> #2a2740,
            #6b6034 -> #cbb98a, #1f6b2c -> #93c7a5) and are documented in the
@@ -4399,7 +4405,7 @@ Rules for editing:
       }
 
       /* Said out loud rather than left as a gap: a body element this site cannot
-         draw (a survey chart that needs a script) keeps its place and names
+         draw here (an episode graph too large to plot) keeps its place and names
          itself, the way a missing article cover does. */
       .prose-unavailable {
         border: 2px dashed var(--line-soft);
@@ -4410,6 +4416,46 @@ Rules for editing:
 
       .prose-unavailable figcaption {
         margin-top: 0.35rem;
+      }
+
+      /* A survey chart in a body: a framed block like a table — its own card
+         surface inside a soft 2px border — holding the chart's title, the bars
+         (one indigo series, labels in body ink, values in ink on tabular
+         digits) and the source caption.  The drawing is inline SVG built from
+         typed data; see templates/public/_prose_blocks.html. */
+      .prose-chart {
+        background: var(--card);
+        border: 2px solid var(--line-soft);
+        border-radius: 0.7rem;
+        padding: 1rem 1.1rem;
+      }
+
+      .prose-chart-title {
+        color: var(--ink);
+        font-weight: 700;
+        line-height: 1.35;
+        margin-bottom: 0.75rem;
+      }
+
+      .prose-chart-plot {
+        display: block;
+        overflow: visible;
+      }
+
+      .prose-chart-label {
+        fill: var(--body-text);
+        font-size: 0.85rem;
+      }
+
+      .prose-chart-value {
+        fill: var(--ink);
+        font-size: 0.85rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+
+      .prose-chart-bar {
+        fill: var(--chart-bar);
       }
 
       .prose hr {

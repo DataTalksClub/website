@@ -677,6 +677,13 @@ Modifiers:
 - **`.prose-embed`** — one already-sanitized fragment from a source that wrote its own
   block markup, keeping the rhythm inside it.
 - **`.prose-unavailable`** — a dashed plate naming an element this site cannot draw.
+- **`.prose-chart`** — a survey chart in an article body: a framed block on `--card`
+  (soft 2px `--line-soft` border, `0.7rem` radius, no shadow) holding the title, an
+  inline-SVG horizontal bar chart drawn from the block's typed data
+  (`content/article_charts.py`, no script), a visually hidden data table, and the
+  source caption. One series in `--chart-bar`; labels in `--body-text`, values in
+  `--ink`. The SVG has no `viewBox`: bar lengths are percentages of the column and
+  rows are fixed pixel heights, so text stays at body size on a phone.
 - **`.prose-caption`** / `figcaption` — `--muted` at the meta size.
 
 A richer body also carries `h4`–`h6` continuing the ladder, real `ul`/`ol`/`li`,

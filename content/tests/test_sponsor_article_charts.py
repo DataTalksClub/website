@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from django.contrib.staticfiles import finders
 from django.test import TestCase
 
 from content import catalogue, wiki_reader
@@ -78,27 +77,30 @@ class SponsorArticleChartTests(TestCase):
             with self.subTest(url=unsafe):
                 self.assertEqual(safe_public_graph_url(unsafe), "")
 
-    def test_sponsor_article_renders_four_local_accessible_charts(self) -> None:
+    def test_sponsor_article_draws_its_charts_as_static_svg_with_their_values(self) -> None:
         response = self.client.get(self.path)
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
 
-        expected = {
-            "sponsor-roles.svg": "Pie chart of DataTalks.Club community roles",
-            "sponsor-seniority.svg": "Pie chart of DataTalks.Club community seniority",
-            "sponsor-geography.svg": "Pie chart of the DataTalks.Club community by region",
-            "sponsor-industries.svg": (
-                "Pie chart of industries represented in the DataTalks.Club community"
-            ),
-        }
-        for filename, alt in expected.items():
-            with self.subTest(chart=filename):
-                asset = f"content/article-charts/{filename}"
-                self.assertIsNotNone(finders.find(asset))
-                self.assertIn(f'src="/static/{asset}"', body)
-                self.assertIn(f'alt="{alt}"', body)
-
+        self.assertEqual(body.count('<figure class="prose-chart">'), 4)
+        self.assertEqual(body.count('role="img"'), 4)
+        for title in ("Roles", "Seniority", "Geography"):
+            with self.subTest(chart=title):
+                self.assertIn(f'<p class="prose-chart-title">{title}</p>', body)
+        self.assertIn(
+            'aria-label="Roles. Horizontal bar chart of 6 answers by share of respondents; '
+            'highest: Data engineering, 28.5%."',
+            body,
+        )
+        # Every value is both drawn and read out by the hidden table.
+        self.assertEqual(body.count(">28.5%</text>"), 1)
+        self.assertIn('<th scope="row">Senior individual contributors</th>', body)
+        self.assertIn("<td>40.6%</td>", body)
+        # A count is not a share.
+        self.assertIn(">117</text>", body)
+        self.assertNotIn(">117%", body)
         self.assertNotIn("Chart unavailable.", body)
+        self.assertNotIn("<canvas", body)
         self.assertIn(
             'href="/blog/datatalks-club-community-demographics.html"',
             body,

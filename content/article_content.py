@@ -40,10 +40,8 @@ frame.
 Deliberate omissions, because the record has no such field: an updated date, a
 category or tag, and a series.  A heading is still projected as plain text, so
 markup written inside a heading is shown as words; the identifier the heading
-carries is a linkable anchor and stays exactly as projected.  Survey charts are
-drawn by a script this site does not ship. Four charts used by the sponsorship
-article have reviewed local SVG bridges; any chart without one keeps its title
-and an explicit unavailable state rather than leaving a hole in the argument.
+carries is a linkable anchor and stays exactly as projected.  Survey charts
+arrive as typed data and are drawn as static SVG bars (:mod:`content.article_charts`).
 """
 
 from __future__ import annotations
@@ -60,6 +58,7 @@ from django.utils.html import strip_tags
 
 from core.home_content import published_display, reading_minutes
 
+from .article_charts import ArticleChart, chart_view
 from .article_faq import ArticleFaq, FaqQuestion
 from .services import sanitize_rendered_html
 
@@ -164,6 +163,7 @@ class ProseSection:
     label: str = ""
     head: tuple[str, ...] = ()
     rows: tuple[tuple[str, ...], ...] = ()
+    chart: ArticleChart | None = None
 
     @property
     def labelled_rows(self) -> tuple[tuple[TableCell, ...], ...]:
@@ -405,18 +405,9 @@ def prose_sections(blocks: Any) -> tuple[ProseSection, ...]:
             sections.append(ProseSection(kind="separator"))
             continue
         if kind == "chart":
-            sections.append(
-                ProseSection(
-                    kind="chart",
-                    text=text,
-                    src=_image_source(block) if block.get("src") else "",
-                    alt=str(block.get("alt") or ""),
-                    caption=str(block.get("caption") or ""),
-                    title=str(block.get("title") or ""),
-                    width=_dimension(block.get("width")),
-                    height=_dimension(block.get("height")),
-                )
-            )
+            chart = chart_view(block)
+            if chart is not None:
+                sections.append(ProseSection(kind="chart", chart=chart))
             continue
         if not text and not html:
             continue
