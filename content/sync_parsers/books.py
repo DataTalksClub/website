@@ -39,9 +39,11 @@ class BooksParser:
 
     def upsert(self, item, source, media):
         record = item.data["record"]
-        image = record["image_source"]
-        if image and not image.startswith(("http://", "https://")):
-            media.upload(base.active_checkout(), image.lstrip("/"), source)
+        # The share image and the cover are both the book's own media; the page
+        # draws the cover, the social card uses the share image.
+        for image in dict.fromkeys((record["image_source"], record.get("cover_source", ""))):
+            if image and not image.startswith(("http://", "https://")):
+                media.upload(base.active_checkout(), image.lstrip("/"), source)
         document, action = base.upsert_document(
             source,
             content_kind=CONTENT_KIND,
@@ -112,6 +114,9 @@ class BooksParser:
                 maximum=500,
                 optional=True,
             ),
+            "cover_source": builder._string(
+                raw.get("cover"), field="book cover", maximum=500, optional=True
+            ),
             "provenance": builder._provenance(
                 repository=REPOSITORY,
                 revision=checkout.commit_sha,
@@ -120,7 +125,14 @@ class BooksParser:
                 checksum=checksum,
             ),
         }
-        return SourceItem(key=slug, path=relative, data={"record": record, "checksum": checksum})
+        # The checksum covers the derived record, not only the file: a record field
+        # the parser starts reading (the cover) must reach rows whose file did not
+        # change, or they keep the old shape until someone edits them.
+        return SourceItem(
+            key=slug,
+            path=relative,
+            data={"record": record, "checksum": base.record_checksum(checksum, record)},
+        )
 
 
 register_parser(CONTENT_KIND, BooksParser())

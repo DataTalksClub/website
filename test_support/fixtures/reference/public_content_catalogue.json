@@ -1036,6 +1036,7 @@
       "authors": [
         "synthetic-two"
       ],
+      "cover_source": "images/books/synthetic-book-two/cover.jpg",
       "description": "Book of the Week. Synthetic Book Two.",
       "image_path": "/images/books/synthetic-book-two/preview.jpg",
       "links": [

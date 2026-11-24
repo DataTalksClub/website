@@ -97,6 +97,10 @@ def book_record(record: Mapping[str, Any], people_by_slug: Mapping[str, Mapping[
     derived["author_profiles"] = [
         _profile_credit(author, people_by_slug) for author in record.get("authors", ())
     ]
+    cover = record.get("cover_source")
+    derived["cover_path"] = (
+        "/" + cover.lstrip("/") if isinstance(cover, str) and cover and "://" not in cover else ""
+    )
     derived["lead"] = book_lead(record.get("summary"))
     derived["answered_count"] = answered_question_count(record.get("archive"))
     return derived

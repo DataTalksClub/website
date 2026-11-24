@@ -202,11 +202,24 @@ class PublishedCatalogueTests(TestCase):
         body = response.content.decode()
 
         self.assertNotIn(f'src="{book["image_path"]}"', body)
-        self.assertNotIn("book-cover", body)
+        # The page draws the book's cover now, but never the flyer as one.
+        self.assertNotIn(f'class="book-cover" src="{book["image_path"]}"', body)
         self.assertNotIn(f'alt="Artwork for {book["title"]}"', body)
         self.assertIn(book["image_path"], body)
         self.assertContains(response, 'property="og:image"')
         self.assertContains(response, 'name="twitter:image"')
+
+    def test_the_book_detail_page_shows_the_cover_beside_the_title(self) -> None:
+        book = _book("synthetic-book-two")
+        self.assertEqual(book["cover_path"], "/images/books/synthetic-book-two/cover.jpg")
+
+        response = self.client.get(book["public_path"])
+
+        self.assertContains(
+            response,
+            f'<img class="book-cover" src="{book["cover_path"]}" '
+            f'alt="Cover of {book["title"]}"',
+        )
 
     def test_every_selected_detail_is_safe_and_canonical(self) -> None:
         catalogue = [

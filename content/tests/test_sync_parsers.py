@@ -795,6 +795,7 @@ class BooksParserTests(_CheckoutCase):
                 record["links"], [{"label": "Book page", "url": "https://example.com/book"}]
             )
             self.assertEqual(record["image_source"], "images/books/20201214-ml-bookcamp/cover.jpg")
+            self.assertEqual(record["cover_source"], "images/books/20201214-ml-bookcamp/cover.jpg")
             self.assertEqual(len(record["archive"]), 1)
             self.assertEqual(record["provenance"]["revision"], "a" * 40)
             result = parser.upsert(items[0], source, media_store())

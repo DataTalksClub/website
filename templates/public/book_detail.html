@@ -76,6 +76,46 @@
         margin-top: var(--space-eyebrow);
       }
 
+      /* The cover sits beside the title block: the book itself, at the size
+         of a shelf spine-out, with the same ink border and hard shadow the
+         system's tiles carry.  On a phone it leads the block, small, so the
+         title still owns the opening screen. */
+      .book-head {
+        display: grid;
+        gap: 1rem 2rem;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .book-cover {
+        aspect-ratio: 3 / 4;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.4rem;
+        box-shadow: 4px 4px 0 var(--line);
+        height: auto;
+        object-fit: cover;
+        width: 6.5rem;
+      }
+
+      @media (min-width: 48rem) {
+        .book-head {
+          align-items: start;
+          grid-template-columns: minmax(0, 1fr) 9.5rem;
+        }
+
+        .book-cover {
+          grid-column: 2;
+          grid-row: 1;
+          margin-top: 1.4rem;
+          width: 9.5rem;
+        }
+
+        .book-head-text {
+          grid-column: 1;
+          grid-row: 1;
+        }
+      }
+
       .book-byline {
         color: var(--muted);
         font-size: 0.92rem;
@@ -217,40 +257,51 @@
           {% endcomment %}
           {% breadcrumbs breadcrumbs nav_class="shell book-shell" %}
           <div class="shell book-shell">
-            <header>
-              <p class="mono-label mono-label-indigo">book of the week</p>
-              <h1 id="book-heading">{{ record.title }}</h1>
+            <header class="book-head">
               {% comment %}
-                The byline names the people who wrote the book, in the shared
-                person chip every other surface credits someone with.  Until
-                issue #179's follow-up this line printed the record's raw author
-                keys, so a reader met "nikolaysmorchkov" where a name belonged
-                and had no way through to the profile the site already publishes.
+                The cover only, never the share image: the share image is the
+                "Book of the Week" flyer, which restated the title and byline
+                and was removed from the body for that reason.
               {% endcomment %}
-              {% if record.author_profiles %}
-                <p class="book-byline person-chips">
-                  {% for author in record.author_profiles %}
-                    {% include "public/_person_chip.html" with person=author|person_chip chip_loading="eager" %}
-                  {% endfor %}
-                </p>
+              {% if record.cover_path and record.cover_path != record.image_path %}
+                <img class="book-cover" src="{{ record.cover_path }}" alt="Cover of {{ record.title }}" width="150" height="200" loading="eager" decoding="async">
               {% endif %}
-              {% comment %}
-                The two marks the same book carries in the archive list: the
-                calendar day of its week, and how many questions the week left
-                behind.  Neither is a figure this page invents.
-              {% endcomment %}
-              <div class="book-marks">
-                <p class="mono-note">
-                  Published
-                  <time datetime="{{ record.published|iso_day }}">
-                    {{ record.published|human_day }}
-                  </time>
-                </p>
-                {% if record.archive %}
-                  <span class="status-pill">
-                    {{ record.archive|length }} question{{ record.archive|length|pluralize }}
-                  </span>
+              <div class="book-head-text">
+                <p class="mono-label mono-label-indigo">book of the week</p>
+                <h1 id="book-heading">{{ record.title }}</h1>
+                {% comment %}
+                  The byline names the people who wrote the book, in the shared
+                  person chip every other surface credits someone with.  Until
+                  issue #179's follow-up this line printed the record's raw author
+                  keys, so a reader met "nikolaysmorchkov" where a name belonged
+                  and had no way through to the profile the site already publishes.
+                {% endcomment %}
+                {% if record.author_profiles %}
+                  <p class="book-byline person-chips">
+                    {% for author in record.author_profiles %}
+                      {% include "public/_person_chip.html" with person=author|person_chip chip_loading="eager" %}
+                    {% endfor %}
+                  </p>
                 {% endif %}
+                {% comment %}
+                  The two facts the same book carries in the archive list: the
+                  calendar day of its week, and how many of the week's questions
+                  drew an answer — both as the quiet mono line the row uses, not a
+                  pill.  Neither is a figure this page invents.
+                {% endcomment %}
+                <div class="book-marks">
+                  <p class="mono-note">
+                    Published
+                    <time datetime="{{ record.published|iso_day }}">
+                      {{ record.published|human_day }}
+                    </time>
+                  </p>
+                  {% if record.answered_count %}
+                    <p class="mono-note">
+                      {{ record.answered_count|counted:"question answered,questions answered" }}
+                    </p>
+                  {% endif %}
+                </div>
               </div>
             </header>
           </div>
