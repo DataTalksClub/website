@@ -99,6 +99,7 @@ class Course(SourceProvenanceModel):
         max_length=32,
         blank=True,
         default="",
+        db_default="",
         choices=CatalogTopic.choices,
         help_text="Topic the /courses catalogue files this course under.",
     )
@@ -106,6 +107,7 @@ class Course(SourceProvenanceModel):
         max_length=16,
         blank=True,
         default="",
+        db_default="",
         choices=CatalogLevel.choices,
         help_text="Whether a newcomer can start here, for the catalogue card and filter.",
     )
@@ -118,11 +120,13 @@ class Course(SourceProvenanceModel):
         max_length=20,
         blank=True,
         default="",
+        db_default="",
         help_text='Typical weekly time, e.g. "8–10"; shown as "8–10 hours a week".',
     )
     catalog_tools = models.JSONField(
         blank=True,
         default=list,
+        db_default=[],
         validators=[validate_catalog_tools],
         help_text='Up to five key tools, e.g. ["Docker", "dbt", "Spark"].',
     )
@@ -130,11 +134,13 @@ class Course(SourceProvenanceModel):
         max_length=160,
         blank=True,
         default="",
+        db_default="",
         help_text='One line on what learners build, shown as "You will build ...".',
     )
     catalog_fits = models.JSONField(
         blank=True,
         default=list,
+        db_default=[],
         validators=[validate_catalog_fits],
         help_text=(
             'The "Which course fits me?" situations this course answers: '
