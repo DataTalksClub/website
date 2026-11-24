@@ -31,7 +31,7 @@ class FamilyDocsCrossLinkTests(TestCase):
 
         self.assertContains(
             response,
-            '<a class="band-link" href="/docs/courses/ai-dev-tools-zoomcamp/">Course docs →</a>',
+            '<a class="band-link" href="/docs/courses/ai-dev-tools-zoomcamp/">Course docs</a>',
             html=True,
         )
         # Never an absolute host or a new tab for a same-site destination.
@@ -43,7 +43,7 @@ class FamilyDocsCrossLinkTests(TestCase):
 
         self.assertEqual(family_docs_path(empty_family), "")
         response = self.client.get(reverse("course_family", args=[empty_family.slug]))
-        self.assertNotContains(response, "Course docs →")
+        self.assertNotContains(response, ">Course docs<")
 
     def test_a_stale_docs_url_that_no_longer_resolves_renders_no_docs_link(self):
         stale_family = Course.objects.create(
@@ -55,4 +55,4 @@ class FamilyDocsCrossLinkTests(TestCase):
 
         self.assertEqual(family_docs_path(stale_family), "")
         response = self.client.get(reverse("course_family", args=[stale_family.slug]))
-        self.assertNotContains(response, "Course docs →")
+        self.assertNotContains(response, ">Course docs<")

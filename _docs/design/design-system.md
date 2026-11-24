@@ -377,11 +377,10 @@ to this document — do not fork it locally.
   `step_index` (1/2/3) picks the badge digit and its `.step-number-2` /
   `.step-number-3` fill. `illustration_template` is the artwork include rendered
   inside, with `illustration_variant` / `illustration_loading` passed through to it.
-  `kicker` is an optional label paragraph (the family page's only). `on_rail` switches
-  the shape: unset draws the homepage's plain grid-flow card (illustration first, the
-  badge grouped with the heading); `on_rail=True` draws the badge astride the card's
-  top-left corner for a page that already draws its own dashed connecting rail behind
-  the row (`.journey-grid::before` stays page-specific, along with the grid itself).
+  Both the homepage and the course family landing draw the plain grid-flow card
+  (illustration first, the badge grouped with the heading). The older `on_rail` shape
+  (badge astride the corner, a dashed rail behind the row, a `kicker` eyebrow) is no
+  longer used by any page.
 - **`.chip`** — round uppercase mini-pill. Variants: `.chip-plain`, `.chip-green`,
   `.chip-live`, `.chip-ink`. **`a.chip-link`** is a chip that opens a page (a wiki
   concept): indigo border and text, underlined on hover.
@@ -945,20 +944,48 @@ How an illustration is produced and processed is `_docs/design/illustration-asse
 
 ## Course landings
 
-The course family landing (`courses/course_family.html`) is a landing, like `/tour`:
-the hero and every chapter break out to the full shell (`.shell-breakout`), and every
-chapter is the same frame — a dashed seam above, a real `.band-head`, then the site's
-own components. The chapter order is fixed: about the course, join (the cohort on a
-`.featured` slab beside the start-now card, the weekly commitment as the subline),
-the journey, the syllabus, the certificate, who it is for, cohort editions, stories,
-what people built, the FAQ, and the closing mint panel. A chapter the data cannot fill
-is not drawn.
+The course family landing (`courses/course_family.html`) sits in the ordinary
+content column (`--content-width`, the same column as the Academy pages) from the
+title to the closing action, and **every block fills that column** — no chapter is
+capped narrower than the column it sits in, so none leaves a dead strip on its right.
+The hero is the title, the 2–3 sentence lede, **one** primary action and the drawing
+(scaled to the column, never widening it), closed by the course's facts as a
+`.spec-strip` — format, syllabus size, weekly time, the docs link — the way an Academy
+program closes its title block. The hero carries no secondary text links.
 
-The syllabus is one list drawn by one row component. A project sits at its
-chronological slot with a mono `Project` marker in the index rail instead of a
+Every chapter below is the same frame — a dashed seam above, a real `.band-head`,
+then the site's own components. The chapter order is fixed: about the course (the
+overview at the column width, the outcome numbers as `.stat-tiles-row` under it),
+join (only when a cohort is open: the cohort on a `.featured` slab beside the
+start-on-your-own card), the journey (the homepage's own plain stage cards in a
+`.card-grid-3`, no connecting rail and no eyebrows), the syllabus, the certificate,
+who it is for, cohort editions (one `.list-row` per edition: its title, and a status
+pill only on the current one — the edition's own page carries its dates), stories, what people built, the FAQ, and the
+closing mint panel. A chapter the data cannot fill is not drawn.
+
+**One goal, one action.** The hero and the closing panel draw the same button from
+one include (`courses/_family_primary_action.html`) and its label says where it goes:
+register for the open cohort, apply when approval-gated, start the self-paced
+edition, *Start module 1* on the platform, or open the course on GitHub. The landing
+ends on its own closing panel, so it hides the site-wide Academy and tour stripes
+(`hide_academy_cta`, `hide_tour_cta`); a cohort page ends on the Academy stripe
+alone. The full landing guidance is `_docs/design/landing-pages.md`.
+
+The syllabus is one list drawn by one row component on one card, rows at the full
+column width: a mono index, the title, the one line on what the module builds. A
+project sits at its chronological slot with a mono `Project` marker instead of a
 number; the attempts of one project (`Project Attempt 1`, `Last Project Attempt`,
 `Capstone Project (Attempt 2)`) are one row listing each attempt's own deadlines
-(`courses.course_page_content.merge_syllabus_rows_with_projects`).
+(`courses.course_page_content.merge_syllabus_rows_with_projects`). No rule divides the
+index from the row.
+
+**A shared module page** (`courses/shared_module.html`) is an ordinary detail page at
+the content width: breadcrumb, `Module N of M`, the title and the module's summary;
+then its lessons as one numbered list (no side rail repeating it), each cohort's
+homework for the module as `.list-row`s naming the cohort
+(`courses/_module_homework.html`), and the way on to the next module. There is no
+"choose your delivery" step; the delivery notice is drawn only for an archived
+delivery.
 
 The registration page keeps the ordinary content width. Its campaign copy is one
 editor-owned Markdown field, presented as sections by
