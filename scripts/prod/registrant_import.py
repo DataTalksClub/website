@@ -200,7 +200,8 @@ def create_provider_event_identity(
 
     This is plumbing, not editorial review: title, the export's start instant
     and a canonical ``/events/<public_id>/<slug>`` path -- nothing that renders
-    a registration count.  It calls
+    a registration count.  The identity is a draft until an ingest leg gives it
+    a type and a speaker (:mod:`events.publication`).  It calls
     :func:`events.identity.create_event_identity` -- the same atomic,
     allocator-safe machinery the reviewed manifest import uses -- rather than
     re-deriving a public ID or canonical path here.
@@ -211,15 +212,21 @@ def create_provider_event_identity(
     resolves. This function always inserts.
     """
 
+    from events.lifecycle import DRAFT
+
     source = provider_source_identity(
         provider=provider, external_event_identifier=external_event_identifier
     )
+    # A draft, never a published row: a provider export names no type and no
+    # speakers, and a published event must carry both (events.publication).
+    # The event ingest publishes it once a reviewed source has filled them.
     return create_event_identity(
         title=title,
         starts_at=datetime.fromisoformat(start_at) if start_at else None,
         source_repository=source.repository,
         source_revision=source.revision,
         source_key=source.source_key,
+        status=DRAFT,
     )
 
 

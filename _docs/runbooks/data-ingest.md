@@ -894,6 +894,14 @@ an identity. Nothing is *attached* by title or date: a recognised event keeps it
 source key and gains no alias, no provider id and no registration count — discovery
 simply declines to create.
 
+**A discovered identity is a draft.** A Luma export names no event type and no
+speakers, and a published event must carry both (`events/publication.py`). The
+`--events-yaml` leg or the staged new-event content publishes the draft once it has
+them, and a full `run()` refuses to finish while any published event lacks either.
+`--events-yaml --events-yaml-enrich-only` is the backfill mode: it fills and publishes
+matched events and never creates one. Use it when `_data/events.yaml` has moved an
+entry to a new date, because a normal run would create a second event for it.
+
 **Reconciling a database that ran the unguarded version.** Guarding discovery stops new
 duplicates and does nothing about rows already written, so
 `--report-duplicate-identities` names each one — its public id and canonical path, the

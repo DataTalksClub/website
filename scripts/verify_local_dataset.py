@@ -339,6 +339,7 @@ def _event_report(as_of: date) -> dict[str, Any]:
     from django.utils import timezone
 
     from content.event_content import event_groups
+    from events.publication import incomplete_published_events
 
     groups = event_groups()
     # The freshness fact that cannot rot: did the import carry an event horizon
@@ -356,6 +357,8 @@ def _event_report(as_of: date) -> dict[str, Any]:
         # identities/content split no longer exists to report separately.
         "database_event_identities": Event.objects.count(),
         "database_event_content": Event.objects.exclude(description_html="").count(),
+        # A published event must carry a type and a speaker (events.publication).
+        "incomplete_published_events": incomplete_published_events(),
     }
 
 
@@ -390,6 +393,12 @@ def _failures(report: dict[str, Any], expectations: dict[str, Any]) -> list[str]
             "no events on or after the expectation manifest's as_of "
             f"({expectations['as_of'].isoformat()}), so the event import never "
             "carried a forward horizon (issue #307 data-freshness gate)"
+        )
+    incomplete = report["events"]["incomplete_published_events"]
+    if incomplete:
+        failures.append(
+            f"{len(incomplete)} published events have no type or no speaker "
+            f"(events.publication): {[event['public_id'] for event in incomplete]}"
         )
     content = report["content"]
     if content["practice_assignment_homeworks"]:

@@ -59,6 +59,18 @@ class EventImportError(RuntimeError):
     """A safe refusal that carries a condition code, never a source value."""
 
 
+class IncompletePublishedEvents(EventImportError):
+    """The run would leave a published event without a type or a speaker.
+
+    Carries the offending events' row ids, public ids and titles -- public
+    facts about the event, nothing about anyone registered for it.
+    """
+
+    def __init__(self, events: list[dict[str, Any]]) -> None:
+        super().__init__("published_event_incomplete")
+        self.events = events
+
+
 from scripts.prod.target import main_checkout_root  # noqa: E402
 
 
@@ -956,14 +968,36 @@ def _apply_yaml_enrichment(
         _attach_yaml_speakers(event, speaker_keys, people_names)
 
 
+def _complete_after(event: Any, filled: list[str]) -> bool:
+    """Whether ``event`` has a type and a speaker once ``filled`` is applied.
+
+    Read from the row plus the planned fill, so a dry run answers exactly what
+    the applying run would decide.
+    """
+
+    from events.publication import SPEAKERS, TYPE, publication_gaps
+
+    supplied = {TYPE} if "type" in filled else set()
+    if "speakers" in filled:
+        supplied.add(SPEAKERS)
+    return not set(publication_gaps(event)) - supplied
+
+
 def import_events_yaml(
     *,
     path: Path,
     revision: str = "HEAD",
     apply: bool = True,
     luma_source: Path | None = None,
+    create: bool = True,
 ) -> dict[str, Any]:
     """Import the events a legacy ``_data/events.yaml`` names that we do not hold.
+
+    ``create=False`` (``--events-yaml-enrich-only``) is the backfill mode: it
+    fills and publishes matched discovered events and creates nothing, reporting
+    an unmatched entry under ``not_created`` instead.  It exists because the
+    legacy file is no longer where new events are scheduled, so an entry it
+    has since moved to another date would otherwise mint a second event.
 
     Each entry is first matched against every event already in the database
     (see :class:`_EventsYamlIndex` for the tiers); only an entry that matches
@@ -988,7 +1022,7 @@ def import_events_yaml(
 
     from content.models import SyncedDocument
     from events.identity import EventIdentityError, canonical_detail_path, create_event_identity
-    from events.lifecycle import PUBLISHED_STATUS
+    from events.lifecycle import DRAFT, PUBLISHED_STATUS
     from events.slugs import event_title_slug
     from scripts.prod.registrant_import import normalize_match_title
 
@@ -1021,6 +1055,9 @@ def import_events_yaml(
         matched: list[dict[str, Any]] = []
         matched_by: dict[str, int] = {}
         enriched: list[dict[str, Any]] = []
+        published: list[dict[str, Any]] = []
+        unpublished: list[dict[str, Any]] = []
+        not_created: list[dict[str, Any]] = []
         ambiguous: list[dict[str, Any]] = []
         url_date_conflicts: list[dict[str, Any]] = []
         provider_duplicates: list[dict[str, Any]] = []
@@ -1135,10 +1172,40 @@ def import_events_yaml(
                                 "filled": filled,
                             }
                         )
+                    # Discovery mints a draft; it goes public only once it has
+                    # a type and a speaker (events.publication).
+                    if event.status == DRAFT and _complete_after(event, filled):
+                        if apply:
+                            event.status = PUBLISHED_STATUS
+                            event.save(update_fields=["status", "updated_at"])
+                        published.append(
+                            {
+                                **described,
+                                "public_id": event.public_id,
+                                "canonical_path": _path(event),
+                            }
+                        )
                 continue
 
-            # Published; upcoming vs past is derived from the schedule (events.lifecycle).
-            status = PUBLISHED_STATUS
+            if not create:
+                not_created.append({**described, "date": local_date})
+                continue
+            # Published (upcoming vs past is derived from the schedule, see
+            # events.lifecycle) -- unless the entry names no type or no speaker,
+            # which a published event must carry (events.publication): such an
+            # entry lands as a draft and is reported, never shown incomplete.
+            status = PUBLISHED_STATUS if event_type and speaker_keys else DRAFT
+            if status == DRAFT:
+                unpublished.append(
+                    {
+                        **described,
+                        "missing": [
+                            name
+                            for name, present in (("type", event_type), ("speakers", speaker_keys))
+                            if not present
+                        ],
+                    }
+                )
             if not apply:
                 planned_pk -= 1
                 created_pks.add(planned_pk)
@@ -1202,6 +1269,12 @@ def import_events_yaml(
             "matched_events": matched,
             "enriched_total": len(enriched),
             "enriched_events": enriched,
+            # Discovered drafts this file completed, so they are now public.
+            "published_total": len(published),
+            "published_events": published,
+            # Entries created as drafts because they name no type or no speaker.
+            "unpublished_incomplete_total": len(unpublished),
+            "unpublished_incomplete_events": unpublished,
             "ambiguous_total": len(ambiguous),
             "ambiguous_events": ambiguous,
             "provider_url_date_conflict_total": len(url_date_conflicts),
@@ -1214,6 +1287,8 @@ def import_events_yaml(
             "skipped_invalid_total": skipped_invalid,
             "created_total": len(created),
             "created_events": created,
+            "not_created_total": len(not_created),
+            "not_created_events": not_created,
             "applied": apply,
         }
 
@@ -1246,8 +1321,10 @@ def run(
 
     from django.db import transaction
 
+    from events.publication import incomplete_published_events
+
     with transaction.atomic():
-        return _run_legs(
+        report = _run_legs(
             identity_manifest=identity_manifest,
             event_content_source=event_content_source,
             new_event_content_source=new_event_content_source,
@@ -1256,6 +1333,13 @@ def run(
             events_yaml=events_yaml,
             events_yaml_revision=events_yaml_revision,
         )
+        # A published event must carry a type and a speaker (events.publication).
+        # Refusing here rolls the whole run back rather than landing a database
+        # whose public events list mixes complete and bare rows.
+        incomplete = incomplete_published_events()
+        if incomplete:
+            raise IncompletePublishedEvents(incomplete)
+        return report
 
 
 def _run_legs(
@@ -1408,6 +1492,14 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--events-yaml-enrich-only",
+        action="store_true",
+        help=(
+            "With --events-yaml: fill and publish matched discovered events only; "
+            "create no event for an unmatched entry (reported under not_created)."
+        ),
+    )
+    parser.add_argument(
         "--events-yaml-revision",
         default="HEAD",
         help="Git revision to record on EventSource rows created from --events-yaml.",
@@ -1432,6 +1524,7 @@ def main(argv: list[str] | None = None) -> int:
                     path=args.events_yaml.resolve(),
                     revision=args.events_yaml_revision,
                     apply=not args.dry_run,
+                    create=not args.events_yaml_enrich_only,
                     # Optional here: without an export the Luma-URL tier is
                     # simply absent and matching falls through to start/title.
                     luma_source=luma_source if luma_source.is_dir() else None,
@@ -1481,6 +1574,11 @@ def main(argv: list[str] | None = None) -> int:
                 eventbrite_descriptions_source=args.eventbrite_descriptions.resolve(),
                 luma_source=args.luma_source.resolve(),
             )
+    except IncompletePublishedEvents as error:
+        print(
+            json.dumps({"error": str(error), "incomplete_published_events": error.events}, indent=2)
+        )
+        return 1
     except EventImportError as error:
         # The error carries a condition code, never a source value.
         print(json.dumps({"error": str(error)}, indent=2))

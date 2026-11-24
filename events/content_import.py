@@ -687,19 +687,27 @@ def import_new_event_content(*, path: Path, dry_run: bool = False) -> EventConte
     records = load_new_event_content(path)
     events = _preflight(records, error_prefix="new_event_content")
 
+    from .lifecycle import DRAFT, PUBLISHED_STATUS
+    from .publication import is_publishable
+
     created = updated = unchanged = 0
     for record in records:
         event = events[record.identity_id]
         if _matches(event, record):
             unchanged += 1
-            continue
-        if _row_has_content(event):
-            updated += 1
         else:
-            created += 1
-        if dry_run:
-            continue
-        _apply(event, record)
+            if _row_has_content(event):
+                updated += 1
+            else:
+                created += 1
+            if dry_run:
+                continue
+            _apply(event, record)
+        # Discovery mints a draft (events.publication); a reviewed record that
+        # gives it a type and a speaker is what makes it public.
+        if not dry_run and event.status == DRAFT and is_publishable(event):
+            event.status = PUBLISHED_STATUS
+            event.save(update_fields=["status", "updated_at"])
 
     return EventContentImportReport(
         total=len(records),
