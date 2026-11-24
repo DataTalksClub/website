@@ -47,6 +47,9 @@ IMAGE_PREFIX = "images/academy/"
 LANGUAGES = ("en", "de")
 
 _PATH = re.compile(r"/academy/(?:[a-z0-9][a-z0-9-]*/){0,2}\Z")
+#: Any other page of this site a link may name: a root-relative path of plain
+#: segments (the homepage, /courses/, /blog/<post>.html), never "//host".
+_SITE_PATH = re.compile(r"/(?:[A-Za-z0-9][A-Za-z0-9._-]*/?)*\Z")
 _KEY = re.compile(r"[a-z0-9][a-z0-9_-]*\Z")
 _UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z")
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
@@ -60,7 +63,8 @@ class Optional:
 
 
 # Leaf specs: "text" a plain string, "markdown" a string that may carry inline
-# Markdown, "href" a site path below /academy/, an https URL or a mailto link,
+# Markdown, "href" an Academy page, another path on this site, an https URL or
+# a mailto link,
 # "url" an https URL, "key" a lower-case identifier, "image" a file below
 # images/academy/, "utc" an ISO UTC instant, "date" an ISO calendar date
 # (quoted, so YAML keeps it a string), "int", "bool".
@@ -560,10 +564,14 @@ class _Validator:
             if not url.startswith("https://"):
                 self.fail(field)
         elif spec == "href":
-            if not (
-                (value.startswith("/academy/") and _PATH.fullmatch(value.split("#", 1)[0]))
-                or value.startswith("mailto:")
-            ):
+            target = value.split("#", 1)[0]
+            if value.startswith("/academy/"):
+                if not _PATH.fullmatch(target):
+                    self.fail(field)
+            elif value.startswith("/"):
+                if not _SITE_PATH.fullmatch(target):
+                    self.fail(field)
+            elif not value.startswith("mailto:"):
                 self.leaf("url", value, field)
         elif spec == "image":
             path = PurePosixPath(value)

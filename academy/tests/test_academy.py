@@ -642,6 +642,12 @@ class AcademyParserTests(TestCase):
             "unsafe link": lambda pages: pages["index"][0]["hero"]["links"][0].update(
                 href="javascript:x"
             ),
+            "protocol-relative link": lambda pages: pages["index"][0]["hero"]["links"][0].update(
+                href="//evil.example/"
+            ),
+            "Academy path that does not exist": lambda pages: pages["index"][0]["hero"]["links"][
+                0
+            ].update(href="/academy/a/b/c/d/"),
             "program path": lambda pages: pages["ai-engineering"][0].update(path="/academy/other/"),
             "body on a structured page": lambda pages: pages.update(faq=(pages["faq"][0], "Body")),
             "duplicate session": lambda pages: pages["sessions"][0]["sessions"][1].update(
