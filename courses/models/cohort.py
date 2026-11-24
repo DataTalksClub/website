@@ -7,6 +7,12 @@ from django.db import models
 from django.db.models import Q
 
 from accounts.models import User
+from courses.catalog_facets import (
+    CatalogLevel,
+    CatalogTopic,
+    validate_catalog_fits,
+    validate_catalog_tools,
+)
 from courses.curriculum_source_validators import validate_course_progression
 from courses.genmedia_policy import UKRAINE_REGION_CHOICES
 from courses.random_names import generate_random_name
@@ -84,6 +90,55 @@ class Course(SourceProvenanceModel):
             "paragraph, shown in the family landing's projects section. "
             "Authored by the course repository; preserved when an import "
             "omits it."
+        ),
+    )
+    # The /courses catalogue's card fields and filters (site feedback 3.1).
+    # Curated here or loaded by scripts/prod/import_course_catalog_facets.py;
+    # never synced from the course repository.
+    catalog_topic = models.CharField(
+        max_length=32,
+        blank=True,
+        default="",
+        choices=CatalogTopic.choices,
+        help_text="Topic the /courses catalogue files this course under.",
+    )
+    catalog_level = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        choices=CatalogLevel.choices,
+        help_text="Whether a newcomer can start here, for the catalogue card and filter.",
+    )
+    catalog_duration_weeks = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Typical length of one cohort in weeks, for the catalogue card and filter.",
+    )
+    catalog_hours_per_week = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text='Typical weekly time, e.g. "8–10"; shown as "8–10 hours a week".',
+    )
+    catalog_tools = models.JSONField(
+        blank=True,
+        default=list,
+        validators=[validate_catalog_tools],
+        help_text='Up to five key tools, e.g. ["Docker", "dbt", "Spark"].',
+    )
+    catalog_project = models.CharField(
+        max_length=160,
+        blank=True,
+        default="",
+        help_text='One line on what learners build, shown as "You will build ...".',
+    )
+    catalog_fits = models.JSONField(
+        blank=True,
+        default=list,
+        validators=[validate_catalog_fits],
+        help_text=(
+            'The "Which course fits me?" situations this course answers: '
+            "new-to-data, developer, models, finance."
         ),
     )
     github_repo_url = models.URLField(

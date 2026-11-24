@@ -312,6 +312,13 @@ class CourseFamilyAdmin(ModelAdmin):
         "outcome",
         "project_summary",
         "description",
+        "catalog_topic",
+        "catalog_level",
+        "catalog_duration_weeks",
+        "catalog_hours_per_week",
+        "catalog_tools",
+        "catalog_project",
+        "catalog_fits",
         "visible",
     ]
 

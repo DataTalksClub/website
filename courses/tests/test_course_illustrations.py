@@ -1,7 +1,5 @@
 from datetime import timedelta
 from html.parser import HTMLParser
-from types import SimpleNamespace
-from unittest.mock import patch
 
 from django.contrib.staticfiles import finders
 from django.template.loader import render_to_string
@@ -11,7 +9,6 @@ from django.urls import reverse
 from django.utils import timezone
 
 from courses.models import Cohort, Course, RegistrationCampaign
-from courses.views.course_list import hero_collage_cards
 
 COURSE_SLUGS = (
     "ai-dev-tools-zoomcamp",
@@ -72,35 +69,6 @@ class CourseIllustrationTests(SimpleTestCase):
     def test_below_fold_card_images_can_load_lazily(self):
         for image in self.render_images(family_slug="ml-zoomcamp", loading="lazy"):
             self.assertEqual(image["loading"], "lazy")
-
-    def test_collage_keeps_database_title_with_family_after_ordering_and_deduplication(self):
-        def card(slug, title):
-            return SimpleNamespace(family=SimpleNamespace(slug=slug), title=title)
-
-        active = [
-            card("de-zoomcamp", "Database DE title"),
-            card("ml-zoomcamp", "Database ML title"),
-            card("new-course", "New course title"),
-        ]
-        upcoming = [
-            card("ml-zoomcamp", "Duplicate ML title"),
-            card("another-course", "Another title"),
-            card("fifth-course", "Fifth title"),
-        ]
-        with patch("courses.views.course_list.COURSE_FAMILIES", [("ml-zoomcamp", "Not copy")]):
-            cards = hero_collage_cards(active, upcoming)
-        self.assertEqual(
-            cards,
-            [
-                {"family_slug": "ml-zoomcamp", "title": "Database ML title"},
-                {"family_slug": "de-zoomcamp", "title": "Database DE title"},
-                {"family_slug": "new-course", "title": "New course title"},
-                {"family_slug": "another-course", "title": "Another title"},
-            ],
-        )
-
-    def test_empty_catalogue_has_no_invented_collage(self):
-        self.assertEqual(hero_collage_cards([], []), [])
 
 
 class CourseIllustrationPageTests(TestCase):
@@ -177,12 +145,19 @@ class CourseIllustrationPageTests(TestCase):
 
         response = self.client.get(reverse("course_list"))
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.context["hero_collage"])
-        for card in response.context["hero_collage"]:
-            self.assertContains(
-                response, static(f"core/illustrations/course-{card['family_slug']}.webp")
-            )
-            self.assertContains(
-                response,
-                static(f"core/illustrations/course-{card['family_slug']}-dark.webp"),
-            )
+        for slug in COURSE_SLUGS:
+            self.assertContains(response, static(f"core/illustrations/course-{slug}.webp"))
+            self.assertContains(response, static(f"core/illustrations/course-{slug}-dark.webp"))
+
+    def test_catalogue_hero_draws_one_illustration_not_a_family_collage(self):
+        """Site feedback 3.1: the hero showed 4 of 7 course covers; it now shows one scene."""
+
+        for slug in COURSE_SLUGS:
+            family, _ = Course.objects.get_or_create(slug=slug, defaults={"title": slug})
+            Cohort.objects.create(course=family, slug=f"hero-{slug}", identifier="hero", title=slug)
+        html = self.client.get(reverse("course_list")).content.decode()
+        start = html.index('class="courses-hero-art"')
+        hero = html[start : html.index('id="why"', start)]
+        self.assertEqual(hero.count('class="doodle doodle-light"'), 1)
+        self.assertIn(static("core/illustrations/course-learning.webp"), hero)
+        self.assertNotIn("hero-collage", html)

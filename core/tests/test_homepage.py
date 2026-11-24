@@ -531,20 +531,16 @@ class MainHomepageRoutingTests(TestCase):
         )
 
         everything = self.client.get(reverse("course_list"))
-        # The shared design-system stylesheet still defines the primitive for
-        # other catalogues. Assert that the course index does not render any
-        # filter control, rather than rejecting the shared CSS definition.
-        self.assertNotContains(everything, 'class="filter-pill')
-        # One unified, plain catalogue -- no "running now" / "registration open"
-        # sections or badges -- so both families render as identical cards in
-        # the same list.
+        # Site feedback 3.1 added filter pills above the one unified catalogue;
+        # with no filter in the address every family still renders, each card
+        # naming its own real state.
+        self.assertContains(everything, 'class="filter-pill')
         self.assertContains(everything, "Course catalogue")
         self.assertContains(everything, "Synthetic active course")
-        self.assertNotContains(everything, "registration open")
         self.assertContains(everything, "Synthetic registration course")
 
-        # The index renders every band for every reader: the query string has
-        # no filter to select with, so the full catalogue is served unchanged.
+        # A query string the catalogue does not know is ignored: the full
+        # catalogue is served unchanged.
         filtered_url = self.client.get(reverse("course_list"), {"filter": "active"})
         self.assertEqual(filtered_url.status_code, 200)
         self.assertContains(filtered_url, "Synthetic registration course")
@@ -608,8 +604,10 @@ class MainHomepageRoutingTests(TestCase):
             reverse("course_family", kwargs={"course_slug": archived.course.slug}),
             content,
         )
-        self.assertNotContains(response, "registration open")
-        self.assertNotContains(response, "self-paced")
+        # Site feedback 3.1: every card now names its state and start date.
+        self.assertIn("Registration open", catalog)
+        self.assertIn("Running now", catalog)
+        self.assertIn("Self-paced", catalog)
         self.assertNotContains(response, 'id="course-families-heading"')
         self.assertNotContains(response, "No active cohort coursework right now.")
         self.assertContains(

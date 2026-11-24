@@ -12,6 +12,7 @@ from core.course_index_content import (
     enrolled_state_label,
 )
 from core.home_content import COURSE_FAMILIES
+from courses import catalog_facets
 from courses.models.cohort import Cohort, DeliveryMode
 from courses.models.wrapped import WrappedStatistics
 from courses.services.public_course_catalog import visible_course_list_queryset
@@ -19,6 +20,7 @@ from courses.services.registration_campaigns import family_registration
 from courses.services.registration_counts import (
     public_course_registration_count,
 )
+from courses.services.testimonials import course_catalog_testimonials
 from courses.views.course_homepage import add_course_homepage_info
 from courses.views.course_list_user_state import (
     attach_registration_campaigns,
@@ -100,6 +102,48 @@ class CatalogCard:
         return self.card.family
 
     @property
+    def status(self) -> str:
+        return catalog_facets.STATUS_BY_KIND.get(self.kind, "")
+
+    @property
+    def has_facets(self) -> bool:
+        family = self.family
+        return bool(
+            family.catalog_topic
+            or family.catalog_level
+            or family.catalog_duration_weeks
+            or family.catalog_tools
+            or family.catalog_project
+        )
+
+    @property
+    def topic_label(self) -> str:
+        return self.family.get_catalog_topic_display() if self.family.catalog_topic else ""
+
+    @property
+    def level_label(self) -> str:
+        return self.family.get_catalog_level_display() if self.family.catalog_level else ""
+
+    @property
+    def duration_label(self) -> str:
+        return catalog_facets.duration_label(self.family.catalog_duration_weeks)
+
+    @property
+    def hours_label(self) -> str:
+        hours = (self.family.catalog_hours_per_week or "").strip()
+        return f"{hours} hours a week" if hours else ""
+
+    @property
+    def filter_values(self) -> dict[str, tuple[str, ...]]:
+        return catalog_facets.card_filter_values(self.family, self.kind)
+
+    @property
+    def filter_data(self) -> dict[str, str]:
+        """Space-joined values for the card's ``data-filter-*`` attributes."""
+
+        return {key: " ".join(values) for key, values in self.filter_values.items()}
+
+    @property
     def cohort(self) -> Cohort:
         return self.card.cohort
 
@@ -135,7 +179,10 @@ def catalog_card_kind(card: CourseFamilyCard) -> tuple[str, object]:
     """
 
     cohort = card.cohort
-    if getattr(cohort, "delivery_mode", "") == DeliveryMode.SELF_PACED.value and not cohort.finished:
+    if (
+        getattr(cohort, "delivery_mode", "") == DeliveryMode.SELF_PACED.value
+        and not cohort.finished
+    ):
         return "self_paced", None
     if card.status == "active":
         return "active", None
@@ -161,39 +208,186 @@ def catalog_family_order(family_slug: str) -> tuple[int, str]:
     return (len(COURSE_FAMILIES), family_slug)
 
 
-# The catalogue reads top to bottom the way the page always has: the editions you can
-# register for (dated or not), then the cohorts running right now, then the families
-# with no live schedule at all.  Grouping ``open_dated`` and ``open_undated`` together
-# keeps that reading order for the new undated state instead of inventing a fourth tier.
+# Site feedback 3.1: sort by start date, the nearest cohort first.  A cohort you
+# can register for with a real date leads (soonest first), then the cohorts running
+# right now (you can still join), then families whose next cohort has no date yet,
+# then the self-paced ones.  Ties fall back to the site's reviewed family order.
 _CATALOG_KIND_PRIORITY = {
     "open_dated": 0,
-    "open_undated": 0,
     "active": 1,
-    "self_paced": 2,
-    "archived": 2,
+    "open_undated": 2,
+    "self_paced": 3,
+    "archived": 3,
 }
 
 
+def _catalog_sort_key(entry):
+    start = getattr(entry.cohort, "start_date", None)
+    start_ordinal = start.toordinal() if start and entry.kind == "open_dated" else 0
+    return (
+        _CATALOG_KIND_PRIORITY.get(entry.kind, 4),
+        start_ordinal,
+        catalog_family_order(entry.family.slug),
+    )
+
+
 def course_catalog_cards(family_cards: list[CourseFamilyCard]) -> list[CatalogCard]:
-    """Build the unified catalogue: one row per family, honest state first, then order.
+    """Build the unified catalogue: one row per family, honest state first, then date.
 
     Every family renders in the same list -- nothing is sorted into a "running now" or
-    "self-paced" section -- but the reading order keeps the page's established shape:
-    register first, join what's running now second, browse a self-paced or archived
-    family last.  Ties within a tier fall back to the site's reviewed family order.
+    "self-paced" section -- but the reading order puts the nearest cohort first:
+    register for the soonest dated cohort, then join what's running now, then the
+    families whose next date is not set, then the self-paced ones.
     """
 
     catalog_cards = []
     for card in family_cards:
         kind, next_campaign = catalog_card_kind(card)
         catalog_cards.append(CatalogCard(card=card, kind=kind, next_campaign=next_campaign))
-    catalog_cards.sort(
-        key=lambda entry: (
-            _CATALOG_KIND_PRIORITY.get(entry.kind, 3),
-            catalog_family_order(entry.family.slug),
-        )
-    )
+    catalog_cards.sort(key=_catalog_sort_key)
     return catalog_cards
+
+
+def filter_href(selection, base_path: str) -> str:
+    """The catalogue URL for one filter selection, anchored at the grid."""
+
+    parts = [
+        f"{key}={','.join(selection[key])}"
+        for key in catalog_facets.FILTER_KEYS
+        if selection.get(key)
+    ]
+    query = f"?{'&'.join(parts)}" if parts else ""
+    return f"{base_path}{query}#courses"
+
+
+def toggled_selection(selection, key, value):
+    current = list(selection.get(key, ()))
+    if value in current:
+        current.remove(value)
+    else:
+        current.append(value)
+    updated = dict(selection)
+    if current:
+        updated[key] = tuple(current)
+    else:
+        updated.pop(key, None)
+    return updated
+
+
+@dataclass(frozen=True)
+class FilterOption:
+    value: str
+    label: str
+    active: bool
+    href: str = ""
+
+
+@dataclass(frozen=True)
+class FilterGroup:
+    key: str
+    label: str
+    options: tuple[FilterOption, ...]
+
+
+def catalog_filter_groups(catalog_cards, selection, base_path) -> tuple[FilterGroup, ...]:
+    """The filter rows above the grid, offering only values some card really has.
+
+    A pill that could only ever empty the grid is not offered: with seven families,
+    every option shown narrows to at least one real course.
+    """
+
+    present: dict[str, set[str]] = defaultdict(set)
+    tool_labels: dict[str, str] = {}
+    for entry in catalog_cards:
+        for key, values in entry.filter_values.items():
+            present[key].update(values)
+        for tool in entry.family.catalog_tools or []:
+            tool_labels.setdefault(catalog_facets.tool_key(tool), tool)
+
+    tool_options = tuple(sorted(tool_labels.items(), key=lambda item: item[1].lower()))
+    rows = (
+        ("topic", "Topic", catalog_facets.CatalogTopic.choices),
+        ("level", "Level", catalog_facets.CatalogLevel.choices),
+        ("length", "Length", catalog_facets.LENGTHS),
+        ("status", "Format & status", catalog_facets.STATUSES),
+        ("tool", "Tools", tool_options),
+    )
+    groups = []
+    for key, label, choices in rows:
+        chosen = selection.get(key, ())
+        options = tuple(
+            FilterOption(
+                value=value,
+                label=option_label,
+                active=value in chosen,
+                href=filter_href(toggled_selection(selection, key, value), base_path),
+            )
+            for value, option_label in choices
+            if value in present[key]
+        )
+        if options:
+            groups.append(FilterGroup(key=key, label=label, options=options))
+    return tuple(groups)
+
+
+def offered_selection(catalog_cards, selection):
+    """Drop any requested value no card has, so a stale link cannot empty the grid
+    behind a filter the page does not even show."""
+
+    offered: dict[str, set[str]] = defaultdict(set)
+    for entry in catalog_cards:
+        for key, values in entry.filter_values.items():
+            offered[key].update(values)
+    cleaned = {}
+    for key, values in selection.items():
+        kept = tuple(value for value in values if value in offered[key])
+        if kept:
+            cleaned[key] = kept
+    return cleaned
+
+
+def course_fit_options(catalog_cards, selection, base_path):
+    """The "Which course fits me?" buttons, each naming the courses it filters to."""
+
+    chosen = selection.get("for", ())
+    options = []
+    for value, label in catalog_facets.CatalogFit.choices:
+        hint = catalog_facets.FIT_HINTS.get(value, "")
+        titles = [entry.title for entry in catalog_cards if value in entry.filter_values["for"]]
+        if titles:
+            options.append(
+                {
+                    "value": value,
+                    "label": label,
+                    "hint": hint,
+                    "titles": titles,
+                    "active": value in chosen,
+                    "href": filter_href(toggled_selection(selection, "for", value), base_path),
+                }
+            )
+    return options
+
+
+def active_filter_chips(filter_groups, fit_options):
+    """The selected filters as removable chips; each chip's link drops just itself."""
+
+    chips = [
+        {"key": "for", "value": option["value"], "label": option["label"], "href": option["href"]}
+        for option in fit_options
+        if option["active"]
+    ]
+    for group in filter_groups:
+        for option in group.options:
+            if option.active:
+                chips.append(
+                    {
+                        "key": group.key,
+                        "value": option.value,
+                        "label": option.label,
+                        "href": option.href,
+                    }
+                )
+    return chips
 
 
 # ``visible_course_list_queryset`` now lives in
@@ -481,29 +675,6 @@ def open_registration_registered_total(open_registration_family_cards):
     return sum(counts)
 
 
-def hero_collage_cards(active_family_cards, open_registration_family_cards):
-    """Pair up to four real family titles with the hero's decorative artwork."""
-
-    titles_by_slug = {}
-    for card in [*active_family_cards, *open_registration_family_cards]:
-        titles_by_slug.setdefault(card.family.slug, card.title)
-
-    ordered_families = []
-    for family_slug, _title in COURSE_FAMILIES:
-        title = titles_by_slug.pop(family_slug, None)
-        if title:
-            ordered_families.append((family_slug, title))
-    ordered_families.extend(titles_by_slug.items())
-
-    return [
-        {
-            "title": title,
-            "family_slug": family_slug,
-        }
-        for family_slug, title in ordered_families[:4]
-    ]
-
-
 def course_list_context(request):
     course_groups = prepare_course_list_courses(request.user)
     today = timezone.localdate()
@@ -558,6 +729,19 @@ def course_list_context(request):
     # reviewed order, each carrying the honest state (`CatalogCard.kind`) the owner asked
     # for instead of a "running now" / "self-paced" section split.
     catalog_cards = course_catalog_cards(family_cards)
+    filter_selection = offered_selection(
+        catalog_cards,
+        catalog_facets.parse_filters(request.GET),
+    )
+    catalog_rows = [
+        {
+            "entry": entry,
+            "visible": catalog_facets.card_matches(entry.filter_values, filter_selection),
+        }
+        for entry in catalog_cards
+    ]
+    filter_groups = catalog_filter_groups(catalog_cards, filter_selection, request.path)
+    fit_options = course_fit_options(catalog_cards, filter_selection, request.path)
 
     context = {
         # Keep the cohort lists available to existing context consumers while
@@ -574,13 +758,16 @@ def course_list_context(request):
         "finished_course_cards": finished_family_cards,
         "featured_course_card": selected_featured_card,
         "catalog_cards": catalog_cards,
+        "catalog_rows": catalog_rows,
+        "catalog_visible_count": sum(1 for row in catalog_rows if row["visible"]),
+        "catalog_filter_groups": filter_groups,
+        "course_fit_options": fit_options,
+        "active_filter_chips": active_filter_chips(filter_groups, fit_options),
+        "clear_filters_href": filter_href({}, request.path),
+        "catalog_testimonials": course_catalog_testimonials(),
         "home_stats": home_stats,
         "course_family_count": course_family_count,
         "total_open_registration_count": total_open_registration_count,
-        "hero_collage": hero_collage_cards(
-            displayed_active_family_cards,
-            open_registration_family_cards,
-        ),
         "hero_register_url": hero_register_url,
         "all_projects_url": optional_all_projects_url(),
         "show_active_courses": True,
