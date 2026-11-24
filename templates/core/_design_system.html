@@ -1104,7 +1104,9 @@ Rules for editing:
         }
 
         .masthead .signup-button {
+          font-size: 0.84rem;
           padding-inline: 0.45rem;
+          white-space: nowrap;
         }
 
         .brand {
@@ -2801,10 +2803,22 @@ Rules for editing:
 
       .archive-card {
         align-items: flex-start;
+        border: 1px solid var(--line-soft);
+        box-shadow: none;
         flex-direction: row;
         gap: 0.9rem;
         min-width: 0;
         padding: 0.9rem 1rem;
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        .archive-card.interactive-card:hover {
+          border-color: var(--line);
+        }
+      }
+
+      .archive-card.interactive-card:has(.archive-title a:focus-visible) {
+        border-color: var(--line);
       }
 
       .archive-body {
@@ -4870,6 +4884,13 @@ Rules for editing:
         font-weight: 700;
         margin: 0.75rem 0 0;
         color: var(--body-text);
+      }
+
+      .cta-hint {
+        color: var(--muted);
+        font-size: 0.85rem;
+        line-height: 1.45;
+        margin: 0.6rem 0 0;
       }
 
       .newsletter-status.is-success {

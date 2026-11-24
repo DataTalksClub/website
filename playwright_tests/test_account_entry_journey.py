@@ -130,9 +130,9 @@ def test_apply_reaches_provider_buttons_that_start_sign_in(
     assert (location.hostname, location.path) == ("github.com", "/login/oauth/authorize")
     assert parse_qs(location.query)["client_id"] == ["test-github-client-id"]
 
-    # The masthead's "Sign up free" leads to the providers too, never a dead
+    # The masthead's "Create free account" leads to the providers too, never a dead
     # "closed" page, and keeps the way back to the campaign.
-    page.get_by_role("link", name="Sign up free").click()
+    page.get_by_role("link", name="Create free account").click()
     expect(page.get_by_role("heading", name="Create your account", exact=True)).to_be_visible()
     expect(page.get_by_text("New accounts are created by signing in with")).to_be_visible()
     expect(page.get_by_role("heading", name="Choose how to sign in")).to_be_visible()

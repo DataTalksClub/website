@@ -30,7 +30,6 @@ _MARKDOWN_LINK = re.compile(r"\[([^\]]+)\]\([^)]+\)")
 WAITLIST_LAYOUTS = frozenset({"home", "program"})
 #: The layouts whose Academy bar carries the tagline, as the retired site's did;
 #: the sessions series, its QR form and the legal pages show the bar without it.
-TAGLINE_LAYOUTS = frozenset({"home", "program", "faq", "guide", "confirm", "article"})
 
 
 def absolute(path: str) -> str:
@@ -128,16 +127,6 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
         "api_origin": settings.ACADEMY_API_ORIGIN,
         "consent_version": settings.ACADEMY_CONSENT_VERSION,
         "is_home": page["public_path"] == ACADEMY_ROOT,
-        # The Academy bar's waitlist action lands on this page's own card when
-        # the page has one, and on the home page's otherwise.
-        "waitlist_href": (
-            "#signup-hero" if layout in WAITLIST_LAYOUTS else f"{ACADEMY_ROOT}#signup-hero"
-        ),
-        "show_tagline": layout in TAGLINE_LAYOUTS,
-        "academy_nav": [
-            {**link, "current": link["href"] == page["public_path"]}
-            for link in (shared.get("header") or {}).get("links", [])
-        ],
     }
     schema: list[dict[str, Any]] = []
 
