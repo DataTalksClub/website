@@ -362,7 +362,9 @@ class SharedLegalFooterTests(TestCase):
         ):
             with self.subTest(network=network):
                 self.assertIn(f'href="{url}"', footer)
-                self.assertIn(f'aria-label="DataTalks.Club on {network} (opens in a new tab)"', footer)
+                self.assertIn(
+                    f'aria-label="DataTalks.Club on {network} (opens in a new tab)"', footer
+                )
         # The version is the link to the website's own source.
         self.assertIn('class="footer-version app-link"', footer)
         self.assertIn('href="{{ version_source_url }}"', footer)
