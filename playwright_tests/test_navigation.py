@@ -10,6 +10,7 @@ from playwright.sync_api import Page, expect
 
 from accounts.studio_sessions import SESSION_REFERENCE_KEY
 from accounts.studio_test_support import make_studio_user
+from playwright_tests.navigation_support import primary_navigation_link
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
@@ -106,7 +107,9 @@ def test_operator_updates_public_navigation_without_restart(
         toggle.click()
         expect(toggle).to_have_attribute("aria-expanded", "true")
     nav_links = page.locator("#site-navigation-links")
-    expect(nav_links.get_by_role("link", name="Gatherings")).to_be_visible()
+    # The relabelled entry stays in its group; Home belongs to none, so it is
+    # a plain link in the row.
+    primary_navigation_link(page, "Gatherings")
     expect(nav_links.get_by_role("link", name="Home")).to_be_visible()
     expect(nav_links.get_by_role("link", name="Courses")).to_have_count(0)
     assert_no_horizontal_overflow(page)
@@ -114,11 +117,7 @@ def test_operator_updates_public_navigation_without_restart(
 
     events = page.goto(f"{live_server.url}/events/")
     assert events is not None and events.status == 200
-    if suffix == "mobile":
-        page.get_by_role("button", name="Menu").click()
-    expect(
-        page.locator("#site-navigation-links").get_by_role("link", name="Gatherings")
-    ).to_have_attribute("aria-current", "page")
+    expect(primary_navigation_link(page, "Gatherings")).to_have_attribute("aria-current", "page")
 
     page.context.clear_cookies()
     auditor = make_studio_user(

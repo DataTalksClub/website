@@ -106,16 +106,48 @@
           and whenever that menu cannot be resolved safely, the code-owned default
           keeps Slack in the row on every page.
         {% endcomment %}
-        {% for item in primary_navigation %}
-          {% if item.href %}
-            <a
-              class="nav-link"
-              href="{{ item.href }}"
-              {% if item.current_key and primary_navigation_current == item.current_key %}
-                aria-current="page"
-              {% endif %}
-            >{{ item.label }}</a>
-          {% endif %}
+        {% comment %}
+          The entries are grouped (core.navigation.group_primary_navigation) so the
+          row reads as three sections instead of ten equal links.  From 69rem up each
+          group is a disclosure button over its own panel, driven by
+          core/site_navigation.js; inside the phone panel, and without JavaScript,
+          every group is open and its name is only a heading.
+        {% endcomment %}
+        {% for group in primary_navigation_groups %}
+          <div class="nav-group" data-current="{{ group.current|yesno:'true,false' }}">
+            <button
+              class="nav-link nav-group-toggle interactive-lift"
+              type="button"
+              aria-expanded="false"
+              aria-controls="nav-group-{{ group.key }}"
+            >
+              {{ group.label }}
+              <svg class="nav-group-caret" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+                <path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <span class="nav-group-heading">{{ group.label }}</span>
+            <div id="nav-group-{{ group.key }}" class="nav-group-links">
+              {% for item in group.items %}
+                <a
+                  class="nav-link"
+                  href="{{ item.href }}"
+                  {% if item.current_key and primary_navigation_current == item.current_key %}
+                    aria-current="page"
+                  {% endif %}
+                >{{ item.label }}</a>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+        {% for item in primary_navigation_loose %}
+          <a
+            class="nav-link"
+            href="{{ item.href }}"
+            {% if item.current_key and primary_navigation_current == item.current_key %}
+              aria-current="page"
+            {% endif %}
+          >{{ item.label }}</a>
         {% endfor %}
         {% comment %}
           Below 40rem the masthead holds one line — brand, theme, "Sign up free",
@@ -145,10 +177,16 @@
           visitor, one place the preference lives: the pill can never write a
           browser value that disagrees with the account it is signed in to.
         {% endcomment %}
+        {% comment %}
+          An icon at every width, so the theme control stops competing with
+          "Sign up free": the dot draws the half-filled contrast glyph and the
+          "Dark"/"Light" word stays as the accessible name only.
+        {% endcomment %}
         <button
           id="dark-mode-toggle"
-          class="pill-button interactive-lift"
+          class="pill-button theme-toggle interactive-lift"
           type="button"
+          title="Switch theme"
           aria-pressed="{{ DARK_MODE|yesno:'true,false' }}"
         >
           <span class="dot" aria-hidden="true"></span>

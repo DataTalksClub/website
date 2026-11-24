@@ -8,6 +8,7 @@ from content.docs_reader import docs_assets
 from content.podcast_content import podcast_seasons
 from content.podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS
 from events.queries import published_event_records
+from playwright_tests.navigation_support import primary_navigation_link
 
 pytestmark = [pytest.mark.smoke, pytest.mark.django_db(transaction=True)]
 
@@ -117,9 +118,7 @@ def test_public_home_and_hubs(
         ("Books", "/books", "Book of the Week"),
     ):
         page.goto(origin)
-        if viewport["width"] < 1024:
-            page.get_by_role("button", name="Menu").click()
-        page.locator("#site-navigation-links").get_by_role("link", name=label, exact=True).click()
+        primary_navigation_link(page, label).click()
         expect(page).to_have_url(f"{origin}{path}")
         expect(page.get_by_role("heading", name=heading, exact=True)).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")

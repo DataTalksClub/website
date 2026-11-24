@@ -6,7 +6,7 @@ from django.db import DatabaseError
 from django.http import HttpRequest
 
 from core.configuration import InvalidOperationalSetting
-from core.navigation import public_primary_navigation
+from core.navigation import group_primary_navigation, public_primary_navigation
 from core.sensitive_query import has_sensitive_query_key
 from core.site_settings import public_announcement
 from core.source_policy import UMAMI_HOSTS, UMAMI_ORIGIN, UMAMI_WEBSITE_ID, umami_public_path
@@ -94,6 +94,10 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
                 type(error).__name__,
             )
     primary_navigation = public_primary_navigation()
+    primary_navigation_current = _primary_navigation_current(request.path)
+    primary_navigation_groups, primary_navigation_loose = group_primary_navigation(
+        primary_navigation, primary_navigation_current
+    )
     canonical_url = EXPLICIT_PUBLIC_CANONICALS.get(request.path)
     if (
         canonical_url is None
@@ -149,8 +153,10 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
         "brand_name": settings.SITE_NAME,
         "VERSION": settings.VERSION,
         "app_version": settings.APP_VERSION,
-        "primary_navigation_current": _primary_navigation_current(request.path),
+        "primary_navigation_current": primary_navigation_current,
         "primary_navigation": primary_navigation,
+        "primary_navigation_groups": primary_navigation_groups,
+        "primary_navigation_loose": primary_navigation_loose,
         "site_announcement": announcement,
         # Every shared-view canonical is an explicit mapping, never host/path inference.
         "canonical_url": canonical_url,
