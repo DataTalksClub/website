@@ -485,6 +485,7 @@ def test_a_cancel_that_main_moved_past_is_superseded_not_red(tmp_path: Path) -> 
     api = FakeApi(
         [
             runs_payload(make_run(conclusion="cancelled")),
+            jobs_payload(),
             branch_payload(NEWER_SHA),
             compare_payload("ahead", 2),
         ]
@@ -495,8 +496,9 @@ def test_a_cancel_that_main_moved_past_is_superseded_not_red(tmp_path: Path) -> 
     assert exit_code == 0
     assert sleeps == []
     assert output.read_text() == "verdict=superseded\n"
-    assert api.calls[1] == f"repos/{REPOSITORY}/branches/main"
-    assert api.calls[2] == f"repos/{REPOSITORY}/compare/{SHA}...{NEWER_SHA}"
+    assert api.calls[1] == f"repos/{REPOSITORY}/actions/runs/101/jobs?per_page=100"
+    assert api.calls[2] == f"repos/{REPOSITORY}/branches/main"
+    assert api.calls[3] == f"repos/{REPOSITORY}/compare/{SHA}...{NEWER_SHA}"
 
 
 def test_a_green_verdict_writes_green(tmp_path: Path) -> None:
@@ -516,13 +518,15 @@ def test_a_green_verdict_writes_green(tmp_path: Path) -> None:
 
 def test_a_cancel_without_a_successor_still_blocks(tmp_path: Path) -> None:
     extra, output = superseded_args(tmp_path)
-    api = FakeApi([runs_payload(make_run(conclusion="cancelled")), branch_payload(SHA)])
+    api = FakeApi(
+        [runs_payload(make_run(conclusion="cancelled")), jobs_payload(), branch_payload(SHA)]
+    )
 
     exit_code, _sleeps = drive_require(api, timeout=600, interval=60, extra=extra)
 
     assert exit_code == 1
     assert not output.exists()
-    assert len(api.calls) == 2
+    assert len(api.calls) == 3
 
 
 def test_a_cancel_off_the_branch_line_still_blocks(tmp_path: Path) -> None:
@@ -531,6 +535,7 @@ def test_a_cancel_off_the_branch_line_still_blocks(tmp_path: Path) -> None:
         api = FakeApi(
             [
                 runs_payload(make_run(conclusion="cancelled")),
+                jobs_payload(),
                 branch_payload(NEWER_SHA),
                 compare_payload(status, 1 if status == "diverged" else 0),
             ]
@@ -553,6 +558,32 @@ def test_a_real_failure_blocks_even_when_main_moved_on(tmp_path: Path) -> None:
         # The successor is never consulted for a real failure.
         assert len(api.calls) == 1
     assert not output.exists()
+
+
+def test_a_self_cancelled_real_failure_still_blocks_when_main_moved_on(
+    tmp_path: Path,
+) -> None:
+    # ci.yml cancels its own run after a quality failure: the run concludes
+    # "cancelled" but its ci-gate job concludes "failure" (run 45383730357).
+    extra, output = superseded_args(tmp_path)
+    api = FakeApi(
+        [
+            runs_payload(make_run(conclusion="cancelled")),
+            jobs_payload(
+                {"name": "classification", "conclusion": "success"},
+                {"name": "quality", "conclusion": "cancelled"},
+                {"name": GATE_JOB_NAME, "conclusion": "failure"},
+            ),
+        ]
+    )
+
+    exit_code, sleeps = drive_require(api, timeout=600, interval=60, extra=extra)
+
+    assert exit_code == 1
+    assert sleeps == []
+    assert not output.exists()
+    # The successor is never consulted once the run shows a real failure.
+    assert not any("/branches/" in call for call in api.calls)
 
 
 def test_a_cancel_blocks_without_the_superseded_opt_in() -> None:

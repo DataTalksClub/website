@@ -13,8 +13,8 @@ exits nonzero, and a green run for any other SHA authorizes nothing.
 One narrow exception exists for push-driven staging (``--superseded-on``): the
 CI workflow's concurrency group keeps a single pending run, so GitHub cancels
 the queued CI of a main commit as soon as a newer main commit is pushed.  When
-the CI run for the SHA concluded ``cancelled`` *and* the branch head has moved
-strictly ahead of that SHA, the SHA is ``superseded``: its release is skipped
+the CI run for the SHA concluded ``cancelled`` with no failed job *and* the
+branch head has moved strictly ahead of that SHA, the SHA is ``superseded``: its release is skipped
 (exit 0, ``verdict=superseded``) because the newer head carries the change and
 gets its own full verdict and deploy.  A cancel without a successor -- the SHA
 is still the head, or not an ancestor of it -- and every real failure still
@@ -43,6 +43,12 @@ GREEN_CONCLUSION = "success"
 
 #: The only non-green conclusion a newer branch head can explain away.
 CANCELLED_CONCLUSION = "cancelled"
+
+#: Job conclusions that do not by themselves show a verification failure.
+#: ci.yml cancels its own run after a quality failure, which leaves the run
+#: ``cancelled`` but its ``ci-gate`` job ``failure``; a run cancelled while
+#: still queued has no jobs at all.
+NON_FAILING_JOB_CONCLUSIONS = frozenset({None, "success", "skipped", "cancelled", "neutral"})
 
 SHA_LENGTH = 40
 
@@ -152,6 +158,30 @@ def green_requires_gate_job(
         f"run {run_id} concluded success but has no {GATE_JOB_NAME} job; "
         "it is not a verification run",
         run_id=run_id,
+    )
+
+
+def cancel_hides_a_failure(
+    blocked: VerdictDecision,
+    jobs: list[dict[str, Any]],
+) -> VerdictDecision | None:
+    """Keep a cancelled run blocked when any of its jobs actually failed.
+
+    ``None`` means the cancel carries no failure evidence (e.g. the run was
+    cancelled while still queued) and may be judged for supersession.
+    """
+
+    failed = sorted(
+        f"{job.get('name')}={job.get('conclusion')}"
+        for job in jobs
+        if job.get("conclusion") not in NON_FAILING_JOB_CONCLUSIONS
+    )
+    if not failed:
+        return None
+    return dataclasses.replace(
+        blocked,
+        reason=f"{blocked.reason}; the cancelled run has failed jobs ({', '.join(failed)}), "
+        "so it is a real failure, not a superseded SHA",
     )
 
 
@@ -329,6 +359,17 @@ def require(
                 and arguments.superseded_on
                 and decision.conclusion == CANCELLED_CONCLUSION
             ):
+                cancelled_jobs = api(
+                    [
+                        f"repos/{arguments.repository}/actions/runs/{decision.run_id}/jobs?per_page=100"
+                    ]
+                )
+                hidden_failure = cancel_hides_a_failure(
+                    decision, json.loads(cancelled_jobs).get("jobs", [])
+                )
+                if hidden_failure is not None:
+                    report(hidden_failure)
+                    return 1
                 branch_response = api(
                     [f"repos/{arguments.repository}/branches/{arguments.superseded_on}"]
                 )
