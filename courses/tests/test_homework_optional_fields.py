@@ -234,12 +234,11 @@ class HomeworkOptionalFieldsBase(TestCase):
     def assert_submission_help_links(self, response):
         self.assertContains(
             response,
-            "https://datatalks.club/docs/courses/"
-            "course-management-platform/learning-in-public/",
+            'href="/docs/courses/course-management-platform/learning-in-public/"',
         )
         self.assertContains(
             response,
-            "https://datatalks.club/docs/courses/faq/",
+            'href="/docs/courses/faq/"',
         )
 
     def assert_full_optional_submission(self, submission, post_data):

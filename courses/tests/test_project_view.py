@@ -92,7 +92,7 @@ class ProjectViewTestCase(ProjectViewTestBase):
         )
         self.assertContains(
             response,
-            "https://datatalks.club/docs/courses/faq/",
+            'href="/docs/courses/faq/"',
         )
         self.assert_save_submission_copy(response)
 
