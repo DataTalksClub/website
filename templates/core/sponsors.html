@@ -11,8 +11,6 @@
   /* The index title and lede every hub page draws (the blog, books and people
      hubs, the tour): the same size and the same space under the title. */
   .sponsors-hero h1 {
-    font-size: clamp(2.1rem, 4.9vw, 3.4rem);
-    letter-spacing: -0.03em;
     max-width: 18ch;
   }
   .sponsors-lede {
@@ -74,7 +72,7 @@
 
 {% block page_header %}
   <div class="sponsors-hero">
-  <h1>Our Sponsors</h1>
+  <h1 class="page-title">Our Sponsors</h1>
   <p class="sponsors-lede">These organizations help DataTalks.Club keep courses, events, and community learning free and open to everyone.</p>
   </div>
 {% endblock %}

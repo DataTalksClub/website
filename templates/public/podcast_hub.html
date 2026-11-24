@@ -47,8 +47,6 @@
       }
 
       .podcast-hero h1 {
-        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
-        letter-spacing: -0.03em;
         margin-top: 0.6rem;
         max-width: 18ch;
       }
@@ -119,30 +117,37 @@
     <main id="main-content" tabindex="-1">
       <section class="band band-cream podcast-hero" aria-labelledby="podcast-heading">
         <div class="shell shell-reading">
-          <h1 id="podcast-heading">Conversations with people who ship data</h1>
-          <p class="podcast-lede">
-            Every week a practitioner talks through what actually worked, and what broke.
-            {{ episode_total }} episodes so far, and every one of them is free to listen to.
-          </p>
-          {% comment %}
-            There is no show-level feed address in the catalogue, so this names the
-            platforms the episodes themselves lead to rather than inventing one.
-          {% endcomment %}
-          {% if listening_platforms %}
-            <p class="podcast-subscribe">
-              Subscribe to stay updated with the latest episodes. Every episode page links
-              out to {{ listening_platforms }} — follow the show wherever you already listen.
-            </p>
-          {% endif %}
-          {% if podcast_platform_links %}
-            <div class="podcast-platforms" role="group" aria-label="Podcast platforms">
-              {% for link in podcast_platform_links %}
-                {% if link.provider != "spotify_for_creators" %}
-                  {% include "public/_podcast_platform_button.html" with link=link only %}
-                {% endif %}
-              {% endfor %}
+          <div class="hero-split">
+            <div>
+              <h1 class="page-title" id="podcast-heading">Conversations with people who ship data</h1>
+              <p class="podcast-lede">
+                Every week a practitioner talks through what actually worked, and what broke.
+                {{ episode_total }} episodes so far, and every one of them is free to listen to.
+              </p>
+              {% comment %}
+                There is no show-level feed address in the catalogue, so this names the
+                platforms the episodes themselves lead to rather than inventing one.
+              {% endcomment %}
+              {% if listening_platforms %}
+                <p class="podcast-subscribe">
+                  Subscribe to stay updated with the latest episodes. Every episode page links
+                  out to {{ listening_platforms }} — follow the show wherever you already listen.
+                </p>
+              {% endif %}
+              {% if podcast_platform_links %}
+                <div class="podcast-platforms" role="group" aria-label="Podcast platforms">
+                  {% for link in podcast_platform_links %}
+                    {% if link.provider != "spotify_for_creators" %}
+                      {% include "public/_podcast_platform_button.html" with link=link only %}
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              {% endif %}
             </div>
-          {% endif %}
+            <div class="hero-art">
+              {% include "core/_hero_illustration.html" with art="podcast-hero" only %}
+            </div>
+          </div>
         </div>
       </section>
 

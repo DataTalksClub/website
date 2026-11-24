@@ -8,37 +8,9 @@
   gap: 0.75rem;
 }
 
-/* The family landing's hero grid: the title block beside its drawing. */
-.docs-home-hero-inner {
-  align-items: center;
-  display: grid;
-  gap: 1.5rem 2rem;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 15rem);
-}
-
-.docs-home-hero-inner > * {
-  min-width: 0;
-}
-
 .docs-home-header h1,
 .docs-detail-header h1 {
-  font-size: clamp(2.1rem, 4.9vw, 3.4rem);
-  letter-spacing: -0.03em;
-  line-height: 1.08;
   max-width: 19ch;
-  text-wrap: balance;
-}
-
-.docs-hero-art {
-  aspect-ratio: 1;
-  justify-self: end;
-  max-width: 15rem;
-  width: 100%;
-}
-
-.docs-hero-art .doodle {
-  height: 100%;
-  object-fit: contain;
 }
 
 .docs-home-intro {
@@ -52,10 +24,6 @@
   gap: 0.4rem;
   margin-top: 1.25rem;
   max-width: 38rem;
-}
-
-.docs-search {
-  max-width: 34rem;
 }
 
 /* The source's own opening paragraph is the hub's standfirst; anything the
@@ -82,7 +50,9 @@
   padding-top: 2.5rem;
 }
 
-.docs-chapter-first {
+/* Doubled so the narrow layout's own chapter spacing below cannot re-add the
+   rule's margin above the first chapter, which opens at the band's padding. */
+.docs-chapter.docs-chapter-first {
   border-top: 0;
   margin-top: 0;
   padding-top: 0;
@@ -92,12 +62,6 @@
   align-items: center;
   display: inline-flex;
   min-height: 2.75rem;
-}
-
-/* The rule spans the breakout width where the chapter breaks out: it announces
-   the width change, as on the family landing. */
-.docs-chapter.shell-breakout {
-  --breakout-width: min(var(--shell), calc(100vw - 2rem));
 }
 
 /* --- the page list: one component for every "its pages" line --------------- */
@@ -310,7 +274,7 @@
 }
 
 .docs-search-compact {
-  flex: 0 1 26rem;
+  flex: 1 1 34rem;
 }
 
 /* --- the guide rail ------------------------------------------------------
@@ -603,16 +567,6 @@
 }
 
 @media (max-width: 47.99rem) {
-  .docs-home-hero-inner {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  /* The homepage drops its hero drawing here too: on a phone the words and the
-     search field are the whole point of the header. */
-  .docs-hero-art {
-    display: none;
-  }
-
   .docs-chapter {
     margin-top: 2.5rem;
     padding-top: 1.75rem;

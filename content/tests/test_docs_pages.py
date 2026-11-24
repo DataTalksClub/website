@@ -210,7 +210,9 @@ class DocsHubTests(TestCase):
     def test_the_hero_draws_the_reading_illustration_beside_the_title(self) -> None:
         body = hub_body(self.client)
 
-        self.assertIn('class="docs-hero-art"', body)
+        self.assertIn('class="hero-art"', body)
+        # The hub holds the ordinary content column, as every docs page does.
+        self.assertNotIn('shell-breakout', body)
         self.assertIn("course-learning", body)
         self.assertIn("doodle-light", body)
 
@@ -276,7 +278,7 @@ class DocsSearchTests(TestCase):
 
         self.assertContains(response, 'class="field-label" for="docs-query"')
         self.assertContains(
-            response, 'placeholder="e.g. certificate, homework deadline, GCP credits"'
+            response, 'placeholder="e.g. certificate, GCP credits"'
         )
         self.assertNotContains(response, '<label class="sr-only" for="docs-query">')
 

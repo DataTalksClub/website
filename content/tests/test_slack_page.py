@@ -104,7 +104,7 @@ class SlackPageTests(TestCase):
         # they carry its identifier and its `.prose-lede` face (issue #179).
         self.assertRegex(
             self.body,
-            r'<h1 id="text-page-heading">\s*'
+            r'<h1\s+id="text-page-heading"\s+class="page-title"\s*>\s*'
             + re.escape(escape(str(self.page["title"])))
             + r"\s*</h1>",
         )

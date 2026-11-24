@@ -33,8 +33,6 @@
       }
 
       .wiki-hero h1 {
-        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
-        letter-spacing: -0.03em;
         margin-top: 0.6rem;
         max-width: 20ch;
       }
@@ -126,9 +124,9 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream wiki-hero" aria-labelledby="wiki-heading">
-        <div class="shell shell-reading shell-narrow">
+        <div class="shell shell-reading">
           <p class="mono-label mono-label-indigo">{{ catalogue_total }} topics</p>
-          <h1 id="wiki-heading">DataTalks.Club Podcast Wiki</h1>
+          <h1 class="page-title" id="wiki-heading">DataTalks.Club Podcast Wiki</h1>
           <p class="wiki-lede">
             Community-written topics wired to each other. Start anywhere and follow the links
             into guides, comparisons, roadmaps, podcast episodes, people and books.
@@ -138,7 +136,7 @@
       </section>
 
       <section class="band band-lavender" aria-labelledby="explore-heading">
-        <div class="shell shell-reading shell-narrow">
+        <div class="shell shell-reading">
           <div class="band-head">
             <div>
               <h2 id="explore-heading">Three ways in</h2>
@@ -166,7 +164,7 @@
       </section>
 
       <section class="band band-lavender" aria-labelledby="catalog-heading">
-        <div class="shell shell-reading shell-narrow">
+        <div class="shell shell-reading">
           <div class="band-head">
             <div>
               <h2 id="catalog-heading">Wiki pages</h2>

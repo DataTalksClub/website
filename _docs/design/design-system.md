@@ -178,6 +178,20 @@ heading of the band it sits in.
   (the course platform's `.app-content-shell` width) through `.content-shell`
   rather than choosing a local max width; prose inside the column stays at the
   measure.
+- **Index and hub pages hold the content column too.** `/docs/`, `/wiki` (and its
+  search and special pages), `/blog`, `/podcast`, `/events`, `/books`, `/people`,
+  `/sponsors` and `/slack` all sit at `--content-width`, so their titles share one
+  left edge with each other and with the docs and wiki pages a reader clicks into. A
+  hub does not break its hero or card grids out to the full shell; a card grid picks
+  a column count that fills its rows, or lets its last row stretch. Only the
+  homepage and the `/courses` landing use the full `--shell`.
+- **Index titles use `.page-title`** (the "Page h1" size above). Pages put the class
+  on their `h1`; they do not restate the size in page CSS.
+- **`.hero-split` / `.hero-art`** — an index hero with a drawing: the copy column and
+  a fixed `15rem` picture column at the content column's right edge, so there is no
+  dead band between words and picture. The drawing drops below `48rem`. The picture
+  is a light/dark pair through `core/_hero_illustration.html` (`art=` names
+  `core/illustrations/<art>.webp` and `<art>-dark.webp`).
 - **Radius**: `0.45rem` status pills · `0.5–0.7rem` small controls and CTAs ·
   `0.9rem` cards, modules, player frame · `1.1rem` inset panels · `1.5rem` the
   featured slab · `999px` pills, discs, avatars.
@@ -719,7 +733,10 @@ HTML.**
 </form>
 ```
 
-The field grows and the button keeps its size; both wrap on a narrow screen.
+The field grows and the button keeps its size; both wrap on a narrow screen. The row
+is capped at `34rem` and the button is always `cta-primary`: the docs hub, every docs
+page and the wiki draw the same field width and the same button. A page does not
+restate the width or pick another variant.
 
 ## Knowledge graph
 

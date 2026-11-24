@@ -11,6 +11,10 @@
   Community
 {% endblock %}
 
+{% block title_attributes %}
+  class="page-title"
+{% endblock %}
+
 {% block title %}
   {{ slack.title }}
 {% endblock %}
@@ -64,6 +68,18 @@
        * Slack page rules.  Two option cards (join is the primary action,
        * help is secondary), then the channels as one row of plain chips.
        * ------------------------------------------------------------------ */
+
+      /* A hub page, not a document: it holds the ordinary content column the
+         sponsors and other top-navigation pages hold, not the narrower
+         reading width a legal text keeps.  The lede keeps the measure the
+         other hub ledes keep, rather than running the column's full width. */
+      .text-page-shell {
+        max-width: var(--content-width);
+      }
+
+      .text-page-head {
+        --measure: 38rem;
+      }
 
       .slack-options {
         display: grid;

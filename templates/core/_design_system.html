@@ -528,9 +528,15 @@ Rules for editing:
         max-width: var(--content-width);
       }
 
-      /* Long-form reading surfaces (wiki hub/search/special pages). */
-      .shell-reading.shell-narrow {
-        max-width: var(--reading-width);
+      /* The page title of every index and hub page (docs, blog, podcast,
+         books, people, events, sponsors, the wiki hub and its search and
+         special pages).  One size, so moving between them does not change the
+         title; pages put the class on their h1 rather than restating it. */
+      .page-title {
+        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        letter-spacing: -0.03em;
+        line-height: 1.08;
+        text-wrap: balance;
       }
 
       /* --- masthead ----------------------------------------------------- */
@@ -616,6 +622,46 @@ Rules for editing:
 
       body.dark-mode .doodle-dark {
         display: block;
+      }
+
+      /* An index hero with a drawing: the title block beside its picture,
+         inside the ordinary content column.  The picture column is fixed and
+         the copy takes the rest, so the two meet at one gap whatever the copy's
+         length -- no dead band between words and drawing.  Both hang from the
+         band's top, so the title sits where every other hub's title sits
+         whether or not the page has a drawing.  Below 48rem the
+         drawing goes: on a phone the words are the whole header. */
+      .hero-split {
+        align-items: start;
+        display: grid;
+        gap: 1.5rem 2rem;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 15rem);
+      }
+
+      .hero-split > * {
+        min-width: 0;
+      }
+
+      .hero-art {
+        aspect-ratio: 1;
+        justify-self: end;
+        max-width: 15rem;
+        width: 100%;
+      }
+
+      .hero-art .doodle {
+        height: 100%;
+        object-fit: contain;
+      }
+
+      @media (max-width: 47.99rem) {
+        .hero-split {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .hero-art {
+          display: none;
+        }
       }
 
       .masthead-actions {
@@ -4047,12 +4093,15 @@ Rules for editing:
         margin-top: 0.4rem;
       }
 
-      /* Search row: a labelled query field and its submit button on one line,
-         shared by the wiki hub and the wiki search results page. */
+      /* Search row: a labelled query field and its primary submit button on
+         one line.  One component everywhere a page searches -- the wiki hub and
+         results, the docs hub and every docs page -- so the field is the same
+         width and the button the same variant wherever a reader meets it. */
       .search-row {
         display: flex;
         flex-wrap: wrap;
         gap: 0.6rem;
+        max-width: 34rem;
       }
 
       .search-row .field-input {

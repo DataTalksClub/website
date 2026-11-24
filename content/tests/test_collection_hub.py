@@ -276,7 +276,7 @@ class BooksArchiveContractTests(TestCase):
 
         for page_number, body in enumerate(pages, start=1):
             with self.subTest(page=page_number):
-                self.assertIn('<h1 id="collection-heading">Book of the Week</h1>', body)
+                self.assertIn('<h1 class="page-title" id="collection-heading">Book of the Week</h1>', body)
                 self.assertIn(
                     "Each week we have a book author coming to DataTalks.Club to answer "
                     "your questions",
@@ -350,7 +350,7 @@ class CollectionHubPaginationTests(TestCase):
         self.assertIn('<link rel="prev" href="https://datatalks.club/books">', body)
         self.assertIn('<link rel="next" href="https://datatalks.club/books?page=3">', body)
         # The archive's own introduction stays above every page of records.
-        self.assertIn('<h1 id="collection-heading">Book of the Week</h1>', body)
+        self.assertIn('<h1 class="page-title" id="collection-heading">Book of the Week</h1>', body)
         self.assertIn('<h2 id="how-it-works-heading">How it works</h2>', body)
         self.assertIn('<h2 id="collection-list-heading">Archive</h2>', body)
 
@@ -424,7 +424,7 @@ class CollectionHubPaginationTests(TestCase):
         self.assertEqual(second.status_code, 200)
         self.assertIn("<title>Articles — Page 2 — DataTalks.Club</title>", body)
         self.assertIn(f"blog · {len(articles)} articles", body)
-        self.assertIn('<h1 id="collection-heading">Latest Articles</h1>', body)
+        self.assertIn('<h1 class="page-title" id="collection-heading">Latest Articles</h1>', body)
         self.assertIn('<h2 id="collection-list-heading">All articles</h2>', body)
         self.assertIn('aria-label="Article pages"', body)
         # The books explainer belongs to books, on every page of either hub.

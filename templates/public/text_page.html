@@ -97,7 +97,9 @@
         margin-top: 0.9rem;
       }
 
-      .text-page-head h1 {
+      /* A document's title; a hub built on this page (the Slack page) takes
+         the index `.page-title` instead through the title_attributes block. */
+      .text-page-head h1:not(.page-title) {
         font-size: clamp(1.9rem, 4.2vw, 2.75rem);
         letter-spacing: -0.025em;
       }
@@ -190,7 +192,11 @@
                   DataTalks.Club
                 {% endblock %}
               </p>
-              <h1 id="text-page-heading">
+              <h1
+                id="text-page-heading"
+                {% block title_attributes %}
+                {% endblock %}
+              >
                 {% block title %}
                 {% endblock %}
               </h1>
