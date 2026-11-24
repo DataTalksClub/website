@@ -244,6 +244,7 @@ class AcademyPageTests(TestCase):
 
     def test_the_optional_copy_draws_nothing_when_absent(self) -> None:
         pages = fixture.pages_copy()
+        del pages["index"][0]["funding"]
         del pages["bildungsgutschein"][0]["english"]
         del pages["faq"][0]["join"]
         del pages["sessions-recap"][0]["related"]
@@ -251,7 +252,8 @@ class AcademyPageTests(TestCase):
         shared = {
             key: value
             for key, value in fixture.SHARED.items()
-            if key not in {"header", "sticky", "contact", "other_track", "confirm_notice"}
+            if key
+            not in {"header", "sticky", "contact", "other_track", "confirm_notice", "funding"}
         }
         _clear_academy()
         fixture.publish(fixture.academy_tree(pages=pages, shared=shared))
@@ -260,6 +262,8 @@ class AcademyPageTests(TestCase):
                 body = self.client.get(path).content.decode()
                 self.assertEqual(self.client.get(path).status_code, 200)
                 for marker in (
+                    'id="funding"',
+                    'id="funding-heading"',
                     'class="academy-bar"',
                     "data-academy-sticky",
                     "data-confirm-notice",
