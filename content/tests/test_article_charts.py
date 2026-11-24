@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from django.template.loader import render_to_string
 from django.test import SimpleTestCase
 
 from content.article_charts import BAR_SPAN, chart_view
 from content.article_content import prose_sections
 
-BLOCK = {
+BLOCK: dict[str, Any] = {
     "kind": "chart",
     "title": "Which tools do you use?",
     "unit": "percent",

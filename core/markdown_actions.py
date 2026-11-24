@@ -87,7 +87,7 @@ def button_html(label_html: str, href: str, variant: str) -> str:
     destination (escaped by the template).
     """
 
-    control = render_to_string(
+    control: str = render_to_string(
         "core/_button.html",
         {
             "href": href,
