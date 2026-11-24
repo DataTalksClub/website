@@ -66,11 +66,11 @@ from .pagination import (
 )
 from .person_content import person_view
 from .podcast_content import (
-    episode_navigation,
     episode_view,
     listening_platform_phrase,
     podcast_platform_links,
     podcast_seasons,
+    related_episodes,
     season_episodes,
 )
 from .podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_public_id
@@ -947,11 +947,20 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         if episode.get("media_available") and episode.get("image_path")
         else ""
     )
-    previous_episode, next_episode, related_episodes = episode_navigation(
+    try:
+        related_matches = wiki_content.related_episode_matches(episode)
+    except ImproperlyConfigured:
+        # The same rule as the graph band below: a graph the catalogue cannot
+        # supply leaves the page up, and the band falls back to the season.
+        related_matches = ()
+    podcasts = catalogue.podcasts()
+    related = related_episodes(
         episode,
-        catalogue.podcasts(),
+        podcasts,
+        related_matches,
         people_by_slug=catalogue.people_by_slug(),
     )
+    latest_season = max(item["season"] for item in podcasts)
     try:
         episode_graph = wiki_content.episode_graph(episode)
     except ImproperlyConfigured:
@@ -991,9 +1000,8 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
                 people_by_slug=catalogue.people_by_slug(),
                 resource_podcast_records=catalogue.podcasts(),
             ),
-            "previous_episode": previous_episode,
-            "next_episode": next_episode,
-            "related_episodes": related_episodes,
+            "related": related,
+            "season_path": _podcast_season_path(episode["season"], latest=latest_season),
             "episode_graph": episode_graph,
             "og_type": "article",
             "og_image_url": _canonical(image_path) if image_path else "",

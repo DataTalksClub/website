@@ -27,6 +27,7 @@ DESIGN_SYSTEM = REPOSITORY_ROOT / "templates/core/_design_system.html"
 SURFACES = (
     REPOSITORY_ROOT / "templates/public/collection_hub.html",
     REPOSITORY_ROOT / "templates/public/podcast_hub.html",
+    REPOSITORY_ROOT / "templates/public/_podcast_related.html",
     REPOSITORY_ROOT / "templates/public/_contribution_row.html",
 )
 EVENT_SURFACES = (
@@ -199,6 +200,31 @@ class ArchiveRowSlotTests(TestCase):
 
         self.assertIn('<span class="status-pill">12 questions</span>', body)
         self.assertNotIn('class="status-pill "', body)
+
+
+class ArchiveRowTagTests(TestCase):
+    def test_tags_are_linked_chips_above_the_credit_and_absent_when_not_given(self) -> None:
+        tags = ({"label": "RAG", "url": "/wiki/rag"}, {"label": "Evaluation", "url": "/wiki/evals"})
+        body = render_to_string(
+            ROW_TEMPLATE,
+            {
+                "row_title": "An episode",
+                "row_url": "/podcast/s01e01/an-episode",
+                "row_tags": tags,
+                "row_tags_label": "Shared wiki topics",
+                "row_credits": ({"name": "A Guest", "public_path": ""},),
+            },
+        )
+
+        self.assertIn('<ul class="archive-tags" aria-label="Shared wiki topics">', body)
+        self.assertIn('<a class="chip chip-plain chip-link" href="/wiki/rag">RAG</a>', body)
+        self.assertLess(body.index("archive-tags"), body.index("card-credit"))
+        self.assertNotIn(
+            "archive-tags",
+            render_to_string(ROW_TEMPLATE, {"row_title": "t", "row_url": "/podcast"}),
+        )
+        styles = DESIGN_SYSTEM.read_text(encoding="utf-8")
+        self.assertIn(".stretched-card-link .archive-tags a", styles)
 
 
 class ArchiveRowSurfaceTests(TestCase):

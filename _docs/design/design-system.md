@@ -383,7 +383,8 @@ to this document — do not fork it locally.
   top-left corner for a page that already draws its own dashed connecting rail behind
   the row (`.journey-grid::before` stays page-specific, along with the grid itself).
 - **`.chip`** — round uppercase mini-pill. Variants: `.chip-plain`, `.chip-green`,
-  `.chip-live`, `.chip-ink`.
+  `.chip-live`, `.chip-ink`. **`a.chip-link`** is a chip that opens a page (a wiki
+  concept): indigo border and text, underlined on hover.
 - **`.avatar`** — striped round placeholder disc, `2.6rem`.
 - **`.person-chip`** — one credited person: a small portrait and their linked name.
   Every surface that names a person draws this.
@@ -518,14 +519,20 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
 
   Optional slots: `row_date` (absent drops the rail), `row_mark="play"`,
   `row_eyebrow`, `row_pill`/`row_pill_variant`/`row_pill_extra`, `row_summary`,
-  `row_credits`, `row_class`/`row_hook`. Always pass `only`.
+  `row_tags`/`row_tags_label`, `row_credits`, `row_class`/`row_hook`. Always pass
+  `only`.
 
   Inside the card the order is fixed: leading mark, eyebrow, pills, `h3` title,
-  clamped summary, credited people last as `.person-chips.card-credit`. The rail is
-  `.date-rail`, day above year.
+  clamped summary, tags (`ul.archive-tags` of `a.chip-link`, saying why the row is
+  on this page; they sit above the stretched card link), credited people last as
+  `.person-chips.card-credit`. The rail is `.date-rail`, day above year. An
+  episode row is the play-mark row with `row_class="episode-row"`.
 
-  Drawn by `/blog`, `/books`, `/podcast` and every contribution band of a person's
-  profile. **Not** by the events index, whose rail carries three facts including a
+  Drawn by `/blog`, `/books`, `/podcast`, an episode page's related episodes (the
+  episodes sharing wiki concepts with it, the shared concepts as tags; there is no
+  previous/next pair — episodes are not a sequence, and the season link in that
+  band's head is the way to browse in order) and every contribution band of a
+  person's profile. **Not** by the events index, whose rail carries three facts including a
   start clock — that is `.when` below, and its card is the shared `.event-card`.
 
 - **Date rail (events index)** — set the way `.date-rail` is set: position and type,

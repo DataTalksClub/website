@@ -322,8 +322,7 @@
 
       .listen-row .pill-button,
       .episode-resource-list a,
-      .episode-timestamp,
-      .episode-navigation a {
+      .episode-timestamp {
         overflow-wrap: anywhere;
       }
 
@@ -467,108 +466,6 @@
         margin-top: 0.75rem;
       }
 
-      .episode-navigation {
-        display: grid;
-        gap: 1rem;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        margin-top: 1.5rem;
-      }
-
-      .episode-navigation a {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.8rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-        min-height: 5rem;
-        padding: 0.9rem 1rem;
-        text-decoration: none;
-      }
-
-      .episode-navigation a:hover {
-        box-shadow: 0.25rem 0.25rem 0 var(--shadow-soft);
-      }
-
-      .episode-navigation .next-episode {
-        text-align: right;
-      }
-
-      /* In the reading column three cards side by side left each title about
-         ten characters wide and six lines tall (owner feedback 2026-11-23), so
-         the related episodes stack as one card per row: the artwork as a
-         thumbnail on the left, the numbering, title and guest beside it. */
-      .related-episode-list {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 0.9rem;
-      }
-
-      .related-episode-card {
-        align-content: center;
-        column-gap: 1.1rem;
-        display: grid;
-        grid-template-columns: 11rem minmax(0, 1fr);
-        min-width: 0;
-      }
-
-      .related-episode-card > * {
-        grid-column: 2;
-        min-width: 0;
-      }
-
-      .related-artwork,
-      .related-artwork-missing {
-        aspect-ratio: 16 / 9;
-        border-radius: 0.55rem;
-        display: block;
-        object-fit: cover;
-        width: 100%;
-      }
-
-      .related-episode-card > .related-artwork,
-      .related-episode-card > .related-artwork-missing {
-        align-self: center;
-        grid-column: 1;
-        grid-row: 1 / span 3;
-      }
-
-      .related-episode-card p:last-child {
-        margin-top: 0.3rem;
-      }
-
-      @media (max-width: 30rem) {
-        .related-episode-card {
-          grid-template-columns: 6.5rem minmax(0, 1fr);
-        }
-      }
-
-      .related-artwork-missing {
-        align-items: center;
-        background: var(--mint);
-        border: 1px dashed var(--line);
-        display: flex;
-        justify-content: center;
-        padding: 1rem;
-        text-align: center;
-      }
-
-      .related-episode-card h3 {
-        font-size: 1.05rem;
-        margin: 0;
-      }
-
-      .related-episode-card h3 a {
-        color: var(--ink);
-      }
-
-      .related-episode-meta {
-        color: var(--muted);
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-      }
-
       /* Transcript: shared timestamp rows, with the section headers the source
          gives the conversation and the speaker as each row's mark. */
       /* Topic headings break the transcript into chapters, so they read as
@@ -611,14 +508,6 @@
         .transcript-time {
           display: inline;
           margin-left: 0.4rem;
-        }
-
-        .episode-navigation {
-          grid-template-columns: minmax(0, 1fr);
-        }
-
-        .episode-navigation .next-episode {
-          text-align: left;
         }
 
         .guest-bio-card {
@@ -995,66 +884,7 @@
         </section>
       {% endif %}
 
-      {% if previous_episode or next_episode %}
-        <section class="band band-lavender" aria-labelledby="episode-navigation-heading">
-          <div class="shell episode-shell">
-            <h2 id="episode-navigation-heading">More episodes</h2>
-            <nav class="episode-navigation" aria-label="Episode navigation">
-              {% if previous_episode %}
-                <a href="{{ previous_episode.public_path }}" class="previous-episode interactive-card interactive-lift">
-                  <span class="mono-label">← Previous episode</span>
-                  <strong>{{ previous_episode.title }}</strong>
-                  <span class="mono-note">{{ previous_episode.season_episode }}</span>
-                </a>
-              {% endif %}
-              {% if next_episode %}
-                <a href="{{ next_episode.public_path }}" class="next-episode interactive-card interactive-lift">
-                  <span class="mono-label">Next episode →</span>
-                  <strong>{{ next_episode.title }}</strong>
-                  <span class="mono-note">{{ next_episode.season_episode }}</span>
-                </a>
-              {% endif %}
-            </nav>
-          </div>
-        </section>
-      {% endif %}
-
-      {% if related_episodes %}
-        <section class="band band-lavender episode-related" aria-labelledby="related-episodes-heading">
-          <div class="shell episode-shell">
-            <div class="band-head">
-              <div>
-                <h2 id="related-episodes-heading">More from this season</h2>
-                <p>Continue with another conversation from Season {{ episode.season }}.</p>
-              </div>
-            </div>
-            <div class="card-grid related-episode-list">
-              {% for related in related_episodes %}
-                <article class="card related-episode-card stretched-card-link interactive-card interactive-lift">
-                  {% if related.media_available %}
-                    <img
-                      class="related-artwork"
-                      src="{{ related.image_path }}"
-                      alt="Artwork for {{ related.title }}"
-                      loading="lazy"
-                      decoding="async"
-                    >
-                  {% else %}
-                    <div class="related-artwork-missing">Artwork unavailable.</div>
-                  {% endif %}
-                  <p class="related-episode-meta">{{ related.season_episode }}</p>
-                  <h3>
-                    <a href="{{ related.public_path }}">{{ related.title }}</a>
-                  </h3>
-                  {% if related.guest_names %}
-                    <p>{{ related.guest_names }}</p>
-                  {% endif %}
-                </article>
-              {% endfor %}
-            </div>
-          </div>
-        </section>
-      {% endif %}
+      {% include "public/_podcast_related.html" %}
 
       {% include "public/_podcast_episode_extensions.html" %}
     </main>

@@ -15,7 +15,6 @@ from django.utils.html import conditional_escape, escape
 from content import catalogue
 from content.podcast_content import (
     _spotify_creator_embed,
-    episode_navigation,
     episode_view,
     listening_platform_phrase,
     ordered_podcasts,
@@ -604,43 +603,7 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertNotIn(view.transcript[2].line, timestamp_markup)
         self.assertIn(view.transcript[2].line, body[body.index('<section id="transcript"') :])
 
-    def test_previous_and_next_episode_cards_show_their_season_and_episode(self) -> None:
-        record = self.representative()
-        previous_episode, next_episode, _ = episode_navigation(
-            record, catalogue.podcasts(), people_by_slug=catalogue.people_by_slug()
-        )
-        response = self.client.get(record["public_path"])
-        body = response.content.decode()
-
-        if previous_episode is not None:
-            self.assertIn(previous_episode.season_episode, body)
-        if next_episode is not None:
-            self.assertIn(next_episode.season_episode, body)
-
-    def test_checked_detail_and_adjacent_destinations_render_with_internal_resource(self) -> None:
-        # Not the representative episode: it sits at the top of season 24's
-        # real episode numbering, so it has no "following" neighbour in the
-        # unmodified catalogue (see test_episode_navigation_uses_real_adjacency...
-        # below for the case that injects one above it). A middle episode
-        # has both neighbours already.
-        record = _episode("synthetic-episode-s24e03")
-        previous, following, _ = episode_navigation(
-            record,
-            catalogue.podcasts(),
-            people_by_slug=catalogue.people_by_slug(),
-        )
-        self.assertIsNotNone(previous)
-        self.assertIsNotNone(following)
-        assert previous is not None and following is not None
-
-        response = self.client.get(record["public_path"])
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, previous.public_path)
-        self.assertContains(response, following.public_path)
-        for destination in (previous.public_path, following.public_path):
-            with self.subTest(destination=destination):
-                self.assertEqual(self.client.get(destination).status_code, 200)
-
+    def test_checked_detail_renders_with_internal_resource(self) -> None:
         internal_resource_record = _episode("synthetic-episode-s24e01")
         view = episode_view(
             internal_resource_record,
@@ -685,23 +648,6 @@ class PodcastEpisodeParityTests(TestCase):
                     resource_podcast_records=catalogue.podcasts(),
                 )
                 self.assertEqual(view.resources, ())
-
-    def test_related_episode_cards_show_the_guest_instead_of_the_description(self) -> None:
-        record = self.representative()
-        _, _, related_episodes = episode_navigation(
-            record, catalogue.podcasts(), people_by_slug=catalogue.people_by_slug()
-        )
-        self.assertTrue(related_episodes)
-        response = self.client.get(record["public_path"])
-        body = response.content.decode()
-
-        related_start = body.find('id="related-episodes-heading"')
-        self.assertNotEqual(related_start, -1)
-        related_html = body[related_start:]
-        for related in related_episodes:
-            if related.guest_names:
-                self.assertIn(escape(related.guest_names), related_html)
-            self.assertNotIn(escape(related.description), related_html)
 
     def test_a_player_present_episode_renders_no_redundant_artwork_figure(self) -> None:
         record = self.representative()
@@ -853,29 +799,6 @@ class PodcastEpisodeParityTests(TestCase):
             if item.get("@type") == "PodcastEpisode"
         )
         self.assertEqual(entity["datePublished"], "2026-02-03")
-
-    def test_episode_navigation_uses_real_adjacency_and_same_season_related_limit(self) -> None:
-        record = self.representative()
-        next_record = {
-            **record,
-            "slug": "synthetic-next",
-            "public_path": "/podcast/s20e07/synthetic-next",
-            "title": "Synthetic Season 24 Episode 7",
-            "episode": 7,
-            "published": "",
-        }
-        previous, following, related = episode_navigation(
-            record,
-            (next_record, *catalogue.podcasts()),
-            people_by_slug=catalogue.people_by_slug(),
-        )
-        assert previous is not None
-        assert following is not None
-        self.assertEqual(previous.episode, 5)
-        self.assertEqual(following.episode, 7)
-        self.assertEqual(len(related), 3)
-        self.assertEqual([item.episode for item in related], [7, 5, 4])
-        self.assertNotIn(record["public_path"], [item.public_path for item in related])
 
     def test_query_detail_is_no_store_and_unsafe_methods_keep_allowlist(self) -> None:
         record = self.representative()
