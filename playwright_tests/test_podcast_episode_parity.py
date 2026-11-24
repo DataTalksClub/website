@@ -74,9 +74,16 @@ def test_episode_sections_player_and_guest_links_are_keyboard_reachable(
     _settle_analytics_preferences(page)
 
     expect(page.locator("#episode-heading")).to_have_text(episode["title"])
+    # The YouTube player is a click-to-play poster until the reader asks for it.
+    facade = page.get_by_role("button", name=f"Play {episode['title']} on YouTube")
+    expect(facade).to_be_visible()
+    expect(page.locator("#podcast-video-player")).to_have_count(0)
+    expect(page.locator("[data-video-fallback]").first).to_be_hidden()
+    facade.press("Enter")
     expect(page.locator("#podcast-video-player")).to_have_attribute(
         "title", f"Watch {episode['title']} on YouTube"
     )
+    expect(page.locator("#podcast-video-player")).to_be_focused()
     # The reading-section anchors keep their `#show-notes`/`#timestamps`/`#transcript`
     # hrefs as a working no-JS fallback, but the tabs script enhances them into a
     # real WAI-ARIA tablist once it runs, so their accessible role is "tab".
@@ -117,7 +124,7 @@ def test_timestamp_enhancement_updates_player_and_keeps_native_target(
     video_id = episode["video"]["id"]
     expect(page.locator("#podcast-video-player")).to_have_attribute(
         "src",
-        f"https://www.youtube-nocookie.com/embed/{video_id}?enablejsapi=1&rel=0&start=0",
+        f"https://www.youtube-nocookie.com/embed/{video_id}?enablejsapi=1&rel=0&autoplay=1&start=0",
     )
     expect(timestamp).to_be_focused()
 
@@ -209,8 +216,13 @@ def test_timestamp_and_section_links_remain_native_without_javascript(
         expect(page.locator("#timestamps .episode-timestamp").first).not_to_have_attribute(
             "href", "#"
         )
-        expect(page.locator("#podcast-video-player")).not_to_be_visible()
-        expect(page.locator("[data-video-fallback]")).to_be_visible()
+        # Without JavaScript the poster is a plain link to the YouTube watch page;
+        # the "unavailable" note is reserved for a player that actually failed.
+        expect(page.locator("#podcast-video-player")).to_have_count(0)
+        expect(page.locator("#podcast-video-facade")).to_have_attribute(
+            "href", f"https://www.youtube.com/watch?v={episode['video']['id']}"
+        )
+        expect(page.locator("[data-video-fallback]").first).to_be_hidden()
         _assert_no_horizontal_overflow(page)
     finally:
         context.close()

@@ -123,11 +123,15 @@ class PodcastPlatformDataTests(TestCase):
         body = response.content.decode()
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'id="podcast-video-player"')
+        # The YouTube player is a click-to-play poster: the embed address rides on
+        # the frame for the script to build, and no YouTube frame loads with the page.
+        self.assertContains(response, 'id="podcast-video-facade"')
         self.assertContains(
             response,
-            'src="https://www.youtube-nocookie.com/embed/PosCx_4fwt0?enablejsapi=1&amp;rel=0"',
+            'data-video-embed="https://www.youtube-nocookie.com/embed/PosCx_4fwt0'
+            '?enablejsapi=1&amp;rel=0"',
         )
+        self.assertNotContains(response, 'src="https://www.youtube-nocookie.com/')
         open_embed = "https://open.spotify.com/embed/episode/1kwtGLI6dOq2HgKzJmLMkw"
         self.assertContains(response, 'id="podcast-audio-player"')
         self.assertContains(response, f'src="{open_embed}"')

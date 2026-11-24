@@ -244,6 +244,14 @@ class VideoEmbed:
         return f"https://www.youtube-nocookie.com/embed/{self.video_id}?enablejsapi=1&rel=0"
 
     @property
+    def watch_url(self) -> str:
+        """The YouTube page the click-to-play poster links to before it plays."""
+
+        if self.provider != "youtube" or not YOUTUBE_VIDEO_ID.fullmatch(self.video_id):
+            raise ImproperlyConfigured("Public podcast video identity is invalid.")
+        return f"https://www.youtube.com/watch?v={self.video_id}"
+
+    @property
     def media_id(self) -> str:
         return self.video_id
 

@@ -467,7 +467,7 @@ class PodcastEpisodeParityTests(TestCase):
             "related-episodes-heading",
         ):
             self.assertContains(response, f'id="{heading_id}"')
-        self.assertContains(response, 'id="podcast-video-player"')
+        self.assertContains(response, 'id="podcast-video-facade"')
         self.assertContains(response, 'href="https://www.youtube.com/watch?v=aaaaaaaaaaa&amp;t=0"')
         self.assertNotIn('property="article:published_time"', body)
         match = re.search(
@@ -822,7 +822,10 @@ class PodcastEpisodeParityTests(TestCase):
         response = self.client.get(source["public_path"])
         self.assertContains(response, 'data-video-provider="youtube"')
         self.assertContains(response, f'data-video-id="{view.video.video_id}"')
-        self.assertContains(response, f'src="{view.video.embed_url.replace("&", "&amp;")}"')
+        self.assertContains(
+            response, f'data-video-embed="{view.video.embed_url.replace("&", "&amp;")}"'
+        )
+        self.assertContains(response, f'href="{view.video.watch_url}"')
 
     def test_dated_episode_keeps_exact_visible_and_structured_publication_date(self) -> None:
         record = self.representative()
@@ -917,6 +920,54 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertNotIn('property="og:image"', body)
         self.assertNotIn('name="twitter:image"', body)
 
+    def test_youtube_player_is_a_first_party_click_to_play_poster(self) -> None:
+        """Nothing loads from YouTube until the reader presses play.
+
+        The poster is the episode's own artwork from the site's media store
+        (the privacy notice names no video provider as a recipient), the
+        control's accessible name says what pressing it does, and without
+        JavaScript it is a plain link to the YouTube watch page.
+        """
+
+        record = self.representative()
+        artwork = {**record, "image_path": "/images/podcast/poster.jpg", "media_available": True}
+        view = episode_view(artwork)
+        assert view.video is not None
+        with patch("content.catalogue.podcasts", return_value=(artwork,)):
+            response = self.client.get(artwork["public_path"])
+        body = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        facade = re.search(r'<a\s+id="podcast-video-facade".*?</a>', body, re.S)
+        assert facade is not None
+        markup = facade.group(0)
+        self.assertIn(f'href="{view.video.watch_url}"', markup)
+        self.assertIn('src="/images/podcast/poster.jpg"', markup)
+        self.assertIn('alt=""', markup)
+        self.assertIn(
+            f'<span class="sr-only">Play {conditional_escape(view.title)} on YouTube</span>',
+            markup,
+        )
+        self.assertIn('data-video-state="poster"', body)
+        # No YouTube frame, thumbnail host or script is requested before the click.
+        self.assertNotIn("<iframe", body.split('id="podcast-audio-player"')[0])
+        for host in ("i.ytimg.com", "img.youtube.com", "youtube.com/iframe_api"):
+            self.assertNotIn(host, body)
+
+    def test_player_fallback_is_a_failure_state_never_a_loading_state(self) -> None:
+        """The "unavailable" note only ever follows a reported error."""
+
+        source = (REPOSITORY_ROOT / "templates/public/podcast_detail.html").read_text(
+            encoding="utf-8"
+        )
+        selectors = re.findall(r"([^{}]*)\{[^{}]*display:\s*flex", source)
+        fallback_rules = [rule for rule in selectors if ".episode-video-fallback" in rule]
+        self.assertTrue(fallback_rules)
+        for rule in fallback_rules:
+            self.assertIn('[data-video-state="unavailable"]', rule)
+            self.assertNotIn(":not(", rule)
+            self.assertNotIn("no-js", rule)
+
     def test_valid_video_without_artwork_omits_the_redundant_artwork_and_social_image(
         self,
     ) -> None:
@@ -938,10 +989,12 @@ class PodcastEpisodeParityTests(TestCase):
 
         body = response.content.decode()
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'id="podcast-video-player"')
+        self.assertContains(response, 'id="podcast-video-facade"')
         # The player already fills the visual slot artwork would take, so a
-        # video-present episode with no image shows no separate artwork note.
+        # video-present episode with no image shows no separate artwork note,
+        # and its click-to-play poster draws the play control on the frame alone.
         self.assertNotIn("Artwork unavailable.", body)
+        self.assertNotIn('class="episode-video-poster"', body)
         self.assertNotIn('property="og:image"', body)
         self.assertNotIn('name="twitter:image"', body)
 
