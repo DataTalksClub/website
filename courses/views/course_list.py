@@ -129,6 +129,16 @@ class CatalogCard:
         return catalog_facets.duration_label(self.family.catalog_duration_weeks)
 
     @property
+    def topic_level_line(self) -> str:
+        return " · ".join(part for part in (self.topic_label, self.level_label) if part)
+
+    @property
+    def length_line(self) -> str:
+        if not self.duration_label:
+            return ""
+        return " · ".join(part for part in (self.duration_label, self.hours_label) if part)
+
+    @property
     def hours_label(self) -> str:
         hours = (self.family.catalog_hours_per_week or "").strip()
         return f"{hours} hours a week" if hours else ""
@@ -328,6 +338,16 @@ def catalog_filter_groups(catalog_cards, selection, base_path) -> tuple[FilterGr
         if options:
             groups.append(FilterGroup(key=key, label=label, options=options))
     return tuple(groups)
+
+
+def catalog_count_label(catalog_rows, selection) -> str:
+    """Say "7 courses", or "2 of 7 courses" while a filter is on, as the page script does."""
+
+    total = len(catalog_rows)
+    if not selection:
+        return f"{total} courses"
+    shown = sum(1 for row in catalog_rows if row["visible"])
+    return f"{shown} of {total} courses"
 
 
 def offered_selection(catalog_cards, selection):
@@ -760,6 +780,7 @@ def course_list_context(request):
         "catalog_cards": catalog_cards,
         "catalog_rows": catalog_rows,
         "catalog_visible_count": sum(1 for row in catalog_rows if row["visible"]),
+        "catalog_count_label": catalog_count_label(catalog_rows, filter_selection),
         "catalog_filter_groups": filter_groups,
         "course_fit_options": fit_options,
         "active_filter_chips": active_filter_chips(filter_groups, fit_options),

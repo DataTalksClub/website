@@ -818,11 +818,11 @@
           <div class="fit-grid">
             {% for option in course_fit_options %}
               <a
-                class="card fit-option interactive-lift{% if option.active %} is-active{% endif %}"
+                class="card fit-option interactive-lift {{ option.active|yesno:'is-active,' }}"
                 href="{{ option.href }}"
                 data-filter-key="for"
                 data-filter-value="{{ option.value }}"
-                {% if option.active %}aria-current="true"{% endif %}
+                {{ option.active|yesno:"aria-current=true," }}
               >
                 <strong>{{ option.label }}</strong>
                 <span>{{ option.hint }}</span>
@@ -848,12 +848,12 @@
                   <div class="filter-pills" role="group" aria-labelledby="filter-{{ group.key }}-label">
                     {% for option in group.options %}
                       <a
-                        class="filter-pill interactive-lift{% if option.active %} is-active{% endif %}"
+                        class="filter-pill interactive-lift {{ option.active|yesno:'is-active,' }}"
                         href="{{ option.href }}"
                         rel="nofollow"
                         data-filter-key="{{ group.key }}"
                         data-filter-value="{{ option.value }}"
-                        {% if option.active %}aria-current="true"{% endif %}
+                        {{ option.active|yesno:"aria-current=true," }}
                       >{{ option.label }}</a>
                     {% endfor %}
                   </div>
@@ -863,18 +863,22 @@
           {% endif %}
           <div class="catalog-active" data-catalog-active aria-live="polite">
             <span class="catalog-count" data-catalog-count>
-              {% if active_filter_chips %}{{ catalog_visible_count }} of {{ catalog_rows|length }} courses{% else %}{{ catalog_rows|length }} courses{% endif %}
+              {{ catalog_count_label }}
             </span>
             {% for chip in active_filter_chips %}
               <a class="active-chip" href="{{ chip.href }}" rel="nofollow" data-filter-key="{{ chip.key }}" data-filter-value="{{ chip.value }}">
-                {{ chip.label }} <span aria-hidden="true">×</span><span class="sr-only"> (remove filter)</span>
+                {{ chip.label }}
+                <span aria-hidden="true">×</span>
+                <span class="sr-only"> (remove filter)</span>
               </a>
             {% endfor %}
-            <a class="band-link catalog-clear" href="{{ clear_filters_href }}" rel="nofollow" data-filter-clear {% if not active_filter_chips %}hidden{% endif %}>Clear all filters</a>
+            <a class="band-link catalog-clear" href="{{ clear_filters_href }}" rel="nofollow" data-filter-clear {{ active_filter_chips|yesno:",hidden" }}>Clear all filters</a>
           </div>
           {% if catalog_rows %}
-            <div class="card catalog-empty" data-catalog-empty {% if catalog_visible_count %}hidden{% endif %}>
-              <p><strong>No course matches all of these filters.</strong></p>
+            <div class="card catalog-empty" data-catalog-empty {{ catalog_visible_count|yesno:",hidden" }}>
+              <p>
+                <strong>No course matches all of these filters.</strong>
+              </p>
               <p>
                 Try removing one of the filters above, or
                 <a class="band-link" href="{{ clear_filters_href }}" rel="nofollow" data-filter-clear>see all {{ catalog_rows|length }} courses</a>.
@@ -892,7 +896,7 @@
                     data-filter-length="{{ entry.filter_data.length }}"
                     data-filter-status="{{ entry.filter_data.status }}"
                     data-filter-tool="{{ entry.filter_data.tool }}"
-                    {% if not row.visible %}hidden{% endif %}
+                    {{ row.visible|yesno:",hidden" }}
                   >
                     <div class="catalog-card-media">
                       {% include "core/_course_illustration.html" with family_slug=entry.family.slug loading="lazy" only %}
@@ -901,10 +905,14 @@
                       <p class="card-status">
                         {% if entry.kind == "open_dated" %}
                           <span class="status-pill status-pill-live">Registration open</span>
-                          {% if entry.cohort.start_date %}<span class="card-status-when">Starts {{ entry.cohort.start_date|date:"M j, Y" }}</span>{% endif %}
+                          {% if entry.cohort.start_date %}
+                            <span class="card-status-when">Starts {{ entry.cohort.start_date|date:"M j, Y" }}</span>
+                          {% endif %}
                         {% elif entry.kind == "active" %}
                           <span class="status-pill status-pill-open">Running now</span>
-                          {% if entry.cohort.start_date %}<span class="card-status-when">Started {{ entry.cohort.start_date|date:"M j, Y" }}</span>{% endif %}
+                          {% if entry.cohort.start_date %}
+                            <span class="card-status-when">Started {{ entry.cohort.start_date|date:"M j, Y" }}</span>
+                          {% endif %}
                         {% elif entry.kind == "open_undated" %}
                           <span class="status-pill status-pill-wait">Next cohort</span>
                           <span class="card-status-when">Dates coming soon</span>
@@ -918,11 +926,11 @@
                       </h3>
                       {% if entry.has_facets %}
                         <div class="card-facts">
-                          {% if entry.topic_label or entry.level_label %}
-                            <span>{{ entry.topic_label }}{% if entry.topic_label and entry.level_label %} · {% endif %}{{ entry.level_label }}</span>
+                          {% if entry.topic_level_line %}
+                            <span>{{ entry.topic_level_line }}</span>
                           {% endif %}
-                          {% if entry.duration_label %}
-                            <span>{{ entry.duration_label }}{% if entry.hours_label %} · {{ entry.hours_label }}{% endif %}</span>
+                          {% if entry.length_line %}
+                            <span>{{ entry.length_line }}</span>
                           {% endif %}
                         </div>
                         {% if entry.family.catalog_tools %}
@@ -933,7 +941,10 @@
                           </div>
                         {% endif %}
                         {% if entry.family.catalog_project %}
-                          <p class="card-builds"><strong>You will build</strong>{{ entry.family.catalog_project }}</p>
+                          <p class="card-builds">
+                            <strong>You will build</strong>
+                            {{ entry.family.catalog_project }}
+                          </p>
                         {% elif entry.outcome %}
                           <p class="card-builds">{{ entry.outcome }}</p>
                         {% endif %}
@@ -999,10 +1010,14 @@
             </div>
             <div class="scroller-controls">
               <button class="scroller-button interactive-lift" type="button" data-scroll="-1" data-scroll-target="courses-stories-scroller" aria-label="Scroll course reviews left">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 5l-7 7 7 7"/></svg>
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M15 5l-7 7 7 7"/>
+                </svg>
               </button>
               <button class="scroller-button interactive-lift" type="button" data-scroll="1" data-scroll-target="courses-stories-scroller" aria-label="Scroll course reviews right">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 5l7 7-7 7"/></svg>
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M9 5l7 7-7 7"/>
+                </svg>
               </button>
             </div>
           </div>
@@ -1062,42 +1077,59 @@
               <h3 class="faq-question-title">Is it really free?</h3>
               <span class="faq-fold-marker" aria-hidden="true"></span>
             </summary>
-            <div class="prose faq-answer"><p>Yes. Every video and lesson is open to everyone, and a free account unlocks homework, projects and certificates. There is nothing to pay and nothing to upsell.</p></div>
+            <div class="prose faq-answer">
+              <p>Yes. Every video and lesson is open to everyone, and a free account unlocks homework, projects and certificates. There is nothing to pay and nothing to upsell.</p>
+            </div>
           </details>
           <details class="faq-fold" id="faq-join-late">
             <summary class="faq-fold-summary">
               <h3 class="faq-question-title">Can I join after a cohort starts?</h3>
               <span class="faq-fold-marker" aria-hidden="true"></span>
             </summary>
-            <div class="prose faq-answer"><p>Yes, while it is still running. Catch up on the recordings and submit whatever homework is still open.</p></div>
+            <div class="prose faq-answer">
+              <p>Yes, while it is still running. Catch up on the recordings and submit whatever homework is still open.</p>
+            </div>
           </details>
           <details class="faq-fold" id="faq-time">
             <summary class="faq-fold-summary">
               <h3 class="faq-question-title">How much time do I need?</h3>
               <span class="faq-fold-marker" aria-hidden="true"></span>
             </summary>
-            <div class="prose faq-answer"><p>Enough for the weekly videos plus hands-on practice. Most people do it alongside a full-time job — each course's own syllabus lays out its pace.</p></div>
+            <div class="prose faq-answer">
+              <p>Enough for the weekly videos plus hands-on practice. Most people do it alongside a full-time job — each course's own syllabus lays out its pace.</p>
+            </div>
           </details>
           <details class="faq-fold" id="faq-prerequisites">
             <summary class="faq-fold-summary">
               <h3 class="faq-question-title">What should I know beforehand?</h3>
               <span class="faq-fold-marker" aria-hidden="true"></span>
             </summary>
-            <div class="prose faq-answer"><p>Comfort with Python and the command line goes a long way. Each course page lists its exact prerequisites.</p></div>
+            <div class="prose faq-answer">
+              <p>Comfort with Python and the command line goes a long way. Each course page lists its exact prerequisites.</p>
+            </div>
           </details>
           <details class="faq-fold" id="faq-certificate">
             <summary class="faq-fold-summary">
               <h3 class="faq-question-title">Do I get a certificate?</h3>
               <span class="faq-fold-marker" aria-hidden="true"></span>
             </summary>
-            <div class="prose faq-answer"><p>To get a certificate you need to pass a project.</p></div>
+            <div class="prose faq-answer">
+              <p>To get a certificate you need to pass a project.</p>
+            </div>
           </details>
           <details class="faq-fold" id="faq-start">
             <summary class="faq-fold-summary">
               <h3 class="faq-question-title">Which course should I start with?</h3>
               <span class="faq-fold-marker" aria-hidden="true"></span>
             </summary>
-            <div class="prose faq-answer"><p>Switching into data? Start with Data Engineering Zoomcamp or Machine Learning Zoomcamp. Already shipping models? Try MLOps Zoomcamp or LLM Zoomcamp. <a href="#course-fit">Which course fits me?</a> above narrows the catalogue for you.</p></div>
+            <div class="prose faq-answer">
+              <p>
+                Switching into data? Start with Data Engineering Zoomcamp or Machine Learning Zoomcamp.
+                Already shipping models? Try MLOps Zoomcamp or LLM Zoomcamp.
+                <a href="#course-fit">Which course fits me?</a>
+                above narrows the catalogue for you.
+              </p>
+            </div>
           </details>
         </div>
         <p class="faq-note">
