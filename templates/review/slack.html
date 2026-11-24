@@ -44,6 +44,7 @@
   </div>
   <section class="slack-channels" aria-labelledby="slack-channels-heading">
     <h2 id="slack-channels-heading">Find your conversation</h2>
+    <p>The workspace has channels for every course, for careers, for data topics and for local meetups. These are a good place to start.</p>
     <ul class="channel-list">
       {% for channel in slack.channels %}
         <li class="chip chip-plain channel">
@@ -51,6 +52,7 @@
         </li>
       {% endfor %}
     </ul>
+    <a class="band-link slack-guide-link" href="{% url 'docs-page' 'general/slack/' %}">Read the Slack guide: channels and how to get help →</a>
   </section>
 {% endblock %}
 
@@ -128,5 +130,16 @@
         border: 0;
         font-size: 0.85rem;
         padding: 0;
+      }
+
+      .slack-channels > p {
+        margin: 0 0 1rem;
+      }
+
+      /* The guide link closes the section, under the chips: it reads as the
+         section's last word, the way /tour places its content links. */
+      .slack-guide-link {
+        display: inline-block;
+        margin-top: 1.25rem;
       }
 {% endblock %}
