@@ -49,6 +49,10 @@ MEDIA_CONTENT_TYPES = {
     ".png": "image/png",
     ".svg": "image/svg+xml",
 }
+#: The Academy tree also publishes session slide decks as PDF documents
+#: (``images/academy/**/*.pdf``); no other tree accepts a PDF.
+ACADEMY_MEDIA_PREFIX = "images/academy/"
+ACADEMY_MEDIA_CONTENT_TYPES = {**MEDIA_CONTENT_TYPES, ".pdf": "application/pdf"}
 #: A profile picture never publishes as SVG, per ``_copy_people_media``.
 PEOPLE_CONTENT_TYPES = {key: value for key, value in MEDIA_CONTENT_TYPES.items() if key != ".svg"}
 
@@ -75,6 +79,8 @@ def media_payload_defect(suffix: str, payload: bytes) -> str | None:
         return "PNG media signature mismatch"
     if suffix == ".gif" and not payload.startswith((b"GIF87a", b"GIF89a")):
         return "GIF media signature mismatch"
+    if suffix == ".pdf" and not (payload.startswith(b"%PDF-") and b"%%EOF" in payload[-1024:]):
+        return "PDF media signature mismatch"
     if suffix == ".svg":
         try:
             svg = payload.decode("utf-8")
@@ -181,7 +187,11 @@ class MediaParser:
                 checkout,
                 relative,
                 repository=EDITORIAL_REPOSITORY,
-                content_types=MEDIA_CONTENT_TYPES,
+                content_types=(
+                    ACADEMY_MEDIA_CONTENT_TYPES
+                    if relative.startswith(ACADEMY_MEDIA_PREFIX)
+                    else MEDIA_CONTENT_TYPES
+                ),
             )
             for relative in found
         ]

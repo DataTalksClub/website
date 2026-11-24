@@ -199,13 +199,13 @@ class SharedRouteTests(SharedWorldTestCase):
         self.assertContains(response, self.lesson.title)
         self.assertNotIn("cohort=", response.get("Cache-Control", ""))
 
-        # A genuinely first-time/ambiguous visitor (no explicit, remembered, or
-        # sole-enrollment cohort -- there are two visible cohorts here) still
-        # needs the full chooser, and no cohort-scoped homework link: nothing
-        # is resolved yet.
-        self.assertContains(response, "How are you taking this course?")
-        self.assertContains(response, "Choose a delivery to see its assignments:")
-        self.assertNotContains(response, self.homework.title)
+        # A first-time visitor (no explicit, remembered, or sole-enrollment
+        # cohort) is not asked to choose a delivery first: the module names
+        # each cohort's homework for it directly.
+        self.assertNotContains(response, "How are you taking this course?")
+        self.assertNotContains(response, "Choose a delivery")
+        self.assertContains(response, self.homework.title)
+        self.assertContains(response, "2026 cohort")
 
     def test_shared_lesson_page_renders_and_links_siblings(self) -> None:
         SharedLesson.objects.create(

@@ -22,6 +22,7 @@
 
 {% block page_styles %}
   {% include "academy/_styles.html" %}
+  {% include "academy/_session_media_styles.html" %}
 {% endblock %}
 
 {% block header_band_class %}
@@ -48,6 +49,9 @@
 {% endblock %}
 
 {% block page_content %}
+  {% if data.recording or data.slides %}
+    {% include "academy/_session_media.html" %}
+  {% endif %}
   <article class="academy-article-column">
     <div class="prose prose-reading academy-article-body">
       {{ page.body|academy_markdown }}

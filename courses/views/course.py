@@ -43,6 +43,9 @@ def _render_cohort_page(
 ) -> HttpResponse:
     data = course_page_data(course_slug, request.user, cohort_identifier)
     context = course_page_context(data)
+    # A cohort page ends on one closing call: the Academy stripe the Courses
+    # section carries, not that and the site-wide tour band in a row.
+    context["hide_tour_cta"] = True
     response = render(
         request,
         "courses/course.html",

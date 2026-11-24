@@ -1,0 +1,31 @@
+{% comment %}
+  The homework that closes one shared module, one row per cohort.
+
+  The lessons are the same for every delivery; the homework belongs to one
+  cohort's run of the module, so each cohort's assignment is named here
+  directly (courses.views.shared_course.module_homework_links) instead of
+  behind a "choose your delivery" step.  The reader's own delivery leads.
+{% endcomment %}
+{% if module_homeworks %}
+  <section class="module-homework" aria-labelledby="module-homework-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="module-homework-heading">Homework</h2>
+        <p>Each cohort sets its own homework for this module.</p>
+      </div>
+    </div>
+    <ul class="row-list module-homework-list" role="list">
+      {% for link in module_homeworks %}
+        <li class="list-row module-homework-row">
+          <a class="module-homework-link" href="{{ link.url }}">{{ link.homework.title }}</a>
+          <span class="mono-note">
+            {{ link.cohort.identifier }} cohort
+            {% if link.homework.due_date %}
+              · due {{ link.homework.due_date|date:"M j, Y" }}
+            {% endif %}
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endif %}
