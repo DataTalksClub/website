@@ -22,6 +22,7 @@ from django.utils import timezone
 from django.utils.safestring import SafeString, mark_safe
 
 from content import catalogue
+from core.home_content import READING_WORDS_PER_MINUTE
 
 Record = Mapping[str, Any]
 
@@ -347,6 +348,9 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
             schema.append(_faq_schema(data["faq"]["items"]))
         context["published"] = date.fromisoformat(data["published"])
         context["author"] = author_credit(data["author"])
+        # Written the way the blog article writes its estimate.
+        words = len(page["body"].split())
+        context["reading_time"] = f"{max(1, round(words / READING_WORDS_PER_MINUTE))} min read"
         schema.append(
             {
                 "@context": "https://schema.org",

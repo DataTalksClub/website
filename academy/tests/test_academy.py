@@ -199,6 +199,7 @@ class AcademyPageTests(TestCase):
         self.assertIn('<h1 id="academy-heading">Synthetic recap heading</h1>', header)
         self.assertIn("Synthetic recap lead.", header)
         self.assertIn('<time datetime="2026-11-23">Nov 23, 2026</time>', header)
+        self.assertIn("1 min read", header)
         self.assertIn("Synthetic Author", header)
         self.assertIn('href="/academy/guides/">Synthetic articles index</a>', header)
         content = body[body.index("content-page-content") :]

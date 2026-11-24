@@ -39,6 +39,7 @@
     <p class="prose-lede">{{ data.lead }}</p>
     <p class="mono-note">
       <time datetime="{{ data.published }}">{{ published|date:"M j, Y" }}</time>
+      · {{ reading_time }}
     </p>
     <p class="person-chips">
       {% include "public/_person_chip.html" with person=author|person_chip chip_loading="eager" %}
