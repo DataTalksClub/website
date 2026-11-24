@@ -593,6 +593,29 @@ class PodcastsParserTests(_CheckoutCase):
         self.assertEqual(parser.soft_delete_missing(set(), source), 1)
         self.assertFalse(SyncedDocument.objects.filter(source=source).exists())
 
+    def test_episode_summary_is_carried_into_the_record(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("podcast")
+        summarized = _episode_yaml() + (
+            b"summary: |-\n  First paragraph of the summary.\n\n  Second paragraph.\n"
+        )
+        tree = {
+            "podcasts/s03/e11.yaml": summarized,
+            "podcasts/s03/e11-transcript.yaml": _transcript_yaml(),
+            "images/podcast/test-episode.jpg": b"jpeg-bytes",
+        }
+        with self.checkout(tree) as checkout:
+            (item,) = parser.discover(checkout, source)
+        self.assertEqual(
+            item.data["record"]["summary"],
+            "First paragraph of the summary.\n\nSecond paragraph.",
+        )
+
+        plain = dict(tree, **{"podcasts/s03/e11.yaml": _episode_yaml()})
+        with self.checkout(plain) as checkout:
+            (item,) = parser.discover(checkout, source)
+        self.assertEqual(item.data["record"]["summary"], "")
+
     def _sync_once(self, tree: dict[str, bytes], commit: str) -> str:
         source = _source("dtc-content")
         parser = get_parser("podcast")

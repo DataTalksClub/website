@@ -301,6 +301,16 @@
         display: none;
       }
 
+      .episode-summary p {
+        line-height: 1.7;
+        margin: 0 0 1.1rem;
+      }
+
+      .episode-summary-links-heading {
+        font-size: 1.05rem;
+        margin: 2rem 0 0;
+      }
+
       .episode-resource-list {
         display: grid;
         gap: 0.75rem;
@@ -690,8 +700,13 @@
 
       <section class="band band-lavender" aria-label="Episode reading sections">
         <div class="shell episode-shell">
+          {% comment %}Summary leads when the episode has one, and the show-note
+          links move into it, so there is never a second prose tab beside it.
+          Without a summary the links keep their own Show Notes tab.{% endcomment %}
           <nav class="episode-tabs" aria-label="Episode sections">
-            {% if episode.links %}
+            {% if episode.summary_paragraphs %}
+              <a class="episode-tab" href="#summary">Summary</a>
+            {% elif episode.links %}
               <a class="episode-tab" href="#show-notes">Show Notes</a>
             {% endif %}
             {% if episode.timestamp_entries %}
@@ -702,7 +717,25 @@
             {% endif %}
           </nav>
 
-          {% if episode.links %}
+          {% if episode.summary_paragraphs %}
+            <section id="summary" class="episode-section" aria-labelledby="summary-heading">
+              <div class="band-head">
+                <div>
+                  <h2 id="summary-heading">Summary</h2>
+                  <p>What the conversation covered.</p>
+                </div>
+              </div>
+              <div class="episode-summary">
+                {% for paragraph in episode.summary_paragraphs %}
+                  <p>{{ paragraph }}</p>
+                {% endfor %}
+              </div>
+              {% if episode.links %}
+                <h3 class="episode-summary-links-heading">Links mentioned</h3>
+                {% include "public/_episode_resource_list.html" with resources=episode.links only %}
+              {% endif %}
+            </section>
+          {% elif episode.links %}
           <section id="show-notes" class="episode-section" aria-labelledby="show-notes-heading">
             <div class="band-head">
               <div>
@@ -711,24 +744,7 @@
               </div>
             </div>
             {% comment %}Empty show notes are hidden, not announced (site feedback 2026-11-19).{% endcomment %}
-              <ul class="episode-resource-list" aria-label="Show notes resources">
-                {% for resource in episode.links %}
-                  <li>
-                    <a
-                      href="{{ resource.url }}"
-                      {% if resource.is_external %}
-                        target="{{ resource.target }}"
-                        rel="{{ resource.rel }}"
-                      {% endif %}
-                    >
-                      {{ resource.label }}
-                      {% if resource.is_external %}
-                        <span class="sr-only"> (opens in a new tab)</span>
-                      {% endif %}
-                    </a>
-                  </li>
-                {% endfor %}
-              </ul>
+              {% include "public/_episode_resource_list.html" with resources=episode.links only %}
           </section>
           {% endif %}
 
@@ -987,7 +1003,8 @@
          through the anchor links above them, so a visitor without JavaScript
          loses nothing. When this runs, the same anchors and sections become a
          real WAI-ARIA tabs widget (https://www.w3.org/WAI/ARIA/apg/patterns/tabs/)
-         with one panel visible at a time, Show Notes first. */
+         with one panel visible at a time, the first one (Summary when the
+         episode has it) selected. */
       (function () {
         var nav = document.querySelector('.episode-tabs');
         if (!nav) {

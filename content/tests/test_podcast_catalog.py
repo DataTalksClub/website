@@ -537,6 +537,51 @@ class PodcastEpisodeParityTests(TestCase):
             assert match is not None
             self.assertNotIn("hidden", match.group(0))
 
+    def render_record(self, record: dict) -> str:
+        return render_to_string(
+            "public/podcast_detail.html",
+            {
+                "episode": episode_view(record, people_by_slug=catalogue.people_by_slug()),
+                "record": record,
+                "previous_episode": None,
+                "next_episode": None,
+                "related_episodes": (),
+                "episode_graph": None,
+            },
+        )
+
+    def test_summary_is_the_first_tab_and_absorbs_the_show_note_links(self) -> None:
+        record = {
+            **self.representative(),
+            "summary": "What they discussed.\n\nThe key takeaway,\nwrapped in the source.",
+        }
+        view = episode_view(record)
+        self.assertEqual(
+            view.summary_paragraphs,
+            ("What they discussed.", "The key takeaway, wrapped in the source."),
+        )
+        body = self.render_record(record)
+
+        tabs = re.findall(r'<a class="episode-tab" href="#([a-z-]+)"', body)
+        self.assertEqual(tabs, ["summary", "timestamps", "transcript"])
+        summary_start = body.index('<section id="summary"')
+        summary_html = body[summary_start : body.index("</section>", summary_start)]
+        self.assertIn("<p>What they discussed.</p>", summary_html)
+        self.assertIn("<p>The key takeaway, wrapped in the source.</p>", summary_html)
+        # The links live inside Summary; no second prose panel beside it.
+        self.assertIn("https://example.invalid/synthetic-guest-two", summary_html)
+        self.assertNotIn('id="show-notes"', body)
+        self.assertLess(summary_start, body.index('<section id="timestamps"'))
+
+    def test_without_a_summary_the_show_notes_tab_leads(self) -> None:
+        record = {**self.representative(), "summary": ""}
+        self.assertEqual(episode_view(record).summary_paragraphs, ())
+        body = self.render_record(record)
+
+        tabs = re.findall(r'<a class="episode-tab" href="#([a-z-]+)"', body)
+        self.assertEqual(tabs, ["show-notes", "timestamps", "transcript"])
+        self.assertNotIn('id="summary"', body)
+
     def test_timestamps_are_topic_markers_separate_from_transcript_body(self) -> None:
         record = self.representative()
         view = episode_view(record, people_by_slug=catalogue.people_by_slug())

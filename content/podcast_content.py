@@ -322,6 +322,7 @@ class Episode:
     spotify: SpotifyEmbed | None = None
     transcript: tuple[TranscriptEntry, ...] = ()
     timestamp_entries: tuple[TimestampEntry, ...] = ()
+    summary_paragraphs: tuple[str, ...] = ()
 
     @property
     def season_episode(self) -> str:
@@ -864,7 +865,20 @@ def episode_view(
         spotify=_spotify_embed(record),
         transcript=transcript,
         timestamp_entries=_timestamp_entries(transcript) if transcript else (),
+        summary_paragraphs=_summary_paragraphs(record),
     )
+
+
+def _summary_paragraphs(record: dict[str, Any]) -> tuple[str, ...]:
+    """The episode summary as paragraphs, split on the source's blank lines.
+
+    Lines inside one paragraph are joined with a space, so a summary wrapped
+    for review in the source reads as continuous prose on the page.
+    """
+
+    summary = str(record.get("summary") or "")
+    paragraphs = (" ".join(block.split()) for block in re.split(r"\n\s*\n", summary))
+    return tuple(paragraph for paragraph in paragraphs if paragraph)
 
 
 def episode_navigation(
