@@ -45,7 +45,7 @@ related links, one closing CTA.
 - The waitlist form sits once per page, in the closing mint panel; the hero
   carries the primary action that scrolls to it (the blueprint's "form or the
   primary CTA"), because a form beside the copy squeezed the heading and lede
-  at the content width. The program pages' sticky bar points to the same form.
+  at the content width.
 - The key facts close the hero on the home page as on the program pages (one
   place for facts across the Academy), rather than as a chapter after the
   program cards.

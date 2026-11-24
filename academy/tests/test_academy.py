@@ -163,10 +163,13 @@ class AcademyPageTests(TestCase):
                 for success in body.split("data-success hidden")[1:]:
                     self.assertIn(notice, success.split("</div>\n  </div>")[0])
 
-    def test_program_pages_close_with_the_other_track_and_a_sticky_bar(self) -> None:
+    def test_program_pages_close_with_the_other_track_and_no_sticky_bar(self) -> None:
         program = self.client.get("/academy/ai-engineering/").content.decode()
-        self.assertIn("data-academy-sticky hidden", program)
-        self.assertIn("Synthetic seats, live", program)
+        # The floating waitlist bar was removed (owner, 2026-11-24).
+        self.assertNotIn("data-academy-sticky", program)
+        # The questions come last, right before the closing waitlist.
+        self.assertLess(program.index('id="related-heading"'), program.index('id="faq-heading"'))
+        self.assertLess(program.index('id="faq-heading"'), program.index('id="join-heading"'))
         self.assertIn("Synthetic other track?", program)
         self.assertIn('href="/academy/agentic-engineering/">Agentic Engineering</a>', program)
         self.assertIn(f'<a href="mailto:{fixture.CONTACT}">', program)
@@ -639,6 +642,12 @@ class AcademyParserTests(TestCase):
             "unsafe link": lambda pages: pages["index"][0]["hero"]["links"][0].update(
                 href="javascript:x"
             ),
+            "protocol-relative link": lambda pages: pages["index"][0]["hero"]["links"][0].update(
+                href="//evil.example/"
+            ),
+            "Academy path that does not exist": lambda pages: pages["index"][0]["hero"]["links"][
+                0
+            ].update(href="/academy/a/b/c/d/"),
             "program path": lambda pages: pages["ai-engineering"][0].update(path="/academy/other/"),
             "body on a structured page": lambda pages: pages.update(faq=(pages["faq"][0], "Body")),
             "duplicate session": lambda pages: pages["sessions"][0]["sessions"][1].update(

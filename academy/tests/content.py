@@ -58,7 +58,10 @@ SHARED: dict[str, Any] = {
         "paragraphs": ["Synthetic instructor paragraph."],
         "photo": "images/academy/portrait.jpg",
         "photo_alt": "Synthetic portrait",
-        "proof": [{"label": "SYNTHETIC PROOF", "href": "https://example.invalid/proof"}],
+        "proof": [
+            {"label": "Synthetic proof", "href": "https://example.invalid/proof"},
+            {"label": "Synthetic site", "href": "/"},
+        ],
     },
     "project_heading": "Synthetic project",
     "interviews": {

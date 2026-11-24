@@ -11,7 +11,7 @@
   outcomes, the syllabus week by week, the final project and its weeks,
   interview preparation as its own block, the instructor, the schedule, the
   questions, and the closing mint panel -- the limited seats, how you get in
-  and the one waitlist form the hero's action and the sticky bar point to.  The program's own copy is academy/<slug>.md; the copy both
+  and the one waitlist form the hero's action points to.  The program's own copy is academy/<slug>.md; the copy both
   programs share is academy/shared.yaml.
 {% endcomment %}
 
@@ -201,15 +201,6 @@
     </section>
   {% endif %}
 
-  <section class="academy-section" id="questions" aria-labelledby="faq-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="faq-heading">{{ shared.faq.heading }}</h2>
-      </div>
-    </div>
-    {% include "academy/_faq.html" with items=faq prefix="faq" label="" %}
-    {% include "academy/_contact.html" %}
-  </section>
   {% if data.related %}
     <section class="academy-section" id="related" aria-labelledby="related-heading">
       <div class="band-head">
@@ -226,8 +217,16 @@
       </ul>
     </section>
   {% endif %}
+  <section class="academy-section" id="questions" aria-labelledby="faq-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="faq-heading">{{ shared.faq.heading }}</h2>
+      </div>
+    </div>
+    {% include "academy/_faq.html" with items=faq prefix="faq" label="" %}
+    {% include "academy/_contact.html" %}
+  </section>
   {% include "academy/_join.html" with choose_program=False %}
-  {% include "academy/_sticky.html" %}
 {% endblock %}
 
 {% block page_scripts %}
