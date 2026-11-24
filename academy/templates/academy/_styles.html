@@ -159,29 +159,18 @@
         margin-top: 1rem;
       }
 
-      /* The key facts close the title block, as a course's do.  Six facts sit
-         as two rows of three (two columns on a phone), never five and an
-         orphan. */
+      /* The key facts close the title block as the courses index's stat
+         tiles.  Six tiles sit as two rows of three from 40rem (the row
+         modifier would open four columns and orphan two), two columns on a
+         phone. */
       .academy-facts {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
         margin-top: 2rem;
       }
 
       @media (min-width: 40rem) {
-        .academy-facts {
+        .academy-facts.stat-tiles-row:has(.stat-tile:nth-child(4)) {
           grid-template-columns: repeat(3, minmax(0, 1fr));
         }
-      }
-
-      .academy-facts dt {
-        display: block;
-      }
-
-      .academy-facts dd {
-        color: var(--ink);
-        font-size: 0.95rem;
-        font-weight: 700;
-        margin: 0;
       }
 
       /* Inside a chapter the band head already spaces the strip and the

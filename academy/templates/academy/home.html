@@ -42,7 +42,9 @@
   <div class="shell-breakout academy-hero-wide">
     <div class="academy-hero-inner">
       <div class="academy-hero-copy">
-        <p class="kicker">{{ data.hero.eyebrow }}</p>
+        {% if data.hero.eyebrow != shared.brand %}
+          <p class="kicker">{{ data.hero.eyebrow }}</p>
+        {% endif %}
         <h1 id="academy-heading">{{ data.hero.headline }}</h1>
         <p class="academy-lede">{{ data.hero.lead }}</p>
         <div class="academy-actions">

@@ -827,8 +827,9 @@ section, is the blueprint in `_docs/design/landing-pages.md`.
   Academy sub-navigation bar and no Academy footer.
 - **The hero is the course family hero's title block**: heading and a 2-3
   sentence lede, one primary action (the waitlist, or "Choose my sessions"),
-  one credibility line (portrait and sentence), and the key facts as the
-  `.spec-strip` at its foot, two rows of three. Only the home hero carries a
+  one credibility line (portrait and sentence), and the key facts at its foot
+  as the courses index's `.stat-tiles` (value over label), two rows of
+  three. Only the home hero carries a
   drawing (light/dark `.doodle-variants`, dropped below 48rem as the homepage
   hero drops its own). No form, link list or status pill beside or above the
   copy.
@@ -846,8 +847,10 @@ section, is the blueprint in `_docs/design/landing-pages.md`.
   point to it (`#signup-hero`). The sessions registration is the first chapter
   under the header, on the `.featured` slab. Reading pages close on a mint
   panel with one action to the waitlist.
-- **Forms are one column**: every field full width, the confirmation warning a
-  `.callout-attention` above a full-width `.cta-primary`. Choice groups are
+- **Forms are one column**: every field full width over a full-width
+  `.cta-primary`; the confirmation warning is a `.callout-attention` in the
+  success state, shown once the reader has submitted, not on the empty form
+  (owner, 2026-11-24). Choice groups are
   `fieldset`s whose `.form-check` options sit in one even row from 48rem (as
   many columns as options, so none is left alone on a row); the quick-question
   answers are `.filter-pill` toggles. A form card starts with its fields, and

@@ -56,7 +56,6 @@
       <div class="newsletter-honeypot" aria-hidden="true">
         <input type="text" name="website" tabindex="-1" autocomplete="off">
       </div>
-      {% include "academy/_confirm_notice.html" %}
       <div class="academy-form-actions">
         <button class="cta cta-primary interactive-lift" type="submit" disabled data-needs-js data-pending-label="{{ copy.busy }}">{{ copy.button }}</button>
         <p class="a11y-error" data-error="failed" role="alert" hidden>{{ copy.failed|academy_inline }}</p>

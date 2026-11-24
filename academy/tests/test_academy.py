@@ -142,7 +142,7 @@ class AcademyPageTests(TestCase):
         self.assertIn('href="/academy/bildungsgutschein/">Synthetic funding guide</a>', program)
         self.assertIn('href="https://example.invalid/funding">Synthetic funding link</a>', program)
 
-    def test_every_form_and_pending_state_carries_the_confirmation_notice(self) -> None:
+    def test_every_pending_state_carries_the_confirmation_notice(self) -> None:
         notice = "Synthetic important: confirm your email or get nothing."
         # Each signup card says it in its form and again in its success state.
         for path, cards in (
@@ -154,8 +154,12 @@ class AcademyPageTests(TestCase):
         ):
             with self.subTest(path=path):
                 body = self.client.get(path).content.decode()
-                self.assertEqual(body.count("data-confirm-notice"), cards * 2)
-                self.assertEqual(body.count(notice), cards * 2)
+                # Only after submitting: the empty form does not carry it
+                # (owner, 2026-11-24), the success state does.
+                self.assertEqual(body.count("data-confirm-notice"), cards)
+                self.assertEqual(body.count(notice), cards)
+                for form in body.split("<form ")[1:]:
+                    self.assertNotIn(notice, form.split("</form>")[0])
                 for success in body.split("data-success hidden")[1:]:
                     self.assertIn(notice, success.split("</div>\n  </div>")[0])
 

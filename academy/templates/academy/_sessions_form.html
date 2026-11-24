@@ -11,7 +11,8 @@
   even row of 44px .form-check rows (as many columns as options, so no
   option sits alone on a row); a session that has already happened is not
   offered; the submit is a full-width primary action
-  under the fields, with the confirmation warning just above it.
+  under the fields; the confirmation warning appears with the result, once
+  the reader has submitted.
 
   kind   "main" or "qr"
   page   for "qr", the materials page whose own copy the form uses
@@ -107,7 +108,6 @@
       <div class="newsletter-honeypot" aria-hidden="true">
         <input type="text" name="website" tabindex="-1" autocomplete="off">
       </div>
-      {% include "academy/_confirm_notice.html" %}
       <div class="academy-form-actions">
         {% if kind == "main" %}
           <button class="cta cta-primary interactive-lift" type="submit" disabled data-needs-js data-pending-label="{{ form.busy }}">{{ form.button }}</button>
