@@ -589,10 +589,9 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
 - **`.doodle`** — a decorative drawing: `display: block; width: 100%`. Pages constrain
   aspect ratio per slot. Always `alt=""`.
 - **`.module` / `.module-list`** — the disclosure accordion for a surface with genuine
-  per-module content. The Academy program pages use it for their syllabus (one
-  `details.module` per group of weeks, its modules listed in the body); a page whose
-  job is to show every deadline and state draws `.row-list` tables instead of folding
-  them behind a click.
+  per-module content; a page whose job is to show every deadline and state draws
+  `.row-list` tables instead of folding them behind a click (the Academy syllabus is
+  read week by week as list rows).
 
 ## Forms
 
@@ -804,30 +803,54 @@ not a light half and a bold half.
 
 The `/academy/` pages (`academy/templates/academy/`) are ordinary content pages:
 each extends `core/content_page.html`, so the masthead, cream header, lavender
-content band and footer are the shared ones. Like the account entrance family they
-share one page-level partial, `academy/_styles.html`, included straight after the
-design system; it only lays out primitives the system already owns.
+content band and footer are the shared ones. They share one page-level partial,
+`academy/_styles.html`, included straight after the design system; it only lays
+out primitives the system already owns. What each landing says, section by
+section, is the blueprint in `_docs/design/landing-pages.md`.
 
-- **One footer, the site's.** Every Academy header opens with the Academy bar
-  (`academy/_bar.html`): the wordmark back to `/academy/`, the tagline, the waitlist
-  `.cta-compact`, and the section's pages as `nav.filter-pills` links with
-  `aria-current="page"` on the current one (one swipeable row below 48rem). There is
-  no Academy link footer above the site footer and no breadcrumb.
-- **The landings (home, programs, sessions, the German guide) follow the course
-  family landing**: `.shell-breakout` to the full shell, the heading beside the
-  waitlist (or sessions) `.card`, and every chapter the same frame — a dashed seam
-  and a real `.band-head`. A program carries its facts as the `.spec-strip` at the
-  foot of its title block; long copy stays at `--measure`.
-- Numbered lists sit on `.module-number` discs, the syllabus is `.module`
-  accordions, FAQ is `.faq-fold`, funding is a `.callout-info` (never a chapter for
-  one sentence), the closing waitlist is a `.panel-mint`.
-- **Forms are one column**: every field full width, the submit a full-width
-  `.cta-primary` on its own row, the confirmation warning a `.callout-attention`
-  above it and again in the success state. Choice groups are `fieldset`s whose
-  `.form-check` rows sit in an even grid. The quick-question answers are
-  `.filter-pill` toggles.
-- The program pages' sticky waitlist bar shows only while neither the header nor a
-  waitlist card is on screen, and sits under the analytics notice.
+- **Two columns, one per kind of page.** The landings (home, programs, sessions,
+  the German guide), the FAQ, the articles index and the forms sit in the
+  ordinary content column (`--content-width`) and every block fills it, so no
+  block stops short and leaves a dead strip. The one exception is the home
+  page's hero, which breaks out to the full shell (`.shell-breakout`) to set
+  the copy beside the Academy's drawing in the course family hero's grid
+  (owner, 2026-11-24); every chapter under it keeps the content column. A page
+  read end to end (an article, a legal page) sits in the reading column the
+  blog uses (`--reading-width`), header and body alike; an article also
+  carries the blog article's trail, heading size, standfirst, mono date and
+  person-chip byline. There is no
+  Academy sub-navigation bar and no Academy footer.
+- **The hero is the course family hero's title block**: heading and a 2-3
+  sentence lede, one primary action (the waitlist, or "Choose my sessions"),
+  one credibility line (portrait and sentence), and the key facts as the
+  `.spec-strip` at its foot, two rows of three. Only the home hero carries a
+  drawing (light/dark `.doodle-variants`, dropped below 48rem as the homepage
+  hero drops its own). No form, link list or status pill beside or above the
+  copy.
+- **Every chapter is the same frame**: a dashed seam and a real `.band-head`.
+  Cards pair in `.card-grid-2` and mirror each other (the home's program cards
+  carry the same three short lines and a `cta-secondary` pinned to the foot).
+- **The syllabus is week by week**: each phase a small heading over `.row-list`
+  rows, one row per week with "Week N" on the mono rail and the week's
+  module(s) beside it, each an action title and its tangible output in
+  `--green-ship`. The final project and interview preparation are chapters of
+  their own drawn with the same rows (`academy/_weeks.html`).
+- **One waitlist form per page.** On the home and program pages it closes the
+  page in the mint `.panel` (heading, the limited seats and how you get in on
+  the left, the form card on the right); the hero action and the sticky bar
+  point to it (`#signup-hero`). The sessions registration is the first chapter
+  under the header, on the `.featured` slab. Reading pages close on a mint
+  panel with one action to the waitlist.
+- **Forms are one column**: every field full width, the confirmation warning a
+  `.callout-attention` above a full-width `.cta-primary`. Choice groups are
+  `fieldset`s whose `.form-check` options sit in one even row from 48rem (as
+  many columns as options, so none is left alone on a row); the quick-question
+  answers are `.filter-pill` toggles. A form card starts with its fields, and
+  a session that has already happened is not offered.
+- Lists of articles are the shared archive row (`public/_archive_row.html`);
+  FAQ is `.faq-fold`; an article's Markdown tables sit in `.prose-scroll`.
+- The program pages' sticky waitlist bar shows only while neither the header
+  nor the waitlist form is on screen, and sits under the analytics notice.
 
 ## The account entrance family
 
