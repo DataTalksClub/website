@@ -96,6 +96,16 @@
         margin-top: 1.7rem;
       }
 
+      .hero-register {
+        margin-top: 1.1rem;
+      }
+
+      .hero-register .band-link {
+        align-items: center;
+        display: inline-flex;
+        min-height: 2.75rem;
+      }
+
       .courses-hero-art {
         justify-self: center;
         max-width: 26rem;
@@ -705,6 +715,12 @@
               <a class="cta cta-primary interactive-lift" href="#courses">Explore the courses</a>
               <a class="cta cta-secondary interactive-lift" href="#course-fit">Which course fits me?</a>
             </div>
+            {% if hero_register_url %}
+              <p class="hero-register">
+                Registration is open.
+                <a class="band-link" href="{{ hero_register_url }}">Register for the next cohort</a>
+              </p>
+            {% endif %}
           </div>
           <div class="courses-hero-art" aria-hidden="true">
             {% include "core/_course_illustration.html" with family_slug="" only %}
