@@ -147,9 +147,30 @@ class CollectionHubRecordTests(TestCase):
                 page_body.count('class="list-row archive-row record-row"'),
                 PUBLIC_PAGE_SIZE,
             )
-        self.assertEqual(body.count('<span class="status-pill">'), len(with_archive))
-        sample = with_archive[0]
-        self.assertIn(counted(sample["archive"], "question"), body)
+        # The count is a quiet metadata line under the title, not a pill: no book
+        # row carries a status pill any more.
+        self.assertNotIn('<span class="status-pill">', body)
+        answered = [book for book in books if book["answered_count"]]
+        self.assertEqual(body.count('<p class="mono-note archive-meta">'), len(answered))
+        sample = answered[0]
+        self.assertIn(
+            f'<p class="mono-note archive-meta">'
+            f"{counted(sample['answered_count'], 'question answered,questions answered')}</p>",
+            body,
+        )
+        self.assertLessEqual(len(answered), len(with_archive))
+
+    def test_a_book_row_shows_its_summary_lead_never_its_seo_description(self) -> None:
+        """A book row never repeats "Book of the Week. X by Y", its title and byline."""
+
+        body = "".join(catalogue_page_bodies(self.client, "/books"))
+        for book in catalogue.books():
+            if book["lead"]:
+                self.assertIn(f'<p class="archive-summary">{escape(book["lead"])}</p>', body)
+            if book["description"] and book["description"] != book["lead"]:
+                self.assertNotIn(
+                    f'<p class="archive-summary">{escape(book["description"])}</p>', body
+                )
 
     def test_every_row_shows_the_recorded_day_and_never_an_invented_time(self) -> None:
         """The catalogues store a day; the page must not render a clock reading.
@@ -184,7 +205,7 @@ class CollectionHubRecordTests(TestCase):
                 self.assertEqual(re.findall(r'<time datetime="[^"]*T[^"]*"', body), [])
 
     def test_descriptions_are_shown_and_no_record_is_summarised_by_the_page(self) -> None:
-        for path, published in (("/blog", catalogue.articles), ("/books", catalogue.books)):
+        for path, published in (("/blog", catalogue.articles),):
             with self.subTest(path=path):
                 body = "".join(catalogue_page_bodies(self.client, path))
                 for record in published():

@@ -636,15 +636,17 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
   ```
 
   Optional slots: `row_date` (absent drops the rail), `row_mark="play"`,
-  `row_eyebrow`, `row_pill`/`row_pill_variant`/`row_pill_extra`, `row_summary`,
-  `row_tags`/`row_tags_label`, `row_credits`, `row_class`/`row_hook`. Always pass
-  `only`.
+  `row_eyebrow`, `row_pill`/`row_pill_variant`/`row_pill_extra`, `row_meta`,
+  `row_summary`, `row_tags`/`row_tags_label`, `row_credits`, `row_class`/`row_hook`.
+  Always pass `only`.
 
   Inside the card the order is fixed: leading mark, eyebrow, pills, `h3` title,
-  clamped summary, tags (`ul.archive-tags` of `a.chip-link`, saying why the row is
-  on this page; they sit above the stretched card link), credited people last as
-  `.person-chips.card-credit`. The rail is `.date-rail`, day above year. An
-  episode row is the play-mark row with `row_class="episode-row"`.
+  `row_meta` as a quiet `.mono-note` line (a count such as a book's "41 questions
+  answered" — a fact, not a state, so never a pill), clamped summary, tags
+  (`ul.archive-tags` of `a.chip-link`, saying why the row is on this page; they sit
+  above the stretched card link), credited people last as
+  `.person-chips.card-credit`. The rail is `.date-rail`, day above year. An episode
+  row is the play-mark row with `row_class="episode-row"`.
 
   Drawn by `/blog`, `/books`, `/podcast`, an episode page's related episodes (the
   episodes sharing wiki concepts with it, the shared concepts as tags; there is no

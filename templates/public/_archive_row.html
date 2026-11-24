@@ -28,6 +28,10 @@
   * `row_pill`, `row_pill_variant`, `row_pill_extra` — the status pill and, when
     a list mixes past and future work, the second bare pill that says which.  A
     podcast row uses `row_pill` as its blue season/episode eyebrow instead.
+  * `row_meta` — one quiet `.mono-note` line under the title: a fact about the
+    record a reader weighs before opening it ("41 questions answered").  Not a
+    pill: a count is not a state, and a mono capsule above every title read as
+    one.
   * `row_summary` — clamped, because the record's own page carries the rest.
   * `row_tags`, `row_tags_label` — linked chips naming why this row is on the
     page (the wiki concepts a related episode shares with the one being read),
@@ -97,6 +101,9 @@
         <h3 class="archive-title">
           <a href="{{ row_url }}">{{ row_title }}</a>
         </h3>
+        {% if row_meta %}
+          <p class="mono-note archive-meta">{{ row_meta }}</p>
+        {% endif %}
         {% if row_summary %}
           <p class="archive-summary">{{ row_summary }}</p>
         {% endif %}

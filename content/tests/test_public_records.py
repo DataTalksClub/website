@@ -211,3 +211,26 @@ class PersonRecordTests(TestCase):
 
         self.assertEqual(record["roles"], ["guest", "speaker"])
         self.assertEqual(record["relationships"], credits)
+
+
+class BookRowFactsTests(TestCase):
+    """The two facts a book's archive row draws, derived from its own source."""
+
+    def test_the_lead_is_the_first_paragraph_of_the_summary_as_plain_text(self) -> None:
+        from content.public_records import book_lead
+
+        summary = "Learn **tabular** ML with [XGBoost](https://x.example).\n\nSecond paragraph."
+        self.assertEqual(book_lead(summary), "Learn tabular ML with XGBoost.")
+        self.assertEqual(book_lead(""), "")
+        self.assertEqual(book_lead(None), "")
+
+    def test_only_threads_with_a_reply_count_as_answered(self) -> None:
+        from content.public_records import answered_question_count
+
+        archive = [
+            {"name": "A", "text": "q1", "replies": [{"name": "Author", "text": "a"}]},
+            {"name": "B", "text": "q2", "replies": []},
+            {"name": "C", "text": "q3"},
+        ]
+        self.assertEqual(answered_question_count(archive), 1)
+        self.assertEqual(answered_question_count(None), 0)

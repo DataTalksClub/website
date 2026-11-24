@@ -19,7 +19,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from content.projection_helpers import _podcast_event_lineage
+from content.projection_helpers import _plain_inline, _podcast_event_lineage
 
 #: One byline credit, as templates draw it: the source key, the display name
 #: and, when the people records place it, the profile link.
@@ -61,8 +61,34 @@ def article_record(
     return derived
 
 
+def book_lead(summary: object) -> str:
+    """The first paragraph of a book's Markdown summary, as plain text.
+
+    The archive row clamps it to three lines; the book's page renders the whole
+    summary as Markdown.  Plain because a row summary is a line of text, not
+    markup, and the source writes emphasis and links into it.
+    """
+
+    if not isinstance(summary, str):
+        return ""
+    for paragraph in summary.split("\n\n"):
+        plain = _plain_inline(paragraph)
+        if plain:
+            return plain
+    return ""
+
+
+def answered_question_count(archive: object) -> int:
+    """How many of the week's question threads drew at least one reply."""
+
+    if not isinstance(archive, (list, tuple)):
+        return 0
+    return sum(1 for thread in archive if isinstance(thread, Mapping) and thread.get("replies"))
+
+
 def book_record(record: Mapping[str, Any], people_by_slug: Mapping[str, Mapping[str, Any]]) -> dict:
-    """The published book record: public image address and author byline."""
+    """The published book record: public image address, author byline, and the
+    two facts its archive row draws (the summary's lead, the answered count)."""
 
     derived = dict(record)
     image_path = image_public_path(record)
@@ -71,6 +97,8 @@ def book_record(record: Mapping[str, Any], people_by_slug: Mapping[str, Mapping[
     derived["author_profiles"] = [
         _profile_credit(author, people_by_slug) for author in record.get("authors", ())
     ]
+    derived["lead"] = book_lead(record.get("summary"))
+    derived["answered_count"] = answered_question_count(record.get("archive"))
     return derived
 
 
