@@ -121,23 +121,33 @@ def test_course_index_hero_and_cards_use_matching_art(page: Page, live_server, w
         ]
         assert target_size_issues == []
     card = listing.locator(".catalog-card-media")
-    card.locator("img").evaluate_all("imgs => Promise.all(imgs.map(img => img.decode()))")
-    light = card.locator(".doodle-light")
-    expect(light).to_have_attribute("src", static("core/illustrations/course-ml-zoomcamp.webp"))
-    assert light.evaluate("img => img.complete && img.naturalWidth === 1254")
-    expect(light).to_have_attribute("alt", "")
-    dark = card.locator(".doodle-dark")
-    expect(dark).to_have_attribute("src", static("core/illustrations/course-ml-zoomcamp-dark.webp"))
-    assert dark.evaluate("img => img.complete && img.naturalWidth === 1254")
-    expect(dark).to_have_attribute("alt", "")
-    slot_before = card.bounding_box()
+    expect(card.locator(".doodle-light")).to_have_attribute(
+        "src", static("core/illustrations/course-ml-zoomcamp.webp")
+    )
+    expect(card.locator(".doodle-dark")).to_have_attribute(
+        "src", static("core/illustrations/course-ml-zoomcamp-dark.webp")
+    )
+    expect(card.locator("img[alt='']")).to_have_count(2)
+
+    def card_size() -> tuple[float, float]:
+        box = card.bounding_box()
+        assert box is not None
+        return box["width"], box["height"]
+
+    size_before = card_size()
     for theme in ("light", "dark"):
         if theme == "dark":
             page.locator("#dark-mode-toggle").click()
         for slot in (card, hero_art):
             expect(slot.locator("img:visible")).to_have_count(1)
             expect(slot.locator(f".doodle-{theme}")).to_be_visible()
-        assert card.bounding_box() == slot_before
+        # The catalogue sits below the fold and its card art is lazy, so only
+        # the visible theme's image loads; bring it into view and wait for it.
+        art = card.locator(f".doodle-{theme}")
+        art.scroll_into_view_if_needed()
+        expect(art).to_have_js_property("complete", True)
+        assert art.evaluate("img => img.naturalWidth") == 1254
+        assert card_size() == size_before
     expect(page.locator("#courses-hero-heading")).to_be_visible()
     assert page.evaluate(
         "document.documentElement.scrollWidth <= document.documentElement.clientWidth"
