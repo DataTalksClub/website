@@ -59,7 +59,7 @@
 
       .hero-lede {
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: var(--space-5);
+        margin-top: var(--space-stack);
         max-width: 33rem;
       }
 
@@ -67,7 +67,7 @@
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-3);
-        margin-top: var(--space-5);
+        margin-top: var(--space-head);
       }
 
       .hero-figure {
@@ -275,9 +275,21 @@
 
       /* --- events ------------------------------------------------------- */
 
-      .event-card time {
+      /* The kind reads as the first word of the date line, not a boxed pill
+         (owner feedback 2026-11-24: the pill beside the date, then beside the
+         speaker, looked awkward). */
+      .event-card .event-when {
         color: var(--indigo);
+        display: flex;
+        flex-wrap: wrap;
         font-size: 0.78rem;
+        gap: 0 var(--space-2);
+      }
+
+      .event-card .event-type {
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
       /* Inside the newsletter copy column the link follows the paragraph it
@@ -286,11 +298,26 @@
         margin-top: var(--space-3);
       }
 
-      .event-top {
+      /* Date on top, title, then the kind and the speakers together at the
+         card's foot, so three cards line up row by row whatever their title
+         length (owner feedback 2026-11-24: the kind pill beside the date
+         looked awkward). */
+      .event-card {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .event-foot {
         align-items: center;
         display: flex;
-        gap: var(--space-3);
-        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: var(--space-2) var(--space-3);
+        margin-top: auto;
+        padding-top: var(--space-3);
+      }
+
+      .event-foot .event-speakers {
+        margin: 0;
       }
 
       /* The card this band draws is the events feed's card: the link stretched
@@ -310,6 +337,18 @@
       .latest-grid {
         display: grid;
         gap: var(--space-6);
+      }
+
+      /* The two halves mirror each other: each card stretches to the taller
+         one, and both "more" links sit on one line under them (owner
+         feedback 2026-11-24: the pair looked lopsided). */
+      .latest-grid > div {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .latest-grid .latest-card {
+        flex: 1;
       }
 
       .latest-item {
@@ -715,7 +754,7 @@
            starts beyond the viewport and remains reachable with the controls,
            avoiding a card that looks accidentally amputated at the shell edge. */
         .catalog-scroller {
-          grid-auto-columns: calc((100% - 3 * 1.25rem) / 4);
+          grid-auto-columns: calc((100% - 3 * var(--space-grid)) / 4);
         }
       }
     </style>
@@ -1009,10 +1048,13 @@
                   details" link — the card is the link.
                 {% endcomment %}
                 <article class="card event-card interactive-card interactive-lift">
-                  <div class="event-top">
-                    {% include "public/_event_kind.html" with tip_id=event.identity_id|default:forloop.counter0 %}
-                    <time class="mono-note" datetime="{{ event.starts_at }}">{{ event.home_time }}</time>
-                  </div>
+                  <p class="mono-note event-when">
+                    {% if event.type %}
+                      <span class="event-type">{{ event.type }}</span>
+                      <span aria-hidden="true">·</span>
+                    {% endif %}
+                    <time datetime="{{ event.starts_at }}">{{ event.home_time }}</time>
+                  </p>
                   <h3>
                     <a href="{{ event.public_path }}">{{ event.title }}</a>
                   </h3>
@@ -1020,11 +1062,13 @@
                     <p class="event-summary">{{ event.description_text|truncatewords:20 }}</p>
                   {% endif %}
                   {% if event.speakers %}
-                    <p class="event-speakers person-chips card-credit">
-                      {% for speaker in event.speakers %}
-                        {% include "public/_person_chip.html" with person=speaker|person_chip %}
-                      {% endfor %}
-                    </p>
+                    <div class="event-foot">
+                      <p class="event-speakers person-chips card-credit">
+                        {% for speaker in event.speakers %}
+                          {% include "public/_person_chip.html" with person=speaker|person_chip %}
+                        {% endfor %}
+                      </p>
+                    </div>
                   {% endif %}
                 </article>
               {% endfor %}
@@ -1067,7 +1111,7 @@
                     <h3>
                       <a class="band-link" href="{{ podcast.public_path }}">{{ podcast.title }}</a>
                     </h3>
-                    <p class="mono-label mono-label-indigo podcast-meta">
+                    <p class="latest-meta">
                       Season {{ podcast.season }} · Episode {{ podcast.episode }}
                     </p>
                     {% if podcast.guest_profiles %}
@@ -1113,7 +1157,7 @@
         <div class="shell">
           <div class="band-head">
             <div>
-              <h2 id="wiki-heading">Community knowledgebase</h2>
+              <h2 id="wiki-heading">Community knowledge base</h2>
               <p>
                 {{ counts.wiki }} member-written topics wired to each other — click a node to
                 explore its neighbours. Open a page only when you choose to.
@@ -1131,7 +1175,6 @@
                 <button class="home-graph-tool interactive-lift" type="button" data-home-graph-back hidden>Back</button>
                 <button class="home-graph-tool interactive-lift" type="button" data-home-graph-random>Random topic</button>
                 <a class="home-graph-tool interactive-lift" data-home-graph-open href="{{ wiki_graph.hub.public_path }}">Open wiki page →</a>
-                <a class="band-link" href="{% url 'wiki-graph' %}">full graph →</a>
               </div>
               <p class="home-graph-status" data-home-graph-status aria-live="polite">
                 Exploring {{ wiki_graph.hub.title }}. Click a neighbour to move there.
@@ -1211,6 +1254,7 @@
           </div>
           <p class="band-more wiki-browse-link">
             <a class="band-link" href="{% url 'wiki-home' %}">browse {{ counts.wiki }} topics A–Z →</a>
+            <a class="band-link" href="{% url 'wiki-graph' %}">full graph →</a>
           </p>
         </div>
       </section>
@@ -1241,7 +1285,6 @@
       <section class="band band-mint" aria-labelledby="newsletter-heading">
         <div class="shell newsletter-panel">
           <div>
-            <p class="mono-label mono-label-indigo">Newsletter</p>
             <h2 id="newsletter-heading">Get the weekly DataTalks.Club digest</h2>
             <p>
               Subscribe to our weekly newsletter. We'll keep you informed

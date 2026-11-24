@@ -2643,14 +2643,32 @@ Rules for editing:
         border-radius: var(--drawn-circle-c);
       }
 
-      /* The two directions stay stadium-shaped, the way every other control in the
-         system that carries a word or a glyph does. */
-      .pagination-step {
+      /* The two directions are bare arrows, not drawn marks: only the page
+         numbers wear the circle, so the row reads as numbers with a way in
+         either direction (owner feedback 2026-11-24).  The hit area keeps the
+         44px target. */
+      .pagination-step.filter-pill {
+        background: none;
+        border-color: transparent;
+        box-shadow: none;
+        color: var(--indigo);
+        font-size: 1.25rem;
+        min-height: 2.75rem;
         min-width: 2.75rem;
         padding-inline: var(--space-2);
       }
 
-      .pagination-gap {
+      .pagination-step.filter-pill:hover {
+        background: none;
+        color: var(--ink);
+      }
+
+      /* The elided range is plain text as wide as a number, not a boxed pill. */
+      .pagination-gap.status-pill {
+        background: none;
+        border: 0;
+        color: var(--muted);
+        font-size: 1rem;
         justify-content: center;
         letter-spacing: 0.1em;
         min-width: 2.75rem;
@@ -4118,7 +4136,16 @@ Rules for editing:
        * ------------------------------------------------------------------ */
 
       .prose > * + * {
-        margin-top: var(--space-4);
+        margin-top: var(--space-stack);
+      }
+
+      /* A framed block -- code, a table, a quotation, a figure -- takes more
+         air than a paragraph on both sides, so it reads as an object set into
+         the text rather than a paragraph with a border (owner feedback
+         2026-11-24). */
+      .prose > * + :is(pre, .code-block, .prose-scroll, blockquote, figure),
+      .prose > :is(pre, .code-block, .prose-scroll, blockquote, figure) + * {
+        margin-top: var(--space-5);
       }
 
       .prose h2 {
@@ -4342,14 +4369,18 @@ Rules for editing:
          with no focus stop of its own cannot be reached from a keyboard, and a
          command or a traceback stays readable when it wraps.  The sample keeps
          its own line breaks and indentation either way. */
+      /* Every framed block in a body -- code, table, quotation, image --
+         wears one frame: a soft 2px border, a 0.7rem radius, no shadow
+         (owner feedback 2026-11-24: the code block's shadow and rounder
+         corner stood apart from the tables and quotes around it). */
       .prose pre {
         background: var(--card);
         border: 2px solid var(--line-soft);
         border-radius: 0.7rem;
         color: var(--ink);
         font-family: var(--font-mono);
-        font-size: 0.92rem;
-        line-height: 1.65;
+        font-size: 0.82rem;
+        line-height: 1.6;
         margin: 0;
         overflow-wrap: anywhere;
         padding: var(--space-4) var(--space-4);
@@ -4658,6 +4689,18 @@ Rules for editing:
         border: 2px solid var(--line-soft);
         border-radius: 0.7rem;
         overflow-x: auto;
+      }
+
+      /* A table of four or more columns does not fit the reading column
+         (44rem) without wrapping every cell into a tower, so it breaks out
+         to the ordinary content width, centred on the text column, and
+         shrinks back to the viewport on small screens (owner feedback
+         2026-11-24).  Narrow tables stay in the column. */
+      .prose-scroll:has(th:nth-child(4)) {
+        --table-breakout: min(var(--content-width), calc(100vw - 2rem));
+        margin-inline: calc((100% - var(--table-breakout)) / 2);
+        max-width: none;
+        width: var(--table-breakout);
       }
 
       .prose-scroll:focus-visible {

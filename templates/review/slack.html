@@ -8,7 +8,6 @@
 {% endcomment %}
 
 {% block kicker %}
-  Community
 {% endblock %}
 
 {% block title_attributes %}
@@ -81,15 +80,24 @@
         --measure: 38rem;
       }
 
+      /* This page carries no eyebrow over its title (owner, 2026-11-24). */
+      .text-page-head > .mono-label:first-child {
+        display: none;
+      }
+
       .slack-options {
         display: grid;
         gap: var(--space-5);
         grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
       }
 
+      /* Heading, text, then the action pinned to the card's foot, so the two
+         cards' buttons sit on one line whatever the text length (owner
+         feedback 2026-11-24: "make it more balanced"). */
       .slack-option {
         align-content: start;
         background: var(--card);
+        grid-template-rows: auto 1fr auto;
         border: 2px solid var(--line);
         border-radius: 0.9rem;
         box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
@@ -113,11 +121,11 @@
       }
 
       .slack-channels {
-        margin-top: var(--space-7);
+        margin-top: var(--space-section);
       }
 
       .slack-channels h2 {
-        margin: 0 0 var(--space-4);
+        margin: 0 0 var(--space-head);
       }
 
       .channel-list,

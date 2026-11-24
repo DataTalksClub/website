@@ -413,10 +413,53 @@
         padding-block: var(--space-2);
       }
 
+      /* The transcript's timestamp is a quiet handle, not a headline link:
+         muted, no underline until it is hovered or focused, so the reader's
+         eye goes to what was said (owner feedback 2026-11-24). */
       .transcript-time-link {
+        color: var(--muted);
         font-family: var(--font-mono);
-        font-size: 0.78rem;
+        font-size: 0.75rem;
+        text-decoration: none;
         white-space: nowrap;
+      }
+
+      .transcript-time-link:hover,
+      .transcript-time-link:focus-visible {
+        color: var(--indigo);
+        text-decoration: underline;
+      }
+
+      /* The chapter list's time links get the same quiet handle. */
+      a.episode-timestamp {
+        color: var(--muted);
+        text-decoration: none;
+      }
+
+      a.episode-timestamp:hover .transcript-time-link,
+      a.episode-timestamp:focus-visible .transcript-time-link {
+        color: var(--indigo);
+        text-decoration: underline;
+      }
+
+      /* A long transcript opens folded: the first screenful fades out and a
+         button unfolds the rest (owner feedback 2026-11-24).  The fold is
+         added by script only, so without JavaScript the whole transcript is
+         simply there; every line stays in the document either way. */
+      .transcript-body.is-collapsed {
+        max-height: 28rem;
+        -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+        mask-image: linear-gradient(to bottom, #000 55%, transparent);
+        overflow: hidden;
+      }
+
+      .transcript-more {
+        margin-top: var(--space-4);
+      }
+
+      /* .cta sets its own display, which would beat the hidden attribute. */
+      .transcript-more[hidden] {
+        display: none;
       }
 
       .episode-bios {
@@ -793,6 +836,7 @@
                   <p>The conversation in full, as it was recorded.</p>
                 </div>
               </div>
+              <div class="transcript-body" data-transcript-body>
               {% for entry in episode.transcript %}
                 {% if entry.header %}
                   <h3 class="transcript-section">{{ entry.header }}</h3>
@@ -817,6 +861,10 @@
                   </div>
                 {% endif %}
               {% endfor %}
+              </div>
+              <button class="cta cta-secondary cta-compact interactive-lift transcript-more" type="button" data-transcript-more hidden>
+                Read the full transcript
+              </button>
             </section>
           {% endif %}
         </div>
@@ -978,6 +1026,30 @@
             play(Math.floor(seconds));
             link.focus();
           });
+        });
+      })();
+
+      /* Fold a long transcript behind "Read the full transcript".  A link
+         straight to a transcript line (#t-...) opens it unfolded. */
+      (function () {
+        var body = document.querySelector('[data-transcript-body]');
+        var more = document.querySelector('[data-transcript-more]');
+        if (!body || !more) {
+          return;
+        }
+        var target = window.location.hash ? document.getElementById(window.location.hash.slice(1)) : null;
+        if (target && body.contains(target)) {
+          return;
+        }
+        body.classList.add('is-collapsed');
+        if (body.scrollHeight <= body.clientHeight + 8) {
+          body.classList.remove('is-collapsed');
+          return;
+        }
+        more.hidden = false;
+        more.addEventListener('click', function () {
+          body.classList.remove('is-collapsed');
+          more.hidden = true;
         });
       })();
 

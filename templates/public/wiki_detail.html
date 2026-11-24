@@ -76,6 +76,27 @@
         color: var(--muted);
       }
 
+      /* A long relation list opens folded to its first eight chips, with a
+         "Show all" chip at the end (owner feedback 2026-11-24: eighty chips
+         in the page header were overwhelming).  The fold is added by script,
+         so without JavaScript every relation is listed. */
+      .relations.is-folded .relation-list > :nth-child(n + 9):not(.relation-more) {
+        display: none;
+      }
+
+      .relation-more {
+        background: none;
+        border-style: dashed;
+        color: var(--ink);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 600;
+      }
+
+      .relation-more[hidden] {
+        display: none;
+      }
+
       .wiki-prose {
         max-width: 48rem;
       }
@@ -105,7 +126,7 @@
           <h1 id="wiki-page-heading">{{ record.title }}</h1>
           <p class="wiki-summary">{{ record.summary }}</p>
           {% if record.relations %}
-            <section class="relations" aria-label="Related concepts and sources">
+            <section class="relations" aria-label="Related concepts and sources" data-relations>
               <div class="relation-list">
                 {% for relation in record.relations %}
                   {% if relation.href %}
@@ -125,6 +146,11 @@
                     </span>
                   {% endif %}
                 {% endfor %}
+                {% if record.relations|length > 8 %}
+                  <button class="chip chip-plain relation-more interactive-lift" type="button" data-relations-more hidden>
+                    Show all {{ record.relations|length }}
+                  </button>
+                {% endif %}
               </div>
             </section>
           {% endif %}
@@ -147,5 +173,21 @@
       </section>
     </main>
     {% include "core/_site_shell_foot.html" %}
+    <script>
+      /* Fold a long relation list to its first eight chips. */
+      (function () {
+        var box = document.querySelector('[data-relations]');
+        var more = box ? box.querySelector('[data-relations-more]') : null;
+        if (!more) {
+          return;
+        }
+        box.classList.add('is-folded');
+        more.hidden = false;
+        more.addEventListener('click', function () {
+          box.classList.remove('is-folded');
+          more.remove();
+        });
+      })();
+    </script>
   </body>
 </html>

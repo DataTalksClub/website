@@ -1,9 +1,12 @@
 {% comment %}
   Academy stripe: a lavender band just above the footer, shown only in the
-  Courses section -- where a visitor is already choosing a course and may want
-  the full-time intensive option.  The homepage explains Free courses vs
-  Academy in its own dedicated section, and the Academy stays reachable from
-  the primary navigation everywhere.
+  Courses section -- on the course catalogue and the course landing pages,
+  where a visitor is choosing how to learn and may want the full-time
+  intensive option.  Inside a course (modules, lessons, homework, projects)
+  the reader has already chosen, so it is noise there (owner feedback
+  2026-11-24).  The homepage explains Free courses vs Academy in its own
+  dedicated section, and the Academy stays reachable from the primary
+  navigation everywhere.
 
   The destination is a literal path for the same reason as the tour stripe:
   this footer also renders under the compatibility urlconf, which mounts no
@@ -12,6 +15,7 @@
   The Academy's own pages leave it out: there it would link a page to itself.
 {% endcomment %}
 {% if not hide_academy_cta and primary_navigation_current == "courses" %}
+{% if request.resolver_match.url_name == "course_list" or request.resolver_match.url_name == "course_family" or request.resolver_match.url_name == "course" or request.resolver_match.url_name == "cohort" and not module %}
   <section class="band band-lavender academy-cta-band" aria-labelledby="academy-cta-heading" data-academy-cta>
     <div class="shell academy-cta">
       <div>
@@ -21,4 +25,5 @@
       <a class="cta cta-secondary interactive-lift" href="/academy/">Explore the Academy</a>
     </div>
   </section>
+{% endif %}
 {% endif %}
