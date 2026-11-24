@@ -390,7 +390,7 @@ class DesignFiveAShellTests(TestCase):
 
     def test_every_design_system_page_reaches_the_academy(self) -> None:
         """The Academy sits in the primary row on every page; the closing stripe
-        shows only on the Courses section (the homepage ends with its own CTA)."""
+        shows only on the Courses section (home has its own comparison section)."""
 
         stripe_pages = {"courses index", "course page"}
         for name, body in self.rendered_pages().items():
@@ -405,6 +405,40 @@ class DesignFiveAShellTests(TestCase):
                     self.assertIn("Check out DataTalks.Club Academy.", body)
                 else:
                     self.assertNotIn("data-academy-cta", body)
+
+    def test_tour_and_academy_stripes_never_stack_and_tour_is_selective(self) -> None:
+        """Academy stripe appears on Courses; Tour stripe appears only on
+        newcomer-facing discovery pages, never stacked with Academy."""
+
+        tour_stripe_pages = {
+            "events index",
+            "past events",
+            "event page",
+            "podcast index",
+            "podcast episode",
+            "wiki hub",
+            "wiki search",
+            "wiki graph",
+            "wiki special pages",
+            "wiki page",
+            "blog index",
+            "books index",
+            "blog article",
+            "docs index",
+            "docs page",
+            "faq index",
+            "faq course",
+            "slack",
+        }
+        for name, body in self.rendered_pages().items():
+            with self.subTest(page=name):
+                has_academy = "data-academy-cta" in body
+                has_tour = "tour-cta-heading" in body
+                self.assertFalse(has_academy and has_tour)
+                if name in tour_stripe_pages:
+                    self.assertTrue(has_tour)
+                else:
+                    self.assertFalse(has_tour)
 
     def test_every_design_system_page_marks_only_the_entry_it_is(self) -> None:
         expected_current = {
