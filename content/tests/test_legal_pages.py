@@ -354,7 +354,18 @@ class SharedLegalFooterTests(TestCase):
         footer = (ROOT / "templates/core/_site_footer.html").read_text(encoding="utf-8")
         design_system = (ROOT / "templates/core/_design_system.html").read_text(encoding="utf-8")
         self.assertIn('rel="noopener noreferrer"', footer)
-        self.assertIn('aria-label="Website source on GitHub (opens in a new tab)"', footer)
+        for network, url in (
+            ("LinkedIn", "https://www.linkedin.com/company/datatalks-club/"),
+            ("X", "https://x.com/DataTalksClub"),
+            ("YouTube", "https://www.youtube.com/@DataTalksClub"),
+            ("GitHub", "https://github.com/DataTalksClub"),
+        ):
+            with self.subTest(network=network):
+                self.assertIn(f'href="{url}"', footer)
+                self.assertIn(f'aria-label="DataTalks.Club on {network} (opens in a new tab)"', footer)
+        # The version is the link to the website's own source.
+        self.assertIn('class="footer-version app-link"', footer)
+        self.assertIn('href="{{ version_source_url }}"', footer)
         for state in ("", ":link", ":visited", ":hover", ":focus", ":active"):
             self.assertIn(f".site-footer .site-footer-github{state}", design_system)
         self.assertIn("text-decoration: none;", design_system)
