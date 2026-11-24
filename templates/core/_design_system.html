@@ -1930,8 +1930,8 @@ Rules for editing:
          keeps its arrow buttons and keyboard focus) but draws no scrollbar. */
       .catalog-scroller {
         display: grid;
-        gap: var(--space-5);
-        grid-auto-columns: minmax(min(19rem, 100%), 1fr);
+        gap: var(--space-grid);
+        grid-auto-columns: minmax(min(18rem, 100%), 1fr);
         grid-auto-flow: column;
         overflow-x: auto;
         padding: var(--space-2) var(--space-2) var(--space-2);
@@ -2130,16 +2130,19 @@ Rules for editing:
         align-items: center;
         border-top: 2px dashed var(--line-soft);
         display: flex;
-        gap: var(--space-4);
+        flex-wrap: wrap;
+        gap: 0 var(--space-4);
         grid-area: runtime;
         justify-content: space-between;
         min-width: 0;
         padding-top: var(--space-1);
       }
 
+      /* Under text zoom the icons and the version wrap rather than widen the
+         page. */
       .site-footer-social {
         display: flex;
-        flex: none;
+        flex-wrap: wrap;
         margin-inline-start: calc((var(--footer-mark) - var(--footer-target)) / 2);
       }
 
@@ -2192,9 +2195,11 @@ Rules for editing:
          commit for a release, the repository for a local build. */
       .footer-version {
         color: var(--muted);
+        flex: 1 1 6rem;
         font-family: var(--font-mono);
         font-size: 0.72rem;
         min-width: 0;
+        position: relative;
         overflow-wrap: anywhere;
         text-align: end;
         text-decoration: none;
@@ -4639,11 +4644,16 @@ Rules for editing:
          (one indigo series, labels in body ink, values in ink on tabular
          digits) and the source caption.  The drawing is inline SVG built from
          typed data; see templates/public/_prose_blocks.html. */
+      /* The figure contains its hidden data table: a table cannot be squeezed
+         to the 1px .sr-only box, so without a positioned, clipping figure the
+         table's own width widened the whole page. */
       .prose-chart {
         background: var(--card);
         border: 2px solid var(--line-soft);
         border-radius: 0.7rem;
+        overflow: hidden;
         padding: var(--space-4) var(--space-4);
+        position: relative;
       }
 
       .prose-chart-title {
@@ -4897,7 +4907,7 @@ Rules for editing:
         }
 
         .masthead .nav-link {
-          padding-inline: var(--space-2);
+          padding-inline: var(--space-1);
         }
 
         .band-head {

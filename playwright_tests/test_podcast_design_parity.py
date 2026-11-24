@@ -24,7 +24,7 @@ PODCAST_HEADING = "Conversations with people who ship data"
 # (`_docs/design/design-system.md`).  The dark theme keeps the partial's own `--page`
 # ground.
 LIGHT_BACKGROUND = "rgb(239, 241, 252)"
-DARK_BACKGROUND = "rgb(19, 22, 42)"
+DARK_BACKGROUND = "rgb(34, 37, 48)"
 VIEWPORTS = (
     ({"width": 1440, "height": 900}, "desktop"),
     ({"width": 390, "height": 844}, "mobile"),

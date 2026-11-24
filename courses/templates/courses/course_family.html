@@ -618,10 +618,11 @@
         }
 
         .family-syllabus-row h3 a {
+          --target: 2.75rem;
           display: inline-block;
-          margin-block: calc(var(--space-2) * -1);
+          margin-block: calc((1lh - var(--target)) / 2);
           min-height: 0;
-          padding-block: var(--space-2);
+          padding-block: calc((var(--target) - 1lh) / 2);
         }
 
         .family-syllabus-row {
