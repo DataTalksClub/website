@@ -69,7 +69,7 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 1.25rem;
+        gap: var(--space-5);
       }
 
       /* The portrait is the person, not decoration: it keeps the card surface
@@ -92,19 +92,19 @@
       .person-identity h1 {
         font-size: clamp(1.9rem, 4vw, 2.8rem);
         letter-spacing: -0.025em;
-        margin-top: 0.35rem;
+        margin-top: var(--space-eyebrow);
       }
 
       .person-roles {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 0.75rem;
+        gap: var(--space-2);
+        margin-top: var(--space-3);
       }
 
       .person-summary {
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: 1.5rem;
+        margin-top: var(--space-5);
         max-width: 44rem;
       }
 
@@ -112,14 +112,14 @@
          across the reading column, so the tiles end on the same edge as the
          title and summary above them instead of stopping two thirds across. */
       .person-stats {
-        margin-top: 1.5rem;
+        margin-top: var(--space-5);
       }
 
       .person-links {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 1.5rem;
+        gap: var(--space-2);
+        margin-top: var(--space-5);
       }
 
       /* The arrow repeats what the link's own "(opens in a new tab)" already
@@ -156,7 +156,7 @@
 
       @media (max-width: 47.99rem) {
         .person-identity {
-          gap: 1rem;
+          gap: var(--space-4);
         }
 
         .person-portrait {

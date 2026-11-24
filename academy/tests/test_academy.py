@@ -255,7 +255,10 @@ class AcademyPageTests(TestCase):
         self.assertIn("Recording coming soon", media)
         self.assertIn('href="/images/academy/slides/session-1.pdf"', media)
         self.assertIn("View the slides (PDF)", media)
-        self.assertNotIn("youtube", media)
+        # No player: the site footer links the community's YouTube channel on
+        # every page, so the check is for an embed, not for the word.
+        for marker in ("youtube.com/embed", "youtube-nocookie", "data-video-embed", "<iframe"):
+            self.assertNotIn(marker, body)
         self.assertNotIn("recording.js", body)
         # The block sits above the recap's prose.
         self.assertLess(

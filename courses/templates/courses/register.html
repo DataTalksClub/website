@@ -38,20 +38,20 @@
        * ------------------------------------------------------------------ */
 
       .registration-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
+        margin-bottom: var(--space-2);
+        margin-top: calc(var(--space-3) * -1);
       }
 
       /* One rhythm for every section: the dashed seam and a band-head, the
          same chapter frame the course family landing uses. */
       .registration-section + .registration-section {
         border-top: 2px dashed var(--line-soft);
-        margin-top: 2.75rem;
-        padding-top: 2.5rem;
+        margin-top: var(--space-section);
+        padding-top: var(--space-section);
       }
 
       .registration-section .band-head {
-        margin-bottom: 1.1rem;
+        margin-bottom: var(--space-head);
       }
 
       .registration-section h2 {
@@ -67,7 +67,7 @@
       .registration-hero-frame {
         border: 2px solid var(--line);
         border-radius: 0.9rem;
-        margin-bottom: 1.5rem;
+        margin-bottom: var(--space-5);
         overflow: hidden;
       }
 
@@ -81,7 +81,7 @@
       .registration-hero h1 {
         font-size: clamp(2.1rem, 4.9vw, 3.4rem);
         letter-spacing: -0.03em;
-        margin-top: 0.35rem;
+        margin-top: var(--space-eyebrow);
         max-width: 22ch;
         text-wrap: balance;
       }
@@ -91,22 +91,22 @@
       .registration-hero-pills {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 1rem;
+        gap: var(--space-2);
+        margin-top: var(--space-4);
       }
 
       .registration-count {
         color: var(--ink);
         font-variant-numeric: tabular-nums;
         font-weight: 700;
-        margin-top: 0.75rem;
+        margin-top: var(--space-3);
       }
 
       .registration-state {
         display: grid;
-        gap: 0.35rem;
+        gap: var(--space-2);
         justify-items: start;
-        margin-top: 1.25rem;
+        margin-top: var(--space-5);
       }
 
       /* The state line is a statement, not a section, so it keeps the weight
@@ -130,8 +130,8 @@
       .registration-hero-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-top: 0.85rem;
+        gap: var(--space-3);
+        margin-top: var(--space-head);
       }
 
       /* --- the campaign copy, shaped into sections ----------------------- */
@@ -153,8 +153,8 @@
         font-style: italic;
         font-weight: 600;
         line-height: 1.55;
-        margin: 1.25rem 0;
-        padding: 1.1rem 1.35rem;
+        margin: var(--space-5) 0;
+        padding: var(--space-4) var(--space-5);
       }
 
       .registration-intro-copy blockquote p {
@@ -205,7 +205,7 @@
       .registration-feature-row p {
         color: var(--body-text);
         font-size: 0.95rem;
-        margin-top: 0.25rem;
+        margin-top: var(--space-1);
       }
 
       /* Artwork inside the copy (a roadmap, a project diagram) carries its own
@@ -228,14 +228,14 @@
       }
 
       .registration-application {
-        margin-bottom: 1.5rem;
+        margin-bottom: var(--space-5);
       }
 
       /* The gate keeps the featured slab's own inset and rhythm over the
          form card's `registration-panel` hook it also carries. */
       .featured.registration-gate {
-        gap: 2rem;
-        padding: 1.9rem 2.1rem;
+        gap: var(--space-6);
+        padding: var(--space-6) var(--space-6);
       }
 
       .featured.registration-gate h2 {
@@ -255,7 +255,7 @@
         aspect-ratio: 16 / 9;
         border: 2px solid var(--line);
         border-radius: 0.9rem;
-        margin-top: 1.75rem;
+        margin-top: var(--space-6);
         overflow: hidden;
       }
 
@@ -272,8 +272,8 @@
       .registration-panel {
         align-self: start;
         font-size: 1rem;
-        gap: 1rem;
-        padding: 1.35rem;
+        gap: var(--space-4);
+        padding: var(--space-5);
       }
 
       .registration-panel h2 {
@@ -282,7 +282,7 @@
 
       .registration-form {
         display: grid;
-        gap: 1rem;
+        gap: var(--space-4);
         margin: 0;
       }
 
@@ -291,7 +291,7 @@
         display: block;
         font-size: 0.9rem;
         font-weight: 700;
-        margin-bottom: 0.35rem;
+        margin-bottom: var(--space-2);
       }
 
       /* The bound fields keep the widget classes
@@ -305,7 +305,7 @@
         color: var(--ink);
         font: inherit;
         min-height: 2.75rem;
-        padding: 0.65rem 0.8rem;
+        padding: var(--space-3) var(--space-3);
         width: 100%;
       }
 
@@ -324,7 +324,7 @@
       .checkbox-row {
         align-items: start;
         display: grid;
-        gap: 0.65rem;
+        gap: var(--space-3);
         grid-template-columns: 1.5rem minmax(0, 1fr);
       }
 
@@ -373,7 +373,7 @@
       .checkbox-help {
         color: var(--body-text);
         font-size: 0.85rem;
-        margin-top: 0.35rem;
+        margin-top: var(--space-2);
       }
 
       /* The country combobox panel country_combobox.js fills: the field is the
@@ -390,7 +390,7 @@
         box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
         max-height: 16rem;
         overflow-y: auto;
-        padding: 0.3rem;
+        padding: var(--space-1);
         position: absolute;
         width: 100%;
         z-index: 30;
@@ -405,7 +405,7 @@
         display: block;
         font: inherit;
         min-height: 2.75rem;
-        padding: 0.55rem 0.7rem;
+        padding: var(--space-2) var(--space-3);
         text-align: left;
         width: 100%;
       }
@@ -436,8 +436,8 @@
         border-radius: 0.9rem;
         color: var(--ink);
         display: grid;
-        gap: 0.6rem;
-        padding: 1rem 1.15rem;
+        gap: var(--space-2);
+        padding: var(--space-4) var(--space-4);
       }
 
       .a11y-error-summary h2 {
@@ -446,9 +446,9 @@
 
       .a11y-error-summary ul {
         display: grid;
-        gap: 0.35rem;
+        gap: var(--space-2);
         list-style: disc;
-        padding-inline-start: 1.25rem;
+        padding-inline-start: var(--space-5);
       }
 
       .a11y-error-summary li {
@@ -464,7 +464,7 @@
         color: var(--body-text);
         display: block;
         font-size: 0.85rem;
-        margin-top: 0.35rem;
+        margin-top: var(--space-2);
       }
 
       .a11y-error {
@@ -472,7 +472,7 @@
         display: block;
         font-size: 0.85rem;
         font-weight: 700;
-        margin-top: 0.35rem;
+        margin-top: var(--space-2);
       }
 
       .registration-fineprint {
@@ -510,29 +510,29 @@
       .registration-about,
       .registration-fold-fields {
         display: grid;
-        gap: 1rem;
+        gap: var(--space-4);
       }
 
       .registration-fold-fields {
-        padding-bottom: 0.9rem;
+        padding-bottom: var(--space-4);
       }
 
       .registration-gate-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
+        gap: var(--space-3);
       }
 
       /* The gate's sign-in provider stack (production, where the providers
          create the account): the entrance pages' one-decision column. */
       .registration-provider-choices {
         display: grid;
-        gap: 0.75rem;
+        gap: var(--space-3);
         max-width: 24rem;
       }
 
       .registration-provider-choices .provider-choice {
-        gap: 0.6rem;
+        gap: var(--space-2);
         width: 100%;
       }
 
@@ -547,13 +547,13 @@
         border-top: 2px dashed var(--line-soft);
         display: flex;
         flex-wrap: wrap;
-        gap: 1rem;
-        padding-top: 1.25rem;
+        gap: var(--space-4);
+        padding-top: var(--space-5);
       }
 
       .registration-actions {
         border-top: 2px dashed var(--line-soft);
-        padding-top: 1.25rem;
+        padding-top: var(--space-5);
       }
 
       /* The page's script disables the button until the form is valid, exactly
@@ -583,9 +583,9 @@
       .registration-next-steps {
         border-top: 2px dashed var(--line-soft);
         display: grid;
-        gap: 0.75rem;
-        margin-top: 1.5rem;
-        padding-top: 1.5rem;
+        gap: var(--space-3);
+        margin-top: var(--space-5);
+        padding-top: var(--space-5);
       }
 
       .registration-next-step-row {
@@ -598,20 +598,20 @@
       .registration-cross-sell-flash {
         border-top: 2px dashed var(--line-soft);
         display: grid;
-        gap: 0.75rem;
-        margin-top: 1.5rem;
-        padding-top: 1.5rem;
+        gap: var(--space-3);
+        margin-top: var(--space-5);
+        padding-top: var(--space-5);
       }
 
       .registration-cross-sell-flash ul {
         margin: 0;
-        padding-left: 1.25rem;
+        padding-left: var(--space-5);
       }
 
       .registration-cross-sell-main {
         align-items: flex-start;
         display: flex;
-        gap: 0.6rem;
+        gap: var(--space-2);
       }
 
       .registration-cross-sell-main label {
@@ -622,8 +622,8 @@
       .registration-cross-sell-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.6rem;
-        margin-top: 0.75rem;
+        gap: var(--space-2);
+        margin-top: var(--space-3);
       }
 
       .registration-next-step-title {
@@ -642,7 +642,7 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.6rem;
+        gap: var(--space-2);
       }
 
       @media (max-width: 47.99rem) {
@@ -655,7 +655,7 @@
         /* Reshape on a phone: the panel gives up its inset and both the login
            link and the submit button take the full width. */
         .registration-panel {
-          padding: 1.1rem;
+          padding: var(--space-4);
         }
 
         .registration-actions .cta {
@@ -670,7 +670,7 @@
 
         .featured.registration-gate {
           border-radius: 1.1rem;
-          padding: 1.35rem;
+          padding: var(--space-5);
         }
       }
 {% endblock %}

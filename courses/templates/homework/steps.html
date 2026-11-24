@@ -3,27 +3,27 @@
 
 {% block extra_styles %}
   {{ block.super }}
-  .homework-steps { display: grid; gap: 1.5rem; max-width: var(--form-measure); }
+  .homework-steps { display: grid; gap: var(--space-5); max-width: var(--form-measure); }
   .homework-steps-progress { color: var(--muted); font-family: var(--font-mono); font-size: 0.85rem; }
-  .homework-step-list { display: flex; flex-wrap: wrap; gap: 0.45rem; list-style: none; margin: 0; padding: 0; }
-  .homework-step-list a { display: inline-block; border: 2px solid var(--line-soft); border-radius: 0.55rem; color: var(--ink); padding: 0.45rem 0.7rem; text-decoration: none; }
+  .homework-step-list { display: flex; flex-wrap: wrap; gap: var(--space-2); list-style: none; margin: 0; padding: 0; }
+  .homework-step-list a { display: inline-block; border: 2px solid var(--line-soft); border-radius: 0.55rem; color: var(--ink); padding: var(--space-2) var(--space-3); text-decoration: none; }
   .homework-step-list a:hover, .homework-step-list a:focus-visible { border-color: var(--line); }
   .homework-step-list a[aria-current="step"] { background: var(--lavender-deep); border-color: var(--line); font-weight: 700; }
-  .homework-step-panel { display: grid; gap: 1.25rem; }
+  .homework-step-panel { display: grid; gap: var(--space-5); }
   .homework-step-panel h2 { font-size: clamp(1.4rem, 3vw, 1.87rem); }
-  .homework-step-form, .homework-step-fieldset { display: grid; gap: 1rem; }
+  .homework-step-form, .homework-step-fieldset { display: grid; gap: var(--space-4); }
   .homework-step-fieldset { border: 0; margin: 0; min-width: 0; padding: 0; }
-  .homework-step-fieldset legend { color: var(--ink); font-size: 1.08rem; font-weight: 700; margin-bottom: 0.75rem; }
-  .homework-step-option { align-items: start; background: var(--card); border: 2px solid var(--line-soft); border-radius: 0.625rem; cursor: pointer; display: flex; gap: 0.7rem; padding: 0.65rem 0.85rem; }
+  .homework-step-fieldset legend { color: var(--ink); font-size: 1.08rem; font-weight: 700; margin-bottom: var(--space-3); }
+  .homework-step-option { align-items: start; background: var(--card); border: 2px solid var(--line-soft); border-radius: 0.625rem; cursor: pointer; display: flex; gap: var(--space-3); padding: var(--space-3) var(--space-3); }
   .homework-step-option:has(input:checked) { background: var(--lavender-deep); border-color: var(--line); }
   .homework-step-option:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
-  .homework-step-option input { margin-top: 0.3rem; }
-  .homework-step-actions { border-top: 2px dashed var(--line-soft); display: flex; flex-wrap: wrap; gap: 0.75rem; padding-top: 1.25rem; }
-  .homework-review-list { display: grid; gap: 0.85rem; padding-left: 1.4rem; }
+  .homework-step-option input { margin-top: var(--space-1); }
+  .homework-step-actions { border-top: 2px dashed var(--line-soft); display: flex; flex-wrap: wrap; gap: var(--space-3); padding-top: var(--space-5); }
+  .homework-review-list { display: grid; gap: var(--space-3); padding-left: var(--space-5); }
   .homework-review-list li { overflow-wrap: anywhere; }
-  .homework-review-answer { color: var(--body-text); display: block; margin-top: 0.2rem; }
+  .homework-review-answer { color: var(--body-text); display: block; margin-top: var(--space-1); }
   .homework-steps [data-save-status] { color: var(--muted); min-height: 1.2rem; }
-  .homework-steps [role="alert"] { background: var(--sand); border: 2px solid var(--line-soft); border-radius: 0.6rem; padding: 0.8rem 1rem; }
+  .homework-steps [role="alert"] { background: var(--sand); border: 2px solid var(--line-soft); border-radius: 0.6rem; padding: var(--space-3) var(--space-4); }
   @media (max-width: 47.99rem) { .homework-step-actions { display: grid; } }
 {% endblock %}
 

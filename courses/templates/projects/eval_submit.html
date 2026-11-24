@@ -18,16 +18,16 @@
 {% block extra_styles %}
   {{ block.super }}
   .review-form {
-    gap: 1.5rem;
+    gap: var(--space-5);
   }
 
   .criteria-question {
     border: 0;
     border-bottom: 1.5px dashed var(--line-soft);
     display: grid;
-    gap: 0.6rem;
+    gap: var(--space-2);
     margin: 0;
-    padding: 0 0 1.1rem;
+    padding: 0 0 var(--space-4);
   }
 
   .criteria-question:last-of-type {
@@ -43,7 +43,7 @@
 
   .criteria-options {
     display: grid;
-    gap: 0.35rem;
+    gap: var(--space-2);
   }
 
   /* `.form-check` and `.form-check-label` are design-system primitives.  Page
@@ -61,7 +61,7 @@
     align-items: center;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.6rem;
+    gap: var(--space-2);
   }
 
   .review-vote-form {

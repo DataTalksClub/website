@@ -31,13 +31,13 @@
       /* The breadcrumb links carry the system's 2.75rem target height, so the
          row brings its own air; fold most of it into the band's top padding. */
       .record-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
+        margin-bottom: var(--space-2);
+        margin-top: calc(var(--space-3) * -1);
       }
 
       .record-hero-inner {
         display: grid;
-        gap: 0.75rem;
+        gap: var(--space-3);
         justify-items: start;
       }
 
@@ -50,27 +50,27 @@
       .record-links {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.6rem;
+        gap: var(--space-2);
       }
 
       .record-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
+        gap: var(--space-3);
       }
 
       /* One tile, so the shared 2-up grid is held to a single column of the
          width the number needs rather than half the page. */
       .record-total {
         grid-template-columns: minmax(0, 14rem);
-        margin-top: 0.4rem;
+        margin-top: var(--space-2);
       }
 
       /* --- one submission ------------------------------------------------ */
 
       .record-row-main {
         display: grid;
-        gap: 0.5rem;
+        gap: var(--space-2);
         min-width: 0;
       }
 
@@ -78,7 +78,7 @@
         align-items: baseline;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem 0.75rem;
+        gap: var(--space-2) var(--space-3);
       }
 
       .record-row-main h3 {
@@ -120,14 +120,14 @@
         font-size: 0.92rem;
         font-weight: 700;
         min-height: 2.75rem;
-        padding-block: 0.6rem;
+        padding-block: var(--space-2);
       }
 
       .record-public ul {
         display: grid;
-        gap: 0.35rem;
+        gap: var(--space-2);
         list-style: disc;
-        padding-inline-start: 1.25rem;
+        padding-inline-start: var(--space-5);
       }
 
       .record-public li {
@@ -143,12 +143,12 @@
       .record-fineprint {
         color: var(--body-text);
         font-size: 0.85rem;
-        margin-top: 0.9rem;
+        margin-top: var(--space-4);
       }
 
       .record-empty {
         color: var(--body-text);
-        padding-block: 0.9rem;
+        padding-block: var(--space-4);
       }
 
       /* --- the flag dialog ------------------------------------------------ *
@@ -171,8 +171,8 @@
       .flag-dialog-head {
         border-bottom: 2px dashed var(--line-soft);
         display: grid;
-        gap: 0.3rem;
-        padding: 1.1rem 1.25rem;
+        gap: var(--space-1);
+        padding: var(--space-4) var(--space-5);
       }
 
       .flag-dialog-head h2 {
@@ -181,16 +181,16 @@
 
       .flag-dialog-body {
         display: grid;
-        gap: 1rem;
-        padding: 1.25rem;
+        gap: var(--space-4);
+        padding: var(--space-5);
       }
 
       .flag-dialog-actions {
         border-top: 2px dashed var(--line-soft);
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
-        padding: 1.1rem 1.25rem;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-5);
       }
 
       /* --- narrow layout ------------------------------------------------- */

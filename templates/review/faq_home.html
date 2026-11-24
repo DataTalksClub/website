@@ -49,13 +49,13 @@
       .faq-hero h1 {
         font-size: clamp(2.1rem, 4.9vw, 3.4rem);
         letter-spacing: -0.03em;
-        margin-top: 0.6rem;
+        margin-top: var(--space-eyebrow);
         max-width: 18ch;
       }
 
       .faq-lede {
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: 1rem;
+        margin-top: var(--space-stack);
         max-width: 40rem;
       }
 
@@ -64,12 +64,12 @@
       .faq-rows .list-row {
         --row-cols: minmax(0, 1fr) auto;
         align-items: center;
-        column-gap: 1.5rem;
+        column-gap: var(--space-5);
       }
 
       .faq-course-body {
         display: grid;
-        gap: 0.25rem;
+        gap: var(--space-1);
         justify-items: start;
         min-width: 0;
       }
@@ -89,7 +89,7 @@
       }
 
       .faq-empty {
-        padding-block: 0.9rem;
+        padding-block: var(--space-4);
       }
 
       /* Narrow: the row stacks, so the action keeps its own size instead of
@@ -97,7 +97,7 @@
       @media (max-width: 47.99rem) {
         .faq-course-action {
           justify-self: start;
-          margin-top: 0.5rem;
+          margin-top: var(--space-2);
         }
       }
     </style>

@@ -44,14 +44,14 @@
       thing the design system says an eyebrow may never do.
     {% endcomment %}
     {% breadcrumbs docs_trail nav_class="docs-breadcrumbs" %}
-    <h1 id="{{ docs_heading_id }}">{{ docs_heading_title }}</h1>
+    <h1 class="page-title" id="{{ docs_heading_id }}">{{ docs_heading_title }}</h1>
     {% if docs.description %}
       <p class="docs-lede">{{ docs.description }}</p>
     {% endif %}
     {% comment %}
       Search belongs in the cream header, the band the design system keeps for
-      the actions of the title block.  Compact and secondary here, because the
-      hub is where searching is the point of the page.
+      the actions of the title block.  The same search row the hub and the
+      wiki draw: one field width, one primary button.
     {% endcomment %}
     <div class="docs-header-actions">
       <form class="search-row docs-search-compact" role="search" action="{% url 'docs-home' %}" method="get">
@@ -64,7 +64,7 @@
           placeholder="Search {{ docs_total_pages }} documentation pages"
           required
         >
-        {% include "core/_button.html" with tag="button" type="submit" label="Search" variant="secondary" compact=True %}
+        {% include "core/_button.html" with tag="button" type="submit" label="Search" variant="primary" compact=True %}
       </form>
     </div>
   </div>

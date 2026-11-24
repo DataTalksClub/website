@@ -63,7 +63,7 @@ def test_all_three_shells_show_only_the_readable_version(
         )
         if viewport_name == "mobile":
             footer_meta = page.locator(".site-footer-runtime")
-            github_link = footer_meta.locator(".site-footer-link")
+            github_link = footer_meta.locator(".site-footer-github")
             footer_version = footer_meta.locator(".footer-version")
             assert footer_meta.evaluate("element => element.scrollWidth <= element.clientWidth + 1")
             github_box = github_link.bounding_box()

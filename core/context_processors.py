@@ -152,6 +152,13 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
         "umami_page_path": request.path,
         "brand_name": settings.SITE_NAME,
         "VERSION": settings.VERSION,
+        # The footer's version links to the exact commit when the build is a
+        # sealed release, and to the repository for a local build.
+        "version_source_url": (
+            f"https://github.com/DataTalksClub/website/commit/{settings.SOURCE_SHA}"
+            if settings.SOURCE_SHA
+            else "https://github.com/DataTalksClub/website"
+        ),
         "app_version": settings.APP_VERSION,
         "primary_navigation_current": primary_navigation_current,
         "primary_navigation": primary_navigation,

@@ -8,7 +8,10 @@
 {% endcomment %}
 
 {% block kicker %}
-  Community
+{% endblock %}
+
+{% block title_attributes %}
+  class="page-title"
 {% endblock %}
 
 {% block title %}
@@ -65,22 +68,43 @@
        * help is secondary), then the channels as one row of plain chips.
        * ------------------------------------------------------------------ */
 
+      /* A hub page, not a document: it holds the ordinary content column the
+         sponsors and other top-navigation pages hold, not the narrower
+         reading width a legal text keeps.  The lede keeps the measure the
+         other hub ledes keep, rather than running the column's full width. */
+      .text-page-shell {
+        max-width: var(--content-width);
+      }
+
+      .text-page-head {
+        --measure: 38rem;
+      }
+
+      /* This page carries no eyebrow over its title (owner, 2026-11-24). */
+      .text-page-head > .mono-label:first-child {
+        display: none;
+      }
+
       .slack-options {
         display: grid;
-        gap: 1.25rem;
+        gap: var(--space-5);
         grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
       }
 
+      /* Heading, text, then the action pinned to the card's foot, so the two
+         cards' buttons sit on one line whatever the text length (owner
+         feedback 2026-11-24: "make it more balanced"). */
       .slack-option {
         align-content: start;
         background: var(--card);
+        grid-template-rows: auto 1fr auto;
         border: 2px solid var(--line);
         border-radius: 0.9rem;
         box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
         display: grid;
-        gap: 0.75rem;
+        gap: var(--space-3);
         justify-items: start;
-        padding: 1.5rem;
+        padding: var(--space-5);
       }
 
       .slack-option h2 {
@@ -93,22 +117,22 @@
       }
 
       .slack-option p {
-        margin: 0 0 0.5rem;
+        margin: 0 0 var(--space-2);
       }
 
       .slack-channels {
-        margin-top: 2.5rem;
+        margin-top: var(--space-section);
       }
 
       .slack-channels h2 {
-        margin: 0 0 1rem;
+        margin: 0 0 var(--space-head);
       }
 
       .channel-list,
       .prose .channel-list {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: var(--space-2);
         list-style: none;
         margin: 0;
         padding: 0;
@@ -133,13 +157,13 @@
       }
 
       .slack-channels > p {
-        margin: 0 0 1rem;
+        margin: 0 0 var(--space-4);
       }
 
       /* The guide link closes the section, under the chips: it reads as the
          section's last word, the way /tour places its content links. */
       .slack-guide-link {
         display: inline-block;
-        margin-top: 1.25rem;
+        margin-top: var(--space-5);
       }
 {% endblock %}

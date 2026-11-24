@@ -12,7 +12,7 @@
       .module-layout {
         align-items: start;
         display: grid;
-        gap: 3rem;
+        gap: var(--space-7);
         grid-template-areas: "rail main";
         grid-template-columns: minmax(16rem, 19rem) minmax(0, calc(var(--measure) + 2.5rem));
         justify-content: center;
@@ -50,7 +50,7 @@
          scroll region needs no tabindex of its own. */
       .module-rail {
         display: grid;
-        gap: 0.75rem;
+        gap: var(--space-3);
         max-height: calc(100vh - 2rem);
         overflow-y: auto;
       }
@@ -58,7 +58,7 @@
       .rail-heading-row {
         align-items: center;
         display: flex;
-        gap: 0.75rem;
+        gap: var(--space-3);
         justify-content: space-between;
       }
 
@@ -129,7 +129,7 @@
          and vanish on the next lesson. */
       :root[data-module-rail="collapsed"] .module-layout {
         grid-template-columns: 2.75rem minmax(0, calc(var(--measure) + 2.5rem));
-        gap: 1.5rem;
+        gap: var(--space-5);
       }
 
       :root[data-module-rail="collapsed"] .module-rail {
@@ -150,7 +150,7 @@
       .rail-heading-row,
       .module-rail > .rail-heading,
       .rail-progress {
-        padding-inline: 0.5rem;
+        padding-inline: var(--space-2);
       }
 
       .rail-progress {
@@ -178,12 +178,12 @@
         display: grid;
         font-size: 0.9rem;
         font-weight: 700;
-        gap: 0.6rem;
+        gap: var(--space-2);
         grid-template-columns: 1.75rem minmax(0, 1fr);
         line-height: 1.35;
         min-height: 2.25rem;
         overflow-wrap: anywhere;
-        padding: 0.25rem 0.5rem;
+        padding: var(--space-1) var(--space-2);
         text-decoration: none;
       }
 
@@ -250,8 +250,8 @@
          themselves use. */
       .rail-homework-step {
         border-top: 2px dashed var(--line-soft);
-        margin-top: 0.25rem;
-        padding-top: 0.85rem;
+        margin-top: var(--space-1);
+        padding-top: var(--space-3);
       }
 
       .rail-unit-link .rail-homework-mark {
@@ -277,7 +277,7 @@
       @media (max-width: 52rem) {
         .module-layout,
         :root[data-module-rail="collapsed"] .module-layout {
-          gap: 2rem;
+          gap: var(--space-6);
           grid-template-areas:
             "main"
             "rail";
@@ -310,6 +310,6 @@
           border-top: 2px dashed var(--line-soft);
           max-height: none;
           overflow-y: visible;
-          padding-top: 1.5rem;
+          padding-top: var(--space-5);
         }
       }

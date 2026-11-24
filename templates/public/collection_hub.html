@@ -44,26 +44,24 @@
       }
 
       .collection-hero h1 {
-        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
-        letter-spacing: -0.03em;
-        margin-top: 0.6rem;
+        margin-top: var(--space-eyebrow);
         max-width: 18ch;
       }
 
       .collection-lede {
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: 1rem;
+        margin-top: var(--space-stack);
         max-width: 36rem;
       }
 
       .collection-lede + .collection-lede {
-        margin-top: 0.75rem;
+        margin-top: var(--space-3);
       }
 
       /* "How it works": the numbered disc keeps its own column beside the step. */
       .how-it-works .list-row {
         --row-cols: auto minmax(0, 1fr);
-        column-gap: 1rem;
+        column-gap: var(--space-4);
       }
 
       /* A record's row is the shared archive row — `.archive-row` in the design
@@ -77,7 +75,7 @@
       }
 
       .collection-empty {
-        padding-block: 0.9rem;
+        padding-block: var(--space-4);
       }
 
       /* Narrow: the step keeps its disc beside it rather than stacking a lone
@@ -85,7 +83,7 @@
       @media (max-width: 47.99rem) {
         .how-it-works .list-row {
           align-items: start;
-          column-gap: 0.85rem;
+          column-gap: var(--space-3);
           grid-template-columns: auto minmax(0, 1fr);
         }
       }
@@ -108,59 +106,76 @@
       <section class="band band-cream collection-hero" aria-labelledby="collection-heading">
         <div class="shell shell-reading">
           {% comment %}
-            The kicker counts the whole collection, not the page of it on screen:
-            the books archive is paged (issue #174), and a reader who reaches page
-            six is still looking at an archive of the same size.  The figure comes
-            from the view either way; nothing here is a number the page made up.
+            The books archive draws its hero picture beside the title block; the
+            other collections have no drawing, so their copy keeps the column.
           {% endcomment %}
-          {% if collection == "articles" %}
-            <p class="mono-label mono-label-indigo">
-              blog · {{ collection_total }} articles
-            </p>
-          {% elif collection == "podcasts" %}
-            <p class="mono-label mono-label-indigo">
-              podcast · {{ collection_total }} episodes
-            </p>
-          {% elif collection == "people" %}
-            <p class="mono-label mono-label-indigo">
-              people · {{ collection_total }} profiles
-            </p>
-          {% else %}
-            <p class="mono-label mono-label-indigo">
-              books · {{ collection_total }} in the archive
-            </p>
-          {% endif %}
-          {% if collection == "articles" %}
-            <h1 id="collection-heading">Latest Articles</h1>
-          {% elif collection == "podcasts" %}
-            <h1 id="collection-heading">Podcast</h1>
-          {% elif collection == "people" %}
-            <h1 id="collection-heading">People</h1>
-          {% else %}
-            <h1 id="collection-heading">Book of the Week</h1>
-          {% endif %}
-          {% if collection == "articles" or collection == "people" %}
-            {% comment %}
-              The blog hub has never carried a visible lede.  Rather than write a
-              new claim about the writing, the hero shows the description this
-              same page already publishes in its head.
-            {% endcomment %}
-            <p class="collection-lede">{{ seo_description }}</p>
-          {% elif collection == "podcasts" %}
-            <p class="collection-lede">
-              Listen to conversations with data science experts, machine learning practitioners,
-              and AI researchers. Subscribe to stay updated with the latest episodes.
-            </p>
-            <p class="collection-lede">
-              Register for upcoming podcast events in
-              <a href="{% url 'events' %}">events</a>.
-            </p>
-          {% else %}
-            <p class="collection-lede">
-              Each week we have a book author coming to DataTalks.Club to answer your questions
-              about their book and, in general, about the topic of their book.
-            </p>
-          {% endif %}
+          <div
+            {% if collection == "books" %}
+              class="hero-split"
+            {% endif %}
+          >
+            <div>
+              {% comment %}
+                The kicker counts the whole collection, not the page of it on screen:
+                the books archive is paged (issue #174), and a reader who reaches page
+                six is still looking at an archive of the same size.  The figure comes
+                from the view either way; nothing here is a number the page made up.
+              {% endcomment %}
+              {% if collection == "articles" %}
+                <p class="mono-label mono-label-indigo">
+                  blog · {{ collection_total }} articles
+                </p>
+              {% elif collection == "podcasts" %}
+                <p class="mono-label mono-label-indigo">
+                  podcast · {{ collection_total }} episodes
+                </p>
+              {% elif collection == "people" %}
+                <p class="mono-label mono-label-indigo">
+                  people · {{ collection_total }} profiles
+                </p>
+              {% else %}
+                <p class="mono-label mono-label-indigo">
+                  books · {{ collection_total }} in the archive
+                </p>
+              {% endif %}
+              {% if collection == "articles" %}
+                <h1 class="page-title" id="collection-heading">Latest Articles</h1>
+              {% elif collection == "podcasts" %}
+                <h1 class="page-title" id="collection-heading">Podcast</h1>
+              {% elif collection == "people" %}
+                <h1 class="page-title" id="collection-heading">People</h1>
+              {% else %}
+                <h1 class="page-title" id="collection-heading">Book of the Week</h1>
+              {% endif %}
+              {% if collection == "articles" or collection == "people" %}
+                {% comment %}
+                  The blog hub has never carried a visible lede.  Rather than write a
+                  new claim about the writing, the hero shows the description this
+                  same page already publishes in its head.
+                {% endcomment %}
+                <p class="collection-lede">{{ seo_description }}</p>
+              {% elif collection == "podcasts" %}
+                <p class="collection-lede">
+                  Listen to conversations with data science experts, machine learning practitioners,
+                  and AI researchers. Subscribe to stay updated with the latest episodes.
+                </p>
+                <p class="collection-lede">
+                  Register for upcoming podcast events in
+                  <a href="{% url 'events' %}">events</a>.
+                </p>
+              {% else %}
+                <p class="collection-lede">
+                  Each week we have a book author coming to DataTalks.Club to answer your questions
+                  about their book and, in general, about the topic of their book.
+                </p>
+              {% endif %}
+            </div>
+            {% if collection == "books" %}
+              <div class="hero-art">
+                {% include "core/_hero_illustration.html" with art="books-hero" only %}
+              </div>
+            {% endif %}
+          </div>
         </div>
       </section>
 

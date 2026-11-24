@@ -33,20 +33,18 @@
       }
 
       .wiki-hero h1 {
-        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
-        letter-spacing: -0.03em;
-        margin-top: 0.6rem;
+        margin-top: var(--space-eyebrow);
         max-width: 20ch;
       }
 
       .wiki-lede {
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: 1rem;
+        margin-top: var(--space-stack);
         max-width: 40rem;
       }
 
       .wiki-search {
-        margin-top: 1.5rem;
+        margin-top: var(--space-5);
       }
 
       /* Each way into the wiki is one row, and the whole row is the target: the
@@ -91,13 +89,13 @@
 
       .topic-summary {
         font-size: 0.9rem;
-        margin-top: 0.3rem;
+        margin-top: var(--space-1);
       }
 
       /* The catalogue with nothing in it: the three ways in above stay useful, so
          this is one line inside the divided list rather than a whole empty band. */
       .topic-empty {
-        padding-block: 0.9rem;
+        padding-block: var(--space-4);
       }
 
       /* Narrow: the read action drops under the summary as a compact button
@@ -106,7 +104,7 @@
       @media (max-width: 47.99rem) {
         .topic-action {
           justify-self: start;
-          margin-top: 0.5rem;
+          margin-top: var(--space-2);
         }
       }
     </style>
@@ -126,9 +124,9 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream wiki-hero" aria-labelledby="wiki-heading">
-        <div class="shell shell-reading shell-narrow">
+        <div class="shell shell-reading">
           <p class="mono-label mono-label-indigo">{{ catalogue_total }} topics</p>
-          <h1 id="wiki-heading">DataTalks.Club Podcast Wiki</h1>
+          <h1 class="page-title" id="wiki-heading">DataTalks.Club Podcast Wiki</h1>
           <p class="wiki-lede">
             Community-written topics wired to each other. Start anywhere and follow the links
             into guides, comparisons, roadmaps, podcast episodes, people and books.
@@ -138,7 +136,7 @@
       </section>
 
       <section class="band band-lavender" aria-labelledby="explore-heading">
-        <div class="shell shell-reading shell-narrow">
+        <div class="shell shell-reading">
           <div class="band-head">
             <div>
               <h2 id="explore-heading">Three ways in</h2>
@@ -166,7 +164,7 @@
       </section>
 
       <section class="band band-lavender" aria-labelledby="catalog-heading">
-        <div class="shell shell-reading shell-narrow">
+        <div class="shell shell-reading">
           <div class="band-head">
             <div>
               <h2 id="catalog-heading">Wiki pages</h2>

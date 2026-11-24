@@ -79,14 +79,14 @@
       .episode-hero h1 {
         font-size: clamp(1.7rem, 3.4vw, 2.5rem);
         letter-spacing: -0.025em;
-        margin-top: 0.6rem;
+        margin-top: var(--space-eyebrow);
       }
 
       /* The reading band carries the episode from its frame to its dateline, so
          it needs the room the hero's bottom padding would otherwise have
          left. */
       .episode-read {
-        padding-top: 1.6rem;
+        padding-top: var(--space-5);
       }
 
       /* The player frame is a real destination here: the episode artwork fills
@@ -114,7 +114,7 @@
       }
 
       .episode-player + .episode-player {
-        margin-top: 1rem;
+        margin-top: var(--space-4);
       }
 
       /* Spotify's compact episode player has a fixed content height, while its
@@ -133,13 +133,13 @@
         display: none;
         justify-content: center;
         min-height: 15rem;
-        padding: 2rem;
+        padding: var(--space-6);
         text-align: center;
       }
 
       .episode-video-fallback-copy {
         display: grid;
-        gap: 0.65rem;
+        gap: var(--space-3);
         max-width: 32rem;
       }
 
@@ -209,9 +209,9 @@
         color: var(--ink);
         display: inline-flex;
         font-weight: 700;
-        gap: 0.6rem;
+        gap: var(--space-2);
         left: 1rem;
-        padding: 0.3rem 1.1rem 0.3rem 0.3rem;
+        padding: var(--space-1) var(--space-4) var(--space-1) var(--space-1);
         position: absolute;
         transition: transform 0.15s ease;
       }
@@ -235,7 +235,7 @@
           bottom: 0.6rem;
           left: 0.6rem;
           font-size: 0.85rem;
-          padding-right: 0.85rem;
+          padding-right: var(--space-3);
         }
 
         .episode-video-play .play-disc {
@@ -255,13 +255,13 @@
         display: flex;
         justify-content: center;
         min-height: 15rem;
-        padding: 2rem;
+        padding: var(--space-6);
         text-align: center;
       }
 
       .episode-fallback-copy {
         display: grid;
-        gap: 0.65rem;
+        gap: var(--space-3);
         max-width: 32rem;
         position: relative;
         z-index: 1;
@@ -298,26 +298,26 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem 0.85rem;
-        margin-top: 1.5rem;
+        gap: var(--space-2) var(--space-3);
+        margin-top: var(--space-5);
       }
 
       .episode-description {
-        margin-top: 1.5rem;
+        margin-top: var(--space-5);
       }
 
       .episode-listen {
-        margin-top: 1.5rem;
+        margin-top: var(--space-5);
       }
 
       .episode-listen h2 {
-        margin: 0 0 0.6rem;
+        margin: 0 0 var(--space-2);
       }
 
       .listen-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: var(--space-2);
       }
 
       .listen-row .pill-button,
@@ -331,8 +331,8 @@
         border-bottom: 2px solid var(--line);
         display: flex;
         flex-wrap: wrap;
-        gap: 0.35rem 1rem;
-        margin-bottom: 2rem;
+        gap: var(--space-2) var(--space-4);
+        margin-bottom: var(--space-6);
       }
 
       .episode-tab {
@@ -342,7 +342,7 @@
         min-height: 2.75rem;
         align-items: center;
         font-weight: 800;
-        padding: 0.35rem 0;
+        padding: var(--space-2) 0;
         text-decoration: none;
       }
 
@@ -366,19 +366,19 @@
 
       .episode-summary p {
         line-height: 1.7;
-        margin: 0 0 1.1rem;
+        margin: 0 0 var(--space-4);
       }
 
       .episode-summary-links-heading {
         font-size: 1.05rem;
-        margin: 2rem 0 0;
+        margin: var(--space-6) 0 0;
       }
 
       .episode-resource-list {
         display: grid;
-        gap: 0.75rem;
+        gap: var(--space-3);
         list-style: none;
-        margin: 1.25rem 0 0;
+        margin: var(--space-5) 0 0;
         padding: 0;
       }
 
@@ -386,9 +386,9 @@
         align-items: baseline;
         border-bottom: 1px dashed var(--line);
         display: flex;
-        gap: 0.75rem;
+        gap: var(--space-3);
         justify-content: space-between;
-        padding-bottom: 0.75rem;
+        padding-bottom: var(--space-3);
       }
 
       .episode-resource-list li:last-child {
@@ -397,38 +397,81 @@
 
       .episode-empty-state {
         color: var(--muted);
-        margin-top: 1.25rem;
+        margin-top: var(--space-5);
       }
 
       .episode-timestamp {
         align-items: baseline;
         display: inline-flex;
-        gap: 0.8rem;
+        gap: var(--space-3);
         min-height: 1.75rem;
       }
 
       /* Timestamps and transcript rows sit tighter than the shared list
          rows: a chapter list reads as one list, not a stack of cards. */
       .episode-section .timestamp-row {
-        padding-block: 0.4rem;
+        padding-block: var(--space-2);
       }
 
+      /* The transcript's timestamp is a quiet handle, not a headline link:
+         muted, no underline until it is hovered or focused, so the reader's
+         eye goes to what was said (owner feedback 2026-11-24). */
       .transcript-time-link {
+        color: var(--muted);
         font-family: var(--font-mono);
-        font-size: 0.78rem;
+        font-size: 0.75rem;
+        text-decoration: none;
         white-space: nowrap;
+      }
+
+      .transcript-time-link:hover,
+      .transcript-time-link:focus-visible {
+        color: var(--indigo);
+        text-decoration: underline;
+      }
+
+      /* The chapter list's time links get the same quiet handle. */
+      a.episode-timestamp {
+        color: var(--muted);
+        text-decoration: none;
+      }
+
+      a.episode-timestamp:hover .transcript-time-link,
+      a.episode-timestamp:focus-visible .transcript-time-link {
+        color: var(--indigo);
+        text-decoration: underline;
+      }
+
+      /* A long transcript opens folded: the first screenful fades out and a
+         button unfolds the rest (owner feedback 2026-11-24).  The fold is
+         added by script only, so without JavaScript the whole transcript is
+         simply there; every line stays in the document either way. */
+      .transcript-body.is-collapsed {
+        max-height: 28rem;
+        -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+        mask-image: linear-gradient(to bottom, #000 55%, transparent);
+        overflow: hidden;
+      }
+
+      .transcript-more {
+        margin-top: var(--space-4);
+      }
+
+      /* .cta sets its own display, which would beat the hidden attribute. */
+      .transcript-more[hidden] {
+        display: none;
       }
 
       .episode-bios {
         display: grid;
-        gap: 1.25rem;
-        margin-top: 1.5rem;
+        gap: var(--space-5);
+        margin-top: var(--space-5);
       }
 
       .guest-bio-card {
         align-items: start;
         display: grid;
-        gap: 1rem;
+        gap: var(--space-4);
         grid-template-columns: auto minmax(0, 1fr);
       }
 
@@ -462,8 +505,8 @@
       .guest-bio-links {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.4rem 0.9rem;
-        margin-top: 0.75rem;
+        gap: var(--space-2) var(--space-4);
+        margin-top: var(--space-3);
       }
 
       /* Transcript: shared timestamp rows, with the section headers the source
@@ -475,7 +518,7 @@
         font-size: 1.2rem;
         font-weight: 700;
         line-height: 1.3;
-        margin: 2.25rem 0 0.35rem;
+        margin: var(--space-6) 0 var(--space-2);
       }
 
       .timestamp-mark {
@@ -491,7 +534,7 @@
 
       @media (max-width: 47.99rem) {
         .episode-read {
-          padding-top: 1.25rem;
+          padding-top: var(--space-5);
         }
 
         /* Narrow: the speaker sits above their line instead of stealing half the
@@ -507,7 +550,7 @@
 
         .transcript-time {
           display: inline;
-          margin-left: 0.4rem;
+          margin-left: var(--space-2);
         }
 
         .guest-bio-card {
@@ -793,6 +836,7 @@
                   <p>The conversation in full, as it was recorded.</p>
                 </div>
               </div>
+              <div class="transcript-body" data-transcript-body>
               {% for entry in episode.transcript %}
                 {% if entry.header %}
                   <h3 class="transcript-section">{{ entry.header }}</h3>
@@ -817,6 +861,10 @@
                   </div>
                 {% endif %}
               {% endfor %}
+              </div>
+              <button class="cta cta-secondary cta-compact interactive-lift transcript-more" type="button" data-transcript-more hidden>
+                Read the full transcript
+              </button>
             </section>
           {% endif %}
         </div>
@@ -978,6 +1026,30 @@
             play(Math.floor(seconds));
             link.focus();
           });
+        });
+      })();
+
+      /* Fold a long transcript behind "Read the full transcript".  A link
+         straight to a transcript line (#t-...) opens it unfolded. */
+      (function () {
+        var body = document.querySelector('[data-transcript-body]');
+        var more = document.querySelector('[data-transcript-more]');
+        if (!body || !more) {
+          return;
+        }
+        var target = window.location.hash ? document.getElementById(window.location.hash.slice(1)) : null;
+        if (target && body.contains(target)) {
+          return;
+        }
+        body.classList.add('is-collapsed');
+        if (body.scrollHeight <= body.clientHeight + 8) {
+          body.classList.remove('is-collapsed');
+          return;
+        }
+        more.hidden = false;
+        more.addEventListener('click', function () {
+          body.classList.remove('is-collapsed');
+          more.hidden = true;
         });
       })();
 

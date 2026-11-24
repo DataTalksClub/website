@@ -46,6 +46,24 @@ THEME_NEUTRAL_TOKENS = {
     "--measure",
     "--reading-width",
     "--shell",
+    # Spacing has no theme: the scale and its roles are declared once.
+    "--space-1",
+    "--space-2",
+    "--space-3",
+    "--space-4",
+    "--space-5",
+    "--space-6",
+    "--space-7",
+    "--space-8",
+    "--space-inline",
+    "--space-tight",
+    "--space-eyebrow",
+    "--space-stack",
+    "--space-head",
+    "--space-grid",
+    "--space-card",
+    "--space-section",
+    "--space-band",
 }
 LITERAL_COLOR = re.compile(r"#[0-9a-fA-F]{3,8}\b")
 DECLARED_TOKEN = re.compile(r"(--[a-z0-9-]+)\s*:")
@@ -188,12 +206,14 @@ class DesignSystemTokenTests(SimpleTestCase):
         code_block = _rule_body(stylesheet, ".prose pre")
         for declaration in (
             "background: var(--card)",
-            "border: 1.5px solid var(--line-soft)",
-            "box-shadow: 0.2rem 0.2rem 0 var(--shadow-soft)",
+            "border: 2px solid var(--line-soft)",
+            "border-radius: 0.7rem",
             "color: var(--ink)",
         ):
             with self.subTest(declaration=declaration):
                 self.assertIn(declaration, code_block)
+        # Every framed block in a body wears one frame: border, no shadow.
+        self.assertNotIn("box-shadow", code_block)
         self.assertNotRegex(code_block, LITERAL_COLOR)
 
         copy_button = _rule_body(stylesheet, ".code-block-copy")
@@ -300,7 +320,7 @@ class DesignSystemTokenTests(SimpleTestCase):
         coarse = stylesheet[coarse_start : stylesheet.index("\n      }", coarse_start)]
         self.assertIn("opacity: 1;", coarse)
         self.assertIn(".prose .code-block pre {", coarse)
-        self.assertIn("padding-top: 2.9rem;", coarse)
+        self.assertIn("padding-top: var(--space-7);", coarse)
         self.assertIn(".code-block-gutter {", coarse)
         self.assertEqual(stylesheet.count(".prose .code-block pre {"), 1)
 

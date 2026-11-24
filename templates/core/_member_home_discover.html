@@ -9,7 +9,6 @@
       <div>
         <h2 id="discover-courses-heading">{{ discover_heading }}</h2>
       </div>
-      <a class="band-link" href="{% url 'course_list' %}">all courses →</a>
     </div>
     <div class="card-grid card-grid-2">
       {% for card in discover_cards %}
@@ -23,5 +22,8 @@
         </article>
       {% endfor %}
     </div>
+    <p class="band-more">
+      <a class="band-link" href="{% url 'course_list' %}">all courses →</a>
+    </p>
   </section>
 {% endif %}

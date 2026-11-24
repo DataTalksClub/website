@@ -35,7 +35,7 @@ urlpatterns = [path("health/live", liveness, name="health-live")]
 
 # The heading is a slot in the shared text page (issue #179), so it is indented
 # inside its element rather than written on one line.
-HEADING = re.compile(r'<h1 id="text-page-heading">\s*Page not found\s*</h1>')
+HEADING = re.compile(r'<h1\s+id="text-page-heading"\s*>\s*Page not found\s*</h1>')
 
 
 class MissingPageTests(TestCase):

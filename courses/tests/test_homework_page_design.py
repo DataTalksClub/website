@@ -93,7 +93,7 @@ class HomeworkAccentBorderTests(SimpleTestCase):
         self.assertNotIn("border", form_rule.group(1))
         self.assertNotIn("padding", form_rule.group(1))
         self.assertIn("max-width: var(--form-measure)", form_rule.group(1))
-        self.assertIn("gap: 1.25rem", form_rule.group(1))
+        self.assertIn("gap: var(--space-5)", form_rule.group(1))
 
 
 class HomeworkPageStructureTests(HomeworkDetailViewTestBase):
