@@ -923,6 +923,18 @@ class PodcastEpisodeParityTests(TestCase):
 
 
 class PodcastSeasonNavigationTests(TestCase):
+    def test_an_empty_catalogue_draws_the_hub_instead_of_failing(self) -> None:
+        """A fresh environment before the podcast ingest has no season at all."""
+
+        with patch("content.catalogue.podcasts", return_value=()):
+            response = self.client.get("/podcast")
+            season = self.client.get("/podcast?season=3")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No episodes are published yet.")
+        self.assertNotContains(response, "data-podcast-season")
+        self.assertEqual(season.status_code, 404)
+
     def test_each_actual_season_contains_one_complete_season_and_all_details_once(self) -> None:
         seasons = podcast_seasons()
         seen_paths: list[str] = []

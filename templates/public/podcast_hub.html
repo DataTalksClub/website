@@ -151,6 +151,16 @@
         </div>
       </section>
 
+      {% if not season %}
+        <section class="band band-lavender" aria-label="Episodes">
+          <div class="shell shell-reading">
+            <p class="season-note">
+              No episodes are published yet. Register for upcoming recordings on the
+              <a href="{% url 'events' %}">events page</a>.
+            </p>
+          </div>
+        </section>
+      {% else %}
       <section class="band band-lavender" aria-labelledby="season-heading">
         <div class="shell shell-reading">
           <div class="band-head">
@@ -211,6 +221,7 @@
           </p>
         </div>
       </section>
+      {% endif %}
     </main>
     {% include "core/_site_shell_foot.html" %}
   </body>
