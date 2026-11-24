@@ -2,18 +2,17 @@
 {% load static academy_text %}
 {% comment %}
   One program page (/academy/agentic-engineering/, /academy/ai-engineering/),
-  a landing in the course family landing's frame.  The cream header is the
-  title block: the Academy bar, the heading, lede and instructor beside the
-  waitlist card, and the key facts as the spec strip under them, the way a
-  course carries its facts in its header.  Below the seam every chapter is the
-  same frame -- a dashed seam and a band head -- in the order a reader decides:
-  who it is for, the syllabus as the module accordion, what you can do by the
-  end with the final project, who teaches it, how you get in (with the
-  funding notice), the questions, and the closing mint panel with the second
-  waitlist card and the way to the other program.  Long copy stays at the
-  reading measure.  The sticky waitlist bar follows the reader once the header
-  has scrolled away.  The program's own copy is academy/<slug>.md; the copy
-  both programs share is academy/shared.yaml.
+  built section by section on the program landing blueprint
+  (_docs/design/landing-pages.md) in the course family landing's frame at the
+  ordinary content width.  The cream header is the hero: the heading, a
+  short lede, the waitlist action, the instructor line, and the key facts as
+  the spec strip at its foot.  Below the seam every chapter is the same
+  frame -- a dashed seam and a band head: who it is for, the overview, the
+  outcomes, the syllabus week by week, the final project and its weeks,
+  interview preparation as its own block, the instructor, the schedule, the
+  questions, and the closing mint panel -- the limited seats, how you get in
+  and the one waitlist form the hero's action and the sticky bar point to.  The program's own copy is academy/<slug>.md; the copy both
+  programs share is academy/shared.yaml.
 {% endcomment %}
 
 {% block document_title %}
@@ -37,196 +36,197 @@
 {% endblock %}
 
 {% block page_header %}
-  <div class="academy-landing shell-breakout">
-    <div class="academy-hero-inner">
-      <div class="academy-hero-copy">
-        <p class="kicker">{{ data.hero.eyebrow }}</p>
-        <h1 id="academy-heading">{{ data.hero.headline }}</h1>
-        <p class="academy-lede">{{ data.hero.lead }}</p>
-        <p class="academy-note">{{ data.hero.basis }}</p>
-        <div class="academy-person">
-          <img src="/{{ shared.instructor.photo }}" alt="" width="112" height="112" decoding="async">
-          <p>{{ shared.hero.instructor_line }}</p>
-        </div>
-      </div>
-      {% include "academy/_signup_card.html" with form_id="hero" choose_program=False intro=True %}
+  <div class="academy-hero-copy">
+    <p class="kicker">{{ data.hero.eyebrow }}</p>
+    <h1 id="academy-heading">{{ data.hero.headline }}</h1>
+    <p class="academy-lede">{{ data.hero.lead }}</p>
+    <div class="academy-actions">
+      {% include "core/_button.html" with href="#signup-hero" label=shared.waitlist_button variant="primary" %}
     </div>
-    <dl class="spec-strip academy-facts academy-hero-facts" id="facts" aria-label="{{ shared.facts.label }}">
-      {% for fact in shared.facts.items %}
-        <div class="spec">
-          <dt class="mono-label">{{ fact.label }}</dt>
-          <dd>{{ fact.value }}</dd>
-        </div>
-      {% endfor %}
-    </dl>
+    {% include "academy/_credibility.html" %}
   </div>
+  {% include "academy/_facts.html" with facts=shared.facts funding=None %}
 {% endblock %}
 
 {% block page_content %}
-  <div class="academy-landing shell-breakout">
-    <section class="academy-section" aria-labelledby="fit-heading">
-      <div class="card-grid card-grid-2">
-        <div class="card academy-fit-card">
-          <h2 id="fit-heading">{{ shared.fit.for_title }}</h2>
-          <ul class="academy-card-list">
-            {% for item in fit_for %}
-              <li>{{ item }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-        <div class="card academy-fit-card">
-          <h2>{{ shared.fit.not_title }}</h2>
-          <ul class="academy-card-list">
-            {% for item in shared.fit.not %}
-              <li>{{ item|academy_inline }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <section class="academy-section" id="syllabus" aria-labelledby="syllabus-heading">
+  <section class="academy-section" aria-labelledby="fit-heading">
+    {% if shared.fit.heading %}
       <div class="band-head">
         <div>
-          <h2 id="syllabus-heading">{{ shared.syllabus.heading }}</h2>
-          <p>{{ shared.syllabus.intro }}</p>
+          <h2 id="fit-heading">{{ shared.fit.heading }}</h2>
         </div>
       </div>
-      <div class="module-list academy-module-list">
-        {% for group in syllabus %}
-          <details class="module" {{ forloop.first|yesno:"open," }}>
-            <summary>
-              <span class="module-number" aria-hidden="true">{{ forloop.counter }}</span>
-              <span class="module-title">{{ group.title }}</span>
-              <span class="module-summary">{{ group.weeks }}</span>
-              <span class="module-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="module-body">
-              <ol class="academy-modules">
-                {% for module in group.modules %}
-                  <li>
-                    <span class="academy-module-number" aria-hidden="true">{{ module.number }}</span>
-                    <div>
-                      <h3>{{ module.title }}</h3>
-                      {% if module.description %}
-                        <p>{{ module.description }}</p>
-                      {% endif %}
-                      {% if module.topics %}
-                        <ul>
-                          {% for topic in module.topics %}
-                            <li>{{ topic }}</li>
-                          {% endfor %}
-                        </ul>
-                      {% endif %}
-                      <p class="academy-produce">{{ module.produce }}</p>
-                    </div>
-                  </li>
-                {% endfor %}
-              </ol>
-            </div>
-          </details>
+    {% endif %}
+    <div class="card-grid card-grid-2">
+      <div class="card academy-fit-card">
+        {% if shared.fit.heading %}
+          <h3>{{ shared.fit.for_title }}</h3>
+        {% else %}
+          <h2 id="fit-heading">{{ shared.fit.for_title }}</h2>
+        {% endif %}
+        <ul class="academy-card-list">
+          {% for item in fit_for %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="card academy-fit-card">
+        {% if shared.fit.heading %}
+          <h3>{{ shared.fit.not_title }}</h3>
+        {% else %}
+          <h2>{{ shared.fit.not_title }}</h2>
+        {% endif %}
+        <ul class="academy-card-list">
+          {% for item in shared.fit.not %}
+            <li>{{ item|academy_inline }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  {% if data.overview %}
+    <section class="academy-section" id="overview" aria-labelledby="overview-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="overview-heading">{{ data.overview.heading }}</h2>
+        </div>
+      </div>
+      <div class="prose">
+        {% for paragraph in data.overview.paragraphs %}
+          <p>{{ paragraph }}</p>
         {% endfor %}
       </div>
     </section>
+  {% endif %}
 
-    <section class="academy-section" aria-labelledby="outcomes-heading">
+  <section class="academy-section" id="outcomes" aria-labelledby="outcomes-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="outcomes-heading">{{ data.outcomes.heading }}</h2>
+        {% if data.outcomes.intro %}
+          <p>{{ data.outcomes.intro }}</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card academy-outcomes-card">
+      <ul class="academy-card-list academy-outcomes">
+        {% for outcome in data.outcomes.items %}
+          <li>{{ outcome }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+
+  <section class="academy-section" id="syllabus" aria-labelledby="syllabus-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="syllabus-heading">{{ shared.syllabus.heading }}</h2>
+        <p>{{ shared.syllabus.intro }}</p>
+      </div>
+    </div>
+    {% for phase in syllabus %}
+      <div class="academy-phase">
+        <h3 class="academy-phase-title">{{ phase.title }}</h3>
+        {% include "academy/_weeks.html" with weeks=phase.weeks label=shared.syllabus.week_label %}
+      </div>
+    {% endfor %}
+  </section>
+
+  <section class="academy-section" id="project" aria-labelledby="project-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="project-heading">{{ data.capstone.heading|default:shared.project_heading }}</h2>
+        <p>{{ data.project }}</p>
+      </div>
+    </div>
+    {% if capstone_weeks %}
+      {% include "academy/_weeks.html" with weeks=capstone_weeks label=shared.syllabus.week_label %}
+    {% endif %}
+  </section>
+
+  {% if shared.interviews %}
+    <section class="academy-section" id="interviews" aria-labelledby="interviews-heading">
       <div class="band-head">
         <div>
-          <h2 id="outcomes-heading">{{ data.outcomes.heading }}</h2>
+          <h2 id="interviews-heading">{{ shared.interviews.heading }}</h2>
+          <p>{{ shared.interviews.intro }}</p>
         </div>
       </div>
-      <div class="academy-split">
-        <ol class="academy-numbered">
-          {% for outcome in data.outcomes.items %}
+      {% include "academy/_weeks.html" with weeks=interview_weeks label=shared.syllabus.week_label %}
+    </section>
+  {% endif %}
+
+  <section class="academy-section" id="instructor" aria-labelledby="instructor-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="instructor-heading">{{ shared.instructor.heading }}</h2>
+      </div>
+    </div>
+    <div class="academy-instructor">
+      <img src="/{{ shared.instructor.photo }}" alt="{{ shared.instructor.photo_alt }}" width="280" height="280" loading="lazy" decoding="async">
+      <div class="academy-instructor-copy">
+        <div class="prose">
+          {% for paragraph in shared.instructor.paragraphs %}
+            <p>{{ paragraph }}</p>
+          {% endfor %}
+          <p>{{ data.hero.basis }}</p>
+        </div>
+        <ul class="academy-inline-links">
+          {% for link in shared.instructor.proof %}
             <li>
-              <span class="module-number" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
-              <span>{{ outcome }}</span>
+              <a class="band-link" href="{{ link.href }}" target="_blank" rel="noopener">{{ link.label }}</a>
             </li>
           {% endfor %}
-        </ol>
-        <div class="panel panel-mint panel-outlined academy-project">
-          <h3 id="project-heading">{{ shared.project_heading }}</h3>
-          <p>{{ data.project }}</p>
-        </div>
+        </ul>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="academy-section" aria-labelledby="instructor-heading">
+  {% if shared.schedule %}
+    <section class="academy-section" id="schedule" aria-labelledby="schedule-heading">
       <div class="band-head">
         <div>
-          <h2 id="instructor-heading">{{ shared.instructor.heading }}</h2>
+          <h2 id="schedule-heading">{{ shared.schedule.heading }}</h2>
         </div>
       </div>
-      <div class="academy-instructor">
-        <img src="/{{ shared.instructor.photo }}" alt="{{ shared.instructor.photo_alt }}" width="280" height="280" loading="lazy" decoding="async">
-        <div class="academy-instructor-copy">
-          <div class="prose">
-            {% for paragraph in shared.instructor.paragraphs %}
-              <p>{{ paragraph }}</p>
-            {% endfor %}
-          </div>
-          <ul class="academy-inline-links">
-            {% for link in shared.instructor.proof %}
-              <li>
-                <a class="band-link" href="{{ link.href }}" target="_blank" rel="noopener">{{ link.label }}</a>
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <section class="academy-section" aria-labelledby="admission-heading">
-      <div class="band-head">
-        <div>
-          <h2 id="admission-heading">{{ shared.admission.heading }}</h2>
-          <p>{{ shared.admission.body }}</p>
-        </div>
-      </div>
-      <h3 class="academy-subhead">{{ shared.admission.steps_heading }}</h3>
-      <ol class="card-grid academy-steps">
-        {% for step in shared.admission.steps %}
-          <li class="card">
-            <span class="module-number" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
-            <h4>{{ step.title }}</h4>
-            <p>{{ step.text }}</p>
-          </li>
+      <div class="prose">
+        {% for paragraph in shared.schedule.paragraphs %}
+          <p>{{ paragraph }}</p>
         {% endfor %}
-      </ol>
+      </div>
       {% if shared.funding %}
         {% include "academy/_funding.html" with funding=shared.funding %}
       {% endif %}
     </section>
+  {% endif %}
 
-    <section class="academy-section" aria-labelledby="faq-heading">
+  <section class="academy-section" id="questions" aria-labelledby="faq-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="faq-heading">{{ shared.faq.heading }}</h2>
+      </div>
+    </div>
+    {% include "academy/_faq.html" with items=faq prefix="faq" label="" %}
+    {% include "academy/_contact.html" %}
+  </section>
+  {% if data.related %}
+    <section class="academy-section" id="related" aria-labelledby="related-heading">
       <div class="band-head">
         <div>
-          <h2 id="faq-heading">{{ shared.faq.heading }}</h2>
+          <h2 id="related-heading">{{ data.related.heading }}</h2>
         </div>
       </div>
-      {% include "academy/_faq.html" with items=faq prefix="faq" label="" %}
-      {% include "academy/_contact.html" %}
+      <ul class="academy-related">
+        {% for link in data.related.links %}
+          <li>
+            <a class="band-link" href="{{ link.href }}">{{ link.label }}</a>
+          </li>
+        {% endfor %}
+      </ul>
     </section>
-
-    <section class="academy-section" aria-labelledby="join-heading">
-      <div class="panel panel-mint panel-outlined academy-closing">
-        <div class="academy-closing-copy">
-          <h2 id="join-heading">{{ shared.join.heading }}</h2>
-          <p>{{ shared.join.text }}</p>
-          <p>
-            <span class="status-pill status-pill-open academy-pill">{{ shared.seat_caption }}</span>
-          </p>
-          {% if other_program and shared.other_track %}
-            <p class="academy-other-track">
-              {{ shared.other_track }}
-              <a class="band-link" href="{{ other_program.path }}">{{ other_program.name }}</a>
-            </p>
-          {% endif %}
-        </div>
-        {% include "academy/_signup_card.html" with form_id="join" choose_program=False intro=False %}
-      </div>
-    </section>
-  </div>
+  {% endif %}
+  {% include "academy/_join.html" with choose_program=False %}
   {% include "academy/_sticky.html" %}
 {% endblock %}
 

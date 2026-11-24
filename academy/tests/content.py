@@ -61,7 +61,17 @@ SHARED: dict[str, Any] = {
         "proof": [{"label": "SYNTHETIC PROOF", "href": "https://example.invalid/proof"}],
     },
     "project_heading": "Synthetic project",
+    "interviews": {
+        "heading": "Synthetic interviews",
+        "intro": "Synthetic interviews intro.",
+        "modules": [
+            {"week": 4, "title": "Synthetic drills.", "produce": "Synthetic drill result."},
+            {"week": 5, "title": "Synthetic mocks.", "produce": "Synthetic mock result."},
+        ],
+    },
+    "schedule": {"heading": "Synthetic schedule", "paragraphs": ["Synthetic schedule text."]},
     "fit": {
+        "heading": "Synthetic fit",
         "for_title": "Synthetic for",
         "not_title": "Synthetic not for",
         "for_shared": ["Synthetic shared fit."],
@@ -70,6 +80,7 @@ SHARED: dict[str, Any] = {
     "syllabus": {
         "heading": "Synthetic syllabus",
         "intro": "Synthetic intro.",
+        "week_label": "Synthetic week",
     },
     "funding": {
         "heading": "Synthetic funding",
@@ -157,31 +168,46 @@ def _program(slug: str, name: str, position: int) -> dict[str, Any]:
             "lead": f"{name} synthetic lead.",
             "basis": f"{name} synthetic basis.",
         },
+        "highlights": [f"{name} highlight {n}." for n in range(1, 4)],
         "outcomes": {
             "heading": f"{name} synthetic outcomes",
+            "intro": f"{name} synthetic outcomes intro.",
             "items": [f"{name} outcome {n}." for n in range(1, 6)],
         },
+        "overview": {
+            "heading": f"{name} synthetic overview",
+            "paragraphs": [f"{name} synthetic overview paragraph."],
+        },
         "project": f"{name} synthetic project.",
+        "capstone": {
+            "heading": f"{name} synthetic capstone",
+            "modules": [{"week": 3, "title": f"{name} capstone.", "produce": "A capstone."}],
+        },
+        "related": {
+            "heading": f"{name} synthetic related",
+            "links": [{"label": "Synthetic comparison", "href": "/academy/sessions/recap/"}],
+        },
         "fit_first": f"{name} synthetic first fit.",
         "prerequisites": f"{name} synthetic prerequisites.",
         "syllabus": [
             {
-                "weeks": "Weeks 1 to 2",
                 "title": f"{name} first group",
                 "modules": [
-                    {"title": f"{name} module one.", "produce": "a synthetic result."},
+                    {"week": 1, "title": f"{name} module one.", "produce": "A synthetic result."},
                     {
+                        "week": 2,
                         "title": f"{name} module two.",
-                        "produce": "another synthetic result.",
+                        "produce": "Another synthetic result.",
                         "description": "Synthetic module description.",
                         "topics": ["Synthetic topic."],
                     },
                 ],
             },
             {
-                "weeks": "Weeks 3 to 4",
                 "title": f"{name} second group",
-                "modules": [{"title": f"{name} module three.", "produce": "a third result."}],
+                "modules": [
+                    {"week": 2, "title": f"{name} module three.", "produce": "A third result."}
+                ],
             },
         ],
         "schema": {
@@ -236,8 +262,15 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
             "funding": {
                 "heading": "Synthetic home funding",
                 "paragraphs": ["Synthetic home funding text."],
-                "link": {"label": "Synthetic home guide", "href": "/academy/bildungsgutschein/"},
+                "links": [{"label": "Synthetic home guide", "href": "/academy/bildungsgutschein/"}],
             },
+            "sessions": {
+                "heading": "Synthetic home sessions",
+                "text": "Synthetic home sessions text.",
+                "link_label": "Synthetic all sessions",
+            },
+            "articles": {"heading": "Synthetic articles", "link_label": "Synthetic all articles"},
+            "faq": {"heading": "Synthetic home questions", "picks": [1], "link_label": "All"},
             "schema": {
                 "organization": {
                     "name": "DataTalks.Club",
@@ -405,6 +438,7 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
             "path": "/academy/bildungsgutschein/",
             "lang": "de",
             "hreflang": True,
+            "alternates": [{"lang": "en", "path": "/academy/guides/synthetic/"}],
             "title": "Synthetischer Leitfaden",
             "description": "Synthetische Beschreibung.",
             "sitemap": 5,
@@ -474,7 +508,6 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
             "eyebrow": "Synthetic Academy",
             "heading": "Synthetic FAQ",
             "lead": "Synthetic FAQ lead.",
-            "button": "Synthetic join",
             "list_label": "Synthetic questions and answers",
             "items": [{"question": "Synthetic FAQ question?", "answer": "Synthetic FAQ answer."}],
             "join": {"heading": "Synthetic FAQ closing", "text": "Synthetic FAQ closing text."},
@@ -501,11 +534,50 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
                     {"label": "Synthetic outside link", "href": "https://example.invalid/post"},
                 ],
             },
+            "faq": {
+                "heading": "Synthetic recap questions",
+                "items": [{"question": "Synthetic recap question?", "answer": "Synthetic answer."}],
+            },
             "join": {"heading": "Synthetic recap closing", "text": "Synthetic recap closing text."},
         },
         "## Synthetic recap section\n\n"
         "Synthetic recap body with [a program](/academy/ai-engineering/).\n\n"
-        "- synthetic point\n",
+        "[Synthetic body action](https://example.invalid/apply){.button}\n\n"
+        "- synthetic point\n\n"
+        "| Synthetic | Table |\n|---|---|\n| one | two |\n",
+    ),
+    "guides-synthetic": (
+        {
+            "layout": "article",
+            "path": "/academy/guides/synthetic/",
+            "title": "Synthetic guide title",
+            "description": "Synthetic guide description.",
+            "sitemap": 9,
+            "eyebrow": "Synthetic guide",
+            "heading": "Synthetic guide heading",
+            "lead": "Synthetic guide lead.",
+            "author": "Synthetic Author",
+            "published": "2026-11-24",
+            "join": {
+                "heading": "Synthetic guide closing",
+                "text": "Synthetic guide closing text.",
+                "href": "/academy/ai-engineering/#signup-hero",
+                "label": "Synthetic guide action",
+            },
+        },
+        "Synthetic guide body.\n",
+    ),
+    "guides": (
+        {
+            "layout": "articles",
+            "path": "/academy/guides/",
+            "title": "Synthetic articles title",
+            "description": "Synthetic articles description.",
+            "sitemap": 3,
+            "heading": "Synthetic articles index",
+            "lead": "Synthetic articles lead.",
+        },
+        "",
     ),
     "privacy": (
         {

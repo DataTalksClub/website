@@ -21,6 +21,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from functools import lru_cache
+from math import log
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +39,7 @@ from core.graph_layout import (
 )
 
 from . import catalogue
+from .podcast_content import ordered_podcasts
 from .podcast_routes import podcast_canonical_path
 from .public_graph import safe_public_graph_url
 
@@ -556,6 +558,184 @@ def episode_graph(episode: dict[str, Any]) -> EpisodeGraph:
         raw_links=raw_incident_links,
         unique_neighbors=len(neighbours),
         layouts=layouts,
+    )
+
+
+# --- related episodes ---------------------------------------------------------
+#
+# Two episodes are related when the wiki files them under the same pages.  A
+# wiki page node -- a concept (``wiki``) or one of the wiki's own guides,
+# roadmaps and comparisons (``article``) -- is the only thing two episodes can
+# share here: a guest is one person per episode, a book is not a wiki page, and
+# a ``topic`` node is a search query rather than a page a chip could open.
+
+#: The node types that count as a shared wiki concept.
+RELATED_CONCEPT_TYPES = frozenset({"wiki", "article"})
+#: How many related episodes an episode page offers.
+RELATED_EPISODE_LIMIT = 5
+#: How many shared concepts each related episode names as its reason.
+RELATED_CONCEPT_CHIPS = 3
+
+
+@dataclass(frozen=True, slots=True)
+class SharedConcept:
+    """One wiki page two episodes are both filed under."""
+
+    label: str
+    url: str
+
+
+@dataclass(frozen=True, slots=True)
+class RelatedEpisodeMatch:
+    """One episode the graph relates to another, and the concepts it shares.
+
+    ``concepts`` holds every shared concept, the one contributing most to
+    ``score`` first, so a template can name the strongest reasons.
+    """
+
+    slug: str
+    score: float
+    concepts: tuple[SharedConcept, ...]
+
+
+def _episode_concepts(
+    nodes: dict[str, dict[str, str]],
+    links: tuple[dict[str, Any], ...],
+    podcasts: tuple[dict[str, Any], ...],
+) -> dict[str, dict[str, int]]:
+    """Map each published episode slug to its wiki concepts and their weight.
+
+    An episode is matched to its graph node by the hierarchical route both are
+    built to, the same identity :func:`episode_graph` resolves through, so a
+    graph node the catalogue does not publish relates nothing.
+    """
+
+    slug_by_path = {
+        path: record["slug"]
+        for record in podcasts
+        if isinstance(record, dict) and (path := _hierarchical_podcast_graph_path(record))
+    }
+    concepts: dict[str, dict[str, int]] = {}
+    for link in links:
+        for episode_id, concept_id in (
+            (link["source"], link["target"]),
+            (link["target"], link["source"]),
+        ):
+            episode_node = nodes[episode_id]
+            concept_node = nodes[concept_id]
+            if episode_node["type"] != "podcast" or concept_node["type"] not in (
+                RELATED_CONCEPT_TYPES
+            ):
+                continue
+            concept_url = concept_node["url"]
+            if not concept_url.startswith("/wiki/") or "?" in concept_url:
+                continue
+            slug = slug_by_path.get(episode_node["url"])
+            if slug is None:
+                continue
+            weights = concepts.setdefault(slug, {})
+            weights[concept_id] = weights.get(concept_id, 0) + link["weight"]
+    return concepts
+
+
+@lru_cache(maxsize=2)
+def _published_episode_concepts(
+    wiki_stamp: tuple[int, str],
+    editorial_stamp: tuple[int, str],
+    people_stamp: tuple[int, str],
+) -> tuple[dict[str, dict[str, str]], dict[str, dict[str, int]]]:
+    held_graph = catalogue._synced_records(wiki_stamp, catalogue.WIKI_SOURCE_SLUG, "wiki_graph")
+    graph = held_graph[0] if held_graph else {}
+    podcasts = catalogue._synced_editorial("podcast", editorial_stamp, people_stamp)
+    podcast_records = {item["slug"]: item for item in podcasts if "slug" in item}
+    nodes = _episode_graph_nodes(graph, podcast_records=podcast_records)
+    links = _episode_graph_links(graph, nodes)
+    return nodes, _episode_concepts(nodes, links, podcasts)
+
+
+def _current_episode_concepts() -> tuple[dict[str, dict[str, str]], dict[str, dict[str, int]]]:
+    """The concept index for the graph and episodes the database publishes now.
+
+    The index is built once per synced state of the three sources it reads;
+    a graph or catalogue handed in some other way (a test's synthetic graph)
+    is indexed on the spot.
+    """
+
+    graph = catalogue.wiki_graph()
+    podcasts = catalogue.podcasts()
+    wiki_stamp = catalogue.synced_stamp(catalogue.WIKI_SOURCE_SLUG)
+    editorial_stamp = catalogue.synced_stamp(catalogue.EDITORIAL_SOURCE_SLUG)
+    people_stamp = catalogue.synced_stamp(catalogue.PEOPLE_SOURCE_SLUG)
+    if wiki_stamp[0] and isinstance(podcasts, tuple):
+        held_graph = catalogue._synced_records(wiki_stamp, catalogue.WIKI_SOURCE_SLUG, "wiki_graph")
+        if (
+            held_graph
+            and held_graph[0] is graph
+            and catalogue._synced_editorial("podcast", editorial_stamp, people_stamp) is podcasts
+        ):
+            return _published_episode_concepts(wiki_stamp, editorial_stamp, people_stamp)
+    podcast_records = {item["slug"]: item for item in podcasts if "slug" in item}
+    nodes = _episode_graph_nodes(graph, podcast_records=podcast_records)
+    links = _episode_graph_links(graph, nodes)
+    return nodes, _episode_concepts(nodes, links, tuple(podcasts))
+
+
+def related_episode_matches(
+    episode: dict[str, Any],
+    *,
+    limit: int = RELATED_EPISODE_LIMIT,
+) -> tuple[RelatedEpisodeMatch, ...]:
+    """Rank the episodes that share wiki concepts with ``episode``.
+
+    Each concept both episodes are filed under contributes the weaker of the
+    two link weights (how strongly *both* episodes are about it), scaled by how
+    rare the concept is across episodes: ``log(1 + episodes / episodes_on_it)``.
+    Without that scale a page like "Machine Learning", which ninety episodes
+    share, would relate everything to everything.  Ties fall to the more
+    shared concepts, then to the newer episode in the podcast's own order.
+    The current episode is never its own match.
+    """
+
+    nodes, concepts = _current_episode_concepts()
+    own = concepts.get(episode.get("slug", ""))
+    if not own:
+        return ()
+    episode_total = len(concepts)
+    reach: dict[str, int] = {}
+    for weights in concepts.values():
+        for concept_id in weights:
+            reach[concept_id] = reach.get(concept_id, 0) + 1
+    newest_first = {
+        record["slug"]: index for index, record in enumerate(ordered_podcasts(catalogue.podcasts()))
+    }
+    candidates: list[tuple[float, int, int, str, tuple[SharedConcept, ...]]] = []
+    for slug, weights in concepts.items():
+        if slug == episode["slug"] or slug not in newest_first:
+            continue
+        shared = [
+            (min(own[concept_id], weight) * log(1 + episode_total / reach[concept_id]), concept_id)
+            for concept_id, weight in weights.items()
+            if concept_id in own
+        ]
+        if not shared:
+            continue
+        shared.sort(key=lambda item: (-item[0], nodes[item[1]]["label"], item[1]))
+        candidates.append(
+            (
+                sum(contribution for contribution, _ in shared),
+                len(shared),
+                newest_first[slug],
+                slug,
+                tuple(
+                    SharedConcept(label=nodes[concept_id]["label"], url=nodes[concept_id]["url"])
+                    for _, concept_id in shared
+                ),
+            )
+        )
+    candidates.sort(key=lambda item: (-round(item[0], 9), -item[1], item[2], item[3]))
+    return tuple(
+        RelatedEpisodeMatch(slug=slug, score=score, concepts=shared_concepts)
+        for score, _, _, slug, shared_concepts in candidates[:limit]
     )
 
 

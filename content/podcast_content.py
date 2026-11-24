@@ -244,6 +244,14 @@ class VideoEmbed:
         return f"https://www.youtube-nocookie.com/embed/{self.video_id}?enablejsapi=1&rel=0"
 
     @property
+    def watch_url(self) -> str:
+        """The YouTube page the click-to-play poster links to before it plays."""
+
+        if self.provider != "youtube" or not YOUTUBE_VIDEO_ID.fullmatch(self.video_id):
+            raise ImproperlyConfigured("Public podcast video identity is invalid.")
+        return f"https://www.youtube.com/watch?v={self.video_id}"
+
+    @property
     def media_id(self) -> str:
         return self.video_id
 
@@ -322,6 +330,7 @@ class Episode:
     spotify: SpotifyEmbed | None = None
     transcript: tuple[TranscriptEntry, ...] = ()
     timestamp_entries: tuple[TimestampEntry, ...] = ()
+    summary_paragraphs: tuple[str, ...] = ()
 
     @property
     def season_episode(self) -> str:
@@ -864,61 +873,112 @@ def episode_view(
         spotify=_spotify_embed(record),
         transcript=transcript,
         timestamp_entries=_timestamp_entries(transcript) if transcript else (),
+        summary_paragraphs=_summary_paragraphs(record),
     )
 
 
-def episode_navigation(
+def _summary_paragraphs(record: dict[str, Any]) -> tuple[str, ...]:
+    """The episode summary as paragraphs, split on the source's blank lines.
+
+    Lines inside one paragraph are joined with a space, so a summary wrapped
+    for review in the source reads as continuous prose on the page.
+    """
+
+    summary = str(record.get("summary") or "")
+    paragraphs = (" ".join(block.split()) for block in re.split(r"\n\s*\n", summary))
+    return tuple(paragraph for paragraph in paragraphs if paragraph)
+
+
+@dataclass(frozen=True, slots=True)
+class RelatedEpisode:
+    """One episode offered under another, with the wiki concepts that relate them.
+
+    ``concepts`` is empty for a same-season fallback card: it has no reason
+    beyond its season to name, and the band says so.
+    """
+
+    episode: Episode
+    concepts: tuple[Any, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class RelatedEpisodes:
+    """The related-episodes band: what it offers and why.
+
+    ``basis`` is ``"graph"`` when the cards come from shared wiki concepts,
+    ``"season"`` when the episode has no graph relations and the band falls back
+    to the newest other episodes of its season, and ``""`` when there is nothing
+    to offer at all.
+
+    ``common_concepts`` are the concepts every graph card shares with the
+    episode.  The band names them once in its lede rather than repeating the
+    same chips on every card, so a card's chips say what sets it apart.
+    """
+
+    basis: str
+    items: tuple[RelatedEpisode, ...]
+    common_concepts: tuple[Any, ...] = ()
+
+
+def related_episodes(
     record: dict[str, Any],
     records: tuple[dict[str, Any], ...] | list[dict[str, Any]],
+    matches: tuple[Any, ...],
     *,
     people_by_slug: dict[str, dict[str, Any]] | None = None,
-) -> tuple[Episode | None, Episode | None, tuple[Episode, ...]]:
-    """Return older/newer neighbours and up to three same-season related episodes."""
+    limit: int = 5,
+    concept_chips: int = 3,
+) -> RelatedEpisodes:
+    """Compose the related-episodes band for one episode page.
 
-    season_records = tuple(
-        item
+    ``matches`` is the ranked graph answer (each with a ``slug`` and its shared
+    ``concepts``, strongest first).  When it is empty the band falls back to the
+    newest other episodes of the same season, so a page never ends on nothing
+    while the wiki has yet to file a new episode.
+    """
+
+    def compose(item: dict[str, Any]) -> Episode:
+        return episode_view(
+            item,
+            people_by_slug=people_by_slug,
+            resource_podcast_records=records,
+            include_transcript=False,
+        )
+
+    by_slug = {item.get("slug"): item for item in records}
+    kept = tuple(
+        match for match in matches if match.slug in by_slug and match.slug != record.get("slug")
+    )[:limit]
+    if kept:
+        common = (
+            tuple(
+                concept
+                for concept in kept[0].concepts
+                if all(concept in match.concepts for match in kept[1:])
+            )
+            if len(kept) > 1
+            else ()
+        )
+        return RelatedEpisodes(
+            basis="graph",
+            items=tuple(
+                RelatedEpisode(
+                    episode=compose(by_slug[match.slug]),
+                    concepts=tuple(concept for concept in match.concepts if concept not in common)[
+                        :concept_chips
+                    ],
+                )
+                for match in kept
+            ),
+            common_concepts=common,
+        )
+
+    season_items = tuple(
+        RelatedEpisode(episode=compose(item))
         for item in ordered_podcasts(tuple(records))
-        if item.get("season") == record.get("season")
-    )
-    current_slug = record.get("slug")
-    try:
-        index = next(
-            index for index, item in enumerate(season_records) if item.get("slug") == current_slug
-        )
-    except StopIteration as error:
-        raise ImproperlyConfigured(
-            "Public podcast navigation record is not in the catalogue."
-        ) from error
-
-    previous = season_records[index + 1] if index + 1 < len(season_records) else None
-    following = season_records[index - 1] if index else None
-    related = tuple(item for item in season_records if item.get("slug") != current_slug)[:3]
-
-    def compose(item: dict[str, Any] | None) -> Episode | None:
-        return (
-            episode_view(
-                item,
-                people_by_slug=people_by_slug,
-                resource_podcast_records=records,
-                include_transcript=False,
-            )
-            if item is not None
-            else None
-        )
-
-    return (
-        compose(previous),
-        compose(following),
-        tuple(
-            episode_view(
-                item,
-                people_by_slug=people_by_slug,
-                resource_podcast_records=records,
-                include_transcript=False,
-            )
-            for item in related
-        ),
-    )
+        if item.get("season") == record.get("season") and item.get("slug") != record.get("slug")
+    )[:limit]
+    return RelatedEpisodes(basis="season" if season_items else "", items=season_items)
 
 
 def listening_platform_phrase(episodes: tuple[Episode, ...]) -> str:

@@ -81,6 +81,16 @@ UNGOVERNED = (
 )
 
 
+def is_partial(template: Path) -> bool:
+    """A ``_``-named template is a band drawn inside a page, not a page.
+
+    It has no hero and no stylesheet block of its own, so the page that includes
+    it answers the hero and page-token rules; every band it draws still takes
+    the content ground.
+    """
+    return template.name.startswith("_")
+
+
 def band_sequence(template: Path) -> tuple[str, ...]:
     """Return the ground of each band the template draws, in source order."""
     return tuple(BAND_PATTERN.findall(template.read_text(encoding="utf-8")))
@@ -90,7 +100,7 @@ class BandGroundTests(SimpleTestCase):
     def test_every_public_page_puts_its_hero_on_cream(self) -> None:
         for template in GOVERNED_TEMPLATES:
             bands = band_sequence(template)
-            if not bands:
+            if not bands or is_partial(template):
                 continue
             with self.subTest(template=template.name):
                 self.assertEqual(
@@ -103,9 +113,10 @@ class BandGroundTests(SimpleTestCase):
     def test_every_band_after_a_hero_takes_the_content_ground(self) -> None:
         for template in GOVERNED_TEMPLATES:
             bands = band_sequence(template)
+            content_bands = bands if is_partial(template) else bands[1:]
             with self.subTest(template=template.name):
                 self.assertEqual(
-                    [ground for ground in bands[1:] if ground != "band-lavender"],
+                    [ground for ground in content_bands if ground != "band-lavender"],
                     [],
                     "Lavender is the content ground: every band after the hero takes "
                     'it.  See "Which ground a band takes" in _docs/design/design-system.md.',
@@ -128,7 +139,7 @@ class BandGroundTests(SimpleTestCase):
         # lavender it continues and the cream footer.
         for template in GOVERNED_TEMPLATES:
             bands = band_sequence(template)
-            if not bands or bands[-1] != "band-lavender":
+            if not bands or bands[-1] != "band-lavender" or is_partial(template):
                 continue
             with self.subTest(template=template.name):
                 self.assertIsNotNone(

@@ -1,0 +1,18 @@
+<ul class="episode-resource-list" aria-label="Show notes resources">
+  {% for resource in resources %}
+    <li>
+      <a
+        href="{{ resource.url }}"
+        {% if resource.is_external %}
+          target="{{ resource.target }}"
+          rel="{{ resource.rel }}"
+        {% endif %}
+      >
+        {{ resource.label }}
+        {% if resource.is_external %}
+          <span class="sr-only"> (opens in a new tab)</span>
+        {% endif %}
+      </a>
+    </li>
+  {% endfor %}
+</ul>

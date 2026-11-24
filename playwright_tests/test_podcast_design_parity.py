@@ -175,11 +175,7 @@ def test_episode_play_control_is_a_labelled_keyboard_destination(
     player = page.locator('.episode-video[data-video-provider="youtube"]')
     expect(player).to_have_count(1)
     expect(player).to_have_attribute("data-video-id", episode["video"]["id"])
-    iframe = page.locator("#podcast-video-player")
-    expect(iframe).to_have_attribute(
-        "title",
-        f"Watch {episode['title']} on YouTube",
-    )
+    expect(player.get_by_role("button", name=f"Play {episode['title']} on YouTube")).to_be_visible()
     platform_link = page.locator(f'.listen-row a[href="{episode["links"]["youtube"]}"]')
     expect(platform_link).to_have_count(1)
     platform_link.focus()
@@ -205,8 +201,10 @@ def test_episode_play_control_is_a_labelled_keyboard_destination(
     )
     alts = [image["alt"] for image in image_data]
     assert alts.count(artwork_alt) == 0, alts
+    # The click-to-play poster is decorative too: its control names the episode.
     assert all(
-        image["alt"] or image["className"] == "person-chip-portrait" for image in image_data
+        image["alt"] or image["className"] in {"person-chip-portrait", "episode-video-poster"}
+        for image in image_data
     ), image_data
     # Transcript is not the default tab (Show Notes is); activate it to reach
     # its heading, the same way a keyboard or pointer user would.

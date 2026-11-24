@@ -144,6 +144,12 @@ class PodcastsParser:
                 maximum=20_000,
                 optional=True,
             ),
+            # The editorial summary of what the conversation covered: plain prose,
+            # paragraphs separated by a blank line. Optional; an episode without
+            # one simply has no Summary tab.
+            "summary": builder._string(
+                raw.get("summary"), field="podcast summary", maximum=20_000, optional=True
+            ),
             "season": season,
             "episode": episode,
             "published": builder._string(

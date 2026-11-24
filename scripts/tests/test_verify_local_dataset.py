@@ -574,7 +574,7 @@ def test_a_new_delivery_year_is_accepted_by_a_manifest_edit_alone(tmp_path: Path
     }
     expectations = _load_expectations(_write_manifest(tmp_path, manifest))
     report = _base_report()
-    report["events"] = {"events_on_or_after_as_of": 3}
+    report["events"] = {"events_on_or_after_as_of": 3, "incomplete_published_events": []}
 
     assert _failures(report, expectations) == []
 
@@ -589,12 +589,41 @@ def test_the_event_horizon_gate_binds_to_as_of_never_to_the_wall_clock(
     # Everything has already happened relative to today -- and that must not
     # fail: the gate asks about the reviewed snapshot's horizon.
     aged = _base_report()
-    aged["events"] = {"future_dated_events": 0, "events_on_or_after_as_of": 3}
+    aged["events"] = {
+        "future_dated_events": 0,
+        "events_on_or_after_as_of": 3,
+        "incomplete_published_events": [],
+    }
     assert _failures(aged, expectations) == []
 
     # The import that never carried a forward horizon is the failure.
     horizon_less = _base_report()
-    horizon_less["events"] = {"future_dated_events": 0, "events_on_or_after_as_of": 0}
+    horizon_less["events"] = {
+        "future_dated_events": 0,
+        "events_on_or_after_as_of": 0,
+        "incomplete_published_events": [],
+    }
     failures = _failures(horizon_less, expectations)
     assert len(failures) == 1
     assert "2026-09-02" in failures[0]
+
+
+def test_a_published_event_without_a_type_or_speaker_fails_the_dataset(
+    tmp_path: Path,
+) -> None:
+    from scripts.verify_local_dataset import _failures, _load_expectations
+
+    expectations = _load_expectations(_write_manifest(tmp_path, _manifest()))
+    report = _base_report()
+    report["events"] = {
+        "future_dated_events": 0,
+        "events_on_or_after_as_of": 3,
+        "incomplete_published_events": [
+            {"id": 7, "public_id": 459, "title": "Synthetic", "missing": ["type", "speakers"]}
+        ],
+    }
+
+    failures = _failures(report, expectations)
+
+    assert len(failures) == 1
+    assert "459" in failures[0]

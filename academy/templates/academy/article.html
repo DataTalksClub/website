@@ -1,10 +1,15 @@
 {% extends "core/content_page.html" %}
-{% load academy_text %}
+{% load academy_text breadcrumbs people %}
 {% comment %}
-  A free-form Academy page read as prose (a session recap, a guide): the
-  Academy bar, the heading, lede and byline, then the Markdown body at the
-  reading measure, the pages it points on to, and the one closing waitlist
-  panel.  Copy: the page's own file in academy/.
+  A free-form Academy page read as prose (a session recap, a guide), drawn
+  the way a blog article is: the trail back to the Academy, the heading, the
+  standfirst, the date and the author's person chip, then the Markdown body
+  as the reading column, the pages it points on to, and the one closing
+  waitlist panel.  Like every page read end to end on the site (blog,
+  podcast, wiki) the column is the reading width rather than the landings'
+  content width, and the header sits on the same column as the body (the
+  article blueprint in _docs/design/landing-pages.md).  Copy: the page's own
+  file in academy/.
 {% endcomment %}
 
 {% block document_title %}
@@ -20,7 +25,7 @@
 {% endblock %}
 
 {% block header_band_class %}
-  academy-hero
+  academy-hero academy-article-hero
 {% endblock %}
 
 {% block header_attributes %}
@@ -28,25 +33,43 @@
 {% endblock %}
 
 {% block page_header %}
-  <div class="academy-hero-copy">
-    <p class="kicker">{{ data.eyebrow }}</p>
+  {% breadcrumbs shared.brand academy_root articles_index.heading articles_path current=data.heading nav_class="academy-article-column" %}
+  <header class="academy-article-column academy-article-head">
     <h1 id="academy-heading">{{ data.heading }}</h1>
-    <p class="academy-lede">{{ data.lead }}</p>
-    <p class="mono-note academy-byline">
-      {{ data.author }}, <time datetime="{{ data.published }}">{{ published|date:"j F Y" }}</time>
+    <p class="prose-lede">{{ data.lead }}</p>
+    <p class="mono-note">
+      <time datetime="{{ data.published }}">{{ published|date:"M j, Y" }}</time>
+      · {{ reading_time }}
     </p>
-  </div>
+    <p class="person-chips">
+      {% include "public/_person_chip.html" with person=author|person_chip chip_loading="eager" %}
+    </p>
+  </header>
 {% endblock %}
 
 {% block page_content %}
-  <article class="academy-reading">
-    <div class="prose prose-reading">
+  <article class="academy-article-column">
+    <div class="prose prose-reading academy-article-body">
       {{ page.body|academy_markdown }}
     </div>
   </article>
+  {% if data.faq %}
+    <section class="academy-section academy-article-column" aria-labelledby="faq-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="faq-heading">{{ data.faq.heading }}</h2>
+        </div>
+      </div>
+      {% include "academy/_faq.html" with items=data.faq.items prefix="faq" label="" %}
+    </section>
+  {% endif %}
   {% if data.related %}
-    <section class="academy-section academy-reading" aria-labelledby="related-heading">
-      <h2 id="related-heading">{{ data.related.heading }}</h2>
+    <section class="academy-section academy-article-column" aria-labelledby="related-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="related-heading">{{ data.related.heading }}</h2>
+        </div>
+      </div>
       <ul class="academy-related">
         {% for link in data.related.links %}
           <li>
@@ -56,5 +79,7 @@
       </ul>
     </section>
   {% endif %}
-  {% include "academy/_waitlist_closing.html" with join=data.join %}
+  <div class="academy-article-column academy-article-closing">
+    {% include "academy/_waitlist_closing.html" with join=data.join %}
+  </div>
 {% endblock %}

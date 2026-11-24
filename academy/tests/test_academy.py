@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import UTC, datetime
 from pathlib import Path
+from unittest import mock
 
 from community_base.content_sync.checkout import ImmutableCheckout
 from community_base.content_sync.media import media_store
@@ -20,19 +22,24 @@ from content.models import SyncedDocument
 from content.sync_parsers.base import ContentParserError
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+#: Before the synthetic sessions (21 to 23 November 2026), so all three are upcoming.
+BEFORE_SESSIONS = datetime(2026, 11, 1, tzinfo=UTC)
 API = "https://augldvp3omxdxz3irqsmmxc25e0blpxx.lambda-url.eu-west-1.on.aws"
 
 SITEMAP_PAGES = (
     "/academy/",
     "/academy/agentic-engineering/",
     "/academy/ai-engineering/",
+    "/academy/guides/",
     "/academy/sessions/",
     "/academy/bildungsgutschein/",
     "/academy/faq/",
     "/academy/privacy/",
     "/academy/impressum/",
+    "/academy/guides/synthetic/",
     "/academy/sessions/recap/",
 )
+ARTICLES = ("/academy/sessions/recap/", "/academy/guides/synthetic/")
 ALL_PAGES = (*SITEMAP_PAGES, "/academy/confirm/", "/academy/sessions/materials/")
 TEMPLATES = (
     "home",
@@ -44,6 +51,7 @@ TEMPLATES = (
     "faq",
     "legal",
     "article",
+    "articles",
 )
 
 
@@ -108,36 +116,50 @@ class AcademyPageTests(TestCase):
                 # One footer, the site's: no Academy link footer and no copyright line.
                 self.assertNotIn("academy-links", body)
                 self.assertNotIn("©", body)
-                self.assertNotIn('class="breadcrumbs"', body)
+                # Only an article, read like a blog post, carries the trail
+                # back to its index.
+                if path in ARTICLES:
+                    self.assertIn('breadcrumbs" aria-label="Breadcrumb"', body)
+                else:
+                    self.assertNotIn('breadcrumbs" aria-label="Breadcrumb"', body)
 
     def test_home_keeps_its_anchors_and_the_funding_notice(self) -> None:
         home = self.client.get("/academy/").content.decode()
         for anchor in ('id="hero"', 'id="tracks"', 'id="facts"', 'id="funding"'):
             self.assertIn(anchor, home)
         funding = home[home.index('id="funding"') :]
-        funding = funding[: funding.index("</aside>")]
+        funding = funding[: funding.index("</section>")]
         self.assertIn("Synthetic home funding", funding)
         self.assertIn("Synthetic home funding text.", funding)
-        self.assertIn('href="/academy/bildungsgutschein/">Synthetic home guide</a>', funding)
+        self.assertIn('href="/academy/bildungsgutschein/">Synthetic home guide →</a>', funding)
+        # The hero's one action points to the one waitlist form at the end.
+        hero = home[: home.index("content-page-content")]
+        self.assertIn('href="#signup-hero"', hero)
+        self.assertNotIn("data-academy-signup", hero)
+        self.assertIn('id="signup-hero"', home)
         program = self.client.get("/academy/agentic-engineering/").content.decode()
         self.assertIn('id="funding"', program)
         self.assertIn('href="/academy/bildungsgutschein/">Synthetic funding guide</a>', program)
         self.assertIn('href="https://example.invalid/funding">Synthetic funding link</a>', program)
 
-    def test_every_form_and_pending_state_carries_the_confirmation_notice(self) -> None:
+    def test_every_pending_state_carries_the_confirmation_notice(self) -> None:
         notice = "Synthetic important: confirm your email or get nothing."
         # Each signup card says it in its form and again in its success state.
         for path, cards in (
             ("/academy/", 1),
-            ("/academy/agentic-engineering/", 2),
-            ("/academy/ai-engineering/", 2),
+            ("/academy/agentic-engineering/", 1),
+            ("/academy/ai-engineering/", 1),
             ("/academy/sessions/", 1),
             ("/academy/sessions/materials/?session=1", 1),
         ):
             with self.subTest(path=path):
                 body = self.client.get(path).content.decode()
-                self.assertEqual(body.count("data-confirm-notice"), cards * 2)
-                self.assertEqual(body.count(notice), cards * 2)
+                # Only after submitting: the empty form does not carry it
+                # (owner, 2026-11-24), the success state does.
+                self.assertEqual(body.count("data-confirm-notice"), cards)
+                self.assertEqual(body.count(notice), cards)
+                for form in body.split("<form ")[1:]:
+                    self.assertNotIn(notice, form.split("</form>")[0])
                 for success in body.split("data-success hidden")[1:]:
                     self.assertIn(notice, success.split("</div>\n  </div>")[0])
 
@@ -151,14 +173,18 @@ class AcademyPageTests(TestCase):
         for path in ("/academy/", "/academy/sessions/", "/academy/faq/"):
             self.assertNotIn("data-academy-sticky", self.client.get(path).content.decode())
 
-    def test_the_sessions_page_keeps_its_form_up_top_and_closes_on_it(self) -> None:
+    def test_the_sessions_page_opens_on_its_form(self) -> None:
         body = self.client.get("/academy/sessions/").content.decode()
         header = body[: body.index("content-page-content")]
-        self.assertIn('id="register"', header)
+        self.assertIn('href="#register"', header)
         self.assertEqual(header.count('<li class="list-row">'), 3)
-        closing = body[body.index('id="final-heading"') :]
-        self.assertIn('href="#register"', closing[: closing.index("</section>")])
-        self.assertEqual(body.count('class="card academy-session-card"'), 3)
+        # The form is the first chapter under the header, and the page's only one.
+        content = body[body.index("content-page-content") :]
+        first = content[: content.index("</section>")]
+        self.assertIn('id="final-heading"', first)
+        self.assertIn('id="register"', first)
+        self.assertEqual(body.count("data-academy-sessions"), 1)
+        self.assertEqual(body.count('class="list-row academy-session"'), 3)
 
     def test_the_german_guide_points_to_the_english_page(self) -> None:
         guide = self.client.get("/academy/bildungsgutschein/").content.decode()
@@ -176,14 +202,31 @@ class AcademyPageTests(TestCase):
         header = body[: body.index("content-page-content")]
         self.assertIn('<h1 id="academy-heading">Synthetic recap heading</h1>', header)
         self.assertIn("Synthetic recap lead.", header)
-        self.assertIn('<time datetime="2026-11-23">23 November 2026</time>', header)
+        self.assertIn('<time datetime="2026-11-23">Nov 23, 2026</time>', header)
+        self.assertIn("1 min read", header)
         self.assertIn("Synthetic Author", header)
+        self.assertIn('href="/academy/guides/">Synthetic articles index</a>', header)
         content = body[body.index("content-page-content") :]
         self.assertIn("<h2>Synthetic recap section</h2>", content)
         self.assertIn('<a href="/academy/ai-engineering/">a program</a>', content)
         self.assertIn("<li>synthetic point</li>", content)
+        # A marked standalone link in the body is the shared secondary action.
+        self.assertIn(
+            '<p class="prose-action"><a class="cta cta-secondary interactive-lift" '
+            'href="https://example.invalid/apply" rel="noopener noreferrer">'
+            "Synthetic body action</a></p>",
+            content,
+        )
+        self.assertNotIn("{.button}", body)
         self.assertIn('href="/academy/agentic-engineering/">Synthetic AE program</a>', content)
         self.assertIn('href="https://example.invalid/post">Synthetic outside link</a>', content)
+        # A table scrolls inside the system's named frame.
+        self.assertIn(
+            '<div class="prose-scroll" role="region" tabindex="0" aria-label="Table 1"><table>',
+            content,
+        )
+        self.assertIn('id="faq-1"', content)
+        self.assertIn("Synthetic recap question?", content)
         # One closing action, to the waitlist card on the home page.
         closing = content[content.index('id="join-heading"') :]
         closing = closing[: closing.index("</section>")]
@@ -202,15 +245,51 @@ class AcademyPageTests(TestCase):
             json.loads(match)
             for match in re.findall(r'<script type="application/ld\+json">(.*?)</script>', body)
         ]
-        self.assertEqual([document["@type"] for document in documents], ["Article"])
-        self.assertEqual(documents[0]["headline"], "Synthetic recap heading")
-        self.assertEqual(documents[0]["datePublished"], "2026-11-23")
-        self.assertEqual(documents[0]["author"], {"@type": "Person", "name": "Synthetic Author"})
-        self.assertEqual(documents[0]["url"], "https://datatalks.club/academy/sessions/recap/")
+        self.assertEqual([document["@type"] for document in documents], ["FAQPage", "Article"])
+        self.assertEqual(documents[0]["mainEntity"][0]["name"], "Synthetic recap question?")
+        article = documents[1]
+        self.assertEqual(article["headline"], "Synthetic recap heading")
+        self.assertEqual(article["datePublished"], "2026-11-23")
+        self.assertEqual(article["author"], {"@type": "Person", "name": "Synthetic Author"})
+        self.assertEqual(article["url"], "https://datatalks.club/academy/sessions/recap/")
+
+    def test_an_article_names_its_own_closing_action(self) -> None:
+        body = self.client.get("/academy/guides/synthetic/").content.decode()
+        closing = body[body.index('id="join-heading"') :]
+        closing = closing[: closing.index("</section>")]
+        self.assertIn('href="/academy/ai-engineering/#signup-hero"', closing)
+        self.assertIn("Synthetic guide action", closing)
+        self.assertNotIn('id="faq-heading"', body)
+
+    def test_the_articles_index_and_the_home_list_every_article_newest_first(self) -> None:
+        index = self.client.get("/academy/guides/").content.decode()
+        self.assertIn("Synthetic articles index", index)
+        self.assertLess(
+            index.index('href="/academy/guides/synthetic/"'),
+            index.index('href="/academy/sessions/recap/"'),
+        )
+        self.assertEqual(index.count('class="list-row archive-row'), 2)
+        home = self.client.get("/academy/").content.decode()
+        articles = home[home.index('id="articles"') :]
+        articles = articles[: articles.index("</section>")]
+        self.assertIn('href="/academy/guides/">Synthetic all articles →</a>', articles)
+        self.assertIn("Synthetic guide heading", articles)
+        self.assertIn("Synthetic recap heading", articles)
+
+    def test_german_and_english_guides_declare_each_other(self) -> None:
+        guide = self.client.get("/academy/bildungsgutschein/").content.decode()
+        self.assertIn(
+            '<link rel="alternate" hreflang="de" href="https://datatalks.club/academy/bildungsgutschein/">',
+            guide,
+        )
+        self.assertIn(
+            '<link rel="alternate" hreflang="en" href="https://datatalks.club/academy/guides/synthetic/">',
+            guide,
+        )
 
     def test_a_session_links_its_recap_and_the_faq_closes_on_the_waitlist(self) -> None:
         sessions = self.client.get("/academy/sessions/").content.decode()
-        cards = sessions.split('class="card academy-session-card"')[1:]
+        cards = sessions.split('class="list-row academy-session"')[1:]
         self.assertIn('href="/academy/sessions/recap/">Synthetic recap</a>', cards[0])
         self.assertNotIn('class="academy-session-recap"', cards[1] + cards[2])
         faq = self.client.get("/academy/faq/").content.decode()
@@ -225,12 +304,25 @@ class AcademyPageTests(TestCase):
         del pages["bildungsgutschein"][0]["english"]
         del pages["faq"][0]["join"]
         del pages["sessions-recap"][0]["related"]
+        del pages["sessions-recap"][0]["faq"]
+        for program in ("agentic-engineering", "ai-engineering"):
+            for key in ("related", "overview", "capstone"):
+                del pages[program][0][key]
         del pages["sessions"][0]["sessions"][0]["recap"]
         shared = {
             key: value
             for key, value in fixture.SHARED.items()
             if key
-            not in {"header", "sticky", "contact", "other_track", "confirm_notice", "funding"}
+            not in {
+                "header",
+                "sticky",
+                "contact",
+                "other_track",
+                "confirm_notice",
+                "funding",
+                "interviews",
+                "schedule",
+            }
         }
         _clear_academy()
         fixture.publish(fixture.academy_tree(pages=pages, shared=shared))
@@ -248,6 +340,9 @@ class AcademyPageTests(TestCase):
                     'class="academy-other-track"',
                     'class="academy-session-recap"',
                     'id="related-heading"',
+                    'id="overview-heading"',
+                    'id="interviews-heading"',
+                    'id="schedule"',
                 ):
                     self.assertNotIn(marker, body)
         self.assertNotIn('id="join-heading"', self.client.get("/academy/faq/").content.decode())
@@ -306,19 +401,28 @@ class AcademyPageTests(TestCase):
             "Synthetic home headline",
             "Synthetic home lead.",
             "Read about Agentic Engineering",
-            "Agentic Engineering outcome 1.",
-            "Agentic Engineering outcome 3.",
-            "Agentic Engineering outcome 5.",
-            "Synthetic seats",
+            "Agentic Engineering highlight 1.",
+            "Agentic Engineering highlight 3.",
+            "Synthetic instructor line.",
+            "Synthetic home sessions",
+            "Synthetic session 1, a talk",
+            "Synthetic FAQ question?",
         ):
             self.assertContains(home, text)
-        self.assertNotContains(home, "Agentic Engineering outcome 2.")
+        # The card shows the program's own highlights, not picked outcomes.
+        self.assertNotContains(home, "Agentic Engineering outcome 1.")
         program = self.client.get("/academy/agentic-engineering/")
         for text in (
             "Agentic Engineering synthetic first fit.",
             "Synthetic shared fit.",
             "Agentic Engineering module three.",
             "Synthetic module description.",
+            "Agentic Engineering synthetic overview paragraph.",
+            "Agentic Engineering synthetic outcomes intro.",
+            "Agentic Engineering capstone.",
+            "Synthetic drills.",
+            "Synthetic schedule text.",
+            "Agentic Engineering synthetic related",
             '<a href="https://example.invalid/courses">synthetic courses</a>',
             '<a href="/academy/privacy/">privacy notice</a>',
             "Synthetic other track?",
@@ -328,7 +432,35 @@ class AcademyPageTests(TestCase):
         self.assertContains(self.client.get("/academy/impressum/"), "Synthetische Straße 1<br>")
         self.assertContains(self.client.get("/academy/privacy/"), "<code>utm_*</code>")
 
-    def test_forms_carry_the_backend_contract(self) -> None:
+    def test_the_syllabus_reads_week_by_week(self) -> None:
+        body = self.client.get("/academy/agentic-engineering/").content.decode()
+        syllabus = body[body.index('id="syllabus-heading"') :]
+        syllabus = syllabus[: syllabus.index("</section>")]
+        # Weeks 1 and 2; the two modules taught in week 2 share one row, even
+        # across the phase boundary only the first row names the week.
+        self.assertEqual(syllabus.count("Synthetic week 1"), 1)
+        self.assertEqual(syllabus.count("Synthetic week 2"), 2)
+        self.assertNotIn("Weeks 1 to 2", body)
+        project = body[body.index('id="project-heading"') :]
+        project = project[: project.index("</section>")]
+        self.assertIn("Synthetic week 3", project)
+        self.assertIn("Agentic Engineering synthetic project.", project)
+        interviews = body[body.index('id="interviews-heading"') :]
+        interviews = interviews[: interviews.index("</section>")]
+        self.assertIn("Synthetic week 4", interviews)
+        self.assertIn("Synthetic week 5", interviews)
+
+    def test_a_past_session_links_its_recap_and_is_no_longer_offered(self) -> None:
+        after = datetime(2026, 11, 22, 12, tzinfo=UTC)
+        with mock.patch("academy.presentation.timezone.now", return_value=after):
+            body = self.client.get("/academy/sessions/").content.decode()
+        header = body[: body.index("content-page-content")]
+        self.assertIn('href="/academy/sessions/recap/">Synthetic recap</a>', header)
+        self.assertNotIn('name="sessions" value="session-1"', body)
+        self.assertIn('name="sessions" value="session-3"', body)
+
+    @mock.patch("academy.presentation.timezone.now", return_value=BEFORE_SESSIONS)
+    def test_forms_carry_the_backend_contract(self, _now: mock.Mock) -> None:
         home = self.client.get("/academy/").content.decode()
         self.assertEqual(home.count("data-academy-signup"), 1)
         self.assertIn(f'data-api-origin="{API}"', home)
@@ -340,7 +472,7 @@ class AcademyPageTests(TestCase):
         for name in ('name="name"', 'name="payment_plan"', 'name="email"', 'name="website"'):
             self.assertIn(name, home)
         program = self.client.get("/academy/ai-engineering/").content.decode()
-        self.assertEqual(program.count("data-academy-signup"), 2)
+        self.assertEqual(program.count("data-academy-signup"), 1)
         self.assertIn('data-track="ai-engineering"', program)
         sessions = self.client.get("/academy/sessions/").content.decode()
         for name in (
@@ -523,6 +655,22 @@ class AcademyParserTests(TestCase):
             "unsafe recap link": lambda pages: pages["sessions"][0]["sessions"][0]["recap"].update(
                 href="javascript:x"
             ),
+            "syllabus not from week 1": lambda pages: pages["ai-engineering"][0]["syllabus"][0][
+                "modules"
+            ][0].update(week=2),
+            "skipped week": lambda pages: pages["ai-engineering"][0]["capstone"]["modules"][
+                0
+            ].update(week=5),
+            "week missing": lambda pages: pages["ai-engineering"][0]["syllabus"][0]["modules"][
+                0
+            ].pop("week"),
+            "unsafe closing link": lambda pages: pages["guides-synthetic"][0]["join"].update(
+                href="javascript:x"
+            ),
+            "alternate outside the Academy": lambda pages: pages["bildungsgutschein"][0][
+                "alternates"
+            ][0].update(path="/blog/"),
+            "articles index field": lambda pages: pages["guides"][0].update(items=[]),
         }
         for name, change in cases.items():
             with self.subTest(case=name):
@@ -530,6 +678,12 @@ class AcademyParserTests(TestCase):
                 change(pages)
                 with self.assertRaises(ContentParserError):
                     self.discover(fixture.academy_tree(pages=pages))
+
+    def test_shared_interview_weeks_must_run_on(self) -> None:
+        shared = json.loads(json.dumps(fixture.SHARED))
+        shared["interviews"]["modules"][1]["week"] = 7
+        with self.assertRaises(ContentParserError):
+            self.discover(fixture.academy_tree(shared=shared), "academy_shared")
 
     def test_pages_without_the_shared_copy_are_refused(self) -> None:
         tree = fixture.academy_tree()

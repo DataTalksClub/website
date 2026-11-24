@@ -853,6 +853,90 @@ class EventsYamlDuplicateTests(TestCase):
         self.assertEqual(replay["created_total"], 0)
         self.assertEqual(replay["enriched_total"], 0)
 
+    def test_a_discovered_event_stays_a_draft_until_the_file_completes_it(self) -> None:
+        from scripts.prod.import_events import import_events_yaml
+
+        luma = self._luma_event(
+            event_id="evt-SyntheticDraft",
+            title="Synthetic Draft Until Complete",
+            start_at="2099-12-03T11:30:00+00:00",
+            slug="synthdraft",
+        )
+        # A provider export names no type and no speaker, so discovery never
+        # publishes what it mints (events.publication).
+        self.assertEqual(luma.status, "draft")
+        path = self._yaml(
+            "- time: 2099-12-03 12:30:00\n"
+            "  title: 'Synthetic Draft Until Complete'\n"
+            "  speakers: [synthetic-speaker]\n"
+            "  type: podcast\n"
+            "  link: https://luma.com/synthdraft\n"
+        )
+
+        dry = import_events_yaml(path=path, apply=False, luma_source=self.luma)
+        luma.refresh_from_db()
+        self.assertEqual(luma.status, "draft")
+        self.assertEqual([item["public_id"] for item in dry["published_events"]], [luma.public_id])
+
+        report = import_events_yaml(path=path, apply=True, luma_source=self.luma)
+        luma.refresh_from_db()
+        self.assertEqual(luma.status, "upcoming")
+        self.assertEqual(report["published_total"], 1)
+
+    def test_a_file_entry_without_a_speaker_creates_a_draft_not_a_public_event(self) -> None:
+        from community_base.events.models import Event
+
+        from scripts.prod.import_events import import_events_yaml
+
+        path = self._yaml(
+            "- time: 2099-12-04 17:00:00\n"
+            "  title: 'Synthetic Entry Without Speakers'\n"
+            "  type: webinar\n"
+        )
+
+        report = import_events_yaml(path=path, apply=True)
+
+        self.assertEqual(report["created_total"], 1)
+        self.assertEqual(report["unpublished_incomplete_events"][0]["missing"], ["speakers"])
+        event = Event.objects.get(title="Synthetic Entry Without Speakers")
+        self.assertEqual(event.status, "draft")
+
+    def test_enrich_only_fills_matched_events_and_creates_nothing(self) -> None:
+        from community_base.events.models import Event
+
+        from scripts.prod.import_events import import_events_yaml
+
+        luma = self._luma_event(
+            event_id="evt-SyntheticEnrichOnly",
+            title="Synthetic Enrich Only",
+            start_at="2099-12-05T11:30:00+00:00",
+            slug="synthenrich",
+        )
+        before = Event.objects.count()
+        path = self._yaml(
+            "- time: 2099-12-05 12:30:00\n"
+            "  title: 'Synthetic Enrich Only'\n"
+            "  speakers: [synthetic-speaker]\n"
+            "  type: podcast\n"
+            "  link: https://luma.com/synthenrich\n"
+            "- time: 2099-12-20 17:00:00\n"
+            "  title: 'Synthetic Rescheduled Elsewhere'\n"
+            "  speakers: [synthetic-speaker]\n"
+            "  type: webinar\n"
+        )
+
+        report = import_events_yaml(path=path, apply=True, luma_source=self.luma, create=False)
+
+        self.assertEqual(Event.objects.count(), before)
+        self.assertEqual(report["created_total"], 0)
+        self.assertEqual(report["enriched_total"], 1)
+        self.assertEqual(
+            [item["title"] for item in report["not_created_events"]],
+            ["Synthetic Rescheduled Elsewhere"],
+        )
+        luma.refresh_from_db()
+        self.assertEqual(luma.status, "upcoming")
+
     def test_without_the_export_start_and_title_still_find_the_luma_event(self) -> None:
         from community_base.events.models import Event
 

@@ -27,6 +27,8 @@ from urllib.parse import urlsplit
 
 import mistune
 
+from core.markdown_actions import markdown_buttons
+
 from .services import sanitize_rendered_html
 
 #: The mount every documentation path hangs from.
@@ -42,7 +44,9 @@ _HEADING = re.compile(
     r"(?P<open><h(?P<level>[1-6])>)(?P<body>.*?)(?P<close></h(?P=level)>)",
     re.DOTALL,
 )
-_MARKDOWN = mistune.create_markdown(escape=False, plugins=("strikethrough", "table"))
+_MARKDOWN = mistune.create_markdown(
+    escape=False, plugins=("strikethrough", "table", markdown_buttons)
+)
 
 
 class _HeadingText(HTMLParser):

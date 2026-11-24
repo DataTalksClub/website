@@ -1,0 +1,51 @@
+{% comment %}
+  Related episodes, at the foot of an episode page.
+
+  The cards are the episodes the podcast wiki files under the same pages as this
+  one (`content.wiki_content.related_episode_matches`), each naming the shared
+  wiki pages that put it here as linked chips.  An episode the wiki has not
+  filed yet falls back to the newest other episodes of its season, and the
+  band's lede says which of the two the reader is looking at.  Concepts every
+  card shares are named once, as chips under the lede, and left off the cards.
+
+  Each card is the shared episode row `/podcast` draws (`public/_archive_row.html`
+  with the play disc), so an episode looks the same here as on the index.
+{% endcomment %}
+{% if related.items %}
+  <section class="band band-lavender episode-related" aria-labelledby="related-episodes-heading">
+    <div class="shell episode-shell">
+      <div class="band-head">
+        <div>
+          <h2 id="related-episodes-heading">Related episodes</h2>
+          {% if related.basis == "graph" %}
+            <p>
+              Conversations the <a href="{% url 'wiki-home' %}">podcast wiki</a> files
+              under the same topics as this one.{% if related.common_concepts %}
+                Every one of them shares:{% endif %}
+            </p>
+            {% if related.common_concepts %}
+              <ul class="archive-tags related-common" aria-label="Topics every episode below shares">
+                {% for concept in related.common_concepts %}
+                  <li>
+                    <a class="chip chip-plain chip-link" href="{{ concept.url }}">{{ concept.label }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          {% else %}
+            <p>
+              The wiki has not linked this episode to others yet, so these are the
+              newest conversations from Season {{ episode.season }}.
+            </p>
+          {% endif %}
+        </div>
+        <a class="band-link" href="{{ season_path }}">all of season {{ episode.season }} →</a>
+      </div>
+      <div class="row-list" data-related-basis="{{ related.basis }}">
+        {% for item in related.items %}
+          {% include "public/_archive_row.html" with row_title=item.episode.title row_url=item.episode.public_path row_mark="play" row_pill=item.episode.season_episode row_summary=item.episode.description row_tags=item.concepts row_tags_label="Shared wiki topics" row_credits=item.episode.guests row_class="episode-row" row_hook="data-related-episode" only %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endif %}

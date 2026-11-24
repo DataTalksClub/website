@@ -68,6 +68,11 @@ Rules for editing:
         /* The plate behind a chart image drawn in dark ink: the card in light,
            and still light in the dark theme so the chart stays legible. */
         --chart-ground: var(--card);
+        /* The bar in an article's survey chart (_prose_blocks.html): the brand
+           indigo in light; in dark a mid indigo, since --indigo there is pale
+           enough to read as grey (checked with the dataviz palette validator
+           against --card in each theme). */
+        --chart-bar: var(--indigo);
         --font-sans: "Quicksand", ui-rounded, "Segoe UI", system-ui, -apple-system,
           BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
         --shell: 76rem;
@@ -186,6 +191,7 @@ Rules for editing:
         --band-ink-bg: #0d0f20;
         --page: #13162a;
         --chart-ground: #eff1fc;
+        --chart-bar: #7f88e6;
         /* The extended tokens the 6-series pages use.  Their dark values are the
            mockup's own substitutions (#dfe2f7 -> #2d3565, #f3f0e8 -> #2a2740,
            #6b6034 -> #cbb98a, #1f6b2c -> #93c7a5) and are documented in the
@@ -1572,14 +1578,14 @@ Rules for editing:
       .stretched-card-link .archive-title a::after,
       .stretched-card-link .latest-item h3 a::after,
       .stretched-card-link .course-link::after,
-      .stretched-card-link .dashboard-card-link a::after,
-      .stretched-card-link.related-episode-card h3 a::after {
+      .stretched-card-link .dashboard-card-link a::after {
         content: "";
         inset: 0;
         position: absolute;
       }
 
-      .stretched-card-link .person-chip a {
+      .stretched-card-link .person-chip a,
+      .stretched-card-link .archive-tags a {
         position: relative;
         z-index: 3;
       }
@@ -1692,6 +1698,19 @@ Rules for editing:
         background: var(--ink);
         border-color: var(--ink);
         color: var(--cream);
+      }
+
+      /* A chip that opens a page (a wiki concept, say) reads as a link: indigo
+         rather than ink, underlined on hover.  It keeps the label's own case. */
+      a.chip-link {
+        border-color: var(--indigo);
+        color: var(--indigo);
+        text-decoration: none;
+      }
+
+      a.chip-link:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
       }
 
       .avatar {
@@ -2859,6 +2878,38 @@ Rules for editing:
         line-clamp: 3;
         font-size: 0.9rem;
         overflow: hidden;
+      }
+
+      /* Why the row is on this page: a wrapping list of linked chips under the
+         summary.  A long concept name wraps inside its chip rather than pushing
+         a phone-width card sideways. */
+      .archive-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        list-style: none;
+        margin: 0.2rem 0 0;
+        padding: 0;
+      }
+
+      .archive-tags .chip {
+        white-space: normal;
+      }
+
+      /* An episode row: the archive row with the play disc as its leading mark,
+         on /podcast and under an episode as its related episodes.  Its
+         season/episode line is metadata, not a status control, so it stays
+         plain and blue inside the card. */
+      .episode-row > .archive-card {
+        border-radius: 0.9rem;
+      }
+
+      .episode-row .play-disc {
+        margin-top: 0.9rem;
+      }
+
+      .episode-row .archive-body > .mono-label {
+        color: var(--indigo);
       }
 
       /* A credit under a row's title is a footnote to it, not a second title. */
@@ -4086,6 +4137,14 @@ Rules for editing:
         text-underline-offset: 0.2em;
       }
 
+      /* A call to action written in a Markdown body as a marked standalone
+         link (core/markdown_actions.py).  The reading column's looser
+         line-height would draw it taller than every other .cta, so it keeps
+         the page's. */
+      .prose-action .cta {
+        line-height: 1.6;
+      }
+
       /* Source paragraphs carry their own line breaks; the block keeps them. */
       .prose-paragraph {
         white-space: pre-line;
@@ -4513,7 +4572,7 @@ Rules for editing:
       }
 
       /* Said out loud rather than left as a gap: a body element this site cannot
-         draw (a survey chart that needs a script) keeps its place and names
+         draw here (an episode graph too large to plot) keeps its place and names
          itself, the way a missing article cover does. */
       .prose-unavailable {
         border: 2px dashed var(--line-soft);
@@ -4524,6 +4583,46 @@ Rules for editing:
 
       .prose-unavailable figcaption {
         margin-top: 0.35rem;
+      }
+
+      /* A survey chart in a body: a framed block like a table — its own card
+         surface inside a soft 2px border — holding the chart's title, the bars
+         (one indigo series, labels in body ink, values in ink on tabular
+         digits) and the source caption.  The drawing is inline SVG built from
+         typed data; see templates/public/_prose_blocks.html. */
+      .prose-chart {
+        background: var(--card);
+        border: 2px solid var(--line-soft);
+        border-radius: 0.7rem;
+        padding: 1rem 1.1rem;
+      }
+
+      .prose-chart-title {
+        color: var(--ink);
+        font-weight: 700;
+        line-height: 1.35;
+        margin-bottom: 0.75rem;
+      }
+
+      .prose-chart-plot {
+        display: block;
+        overflow: visible;
+      }
+
+      .prose-chart-label {
+        fill: var(--body-text);
+        font-size: 0.85rem;
+      }
+
+      .prose-chart-value {
+        fill: var(--ink);
+        font-size: 0.85rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+
+      .prose-chart-bar {
+        fill: var(--chart-bar);
       }
 
       .prose hr {

@@ -91,6 +91,17 @@
         max-width: var(--reading-width);
       }
 
+      /* The sponsorship disclosure opens the reading band, above the first
+         paragraph, and the body starts on the ordinary prose rhythm below it. */
+      .article-sponsor {
+        margin-bottom: 1.6rem;
+      }
+
+      /* The body resumes after a FAQ the author placed mid-article. */
+      .article-body-after-faq {
+        margin-top: 1.6rem;
+      }
+
       /* Inline images (covers, diagrams) are held to a modest height and
          centred so an illustration never takes over the reading column
          (owner feedback 2026-11-23: the course-cover robot was too large). */
@@ -173,15 +184,6 @@
         gap: 0.35rem;
       }
 
-      /* The legacy page drew these plots directly on transparent canvases, in
-         dark ink: they sit on a plate of their own (--chart-ground stays light
-         in the dark theme, or a chart's title would vanish into the band). */
-      .article-body .prose-chart img {
-        background: var(--chart-ground);
-        border: 2px solid var(--line-soft);
-        border-radius: 0.7rem;
-        padding: 0.4rem;
-      }
       /* A run of charts (a survey's breakdowns) reads two to a row once the
          column has room, instead of a long stack of single plots.  Position in
          the run alternates the side and each new pair clears the last, so a
@@ -444,10 +446,36 @@
               where it read as a low-resolution letterboxed plate above the
               first paragraph.  The reading band therefore opens on the prose.
             {% endcomment %}
+            {% if article.sponsor %}
+              {% comment %}
+                A sponsored post says so before the reader starts, not after
+                they finish: the disclosure is the shared quiet callout, one
+                wording for every sponsored article, drawn from the row's
+                `sponsor` field rather than from a note in the body.
+              {% endcomment %}
+              <aside class="callout callout-quiet article-sponsor" aria-label="Sponsorship disclosure">
+                <p>
+                  This post is sponsored by
+                  <a href="{{ article.sponsor.url }}" rel="sponsored noopener">{{ article.sponsor.name }}</a>.
+                  We thank the {{ article.sponsor.name }} team for their ongoing support of the community.
+                </p>
+              </aside>
+            {% endif %}
             <div class="prose prose-reading article-body">
               {% include "public/_prose_blocks.html" with sections=article.sections %}
             </div>
+            {% comment %}
+              The FAQ sits where the body marked it: `sections` ends at the
+              marker (under the body's own FAQ heading) and whatever the author
+              wrote after it continues below the panel.  A body without a
+              marker has no `sections_after_faq`, so the FAQ closes the article.
+            {% endcomment %}
             {% include "public/_article_faq.html" with faq_questions=article.faq %}
+            {% if article.sections_after_faq %}
+              <div class="prose prose-reading article-body article-body-after-faq">
+                {% include "public/_prose_blocks.html" with sections=article.sections_after_faq %}
+              </div>
+            {% endif %}
           </div>
         </section>
       </article>

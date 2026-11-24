@@ -39,6 +39,7 @@ from .lifecycle import (
     is_published,
     status_q,
 )
+from .publication import EventNotPublishable, require_publishable
 
 DEFAULT_REMINDER_INTERVALS: tuple[str, ...] = ("24h", "20m")
 ALLOWED_BANNER_TYPES: dict[str, str] = {
@@ -236,6 +237,20 @@ def _resolve_or_create_speaker(short: str) -> Host:
         },
     )
     return host
+
+
+def _publish(event: Event) -> Event:
+    """Publish through the package, but only an event with a type and a speaker.
+
+    See :mod:`events.publication`: a published event without either draws a
+    poorer row on the public pages, so it is refused here rather than shown.
+    """
+
+    try:
+        require_publishable(event)
+    except EventNotPublishable as exc:
+        raise EventAdminError(exc.messages[0], code="event_not_publishable") from exc
+    return publish_event(event)
 
 
 def _sync_event_speakers(event: Event, speaker_shorts: list[str]) -> None:
@@ -531,7 +546,7 @@ def create_event(
     )
 
     if publish_now:
-        event = publish_event(event)
+        event = _publish(event)
 
     _audit_event_write(action="events.admin.created", event=event, before=None, context=context)
     return {"event": serialize_admin_event(event, include_registrations=True)}
@@ -652,7 +667,14 @@ def update_event(
     config.save()
 
     if data.get("publish") is True and event.status == "draft":
-        event = publish_event(event)
+        event = _publish(event)
+    elif is_published(event):
+        # An edit may not strip the type or the last speaker from a published
+        # event; the transaction rolls the whole edit back.
+        try:
+            require_publishable(event)
+        except EventNotPublishable as exc:
+            raise EventAdminError(exc.messages[0], code="event_not_publishable") from exc
 
     _audit_event_write(action="events.admin.updated", event=event, before=before, context=context)
     return {"event": serialize_admin_event(event, include_registrations=True)}
@@ -671,7 +693,7 @@ def publish_event_action(
         raise EventAdminError("event_id is required.")
     event = _resolve_event(target)
     try:
-        event = publish_event(event)
+        event = _publish(event)
     except DjangoValidationError as exc:
         raise EventAdminError("; ".join(exc.messages)) from exc
     return {"event": serialize_admin_event(event, include_registrations=True)}

@@ -292,35 +292,88 @@ class PublicProjectionBuilderTests(TestCase):
             "https://datatalks.club:invalid/blog/post",
         )
 
-    def test_reviewed_sponsor_canvases_bridge_to_local_accessible_images(self) -> None:
+    def test_chart_canvas_becomes_a_typed_chart_block_with_its_data(self) -> None:
         block = builder._article_chart_block(
-            {
-                "data-title": "Roles",
-                "data-type": "pie",
-            },
-            (
-                "Data engineering 28.5%, data science and ML 26.8%, analytics 16.8%, "
-                "software development 13.1%, management and consulting 7.0%, other 7.8%."
-            ),
+            """ class="ai-chart"
+          data-type="pie"
+          data-legend="none"
+          data-title="Roles &amp; seniority"
+          data-labels='["Data engineering", "Data science &amp; ML", "Other"]'
+          data-values='[28.5, 26, 7.0]'
+          data-height="320px"
+          data-width="100%" """,
+            "Data engineering <em>leads</em> the roles.",
             {},
         )
 
-        self.assertEqual(block["kind"], "chart")
-        self.assertEqual(block["src"], "/static/content/article-charts/sponsor-roles.svg")
-        self.assertEqual(block["alt"], "Pie chart of DataTalks.Club community roles")
-        self.assertEqual((block["width"], block["height"]), (640, 400))
-
-        unknown = builder._article_chart_block(
-            {"data-title": "A different chart"}, "Its source caption.", {}
-        )
         self.assertEqual(
-            unknown,
+            block,
             {
                 "kind": "chart",
-                "text": "A different chart",
-                "caption": "Its source caption.",
+                "title": "Roles & seniority",
+                "unit": "percent",
+                "bars": [
+                    {"label": "Data engineering", "value": 28.5},
+                    {"label": "Data science & ML", "value": 26},
+                    {"label": "Other", "value": 7.0},
+                ],
+                "caption": "Data engineering leads the roles.",
             },
         )
+
+    def test_chart_labels_with_an_apostrophe_inside_single_quotes_are_read_whole(self) -> None:
+        block = builder._article_chart_block(
+            """ data-type="bar" data-title="Self-hosting"
+          data-labels='["We don't self-host LLMs", "vLLM"]'
+          data-values='[74.1, 9.4]'""",
+            "",
+            {},
+        )
+
+        self.assertEqual(
+            block["bars"],
+            [{"label": "We don't self-host LLMs", "value": 74.1}, {"label": "vLLM", "value": 9.4}],
+        )
+        self.assertNotIn("caption", block)
+
+    def test_chart_counts_above_one_hundred_are_counts_and_unlabelled_values_drop(self) -> None:
+        block = builder._article_chart_block(
+            """ data-title="Team size" data-labels='["1-5", "Solo"]'
+          data-values='[117, 55, 9]'""",
+            "",
+            {},
+        )
+
+        self.assertEqual(block["unit"], "count")
+        self.assertEqual([bar["value"] for bar in block["bars"]], [117, 55])
+
+    def test_chart_without_readable_data_stops_the_build(self) -> None:
+        for attributes in (
+            """ data-title="No data" """,
+            """ data-labels='["A"]' data-values='[1,' """,
+            """ data-labels='["A"]' data-values='["many"]'""",
+            """ data-labels='[]' data-values='[]'""",
+        ):
+            with self.subTest(attributes=attributes):
+                with self.assertRaises(builder.ProjectionBuildError):
+                    builder._article_chart_block(attributes, "", {})
+
+    def test_article_body_figure_with_a_canvas_becomes_one_chart_block(self) -> None:
+        blocks = builder._article_blocks(
+            "Intro paragraph.\n\n"
+            '<figure>\n  <canvas class="ai-chart" data-type="bar" '
+            'data-title="Tools" data-labels=\'["dbt", "Airbyte"]\' '
+            "data-values='[33.5, 8.4]'>\n  </canvas>\n"
+            "  <figcaption>dbt leads.</figcaption>\n</figure>\n\nAfter.\n",
+            media_root=None,
+            counters={},
+        )
+
+        charts = [block for block in blocks if block["kind"] == "chart"]
+        self.assertEqual(len(charts), 1)
+        self.assertEqual(charts[0]["title"], "Tools")
+        self.assertEqual(charts[0]["caption"], "dbt leads.")
+        self.assertEqual([bar["label"] for bar in charts[0]["bars"]], ["dbt", "Airbyte"])
 
     def test_book_archive_normalizes_ordered_threads_and_empty_replies(self) -> None:
         archive = builder._book_archive(
