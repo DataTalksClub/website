@@ -82,18 +82,18 @@
          title still owns the opening screen. */
       .book-head {
         display: grid;
-        gap: 1rem 2rem;
+        gap: 0.6rem 2rem;
         grid-template-columns: minmax(0, 1fr);
       }
 
+      /* The cover keeps its own proportions (they run from 4:5 to 2:3), so it
+         is never cropped: the width is fixed and the height follows. */
       .book-cover {
-        aspect-ratio: 3 / 4;
         background: var(--card);
         border: 2px solid var(--line);
-        border-radius: 0.4rem;
-        box-shadow: 4px 4px 0 var(--line);
+        border-radius: 0.5rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow);
         height: auto;
-        object-fit: cover;
         width: 6.5rem;
       }
 
@@ -103,16 +103,28 @@
           grid-template-columns: minmax(0, 1fr) 9.5rem;
         }
 
+        .book-head > .mono-label {
+          grid-column: 1;
+          grid-row: 1;
+        }
+
         .book-cover {
           grid-column: 2;
-          grid-row: 1;
-          margin-top: 1.4rem;
+          grid-row: 1 / span 2;
           width: 9.5rem;
         }
 
         .book-head-text {
           grid-column: 1;
-          grid-row: 1;
+          grid-row: 2;
+        }
+      }
+
+      /* The dateline and the count read as one line of facts. */
+      @media (min-width: 48rem) {
+        .book-marks .mono-note + .mono-note::before {
+          content: "·";
+          margin-right: 0.85rem;
         }
       }
 
@@ -258,6 +270,7 @@
           {% breadcrumbs breadcrumbs nav_class="shell book-shell" %}
           <div class="shell book-shell">
             <header class="book-head">
+              <p class="mono-label mono-label-indigo">book of the week</p>
               {% comment %}
                 The cover only, never the share image: the share image is the
                 "Book of the Week" flyer, which restated the title and byline
@@ -267,7 +280,6 @@
                 <img class="book-cover" src="{{ record.cover_path }}" alt="Cover of {{ record.title }}" width="150" height="200" loading="eager" decoding="async">
               {% endif %}
               <div class="book-head-text">
-                <p class="mono-label mono-label-indigo">book of the week</p>
                 <h1 id="book-heading">{{ record.title }}</h1>
                 {% comment %}
                   The byline names the people who wrote the book, in the shared

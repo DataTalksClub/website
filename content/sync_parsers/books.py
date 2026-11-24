@@ -39,11 +39,9 @@ class BooksParser:
 
     def upsert(self, item, source, media):
         record = item.data["record"]
-        # The share image and the cover are both the book's own media; the page
-        # draws the cover, the social card uses the share image.
-        for image in dict.fromkeys((record["image_source"], record.get("cover_source", ""))):
-            if image and not image.startswith(("http://", "https://")):
-                media.upload(base.active_checkout(), image.lstrip("/"), source)
+        image = record["image_source"]
+        if image and not image.startswith(("http://", "https://")):
+            media.upload(base.active_checkout(), image.lstrip("/"), source)
         document, action = base.upsert_document(
             source,
             content_kind=CONTENT_KIND,

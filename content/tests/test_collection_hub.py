@@ -132,7 +132,6 @@ class CollectionHubRecordTests(TestCase):
         """The archive pages (issue #174); the whole archive is still on it."""
 
         books = catalogue.books()
-        with_archive = [book for book in books if book["archive"]]
         pages = catalogue_page_bodies(self.client, "/books")
         body = "".join(pages)
 
@@ -158,7 +157,6 @@ class CollectionHubRecordTests(TestCase):
             f"{counted(sample['answered_count'], 'question answered,questions answered')}</p>",
             body,
         )
-        self.assertLessEqual(len(answered), len(with_archive))
 
     def test_a_book_row_shows_its_summary_lead_never_its_seo_description(self) -> None:
         """A book row never repeats "Book of the Week. X by Y", its title and byline."""

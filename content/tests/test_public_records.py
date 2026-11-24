@@ -224,13 +224,14 @@ class BookRowFactsTests(TestCase):
         self.assertEqual(book_lead(""), "")
         self.assertEqual(book_lead(None), "")
 
-    def test_only_threads_with_a_reply_count_as_answered(self) -> None:
+    def test_only_threads_someone_else_replied_to_count_as_answered(self) -> None:
         from content.public_records import answered_question_count
 
         archive = [
             {"name": "A", "text": "q1", "replies": [{"name": "Author", "text": "a"}]},
             {"name": "B", "text": "q2", "replies": []},
             {"name": "C", "text": "q3"},
+            {"name": "D", "text": "q4", "replies": [{"name": "D", "text": "follow-up"}]},
         ]
         self.assertEqual(answered_question_count(archive), 1)
         self.assertEqual(answered_question_count(None), 0)

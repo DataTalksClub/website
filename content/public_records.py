@@ -79,11 +79,22 @@ def book_lead(summary: object) -> str:
 
 
 def answered_question_count(archive: object) -> int:
-    """How many of the week's question threads drew at least one reply."""
+    """How many of the week's question threads someone other than the asker replied to.
+
+    A thread whose only replies are the asker's own follow-ups was not answered.
+    """
 
     if not isinstance(archive, (list, tuple)):
         return 0
-    return sum(1 for thread in archive if isinstance(thread, Mapping) and thread.get("replies"))
+    answered = 0
+    for thread in archive:
+        if not isinstance(thread, Mapping):
+            continue
+        asker = thread.get("name")
+        replies = thread.get("replies") or ()
+        if any(isinstance(reply, Mapping) and reply.get("name") != asker for reply in replies):
+            answered += 1
+    return answered
 
 
 def book_record(record: Mapping[str, Any], people_by_slug: Mapping[str, Mapping[str, Any]]) -> dict:

@@ -89,6 +89,7 @@ class ArchiveRowSlotTests(TestCase):
             row_pill="2 questions",
             row_pill_variant="status-pill-mint",
             row_pill_extra="upcoming",
+            row_meta="12 questions answered",
             row_summary="What actually worked, and what broke.",
             row_credits=[{"name": "Alexey Grigorev", "public_path": "/people/x.html"}],
             row_class="episode-row",
@@ -115,6 +116,12 @@ class ArchiveRowSlotTests(TestCase):
             body,
         )
         self.assertIn('<p class="archive-summary">What actually worked, and what broke.</p>', body)
+        # The meta line sits between the title and the summary.
+        self.assertRegex(
+            body,
+            r'</h3>\s*<p class="mono-note archive-meta">12 questions answered</p>'
+            r'\s*<p class="archive-summary">',
+        )
         self.assertIn('class="person-chips card-credit"', body)
         self.assertIn("Alexey Grigorev", body)
 

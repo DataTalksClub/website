@@ -217,8 +217,7 @@ class PublishedCatalogueTests(TestCase):
 
         self.assertContains(
             response,
-            f'<img class="book-cover" src="{book["cover_path"]}" '
-            f'alt="Cover of {book["title"]}"',
+            f'<img class="book-cover" src="{book["cover_path"]}" alt="Cover of {book["title"]}"',
         )
 
     def test_every_selected_detail_is_safe_and_canonical(self) -> None:
