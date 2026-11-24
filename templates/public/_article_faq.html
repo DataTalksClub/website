@@ -6,9 +6,10 @@
   the summary its own keyboard behaviour for free, and a screen reader announces
   the expanded state without any aria of ours.
 
-  The whole thing sits in its own panel so it reads as a separate block at the
-  foot of the article rather than as more article.  It draws no heading of its
-  own, and renders nothing at all when there are no questions.
+  The whole thing sits in its own panel so it reads as a separate block rather
+  than as more article.  It is drawn where the body marked it (under the body's
+  own FAQ heading), or after the body when there is no marker.  It draws no
+  heading of its own, and renders nothing at all when there are no questions.
 
   A deep link still works: `:target` opens the question it names, so a link to
   #faq-… lands on an open answer rather than a closed summary.  The `<details>`

@@ -1,14 +1,21 @@
 {% extends "core/content_page.html" %}
 {% load static %}
 {% comment %}
-  The Academy home page (/academy/), composed like a course family landing.
-  The cream header opens with the Academy bar, then the heading, lede and
-  instructor beside the waitlist card.  Below the seam, on the lavender
-  ground, every chapter is the same frame -- a dashed seam and a band head:
-  the two programs as cards, then the key facts as the spec strip with the
-  funding notice under it.  The anchors older links use (#hero, #tracks,
-  #facts, #funding) stay on those blocks.  Every word is synced content
-  (academy/index.md and academy/shared.yaml in DataTalksClub/content).
+  The Academy home page (/academy/), built section by section on the Academy
+  home blueprint (_docs/design/landing-pages.md) in the course family
+  landing's frame.  The cream header is the hero, the one block at the full
+  shell width (owner, 2026-11-24): the heading, a short lede, the waitlist
+  action and the instructor line beside the Academy's drawing, the course
+  family hero's shape, and the key facts as the spec strip at its foot (as
+  on the program pages).  Below the seam every chapter keeps the content
+  column and the same frame -- a dashed seam and a band head: the two
+  programs as cards (with the comparison page in the head's action slot),
+  funding with its guides, the free session series, the articles as the
+  site's archive rows, a few questions from the FAQ, and the closing mint
+  panel holding the one waitlist form the hero's action points to.  The
+  anchors older links use (#hero, #signup-hero, #tracks, #facts, #funding)
+  stay on those blocks.  Every word is synced content (academy/index.md,
+  academy/shared.yaml and the pages it reads from in DataTalksClub/content).
 {% endcomment %}
 
 {% block document_title %}
@@ -32,57 +39,142 @@
 {% endblock %}
 
 {% block page_header %}
-  <div class="academy-landing shell-breakout">
+  <div class="shell-breakout academy-hero-wide">
     <div class="academy-hero-inner">
       <div class="academy-hero-copy">
-        <p class="kicker">{{ data.hero.eyebrow }}</p>
+        {% if data.hero.eyebrow != shared.brand %}
+          <p class="kicker">{{ data.hero.eyebrow }}</p>
+        {% endif %}
         <h1 id="academy-heading">{{ data.hero.headline }}</h1>
         <p class="academy-lede">{{ data.hero.lead }}</p>
-        <ul class="academy-inline-links academy-hero-links">
-          {% for link in data.hero.links %}
-            <li>
-              <a class="band-link" href="{{ link.href }}">{{ link.label }}</a>
-            </li>
-          {% endfor %}
-        </ul>
-        <div class="academy-person">
-          <img src="/{{ shared.instructor.photo }}" alt="" width="112" height="112" decoding="async">
-          <p>{{ shared.hero.instructor_line }}</p>
+        <div class="academy-actions">
+          {% include "core/_button.html" with href="#signup-hero" label=shared.waitlist_button variant="primary" %}
         </div>
+        {% include "academy/_credibility.html" %}
       </div>
-      {% include "academy/_signup_card.html" with form_id="hero" choose_program=True program=None intro=True %}
+      <div class="academy-hero-art">
+        {% include "academy/_hero_illustration.html" %}
+      </div>
     </div>
+    {% include "academy/_facts.html" with facts=shared.facts funding=None %}
   </div>
 {% endblock %}
 
 {% block page_content %}
-  <div class="academy-landing shell-breakout">
-    <section class="academy-section" id="tracks" aria-labelledby="tracks-heading">
+  <section class="academy-section" id="tracks" aria-labelledby="tracks-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="tracks-heading">{{ data.tracks.label }}</h2>
+      </div>
+      {% if data.tracks.compare %}
+        <a class="band-link" href="{{ data.tracks.compare.href }}">{{ data.tracks.compare.label }} →</a>
+      {% endif %}
+    </div>
+    <div class="card-grid card-grid-2" data-tracks>
+      {% for track in tracks %}
+        <article class="card academy-track-card">
+          <h3>{{ track.name }}</h3>
+          <p class="academy-track-tagline">{{ track.headline }}</p>
+          <ul class="academy-card-list">
+            {% for outcome in track.highlights %}
+              <li>{{ outcome }}</li>
+            {% endfor %}
+          </ul>
+          {% include "core/_button.html" with href=track.path label=track.button variant="secondary" %}
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if data.funding %}
+    <section class="academy-section" id="funding" aria-labelledby="funding-heading">
       <div class="band-head">
         <div>
-          <h2 id="tracks-heading">{{ data.tracks.label }}</h2>
+          <h2 id="funding-heading">{{ data.funding.heading }}</h2>
         </div>
       </div>
-      <div class="card-grid card-grid-2" data-tracks>
-        {% for track in tracks %}
-          <article class="card academy-track-card">
-            <h3>{{ track.name }}</h3>
-            <p class="academy-headline">{{ track.headline }}</p>
-            <ol class="academy-numbered">
-              {% for outcome in track.highlights %}
-                <li>
-                  <span class="module-number" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
-                  <span>{{ outcome }}</span>
-                </li>
-              {% endfor %}
-            </ol>
-            {% include "core/_button.html" with href=track.path label=track.button variant="primary" %}
-          </article>
+      <div class="prose">
+        {% for paragraph in data.funding.paragraphs %}
+          <p>{{ paragraph }}</p>
+        {% endfor %}
+      </div>
+      {% if data.funding.links or data.funding.link %}
+        <ul class="academy-inline-links academy-chapter-links">
+          {% for link in data.funding.links %}
+            <li>
+              <a class="band-link" href="{{ link.href }}">{{ link.label }} →</a>
+            </li>
+          {% endfor %}
+          {% if data.funding.link %}
+            <li>
+              <a class="band-link" href="{{ data.funding.link.href }}">{{ data.funding.link.label }} →</a>
+            </li>
+          {% endif %}
+        </ul>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {% if data.sessions and home_sessions %}
+    <section class="academy-section" id="sessions" aria-labelledby="sessions-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="sessions-heading">{{ data.sessions.heading }}</h2>
+          <p>{{ data.sessions.text }}</p>
+        </div>
+        <a class="band-link" href="{{ sessions_path }}">{{ data.sessions.link_label }} →</a>
+      </div>
+      <ol class="row-list academy-hero-sessions">
+        {% for session in home_sessions %}
+          <li class="list-row">
+            <span class="mono-note">{{ session.date_label }}</span>
+            <span class="academy-hero-session-title">
+              {{ session.title }}
+              {% if session.past and session.recap %}
+                <a class="band-link" href="{{ session.recap.href }}">{{ session.recap.label }}</a>
+              {% endif %}
+            </span>
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+  {% endif %}
+
+  {% if data.articles and articles %}
+    <section class="academy-section" id="articles" aria-labelledby="articles-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="articles-heading">{{ data.articles.heading }}</h2>
+          {% if data.articles.intro %}
+            <p>{{ data.articles.intro }}</p>
+          {% endif %}
+        </div>
+        {% if articles_path and data.articles.link_label %}
+          <a class="band-link" href="{{ articles_path }}">{{ data.articles.link_label }} →</a>
+        {% endif %}
+      </div>
+      <div class="row-list academy-articles">
+        {% for article in articles %}
+          {% include "public/_archive_row.html" with row_title=article.heading row_url=article.path row_date=article.published row_eyebrow=article.eyebrow row_summary=article.lead only %}
         {% endfor %}
       </div>
     </section>
-    {% include "academy/_facts.html" with facts=shared.facts funding=data.funding %}
-  </div>
+  {% endif %}
+
+  {% if data.faq and home_faq %}
+    <section class="academy-section" id="questions" aria-labelledby="faq-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="faq-heading">{{ data.faq.heading }}</h2>
+        </div>
+        <a class="band-link" href="{{ faq_path }}">{{ data.faq.link_label }} →</a>
+      </div>
+      {% include "academy/_faq.html" with items=home_faq prefix="faq" label="" %}
+      {% include "academy/_contact.html" %}
+    </section>
+  {% endif %}
+
+  {% include "academy/_join.html" with choose_program=True %}
 {% endblock %}
 
 {% block page_scripts %}

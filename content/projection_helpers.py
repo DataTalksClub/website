@@ -33,6 +33,7 @@ from content.podcast_resources import (
     normalize_podcast_resource,
 )
 from content.public_text import strip_target_attributes_from_links
+from core.markdown_actions import strip_link_markers
 from courses.services.course_family_identity import (
     family_and_year_from_edition_slug,
 )
@@ -411,6 +412,7 @@ def _slugify(value: str) -> str:
 def _plain_inline(value: str) -> str:
     value = LIQUID.sub("", value)
     value = strip_target_attributes_from_links(value)
+    value = strip_link_markers(value)
     value = MARKDOWN_IMAGE.sub(lambda match: match.group(1), value)
     value = MARKDOWN_LINK.sub(lambda match: match.group(1), value)
 
@@ -507,10 +509,15 @@ def _body_blocks(body: str, *, preserve_links: bool = False) -> list[dict[str, A
 #     answers are rendered.  Nothing in this file emits HTML.
 #
 # Liquid remains stripped on purpose: `{% include ... %}` addressed a legacy Jekyll
-# site whose partials do not exist here, and the FAQ accordions it pulled in were
-# recovered separately (content/article_faq.py).
+# site whose partials do not exist here.  One include is translated rather than
+# dropped: `{% include faq-accordion.html ... %}` marked where the article's FAQ
+# accordion sat.  The questions themselves travel in the frontmatter `faq:`
+# section (content/article_faq.py); the marker becomes a typed `faq` block so the
+# page draws the FAQ at the author's position -- under the body's own FAQ
+# heading, before anything the author wrote after it.
 # ---------------------------------------------------------------------------
 
+ARTICLE_FAQ_MARKER = re.compile(r"^\{%-?\s*include\s+faq-accordion\.html\b[^%]*-?%\}$")
 ARTICLE_FENCE = re.compile(r"^(`{3,}|~{3,})[ \t]*([A-Za-z0-9_+#.-]{0,32})[ \t]*$")
 ARTICLE_ORDERED_ITEM = re.compile(r"^\d{1,3}[.)][ \t]+(.+)$")
 ARTICLE_UNORDERED_ITEM = re.compile(r"^[-*+][ \t]+(.+)$")
@@ -551,49 +558,24 @@ MAX_ARTICLE_TABLE_CELLS = 400
 # The five remote illustrations the accepted pin hosts outside this projection.
 # They have no checked media record, the shared sanitizer rejects an off-site
 # `img src`, and the parity contract already declares them omitted.
-# Chart.js canvases.  The data lives in `data-*` attributes and needs a script to
-# draw; this projection carries no script, so the block keeps the chart's own
-# title and the page says the chart is unavailable rather than dropping it.
-
-# The legacy sponsor article drew these four survey pies at runtime with
-# Chart.js from a public CDN.  Keep the source canvas as the authority, but
-# bridge its reviewed title/data/caption tuple to a deterministic local SVG so
-# the migrated article does not depend on JavaScript or a third-party asset.
-SPONSOR_CHART_ASSET_BRIDGE = {
-    (
-        "Roles",
-        "Data engineering 28.5%, data science and ML 26.8%, analytics 16.8%, "
-        "software development 13.1%, management and consulting 7.0%, other 7.8%.",
-    ): {
-        "src": "/static/content/article-charts/sponsor-roles.svg",
-        "alt": "Pie chart of DataTalks.Club community roles",
-    },
-    (
-        "Seniority",
-        "Senior individual contributors 40.6%, entry-level 35.6%, team leads 10.1%, "
-        "directors and above 3.7%, students 3.0%, other 7.0%.",
-    ): {
-        "src": "/static/content/article-charts/sponsor-seniority.svg",
-        "alt": "Pie chart of DataTalks.Club community seniority",
-    },
-    (
-        "Geography",
-        "North America 37.2%, Europe 25.1%, Asia-Pacific 24.5%, Africa 6.8%, "
-        "South America 3.8%, Middle East and other 2.6%. Members come from more "
-        "than 65 countries.",
-    ): {
-        "src": "/static/content/article-charts/sponsor-geography.svg",
-        "alt": "Pie chart of the DataTalks.Club community by region",
-    },
-    (
-        "Industries",
-        "Technology 40.6%, finance 9.4%, education 9.1%, healthcare 8.1%, retail "
-        "7.4%, other 25.4%.",
-    ): {
-        "src": "/static/content/article-charts/sponsor-industries.svg",
-        "alt": "Pie chart of industries represented in the DataTalks.Club community",
-    },
-}
+# Chart.js canvases.  The legacy page drew them at runtime from `data-*`
+# attributes; this import reads those attributes once into a typed chart block
+# (title, caption, labels, values and the unit the values are in) and the page
+# draws it as static SVG with no script.  `data-type`, `data-orientation`,
+# `data-legend`, `data-height` and `data-width` only steered the old library's
+# drawing and are not carried: every chart is drawn as labelled horizontal bars.
+# The source writes the arrays inside single-quoted attributes and some labels
+# carry a straight apostrophe ("We don't self-host"), which ends a quoted HTML
+# attribute early; the arrays are therefore read up to their closing `]'`.
+ARTICLE_CHART_ARRAY = re.compile(
+    r"""\b(data-labels|data-values)[ \t\r\n]*=[ \t\r\n]*"""
+    r"""(?:'(\[.*?\])'|"(\[.*?\])")(?=[ \t\r\n/>]|$)""",
+    re.DOTALL | re.IGNORECASE,
+)
+ARTICLE_CHART_TITLE = re.compile(
+    r"""\bdata-title[ \t\r\n]*=[ \t\r\n]*(?:"([^"]*)"|'([^']*)')""", re.IGNORECASE
+)
+MAX_ARTICLE_CHART_BARS = 40
 
 ARTICLE_INTERNAL_MARKDOWN_LINK = re.compile(
     r"(?P<prefix>(?<!\!)\[[^\]\n]*\]\([ \t]*<?)"
@@ -907,9 +889,7 @@ def _article_html_segment(
                 continue
             canvas_match = ARTICLE_CANVAS.search(body)
             if canvas_match is not None:
-                blocks.append(
-                    _article_chart_block(_html_attributes(canvas_match.group(1)), caption, counters)
-                )
+                blocks.append(_article_chart_block(canvas_match.group(1), caption, counters))
                 continue
             blocks.extend(text_blocks(body))
         elif lowered.startswith("<table"):
@@ -933,9 +913,7 @@ def _article_html_segment(
         elif lowered.startswith("<canvas"):
             canvas_tag = ARTICLE_CANVAS.match(found)
             blocks.append(
-                _article_chart_block(
-                    _html_attributes(canvas_tag.group(1) if canvas_tag else ""), "", counters
-                )
+                _article_chart_block(canvas_tag.group(1) if canvas_tag else "", "", counters)
             )
         elif lowered.startswith("<h"):
             parsed = ARTICLE_HTML_HEADING.match(found)
@@ -957,24 +935,60 @@ def _article_html_segment(
 
 
 def _article_chart_block(
-    attributes: dict[str, str], caption: str, counters: dict[str, int]
+    canvas_attributes: str, caption: str, counters: dict[str, int]
 ) -> dict[str, Any]:
+    """Return one legacy chart canvas as a typed chart block with its data.
+
+    ``canvas_attributes`` is the canvas start tag's attribute source.  A chart
+    whose arrays cannot be read stops the build: the page would otherwise
+    publish a chart with numbers nobody checked.  A value without a label (one
+    source chart lists seven values for six labels) cannot be named on the page
+    and is left out; a label without a value likewise.
+    """
+
     counters["charts"] = counters.get("charts", 0) + 1
-    title = attributes.get("data-title", "").strip()
+    title_match = ARTICLE_CHART_TITLE.search(canvas_attributes)
+    title = (
+        html.unescape(title_match.group(1) or title_match.group(2) or "").strip()
+        if title_match
+        else ""
+    )
     caption_text = _plain_inline(_article_segment(caption))
-    bridged = SPONSOR_CHART_ASSET_BRIDGE.get((title, caption_text))
-    if bridged is not None:
-        return {
-            "kind": "chart",
-            "src": bridged["src"],
-            "alt": bridged["alt"],
-            "title": title,
-            "caption": caption_text,
-            "width": 640,
-            "height": 400,
-        }
-    block: dict[str, Any] = {"kind": "chart", "text": title or caption_text}
-    if caption_text and caption_text != block["text"]:
+    arrays: dict[str, Any] = {}
+    for match in ARTICLE_CHART_ARRAY.finditer(canvas_attributes):
+        name = match.group(1).casefold()
+        try:
+            arrays.setdefault(name, json.loads(html.unescape(match.group(2) or match.group(3))))
+        except json.JSONDecodeError as error:
+            raise ProjectionBuildError(f"article chart {name} is not a JSON array") from error
+    labels = arrays.get("data-labels")
+    values = arrays.get("data-values")
+    if not isinstance(labels, list) or not isinstance(values, list):
+        raise ProjectionBuildError("article chart needs data-labels and data-values arrays")
+    pairs = list(zip(labels, values, strict=False))
+    if not pairs or len(pairs) > MAX_ARTICLE_CHART_BARS:
+        raise ProjectionBuildError("article chart has no data or too many bars")
+    bars: list[dict[str, Any]] = []
+    for label, value in pairs:
+        if (
+            not isinstance(label, str)
+            or not label.strip()
+            or isinstance(value, bool)
+            or not isinstance(value, int | float)
+            or value < 0
+        ):
+            raise ProjectionBuildError("article chart has an unreadable label or value")
+        bars.append({"label": re.sub(r"\s+", " ", label).strip(), "value": value})
+    # Every source chart is a survey breakdown: shares of respondents, except one
+    # that counts people.  A count above 100 cannot be a share.
+    unit = "percent" if all(bar["value"] <= 100 for bar in bars) else "count"
+    block: dict[str, Any] = {
+        "kind": "chart",
+        "title": title,
+        "unit": unit,
+        "bars": bars,
+    }
+    if caption_text:
         block["caption"] = caption_text
     return block
 
@@ -1124,6 +1138,12 @@ def _article_blocks(
             blocks.append(block)
             continue
         index += 1
+        if ARTICLE_FAQ_MARKER.fullmatch(line) is not None:
+            flush()
+            if any(block.get("kind") == "faq" for block in blocks):
+                raise ProjectionBuildError("article FAQ marker repeated")
+            blocks.append({"kind": "faq"})
+            continue
         heading = HEADING.match(line)
         if heading is not None:
             flush()

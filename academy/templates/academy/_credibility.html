@@ -1,0 +1,11 @@
+{% comment %}
+  The hero's one credibility line: the instructor's portrait and the
+  sentence that says who teaches and how many people he has taught.  Copy:
+  shared.hero.instructor_line and shared.instructor.photo.
+{% endcomment %}
+{% if shared.hero.instructor_line %}
+  <p class="academy-person">
+    <img src="/{{ shared.instructor.photo }}" alt="" width="112" height="112" decoding="async">
+    <span>{{ shared.hero.instructor_line }}</span>
+  </p>
+{% endif %}

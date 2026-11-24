@@ -133,12 +133,24 @@
           "kind": "separator"
         },
         {
+          "bars": [
+            {
+              "label": "Synthetic answer one",
+              "value": 61.5
+            },
+            {
+              "label": "Synthetic answer two",
+              "value": 27.0
+            },
+            {
+              "label": "A synthetic answer whose label runs long enough to wrap onto a second line",
+              "value": 11.5
+            }
+          ],
           "caption": "Synthetic chart caption",
-          "height": 480,
           "kind": "chart",
-          "src": "/images/posts/synthetic-article-one/chart.png",
-          "text": "Synthetic chart caption",
-          "width": 640
+          "title": "Synthetic chart title",
+          "unit": "percent"
         }
       ],
       "description": "Synthetic article description.",
@@ -531,32 +543,116 @@
           "text": "Synthetic sponsor article body paragraph."
         },
         {
-          "alt": "Pie chart of DataTalks.Club community roles",
-          "caption": "",
+          "bars": [
+            {
+              "label": "Data engineering",
+              "value": 28.5
+            },
+            {
+              "label": "Data science & ML",
+              "value": 26.8
+            },
+            {
+              "label": "Analytics",
+              "value": 16.8
+            },
+            {
+              "label": "Software development",
+              "value": 13.1
+            },
+            {
+              "label": "Management & consulting",
+              "value": 7.0
+            },
+            {
+              "label": "Other",
+              "value": 7.8
+            }
+          ],
           "kind": "chart",
-          "src": "/static/content/article-charts/sponsor-roles.svg",
-          "text": "Community roles"
+          "title": "Roles",
+          "unit": "percent"
         },
         {
-          "alt": "Pie chart of DataTalks.Club community seniority",
-          "caption": "",
+          "bars": [
+            {
+              "label": "Senior individual contributors",
+              "value": 40.6
+            },
+            {
+              "label": "Entry-level",
+              "value": 35.6
+            },
+            {
+              "label": "Team leads",
+              "value": 10.1
+            },
+            {
+              "label": "Directors and above",
+              "value": 3.7
+            },
+            {
+              "label": "Students",
+              "value": 3.0
+            },
+            {
+              "label": "Other",
+              "value": 7.0
+            }
+          ],
           "kind": "chart",
-          "src": "/static/content/article-charts/sponsor-seniority.svg",
-          "text": "Community seniority"
+          "title": "Seniority",
+          "unit": "percent"
         },
         {
-          "alt": "Pie chart of the DataTalks.Club community by region",
-          "caption": "",
+          "bars": [
+            {
+              "label": "North America",
+              "value": 37.2
+            },
+            {
+              "label": "Europe",
+              "value": 25.1
+            },
+            {
+              "label": "Asia-Pacific",
+              "value": 24.5
+            },
+            {
+              "label": "Africa",
+              "value": 6.8
+            },
+            {
+              "label": "South America",
+              "value": 3.8
+            },
+            {
+              "label": "Middle East & other",
+              "value": 2.6
+            }
+          ],
           "kind": "chart",
-          "src": "/static/content/article-charts/sponsor-geography.svg",
-          "text": "Community geography"
+          "title": "Geography",
+          "unit": "percent"
         },
         {
-          "alt": "Pie chart of industries represented in the DataTalks.Club community",
-          "caption": "",
+          "bars": [
+            {
+              "label": "Team size 1-5",
+              "value": 117
+            },
+            {
+              "label": "Solo",
+              "value": 55
+            },
+            {
+              "label": "Team size 6-10",
+              "value": 21
+            }
+          ],
           "kind": "chart",
-          "src": "/static/content/article-charts/sponsor-industries.svg",
-          "text": "Community industries"
+          "title": "Synthetic team sizes",
+          "unit": "count"
         },
         {
           "kind": "paragraph",

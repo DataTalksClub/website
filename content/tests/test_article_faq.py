@@ -57,6 +57,15 @@ BODY_BLOCKS = (
     {"kind": "heading", "id": "about", "level": 2, "text": "About the course"},
     {"kind": "text", "text": "A short course body."},
 )
+# A body whose source marked the FAQ's position (the legacy accordion include,
+# translated at import into a typed `faq` block) under its own FAQ heading, with
+# a closing note after it.
+MARKED_BODY_BLOCKS = (
+    *BODY_BLOCKS,
+    {"kind": "heading", "id": "faqs", "level": 2, "text": "FAQs"},
+    {"kind": "faq"},
+    {"kind": "paragraph", "text": "A closing note."},
+)
 
 
 def _publish_article(
@@ -64,6 +73,8 @@ def _publish_article(
     faq: Sequence[Mapping[str, str]] | None = PAIRS,
     slug: str = ARTICLE_SLUG,
     is_published: bool = True,
+    blocks: Sequence[Mapping[str, Any]] = BODY_BLOCKS,
+    sponsor: Mapping[str, str] | None = None,
 ) -> None:
     """Publish one synced article row, the row the read model resolves.
 
@@ -92,8 +103,9 @@ def _publish_article(
         "description": "",
         "published": "2026-01-15",
         "authors": [],
-        "blocks": list(BODY_BLOCKS),
+        "blocks": [dict(block) for block in blocks],
         "faq": None if faq is None else [dict(pair) for pair in faq],
+        "sponsor": None if sponsor is None else dict(sponsor),
         "image_source": "",
         "provenance": {
             "repository": "DataTalksClub/content",
@@ -232,6 +244,59 @@ class ArticleFaqCompositionTests(TestCase):
 
         self.assertEqual(view.faq, ())
         self.assertEqual(view.sections, prose_sections(list(BODY_BLOCKS)))
+
+
+class ArticleFaqPositionTests(TestCase):
+    def test_a_marked_body_is_split_at_the_marker(self) -> None:
+        _publish_article(blocks=MARKED_BODY_BLOCKS)
+        faq = article_faq(ARTICLE_SLUG)
+        record = {**_record(), "blocks": list(MARKED_BODY_BLOCKS)}
+
+        view = article_view(record, {}, faq)
+
+        self.assertEqual(view.sections, prose_sections(list(MARKED_BODY_BLOCKS[:3])))
+        self.assertEqual(view.sections[-1].text, "FAQs")
+        self.assertEqual(view.sections_after_faq, prose_sections(list(MARKED_BODY_BLOCKS[4:])))
+
+    def test_an_unmarked_body_keeps_the_faq_after_the_whole_body(self) -> None:
+        view = article_view(_record(), {}, None)
+
+        self.assertEqual(view.sections_after_faq, ())
+
+    def test_the_page_draws_the_faq_between_its_heading_and_the_closing_note(self) -> None:
+        _publish_article(blocks=MARKED_BODY_BLOCKS)
+
+        body = self.client.get(ARTICLE_PATH).content.decode()
+
+        heading = body.index('id="faqs"')
+        panel = body.index('class="article-faq')
+        note = body.index("A closing note.")
+        self.assertLess(heading, panel)
+        self.assertLess(panel, note)
+
+
+class ArticleSponsorTests(TestCase):
+    def test_a_sponsored_article_discloses_its_sponsor_above_the_body(self) -> None:
+        _publish_article(sponsor={"name": "Arize", "url": "https://arize.com/"})
+
+        body = self.client.get(ARTICLE_PATH).content.decode()
+
+        disclosure = " ".join(body[body.index("This post is sponsored by") :].split())
+        self.assertTrue(
+            disclosure.startswith(
+                'This post is sponsored by <a href="https://arize.com/" rel="sponsored noopener">'
+                "Arize</a>. We thank the Arize team for their ongoing support of the community."
+            )
+        )
+        self.assertEqual(body.count("This post is sponsored by"), 1)
+        self.assertLess(body.index("article-sponsor"), body.index("A short course body."))
+
+    def test_an_unsponsored_article_draws_no_disclosure(self) -> None:
+        _publish_article()
+
+        body = self.client.get(ARTICLE_PATH).content.decode()
+
+        self.assertNotIn("This post is sponsored by", body)
 
 
 class ArticleFaqPageRenderTests(TestCase):

@@ -47,6 +47,9 @@ IMAGE_PREFIX = "images/academy/"
 LANGUAGES = ("en", "de")
 
 _PATH = re.compile(r"/academy/(?:[a-z0-9][a-z0-9-]*/){0,2}\Z")
+#: Any other page of this site a link may name: a root-relative path of plain
+#: segments (the homepage, /courses/, /blog/<post>.html), never "//host".
+_SITE_PATH = re.compile(r"/(?:[A-Za-z0-9][A-Za-z0-9._-]*/?)*\Z")
 _KEY = re.compile(r"[a-z0-9][a-z0-9_-]*\Z")
 _UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z")
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
@@ -60,13 +63,24 @@ class Optional:
 
 
 # Leaf specs: "text" a plain string, "markdown" a string that may carry inline
-# Markdown, "href" a site path below /academy/, an https URL or a mailto link,
+# Markdown, "href" an Academy page, another path on this site, an https URL or
+# a mailto link,
 # "url" an https URL, "key" a lower-case identifier, "image" a file below
 # images/academy/, "utc" an ISO UTC instant, "date" an ISO calendar date
 # (quoted, so YAML keeps it a string), "int", "bool".
 LINK = {"label": "text", "href": "href"}
 QUESTION = {"question": "text", "answer": "markdown"}
 FACTS = {"label": "text", "items": [{"label": "text", "value": "text"}]}
+
+#: One syllabus module: the week it is taught in, an action-oriented title
+#: and the one tangible thing it leaves you with.
+MODULE = {
+    "week": Optional("int"),
+    "title": "text",
+    "produce": "text",
+    "description": Optional("text"),
+    "topics": Optional(["text"]),
+}
 
 COMMON = {
     "layout": "key",
@@ -78,38 +92,69 @@ COMMON = {
     "noindex": Optional("bool"),
     "sitemap": Optional("int"),
     "og_image": Optional("image"),
+    # The same page in another language, declared both ways as hreflang
+    # alternates (the German Bildungsgutschein guide and its English one).
+    "alternates": Optional([{"lang": "lang", "path": "path"}]),
 }
 
 LAYOUTS: dict[str, dict[str, Any]] = {
     "home": {
-        "hero": {"eyebrow": "text", "headline": "text", "lead": "text", "links": [LINK]},
-        "tracks": {"label": "text", "button_prefix": "text", "outcomes": ["int"]},
-        "funding": Optional({"heading": "text", "paragraphs": ["text"], "link": Optional(LINK)}),
+        # ``links`` is no longer drawn: the free sessions and the funding
+        # guide have chapters of their own (_docs/design/landing-pages.md).
+        "hero": {"eyebrow": "text", "headline": "text", "lead": "text", "links": Optional([LINK])},
+        # ``compare`` is the link to the page comparing the two programs.
+        "tracks": {
+            "label": "text",
+            "button_prefix": "text",
+            "outcomes": ["int"],
+            "compare": Optional(LINK),
+        },
+        "funding": Optional(
+            {
+                "heading": "text",
+                "paragraphs": ["text"],
+                "link": Optional(LINK),
+                "links": Optional([LINK]),
+            }
+        ),
+        # The free session series, its dates read from the sessions page.
+        "sessions": Optional({"heading": "text", "text": "text", "link_label": "text"}),
+        # The chapter listing the Academy's articles (session recaps, guides).
+        "articles": Optional(
+            {"heading": "text", "intro": Optional("text"), "link_label": Optional("text")}
+        ),
+        # A few questions from the FAQ page, by their place in its list.
+        "faq": Optional({"heading": "text", "picks": ["int"], "link_label": "text"}),
         "schema": {
             "organization": {"name": "text", "url": "url", "same_as": ["url"]},
         },
     },
     "program": {
         "program": {"slug": "key", "name": "text", "label": "text", "survey_option": "text"},
+        # The three short lines the home page's program card shows; the two
+        # programs' cards mirror each other, so each line is about one line.
+        "highlights": Optional(["text"]),
         "hero": {"eyebrow": "text", "headline": "text", "lead": "text", "basis": "text"},
-        "outcomes": {"heading": "text", "items": ["text"]},
+        # ``intro`` is the one sentence under the heading: what the outcomes
+        # add up to.
+        "outcomes": {"heading": "text", "intro": Optional("text"), "items": ["text"]},
+        # The challenge, what the program covers and how the format gets you
+        # there.
+        "overview": Optional({"heading": "text", "paragraphs": ["text"]}),
+        # The final project: ``project`` says what you ship, ``capstone`` the
+        # weeks it is built in, after the syllabus weeks.
         "project": "text",
+        "capstone": Optional({"heading": "text", "modules": [MODULE]}),
+        # The articles a reader of this program goes on to (the comparison
+        # guide, the funding guides), above the closing waitlist.
+        "related": Optional({"heading": "text", "links": [LINK]}),
         "fit_first": "text",
         "prerequisites": "text",
-        "syllabus": [
-            {
-                "weeks": "text",
-                "title": "text",
-                "modules": [
-                    {
-                        "title": "text",
-                        "produce": "text",
-                        "description": Optional("text"),
-                        "topics": Optional(["text"]),
-                    }
-                ],
-            }
-        ],
+        # The syllabus is read week by week: each phase lists its modules,
+        # and each module names the week it is taught in.  A phase's week
+        # span is derived from its modules, so ``weeks`` is no longer
+        # written; it is accepted until the content tree drops it.
+        "syllabus": [{"weeks": Optional("text"), "title": "text", "modules": [MODULE]}],
         "schema": {
             "start_date": "text",
             "course_modes": ["text"],
@@ -128,7 +173,8 @@ LAYOUTS: dict[str, dict[str, Any]] = {
             "lead": "text",
             "button": "text",
             "under_button": "text",
-            "speaker_line": "text",
+            # No longer drawn: the host chapter introduces the speaker.
+            "speaker_line": Optional("text"),
             "speaker_photo": "image",
             "speaker_alt": "text",
         },
@@ -249,7 +295,13 @@ LAYOUTS: dict[str, dict[str, Any]] = {
         },
     },
     "guide": {
-        "hero": {"eyebrow": "text", "headline": "text", "lead": "text", "funding_line": "text"},
+        # ``funding_line`` is no longer drawn: the facts strip carries funding.
+        "hero": {
+            "eyebrow": "text",
+            "headline": "text",
+            "lead": "text",
+            "funding_line": Optional("text"),
+        },
         # The German page's pointer to the English page with the same facts.
         "english": Optional({"text": "text", "link": LINK}),
         "facts": FACTS,
@@ -291,13 +343,17 @@ LAYOUTS: dict[str, dict[str, Any]] = {
         "eyebrow": "text",
         "heading": "text",
         "lead": "text",
-        "button": "text",
+        # No longer drawn: the page's one waitlist action is its closing panel.
+        "button": Optional("text"),
         "list_label": "text",
         "items": [QUESTION],
         # The closing waitlist panel under the questions.
         "join": Optional({"heading": "text", "text": "text"}),
     },
     "legal": {"heading": "text"},
+    # The index of every article page (session recaps, guides), newest
+    # first; the list itself is read from the article pages.
+    "articles": {"heading": "text", "lead": "text"},
     # A free-form page read as prose -- a session recap, a guide: a heading
     # and lead over a Markdown body, the pages it points on to, and one
     # closing waitlist panel.
@@ -308,7 +364,18 @@ LAYOUTS: dict[str, dict[str, Any]] = {
         "author": "text",
         "published": "date",
         "related": Optional({"heading": "text", "links": [LINK]}),
-        "join": {"heading": "text", "text": "text"},
+        # Questions the article answers, drawn as the site's FAQ folds and
+        # published as FAQPage structured data.
+        "faq": Optional({"heading": "text", "items": [QUESTION]}),
+        # The closing action: the waitlist on the home page unless the article
+        # names its own target (a program page's form, a link with campaign
+        # parameters) and, optionally, its own label.
+        "join": {
+            "heading": "text",
+            "text": "text",
+            "href": Optional("href"),
+            "label": Optional("text"),
+        },
     },
 }
 
@@ -318,7 +385,8 @@ BODY_LAYOUTS = frozenset({"legal", "article"})
 SHARED = {
     "brand": "text",
     "contact_email": "text",
-    "seat_caption": "text",
+    # No longer drawn: the facts strip carries the seats (owner, 2026-11-24).
+    "seat_caption": Optional("text"),
     "waitlist_button": "text",
     # The Academy's own bar under the site masthead: its wordmark, tagline and
     # section links (its waitlist action reuses ``waitlist_button``).
@@ -331,7 +399,9 @@ SHARED = {
     # Every signup form and its confirmation-pending state say this plainly.
     "confirm_notice": Optional("text"),
     "facts": FACTS,
-    "hero": {"instructor_line": "text", "honesty": "text"},
+    # ``instructor_line`` is the hero's credibility line; ``honesty`` (the
+    # start line over the form) is no longer drawn.
+    "hero": {"instructor_line": Optional("text"), "honesty": Optional("text")},
     "instructor": {
         "heading": "text",
         "paragraphs": ["text"],
@@ -339,8 +409,15 @@ SHARED = {
         "photo_alt": "text",
         "proof": [LINK],
     },
+    # The program pages' final-project chapter heading.
     "project_heading": "text",
+    # Interview preparation: its own chapter, after the capstone weeks.
+    "interviews": Optional({"heading": "text", "intro": "text", "modules": [MODULE]}),
+    # The daily rhythm, start and place, as a short chapter.
+    "schedule": Optional({"heading": "text", "paragraphs": ["text"]}),
     "fit": {
+        # The band head over the two fit cards.
+        "heading": Optional("text"),
         "for_title": "text",
         "not_title": "text",
         "for_shared": ["text"],
@@ -348,7 +425,13 @@ SHARED = {
     },
     # ``produce_label`` is no longer drawn (each module's outcome reads on
     # its own under the title); still accepted until the content drops it.
-    "syllabus": {"heading": "text", "intro": "text", "produce_label": Optional("text")},
+    # ``week_label`` is the word in front of each syllabus row's week number.
+    "syllabus": {
+        "heading": "text",
+        "intro": "text",
+        "week_label": Optional("text"),
+        "produce_label": Optional("text"),
+    },
     "funding": Optional(
         {
             "heading": "text",
@@ -481,10 +564,14 @@ class _Validator:
             if not url.startswith("https://"):
                 self.fail(field)
         elif spec == "href":
-            if not (
-                (value.startswith("/academy/") and _PATH.fullmatch(value.split("#", 1)[0]))
-                or value.startswith("mailto:")
-            ):
+            target = value.split("#", 1)[0]
+            if value.startswith("/academy/"):
+                if not _PATH.fullmatch(target):
+                    self.fail(field)
+            elif value.startswith("/"):
+                if not _SITE_PATH.fullmatch(target):
+                    self.fail(field)
+            elif not value.startswith("mailto:"):
                 self.leaf("url", value, field)
         elif spec == "image":
             path = PurePosixPath(value)
@@ -509,6 +596,30 @@ def _provenance(checkout, relative: str, key: str, checksum: str) -> dict[str, s
     )
 
 
+def _weeks_follow_on(syllabus: list[dict[str, Any]]) -> bool:
+    """Every module names its week, the first is week 1, and no week is skipped.
+
+    A week may hold more than one module, so a module's week is the previous
+    module's or the one after it.  A syllabus that names no weeks at all is the
+    older module-numbered shape, accepted until the content tree moves over.
+    """
+
+    weeks = [module.get("week") for phase in syllabus for module in phase["modules"]]
+    if all(week is None for week in weeks):
+        return True
+    return bool(weeks) and weeks[0] == 1 and _weeks_run_on(weeks)
+
+
+def _weeks_run_on(weeks: list[Any]) -> bool:
+    """Every module names a week, and each is the previous one or the next."""
+
+    if any(week is None for week in weeks):
+        return False
+    return all(
+        later in (earlier, earlier + 1) for earlier, later in zip(weeks, weeks[1:], strict=False)
+    )
+
+
 def parse_page(checkout, relative: str, files: frozenset[str]) -> dict[str, Any]:
     """One validated page record from ``academy/<name>.md``."""
 
@@ -525,6 +636,10 @@ def parse_page(checkout, relative: str, files: frozenset[str]) -> dict[str, Any]
         base.fail("academy page body rejected", relative)
     if layout == "program" and data["path"] != f"/academy/{data['program']['slug']}/":
         base.fail("academy program path does not match its slug", relative)
+    if layout == "program" and not _weeks_follow_on(
+        [*data["syllabus"], *([data["capstone"]] if data.get("capstone") else [])]
+    ):
+        base.fail("academy syllabus weeks do not run 1, 2, 3 in order", relative)
     if layout == "sessions":
         ids = [session["id"] for session in data["sessions"]]
         if len(ids) != len(set(ids)) or data["series"]["calendar_slug"] in ids:
@@ -614,6 +729,9 @@ class AcademySharedParser:
             return []
         raw = builder._load_yaml(base.snapshot_path(checkout, SHARED_FILE))
         data = _Validator(files, SHARED_FILE).value(SHARED, raw, "shared")
+        interviews = data.get("interviews")
+        if interviews and not _weeks_run_on([m.get("week") for m in interviews["modules"]]):
+            base.fail("academy interview weeks do not run on in order", SHARED_FILE)
         checksum = base.checksum_of(checkout, SHARED_FILE)
         record = {
             "data": data,

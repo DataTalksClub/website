@@ -383,7 +383,8 @@ to this document — do not fork it locally.
   top-left corner for a page that already draws its own dashed connecting rail behind
   the row (`.journey-grid::before` stays page-specific, along with the grid itself).
 - **`.chip`** — round uppercase mini-pill. Variants: `.chip-plain`, `.chip-green`,
-  `.chip-live`, `.chip-ink`.
+  `.chip-live`, `.chip-ink`. **`a.chip-link`** is a chip that opens a page (a wiki
+  concept): indigo border and text, underlined on hover.
 - **`.avatar`** — striped round placeholder disc, `2.6rem`.
 - **`.person-chip`** — one credited person: a small portrait and their linked name.
   Every surface that names a person draws this.
@@ -415,6 +416,8 @@ to this document — do not fork it locally.
   `.cta-secondary` (card surface, ink text), `.cta-subtle` (transparent),
   `.cta-ink` (ink fill, cream text, bubble shadow), `.cta-lift` (bubble shadow on any
   CTA), `.cta-compact` (row-sized: `min-height: 2.75rem`).
+  A CTA inside a Markdown body uses the `{.button}` marker (`{.button-primary}` for the primary
+  variant); see `_docs/content-authoring.md`.
 - **`.pill-button`** — round bordered control (theme toggle, subscribe links) with an
   optional `.dot` swatch: `.dot-green`, `.dot-bubble`, `.dot-clay`, `.dot-gold`.
 - **`.signup-button`** — the masthead's green sign-up pill.
@@ -518,14 +521,20 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
 
   Optional slots: `row_date` (absent drops the rail), `row_mark="play"`,
   `row_eyebrow`, `row_pill`/`row_pill_variant`/`row_pill_extra`, `row_summary`,
-  `row_credits`, `row_class`/`row_hook`. Always pass `only`.
+  `row_tags`/`row_tags_label`, `row_credits`, `row_class`/`row_hook`. Always pass
+  `only`.
 
   Inside the card the order is fixed: leading mark, eyebrow, pills, `h3` title,
-  clamped summary, credited people last as `.person-chips.card-credit`. The rail is
-  `.date-rail`, day above year.
+  clamped summary, tags (`ul.archive-tags` of `a.chip-link`, saying why the row is
+  on this page; they sit above the stretched card link), credited people last as
+  `.person-chips.card-credit`. The rail is `.date-rail`, day above year. An
+  episode row is the play-mark row with `row_class="episode-row"`.
 
-  Drawn by `/blog`, `/books`, `/podcast` and every contribution band of a person's
-  profile. **Not** by the events index, whose rail carries three facts including a
+  Drawn by `/blog`, `/books`, `/podcast`, an episode page's related episodes (the
+  episodes sharing wiki concepts with it, the shared concepts as tags; there is no
+  previous/next pair — episodes are not a sequence, and the season link in that
+  band's head is the way to browse in order) and every contribution band of a
+  person's profile. **Not** by the events index, whose rail carries three facts including a
   start clock — that is `.when` below, and its card is the shared `.event-card`.
 
 - **Date rail (events index)** — set the way `.date-rail` is set: position and type,
@@ -582,10 +591,9 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
 - **`.doodle`** — a decorative drawing: `display: block; width: 100%`. Pages constrain
   aspect ratio per slot. Always `alt=""`.
 - **`.module` / `.module-list`** — the disclosure accordion for a surface with genuine
-  per-module content. The Academy program pages use it for their syllabus (one
-  `details.module` per group of weeks, its modules listed in the body); a page whose
-  job is to show every deadline and state draws `.row-list` tables instead of folding
-  them behind a click.
+  per-module content; a page whose job is to show every deadline and state draws
+  `.row-list` tables instead of folding them behind a click (the Academy syllabus is
+  read week by week as list rows).
 
 ## Forms
 
@@ -677,7 +685,17 @@ Modifiers:
 - **`.prose-embed`** — one already-sanitized fragment from a source that wrote its own
   block markup, keeping the rhythm inside it.
 - **`.prose-unavailable`** — a dashed plate naming an element this site cannot draw.
+- **`.prose-chart`** — a survey chart in an article body: a framed block on `--card`
+  (soft 2px `--line-soft` border, `0.7rem` radius, no shadow) holding the title, an
+  inline-SVG horizontal bar chart drawn from the block's typed data
+  (`content/article_charts.py`, no script), a visually hidden data table, and the
+  source caption. One series in `--chart-bar`; labels in `--body-text`, values in
+  `--ink`. The SVG has no `viewBox`: bar lengths are percentages of the column and
+  rows are fixed pixel heights, so text stays at body size on a phone.
 - **`.prose-caption`** / `figcaption` — `--muted` at the meta size.
+- **`.prose-action`** — a CTA inside a body uses the `{.button}` marker: a standalone
+  `[Label](url){.button}` line renders as this paragraph holding the shared `.cta` control
+  (`core.markdown_actions`, documented in `_docs/content-authoring.md`).
 
 A richer body also carries `h4`–`h6` continuing the ladder, real `ul`/`ol`/`li`,
 `--ink` strong, an italic `blockquote` on the card surface inside a soft 2px border,
@@ -790,30 +808,57 @@ not a light half and a bold half.
 
 The `/academy/` pages (`academy/templates/academy/`) are ordinary content pages:
 each extends `core/content_page.html`, so the masthead, cream header, lavender
-content band and footer are the shared ones. Like the account entrance family they
-share one page-level partial, `academy/_styles.html`, included straight after the
-design system; it only lays out primitives the system already owns.
+content band and footer are the shared ones. They share one page-level partial,
+`academy/_styles.html`, included straight after the design system; it only lays
+out primitives the system already owns. What each landing says, section by
+section, is the blueprint in `_docs/design/landing-pages.md`.
 
-- **One footer, the site's.** Every Academy header opens with the Academy bar
-  (`academy/_bar.html`): the wordmark back to `/academy/`, the tagline, the waitlist
-  `.cta-compact`, and the section's pages as `nav.filter-pills` links with
-  `aria-current="page"` on the current one (one swipeable row below 48rem). There is
-  no Academy link footer above the site footer and no breadcrumb.
-- **The landings (home, programs, sessions, the German guide) follow the course
-  family landing**: `.shell-breakout` to the full shell, the heading beside the
-  waitlist (or sessions) `.card`, and every chapter the same frame — a dashed seam
-  and a real `.band-head`. A program carries its facts as the `.spec-strip` at the
-  foot of its title block; long copy stays at `--measure`.
-- Numbered lists sit on `.module-number` discs, the syllabus is `.module`
-  accordions, FAQ is `.faq-fold`, funding is a `.callout-info` (never a chapter for
-  one sentence), the closing waitlist is a `.panel-mint`.
-- **Forms are one column**: every field full width, the submit a full-width
-  `.cta-primary` on its own row, the confirmation warning a `.callout-attention`
-  above it and again in the success state. Choice groups are `fieldset`s whose
-  `.form-check` rows sit in an even grid. The quick-question answers are
-  `.filter-pill` toggles.
-- The program pages' sticky waitlist bar shows only while neither the header nor a
-  waitlist card is on screen, and sits under the analytics notice.
+- **Two columns, one per kind of page.** The landings (home, programs, sessions,
+  the German guide), the FAQ, the articles index and the forms sit in the
+  ordinary content column (`--content-width`) and every block fills it, so no
+  block stops short and leaves a dead strip. The one exception is the home
+  page's hero, which breaks out to the full shell (`.shell-breakout`) to set
+  the copy beside the Academy's drawing in the course family hero's grid
+  (owner, 2026-11-24); every chapter under it keeps the content column. A page
+  read end to end (an article, a legal page) sits in the reading column the
+  blog uses (`--reading-width`), header and body alike; an article also
+  carries the blog article's trail, heading size, standfirst, mono date and
+  person-chip byline. There is no
+  Academy sub-navigation bar and no Academy footer.
+- **The hero is the course family hero's title block**: heading and a 2-3
+  sentence lede, one primary action (the waitlist, or "Choose my sessions"),
+  one credibility line (portrait and sentence), and the key facts at its foot
+  as the courses index's `.stat-tiles` (value over label), two rows of
+  three. Only the home hero carries a
+  drawing (light/dark `.doodle-variants`, dropped below 48rem as the homepage
+  hero drops its own). No form, link list or status pill beside or above the
+  copy.
+- **Every chapter is the same frame**: a dashed seam and a real `.band-head`.
+  Cards pair in `.card-grid-2` and mirror each other (the home's program cards
+  carry the same three short lines and a `cta-secondary` pinned to the foot).
+- **The syllabus is week by week**: each phase a small heading over `.row-list`
+  rows, one row per week with "Week N" on the mono rail and the week's
+  module(s) beside it, each an action title and its tangible output in
+  `--green-ship`. The final project and interview preparation are chapters of
+  their own drawn with the same rows (`academy/_weeks.html`).
+- **One waitlist form per page.** On the home and program pages it closes the
+  page in the mint `.panel` (heading, the limited seats and how you get in on
+  the left, the form card on the right); the hero action points to it
+  (`#signup-hero`). There is no floating waitlist bar. The sessions registration is the first chapter
+  under the header, on the `.featured` slab. Reading pages close on a mint
+  panel with one action to the waitlist.
+- **Forms are one column**: every field full width over a full-width
+  `.cta-primary`; the confirmation warning is a `.callout-attention` in the
+  success state, shown once the reader has submitted, not on the empty form
+  (owner, 2026-11-24). Choice groups are
+  `fieldset`s whose `.form-check` options sit in one even row from 48rem (as
+  many columns as options, so none is left alone on a row); the quick-question
+  answers are `.filter-pill` toggles. A form card starts with its fields, and
+  a session that has already happened is not offered.
+- Lists of articles are the shared archive row (`public/_archive_row.html`);
+  FAQ is `.faq-fold`; an article's Markdown tables sit in `.prose-scroll`.
+- On a program page the questions come last, right before the closing
+  waitlist.
 
 ## The account entrance family
 

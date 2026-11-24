@@ -135,42 +135,55 @@
   {% elif section.kind == "separator" %}
     <hr>
   {% elif section.kind == "chart" %}
-    {% if section.src %}
+    {% comment %}
+      A survey chart, drawn here from its typed data (content/article_charts.py)
+      with no script.  The drawing is one image to assistive technology, named by
+      its summary; the hidden table beside it reads every value out.  Bars and
+      value positions are percentages of the column, rows are fixed pixel
+      heights, so the text stays at body size at any width.
+    {% endcomment %}
+    {% with chart=section.chart %}
       <figure class="prose-chart">
-        <img
-          src="{{ section.src }}"
-          alt="{{ section.alt }}"
-          {% if section.title %}
-            title="{{ section.title }}"
+        {% if chart.title %}
+          <p class="prose-chart-title">{{ chart.title }}</p>
+        {% endif %}
+        <svg class="prose-chart-plot" width="100%" height="{{ chart.height }}" role="img" aria-label="{{ chart.summary }}" focusable="false">
+          {% for bar in chart.bars %}
+            {% for y, line in bar.label_lines %}
+              <text class="prose-chart-label" x="0" y="{{ y }}">{{ line }}</text>
+            {% endfor %}
+            <rect class="prose-chart-bar" x="0" y="{{ bar.bar_y }}" width="{{ bar.width }}" height="{{ chart.bar_height }}" rx="3"></rect>
+            <text class="prose-chart-value" x="{{ bar.width }}" dx="8" y="{{ bar.value_y }}">{{ bar.value_text }}</text>
+          {% endfor %}
+        </svg>
+        <table class="sr-only">
+          {% if chart.title %}
+            <caption>{{ chart.title }}</caption>
           {% endif %}
-          {% if section.width %}
-            width="{{ section.width }}"
-          {% endif %}
-          {% if section.height %}
-            height="{{ section.height }}"
-          {% endif %}
-          loading="lazy"
-          decoding="async"
-        >
-        {% if section.caption %}
-          <figcaption>{{ section.caption }}</figcaption>
+          <thead>
+            <tr>
+              <th scope="col">Answer</th>
+              {% if chart.unit == "percent" %}
+                <th scope="col">Share of respondents</th>
+              {% else %}
+                <th scope="col">Respondents</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for bar in chart.bars %}
+              <tr>
+                <th scope="row">{{ bar.label }}</th>
+                <td>{{ bar.value_text }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if chart.caption %}
+          <figcaption>{{ chart.caption }}</figcaption>
         {% endif %}
       </figure>
-    {% else %}
-      {% comment %}
-        Said out loud rather than left as a gap: an unbridged survey chart needs
-        a script this site does not ship, so it keeps its named fallback.
-      {% endcomment %}
-      <figure class="prose-unavailable">
-        <p class="mono-note">Chart unavailable.</p>
-        {% if section.text %}
-          <figcaption>{{ section.text }}</figcaption>
-        {% endif %}
-        {% if section.caption %}
-          <p class="prose-caption">{{ section.caption }}</p>
-        {% endif %}
-      </figure>
-    {% endif %}
+    {% endwith %}
   {% elif section.block_level %}
     <div class="prose-embed">{{ section.html|safe }}</div>
   {% elif section.html %}

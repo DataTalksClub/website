@@ -400,29 +400,6 @@
     });
   });
 
-  /* 4b. The program pages' sticky waitlist bar shows only while neither the
-         header nor any waitlist card is on screen, so it never sits over a
-         form field; once someone has joined it has nothing left to offer. */
-  var sticky = one('[data-academy-sticky]');
-  var hero = one('#hero');
-  if (sticky && hero && 'IntersectionObserver' in window) {
-    var watched = [hero].concat(signups);
-    var visible = new Set();
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          visible.add(entry.target);
-        } else {
-          visible.delete(entry.target);
-        }
-      });
-      sticky.hidden = visible.size > 0 || Boolean(joined.email);
-    });
-    watched.forEach(function (node) {
-      observer.observe(node);
-    });
-  }
-
   /* 5. The double opt-in confirmation. */
   var confirmCard = one('[data-academy-confirm]');
   if (confirmCard) {

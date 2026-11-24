@@ -29,6 +29,11 @@
     a list mixes past and future work, the second bare pill that says which.  A
     podcast row uses `row_pill` as its blue season/episode eyebrow instead.
   * `row_summary` — clamped, because the record's own page carries the rest.
+  * `row_tags`, `row_tags_label` — linked chips naming why this row is on the
+    page (the wiki concepts a related episode shares with the one being read),
+    each with a `label` and a `url`.  They sit above the card's stretched link,
+    like the credits, so each opens its own page.  `row_tags_label` names the
+    list for a screen reader.
   * `row_credits` — the people who made it, resolved through `person_chip`, at
     the foot of the card and with no "By": a face beside a name under a title is
     already read as the person who made it.
@@ -94,6 +99,15 @@
         </h3>
         {% if row_summary %}
           <p class="archive-summary">{{ row_summary }}</p>
+        {% endif %}
+        {% if row_tags %}
+          <ul class="archive-tags" aria-label="{{ row_tags_label|default:'Related topics' }}">
+            {% for tag in row_tags %}
+              <li>
+                <a class="chip chip-plain chip-link" href="{{ tag.url }}">{{ tag.label }}</a>
+              </li>
+            {% endfor %}
+          </ul>
         {% endif %}
         {% if row_credits %}
           <p class="person-chips card-credit">

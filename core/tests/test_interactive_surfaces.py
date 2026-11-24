@@ -64,7 +64,6 @@ class InteractiveSurfaceContractTests(SimpleTestCase):
                     & {
                         "stretched-card-link",
                         "event-card",
-                        "related-episode-card",
                         "sponsor-card",
                     }
                 )
@@ -120,10 +119,6 @@ class InteractiveSurfaceContractTests(SimpleTestCase):
             "templates/core/home.html": (
                 "topic interactive-card interactive-lift",
                 "sponsor-card interactive-card interactive-lift",
-            ),
-            "templates/public/podcast_detail.html": (
-                "previous-episode interactive-card interactive-lift",
-                "next-episode interactive-card interactive-lift",
             ),
             "templates/public/wiki_hub.html": ("explore-row interactive-card interactive-lift",),
             "courses/templates/courses/course_list.html": (

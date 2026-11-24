@@ -1,9 +1,9 @@
 {% extends "core/content_page.html" %}
 {% comment %}
-  The Academy FAQ (/academy/faq/): the Academy bar, the heading and lede with
-  the waitlist action, then the questions as the site's FAQ folds at the
-  reading measure, server-rendered so every answer is in the HTML.  Copy:
-  academy/faq.md.
+  The Academy FAQ (/academy/faq/): the heading and lede, then the questions
+  as the site's FAQ folds across the content column, server-rendered so every
+  answer is in the HTML, and the closing panel holding the page's one
+  waitlist action.  Copy: academy/faq.md.
 {% endcomment %}
 
 {% block document_title %}
@@ -33,9 +33,6 @@
     {% endif %}
     <h1 id="academy-heading">{{ data.heading }}</h1>
     <p class="academy-lede">{{ data.lead }}</p>
-    <div class="academy-actions">
-      {% include "core/_button.html" with href=academy_root|add:"#signup-hero" label=data.button variant="primary" %}
-    </div>
   </div>
 {% endblock %}
 

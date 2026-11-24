@@ -155,35 +155,99 @@
         color: var(--episode-player-link);
       }
 
-      /* A third-party frame earns visibility only after it has loaded.  Until
-         then the native destination remains the useful surface, which also
-         gives blocked frames a graceful failure state. */
-      .episode-video:not([data-video-state="available"]) .episode-video-fallback {
-        display: flex;
-      }
-
-      .episode-video:not([data-video-state="available"]) iframe {
+      /* The fallback is a failure state, never a loading state.  A frame that
+         is still loading stays on screen (its own ground fills the slot), and
+         only a frame that reported an error gives way to the native links. */
+      .episode-video[data-video-state="unavailable"] iframe,
+      .episode-video[data-video-state="unavailable"] .episode-video-facade {
         display: none;
       }
 
-      .episode-video[data-video-state="available"] .episode-video-fallback {
-        display: none;
-      }
-
-      /* The server-rendered link is the no-JS player.  JavaScript removes this
-         state after the document head has enabled the iframe presentation. */
-      .no-js .episode-video iframe,
-      .episode-video[data-video-state="unavailable"] iframe {
-        display: none;
-      }
-
-      .no-js .episode-video .episode-video-fallback,
       .episode-video[data-video-state="unavailable"] .episode-video-fallback {
         display: flex;
       }
 
       .episode-video[data-video-state="unavailable"] {
         aspect-ratio: auto;
+      }
+
+      /* Click-to-play YouTube poster.  Nothing is requested from YouTube until
+         the reader asks for the video: the poster is the episode's own artwork
+         from the site's media store, and the frame is only built on click.
+         Without JavaScript it is a plain link to the YouTube watch page. */
+      .episode-video-facade {
+        align-items: center;
+        color: var(--episode-player-text);
+        cursor: pointer;
+        display: flex;
+        inset: 0;
+        justify-content: center;
+        position: absolute;
+      }
+
+      .episode-video-facade:focus-visible {
+        outline-offset: -5px;
+      }
+
+      .episode-video-poster {
+        height: 100%;
+        inset: 0;
+        object-fit: cover;
+        position: absolute;
+        width: 100%;
+      }
+
+      /* The play control sits in the poster's lower-left corner rather than its
+         centre, where every episode's artwork prints the episode title. */
+      .episode-video-play {
+        align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        bottom: 1rem;
+        box-shadow: 0.2rem 0.2rem 0 var(--shadow-soft);
+        color: var(--ink);
+        display: inline-flex;
+        font-weight: 700;
+        gap: 0.6rem;
+        left: 1rem;
+        padding: 0.3rem 1.1rem 0.3rem 0.3rem;
+        position: absolute;
+        transition: transform 0.15s ease;
+      }
+
+      .episode-video-play .play-disc {
+        height: 2.75rem;
+        width: 2.75rem;
+      }
+
+      .episode-video-play .play-disc svg {
+        margin-left: 0.15rem;
+      }
+
+      .episode-video-facade:hover .episode-video-play,
+      .episode-video-facade:focus-visible .episode-video-play {
+        transform: translate(-0.1rem, -0.1rem);
+      }
+
+      @media (max-width: 30rem) {
+        .episode-video-play {
+          bottom: 0.6rem;
+          left: 0.6rem;
+          font-size: 0.85rem;
+          padding-right: 0.85rem;
+        }
+
+        .episode-video-play .play-disc {
+          height: 2.25rem;
+          width: 2.25rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .episode-video-play {
+          transition: none;
+        }
       }
 
       .episode-fallback {
@@ -258,8 +322,7 @@
 
       .listen-row .pill-button,
       .episode-resource-list a,
-      .episode-timestamp,
-      .episode-navigation a {
+      .episode-timestamp {
         overflow-wrap: anywhere;
       }
 
@@ -299,6 +362,16 @@
          stacked and reachable exactly as the anchor links describe them. */
       .episode-section[hidden] {
         display: none;
+      }
+
+      .episode-summary p {
+        line-height: 1.7;
+        margin: 0 0 1.1rem;
+      }
+
+      .episode-summary-links-heading {
+        font-size: 1.05rem;
+        margin: 2rem 0 0;
       }
 
       .episode-resource-list {
@@ -393,108 +466,6 @@
         margin-top: 0.75rem;
       }
 
-      .episode-navigation {
-        display: grid;
-        gap: 1rem;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        margin-top: 1.5rem;
-      }
-
-      .episode-navigation a {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.8rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-        min-height: 5rem;
-        padding: 0.9rem 1rem;
-        text-decoration: none;
-      }
-
-      .episode-navigation a:hover {
-        box-shadow: 0.25rem 0.25rem 0 var(--shadow-soft);
-      }
-
-      .episode-navigation .next-episode {
-        text-align: right;
-      }
-
-      /* In the reading column three cards side by side left each title about
-         ten characters wide and six lines tall (owner feedback 2026-11-23), so
-         the related episodes stack as one card per row: the artwork as a
-         thumbnail on the left, the numbering, title and guest beside it. */
-      .related-episode-list {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 0.9rem;
-      }
-
-      .related-episode-card {
-        align-content: center;
-        column-gap: 1.1rem;
-        display: grid;
-        grid-template-columns: 11rem minmax(0, 1fr);
-        min-width: 0;
-      }
-
-      .related-episode-card > * {
-        grid-column: 2;
-        min-width: 0;
-      }
-
-      .related-artwork,
-      .related-artwork-missing {
-        aspect-ratio: 16 / 9;
-        border-radius: 0.55rem;
-        display: block;
-        object-fit: cover;
-        width: 100%;
-      }
-
-      .related-episode-card > .related-artwork,
-      .related-episode-card > .related-artwork-missing {
-        align-self: center;
-        grid-column: 1;
-        grid-row: 1 / span 3;
-      }
-
-      .related-episode-card p:last-child {
-        margin-top: 0.3rem;
-      }
-
-      @media (max-width: 30rem) {
-        .related-episode-card {
-          grid-template-columns: 6.5rem minmax(0, 1fr);
-        }
-      }
-
-      .related-artwork-missing {
-        align-items: center;
-        background: var(--mint);
-        border: 1px dashed var(--line);
-        display: flex;
-        justify-content: center;
-        padding: 1rem;
-        text-align: center;
-      }
-
-      .related-episode-card h3 {
-        font-size: 1.05rem;
-        margin: 0;
-      }
-
-      .related-episode-card h3 a {
-        color: var(--ink);
-      }
-
-      .related-episode-meta {
-        color: var(--muted);
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-      }
-
       /* Transcript: shared timestamp rows, with the section headers the source
          gives the conversation and the speaker as each row's mark. */
       /* Topic headings break the transcript into chapters, so they read as
@@ -539,14 +510,6 @@
           margin-left: 0.4rem;
         }
 
-        .episode-navigation {
-          grid-template-columns: minmax(0, 1fr);
-        }
-
-        .episode-navigation .next-episode {
-          text-align: left;
-        }
-
         .guest-bio-card {
           grid-template-columns: minmax(0, 1fr);
         }
@@ -586,7 +549,61 @@
 
       <section class="band band-lavender episode-read" aria-label="About this episode">
         <div class="shell episode-shell">
-          {% if episode.player %}
+          {% if episode.video %}
+            <div
+              class="player-frame episode-player episode-video"
+              data-video-provider="youtube"
+              data-video-id="{{ episode.video.media_id }}"
+              data-video-embed="{{ episode.video.embed_url }}"
+              data-video-title="Watch {{ episode.title }} on YouTube"
+              data-video-state="poster"
+            >
+              <a
+                id="podcast-video-facade"
+                class="episode-video-facade"
+                href="{{ episode.video.watch_url }}"
+                data-video-facade
+              >
+                {% if episode.media_available %}
+                  <img
+                    class="episode-video-poster"
+                    src="{{ episode.image_path }}"
+                    alt=""
+                    decoding="async"
+                    fetchpriority="high"
+                  >
+                {% endif %}
+                <span class="episode-video-play" aria-hidden="true">
+                  <span class="play-disc">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path d="M9 6.5l9 5.5-9 5.5z"/>
+                    </svg>
+                  </span>
+                  Play video
+                </span>
+                <span class="sr-only">Play {{ episode.title }} on YouTube</span>
+              </a>
+              <div class="episode-video-fallback" data-video-fallback role="status">
+                <div class="episode-video-fallback-copy">
+                  <p>
+                    <strong>{{ episode.video.media_label }} unavailable.</strong>
+                  </p>
+                  <p>Use one of the listening links below to hear this episode.</p>
+                  {% if episode.watch_url %}
+                    <a
+                      class="band-link"
+                      href="{{ episode.watch_url }}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open {{ episode.watch_label }}
+                      <span class="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% elif episode.player %}
             <div
               class="player-frame episode-player episode-video"
               data-video-provider="{{ episode.player.provider }}"
@@ -690,8 +707,13 @@
 
       <section class="band band-lavender" aria-label="Episode reading sections">
         <div class="shell episode-shell">
+          {% comment %}Summary leads when the episode has one, and the show-note
+          links move into it, so there is never a second prose tab beside it.
+          Without a summary the links keep their own Show Notes tab.{% endcomment %}
           <nav class="episode-tabs" aria-label="Episode sections">
-            {% if episode.links %}
+            {% if episode.summary_paragraphs %}
+              <a class="episode-tab" href="#summary">Summary</a>
+            {% elif episode.links %}
               <a class="episode-tab" href="#show-notes">Show Notes</a>
             {% endif %}
             {% if episode.timestamp_entries %}
@@ -702,7 +724,25 @@
             {% endif %}
           </nav>
 
-          {% if episode.links %}
+          {% if episode.summary_paragraphs %}
+            <section id="summary" class="episode-section" aria-labelledby="summary-heading">
+              <div class="band-head">
+                <div>
+                  <h2 id="summary-heading">Summary</h2>
+                  <p>What the conversation covered.</p>
+                </div>
+              </div>
+              <div class="episode-summary">
+                {% for paragraph in episode.summary_paragraphs %}
+                  <p>{{ paragraph }}</p>
+                {% endfor %}
+              </div>
+              {% if episode.links %}
+                <h3 class="episode-summary-links-heading">Links mentioned</h3>
+                {% include "public/_episode_resource_list.html" with resources=episode.links only %}
+              {% endif %}
+            </section>
+          {% elif episode.links %}
           <section id="show-notes" class="episode-section" aria-labelledby="show-notes-heading">
             <div class="band-head">
               <div>
@@ -711,24 +751,7 @@
               </div>
             </div>
             {% comment %}Empty show notes are hidden, not announced (site feedback 2026-11-19).{% endcomment %}
-              <ul class="episode-resource-list" aria-label="Show notes resources">
-                {% for resource in episode.links %}
-                  <li>
-                    <a
-                      href="{{ resource.url }}"
-                      {% if resource.is_external %}
-                        target="{{ resource.target }}"
-                        rel="{{ resource.rel }}"
-                      {% endif %}
-                    >
-                      {{ resource.label }}
-                      {% if resource.is_external %}
-                        <span class="sr-only"> (opens in a new tab)</span>
-                      {% endif %}
-                    </a>
-                  </li>
-                {% endfor %}
-              </ul>
+              {% include "public/_episode_resource_list.html" with resources=episode.links only %}
           </section>
           {% endif %}
 
@@ -861,122 +884,98 @@
         </section>
       {% endif %}
 
-      {% if previous_episode or next_episode %}
-        <section class="band band-lavender" aria-labelledby="episode-navigation-heading">
-          <div class="shell episode-shell">
-            <h2 id="episode-navigation-heading">More episodes</h2>
-            <nav class="episode-navigation" aria-label="Episode navigation">
-              {% if previous_episode %}
-                <a href="{{ previous_episode.public_path }}" class="previous-episode interactive-card interactive-lift">
-                  <span class="mono-label">← Previous episode</span>
-                  <strong>{{ previous_episode.title }}</strong>
-                  <span class="mono-note">{{ previous_episode.season_episode }}</span>
-                </a>
-              {% endif %}
-              {% if next_episode %}
-                <a href="{{ next_episode.public_path }}" class="next-episode interactive-card interactive-lift">
-                  <span class="mono-label">Next episode →</span>
-                  <strong>{{ next_episode.title }}</strong>
-                  <span class="mono-note">{{ next_episode.season_episode }}</span>
-                </a>
-              {% endif %}
-            </nav>
-          </div>
-        </section>
-      {% endif %}
-
-      {% if related_episodes %}
-        <section class="band band-lavender episode-related" aria-labelledby="related-episodes-heading">
-          <div class="shell episode-shell">
-            <div class="band-head">
-              <div>
-                <h2 id="related-episodes-heading">More from this season</h2>
-                <p>Continue with another conversation from Season {{ episode.season }}.</p>
-              </div>
-            </div>
-            <div class="card-grid related-episode-list">
-              {% for related in related_episodes %}
-                <article class="card related-episode-card stretched-card-link interactive-card interactive-lift">
-                  {% if related.media_available %}
-                    <img
-                      class="related-artwork"
-                      src="{{ related.image_path }}"
-                      alt="Artwork for {{ related.title }}"
-                      loading="lazy"
-                      decoding="async"
-                    >
-                  {% else %}
-                    <div class="related-artwork-missing">Artwork unavailable.</div>
-                  {% endif %}
-                  <p class="related-episode-meta">{{ related.season_episode }}</p>
-                  <h3>
-                    <a href="{{ related.public_path }}">{{ related.title }}</a>
-                  </h3>
-                  {% if related.guest_names %}
-                    <p>{{ related.guest_names }}</p>
-                  {% endif %}
-                </article>
-              {% endfor %}
-            </div>
-          </div>
-        </section>
-      {% endif %}
+      {% include "public/_podcast_related.html" %}
 
       {% include "public/_podcast_episode_extensions.html" %}
     </main>
     {% include "core/_site_shell_foot.html" %}
     <script>
-      /* Timestamp links are useful links first. When the validated YouTube player is
-         present, changing its source seeks to the same point. Spotify remains a
-         responsive embedded player, but keeps native timestamp destinations. */
+      /* Players.  A Spotify frame loads with the page and keeps its own ground
+         while it does; only an error swaps in the fallback links.  The YouTube
+         player is a click-to-play poster: the frame (and every request to
+         YouTube) is built only when the reader presses play or a timestamp.
+         Timestamp links stay real links, so without this script they still
+         open YouTube at the right second. */
       (function () {
-        /* The secondary Spotify audio player (shown alongside a YouTube video) shares
-           the primary player's loading/unavailable CSS states, but is a second,
-           independent frame -- it needs its own load/error wiring, or it never leaves
-           the "loading" state and its iframe never becomes visible. */
-        var audioPlayer = document.getElementById('podcast-audio-player');
-        var audioFrame = audioPlayer ? audioPlayer.closest('[data-video-provider][data-video-id]') : null;
-        if (audioPlayer && audioFrame) {
-          audioPlayer.addEventListener('load', function () {
-            audioFrame.setAttribute('data-video-state', 'available');
+        document.querySelectorAll('[data-video-provider="spotify"] iframe').forEach(function (iframe) {
+          var frame = iframe.closest('[data-video-provider]');
+          iframe.addEventListener('load', function () {
+            frame.setAttribute('data-video-state', 'available');
           });
-          audioPlayer.addEventListener('error', function () {
-            audioFrame.setAttribute('data-video-state', 'unavailable');
-            audioPlayer.remove();
+          iframe.addEventListener('error', function () {
+            frame.setAttribute('data-video-state', 'unavailable');
+            iframe.remove();
+          });
+        });
+
+        var frame = document.querySelector('[data-video-provider="youtube"][data-video-embed]');
+        if (!frame) {
+          return;
+        }
+        var facade = frame.querySelector('[data-video-facade]');
+        var embed = frame.getAttribute('data-video-embed');
+        if (facade) {
+          /* It acts in place rather than navigating, so it is announced as one. */
+          facade.setAttribute('role', 'button');
+          var poster = facade.querySelector('img');
+          if (poster) {
+            poster.addEventListener('error', function () {
+              poster.remove();
+            });
+          }
+        }
+
+        function play(seconds) {
+          var src = embed + '&autoplay=1' + (seconds === null ? '' : '&start=' + seconds);
+          var player = document.getElementById('podcast-video-player');
+          if (!player) {
+            player = document.createElement('iframe');
+            player.id = 'podcast-video-player';
+            player.title = frame.getAttribute('data-video-title');
+            player.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+            player.referrerPolicy = 'strict-origin-when-cross-origin';
+            player.allowFullscreen = true;
+            player.addEventListener('error', function () {
+              frame.setAttribute('data-video-state', 'unavailable');
+              player.remove();
+            });
+            player.src = src;
+            frame.insertBefore(player, frame.firstChild);
+            if (facade) {
+              facade.remove();
+            }
+            frame.setAttribute('data-video-state', 'playing');
+          } else {
+            player.src = src;
+          }
+          return player;
+        }
+
+        if (facade) {
+          facade.addEventListener('click', function (event) {
+            event.preventDefault();
+            play(null).focus();
+          });
+          facade.addEventListener('keydown', function (event) {
+            if (event.key === ' ') {
+              event.preventDefault();
+              play(null).focus();
+            }
           });
         }
 
-        var links = document.querySelectorAll('[data-seconds]');
-        var player = document.getElementById('podcast-video-player');
-        var frame = document.querySelector('[data-video-provider][data-video-id]');
-        if (!player || !frame) {
-          return;
-        }
-        player.addEventListener('load', function () {
-          frame.setAttribute('data-video-state', 'available');
-        });
-        player.addEventListener('error', function () {
-          frame.setAttribute('data-video-state', 'unavailable');
-          player.remove();
-        });
-        if (frame.getAttribute('data-video-provider') !== 'youtube' || !links.length) {
-          return;
-        }
-        var videoId = frame.getAttribute('data-video-id');
-        links.forEach(function (link) {
+        document.querySelectorAll('[data-seconds]').forEach(function (link) {
           link.addEventListener('click', function (event) {
             var seconds = Number(link.getAttribute('data-seconds'));
             if (
               frame.getAttribute('data-video-state') === 'unavailable'
-              || !videoId
               || !Number.isFinite(seconds)
               || seconds < 0
             ) {
               return;
             }
             event.preventDefault();
-            player.src = 'https://www.youtube-nocookie.com/embed/' +
-              encodeURIComponent(videoId) + '?enablejsapi=1&rel=0&start=' + Math.floor(seconds);
+            play(Math.floor(seconds));
             link.focus();
           });
         });
@@ -987,7 +986,8 @@
          through the anchor links above them, so a visitor without JavaScript
          loses nothing. When this runs, the same anchors and sections become a
          real WAI-ARIA tabs widget (https://www.w3.org/WAI/ARIA/apg/patterns/tabs/)
-         with one panel visible at a time, Show Notes first. */
+         with one panel visible at a time, the first one (Summary when the
+         episode has it) selected. */
       (function () {
         var nav = document.querySelector('.episode-tabs');
         if (!nav) {

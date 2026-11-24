@@ -80,6 +80,9 @@ class ArticlesParser:
             maximum=50,
         )
         blocks = builder._article_blocks(body, media_root=checkout.root, counters={})
+        faq = self._faq_pairs(metadata.get("faq"), relative)
+        if faq is None and any(block.get("kind") == "faq" for block in blocks):
+            base.fail("article FAQ marker without frontmatter FAQ", relative)
         record = {
             "slug": slug,
             "public_path": f"/blog/{slug}.html",
@@ -100,7 +103,8 @@ class ArticlesParser:
             # format rule the staged adapter applies.  The projection builder's
             # stricter accordion-position invariant is tied to its pinned
             # recovery and stays with the pinned-corpus gates, not here.
-            "faq": self._faq_pairs(metadata.get("faq"), relative),
+            "faq": faq,
+            "sponsor": self._sponsor(metadata.get("sponsor"), relative),
             "image_source": builder._string(
                 metadata.get("image"), field="article image", maximum=500, optional=True
             ),
@@ -130,6 +134,28 @@ class ArticlesParser:
         except ArticleFaqFormatError:
             base.fail("article frontmatter FAQ rejected", source_path)
         return [dict(question) for question in questions]
+
+    @staticmethod
+    def _sponsor(value, source_path: str) -> dict[str, str] | None:
+        """Validate the frontmatter ``sponsor: {name, url}`` disclosure.
+
+        A sponsored post names its sponsor here rather than in a hand-written
+        note inside the body, so every sponsored article carries the same
+        disclosure, drawn by the page in the same place.
+        """
+
+        if value is None:
+            return None
+        if not isinstance(value, dict) or set(value) != {"name", "url"}:
+            base.fail("article sponsor rejected", source_path)
+        try:
+            name = builder._string(value["name"], field="article sponsor name", maximum=100)
+            url = builder._safe_url(value["url"], field="article sponsor url", optional=False)
+        except builder.ProjectionBuildError:
+            base.fail("article sponsor rejected", source_path)
+        if not name.strip() or not url.startswith("https://"):
+            base.fail("article sponsor rejected", source_path)
+        return {"name": name.strip(), "url": url}
 
 
 register_parser(CONTENT_KIND, ArticlesParser())

@@ -1,7 +1,8 @@
 {% comment %}
   The closing mint panel of a reading page: one heading, one sentence and
-  the one waitlist action, which lands on the home page's signup card.
-  join: heading/text.
+  the one waitlist action, which lands on the home page's waitlist form
+  unless the page names its own target (join.href) and label (join.label).
+  join: heading/text and the optional href/label.
 {% endcomment %}
 <section class="academy-section" aria-labelledby="join-heading">
   <div class="panel panel-mint panel-outlined academy-closing academy-closing-action">
@@ -9,6 +10,10 @@
       <h2 id="join-heading">{{ join.heading }}</h2>
       <p>{{ join.text }}</p>
     </div>
-    {% include "core/_button.html" with href=academy_root|add:"#signup-hero" label=shared.waitlist_button variant="primary" %}
+    {% if join.href %}
+      {% include "core/_button.html" with href=join.href label=join.label|default:shared.waitlist_button variant="primary" %}
+    {% else %}
+      {% include "core/_button.html" with href=academy_root|add:"#signup-hero" label=join.label|default:shared.waitlist_button variant="primary" %}
+    {% endif %}
   </div>
 </section>

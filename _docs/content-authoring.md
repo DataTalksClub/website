@@ -44,12 +44,27 @@ Articles remain UTF-8 Markdown with one leading YAML front-matter mapping. Their
 non-empty. Unknown front-matter fields remain available as source metadata. HTML, URLs, and the
 small allowlist of legacy Liquid includes are validated and rendered by website-owned code.
 
-Ten articles end with a frequently-asked-questions section written as
-`{% include faq-accordion.html faqs=site.data.faqs.<key> %}`. The include names a data file in
-`DataTalksClub/datatalksclub.github.io` under `_data/faqs/`, so the pairs are not in this source at
-all and an article file alone cannot supply them. The website recovers them into
-`content/article_faq.json`; see [article FAQ recovery](article-faq-recovery.md), which also records
-the upstream change that would retire the recovery.
+An article's frequently-asked-questions pairs live in its own front matter, as a `faq:` list of
+`question`/`answer` mappings. Where the body should show them, it keeps the legacy marker line
+`{% include faq-accordion.html ... %}` (its arguments are ignored): the articles parser turns that
+line into a typed `faq` block, and the page draws the FAQ panel exactly there, so the body's own FAQ
+heading sits directly above the panel and anything written after the marker follows it. A body with
+`faq:` but no marker gets the panel after its last block. A marker without `faq:`, or a second
+marker, is refused by the sync.
+
+A sponsored article declares its sponsor in front matter rather than in a hand-written note:
+
+```yaml
+sponsor:
+  name: Arize
+  url: https://arize.com/
+```
+
+The page then opens the reading column with one disclosure, "This post is sponsored by <name>. We
+thank the <name> team for their ongoing support of the community.", drawn as the shared quiet
+callout. It sits at the top, before the first paragraph, so a reader knows the post is sponsored
+before reading it (the usual practice for sponsored content, and what disclosure guidance asks
+for). `name` must be non-empty and `url` an `https://` address; anything else is refused.
 
 Podcast episode files are UTF-8 YAML mappings at `podcasts/<slug>.yaml`. Required identity fields
 include `slug`, exact `legacy_path`, `title`, `description`, `season`, `episode`, `guests`, and
@@ -115,6 +130,35 @@ inventory. The bootstrap adapter therefore omits only those five exact, checksum
 rendered HTML while retaining raw source and management-only omission evidence. This exception is
 not available to later revisions; edit those articles to repository-owned media before the next
 accepted content commit.
+
+## Call-to-action buttons in a body
+
+A Markdown body (an article, an Academy page, a documentation page, a course page) turns a link
+into the site's button by putting the link alone on its own line and marking it:
+
+```markdown
+Subscribe to get the rest of the articles as they're published:
+
+[Subscribe to the Substack](https://aishippingblog.com/){.button}
+```
+
+- `{.button}` is the secondary action (card surface, ink text) and is the default choice.
+  `{.button-primary}` is the green primary action; use it only for the one thing the page is
+  asking the reader to do.
+- The line must hold nothing but the link and the marker. A marker after a link inside a sentence,
+  in a list item, or spelled any other way (`{.btn}`, `{.button-red}`) is dropped and the link stays
+  an ordinary link, so the marker never shows as text. No other class can come from content.
+- The destination is `https://`, `http://`, `mailto:`, a site path (`/academy/`) or a fragment. An
+  outside destination gets `rel="noopener noreferrer"`; course pages also open it in a new tab, as
+  they do every outside link.
+- Keep "→" and other decoration out of the label; the button is the affordance. One button per
+  section at most, for a genuine call to action (subscribe, register, apply, join, sign up), never
+  for an ordinary reference link.
+- Do not hand-write a button in raw HTML with inline styles; the sanitizer strips the styling and
+  the reader gets a plain link.
+
+It renders as `<p class="prose-action">` holding the `templates/core/_button.html` control
+(`cta cta-secondary interactive-lift`, or `cta-primary`). The parser is `core.markdown_actions`.
 
 ## Editing and provenance
 

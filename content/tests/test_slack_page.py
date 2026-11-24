@@ -125,6 +125,22 @@ class SlackPageTests(TestCase):
                 self.assertIn(f'<code class="mono-code">{channel}</code>', self.body)
         self.assertEqual(self.body.count('class="chip chip-plain channel"'), len(channels))
 
+    def test_the_channels_section_links_to_the_slack_guide_in_the_docs(self) -> None:
+        """The chips name the channels; the docs guide says what each one is for."""
+
+        guide = reverse("docs-page", args=["general/slack/"])
+        self.assertEqual(guide, "/docs/general/slack/")
+        self.assertRegex(
+            self.body,
+            r'<a class="band-link slack-guide-link" href="'
+            + re.escape(guide)
+            + r'">Read the Slack guide: channels and how to get help',
+        )
+        self.assertLess(
+            self.body.index('id="slack-channels-heading"'),
+            self.body.index(f'href="{guide}"'),
+        )
+
     def test_the_page_offers_approval_flow_and_existing_help(self) -> None:
         self.assertIn('<h2 id="slack-join-heading">Join Slack</h2>', self.body)
         self.assertIn('<h2 id="slack-help-heading">Need help with Slack?</h2>', self.body)

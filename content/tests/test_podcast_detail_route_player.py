@@ -63,8 +63,10 @@ class PodcastDetailRoutePlayerTests(TestCase):
         self.assertContains(response, 'data-video-id="XzokRd_IPSc"')
         self.assertContains(
             response,
-            'src="https://www.youtube-nocookie.com/embed/XzokRd_IPSc?enablejsapi=1&amp;rel=0"',
+            'data-video-embed="https://www.youtube-nocookie.com/embed/XzokRd_IPSc'
+            '?enablejsapi=1&amp;rel=0"',
         )
+        self.assertContains(response, 'href="https://www.youtube.com/watch?v=XzokRd_IPSc"')
 
     def test_spotify_creator_player_is_derived_from_stored_url_safely(self) -> None:
         creator_url = self.record["links"].get("anchor") or self.record["links"].get(

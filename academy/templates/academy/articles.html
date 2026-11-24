@@ -1,0 +1,42 @@
+{% extends "core/content_page.html" %}
+{% comment %}
+  The Academy's articles (/academy/guides/): every article page -- session
+  recaps, guides, comparisons -- newest first, as the site's archive rows,
+  the way the blog index lists its posts.  The list is read from the synced
+  article pages; the heading and lede are academy/guides.md.
+{% endcomment %}
+
+{% block document_title %}
+  {{ page.title }}
+{% endblock %}
+
+{% block metadata %}
+  {% include "academy/_metadata.html" %}
+{% endblock %}
+
+{% block page_styles %}
+  {% include "academy/_styles.html" %}
+{% endblock %}
+
+{% block header_band_class %}
+  academy-hero
+{% endblock %}
+
+{% block header_attributes %}
+  aria-labelledby="academy-heading"
+{% endblock %}
+
+{% block page_header %}
+  <div class="academy-hero-copy">
+    <h1 id="academy-heading">{{ data.heading }}</h1>
+    <p class="academy-lede">{{ data.lead }}</p>
+  </div>
+{% endblock %}
+
+{% block page_content %}
+  <div class="row-list academy-articles">
+    {% for article in articles %}
+      {% include "public/_archive_row.html" with row_title=article.heading row_url=article.path row_date=article.published row_eyebrow=article.eyebrow row_summary=article.lead only %}
+    {% endfor %}
+  </div>
+{% endblock %}

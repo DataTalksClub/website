@@ -14,11 +14,17 @@ ordered or unordered list, each richer kind is drawn from its own fields, and an
 block kind this module does not know keeps its text as a paragraph — so a kind
 the projection grows later is rendered rather than silently dropped.
 
-Some articles close with a frequently-asked-questions section.  Its pairs are
-part of the article's upstream frontmatter and travel in the article's own
-document row, which :mod:`content.article_faq` reads; this module places the
-section after the body.  An article whose row names no FAQ renders none at all:
-no heading of its own, no empty region.
+Some articles carry a frequently-asked-questions section.  Its pairs are part
+of the article's upstream frontmatter and travel in the article's own document
+row, which :mod:`content.article_faq` reads.  Where the body marks the FAQ's
+position (a typed ``faq`` block, translated at import from the legacy
+accordion include) the body is split there, so the FAQ sits under the body's
+own FAQ heading and anything written after it follows the FAQ; a body with no
+marker gets the FAQ after its last block.  An article whose row names no FAQ
+renders none at all: no heading of its own, no empty region.
+
+A sponsored article names its sponsor in its row (``sponsor: {name, url}``) and
+the page draws one disclosure for it, above the body.
 
 A body block carries the plain text it always carried and, where the source held
 more than that plain text, the bounded source segment it came from.  This module
@@ -34,10 +40,8 @@ frame.
 Deliberate omissions, because the record has no such field: an updated date, a
 category or tag, and a series.  A heading is still projected as plain text, so
 markup written inside a heading is shown as words; the identifier the heading
-carries is a linkable anchor and stays exactly as projected.  Survey charts are
-drawn by a script this site does not ship. Four charts used by the sponsorship
-article have reviewed local SVG bridges; any chart without one keeps its title
-and an explicit unavailable state rather than leaving a hole in the argument.
+carries is a linkable anchor and stays exactly as projected.  Survey charts
+arrive as typed data and are drawn as static SVG bars (:mod:`content.article_charts`).
 """
 
 from __future__ import annotations
@@ -53,7 +57,9 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils.html import strip_tags
 
 from core.home_content import published_display, reading_minutes
+from core.markdown_actions import markdown_buttons
 
+from .article_charts import ArticleChart, chart_view
 from .article_faq import ArticleFaq, FaqQuestion
 from .services import sanitize_rendered_html
 
@@ -62,6 +68,14 @@ from .services import sanitize_rendered_html
 # range, so an `h7` can never reach the document.
 MIN_HEADING_LEVEL = 2
 MAX_HEADING_LEVEL = 6
+
+
+@dataclass(frozen=True, slots=True)
+class Sponsor:
+    """The sponsor a sponsored article discloses."""
+
+    name: str
+    url: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,7 +88,9 @@ class Author:
     media_available: bool
 
 
-_MARKDOWN = mistune.create_markdown(escape=False, plugins=("strikethrough", "table"))
+_MARKDOWN = mistune.create_markdown(
+    escape=False, plugins=("strikethrough", "table", markdown_buttons)
+)
 
 # The elements that cannot legally sit inside a paragraph.  A fragment carrying
 # any of them is drawn as a block instead of being unwrapped into one.
@@ -150,6 +166,7 @@ class ProseSection:
     label: str = ""
     head: tuple[str, ...] = ()
     rows: tuple[tuple[str, ...], ...] = ()
+    chart: ArticleChart | None = None
 
     @property
     def labelled_rows(self) -> tuple[tuple[TableCell, ...], ...]:
@@ -198,6 +215,10 @@ class ArticleView:
     # article without one has an empty `faq` and the page draws no FAQ region.
     sections: tuple[ProseSection, ...] = field(default_factory=tuple)
     faq: tuple[FaqQuestion, ...] = field(default_factory=tuple)
+    # Whatever the body placed after its FAQ marker; empty when the body has no
+    # marker, in which case the FAQ follows the whole body.
+    sections_after_faq: tuple[ProseSection, ...] = field(default_factory=tuple)
+    sponsor: Sponsor | None = None
 
     @property
     def reading_time(self) -> str:
@@ -379,22 +400,17 @@ def prose_sections(blocks: Any) -> tuple[ProseSection, ...]:
                 ProseSection(kind="code", text=text, language=str(block.get("language") or ""))
             )
             continue
+        if kind == "faq":
+            # The FAQ position marker: article_view splits the body there and
+            # the page draws the FAQ itself; a feed has no FAQ to place.
+            continue
         if kind == "separator":
             sections.append(ProseSection(kind="separator"))
             continue
         if kind == "chart":
-            sections.append(
-                ProseSection(
-                    kind="chart",
-                    text=text,
-                    src=_image_source(block) if block.get("src") else "",
-                    alt=str(block.get("alt") or ""),
-                    caption=str(block.get("caption") or ""),
-                    title=str(block.get("title") or ""),
-                    width=_dimension(block.get("width")),
-                    height=_dimension(block.get("height")),
-                )
-            )
+            chart = chart_view(block)
+            if chart is not None:
+                sections.append(ProseSection(kind="chart", chart=chart))
             continue
         if not text and not html:
             continue
@@ -428,7 +444,12 @@ def article_view(
         raise ImproperlyConfigured("Public article publication date is invalid.") from error
     if faq is not None and faq.slug != record.get("slug"):
         raise ImproperlyConfigured("Public article FAQ belongs to a different article.")
-    sections = prose_sections(list(record.get("blocks") or ()))
+    blocks = list(record.get("blocks") or ())
+    marker = next(
+        (index for index, block in enumerate(blocks) if block.get("kind") == "faq"), len(blocks)
+    )
+    sections = prose_sections(blocks[:marker])
+    sections_after_faq = prose_sections(blocks[marker + 1 :])
     return ArticleView(
         title=_required_text(record, "title"),
         subtitle=str(record.get("subtitle") or ""),
@@ -439,4 +460,18 @@ def article_view(
         authors=_authors(record, people),
         sections=sections,
         faq=faq.questions if faq is not None else (),
+        sections_after_faq=sections_after_faq,
+        sponsor=_sponsor(record.get("sponsor")),
     )
+
+
+def _sponsor(value: Any) -> Sponsor | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ImproperlyConfigured("Public article sponsor is invalid.")
+    name = str(value.get("name") or "").strip()
+    url = str(value.get("url") or "")
+    if not name or not url.startswith("https://"):
+        raise ImproperlyConfigured("Public article sponsor is invalid.")
+    return Sponsor(name=name, url=url)
