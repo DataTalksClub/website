@@ -1,59 +1,57 @@
 {% load academy_text %}
 {% comment %}
-  The waitlist form: one card, posted by academy.js to the signup backend's
-  /signup endpoint with the field keys that backend has always read (email,
-  name, track, payment_plan, the campaign parameters, referrer, page, lang,
-  consent_version and the "website" honeypot).  After a signup the card turns
-  into the confirmation note and the optional quick questions, each answer a
-  second /signup post.  Every word is the synced shared copy.
+  The waitlist form: the page's one waitlist form, as a card in the closing
+  mint panel.  academy.js posts it to
+  the signup backend's /signup endpoint with the field keys that backend has
+  always read (email, name, track, payment_plan, the campaign parameters,
+  referrer, page, lang, consent_version and the "website" honeypot).  After a
+  signup the slab turns into the confirmation note and the optional quick
+  questions, each answer a second /signup post.  Every word is the synced
+  shared copy.
 
-  The fields are one column at the card's width, the register form's shape:
-  each label over its control, the email at full width, and the submit as a
-  full-width primary action under the fields, so nothing is squeezed into a
-  row and the button's offset shadow has clear space.
+  The card starts with its fields: the seats and the start date are already
+  in the facts strip, and a status pill and start line repeating them over
+  the form read as clutter (owner, 2026-11-24).  The fields are one column,
+  each label over its control, with the confirmation warning and the
+  full-width submit under them.
 
-  form_id         "hero" or "join"; the ids and the #signup-<id> anchor follow it
+  form_id         "hero"; the ids and the #signup-<id> anchor older links use follow it
   choose_program  draw the program select (the Academy home page)
   program         the page's own program, when the page belongs to one
-  intro           open the card with the seat caption and the start line
 {% endcomment %}
 {% with copy=shared.signup %}
-  <div class="card academy-form-card" id="signup-{{ form_id }}" data-academy-signup data-api-origin="{{ api_origin }}" data-consent-version="{{ consent_version }}" data-track="{{ program.slug|default:'' }}" data-survey-option="{{ program.survey_option|default:'' }}" data-survey-url="{{ copy.success.survey_url }}">
-    {% if intro %}
-      <div class="academy-card-head">
-        <span class="status-pill status-pill-open academy-pill">{{ shared.seat_caption }}</span>
-        <p>{{ shared.hero.honesty }}</p>
-      </div>
-    {% endif %}
-    <form class="cmp-form" novalidate>
-      {% if choose_program %}
+  <div class="card academy-join" id="signup-{{ form_id }}" data-academy-signup data-api-origin="{{ api_origin }}" data-consent-version="{{ consent_version }}" data-track="{{ program.slug|default:'' }}" data-survey-option="{{ program.survey_option|default:'' }}" data-survey-url="{{ copy.success.survey_url }}">
+    <form class="cmp-form academy-join-form" novalidate>
+      <div class="academy-fields">
+        {% if choose_program %}
+          <div class="field">
+            <label class="field-label" for="program-{{ form_id }}">{{ copy.program_label }}</label>
+            <select class="field-input" id="program-{{ form_id }}" name="program">
+              {% for item in programs %}
+                <option value="{{ item.slug }}" data-survey-option="{{ item.survey_option }}">{{ item.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        {% endif %}
         <div class="field">
-          <label class="field-label" for="program-{{ form_id }}">{{ copy.program_label }}</label>
-          <select class="field-input" id="program-{{ form_id }}" name="program">
-            {% for item in programs %}
-              <option value="{{ item.slug }}" data-survey-option="{{ item.survey_option }}">{{ item.name }}</option>
+          <label class="field-label" for="name-{{ form_id }}">{{ copy.name_label }}</label>
+          <input class="field-input" id="name-{{ form_id }}" type="text" name="name" autocomplete="name" maxlength="60" placeholder="{{ copy.name_placeholder }}">
+        </div>
+        <div class="field">
+          <label class="field-label" for="payment-plan-{{ form_id }}">{{ copy.payment_label }}</label>
+          <select class="field-input" id="payment-plan-{{ form_id }}" name="payment_plan" required aria-describedby="payment-err-{{ form_id }}">
+            <option value="" selected disabled>{{ copy.payment_placeholder }}</option>
+            {% for option in copy.payment_options %}
+              <option value="{{ option }}">{{ option }}</option>
             {% endfor %}
           </select>
+          <p class="a11y-error" id="payment-err-{{ form_id }}" data-error="payment_plan" hidden>{{ copy.payment_error }}</p>
         </div>
-      {% endif %}
-      <div class="field">
-        <label class="field-label" for="name-{{ form_id }}">{{ copy.name_label }}</label>
-        <input class="field-input" id="name-{{ form_id }}" type="text" name="name" autocomplete="name" maxlength="60" placeholder="{{ copy.name_placeholder }}">
-      </div>
-      <div class="field">
-        <label class="field-label" for="payment-plan-{{ form_id }}">{{ copy.payment_label }}</label>
-        <select class="field-input" id="payment-plan-{{ form_id }}" name="payment_plan" required aria-describedby="payment-err-{{ form_id }}">
-          <option value="" selected disabled>{{ copy.payment_placeholder }}</option>
-          {% for option in copy.payment_options %}
-            <option value="{{ option }}">{{ option }}</option>
-          {% endfor %}
-        </select>
-        <p class="a11y-error" id="payment-err-{{ form_id }}" data-error="payment_plan" hidden>{{ copy.payment_error }}</p>
-      </div>
-      <div class="field">
-        <label class="field-label" for="email-{{ form_id }}">{{ copy.email_label }}</label>
-        <input class="field-input" id="email-{{ form_id }}" type="email" name="email" required autocomplete="email" inputmode="email" placeholder="{{ copy.email_placeholder }}" aria-describedby="email-err-{{ form_id }} email-micro-{{ form_id }}">
-        <p class="a11y-error" id="email-err-{{ form_id }}" data-error="invalid" hidden>{{ copy.email_error }}</p>
+        <div class="field">
+          <label class="field-label" for="email-{{ form_id }}">{{ copy.email_label }}</label>
+          <input class="field-input" id="email-{{ form_id }}" type="email" name="email" required autocomplete="email" inputmode="email" placeholder="{{ copy.email_placeholder }}" aria-describedby="email-err-{{ form_id }} email-micro-{{ form_id }}">
+          <p class="a11y-error" id="email-err-{{ form_id }}" data-error="invalid" hidden>{{ copy.email_error }}</p>
+        </div>
       </div>
       <div class="newsletter-honeypot" aria-hidden="true">
         <input type="text" name="website" tabindex="-1" autocomplete="off">

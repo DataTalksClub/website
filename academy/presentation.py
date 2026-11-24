@@ -2,9 +2,10 @@
 
 Every word comes from the synced rows (``content.catalogue.academy_page`` and
 ``academy_shared``); this module only arranges them: it resolves which program
-a page belongs to, picks the outcomes a home panel shows, numbers the syllabus,
-splits a session description into its paragraphs and bullet list, and writes
-the structured data a search engine reads.  It invents no copy.
+a page belongs to, picks the outcomes a home panel shows, lays the syllabus
+out week by week, lists the articles, splits a session description into its
+paragraphs and bullet list, and writes the structured data a search engine
+reads.  It invents no copy.
 """
 
 from __future__ import annotations
@@ -17,7 +18,10 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
+from django.utils import timezone
 from django.utils.safestring import SafeString, mark_safe
+
+from content import catalogue
 
 Record = Mapping[str, Any]
 
@@ -25,6 +29,9 @@ SITE_ORIGIN = "https://datatalks.club"
 ACADEMY_ROOT = "/academy/"
 #: The sessions are held in Berlin; their structured data names local times.
 SESSION_ZONE = ZoneInfo("Europe/Berlin")
+#: How many of the newest articles the home page lists before its link to
+#: the full index.
+HOME_ARTICLES = 5
 _MARKDOWN_LINK = re.compile(r"\[([^\]]+)\]\([^)]+\)")
 #: The layouts that draw the waitlist card (``#signup-hero``) themselves.
 WAITLIST_LAYOUTS = frozenset({"home", "program"})
@@ -64,9 +71,64 @@ def programs(pages: Sequence[Record]) -> list[dict[str, Any]]:
             "path": page["public_path"],
             "headline": page["data"]["hero"]["headline"],
             "outcomes": page["data"]["outcomes"]["items"],
+            "highlights": page["data"].get("highlights") or [],
         }
         for page in held
     ]
+
+
+def syllabus_phases(phases: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Each phase with its modules gathered into the weeks they are taught in.
+
+    A module names its week; two modules taught in the same week are one row.
+    A syllabus still in the older module-numbered shape (no weeks) draws one
+    row per module, labelled by its running number.
+    """
+
+    laid_out = []
+    number = 0
+    for phase in phases:
+        weeks: list[dict[str, Any]] = []
+        for module in phase["modules"]:
+            number += 1
+            week = module.get("week")
+            if week is not None and weeks and weeks[-1]["week"] == week:
+                weeks[-1]["modules"].append(module)
+                continue
+            weeks.append({"week": week, "number": f"{number:02d}", "modules": [module]})
+        laid_out.append({"title": phase["title"], "weeks": weeks})
+    return laid_out
+
+
+def articles(pages: Sequence[Record]) -> list[dict[str, Any]]:
+    """The article pages (recaps, guides), newest first."""
+
+    held = [page for page in pages if page.get("layout") == "article"]
+    held.sort(key=lambda page: (page["data"]["published"], page["public_path"]), reverse=True)
+    return [
+        {
+            "path": page["public_path"],
+            "eyebrow": page["data"]["eyebrow"],
+            "heading": page["data"]["heading"],
+            "lead": page["data"]["lead"],
+            "published": date.fromisoformat(page["data"]["published"]),
+        }
+        for page in held
+    ]
+
+
+def author_credit(name: str) -> dict[str, str]:
+    """An author as the credit the shared person chip draws.
+
+    The person records are matched on the name the page gives, so a byline
+    that names a person with a profile shows their portrait and links to it;
+    any other name stays plain text.
+    """
+
+    for person in catalogue.people_by_slug().values():
+        if (person.get("name") or person.get("title")) == name:
+            return {"name": name, "public_path": person.get("public_path") or ""}
+    return {"name": name}
 
 
 def session_blocks(description: str) -> list[dict[str, Any]]:
@@ -145,7 +207,8 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
         context["tracks"] = [
             {
                 **program,
-                "highlights": [
+                "highlights": program["highlights"]
+                or [
                     program["outcomes"][index - 1]
                     for index in picks
                     if 0 < index <= len(program["outcomes"])
@@ -154,23 +217,38 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
             }
             for program in all_programs
         ]
+        context["articles"] = articles(pages)[:HOME_ARTICLES]
+        sessions_page = sessions_page_of(pages)
+        if data.get("sessions") and sessions_page is not None:
+            context["home_sessions"] = sessions_context(sessions_page)["sessions"]
+        faq_page = next((item for item in pages if item.get("layout") == "faq"), None)
+        if data.get("faq") and faq_page is not None:
+            questions = faq_page["data"]["items"]
+            context["home_faq"] = [
+                questions[index - 1]
+                for index in data["faq"]["picks"]
+                if 0 < index <= len(questions)
+            ]
+            context["faq_path"] = faq_page["public_path"]
 
     elif layout == "program":
         program = data["program"]
-        number = 0
-        syllabus = []
-        for group in data["syllabus"]:
-            modules = []
-            for module in group["modules"]:
-                number += 1
-                modules.append({**module, "number": f"{number:02d}"})
-            syllabus.append({**group, "modules": modules})
         faq = _program_faq(shared, data["prerequisites"])
         context.update(
             {
                 "program": program,
                 "fit_for": [data["fit_first"], *shared["fit"]["for_shared"]],
-                "syllabus": syllabus,
+                "syllabus": syllabus_phases(data["syllabus"]),
+                "capstone_weeks": (
+                    syllabus_phases([{"title": "", **data["capstone"]}])[0]["weeks"]
+                    if data.get("capstone")
+                    else []
+                ),
+                "interview_weeks": (
+                    syllabus_phases([{"title": "", **shared["interviews"]}])[0]["weeks"]
+                    if shared.get("interviews")
+                    else []
+                ),
                 "faq": faq,
                 "other_program": next(
                     (item for item in all_programs if item["slug"] != program["slug"]), None
@@ -261,8 +339,14 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
     elif layout == "faq":
         schema.append(_faq_schema(data["items"]))
 
+    elif layout == "articles":
+        context["articles"] = articles(pages)
+
     elif layout == "article":
+        if data.get("faq"):
+            schema.append(_faq_schema(data["faq"]["items"]))
         context["published"] = date.fromisoformat(data["published"])
+        context["author"] = author_credit(data["author"])
         schema.append(
             {
                 "@context": "https://schema.org",
@@ -279,7 +363,15 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
             }
         )
 
+    context["alternates"] = [
+        {"lang": item["lang"], "href": absolute(item["path"])}
+        for item in data.get("alternates") or []
+    ]
     context["json_ld"] = json_ld(schema)
+    context["articles_path"] = next(
+        (path for path, item in by_path.items() if item.get("layout") == "articles"), ""
+    )
+    context["articles_index"] = by_path.get(context["articles_path"], {}).get("data", {})
     context["sessions_path"] = next(
         (path for path, item in by_path.items() if item.get("layout") == "sessions"), ""
     )
@@ -292,8 +384,15 @@ def sessions_page_of(pages: Sequence[Record]) -> Record | None:
 
 def sessions_context(page: Record) -> dict[str, Any]:
     data = page["data"]
+    now = timezone.now()
     sessions = [
-        {**session, "blocks": session_blocks(session["description"])}
+        {
+            **session,
+            "blocks": session_blocks(session["description"]),
+            # A session that has ended is no longer offered in the form; its
+            # recap, when it has one, is linked wherever it is listed.
+            "past": datetime.fromisoformat(session["ends"].replace("Z", "+00:00")) < now,
+        }
         for session in data["sessions"]
     ]
     return {

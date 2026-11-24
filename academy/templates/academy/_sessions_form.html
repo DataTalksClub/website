@@ -7,41 +7,47 @@
   location, Bildungsgutschein interest, the free text and the opt-in; the QR
   form sends the status, the opt-in and the one session its ?session=N names.
 
-  Every choice group is a fieldset with its legend and its options as an even
-  grid of 44px .form-check rows; the submit is a full-width primary action
+  Every choice group is a fieldset with its legend and its options as one
+  even row of 44px .form-check rows (as many columns as options, so no
+  option sits alone on a row); a session that has already happened is not
+  offered; the submit is a full-width primary action
   under the fields, with the confirmation warning just above it.
 
   kind   "main" or "qr"
   page   for "qr", the materials page whose own copy the form uses
 {% endcomment %}
 {% with form=sessions_data.form %}
-  <div class="card academy-form-card" id="register" data-academy-sessions data-form-kind="{{ kind }}" data-api-origin="{{ api_origin }}" data-consent-version="{{ consent_version }}" data-session-ids="{{ session_ids }}">
-    <form class="cmp-form" novalidate>
-      <div class="field">
-        <label class="field-label" for="{{ kind }}-email">{{ form.email_label }}</label>
-        <input class="field-input" id="{{ kind }}-email" type="email" name="email" required autocomplete="email" inputmode="email" placeholder="{{ form.email_placeholder }}">
-        <p class="a11y-error" data-error="invalid" role="alert" hidden>{{ form.email_error }}</p>
-      </div>
-      <div class="field">
-        <label class="field-label" for="{{ kind }}-name">{{ form.name_label }}</label>
-        <input class="field-input" id="{{ kind }}-name" type="text" name="name" autocomplete="given-name" maxlength="60">
+  <div class="featured academy-join" id="register" data-academy-sessions data-form-kind="{{ kind }}" data-api-origin="{{ api_origin }}" data-consent-version="{{ consent_version }}" data-session-ids="{{ session_ids }}">
+    <form class="cmp-form academy-join-form" novalidate>
+      <div class="academy-fields">
+        <div class="field">
+          <label class="field-label" for="{{ kind }}-email">{{ form.email_label }}</label>
+          <input class="field-input" id="{{ kind }}-email" type="email" name="email" required autocomplete="email" inputmode="email" placeholder="{{ form.email_placeholder }}">
+          <p class="a11y-error" data-error="invalid" role="alert" hidden>{{ form.email_error }}</p>
+        </div>
+        <div class="field">
+          <label class="field-label" for="{{ kind }}-name">{{ form.name_label }}</label>
+          <input class="field-input" id="{{ kind }}-name" type="text" name="name" autocomplete="given-name" maxlength="60">
+        </div>
       </div>
       {% if kind == "main" %}
         <fieldset>
           <legend class="field-label">{{ form.sessions_label }}</legend>
           <div class="academy-choices academy-choices-stack">
             {% for session in sessions %}
-              <label class="form-check">
-                <input class="form-check-input" type="checkbox" name="sessions" value="{{ session.id }}">
-                <span class="form-check-label">{{ session.short_label }}</span>
-              </label>
+              {% if not session.past %}
+                <label class="form-check">
+                  <input class="form-check-input" type="checkbox" name="sessions" value="{{ session.id }}">
+                  <span class="form-check-label">{{ session.short_label }}</span>
+                </label>
+              {% endif %}
             {% endfor %}
           </div>
           <p class="a11y-error" data-error="sessions" role="alert" hidden>{{ form.sessions_error }}</p>
         </fieldset>
         <fieldset>
           <legend class="field-label">{{ form.track_label }}</legend>
-          <div class="academy-choices">
+          <div class="academy-choices" style="--choice-count: {{ form.tracks|length }}">
             {% for option in form.tracks %}
               <label class="form-check">
                 <input class="form-check-input" type="radio" name="track_interest" value="{{ option.value }}">
@@ -53,7 +59,7 @@
       {% endif %}
       <fieldset>
         <legend class="field-label">{{ form.status_label }}</legend>
-        <div class="academy-choices academy-choices-stack">
+        <div class="academy-choices" style="--choice-count: {{ form.statuses|length }}">
           {% for option in form.statuses %}
             <label class="form-check">
               <input class="form-check-input" type="radio" name="status" value="{{ option.value }}">
@@ -69,7 +75,7 @@
         </div>
         <fieldset>
           <legend class="field-label">{{ form.based_label }}</legend>
-          <div class="academy-choices">
+          <div class="academy-choices" style="--choice-count: {{ form.based|length }}">
             {% for option in form.based %}
               <label class="form-check">
                 <input class="form-check-input" type="radio" name="based_in" value="{{ option.value }}">
@@ -80,7 +86,7 @@
         </fieldset>
         <fieldset>
           <legend class="field-label">{{ form.bildung_label }}</legend>
-          <div class="academy-choices">
+          <div class="academy-choices" style="--choice-count: {{ form.bildung|length }}">
             {% for option in form.bildung %}
               <label class="form-check">
                 <input class="form-check-input" type="radio" name="bildungsgutschein" value="{{ option.value }}">

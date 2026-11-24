@@ -2,36 +2,28 @@
   The Academy pages' own rules, included by every Academy page inside its
   stylesheet straight after the shared design system (the same arrangement as
   the account entrance family's _entrance_styles.html).  Nothing here is a new
-  primitive: the pages draw the system's bands, cards, filter pills, CTAs,
-  spec strip, callouts, module accordion, FAQ folds, list rows and form fields,
-  and these rules only lay them out.  The landing pages (home, programs,
-  sessions, the German guide) follow the course family landing: the full
-  shell through .shell-breakout, and every chapter the same frame, a dashed
-  seam above a real .band-head.  The reading pages (FAQ, legal, the QR form,
-  confirm) keep the ordinary content column.  Spacing comes from the system's
-  scale and every colour is a token, so both themes hold.
+  primitive: the pages draw the system's bands, cards, featured slab, spec
+  strip, list rows, archive rows, callouts, panels, FAQ folds, person chips
+  and form fields, and these rules only lay them out.
+
+  Two columns, one per kind of page (owner, 2026-11-24):
+  * the landings (home, programs, sessions, the German guide), the FAQ and
+    the forms sit in the ordinary content column, and every block fills it;
+  * a page read end to end (an article, a legal page) sits in the reading
+    column the blog, podcast and wiki use, header and body alike.
+  Spacing comes from the system's scale and every colour is a token, so both
+  themes hold.
 {% endcomment %}
       /* The tail below the last band continues the lavender content ground. */
       :root {
         --page: var(--lavender);
       }
 
-      /* Every Academy page — landings, FAQ, guides, legal, the QR form —
-         sits in the ordinary content column, so the Academy bar and the page
-         edges stay put between pages, and blocks fill that column instead of
-         stopping at the prose measure and leaving a dead strip on the right
-         (owner feedback 2026-11-24). */
-
-      .academy-landing.shell-breakout {
-        margin-inline: 0;
-        width: auto;
-      }
-
       /* The form primitives set their own display, which would otherwise win
          over the hidden attribute the forms toggle (errors, success states,
          the sticky bar). */
-      .academy-form-card [hidden],
-      .academy-form-card[hidden],
+      .academy-join [hidden],
+      .academy-join[hidden],
       .academy-sticky[hidden] {
         display: none !important;
       }
@@ -43,32 +35,57 @@
         outline: none;
       }
 
-      /* A status pill is one line of state by default; the Academy's pills
-         carry a sentence of synced copy (the German funding line), which has
-         to wrap inside a 320px screen rather than push the page sideways. */
-      .academy-pill {
-        text-align: left;
-        white-space: normal;
-      }
+      /* --- the title block -------------------------------------------------- *
+       * The heading and lede span the whole column, the way the course family
+       * landing sets its title block (its h1 and lede sizes), without the
+       * artwork column: at the content width a second column beside the copy
+       * squeezed the heading onto four lines. */
 
-      /* --- the header ------------------------------------------------------ */
-
-      .academy-hero-inner {
-        display: grid;
-        gap: 2rem 3rem;
-      }
-
-      .academy-hero-inner > *,
       .academy-hero-copy {
         min-width: 0;
+      }
+
+      /* The home hero is the one Academy block at the full shell width: the
+         copy beside the drawing, the course family hero's grid, with the
+         facts under both.  Every chapter below keeps the content column. */
+      .academy-hero-inner {
+        align-items: center;
+        display: grid;
+        gap: 1.5rem 2rem;
+      }
+
+      .academy-hero-art {
+        aspect-ratio: 1;
+        justify-self: center;
+        max-width: 12rem;
+        width: 100%;
+      }
+
+      .academy-hero-art .doodle {
+        height: 100%;
+        object-fit: contain;
+      }
+
+      @media (min-width: 48rem) {
+        .academy-hero-inner {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 18rem);
+        }
+
+        .academy-hero-art {
+          justify-self: end;
+          max-width: 20rem;
+        }
       }
 
       .academy-hero h1 {
         font-size: clamp(2.1rem, 4.9vw, 3.4rem);
         letter-spacing: -0.03em;
         margin-top: 0.5rem;
-        max-width: 19ch;
         text-wrap: balance;
+      }
+
+      .academy-hero-copy > h1:first-child {
+        margin-top: 0;
       }
 
       .academy-lede {
@@ -91,6 +108,7 @@
         margin-top: 1.5rem;
       }
 
+      /* A row of plain links: one line, wrapping like words. */
       .academy-inline-links {
         display: flex;
         flex-wrap: wrap;
@@ -110,14 +128,20 @@
         min-height: 2.75rem;
       }
 
-      .academy-hero-links {
-        margin-top: 1rem;
+      .academy-actions .band-link {
+        align-items: center;
+        display: inline-flex;
+        min-height: 2.75rem;
       }
 
+      /* The one credibility line under the actions: the instructor's
+         portrait, drawn the way a person chip draws one, and the sentence. */
       .academy-person {
         align-items: center;
+        color: var(--body-text);
         display: flex;
-        gap: 0.85rem;
+        font-weight: 600;
+        gap: 0.75rem;
         margin-top: 1.5rem;
       }
 
@@ -125,52 +149,166 @@
         border: 2px solid var(--line);
         border-radius: 999px;
         flex: none;
-        height: 3.5rem;
+        height: 3rem;
         object-fit: cover;
-        width: 3.5rem;
+        width: 3rem;
       }
 
-      .academy-person p {
-        color: var(--body-text);
-        font-weight: 600;
-      }
-
-      .academy-seats {
-        margin-top: 1rem;
-      }
-
-      /* The German page's English pointer: an information callout set at the
-         reading measure, between the heading and the German lede. */
+      /* The German page's English pointer, between the heading and the lede. */
       .academy-english {
         margin-top: 1rem;
       }
 
-      /* --- the waitlist and session forms ------------------------------- */
+      /* The key facts close the title block, as a course's do.  Six facts sit
+         as two rows of three (two columns on a phone), never five and an
+         orphan. */
+      .academy-facts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 2rem;
+      }
 
-      .academy-form-card {
+      @media (min-width: 40rem) {
+        .academy-facts {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      .academy-facts dt {
+        display: block;
+      }
+
+      .academy-facts dd {
+        color: var(--ink);
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin: 0;
+      }
+
+      /* Inside a chapter the band head already spaces the strip and the
+         session rows from the heading. */
+      .academy-section .academy-facts,
+      .academy-section .academy-hero-sessions {
+        margin-top: 0;
+      }
+
+      .academy-chapter-links {
+        margin-top: 0.5rem;
+      }
+
+      .academy-funding {
+        margin-top: 1.5rem;
+      }
+
+      .academy-funding h3 {
+        font-size: 1.05rem;
+      }
+
+      /* --- chapters --------------------------------------------------------- *
+       * Every chapter is the course family landing's frame: a dashed seam
+       * above and a real band head. */
+
+      .academy-section {
+        border-top: 2px dashed var(--line-soft);
+        margin-top: 3rem;
+        padding-top: 2.75rem;
+      }
+
+      .academy-section:first-child {
+        border-top: 0;
+        margin-top: 0;
+        padding-top: 0.5rem;
+      }
+
+      .academy-section h2 {
+        letter-spacing: -0.02em;
+        scroll-margin-top: 1.5rem;
+      }
+
+      .academy-section .band-head {
+        margin-bottom: 1.5rem;
+      }
+
+      .academy-section .band-head p {
+        color: var(--body-text);
+      }
+
+      .academy-section .band-head p + p {
+        margin-top: 0.35rem;
+      }
+
+      .academy-subhead {
+        font-size: 1.1rem;
+        margin: 2rem 0 1rem;
+      }
+
+      .academy-card-list {
+        display: grid;
+        gap: 0.6rem;
+        list-style: disc;
+        margin: 0;
+        padding-left: 1.25rem;
+      }
+
+      .academy-card-list li {
+        color: var(--body-text);
+      }
+
+      .academy-card-list a {
+        color: var(--indigo);
+      }
+
+      /* The two programs, and who a program is for: cards in the system's
+         two-column grid. */
+      .academy-track-card,
+      .academy-fit-card {
+        gap: 0.85rem;
+        padding: 1.5rem;
+      }
+
+      .academy-track-card h3,
+      .academy-fit-card h2,
+      .academy-fit-card h3 {
+        font-size: 1.15rem;
+      }
+
+      .academy-track-tagline {
+        color: var(--body-text);
+        font-weight: 700;
+      }
+
+      /* The two cards mirror each other: the same three short lines, and the
+         action pinned to the card foot so both buttons sit on one row. */
+      .academy-track-card .cta {
+        align-self: flex-start;
+        margin-top: auto;
+      }
+
+      .academy-track-card .academy-card-list {
+        margin-bottom: 0.75rem;
+      }
+
+      /* --- the forms ------------------------------------------------------- *
+       * One column: each label over its control at full width, then the
+       * confirmation warning and the full-width submit.  The waitlist is a
+       * card in the closing mint panel; the sessions registration, a longer
+       * form with choice groups, is the featured slab of its own chapter. */
+
+      .academy-join {
         gap: 1.25rem;
         padding: 1.5rem;
       }
 
-      .academy-card-head {
-        border-bottom: 2px dashed var(--line-soft);
-        display: grid;
-        gap: 0.5rem;
-        justify-items: start;
-        padding-bottom: 1.25rem;
-      }
-
-      .academy-card-head p {
-        color: var(--body-text);
-        font-size: 0.92rem;
-      }
-
-      .academy-form-card .cmp-form {
+      .academy-join .cmp-form {
         gap: 1.25rem;
         max-width: none;
       }
 
-      .academy-form-card fieldset {
+      .academy-fields {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      .academy-join fieldset {
         border: 0;
         display: grid;
         gap: 0.35rem;
@@ -179,31 +317,38 @@
         padding: 0;
       }
 
-      .academy-form-card legend {
+      .academy-join legend {
         margin-bottom: 0.35rem;
         padding: 0;
       }
 
-      /* A choice group is an even grid of option rows: as many equal columns
-         as the card holds at 10rem, so short options sit side by side without
-         ragged wrapping, and a long option list stays one column. */
+      /* A choice group is one even row of options from 48rem -- as many
+         columns as options (the template sets --choice-count), so no option
+         is left alone on a row -- and one column on a phone.  The session
+         list, whose options are whole titles, stays one column. */
       .academy-choices {
         display: grid;
-        gap: 0 1rem;
-        grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+        gap: 0 2rem;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      @media (min-width: 48rem) {
+        .academy-choices {
+          grid-template-columns: repeat(var(--choice-count, 1), auto);
+          justify-content: start;
+        }
       }
 
       .academy-choices-stack {
         grid-template-columns: minmax(0, 1fr);
       }
 
-      .academy-choices .form-check,
-      .academy-form-card .form-check {
+      .academy-join .form-check {
         align-items: flex-start;
         padding-block: 0.6rem;
       }
 
-      .academy-form-card .form-check-input {
+      .academy-join .form-check-input {
         margin-top: 0.15rem;
       }
 
@@ -284,153 +429,103 @@
         padding-left: 1.25rem;
       }
 
-      /* --- chapters ------------------------------------------------------ */
-
-      .academy-section {
-        border-top: 2px dashed var(--line-soft);
-        margin-top: 3rem;
-        padding-top: 2.75rem;
-      }
-
-      .academy-section:first-child {
-        border-top: 0;
-        margin-top: 0;
-        padding-top: 0.5rem;
-      }
-
-      .academy-section h2 {
-        letter-spacing: -0.02em;
-        scroll-margin-top: 1.5rem;
-      }
-
-      .academy-section .band-head {
-        margin-bottom: 1.5rem;
-      }
-
-      .academy-section .band-head p {
+      .academy-other-track {
         color: var(--body-text);
       }
 
-      /* Running copy in a chapter stays at the reading measure even though
-         the chapter spans the full shell. */
-      .academy-section .prose {
+      /* --- the syllabus, week by week -------------------------------------- *
+       * Each phase is a small heading over the system's list rows; each row
+       * is one week, its label on the mono rail the way a course syllabus
+       * carries its index, and the week's module(s) beside it. */
+
+      .academy-phase + .academy-phase {
+        margin-top: 2rem;
       }
 
-      .academy-subhead {
+      .academy-phase-title {
         font-size: 1.1rem;
-        margin: 1.5rem 0 1rem;
+        margin-bottom: 0.35rem;
       }
 
-      .academy-numbered {
-        display: grid;
-        gap: 1rem;
+      .academy-weeks,
+      .academy-session-list {
+        border-top: 2px solid var(--line);
         list-style: none;
         margin: 0;
         padding: 0;
+        --row-cols: 6rem minmax(0, 1fr);
       }
 
-      .academy-numbered > li {
+      .academy-session-list {
+        --row-cols: 11rem minmax(0, 1fr);
+      }
+
+      .academy-weeks .list-row,
+      .academy-session-list .list-row {
         align-items: start;
-        display: grid;
-        gap: 0.85rem;
-        grid-template-columns: auto minmax(0, 1fr);
+        padding-block: 1rem;
       }
 
-      .academy-numbered > li > span:last-child {
-        color: var(--body-text);
+      .academy-week {
         padding-top: 0.2rem;
       }
 
-      .academy-track-card {
-        gap: 0.75rem;
-        padding: 1.5rem;
+      .academy-week-body {
+        display: grid;
+        gap: 0.85rem;
       }
 
-      .academy-track-card h3,
-      .academy-fit-card h2 {
-        font-size: 1.35rem;
-      }
-
-      .academy-track-card p {
-        color: var(--body-text);
-      }
-
-      /* The program's promise under its name, set the way a course title's
-         ship line is. */
-      .academy-track-card .academy-headline {
-        color: var(--green-ship);
-        font-style: italic;
-        font-weight: 700;
-      }
-
-      .academy-track-card .cta {
-        align-self: flex-start;
-        margin-top: auto;
-      }
-
-      .academy-track-card .academy-numbered {
-        margin-block: 0.5rem 1.25rem;
-      }
-
-      /* Six facts: two rows of three, never five and an orphan. */
-      .academy-facts {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      @media (min-width: 40rem) {
-        .academy-facts {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-      }
-
-      /* A program's facts close its title block, as a course's do. */
-      .academy-hero-facts {
-        margin-top: 2.5rem;
-      }
-
-      .academy-facts dt {
-        display: block;
-      }
-
-      .academy-facts dd {
-        color: var(--ink);
-        font-size: 0.95rem;
-        font-weight: 700;
-        margin: 0;
-      }
-
-      .academy-funding {
-        margin-top: 1.5rem;
-      }
-
-      .academy-funding h3 {
+      .academy-module h4,
+      .academy-session-body h3 {
         font-size: 1.05rem;
       }
 
-      .academy-split {
-        align-items: start;
-        display: grid;
-        gap: 2rem 3rem;
-      }
-
-      .academy-project,
-      .academy-steps-card {
-        align-content: start;
-      }
-
-      .academy-project h3,
-      .academy-steps-card h3 {
-        font-size: 1.15rem;
-      }
-
-      .academy-project p {
+      .academy-module p,
+      .academy-module ul {
         color: var(--body-text);
+        margin-top: 0.3rem;
       }
 
-      .academy-steps-card {
-        gap: 1rem;
+      .academy-module ul,
+      .academy-session-body ul {
+        display: grid;
+        gap: 0.3rem;
+        list-style: disc;
+        padding-left: 1.25rem;
+      }
+
+      /* What a week leaves you with reads as its outcome, in the ship line's
+         green. */
+      .academy-module .academy-produce {
+        color: var(--green-ship);
+        font-weight: 600;
+      }
+
+      /* --- outcomes and the final project ---------------------------------- *
+       * The final project is the headline, so it leads as a full-width mint
+       * panel; the outcomes follow as one card whose list runs in two
+       * columns, instead of a long numbered column with the project card
+       * floating beside it. */
+
+      .academy-outcomes-card {
+        margin-top: 1.25rem;
         padding: 1.5rem;
       }
+
+      @media (min-width: 48rem) {
+        .academy-outcomes {
+          column-gap: 2.5rem;
+          columns: 2;
+          display: block;
+        }
+
+        .academy-outcomes li {
+          break-inside: avoid;
+          margin-bottom: 0.6rem;
+        }
+      }
+
+      /* --- who teaches it --------------------------------------------------- */
 
       .academy-instructor {
         align-items: start;
@@ -454,85 +549,34 @@
         gap: 0.75rem;
       }
 
-      .academy-fit-card {
-        gap: 0.85rem;
-        padding: 1.5rem;
-      }
-
-      .academy-card-list {
-        display: grid;
-        gap: 0.6rem;
-        list-style: disc;
-        margin: 0;
-        padding-left: 1.25rem;
-      }
-
-      .academy-card-list li {
-        color: var(--body-text);
-      }
-
-      .academy-card-list a {
-        color: var(--indigo);
-      }
-
-      .academy-modules {
-        display: grid;
-        list-style: none;
-        margin: 0;
-        padding: 0;
-      }
-
-      .academy-modules > li {
-        border-bottom: 1.5px dashed var(--line-soft);
-        display: grid;
-        gap: 0.35rem 0.75rem;
-        grid-template-columns: 2rem minmax(0, 1fr);
-        padding-block: 0.85rem;
-      }
-
-      .academy-modules > li:last-child {
-        border-bottom: 0;
-      }
-
-      .academy-module-number {
-        color: var(--indigo);
-        font-family: var(--font-mono);
-        font-size: 0.85rem;
-        padding-top: 0.15rem;
-      }
-
-      .academy-modules h3 {
-        font-size: 1.05rem;
-      }
-
-      .academy-modules p,
-      .academy-modules ul {
-        color: var(--body-text);
-        margin-top: 0.35rem;
-      }
-
-      .academy-modules ul {
-        list-style: disc;
-        padding-left: 1.25rem;
-      }
-
-      .academy-module-list .module-body {
-        margin-left: 0;
-        padding: 0 1rem 0.5rem;
-      }
-
+      /* --- limited seats: how you get in ----------------------------------- */
 
       .academy-steps {
         gap: 1.25rem;
-        grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
         list-style: none;
         margin: 0;
         padding: 0;
+      }
+
+      @media (min-width: 40rem) {
+        .academy-steps {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 62rem) {
+        .academy-steps {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
       }
 
       .academy-steps .card {
         gap: 0.6rem;
         padding: 1.25rem;
+      }
+
+      .academy-steps .module-number {
+        grid-row: auto;
       }
 
       .academy-steps h4 {
@@ -543,8 +587,10 @@
         color: var(--body-text);
       }
 
+      /* --- questions -------------------------------------------------------- */
+
       .academy-section .row-list,
-      .academy-reading .row-list {
+      .academy-faq .row-list {
         max-width: none;
       }
 
@@ -553,10 +599,12 @@
         margin-top: 1.25rem;
       }
 
+      /* --- the closing panel (FAQ, articles, the German guide) ------------- */
+
       .academy-closing {
         align-items: start;
         display: grid;
-        gap: 1.5rem 2.5rem;
+        gap: 1.25rem 2.5rem;
         padding: 1.75rem 2rem;
       }
 
@@ -578,20 +626,76 @@
         margin-top: 0;
       }
 
-      /* Two actions (the German guide's one per program) do not fit beside
-         the copy without squeezing it into a sliver, so that panel stacks:
-         heading and text across the full width, the buttons in a row below. */
+      /* Two actions (the German guide's, one per program) do not fit beside
+         the copy, so that panel stacks: heading and text across the full
+         width, the buttons in a row below. */
       .academy-closing.academy-closing-stacked {
         grid-template-columns: minmax(0, 1fr);
       }
 
-      /* --- the free sessions --------------------------------------------- */
+      .academy-closing-copy .academy-other-track {
+        margin-top: 0.5rem;
+      }
+
+      .academy-closing-copy h3 {
+        font-size: 1.05rem;
+        margin-top: 0.75rem;
+      }
+
+      .academy-join-steps {
+        gap: 0.75rem;
+      }
+
+      .academy-join-steps strong {
+        color: var(--ink);
+      }
+
+      /* --- the German guide ------------------------------------------------- */
+
+      .academy-split {
+        align-items: start;
+        display: grid;
+        gap: 2rem 3rem;
+      }
+
+      .academy-steps-card {
+        align-content: start;
+        gap: 1rem;
+        padding: 1.5rem;
+      }
+
+      .academy-steps-card h3 {
+        font-size: 1.15rem;
+      }
+
+      .academy-numbered {
+        display: grid;
+        gap: 1rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .academy-numbered > li {
+        align-items: start;
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .academy-numbered > li > span:last-child {
+        color: var(--body-text);
+        padding-top: 0.2rem;
+      }
+
+      /* --- the free sessions ------------------------------------------------ */
 
       .academy-hero-sessions {
+        border-top: 2px dashed var(--line-soft);
         list-style: none;
-        margin: 1.5rem 0 0;
+        margin: 1.75rem 0 0;
         padding: 0;
-        --row-cols: 8.5rem minmax(0, 1fr);
+        --row-cols: 12rem minmax(0, 1fr);
       }
 
       .academy-hero-sessions .list-row {
@@ -609,29 +713,11 @@
         font-weight: 700;
       }
 
-      .academy-session-list,
-      .academy-numbers {
-        display: grid;
-        gap: 1.25rem;
-        list-style: none;
-        margin: 0;
-        padding: 0;
-      }
-
-      .academy-session-card {
-        display: grid;
-        gap: 1rem 2rem;
-        padding: 1.5rem;
-      }
-
-      .academy-session-when {
-        align-items: center;
-        display: flex;
-        gap: 0.75rem;
-      }
-
-      .academy-session-when .module-number {
-        grid-row: auto;
+      /* A past session's recap sits on its own line under the title. */
+      .academy-hero-session-title .band-link {
+        display: block;
+        font-weight: 600;
+        width: fit-content;
       }
 
       .academy-session-body {
@@ -639,22 +725,17 @@
         gap: 0.6rem;
       }
 
-      .academy-session-body h3 {
-        font-size: 1.15rem;
-      }
-
       .academy-session-body p,
-      .academy-session-body li,
-      .academy-numbers p {
+      .academy-session-body li {
         color: var(--body-text);
-        font-size: 1rem;
       }
 
-      .academy-session-body ul {
+      .academy-numbers {
         display: grid;
-        gap: 0.3rem;
-        list-style: disc;
-        padding-left: 1.25rem;
+        gap: 1.25rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
       }
 
       .academy-numbers .card {
@@ -669,7 +750,7 @@
         color: var(--indigo);
       }
 
-      /* --- the sticky waitlist bar (program pages) ------------------------ */
+      /* --- the sticky waitlist bar (program pages) ------------------------- */
 
       .academy-sticky {
         align-items: center;
@@ -688,30 +769,62 @@
         z-index: 50;
       }
 
-      /* --- reading pages ---------------------------------------------------- */
+      /* --- the reading column (articles, legal pages) ---------------------- *
+       * The blog article's column: the reading width, centred, with the
+       * heading, standfirst, date and byline on the same column as the body
+       * and the prose filling it rather than stopping at the measure. */
 
-      .academy-reading {
+      .academy-article-column {
+        --measure: 100%;
+        margin-inline: auto;
+        max-width: calc(var(--reading-width) - 2.5rem);
+      }
+
+      .academy-article-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
+      }
+
+      .academy-article-head {
+        display: grid;
+        gap: 0.9rem;
+        justify-items: start;
+      }
+
+      /* The blog article's heading: its size, and wrapped as running text
+         rather than balanced into a narrow block. */
+      .academy-hero .academy-article-head h1,
+      .academy-hero h1.academy-article-column {
+        font-size: clamp(1.9rem, 4.2vw, 2.75rem);
+        letter-spacing: -0.025em;
+        margin-top: 0;
+        text-wrap: wrap;
+      }
+
+      .academy-article-body.prose-reading {
         max-width: none;
       }
 
-      .academy-byline {
-        color: var(--body-text);
-        margin-top: 1rem;
+      /* The closing panel of a reading page is its own chapter, framed like
+         every other: a dashed seam and the chapter spacing above it. */
+      .academy-article-closing > .academy-section:first-child {
+        border-top: 2px dashed var(--line-soft);
+        margin-top: 3rem;
+        padding-top: 2.75rem;
       }
 
       .academy-related {
+        display: grid;
         list-style: none;
-        margin: 1rem 0 0;
+        margin: 0;
         padding: 0;
       }
 
       .academy-session-recap {
-        margin-top: 0.75rem;
+        margin-top: 0.25rem;
       }
 
-      .academy-form-page {
-        max-width: var(--form-measure);
-      }
+      /* --- the confirmation page ------------------------------------------- */
 
       .academy-confirm {
         display: grid;
@@ -738,68 +851,64 @@
           grid-template-columns: 12rem minmax(0, 1fr);
         }
 
-        .academy-session-card {
-          grid-template-columns: 13rem minmax(0, 1fr);
-        }
-
-        .academy-session-when {
-          align-items: flex-start;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-
-        .academy-closing-action {
+        .academy-closing {
           align-items: center;
           grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .academy-closing.academy-closing-form {
+          grid-template-columns: minmax(0, 1fr);
         }
       }
 
       @media (min-width: 62rem) {
-        .academy-hero-inner {
-          align-items: start;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 24rem);
-        }
-
-        .academy-hero-wide-form {
-          grid-template-columns: minmax(0, 1fr) minmax(0, 30rem);
-        }
-
         .academy-split {
           grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
         }
 
         .academy-closing {
-          grid-template-columns: minmax(0, 1fr) minmax(0, 26rem);
           padding: 2rem 2.5rem;
         }
 
-        .academy-closing-action {
-          grid-template-columns: minmax(0, 1fr) auto;
+        /* The waitlist form beside its heading, at the width a single
+           column of fields reads well. */
+        .academy-closing.academy-closing-form {
+          align-items: start;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 26rem);
         }
       }
 
       /* --- narrow: reshape, not reflow ------------------------------------- */
 
       @media (max-width: 47.99rem) {
-        .academy-hero h1 {
-          max-width: none;
-        }
-
         .academy-lede {
           font-size: 1.05rem;
         }
 
-        .academy-form-card,
+        .featured.academy-join {
+          border-radius: 1.1rem;
+          padding: 1.35rem;
+        }
+
+        .academy-join {
+          padding: 1.25rem;
+        }
+
         .academy-track-card,
         .academy-fit-card,
-        .academy-session-card,
-        .academy-steps-card {
+        .academy-steps-card,
+        .academy-outcomes-card {
           padding: 1.25rem;
         }
 
         .academy-section {
           margin-top: 2.25rem;
           padding-top: 2rem;
+        }
+
+        /* A week's label and a session's date sit above their row. */
+        .academy-week {
+          padding-top: 0;
         }
 
         .academy-instructor img {
@@ -810,11 +919,16 @@
           padding: 1.35rem;
         }
 
-        .academy-track-card .cta,
         .academy-closing .cta,
         .academy-actions .cta {
           justify-content: center;
           width: 100%;
+        }
+
+        /* A phone drops the hero drawing, as the homepage hero does: the
+           copy and the action are the first screen. */
+        .academy-hero-art {
+          display: none;
         }
 
         /* On a phone the bar spans the foot of the screen. */

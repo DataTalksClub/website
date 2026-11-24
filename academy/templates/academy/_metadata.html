@@ -9,9 +9,12 @@
 {% if page.noindex %}
   <meta name="robots" content="noindex">
 {% endif %}
-{% if data.hreflang %}
+{% if data.hreflang or alternates %}
   <link rel="alternate" hreflang="{{ page.lang }}" href="{{ canonical_url }}">
 {% endif %}
+{% for alternate in alternates %}
+  <link rel="alternate" hreflang="{{ alternate.lang }}" href="{{ alternate.href }}">
+{% endfor %}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{{ shared.brand }}">
 <meta property="og:title" content="{{ page.title }}">

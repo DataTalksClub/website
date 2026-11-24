@@ -1,0 +1,40 @@
+{% comment %}
+  Weeks of a program as the system's list rows: each row one week, its label
+  on the mono rail the way a course syllabus carries its index, and the
+  week's module(s) beside it -- an action-oriented title and, in the ship
+  line's green, the one thing it leaves you with.  The syllabus phases, the
+  capstone and interview preparation all draw their weeks with this.
+  weeks: from academy.presentation.syllabus_phases; label: the word before
+  each week number (shared.syllabus.week_label).
+{% endcomment %}
+<ol class="row-list academy-weeks">
+  {% for week in weeks %}
+    <li class="list-row">
+      <p class="mono-label mono-label-indigo academy-week">
+        {% if week.week %}
+          {{ label }} {{ week.week }}
+        {% else %}
+          {{ week.number }}
+        {% endif %}
+      </p>
+      <div class="academy-week-body">
+        {% for module in week.modules %}
+          <div class="academy-module">
+            <h4>{{ module.title }}</h4>
+            {% if module.description %}
+              <p>{{ module.description }}</p>
+            {% endif %}
+            {% if module.topics %}
+              <ul>
+                {% for topic in module.topics %}
+                  <li>{{ topic }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            <p class="academy-produce">{{ module.produce }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    </li>
+  {% endfor %}
+</ol>

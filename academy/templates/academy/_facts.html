@@ -1,24 +1,19 @@
 {% comment %}
-  The key facts as the system's spec strip, label over value, under the
-  chapter's own band head.  facts: a mapping with the heading and its
-  label/value items.  The slot after the strip takes the funding notice on the
-  pages that draw one.
+  The key facts as the system's spec strip, label over value, at the foot of a
+  landing's title block, the way a course carries its facts in its header.
+  facts: a mapping with the strip's accessible label and its label/value
+  items.  Six facts sit as two rows of three (two columns on a phone), never
+  five and an orphan.  funding, when a page has one, is the information
+  callout under the strip; it keeps the #funding anchor older links use.
 {% endcomment %}
-<section class="academy-section" id="facts" aria-labelledby="facts-heading">
-  <div class="band-head">
-    <div>
-      <h2 id="facts-heading">{{ facts.label }}</h2>
+<dl class="spec-strip academy-facts" id="facts" aria-label="{{ facts.label }}">
+  {% for fact in facts.items %}
+    <div class="spec">
+      <dt class="mono-label">{{ fact.label }}</dt>
+      <dd>{{ fact.value }}</dd>
     </div>
-  </div>
-  <dl class="spec-strip academy-facts">
-    {% for fact in facts.items %}
-      <div class="spec">
-        <dt class="mono-label">{{ fact.label }}</dt>
-        <dd>{{ fact.value }}</dd>
-      </div>
-    {% endfor %}
-  </dl>
-  {% if funding %}
-    {% include "academy/_funding.html" %}
-  {% endif %}
-</section>
+  {% endfor %}
+</dl>
+{% if funding %}
+  {% include "academy/_funding.html" %}
+{% endif %}
