@@ -3,17 +3,19 @@
 {% comment %}
   The Academy home page (/academy/), built section by section on the Academy
   home blueprint (_docs/design/landing-pages.md) in the course family
-  landing's frame at the ordinary content width.  The cream header is the
-  hero: the heading, a short lede, the waitlist action and the instructor
-  line, and the key facts as the spec strip at its foot (as on the program
-  pages).  Below the seam every chapter is the same frame -- a dashed seam
-  and a band head: the two programs as cards (with the comparison page in
-  the head's action slot), funding with its guides, the free session series, the articles as the site's archive rows,
-  a few questions from the FAQ, and the closing mint panel holding the one
-  waitlist form the hero's action points to.  The anchors older links use
-  (#hero, #signup-hero, #tracks, #facts, #funding) stay on those blocks.
-  Every word is synced content (academy/index.md, academy/shared.yaml and the
-  pages it reads from in DataTalksClub/content).
+  landing's frame.  The cream header is the hero, the one block at the full
+  shell width (owner, 2026-11-24): the heading, a short lede, the waitlist
+  action and the instructor line beside the Academy's drawing, the course
+  family hero's shape, and the key facts as the spec strip at its foot (as
+  on the program pages).  Below the seam every chapter keeps the content
+  column and the same frame -- a dashed seam and a band head: the two
+  programs as cards (with the comparison page in the head's action slot),
+  funding with its guides, the free session series, the articles as the
+  site's archive rows, a few questions from the FAQ, and the closing mint
+  panel holding the one waitlist form the hero's action points to.  The
+  anchors older links use (#hero, #signup-hero, #tracks, #facts, #funding)
+  stay on those blocks.  Every word is synced content (academy/index.md,
+  academy/shared.yaml and the pages it reads from in DataTalksClub/content).
 {% endcomment %}
 
 {% block document_title %}
@@ -37,16 +39,23 @@
 {% endblock %}
 
 {% block page_header %}
-  <div class="academy-hero-copy">
-    <p class="kicker">{{ data.hero.eyebrow }}</p>
-    <h1 id="academy-heading">{{ data.hero.headline }}</h1>
-    <p class="academy-lede">{{ data.hero.lead }}</p>
-    <div class="academy-actions">
-      {% include "core/_button.html" with href="#signup-hero" label=shared.waitlist_button variant="primary" %}
+  <div class="shell-breakout academy-hero-wide">
+    <div class="academy-hero-inner">
+      <div class="academy-hero-copy">
+        <p class="kicker">{{ data.hero.eyebrow }}</p>
+        <h1 id="academy-heading">{{ data.hero.headline }}</h1>
+        <p class="academy-lede">{{ data.hero.lead }}</p>
+        <div class="academy-actions">
+          {% include "core/_button.html" with href="#signup-hero" label=shared.waitlist_button variant="primary" %}
+        </div>
+        {% include "academy/_credibility.html" %}
+      </div>
+      <div class="academy-hero-art">
+        {% include "academy/_hero_illustration.html" %}
+      </div>
     </div>
-    {% include "academy/_credibility.html" %}
+    {% include "academy/_facts.html" with facts=shared.facts funding=None %}
   </div>
-  {% include "academy/_facts.html" with facts=shared.facts funding=None %}
 {% endblock %}
 
 {% block page_content %}
