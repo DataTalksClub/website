@@ -126,10 +126,13 @@ class SlackPageTests(TestCase):
         self.assertEqual(self.body.count('class="chip chip-plain channel"'), len(channels))
 
     def test_the_page_offers_approval_flow_and_existing_help(self) -> None:
-        self.assertIn('<h2 id="slack-join-heading">Join the community</h2>', self.body)
+        self.assertIn('<h2 id="slack-join-heading">Join Slack</h2>', self.body)
         self.assertIn('<h2 id="slack-help-heading">Need help with Slack?</h2>', self.body)
         self.assertIn('href="/community/slack/"', self.body)
-        self.assertIn("Request Slack access", self.body)
+        self.assertRegex(
+            self.body,
+            r'<a\s+class="cta cta-primary cta-compact interactive-lift"\s+href="/community/slack/"\s*>\s*Join Slack\s*</a>',
+        )
         self.assertIn(
             "Contact the community team and they will reply with the appropriate next step.",
             self.body,
