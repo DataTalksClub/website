@@ -84,7 +84,7 @@ LAYOUTS: dict[str, dict[str, Any]] = {
     "home": {
         "hero": {"eyebrow": "text", "headline": "text", "lead": "text", "links": [LINK]},
         "tracks": {"label": "text", "button_prefix": "text", "outcomes": ["int"]},
-        "funding": {"heading": "text", "paragraphs": ["text"], "link": Optional(LINK)},
+        "funding": Optional({"heading": "text", "paragraphs": ["text"], "link": Optional(LINK)}),
         "schema": {
             "organization": {"name": "text", "url": "url", "same_as": ["url"]},
         },
@@ -349,12 +349,14 @@ SHARED = {
     # ``produce_label`` is no longer drawn (each module's outcome reads on
     # its own under the title); still accepted until the content drops it.
     "syllabus": {"heading": "text", "intro": "text", "produce_label": Optional("text")},
-    "funding": {
-        "heading": "text",
-        "paragraphs": ["text"],
-        "link": LINK,
-        "guide_link": Optional(LINK),
-    },
+    "funding": Optional(
+        {
+            "heading": "text",
+            "paragraphs": ["text"],
+            "link": LINK,
+            "guide_link": Optional(LINK),
+        }
+    ),
     "admission": {
         "heading": "text",
         "body": "text",

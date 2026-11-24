@@ -194,7 +194,9 @@
           </li>
         {% endfor %}
       </ol>
-      {% include "academy/_funding.html" with funding=shared.funding %}
+      {% if shared.funding %}
+        {% include "academy/_funding.html" with funding=shared.funding %}
+      {% endif %}
     </section>
 
     <section class="academy-section" aria-labelledby="faq-heading">
