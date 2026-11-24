@@ -242,6 +242,43 @@
         margin-top: 0.75rem;
       }
 
+      /* --- comparison (Free courses vs Academy) --------------------------- */
+
+      .comparison-card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+      }
+
+      .comparison-card h3 {
+        font-size: 1.25rem;
+      }
+
+      .comparison-summary {
+        color: var(--body-text);
+        font-size: 0.94rem;
+      }
+
+      .comparison-points {
+        display: grid;
+        gap: 0.6rem;
+        list-style: none;
+        margin: 0.25rem 0 0.5rem;
+        padding: 0;
+      }
+
+      .comparison-points li {
+        align-items: flex-start;
+        display: flex;
+        font-size: 0.92rem;
+        gap: 0.6rem;
+      }
+
+      .comparison-action {
+        margin-top: auto;
+        padding-top: 0.5rem;
+      }
+
       /* --- promises ----------------------------------------------------- */
 
       .promise-grid {
@@ -1332,6 +1369,80 @@
           </div>
           <div class="newsletter-card">
             {% include "core/_newsletter_signup_form.html" with input_id="home-newsletter-email" %}
+          </div>
+        </div>
+      </section>
+
+      <section class="band band-lavender" id="academy-comparison" aria-labelledby="academy-comparison-heading" data-academy-comparison>
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="academy-comparison-heading">Free courses vs Academy</h2>
+              <p>
+                Start with open, community-powered courses — or join a full-time live bootcamp
+                when you want dedicated daily instruction.
+              </p>
+            </div>
+          </div>
+          <div class="card-grid card-grid-2">
+            <article class="card comparison-card">
+              <p class="mono-label mono-label-green">Free · Community-powered</p>
+              <h3>Free courses</h3>
+              <p class="comparison-summary">
+                Open-access zoomcamps in data and AI for learning at your own pace or alongside an
+                annual cohort.
+              </p>
+              <ul class="comparison-points">
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Free forever — videos, homework, and code stay open</span>
+                </li>
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Self-paced anytime, or cohort-based with deadlines and peer review</span>
+                </li>
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Ask questions and get unstuck with 130,000+ peers in Slack</span>
+                </li>
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Certificate of completion for cohort projects</span>
+                </li>
+              </ul>
+              <div class="comparison-action">
+                <a class="cta cta-secondary interactive-lift" href="{% url 'course_list' %}">Explore free courses</a>
+              </div>
+            </article>
+            <article class="card comparison-card">
+              <p class="mono-label mono-label-indigo">Full-time · Live intensive</p>
+              <h3>DataTalks.Club Academy</h3>
+              <p class="comparison-summary">
+                A 3-month full-time live bootcamp for experienced developers who want structured
+                daily instruction and direct mentorship.
+              </p>
+              <ul class="comparison-points">
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Live classes Mon–Fri, 09:00–16:30 Berlin time (in Berlin or online)</span>
+                </li>
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Small cohort of 15 seats with direct guidance from Alexey Grigorev</span>
+                </li>
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Focused tracks: Agentic Engineering and AI Engineering</span>
+                </li>
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Designed for Bildungsgutschein funding (AZAV)</span>
+                </li>
+              </ul>
+              <div class="comparison-action">
+                <a class="cta cta-primary interactive-lift" href="/academy/">Explore the Academy</a>
+              </div>
+            </article>
           </div>
         </div>
       </section>

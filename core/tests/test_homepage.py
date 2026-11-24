@@ -1119,3 +1119,17 @@ class AcademyLinkTests(TestCase):
         response = self.client.get("/academy/")
         self.assertContains(response, "Synthetic home headline")
         self.assertEqual(response.resolver_match.app_name, "academy")
+
+    def test_home_explains_free_courses_vs_academy_without_footer_cta_stack(self) -> None:
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        self.assertIn("data-academy-comparison", body)
+        self.assertIn("Free courses vs Academy", body)
+        self.assertIn("Free courses", body)
+        self.assertIn("DataTalks.Club Academy", body)
+        self.assertIn('href="/academy/"', body)
+        self.assertIn("Explore the Academy", body)
+        self.assertIn("Explore free courses", body)
+        self.assertNotIn("data-academy-cta", body)
+        self.assertNotIn("tour-cta-heading", body)
