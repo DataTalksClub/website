@@ -261,7 +261,13 @@ class TourStripeTests(TestCase):
         self.assertIn("tour-community-heading", body)
 
     def test_other_public_pages_keep_tour_destination(self):
-        for route in ("course_list", "events"):
+        for route in ("events", "faq-home", "slack"):
             with self.subTest(route=route):
                 body = self.client.get(reverse(route)).content.decode()
                 self.assertIn('href="/tour"', body)
+                self.assertIn("tour-cta-heading", body)
+
+    def test_courses_shows_academy_stripe_without_tour_stripe(self):
+        body = self.client.get(reverse("course_list")).content.decode()
+        self.assertIn("data-academy-cta", body)
+        self.assertNotIn("tour-cta-heading", body)
