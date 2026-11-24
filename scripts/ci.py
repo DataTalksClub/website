@@ -286,6 +286,9 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "accounts/tests/provider_fixtures.py",
     "accounts/tests/test_account_entry.py",
     "courses/tests/test_registration_gate_production.py",
+    # Site feedback 3.1: /courses catalogue facets, filters and reviews.
+    "courses/catalog_facets.py",
+    "courses/tests/test_course_catalog_feedback.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",
@@ -311,6 +314,8 @@ PRODUCTION_IMPORT_PYTHON: Final = (
     # Reviewed duplicate-event merge: new production-import code. Listed after
     # the directory for the same reason as the entries above.
     "scripts/prod/import_event_duplicate_merges.py",
+    # Reviewed /courses catalogue facets (site feedback 3.1).
+    "scripts/prod/import_course_catalog_facets.py",
 )
 TYPECHECK_PATHS: Final = (
     "slack_access",
