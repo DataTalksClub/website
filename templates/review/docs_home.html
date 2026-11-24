@@ -86,7 +86,6 @@
           </h2>
           <p>Pages whose title matches come first, then pages that mention it in the text.</p>
         </div>
-        <a class="band-link" href="{% url 'docs-home' %}">Clear search →</a>
       </div>
       {% if docs_results %}
         {% comment %}
@@ -114,6 +113,9 @@
       {% else %}
         <p class="docs-empty">No matching documentation pages were found. Try a broader term.</p>
       {% endif %}
+      <p class="band-more">
+        <a class="band-link" href="{% url 'docs-home' %}">Clear search →</a>
+      </p>
     </section>
   {% else %}
     {% comment %}
@@ -128,9 +130,6 @@
             <h2 id="docs-courses-heading">Course guides</h2>
             <p>Every Zoomcamp guide holds the same pages, so the one you need is one click from here.</p>
           </div>
-          {% if docs_hub.courses %}
-            <a class="band-link" href="{{ docs_hub.courses.public_path }}">all course guides →</a>
-          {% endif %}
         </div>
         <div class="card-grid card-grid-3 docs-cards">
           {% for guide in docs_hub.families %}
@@ -149,6 +148,11 @@
             </article>
           {% endfor %}
         </div>
+        {% if docs_hub.courses %}
+          <p class="band-more">
+            <a class="band-link" href="{{ docs_hub.courses.public_path }}">all course guides →</a>
+          </p>
+        {% endif %}
       </section>
     {% endif %}
 
@@ -167,7 +171,6 @@
               <p>{{ guide.description }}</p>
             {% endif %}
           </div>
-          <a class="band-link" href="{{ guide.public_path }}">open the guide →</a>
         </div>
         <div class="card-grid card-grid-3 docs-cards">
           {% for section in guide.sections %}
@@ -185,6 +188,9 @@
             </article>
           {% endfor %}
         </div>
+        <p class="band-more">
+          <a class="band-link" href="{{ guide.public_path }}">open the guide →</a>
+        </p>
       </section>
     {% endfor %}
 

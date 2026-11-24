@@ -221,7 +221,6 @@
                   {{ section.questions|length }} question{{ section.questions|length|pluralize }}
                 </p>
               </div>
-              <a class="band-link" href="#faq-contents">Back to contents ↑</a>
             </div>
             <div class="row-list">
               {% for question in section.questions %}
@@ -247,6 +246,9 @@
                 </details>
               {% endfor %}
             </div>
+            <p class="band-more">
+              <a class="band-link" href="#faq-contents">Back to contents ↑</a>
+            </p>
           </div>
         </section>
       {% endfor %}

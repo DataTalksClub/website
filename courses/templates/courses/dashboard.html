@@ -1115,7 +1115,6 @@
                 interquartile range, on the page rather than behind a hover.
               </p>
             </div>
-            <a class="band-link" href="{% url 'cohort_leaderboard' course.course.slug course.identifier %}">Leaderboard →</a>
           </div>
 
           <div
@@ -1208,6 +1207,9 @@
               ranked by a tie-break.
             </p>
           {% endif %}
+          <p class="band-more">
+            <a class="band-link" href="{% url 'cohort_leaderboard' course.course.slug course.identifier %}">Leaderboard →</a>
+          </p>
         </section>
       {% endif %}
 

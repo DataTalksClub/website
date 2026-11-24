@@ -1233,8 +1233,9 @@ Rules for editing:
         margin-top: 0.5rem;
       }
 
-      /* Stacked by default; the action or kicker only moves onto the heading's own row
-         once the row is wide enough to hold both without squeezing the heading. */
+      /* Stacked by default; a kicker only moves onto the heading's own row once
+         the row is wide enough to hold both without squeezing the heading.  A
+         section link never goes here: it is the section's `.band-more`. */
       .band-head {
         display: grid;
         gap: 0.5rem 1.5rem;
@@ -1249,8 +1250,7 @@ Rules for editing:
         font-size: clamp(1.4rem, 3vw, 1.87rem);
       }
 
-      /* The heading and its subline are one block, so the action link stays on the
-         heading's own row instead of being pushed under a wrapped subline. */
+      /* The heading and its subline are one block. */
       .band-head p {
         font-size: 0.9rem;
         margin-top: 0.4rem;
@@ -1269,6 +1269,15 @@ Rules for editing:
         font-weight: 600;
         text-decoration: underline;
         text-underline-offset: 0.2em;
+      }
+
+      /* A section link: the "see all events", "all episodes", "open the
+         guide" line that leads from a section to the rest of its kind.  It
+         sits under the section's content, on the content's left edge -- never
+         in the heading row, never right-aligned (owner rule 2026-11-24).
+         Enforced by core/tests/test_design_section_links.py. */
+      .band-more {
+        margin-top: var(--space-4, 1rem);
       }
 
       /* Breadcrumb trail: the where-am-I line at the top of a detail page

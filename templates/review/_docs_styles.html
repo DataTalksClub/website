@@ -58,7 +58,21 @@
   padding-top: 0;
 }
 
-.docs-chapter .band-link {
+/* A chapter's cards fill their rows: a last row of one or two cards stretches
+   across the row rather than leaving an empty slot beside it.  The hub's
+   chapter sizes come from the documentation tree, so the rule cannot assume
+   a multiple of three. */
+@media (min-width: 62rem) {
+  .docs-cards > :last-child:nth-child(3n + 1) {
+    grid-column: 1 / -1;
+  }
+
+  .docs-cards > :last-child:nth-child(3n + 2) {
+    grid-column: span 2;
+  }
+}
+
+.docs-chapter .band-more .band-link {
   align-items: center;
   display: inline-flex;
   min-height: 2.75rem;

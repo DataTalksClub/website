@@ -316,8 +316,9 @@ to this document — do not fork it locally.
 
 - **`.shell`** — the centred content column; direct child of every band.
 - **`.band-head`** — a band's heading block: a `div` holding `h2` plus an optional
-  subline `p`, and a right-hand action (`.band-link` or `.kicker`). Stacked on narrow
-  screens; from 69rem the action sits on the heading's baseline row.
+  subline `p`, and optionally a `.kicker` on the right. Stacked on narrow screens; from
+  69rem the kicker sits on the heading's baseline row. It never holds a link — a
+  section's link is its `.band-more` (see **Section links**).
   `.band-head-secondary` adds top margin for a second head inside one band.
 
   ```html
@@ -326,20 +327,8 @@ to this document — do not fork it locally.
       <h2 id="…">Heading</h2>
       <p>Subline.</p>
     </div>
-    <a class="band-link" href="…">action →</a>
   </div>
   ```
-
-  The action above sits beside the heading when it points to another index the
-  band is teasing (a course catalogue, the full events list) — most of the site's
-  bands, reviewed and shipped this way. A page that reads as one continuous
-  walkthrough rather than a set of independent index teasers instead places that
-  action under the section's own content, immediately after its last block, as a
-  plain `.band-link` — it then reads as the section's own last word rather than a
-  second thing competing with the heading for the reader's eye first. `/tour`
-  (`templates/core/tour.html`) follows this second pattern throughout, via the
-  page-local `.tour-content-link` spacing hook; it is that page's own convention
-  for now, not a retroactive rule for the bands shown above.
 
 - **`.kicker`** — uppercase indigo eyebrow. The mono variant is
   `.mono-label.mono-label-indigo`.
@@ -434,6 +423,24 @@ to this document — do not fork it locally.
 - **`.pill-button`** — round bordered control (theme toggle, subscribe links) with an
   optional `.dot` swatch: `.dot-green`, `.dot-bubble`, `.dot-clay`, `.dot-gold`.
 - **`.signup-button`** — the masthead's green sign-up pill.
+
+#### Section links
+
+A link that leads from a section to the rest of its kind — "see all events →", "all
+episodes →", "read the blog →", "all course guides →", "open the guide →" — is the
+section's **`.band-more`** line: a `p.band-more` holding one `.band-link`, placed
+**under the section's content**, immediately after its last block, on the content's
+**left edge**, with the shared spacing above it.
+
+```html
+<div class="card-grid card-grid-3">…</div>
+<p class="band-more">
+  <a class="band-link" href="…">see all events →</a>
+</p>
+```
+
+It is never in the heading row (`.band-head`) and never right-aligned; pages do not
+restyle `.band-more`. Enforced by `core/tests/test_design_section_links.py`.
 
 ### State and metadata
 
