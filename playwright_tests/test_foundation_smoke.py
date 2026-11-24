@@ -91,7 +91,7 @@ def test_public_home_and_hubs(
     expect(page.get_by_role("heading", name="Events", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name="Latest podcast episode", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name="Latest article", exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name="Community knowledgebase", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Wiki", exact=True)).to_be_visible()
     featured_course = page.locator("[data-featured-course]")
     expect(featured_course).to_have_count(1)
     expect(featured_course.get_by_role("heading", name="AI Dev Tools Zoomcamp")).to_be_visible()
@@ -113,7 +113,7 @@ def test_public_home_and_hubs(
         ("Courses", "/courses", "Learn data skills. For free. Together."),
         ("Blog", "/blog", "Latest Articles"),
         ("Podcast", "/podcast", PODCAST_HEADING),
-        ("Wiki", "/wiki", "DataTalks.Club Podcast Wiki"),
+        ("Wiki", "/wiki", "DataTalks.Club Wiki"),
         ("Books", "/books", "Book of the Week"),
     ):
         page.goto(origin)
@@ -431,8 +431,8 @@ def test_public_pages_remain_meaningful_without_javascript(
             (_featured_event_path(), FEATURED_EVENT_TITLE),
             (FEATURED_SPEAKER_PATH, FEATURED_SPEAKER_TITLE),
             ("/wiki/search", "Search"),
-            ("/wiki", "DataTalks.Club Podcast Wiki"),
-            ("/wiki?page=2", "DataTalks.Club Podcast Wiki"),
+            ("/wiki", "DataTalks.Club Wiki"),
+            ("/wiki?page=2", "DataTalks.Club Wiki"),
         ):
             response = page.goto(f"{live_server.url}{path}")
             assert response is not None and response.status == 200
@@ -495,7 +495,7 @@ def test_wiki_search_graph_and_removed_mount(page: Page, live_server) -> None:
     expect(page.locator("h1")).to_be_visible()
 
     page.goto(f"{origin}/wiki/graph")
-    expect(page.get_by_role("heading", name="Podcast Graph")).to_be_visible()
+    expect(page.get_by_role("heading", name="Wiki Graph")).to_be_visible()
     expect(page.locator("main a").first).to_be_visible()
 
     response = page.goto(f"{origin}/podwiki")
@@ -536,7 +536,7 @@ def test_wiki_catalogue_page_two_is_usable_without_javascript(
         response = page.goto(f"{live_server.url}/wiki?page=2")
         assert response is not None and response.status == 200
         expect(
-            page.get_by_role("heading", name="DataTalks.Club Podcast Wiki", exact=True)
+            page.get_by_role("heading", name="DataTalks.Club Wiki", exact=True)
         ).to_be_visible()
         expect(page.get_by_role("navigation", name="Wiki exploration")).to_be_visible()
         expect(page.get_by_role("link", name="Graph", exact=False).first).to_be_visible()

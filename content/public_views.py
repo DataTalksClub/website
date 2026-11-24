@@ -1179,7 +1179,7 @@ def wiki_hub(request: HttpRequest) -> HttpResponse:
         request,
         "public/wiki_hub.html",
         path=pagination.canonical_path,
-        title=pagination_title("Podcast Wiki", pagination.page_number),
+        title=pagination_title("Wiki", pagination.page_number),
         description="Find wiki pages, guides, summaries, people, and books.",
         context={
             "records": pagination.items,
@@ -1298,7 +1298,7 @@ def wiki_graph(request: HttpRequest) -> HttpResponse:
         request,
         "public/wiki_graph.html",
         path="/wiki/graph",
-        title="Podcast Graph — DataTalks.Club Wiki",
+        title="Wiki Graph — DataTalks.Club Wiki",
         description=(
             "Explore wiki topics, typed content pages, people, podcasts, and books across the "
             "DataTalks.Club podcast archive."

@@ -129,7 +129,7 @@ class WikiHubTests(TestCase):
     def test_the_hub_keeps_its_title_search_field_and_catalogue_count(self) -> None:
         records = wiki_reader.wiki_pages()
 
-        self.assertIn("DataTalks.Club Podcast Wiki", self.body)
+        self.assertIn("DataTalks.Club Wiki", self.body)
         self.assertIn('<label class="sr-only" for="wiki-query">Search the Wiki</label>', self.body)
         self.assertIn('name="q"', self.body)
         self.assertIn(f"Browse full catalog ({len(records)} topics A&ndash;Z).", self.body)
@@ -228,7 +228,7 @@ class WikiCataloguePaginationTests(TestCase):
             with self.subTest(path=path):
                 body = self.client.get(path).content.decode()
                 explore = body.split('aria-label="Wiki exploration"', 1)[1].split("</nav>", 1)[0]
-                self.assertIn('<h1 id="wiki-heading">DataTalks.Club Podcast Wiki</h1>', body)
+                self.assertIn('<h1 id="wiki-heading">DataTalks.Club Wiki</h1>', body)
                 self.assertIn('name="q"', body)
                 self.assertIn('aria-label="Wiki exploration"', body)
                 self.assertIn(f'href="{reverse("wiki-graph")}"', explore)
@@ -242,7 +242,7 @@ class WikiCataloguePaginationTests(TestCase):
         for spelling in (reverse("wiki-home"), f"{reverse('wiki-home')}?page=1"):
             with self.subTest(spelling=spelling):
                 body = self.client.get(spelling).content.decode()
-                self.assertIn("<title>Podcast Wiki — DataTalks.Club</title>", body)
+                self.assertIn("<title>Wiki — DataTalks.Club</title>", body)
                 self.assertIn('<link rel="canonical" href="https://datatalks.club/wiki">', body)
                 self.assertIn(
                     '<meta property="og:url" content="https://datatalks.club/wiki">', body
@@ -250,7 +250,7 @@ class WikiCataloguePaginationTests(TestCase):
                 self.assertNotIn('?page=1"', body)
 
         body = self.client.get(f"{reverse('wiki-home')}?page=3").content.decode()
-        self.assertIn("<title>Podcast Wiki — Page 3 — DataTalks.Club</title>", body)
+        self.assertIn("<title>Wiki — Page 3 — DataTalks.Club</title>", body)
         self.assertIn('<link rel="canonical" href="https://datatalks.club/wiki?page=3">', body)
         self.assertIn('<meta property="og:url" content="https://datatalks.club/wiki?page=3">', body)
         self.assertIn('<link rel="prev" href="https://datatalks.club/wiki?page=2">', body)

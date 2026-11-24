@@ -364,7 +364,7 @@ class MainHomepageRoutingTests(TestCase):
             )
             self.assertContains(rendered, "No active courses right now.")
             self.assertNotContains(rendered, "data-featured-course")
-            self.assertContains(rendered, "Community knowledgebase")
+            self.assertContains(rendered, "Wiki")
 
     def test_homepage_navigation_is_local_and_complete(self) -> None:
         response = self.client.get(reverse("home"))
