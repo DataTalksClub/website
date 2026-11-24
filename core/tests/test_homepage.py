@@ -60,7 +60,7 @@ class FeaturedBuildPanelTests(TestCase):
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
         panel = body[body.index("data-featured-course") :]
-        return panel[: panel.index("catalog-scroller")]
+        return panel[: panel.index("catalog-grid")]
 
     def test_the_panel_prints_the_featured_cohort_s_own_summary(self) -> None:
         response = self.client.get(reverse("home"))
@@ -141,16 +141,16 @@ class CatalogCardTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
-        scroller = body[body.index('id="catalog-scroller"') :]
-        scroller = scroller[: scroller.index("catalog-scroller-controls")]
+        grid = body[body.index('id="catalog-grid"') :]
+        grid = grid[: grid.index("</section>")]
 
-        self.assertNotIn("chip", scroller)
+        self.assertNotIn("chip", grid)
         self.assertNotIn("featured-badges", body)
         for family, title in COURSE_FAMILIES:
             if family == FEATURED_FAMILY:
                 continue
             with self.subTest(family=family):
-                self.assertIn(escape(title), scroller)
+                self.assertIn(escape(title), grid)
 
         # The featured cohort keeps its own chip; only the category pills went.
         self.assertIn('<span class="chip chip-ink">New cohort</span>', body)
@@ -174,11 +174,11 @@ class FeaturedFlagTests(TestCase):
         body = self._body()
 
         self.assertNotIn("data-featured-course", body)
-        scroller = body[body.index('id="catalog-scroller"') :]
-        scroller = scroller[: scroller.index("catalog-scroller-controls")]
+        grid = body[body.index('id="catalog-grid"') :]
+        grid = grid[: grid.index("</section>")]
         for _family, title in COURSE_FAMILIES:
             with self.subTest(title=title):
-                self.assertIn(escape(title), scroller)
+                self.assertIn(escape(title), grid)
 
     def test_the_flagged_cohort_is_featured_and_leaves_the_cards(self) -> None:
         Cohort.objects.update(featured=False)
@@ -187,11 +187,11 @@ class FeaturedFlagTests(TestCase):
         body = self._body()
 
         panel = body[body.index("data-featured-course") :]
-        panel, scroller = panel.split('id="catalog-scroller"', 1)
+        panel, grid = panel.split('id="catalog-grid"', 1)
         self.assertIn("Data Engineering Zoomcamp", panel)
-        cards = scroller.split("catalog-scroller-controls")[0]
+        cards = grid.split("</section>")[0]
         self.assertNotIn("Data Engineering Zoomcamp", cards)
-        self.assertIn("AI Dev Tools Zoomcamp", scroller)
+        self.assertIn("AI Dev Tools Zoomcamp", grid)
 
     def test_only_one_cohort_can_be_featured(self) -> None:
         from django.db import IntegrityError, transaction
@@ -750,9 +750,31 @@ class MemberStoriesCarouselTests(TestCase):
             body.count('data-scroll-target="stories-scroller"'),
             2,
         )
-        # The controls reuse the exact same button/arrow markup the catalogue
-        # scroller already uses, rather than a second bespoke control.
-        self.assertIn('data-scroll-target="catalog-scroller"', body)
+        # The course catalogue renders as a grid rather than a horizontal scroller.
+        self.assertIn('id="catalog-grid"', body)
+        self.assertNotIn('id="catalog-scroller"', body)
+
+    def test_homepage_section_order_and_editorial_framing(self) -> None:
+        build_reviewed_catalog()
+        body = self.client.get(reverse("home")).content.decode()
+
+        self.assertIn("For data &amp; AI engineers", body)
+        self.assertIn("130,000+", body)
+        self.assertIn("What’s inside DataTalks.Club", body)
+        self.assertIn("Free courses", body)
+        self.assertIn("A community-curated wiki of data and AI concepts", body)
+
+        order = [
+            body.index('id="hero-heading"'),
+            body.index('id="climb-heading"'),
+            body.index('id="promises-heading"'),
+            body.index('id="courses-heading"'),
+            body.index('id="events-heading"'),
+            body.index('id="wiki-heading"'),
+            body.index('id="stories-heading"'),
+            body.index('id="closing-heading"'),
+        ]
+        self.assertEqual(order, sorted(order))
 
     def test_a_story_without_a_photo_falls_back_to_the_decorative_avatar(self) -> None:
         Testimonial.objects.filter(placement=TestimonialPlacement.HOMEPAGE).delete()

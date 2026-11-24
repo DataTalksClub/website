@@ -51,6 +51,10 @@
         gap: 2rem;
       }
 
+      .hero-kicker {
+        margin-bottom: 0.6rem;
+      }
+
       .hero h1 {
         font-size: clamp(2.1rem, 4.9vw, 3.4rem);
         letter-spacing: -0.03em;
@@ -134,38 +138,12 @@
 
       /* Keep the supporting catalogue visually separate from the featured
          course instead of letting two heavy card outlines touch. */
-      .catalog-scroller {
+      .catalog-grid {
         margin-top: 1.25rem;
       }
 
-      /* Both strips are scroll containers, and `overflow-x: auto` clips on both
-         axes -- a neighbouring `overflow-y: visible` computes to `auto` -- so a
-         card that moves left has nowhere to go.  The shared primitive already
-         buys that room: it pays an inline gutter and cancels it again with an
-         equal negative margin, so the cards still line up with the featured
-         panel and the arrows under them.
-
-         That gutter was inert.  `scroll-snap-align: start` measures against the
-         snapport, which is the scrollport reduced by `scroll-padding`, and
-         `scroll-padding` defaults to zero -- so the first card snapped its left
-         edge to the *padding* edge, spending the whole gutter and coming to rest
-         flat against the clipping boundary, six pixels left of the shell.  The
-         catalogue had answered that by zeroing the gutter, which recovered the
-         alignment but left `.interactive-lift`'s `translate: -2px -2px` on hover
-         and keyboard focus to be cropped off the first card.
-
-         Declaring the same length as `scroll-padding` puts the snapport on the
-         content box, so the resting card is aligned *and* inset, and the lift
-         has room at every width.  The length mirrors the shared scroller
-         padding in `core/_design_system.html`; the browser test asserts the two
-         stay equal rather than trusting the constant. */
-      .catalog-scroller,
       .stories-scroller {
         scroll-padding-inline: 0.4rem;
-      }
-
-      .catalog-scroller-controls {
-        margin-top: 0.75rem;
       }
 
       /* --- promises ----------------------------------------------------- */
@@ -646,6 +624,10 @@
         .promise-grid {
           grid-template-columns: repeat(3, minmax(0, 1fr));
         }
+
+        .catalog-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
       }
 
       @media (min-width: 62rem) {
@@ -678,14 +660,9 @@
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           gap: 1.75rem;
         }
-      }
 
-      @media (min-width: 75rem) {
-        /* A desktop shell presents four complete catalogue choices. The fifth
-           starts beyond the viewport and remains reachable with the controls,
-           avoiding a card that looks accidentally amputated at the shell edge. */
-        .catalog-scroller {
-          grid-auto-columns: calc((100% - 3 * 1.25rem) / 4);
+        .catalog-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
       }
     </style>
@@ -707,9 +684,10 @@
       <section class="band band-cream hero" aria-labelledby="hero-heading">
         <div class="shell hero-grid">
           <div>
+            <p class="mono-label mono-label-indigo hero-kicker">For data &amp; AI engineers · 130,000+ community members</p>
             <h1 id="hero-heading">Learn the fundamentals. Build real projects. Share your work.</h1>
             <p class="hero-lede">
-              Free, hands-on courses in data and AI, with a clear path, practical work, and a community to help you get unstuck.
+              Free, hands-on courses in data and AI for learners and practitioners — with a clear path, practical work, and a 130,000+ person community to help you get unstuck.
             </p>
             <div class="hero-actions">
               <a class="cta cta-primary interactive-lift" href="{% url 'course_list' %}">Explore free courses</a>
@@ -738,92 +716,49 @@
         </div>
       </section>
 
-      {% if member_stories %}
-        <section class="band band-cream" aria-labelledby="stories-heading">
-          <div class="shell">
-            <div class="band-head">
-              <div>
-                <h2 id="stories-heading">What people say</h2>
-              </div>
-              <div class="scroller-controls">
-                <button
-                  class="scroller-button interactive-lift"
-                  type="button"
-                  data-scroll="-1"
-                  data-scroll-target="stories-scroller"
-                  aria-label="Scroll member stories left"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path d="M15 5l-7 7 7 7"/>
-                  </svg>
-                </button>
-                <button
-                  class="scroller-button interactive-lift"
-                  type="button"
-                  data-scroll="1"
-                  data-scroll-target="stories-scroller"
-                  aria-label="Scroll member stories right"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path d="M9 5l7 7-7 7"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div
-              class="stories-scroller"
-              id="stories-scroller"
-              role="group"
-              aria-label="Member stories"
-              tabindex="0"
-            >
-              {% for story in member_stories %}
-                <figure class="card">
-                  {% if story.role_before and story.role_after %}
-                    <div class="story-transition">
-                      <span class="chip chip-plain">{{ story.role_before }}</span>
-                      <span aria-hidden="true">→</span>
-                      <span class="chip chip-plain chip-green">{{ story.role_after }}</span>
-                    </div>
-                  {% endif %}
-                  <blockquote class="story-quote">“{{ story.quote }}”</blockquote>
-                  <figcaption class="story-person">
-                    <span class="story-identity">
-                      {% if story.portrait_url %}
-                        <img class="avatar" src="{{ story.portrait_url }}" alt="" loading="lazy">
-                      {% else %}
-                        <span class="avatar" aria-hidden="true"></span>
-                      {% endif %}
-                      <span>
-                        <strong>
-                          {% if story.source_url %}
-                            <a href="{{ story.source_url }}" target="_blank" rel="noopener noreferrer">
-                              {{ story.name }}
-                              <span class="sr-only"> (opens in a new tab)</span>
-                            </a>
-                          {% else %}
-                            {{ story.name }}
-                          {% endif %}
-                        </strong>
-                        <span class="story-context">{{ story.attribution }}</span>
-                      </span>
-                    </span>
-                    {% if story.elapsed %}
-                      <span class="story-elapsed">{{ story.elapsed }}</span>
-                    {% endif %}
-                  </figcaption>
-                </figure>
-              {% endfor %}
+      <section class="band band-cream" aria-labelledby="promises-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="promises-heading">What’s inside DataTalks.Club</h2>
+              <p>
+                We run <a class="band-link" href="{% url 'course_list' %}">free courses</a>,
+                <a class="band-link" href="{% url 'events' %}">live webinars and workshops</a>,
+                a <a class="band-link" href="{% url 'podcast' %}">weekly podcast</a>, and a
+                <a class="band-link" href="{% url 'slack' %}">Slack community</a> of 130,000+ data and AI practitioners.
+              </p>
             </div>
           </div>
-        </section>
-      {% endif %}
+          <div class="promise-grid">
+            <div class="promise">
+              <span class="promise-mark" aria-hidden="true"></span>
+              <h3>Learn by building</h3>
+              <p>Free courses with hands-on homework, peer review, and a leaderboard.</p>
+            </div>
+            <div class="promise">
+              <span class="promise-mark" aria-hidden="true"></span>
+              <h3>Find your people</h3>
+              <p>Ask questions, share what you’re working on, and talk careers in Slack.</p>
+            </div>
+            <div class="promise">
+              <span class="promise-mark" aria-hidden="true"></span>
+              <h3>Learn from practitioners</h3>
+              <p>Join live talks and Q&amp;A sessions, or explore ideas through our podcast.</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section class="band band-lavender" id="courses" aria-labelledby="courses-heading">
         <div class="shell">
           <div class="band-head">
             <div>
-              <h2 id="courses-heading">Active courses</h2>
+              <h2 id="courses-heading">Free courses</h2>
+              <p>
+                Cohort-based and self-paced courses in Data Engineering, Machine Learning, MLOps,
+                LLM / AI, and more — 100% free, with hands-on homework, peer review, a capstone
+                project, and a certificate.
+              </p>
             </div>
           </div>
           {% if featured_catalog_entry %}
@@ -890,11 +825,9 @@
           {% endif %}
           {% if catalog_courses %}
           <div
-            class="catalog-scroller"
-            id="catalog-scroller"
-            role="group"
+            class="card-grid catalog-grid"
+            id="catalog-grid"
             aria-label="Course catalogue"
-            tabindex="0"
           >
             {% for course in catalog_courses %}
               <article class="card course-card stretched-card-link interactive-card interactive-lift">
@@ -904,30 +837,6 @@
               </article>
             {% endfor %}
           </div>
-          <div class="scroller-controls catalog-scroller-controls" aria-label="Course catalogue controls">
-            <button
-              class="scroller-button interactive-lift"
-              type="button"
-              data-scroll="-1"
-              data-scroll-target="catalog-scroller"
-              aria-label="Scroll catalogue left"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M15 5l-7 7 7 7"/>
-              </svg>
-            </button>
-            <button
-              class="scroller-button interactive-lift"
-              type="button"
-              data-scroll="1"
-              data-scroll-target="catalog-scroller"
-              aria-label="Scroll catalogue right"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M9 5l7 7-7 7"/>
-              </svg>
-            </button>
-          </div>
           {% elif not featured_catalog_entry %}
             {% comment %}
               The same empty state the courses index shows, so a database with no visible
@@ -935,29 +844,6 @@
             {% endcomment %}
             <p class="band-note">No active courses right now.</p>
           {% endif %}
-        </div>
-      </section>
-
-      <section class="band band-cream" aria-labelledby="promises-heading">
-        <div class="shell">
-          <h2 id="promises-heading" class="sr-only">How you’ll learn</h2>
-          <div class="promise-grid">
-            <div class="promise">
-              <span class="promise-mark" aria-hidden="true"></span>
-              <h3>Learn by building</h3>
-              <p>Free courses with hands-on homework, peer review, and a leaderboard.</p>
-            </div>
-            <div class="promise">
-              <span class="promise-mark" aria-hidden="true"></span>
-              <h3>Find your people</h3>
-              <p>Ask questions, share what you’re working on, and talk careers in Slack.</p>
-            </div>
-            <div class="promise">
-              <span class="promise-mark" aria-hidden="true"></span>
-              <h3>Learn from practitioners</h3>
-              <p>Join live talks and Q&amp;A sessions, or explore ideas through our podcast.</p>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -1084,8 +970,9 @@
             <div>
               <h2 id="wiki-heading">Community knowledgebase</h2>
               <p>
-                {{ counts.wiki }} member-written topics wired to each other — click a node to
-                explore its neighbours. Open a page only when you choose to.
+                A community-curated wiki of data and AI concepts, tools, and practical guides —
+                {{ counts.wiki }} member-written topics wired to each other so you can see how ideas connect.
+                Click a node to explore its neighbours, or open a page when you’re ready to read.
               </p>
             </div>
           </div>
@@ -1184,8 +1071,89 @@
         </div>
       </section>
 
+      {% if member_stories %}
+        <section class="band band-cream" aria-labelledby="stories-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="stories-heading">What people say</h2>
+              </div>
+              <div class="scroller-controls">
+                <button
+                  class="scroller-button interactive-lift"
+                  type="button"
+                  data-scroll="-1"
+                  data-scroll-target="stories-scroller"
+                  aria-label="Scroll member stories left"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M15 5l-7 7 7 7"/>
+                  </svg>
+                </button>
+                <button
+                  class="scroller-button interactive-lift"
+                  type="button"
+                  data-scroll="1"
+                  data-scroll-target="stories-scroller"
+                  aria-label="Scroll member stories right"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M9 5l7 7-7 7"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div
+              class="stories-scroller"
+              id="stories-scroller"
+              role="group"
+              aria-label="Member stories"
+              tabindex="0"
+            >
+              {% for story in member_stories %}
+                <figure class="card">
+                  {% if story.role_before and story.role_after %}
+                    <div class="story-transition">
+                      <span class="chip chip-plain">{{ story.role_before }}</span>
+                      <span aria-hidden="true">→</span>
+                      <span class="chip chip-plain chip-green">{{ story.role_after }}</span>
+                    </div>
+                  {% endif %}
+                  <blockquote class="story-quote">“{{ story.quote }}”</blockquote>
+                  <figcaption class="story-person">
+                    <span class="story-identity">
+                      {% if story.portrait_url %}
+                        <img class="avatar" src="{{ story.portrait_url }}" alt="" loading="lazy">
+                      {% else %}
+                        <span class="avatar" aria-hidden="true"></span>
+                      {% endif %}
+                      <span>
+                        <strong>
+                          {% if story.source_url %}
+                            <a href="{{ story.source_url }}" target="_blank" rel="noopener noreferrer">
+                              {{ story.name }}
+                              <span class="sr-only"> (opens in a new tab)</span>
+                            </a>
+                          {% else %}
+                            {{ story.name }}
+                          {% endif %}
+                        </strong>
+                        <span class="story-context">{{ story.attribution }}</span>
+                      </span>
+                    </span>
+                    {% if story.elapsed %}
+                      <span class="story-elapsed">{{ story.elapsed }}</span>
+                    {% endif %}
+                  </figcaption>
+                </figure>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
+
       {% if sponsors %}
-        <section class="band band-cream" aria-labelledby="sponsors-heading">
+        <section class="band band-lavender" aria-labelledby="sponsors-heading">
           <div class="shell">
             <div class="band-head">
               <div>

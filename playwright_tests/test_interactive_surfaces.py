@@ -214,40 +214,31 @@ def test_homepage_cards_keep_the_viewport_aligned_and_use_the_static_cue(
         card = page.locator(".course-card").first
         link = card.locator(".course-link")
         featured = page.locator("[data-featured-course]")
-        control = page.locator(".catalog-scroller-controls .scroller-button").first
         expected_axis = axis_by_width[width]
         assert round(featured.bounding_box()["x"]) == expected_axis
-        assert round(control.bounding_box()["x"]) == expected_axis
+        assert round(card.bounding_box()["x"]) == expected_axis
         assert link.inner_text() == "View course"
 
-        # Both homepage strips are carousels built from the same primitive, so both
-        # are held to the same geometry.
-        catalog = _strip(page, ".catalog-scroller")
-        _assert_strip_has_room_for_the_lift(catalog, expected_axis)
+        # Member stories stay a horizontal carousel with room for the lift.
         _assert_strip_has_room_for_the_lift(_strip(page, ".stories-scroller"), expected_axis)
 
-        # The lift is the interaction under test: it must still happen, and it must
-        # still be drawn.  A card whose left edge crosses the strip's clipping edge
-        # loses its border and the first sliver of every line inside it.
+        expected_lift = f"-{LIFT_PX}px -{LIFT_PX}px"
         card.hover()
-        _assert_the_lift_is_drawn(page, "hover", catalog, expected_axis)
+        page.wait_for_timeout(220)
+        assert card.evaluate("node => getComputedStyle(node).translate") == expected_lift
         link.focus()
-        _assert_the_lift_is_drawn(page, "keyboard focus", catalog, expected_axis)
+        page.wait_for_timeout(220)
+        assert card.evaluate("node => getComputedStyle(node).translate") == expected_lift
 
-        scroller_box = page.locator(".catalog-scroller").bounding_box()
-        content_right = scroller_box["x"] + scroller_box["width"] - catalog["paddingLeft"]
+        grid_box = page.locator(".catalog-grid").bounding_box()
         cards = page.locator(".course-card")
-        if width >= 1200:
-            first_four = [cards.nth(index).bounding_box() for index in range(4)]
-            assert len({round(box["width"], 1) for box in first_four}) == 1
-            assert len({round(box["height"], 1) for box in first_four}) == 1
-            assert round(first_four[-1]["x"] + first_four[-1]["width"]) == round(content_right)
-            assert cards.nth(4).bounding_box()["x"] > content_right
-        else:
-            # Narrower shells show the next card peeking in from the right edge.
-            boxes = [cards.nth(index).bounding_box() for index in range(cards.count())]
-            peeking = [box for box in boxes if box["x"] < content_right < box["x"] + box["width"]]
-            assert len(peeking) == 1
+        if width >= 992:
+            first_three = [cards.nth(index).bounding_box() for index in range(3)]
+            assert len({round(box["y"], 1) for box in first_three}) == 1
+            assert len({round(box["width"], 1) for box in first_three}) == 1
+            assert round(first_three[-1]["x"] + first_three[-1]["width"]) == round(
+                grid_box["x"] + grid_box["width"]
+            )
 
         state = _state(card)
         assert state["cueOpacity"] == "1"
