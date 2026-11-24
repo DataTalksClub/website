@@ -9,7 +9,9 @@ the contract the existing backend reads -- and the visible state after it.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
+from unittest import mock
 
 import pytest
 from playwright.sync_api import Page, Route, expect
@@ -34,7 +36,12 @@ def academy(live_server):
     from academy.tests.content import publish
 
     publish()
-    return live_server
+    # The synthetic sessions run 21 to 23 November 2026; pin "now" before them
+    # so every session is still offered (an ended one leaves the form).  The
+    # live server answers in this process, so the patch reaches it.
+    before = datetime(2026, 11, 1, tzinfo=UTC)
+    with mock.patch("academy.presentation.timezone.now", return_value=before):
+        yield live_server
 
 
 def backend(page: Page, responses: dict[str, dict]) -> list[dict]:
@@ -171,7 +178,7 @@ def test_waitlist_signup_and_quick_questions(
         "answers": {"german_level": "native"},
     }
     # Campaign parameters follow the reader to the other Academy pages.
-    link = page.get_by_role("link", name="Synthetic sessions link")
+    link = page.get_by_role("link", name="Read about Agentic Engineering")
     assert "utm_source=synthetic" in (link.get_attribute("href") or "")
     no_overflow(page)
     shot(page, f"home-signed-up-{suffix}")
@@ -185,7 +192,8 @@ def test_program_page_failure_then_success(
     calls = backend(page, {"/signup": {"ok": False}})
     page.goto(f"{academy.url}/academy/agentic-engineering/")
     no_overflow(page)
-    card = page.locator("#signup-join")
+    # The page's one waitlist form, in the closing panel.
+    card = page.locator("#signup-hero")
     card.get_by_label("Synthetic payment").select_option("Bildungsgutschein")
     card.get_by_label("Synthetic email").fill("not-an-address")
     card.get_by_role("button", name="Synthetic join").click()
@@ -198,9 +206,9 @@ def test_program_page_failure_then_success(
     page.unroute(f"{API}/**")
     backend(page, {})
     card.get_by_role("button", name="Synthetic join").click()
-    # A signup shows the confirmation note in both waitlist cards.
-    expect(page.locator("#signup-hero [data-success]")).to_be_visible()
     expect(card.get_by_role("heading", name="Synthetic confirm your email")).to_be_visible()
+    # The confirmation warning shows only now, after submitting.
+    expect(card.locator("[data-success] [data-confirm-notice]")).to_be_visible()
     shot(page, f"program-signed-up-{suffix}")
 
 
