@@ -10,7 +10,7 @@
 
   The Academy's own pages leave it out: there it would link a page to itself.
 {% endcomment %}
-{% if request.path == "/" or primary_navigation_current == "courses" %}
+{% if not hide_academy_cta %}{% if request.path == "/" or primary_navigation_current == "courses" %}
   <section class="band band-lavender academy-cta-band" aria-labelledby="academy-cta-heading" data-academy-cta>
     <div class="shell academy-cta">
       <div>
@@ -20,4 +20,4 @@
       <a class="cta cta-secondary interactive-lift" href="/academy/">Explore the Academy</a>
     </div>
   </section>
-{% endif %}
+{% endif %}{% endif %}

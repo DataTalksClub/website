@@ -203,7 +203,7 @@
       {% else %}
         {% comment %}
           The standalone login link, shown from 40rem up.  Below that the one-line
-          masthead keeps "Sign up free" — the first-time visitor's action — in the
+          masthead keeps "Create free account" — the first-time visitor's action — in the
           row and offers login through its copy inside #site-navigation-links above,
           so a signed-out visitor always has a "Log in" link on the page (one tap
           behind Menu on phones; playwright_tests/test_single_identity.py drives
@@ -211,7 +211,7 @@
         {% endcomment %}
         <a class="nav-link nav-auth" href="{{ account_login_url }}">Log in</a>
         {% if account_entry.signup_url %}
-          <a class="signup-button interactive-lift" href="{{ account_entry.create_url }}">Sign up free</a>
+          <a class="signup-button interactive-lift" href="{{ account_entry.create_url }}">Create free account</a>
         {% endif %}
       {% endif %}
     </div>
