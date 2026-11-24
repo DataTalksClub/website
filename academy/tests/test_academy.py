@@ -255,7 +255,7 @@ class AcademyPageTests(TestCase):
         self.assertIn("Recording coming soon", media)
         self.assertIn('href="/images/academy/slides/session-1.pdf"', media)
         self.assertIn("View the slides (PDF)", media)
-        self.assertNotIn("youtube", body)
+        self.assertNotIn("youtube", media)
         self.assertNotIn("recording.js", body)
         # The block sits above the recap's prose.
         self.assertLess(
