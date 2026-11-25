@@ -30,24 +30,22 @@
       }
 
       .wiki-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
+        margin-bottom: var(--space-2);
+        margin-top: calc(var(--space-3) * -1);
       }
 
       .wiki-hero h1 {
-        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
-        letter-spacing: -0.03em;
         max-width: 20ch;
       }
 
       .special-lede {
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: 1rem;
+        margin-top: var(--space-stack);
         max-width: 40rem;
       }
 
       .special-categories {
-        margin-top: 1.5rem;
+        margin-top: var(--space-5);
       }
 
       .topic-row {
@@ -70,7 +68,7 @@
 
       .topic-summary {
         font-size: 0.9rem;
-        margin-top: 0.3rem;
+        margin-top: var(--space-1);
       }
 
       .special-empty {
@@ -82,7 +80,7 @@
       @media (max-width: 47.99rem) {
         .topic-action {
           justify-self: start;
-          margin-top: 0.5rem;
+          margin-top: var(--space-2);
         }
       }
     </style>
@@ -104,13 +102,13 @@
       <section class="band band-cream wiki-hero" aria-labelledby="special-heading">
         {% url 'wiki-home' as wiki_home_url %}
         {% if category == 'all' %}
-          {% breadcrumbs "Wiki" wiki_home_url current="Special pages" nav_class="shell shell-reading shell-narrow" %}
+          {% breadcrumbs "Wiki" wiki_home_url current="Special pages" nav_class="shell shell-reading" %}
         {% else %}
           {% url 'wiki-special' as wiki_special_url %}
-          {% breadcrumbs "Wiki" wiki_home_url "Special pages" wiki_special_url current=category|title nav_class="shell shell-reading shell-narrow" %}
+          {% breadcrumbs "Wiki" wiki_home_url "Special pages" wiki_special_url current=category|title nav_class="shell shell-reading" %}
         {% endif %}
-        <div class="shell shell-reading shell-narrow">
-          <h1 id="special-heading">Special pages</h1>
+        <div class="shell shell-reading">
+          <h1 class="page-title" id="special-heading">Special pages</h1>
           <p class="special-lede">
             Browse the guides, comparisons, roadmaps, transitions, and how-tos in the wiki.
           </p>
@@ -132,7 +130,7 @@
       </section>
 
       <section class="band band-lavender" aria-labelledby="special-list-heading">
-        <div class="shell shell-reading shell-narrow">
+        <div class="shell shell-reading">
           <div class="band-head">
             <div>
               <h2 id="special-list-heading">

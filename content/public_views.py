@@ -780,7 +780,33 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
     if not valid_query:
         return _no_store(HttpResponseBadRequest("Bad request."))
 
-    seasons = podcast_seasons(catalogue.podcasts())
+    records = catalogue.podcasts()
+    if not records:
+        # An empty catalogue (a fresh environment before the podcast ingest)
+        # still draws the hub, with no season to list, rather than failing.
+        if requested_season is not None:
+            return _no_store(HttpResponse("Page not found.", status=404))
+        response = _render(
+            request,
+            "public/podcast_hub.html",
+            path="/podcast",
+            title="DataTalks.Club Podcast — DataTalks.Club",
+            description=(
+                "DataTalks.Club weekly podcast episodes with data science experts, ML "
+                "engineers, and AI researchers. Listen on Apple Podcasts, Spotify, YouTube."
+            ),
+            context={
+                "season": None,
+                "episodes": (),
+                "episode_total": 0,
+                "listening_platforms": listening_platform_phrase(()),
+                "podcast_platform_links": podcast_platform_links(catalogue.podcast_platforms()),
+                "season_links": (),
+            },
+        )
+        response["Cache-Control"] = "max-age=0, must-revalidate"
+        return response
+    seasons = podcast_seasons(records)
     latest_season = seasons[0].number
     selected_number = latest_season if requested_season is None else requested_season
     season_index = next(

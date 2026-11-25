@@ -24,8 +24,8 @@
 
       .course-certificate {
         display: grid;
-        gap: 1.5rem;
-        margin-top: 2.75rem;
+        gap: var(--space-5);
+        margin-top: var(--space-section);
       }
 
       .course-certificate p {
@@ -65,8 +65,8 @@
          row brings its own air; fold most of it into the band's top padding
          and keep a small gap above the hero column. */
       .course-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
+        margin-bottom: var(--space-eyebrow);
+        margin-top: calc(var(--space-3) * -1);
       }
 
       /* One left-aligned column, the shape this page carried before the design
@@ -77,7 +77,7 @@
          under it. */
       .course-hero-inner {
         display: grid;
-        gap: 0.8rem;
+        gap: var(--space-3);
       }
 
       .course-hero h1 {
@@ -91,7 +91,7 @@
       }
 
       .course-lede p {
-        margin-bottom: 0.75rem;
+        margin-bottom: var(--space-3);
       }
 
       .course-lede p:last-child {
@@ -105,7 +105,7 @@
       .course-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.6rem;
+        gap: var(--space-2);
       }
 
       .course-fineprint {
@@ -125,7 +125,7 @@
         box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
         gap: 0;
         grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
-        margin-top: 0.5rem;
+        margin-top: var(--space-2);
         overflow: hidden;
         padding: 0;
         text-align: left;
@@ -135,9 +135,9 @@
       .course-specs .spec {
         align-content: start;
         border-left: 1.5px dashed var(--line-soft);
-        gap: 0.35rem;
+        gap: var(--space-2);
         min-width: 0;
-        padding: 0.95rem 1rem 1.05rem;
+        padding: var(--space-4) var(--space-4) var(--space-4);
       }
 
       .course-specs .spec:first-child {
@@ -170,7 +170,7 @@
          card that pushes the assignments off the first screen. */
       .course-learner {
         display: grid;
-        gap: 0.45rem;
+        gap: var(--space-2);
         justify-items: start;
       }
 
@@ -178,7 +178,7 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.6rem;
+        gap: var(--space-2);
       }
 
       .course-learner h2 {
@@ -188,7 +188,7 @@
       .course-score {
         align-items: baseline;
         display: flex;
-        gap: 0.5rem;
+        gap: var(--space-2);
       }
 
       .course-score strong {
@@ -197,7 +197,7 @@
 
       .course-progress {
         display: grid;
-        gap: 0.3rem;
+        gap: var(--space-1);
         max-width: 22rem;
         width: 100%;
       }
@@ -228,7 +228,7 @@
       }
 
       .course-rows .list-row {
-        column-gap: 1rem;
+        column-gap: var(--space-4);
       }
 
       /* --- module flow -------------------------------------------------- */
@@ -246,7 +246,7 @@
 
       .course-flow-module > div {
         display: grid;
-        gap: 1rem;
+        gap: var(--space-4);
       }
 
       .course-flow-module h3 {
@@ -258,7 +258,7 @@
       }
 
       .course-flow-terminal .mono-label {
-        margin-bottom: 0.35rem;
+        margin-bottom: var(--space-2);
       }
 
       /* The homework row nested in a module row already ends on the module
@@ -292,7 +292,7 @@
       }
 
       .course-more {
-        margin-top: 1.5rem;
+        margin-top: var(--space-5);
         text-align: center;
       }
 
@@ -332,8 +332,8 @@
 
       .course-closing {
         display: grid;
-        gap: 1.25rem;
-        margin-top: 2.75rem;
+        gap: var(--space-5);
+        margin-top: var(--space-section);
       }
 
       .course-closing h3 {
@@ -353,14 +353,14 @@
         align-items: center;
         display: inline-flex;
         font-weight: 600;
-        margin-left: 0.35rem;
+        margin-left: var(--space-2);
         min-height: 2.75rem;
       }
 
       .course-fineprint {
         border-top: 2px dashed var(--line-soft);
-        margin-top: 1.5rem;
-        padding-top: 1rem;
+        margin-top: var(--space-5);
+        padding-top: var(--space-4);
       }
 
       /* Body text, not the muted grey: these notes sit on the lavender and mint
@@ -378,7 +378,7 @@
       @media (min-width: 48rem) {
         .course-rows-head {
           display: grid;
-          padding-block: 0.5rem;
+          padding-block: var(--space-2);
         }
 
         .course-row-state {

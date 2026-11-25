@@ -20,7 +20,7 @@
   /* The three headline outcomes of the project, as the system's stat tiles. */
   .result-tiles {
     display: grid;
-    gap: 0.9rem;
+    gap: var(--space-4);
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   }
 
@@ -36,15 +36,15 @@
 
   .criteria-options {
     display: grid;
-    gap: 0.35rem;
-    margin-top: 0.6rem;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
   }
 
   .criteria-option {
     align-items: baseline;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.35rem 1rem;
+    gap: var(--space-2) var(--space-4);
     justify-content: space-between;
   }
 
@@ -57,16 +57,16 @@
   /* Score components: a label and its number on one line each. */
   .score-components {
     display: grid;
-    gap: 0.35rem;
+    gap: var(--space-2);
   }
 
   .score-component {
     border-bottom: 1.5px dashed var(--line-soft);
     display: flex;
     flex-wrap: wrap;
-    gap: 0.35rem 1rem;
+    gap: var(--space-2) var(--space-4);
     justify-content: space-between;
-    padding-block: 0.5rem;
+    padding-block: var(--space-2);
   }
 
   .score-component:last-child {

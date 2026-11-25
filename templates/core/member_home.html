@@ -23,27 +23,27 @@
 
       .content-page-content > .content-shell > .member-home-section + .member-home-section {
         border-top: 2px dashed var(--line-soft);
-        margin-top: 2.75rem;
-        padding-top: 2.75rem;
+        margin-top: var(--space-section);
+        padding-top: var(--space-section);
       }
 
       .member-home-hero h1 {
         font-size: clamp(1.9rem, 4.2vw, 2.9rem);
         letter-spacing: -0.025em;
-        margin-top: 0.6rem;
+        margin-top: var(--space-eyebrow);
       }
 
       .member-home-lede {
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: 0.75rem;
+        margin-top: var(--space-stack);
         max-width: 46rem;
       }
 
       .member-home-hero-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-top: 1.25rem;
+        gap: var(--space-3);
+        margin-top: var(--space-head);
       }
 
       @media (max-width: 47.99rem) {
@@ -59,7 +59,7 @@
         align-items: center;
         display: flex;
         justify-content: space-between;
-        gap: 1rem;
+        gap: var(--space-4);
       }
 
       .checklist-dismiss {
@@ -96,7 +96,7 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.6rem;
+        gap: var(--space-2);
       }
 
       .checklist-skip {
@@ -109,7 +109,7 @@
         font-size: 0.85rem;
         min-height: 1.5rem;
         min-width: 1.5rem;
-        padding: 0.2rem 0.3rem;
+        padding: var(--space-1) var(--space-1);
         text-decoration: underline;
         text-underline-offset: 0.2em;
       }
@@ -126,11 +126,11 @@
         align-items: center;
         display: flex;
         justify-content: space-between;
-        gap: 0.75rem;
+        gap: var(--space-3);
       }
 
       .your-course-progress {
-        margin-top: 0.25rem;
+        margin-top: var(--space-1);
       }
 
       /* A course card is half a content-shell wide, and the shared two-column
@@ -146,8 +146,8 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-top: 0.25rem;
+        gap: var(--space-3);
+        margin-top: var(--space-1);
       }
 
       .finished-course-row .finished-course-actions,
@@ -155,7 +155,7 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
+        gap: var(--space-3);
       }
 
       .discover-course-card h3 {

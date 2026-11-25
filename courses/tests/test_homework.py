@@ -47,7 +47,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         assert question_rule is not None
         self.assertIn("background: transparent", question_rule.group(1))
         self.assertIn("border: 0", question_rule.group(1))
-        self.assertIn("gap: 0.75rem", question_rule.group(1))
+        self.assertIn("gap: var(--space-3)", question_rule.group(1))
         self.assertIn("padding: 0", question_rule.group(1))
         self.assertNotIn("border: 2px", question_rule.group(1))
         self.assertNotIn("border-radius", question_rule.group(1))

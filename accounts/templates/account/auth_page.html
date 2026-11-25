@@ -33,13 +33,13 @@
          shared parent owns these rules so the two auth pages cannot drift. */
       .auth-lede {
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: 0.75rem;
+        margin-top: var(--space-stack);
       }
 
       .auth-panel {
-        gap: 1rem;
-        margin-top: 1.5rem;
-        padding: 1.35rem;
+        gap: var(--space-4);
+        margin-top: var(--space-5);
+        padding: var(--space-5);
       }
 
       .auth-panel h2 {
@@ -48,7 +48,7 @@
 
       .auth-form {
         display: grid;
-        gap: 1rem;
+        gap: var(--space-4);
       }
 
       .auth-form .form-control {
@@ -58,7 +58,7 @@
         color: var(--ink);
         font: inherit;
         min-height: 2.75rem;
-        padding: 0.65rem 0.8rem;
+        padding: var(--space-3) var(--space-3);
         width: 100%;
       }
 
@@ -69,19 +69,19 @@
         color: var(--ink);
         display: grid;
         font-size: 0.92rem;
-        gap: 0.35rem;
-        padding: 0.85rem 1rem;
+        gap: var(--space-2);
+        padding: var(--space-3) var(--space-4);
       }
 
       .auth-choices {
         display: grid;
-        gap: 0.75rem;
+        gap: var(--space-3);
       }
 
       .auth-fallback {
         display: grid;
-        gap: 1rem;
-        margin-top: 1.5rem;
+        gap: var(--space-4);
+        margin-top: var(--space-5);
       }
 
       .auth-or {
@@ -90,10 +90,10 @@
         display: grid;
         font-family: var(--font-mono);
         font-size: 0.72rem;
-        gap: 0.85rem;
+        gap: var(--space-3);
         grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
         letter-spacing: 0.1em;
-        margin-block: 1.5rem;
+        margin-block: var(--space-5);
         text-align: center;
         text-transform: uppercase;
       }
@@ -111,18 +111,18 @@
 
       .auth-account-links {
         font-size: 0.9rem;
-        margin-top: 1rem;
+        margin-top: var(--space-4);
         text-align: center;
       }
 
       .auth-reassurance {
         font-size: 0.85rem;
-        margin-top: 1rem;
+        margin-top: var(--space-4);
       }
 
       @media (max-width: 47.99rem) {
         .auth-panel {
-          padding: 1.1rem;
+          padding: var(--space-4);
         }
 
         .auth-choices .cta {

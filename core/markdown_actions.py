@@ -87,7 +87,7 @@ def button_html(label_html: str, href: str, variant: str) -> str:
     destination (escaped by the template).
     """
 
-    control = render_to_string(
+    rendered: str = render_to_string(
         "core/_button.html",
         {
             "href": href,
@@ -96,8 +96,8 @@ def button_html(label_html: str, href: str, variant: str) -> str:
             "rel": "noopener noreferrer" if _is_external(href) else "",
         },
     )
-    markup = " ".join(control.split()).replace(" >", ">")
-    return f'<p class="{BUTTON_PARAGRAPH_CLASS}">{markup}</p>\n'
+    control = " ".join(rendered.split()).replace(" >", ">")
+    return f'<p class="{BUTTON_PARAGRAPH_CLASS}">{control}</p>\n'
 
 
 def _parse_button(block: Any, match: re.Match[str], state: Any) -> int:

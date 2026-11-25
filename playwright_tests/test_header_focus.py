@@ -46,31 +46,24 @@ def test_header_pointer_and_keyboard_focus_are_visually_distinct(
     if dark_mode:
         page.locator("body").evaluate("element => element.classList.add('dark', 'dark-mode')")
 
+    # The first link after either opener is Courses, the first entry of the
+    # Learn group: inside the Menu panel on a phone, inside Learn's own panel on
+    # a desktop.
+    keyboard_target = page.locator("#site-navigation-links").get_by_role(
+        "link",
+        name="Courses",
+        exact=True,
+    )
     if suffix == "mobile":
         pointer_target = page.get_by_role("button", name="Menu")
-        pointer_target.click()
-        expect(pointer_target).to_have_attribute("aria-expanded", "true")
-        keyboard_target = page.locator("#site-navigation-links").get_by_role(
-            "link",
-            name="Events",
-            exact=True,
-        )
     else:
         pointer_target = page.locator("#site-navigation-links").get_by_role(
-            "link",
-            name="Events",
+            "button",
+            name="Learn",
             exact=True,
         )
-        pointer_target.evaluate(
-            "element => element.addEventListener('click', event => "
-            "event.preventDefault(), {once: true})"
-        )
-        pointer_target.click()
-        keyboard_target = page.locator("#site-navigation-links").get_by_role(
-            "link",
-            name="Courses",
-            exact=True,
-        )
+    pointer_target.click()
+    expect(pointer_target).to_have_attribute("aria-expanded", "true")
 
     expect(pointer_target).to_have_css("outline-width", "0px")
     pointer_style = focus_style(pointer_target)

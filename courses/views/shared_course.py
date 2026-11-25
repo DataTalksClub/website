@@ -81,6 +81,50 @@ def _delivery_panel(request: HttpRequest, course: Course, context) -> dict[str, 
     }
 
 
+def module_homework_links(
+    course: Course,
+    module: SharedModule,
+    delivery_cohort: Cohort | None,
+) -> list[dict[str, object]]:
+    """Each visible cohort's homework for one shared module, newest first.
+
+    The lessons are shared across every delivery, but the homework that
+    closes a module belongs to one cohort's run of it.  Rather than asking the
+    reader to pick a delivery before they can see any assignment, the module
+    and lesson pages name every cohort's homework for this module directly;
+    the reader's own resolved delivery, when there is one, leads the list.
+    """
+
+    placements = (
+        CohortSharedModule.objects.filter(
+            shared_module=module,
+            cohort__visible=True,
+            terminal_homework__isnull=False,
+        )
+        .select_related("cohort", "terminal_homework")
+        .order_by("-cohort__year", "-cohort__identifier")
+    )
+    links = [
+        {
+            "cohort": placement.cohort,
+            "homework": placement.terminal_homework,
+            "url": reverse(
+                "cohort_homework",
+                args=[
+                    course.slug,
+                    placement.cohort.identifier,
+                    placement.terminal_homework.slug,
+                ],
+            ),
+            "is_current": delivery_cohort is not None
+            and placement.cohort_id == delivery_cohort.pk,
+        }
+        for placement in placements
+    ]
+    links.sort(key=lambda link: not link["is_current"])
+    return links
+
+
 def _append_context(path: str, context_q: str) -> str:
     return f"{path}{context_q}" if context_q else path
 
@@ -123,14 +167,39 @@ def shared_module_view(
     canonical_path = reverse(
         "shared_module", kwargs={"course_slug": course.slug, "module_slug": module.slug}
     )
+    modules = list(
+        SharedModule.objects.filter(
+            curriculum=module.curriculum,
+            published=True,
+            retired_at__isnull=True,
+        ).order_by("position", "id")
+    )
+    module_index = next((i for i, item in enumerate(modules) if item.pk == module.pk), 0)
+    next_module = modules[module_index + 1] if module_index + 1 < len(modules) else None
     return render(
         request,
         "courses/shared_module.html",
         {
             "course_family": course,
             "module": module,
+            "module_position": module_index + 1,
+            "module_count": len(modules),
+            "next_module": next_module,
+            "next_module_label": f"Continue to module {module_index + 2}",
+            "next_module_url": (
+                _append_context(
+                    reverse("shared_module", args=[course.slug, next_module.slug]),
+                    panel["context_q"],
+                )
+                if next_module
+                else ""
+            ),
             "lessons": lessons,
             "terminal_homework": placement.terminal_homework if placement else None,
+            "module_homeworks": module_homework_links(course, module, panel["delivery_cohort"]),
+            # The page ends on the way to the next module, not on a site-wide
+            # stripe stacked under it.
+            "hide_tour_cta": True,
             "canonical_url": f"https://datatalks.club{canonical_path}",
             **panel,
         },

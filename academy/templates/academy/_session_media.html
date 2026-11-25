@@ -1,0 +1,41 @@
+{% load static %}
+{% comment %}
+  A session recap's recording and slides, above the recap's prose.
+  The recording follows the podcast episode player: a click-to-play frame
+  that requests nothing from YouTube until the reader presses play, then
+  builds the youtube-nocookie player (academy/recording.js).  Without
+  JavaScript the frame is a plain link to the watch page.  Until the page
+  names a recording the same frame says the video is coming.
+  page.video: id/watch_url/embed_url (from the page's ``recording`` link);
+  data.slides: the deck's PDF below images/academy/.
+{% endcomment %}
+<section class="academy-section academy-article-column academy-session-media" aria-labelledby="session-media-heading" data-session-media>
+  <h2 id="session-media-heading">Recording and slides</h2>
+  {% if page.video %}
+    <div
+      class="player-frame academy-recording"
+      data-video-embed="{{ page.video.embed_url }}"
+      data-video-title="Watch {{ data.heading }} on YouTube"
+    >
+      <a class="academy-recording-facade" href="{{ page.video.watch_url }}" data-video-facade>
+        <span class="play-disc play-disc-card play-disc-large" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M9 6.5l9 5.5-9 5.5z"/>
+          </svg>
+        </span>
+        <span class="academy-recording-label" aria-hidden="true">Play video</span>
+        <span class="sr-only">Play the session recording on YouTube</span>
+      </a>
+    </div>
+    <script src="{% static 'academy/recording.js' %}" defer></script>
+  {% else %}
+    <div class="player-frame academy-recording" data-recording-pending>
+      <p class="academy-recording-pending">Recording coming soon</p>
+    </div>
+  {% endif %}
+  {% if data.slides %}
+    <p class="academy-session-slides">
+      {% include "core/_button.html" with href="/"|add:data.slides label="View the slides (PDF)" variant="secondary" target="_blank" rel="noopener" %}
+    </p>
+  {% endif %}
+</section>

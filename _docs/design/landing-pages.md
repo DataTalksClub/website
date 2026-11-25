@@ -53,3 +53,42 @@ related links, one closing CTA.
   decision is made, instead of a chapter of their own.
 - Implementation: `academy/templates/academy/` and `_docs/design/design-system.md`
   ("The Academy pages").
+
+## Course family landing (`/courses/<family>`)
+
+The free-course landing follows the same blueprint, adapted to what the course records
+hold (`courses.views.course_page_context.course_family_page_context`). The
+implementation contract is `_docs/design/design-system.md`, "Course landings".
+
+1. **One width.** The whole page sits in the ordinary content column
+   (`--content-width`, 56rem), like the Academy pages. Every block fills it; a block
+   that would leave an empty strip on its right is laid out to the column instead.
+2. **Hero** — the frozen course title as H1, the lede (`Course.outcome`), one primary
+   action, the course drawing scaled to the column. No secondary text links beside the
+   button: the docs link is a fact, the syllabus is on the page.
+3. **Key facts** — the `.spec-strip` under the hero: next cohort start, format (live
+   cohort / self-paced), syllabus size, weekly time, docs. Only facts the data backs.
+4. **About** — the overview (`Course.description`) at the column width, then the
+   live outcome numbers (cohorts, sign-ups, projects, graduates) as the credibility
+   marker.
+5. **Join** — only when a cohort is open or approval-gated: the cohort slab and, beside
+   it, the start-on-your-own route. A family with only its materials has no second
+   choice, so the hero's action is the whole join step and no card repeats it.
+6. **Journey** — the three `progression` stages from `course.yaml`, on the homepage's
+   stage cards. The copy is the course repository's.
+7. **Syllabus** — one row per module: action-oriented title + one line on the tangible
+   output (both from the course repository's module metadata), projects at their
+   chronological slot with their deadlines.
+8. **Who it's for**, **cohort editions** (one row each; the current one carries its
+   status), **stories** (only real ones), **what people built**, **FAQ**.
+9. **Closing CTA** — the mint panel with the hero's action, identical label and
+   destination, and one line saying where it leads. No Academy or tour stripe after it.
+
+Primary action, by what the data holds: *Register for the YYYY cohort* (open
+registration) → *Apply for this course* (approval-gated) → *Start the self-paced
+course* → *Start module 1* (curriculum on the platform) → *Open the course on GitHub*.
+
+Copy lives at its source, never in the template: title, lede, overview, starting
+point, prerequisites, progression and module titles/summaries come from each course
+repository's `course.yaml` and module metadata (synced by the course repository
+ingest, `_docs/runbooks/data-ingest.md` §3).

@@ -405,8 +405,33 @@ def _svg_fixture(comment: str) -> bytes:
     ).encode()
 
 
+def _pdf_fixture(comment: str) -> bytes:
+    """A one-page, empty PDF whose title carries the record key."""
+
+    title = comment.replace("\\", "").replace("(", "").replace(")", "")[:200]
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1 1] >>",
+        f"<< /Title ({title}) >>".encode("latin-1", "replace"),
+    ]
+    out = b"%PDF-1.4\n"
+    offsets = []
+    for number, body in enumerate(objects, start=1):
+        offsets.append(len(out))
+        out += f"{number} 0 obj\n".encode() + body + b"\nendobj\n"
+    xref = len(out)
+    out += f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode()
+    out += b"".join(f"{offset:010d} 00000 n \n".encode() for offset in offsets)
+    out += (
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R /Info 4 0 R >>\n"
+        f"startxref\n{xref}\n%%EOF\n"
+    ).encode()
+    return out
+
+
 def deterministic_fixture(record: Mapping[str, Any]) -> bytes:
-    """Build one minimal, valid, record-specific image for the offline store."""
+    """Build one minimal, valid, record-specific image (or PDF) for the offline store."""
 
     key = record_key(record)
     comment = key.encode("utf-8")[:200]
@@ -419,6 +444,8 @@ def deterministic_fixture(record: Mapping[str, Any]) -> bytes:
         return _svg_fixture(key)
     if content_type == "image/jpeg":
         return _jpeg_fixture(comment)
+    if content_type == "application/pdf":
+        return _pdf_fixture(key)
     raise MediaRecordInvalid("media record declares an unsupported content type")
 
 

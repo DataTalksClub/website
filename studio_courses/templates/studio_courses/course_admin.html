@@ -26,14 +26,14 @@
   /* A campaign row stacks a heading, its actions and its breakdown, so it
      takes a little more air than a one-line list row. */
   .campaign-row {
-    gap: 0.75rem;
+    gap: var(--space-3);
   }
 
   /* The registration breakdown: three lists of value/count links side by
      side, each one a .row-list so the link rows keep the dashed rhythm. */
   .breakdown-grid {
     display: grid;
-    gap: 1rem 1.5rem;
+    gap: var(--space-4) var(--space-5);
     grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
   }
 {% endblock %}

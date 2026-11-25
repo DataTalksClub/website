@@ -211,7 +211,7 @@ class PublicRouteAndSeoTests(TestCase):
         response = self.client.get("/people", follow=False)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<link rel="canonical" href="https://datatalks.club/people">')
-        self.assertContains(response, '<h1 id="collection-heading">People</h1>')
+        self.assertContains(response, '<h1 class="page-title" id="collection-heading">People</h1>')
         for path in ("/people/", "/people.html"):
             with self.subTest(path=path):
                 for method in (self.client.get, self.client.head):

@@ -46,14 +46,14 @@
   /* One card per metric series, as many across as the width allows. */
   .cloudwatch-graphs {
     display: grid;
-    gap: 1rem;
+    gap: var(--space-4);
     grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
   }
 
   .cloudwatch-series-head {
     align-items: start;
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-3);
     justify-content: space-between;
   }
 
@@ -71,7 +71,7 @@
 
   .cloudwatch-series-foot {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-3);
     justify-content: space-between;
   }
 {% endblock %}

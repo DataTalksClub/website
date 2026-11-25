@@ -99,7 +99,7 @@
       .hero-grid {
         align-items: center;
         display: grid;
-        gap: 2rem;
+        gap: var(--space-6);
       }
 
       .hero h1 {
@@ -112,20 +112,20 @@
       .hero-lede {
         font-size: clamp(1.1rem, 1.8vw, 1.3rem);
         line-height: 1.5;
-        margin-top: 1.5rem;
+        margin-top: var(--space-stack);
         max-width: 32rem;
       }
 
       .hero-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-top: 2rem;
+        gap: var(--space-3);
+        margin-top: var(--space-head);
       }
 
       .hero-figure {
         display: grid;
-        gap: 0.85rem;
+        gap: var(--space-3);
         justify-items: center;
       }
 
@@ -209,7 +209,7 @@
       /* Keep the supporting catalogue visually separate from the featured
          course instead of letting two heavy card outlines touch. */
       .catalog-scroller {
-        margin-top: 1.25rem;
+        margin-top: var(--space-5);
       }
 
       /* Both strips are scroll containers, and `overflow-x: auto` clips on both
@@ -235,11 +235,11 @@
          stay equal rather than trusting the constant. */
       .catalog-scroller,
       .stories-scroller {
-        scroll-padding-inline: 0.4rem;
+        scroll-padding-inline: var(--space-2);
       }
 
       .catalog-scroller-controls {
-        margin-top: 0.75rem;
+        margin-top: var(--space-3);
       }
 
       /* --- comparison (Free courses vs Academy) --------------------------- */
@@ -247,7 +247,7 @@
       .comparison-card {
         display: flex;
         flex-direction: column;
-        gap: 0.9rem;
+        gap: var(--space-4);
       }
 
       .comparison-card h3 {
@@ -261,9 +261,9 @@
 
       .comparison-points {
         display: grid;
-        gap: 0.6rem;
+        gap: var(--space-2);
         list-style: none;
-        margin: 0.25rem 0 0.5rem;
+        margin: var(--space-1) 0 var(--space-2);
         padding: 0;
       }
 
@@ -271,24 +271,24 @@
         align-items: flex-start;
         display: flex;
         font-size: 0.92rem;
-        gap: 0.6rem;
+        gap: var(--space-2);
       }
 
       .comparison-action {
         margin-top: auto;
-        padding-top: 0.5rem;
+        padding-top: var(--space-2);
       }
 
       /* --- promises ----------------------------------------------------- */
 
       .promise-grid {
         display: grid;
-        gap: 1rem;
+        gap: var(--space-4);
       }
 
       .sponsor-grid {
         display: grid;
-        gap: 1rem;
+        gap: var(--space-4);
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
@@ -297,7 +297,7 @@
         display: flex;
         justify-content: center;
         min-height: 8rem;
-        padding: 1.4rem;
+        padding: var(--space-5);
       }
 
       .sponsor-card img {
@@ -317,7 +317,7 @@
         display: grid;
         gap: 0.25rem;
         grid-template-columns: auto 1fr;
-        column-gap: 0.75rem;
+        column-gap: var(--space-2);
         font-size: 1rem;
       }
 
@@ -349,29 +349,49 @@
 
       /* --- events ------------------------------------------------------- */
 
-      .event-card time {
+      /* The kind reads as the first word of the date line, not a boxed pill
+         (owner feedback 2026-11-24: the pill beside the date, then beside the
+         speaker, looked awkward). */
+      .event-card .event-when {
         color: var(--muted);
+        display: flex;
+        flex-wrap: wrap;
         font-size: 0.78rem;
+        gap: 0 var(--space-2);
       }
 
-      /* The "see all" line under a band's cards. */
-      .band-more {
-        margin-top: 1.1rem;
-        text-align: right;
+      .event-card .event-type {
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
       /* Inside the newsletter copy column the link follows the paragraph it
-         belongs to, so it sits on the text's left edge. */
+         belongs to, so it sits closer to it than a section's own link. */
       .newsletter-more {
-        margin-top: 0.75rem;
-        text-align: left;
+        margin-top: var(--space-3);
       }
 
-      .event-top {
+      /* Date on top, title, then the kind and the speakers together at the
+         card's foot, so three cards line up row by row whatever their title
+         length (owner feedback 2026-11-24: the kind pill beside the date
+         looked awkward). */
+      .event-card {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .event-foot {
         align-items: center;
         display: flex;
-        gap: 0.75rem;
-        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: var(--space-2) var(--space-3);
+        margin-top: auto;
+        padding-top: var(--space-3);
+      }
+
+      .event-foot .event-speakers {
+        margin: 0;
       }
 
       /* The card this band draws is the events feed's card: the link stretched
@@ -383,20 +403,32 @@
       .event-details {
         border-top: 1.5px dashed var(--line-soft);
         margin-top: auto;
-        padding-top: 0.85rem;
+        padding-top: var(--space-3);
       }
 
       /* --- latest ------------------------------------------------------- */
 
       .latest-grid {
         display: grid;
-        gap: 2rem;
+        gap: var(--space-6);
+      }
+
+      /* The two halves mirror each other: each card stretches to the taller
+         one, and both "more" links sit on one line under them (owner
+         feedback 2026-11-24: the pair looked lopsided). */
+      .latest-grid > div {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .latest-grid .latest-card {
+        flex: 1;
       }
 
       .latest-item {
         align-items: flex-start;
         display: flex;
-        gap: 0.9rem;
+        gap: var(--space-4);
       }
 
       .latest-icon {
@@ -455,14 +487,14 @@
       .latest-meta {
         color: var(--muted);
         font-size: 0.88rem;
-        margin-top: 0.3rem;
+        margin-top: var(--space-1);
       }
 
       /* --- wiki graph --------------------------------------------------- */
 
       .wiki-grid {
         display: grid;
-        gap: 1.25rem;
+        gap: var(--space-5);
       }
 
       /* The drawing itself — `.graph-svg` and the legend's edge key — is a
@@ -474,8 +506,8 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.55rem 0.85rem;
-        margin-bottom: 0.85rem;
+        gap: var(--space-2) var(--space-3);
+        margin-bottom: var(--space-3);
       }
 
       .home-graph-tool {
@@ -487,7 +519,7 @@
         font: inherit;
         font-size: 0.82rem;
         font-weight: 600;
-        padding: 0.28rem 0.8rem;
+        padding: var(--space-1) var(--space-3);
         transition: background 0.15s ease, transform 0.15s ease;
       }
 
@@ -514,7 +546,7 @@
       .home-graph-status {
         color: var(--muted);
         font-size: 0.82rem;
-        margin: 0 0 0.75rem;
+        margin: 0 0 var(--space-3);
       }
 
       /* Always in flow once the JS-driven explorer takes over (see
@@ -523,7 +555,7 @@
          one would take, so re-centring on a hub with 8 or fewer connections
          never shrinks the frame relative to one with more. */
       .home-graph-more {
-        margin-top: 0.75rem;
+        margin-top: var(--space-3);
       }
 
       .home-graph-more summary {
@@ -541,9 +573,9 @@
 
       .home-graph-more-list {
         display: grid;
-        gap: 0.35rem;
+        gap: var(--space-2);
         list-style: none;
-        margin: 0.65rem 0 0;
+        margin: var(--space-3) 0 0;
         padding: 0;
       }
 
@@ -556,7 +588,7 @@
         font: inherit;
         font-size: 0.78rem;
         font-weight: 600;
-        padding: 0.28rem 0.7rem;
+        padding: var(--space-1) var(--space-3);
         text-align: left;
         transition: background 0.15s ease, transform 0.15s ease;
         width: 100%;
@@ -673,7 +705,7 @@
         border-radius: 1.5rem;
         display: flex;
         flex-wrap: wrap;
-        gap: 1.5rem;
+        gap: var(--space-5);
         justify-content: space-between;
         max-width: calc(var(--shell) - 2.5rem);
         padding: clamp(1.5rem, 4vw, 3rem);
@@ -696,7 +728,7 @@
       .closing p {
         color: #d7d9e6;
         font-size: 1rem;
-        margin-top: 0.5rem;
+        margin-top: var(--space-2);
       }
 
       .closing-link {
@@ -734,7 +766,7 @@
           border-radius: 0;
           box-shadow: none;
           gap: 0.15rem;
-          padding: 0 0 0.8rem;
+          padding: 0 0 var(--space-3);
         }
 
         .event-card .chip,
@@ -750,12 +782,12 @@
            narrow screen that reads as a mistake, so it takes the shared card inset. */
         .featured {
           border-radius: 1.1rem;
-          gap: 1.1rem;
-          padding: 1rem;
+          gap: var(--space-4);
+          padding: var(--space-4);
         }
 
         .featured-build {
-          padding: 0.9rem 1rem;
+          padding: var(--space-4) var(--space-4);
         }
       }
 
@@ -765,12 +797,12 @@
         /* The design separates the two columns with the same dashed rule the bands use. */
         .latest-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 2.5rem;
+          gap: var(--space-7);
         }
 
         .latest-grid > * + * {
           border-left: 2px dashed var(--line-soft);
-          padding-left: 2.5rem;
+          padding-left: var(--space-7);
         }
 
         .promise-grid {
@@ -796,7 +828,7 @@
         }
 
         .hero-grid {
-          gap: 2.5rem;
+          gap: var(--space-7);
           grid-template-columns: minmax(0, 1.32fr) minmax(0, 1fr);
         }
 
@@ -822,7 +854,7 @@
 
         .wiki-grid {
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-          gap: 1.75rem;
+          gap: var(--space-6);
         }
       }
 
@@ -831,7 +863,7 @@
            starts beyond the viewport and remains reachable with the controls,
            avoiding a card that looks accidentally amputated at the shell edge. */
         .catalog-scroller {
-          grid-auto-columns: calc((100% - 3 * 1.25rem) / 4);
+          grid-auto-columns: calc((100% - 3 * var(--space-grid)) / 4);
         }
       }
     </style>
@@ -1125,10 +1157,13 @@
                   details" link — the card is the link.
                 {% endcomment %}
                 <article class="card event-card interactive-card interactive-lift">
-                  <div class="event-top">
-                    {% include "public/_event_kind.html" with tip_id=event.identity_id|default:forloop.counter0 %}
-                    <time class="mono-note" datetime="{{ event.starts_at }}">{{ event.home_time }}</time>
-                  </div>
+                  <p class="mono-note event-when">
+                    {% if event.type %}
+                      <span class="event-type">{{ event.type }}</span>
+                      <span aria-hidden="true">·</span>
+                    {% endif %}
+                    <time datetime="{{ event.starts_at }}">{{ event.home_time }}</time>
+                  </p>
                   <h3>
                     <a href="{{ event.public_path }}">{{ event.title }}</a>
                   </h3>
@@ -1136,11 +1171,13 @@
                     <p class="event-summary">{{ event.description_text|truncatewords:20 }}</p>
                   {% endif %}
                   {% if event.speakers %}
-                    <p class="event-speakers person-chips card-credit">
-                      {% for speaker in event.speakers %}
-                        {% include "public/_person_chip.html" with person=speaker|person_chip %}
-                      {% endfor %}
-                    </p>
+                    <div class="event-foot">
+                      <p class="event-speakers person-chips card-credit">
+                        {% for speaker in event.speakers %}
+                          {% include "public/_person_chip.html" with person=speaker|person_chip %}
+                        {% endfor %}
+                      </p>
+                    </div>
                   {% endif %}
                 </article>
               {% endfor %}
@@ -1183,7 +1220,7 @@
                     <h3>
                       <a class="band-link" href="{{ podcast.public_path }}">{{ podcast.title }}</a>
                     </h3>
-                    <p class="mono-label mono-label-indigo podcast-meta">
+                    <p class="latest-meta">
                       Season {{ podcast.season }} · Episode {{ podcast.episode }}
                     </p>
                     {% if podcast.guest_profiles %}
@@ -1229,7 +1266,7 @@
         <div class="shell">
           <div class="band-head">
             <div>
-              <h2 id="wiki-heading">Community knowledgebase</h2>
+              <h2 id="wiki-heading">Community knowledge base</h2>
               <p>
                 {{ counts.wiki }} member-written topics wired to each other — click a node to
                 explore its neighbours. Open a page only when you choose to.
@@ -1247,7 +1284,6 @@
                 <button class="home-graph-tool interactive-lift" type="button" data-home-graph-back hidden>Back</button>
                 <button class="home-graph-tool interactive-lift" type="button" data-home-graph-random>Random topic</button>
                 <a class="home-graph-tool interactive-lift" data-home-graph-open href="{{ wiki_graph.hub.public_path }}">Open wiki page →</a>
-                <a class="band-link" href="{% url 'wiki-graph' %}">full graph →</a>
               </div>
               <p class="home-graph-status" data-home-graph-status aria-live="polite">
                 Exploring {{ wiki_graph.hub.title }}. Click a neighbour to move there.
@@ -1327,6 +1363,7 @@
           </div>
           <p class="band-more wiki-browse-link">
             <a class="band-link" href="{% url 'wiki-home' %}">browse {{ counts.wiki }} topics A–Z →</a>
+            <a class="band-link" href="{% url 'wiki-graph' %}">full graph →</a>
           </p>
         </div>
       </section>
@@ -1357,7 +1394,6 @@
       <section class="band band-cream" aria-labelledby="newsletter-heading">
         <div class="shell newsletter-panel">
           <div>
-            <p class="mono-label">Newsletter</p>
             <h2 id="newsletter-heading">Get the weekly DataTalks.Club digest</h2>
             <p>
               Subscribe to our weekly newsletter. We'll keep you informed

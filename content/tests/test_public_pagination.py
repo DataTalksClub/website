@@ -653,8 +653,8 @@ class PublicPaginationSeoAndRepositoryTests(TestCase):
             ".pagination {",
             ".pagination-pills {",
             ".pagination-number {",
-            ".pagination-step {",
-            ".pagination-gap {",
+            ".pagination-step.filter-pill {",
+            ".pagination-gap.status-pill {",
         ):
             self.assertIn(rule, design_system)
         # The drawn mark is the system's token, not a fourth wobble of its own, and

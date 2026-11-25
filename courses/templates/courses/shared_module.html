@@ -9,102 +9,138 @@
 {% endblock %}
 
 {% block page_styles %}
+      {% comment %}
+        One shared module: the title block, then the module's lessons as one
+        numbered list at the content width, then each cohort's homework for it
+        and the way on to the next module.  The lesson list is the page's only
+        list of lessons -- no side rail repeats it -- and there is no delivery
+        chooser: the homework rows name their cohort directly.
+      {% endcomment %}
       :root {
         --page: var(--lavender);
       }
 
       .module-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
+        margin-bottom: var(--space-2);
+        margin-top: calc(var(--space-3) * -1);
       }
 
       .module-hero-inner {
         display: grid;
-        gap: 0.65rem;
+        gap: var(--space-3);
       }
 
       .module-hero h1 {
-        font-size: clamp(2rem, 4.6vw, 3rem);
-        letter-spacing: -0.035em;
+        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        letter-spacing: -0.03em;
+        text-wrap: balance;
+      }
+
+      .module-lede {
+        color: var(--body-text);
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        line-height: 1.6;
       }
 
       .module-section + .module-section {
-        margin-top: 2rem;
-      }
-
-      .module-section-heading {
-        align-items: baseline;
-        display: flex;
-        gap: 0.65rem;
-        justify-content: space-between;
-        margin-bottom: 1rem;
-      }
-
-      .module-section-heading h2 {
-        font-size: 1.35rem;
-      }
-
-      .module-count {
-        color: var(--muted);
-        font-size: 0.88rem;
+        border-top: 2px dashed var(--line-soft);
+        margin-top: var(--space-7);
+        padding-top: var(--space-7);
       }
 
       .lesson-list {
         background: var(--card);
         border: 2px solid var(--line);
         border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
         overflow: hidden;
       }
 
       .lesson-row {
         align-items: center;
         display: grid;
-        gap: 0.9rem;
-        grid-template-columns: 2rem minmax(0, 1fr);
-        min-height: 4.5rem;
-        padding: 0.75rem 1rem;
+        gap: var(--space-4);
+        grid-template-columns: 2.1rem minmax(0, 1fr);
+        padding: var(--space-2) var(--space-4);
+      }
+
+      /* The shared disc spans the accordion summary's two lines; a lesson
+         row has one. */
+      .lesson-row .module-number {
+        grid-row: auto;
       }
 
       .lesson-row + .lesson-row {
-        border-top: 1.5px solid var(--line-soft);
-      }
-
-      .lesson-position,
-      .read-indicator {
-        align-items: center;
-        border: 1.5px solid var(--line-soft);
-        border-radius: var(--drawn-circle);
-        color: var(--muted);
-        display: inline-flex;
-        flex: none;
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
-        font-weight: 700;
-        height: 2rem;
-        justify-content: center;
-        width: 2rem;
+        border-top: 1.5px dashed var(--line-soft);
       }
 
       .lesson-link {
+        align-items: center;
         color: var(--ink);
+        display: flex;
         font-weight: 700;
         min-height: 2.75rem;
-        padding-block: 0.55rem;
         text-decoration: none;
       }
 
-      .lesson-link:hover {
-        color: var(--indigo);
+      .lesson-link:hover,
+      .lesson-link:focus-visible {
         text-decoration: underline;
         text-underline-offset: 0.2em;
       }
 
-      .delivery-panel-link {
-        font-size: 0.9rem;
-        margin-top: 1.5rem;
+      .module-homework-row {
+        --row-cols: minmax(0, 1fr) auto;
       }
 
-      {% include "courses/_module_rail_styles.html" %}
+      .module-homework-link {
+        align-items: center;
+        color: var(--ink);
+        display: inline-flex;
+        font-weight: 700;
+        min-height: 2.75rem;
+        text-decoration: none;
+      }
+
+      .module-homework-link:hover,
+      .module-homework-link:focus-visible {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .module-next {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2) var(--space-4);
+        justify-content: space-between;
+      }
+
+      .module-next .mono-label {
+        display: block;
+        margin-bottom: var(--space-1);
+      }
+
+      .module-next-title {
+        color: var(--ink);
+        font-size: 1.1rem;
+        font-weight: 800;
+      }
+
+      .module-homework-list > :last-child {
+        border-bottom: 0;
+      }
+
+      .delivery-panel {
+        margin-top: var(--space-6);
+      }
+
+      @media (max-width: 47.99rem) {
+        .module-next .cta {
+          justify-content: center;
+          width: 100%;
+        }
+      }
 {% endblock %}
 
 {% block header_band_class %}module-hero{% endblock %}
@@ -115,42 +151,50 @@
         {% url 'course_family' course_family.slug as course_family_url %}
         {% breadcrumbs "Courses" course_list_url course_family.title course_family_url %}
         <div class="module-hero-inner">
+          <p class="mono-note">Module {{ module_position }} of {{ module_count }}</p>
           <h1 id="module-heading">{{ module.title }}</h1>
+          {% if module.summary %}
+            <p class="module-lede">{{ module.summary }}</p>
+          {% endif %}
         </div>
 {% endblock %}
 
 {% block page_content %}
-      <section aria-label="Module content">
-        <div class="module-layout shell-breakout">
-          <div class="module-main">
-            <section class="module-section" aria-labelledby="lessons-heading">
-              <div class="module-section-heading">
-                <h2 id="lessons-heading">Lessons</h2>
-                <span class="module-count">{{ lessons|length }} lesson{{ lessons|length|pluralize }}</span>
-              </div>
-              {% if lessons or terminal_homework %}
-                <ol class="lesson-list" aria-label="Module steps">
-                  {% for lesson in lessons %}
-                    <li class="lesson-row">
-                      <span class="lesson-position" aria-hidden="true">{{ forloop.counter }}</span>
-                      <a class="lesson-link" href="{% url 'shared_lesson' course_family.slug module.slug lesson.slug %}{{ context_q }}">{{ lesson.title }}</a>
-                    </li>
-                  {% endfor %}
-                  {% if terminal_homework and delivery_cohort %}
-                    <li class="lesson-row homework-row">
-                      <span class="lesson-position homework-position" aria-hidden="true">HW</span>
-                      <a class="lesson-link" href="{% url 'cohort_homework' course_family.slug delivery_cohort.identifier terminal_homework.slug %}{{ context_q }}">{{ terminal_homework.title }}</a>
-                    </li>
-                  {% endif %}
-                </ol>
-              {% else %}
-                <div class="card"><p>This module does not have any lessons yet.</p></div>
-              {% endif %}
-            </section>
-
-            {% include "courses/_delivery_panel.html" %}
+      <section class="module-section" aria-labelledby="lessons-heading">
+        <div class="band-head">
+          <div>
+            <h2 id="lessons-heading">Lessons</h2>
+            <p>{{ lessons|length }} lesson{{ lessons|length|pluralize }}</p>
           </div>
-          {% include "courses/_shared_module_rail.html" %}
         </div>
+        {% if lessons %}
+          <ol class="lesson-list" aria-label="Lessons in this module">
+            {% for lesson in lessons %}
+              <li class="lesson-row">
+                <span class="module-number" aria-hidden="true">{{ forloop.counter }}</span>
+                <a class="lesson-link" href="{% url 'shared_lesson' course_family.slug module.slug lesson.slug %}{{ context_q }}">{{ lesson.title }}</a>
+              </li>
+            {% endfor %}
+          </ol>
+        {% else %}
+          <div class="card"><p>This module does not have any lessons yet.</p></div>
+        {% endif %}
+        {% include "courses/_delivery_panel.html" %}
       </section>
+
+      {% if module_homeworks %}
+        <div class="module-section">
+          {% include "courses/_module_homework.html" %}
+        </div>
+      {% endif %}
+
+      {% if next_module %}
+        <section class="module-section module-next" aria-label="Next module">
+          <div>
+            <span class="mono-label">Next module</span>
+            <span class="module-next-title">{{ next_module.title }}</span>
+          </div>
+          {% include "core/_button.html" with href=next_module_url label=next_module_label variant="secondary" %}
+        </section>
+      {% endif %}
 {% endblock %}

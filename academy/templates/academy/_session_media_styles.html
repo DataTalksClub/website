@@ -1,0 +1,52 @@
+{% comment %}
+  The recap recording frame and slides link (_session_media.html).  The
+  frame is the system's .player-frame with its .play-disc; these rules only
+  place the label, the facade and the built player.
+{% endcomment %}
+      .academy-session-media h2 {
+        margin-bottom: 1rem;
+      }
+
+      .academy-recording {
+        overflow: hidden;
+        position: relative;
+      }
+
+      .academy-recording iframe {
+        border: 0;
+        height: 100%;
+        inset: 0;
+        position: absolute;
+        width: 100%;
+      }
+
+      .academy-recording-facade {
+        align-items: center;
+        color: var(--ink);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        inset: 0;
+        justify-content: center;
+        position: absolute;
+        text-decoration: none;
+      }
+
+      .academy-recording-facade:focus-visible {
+        outline-offset: -5px;
+      }
+
+      .academy-recording-label,
+      .academy-recording-pending {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        font-weight: 700;
+        margin: 0;
+        padding: 0.3rem 1.1rem;
+      }
+
+      .academy-session-slides {
+        margin: 1.25rem 0 0;
+      }

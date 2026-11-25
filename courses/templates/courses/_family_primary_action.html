@@ -1,0 +1,29 @@
+{% comment %}
+  The course family landing's one goal, drawn identically in the hero and the
+  closing panel: the label says exactly where the button goes.
+
+  An open registration is the goal while it exists (the application form when
+  the cohort is approval-gated).  Without one, the strongest start-now route
+  the data has: the self-paced edition, the first module on the platform, or
+  the course repository for a family whose curriculum was never imported.
+{% endcomment %}
+{% if registration_wall_blocked %}
+  {% if registration_wall_status != "pending" and registration_wall_status != "rejected" %}
+    {% url 'registration_campaign' family_registration.campaign.slug as family_action_url %}
+    {% include "core/_button.html" with href=family_action_url label="Apply for this course" variant="primary" %}
+  {% endif %}
+{% elif family_registration %}
+  {% url 'registration_campaign' family_registration.campaign.slug as family_action_url %}
+  {% if registration_cohort %}
+    {% include "core/_button.html" with href=family_action_url label="Register for the "|add:registration_cohort.identifier|add:" cohort" variant="primary" %}
+  {% else %}
+    {% include "core/_button.html" with href=family_action_url label="Register interest" variant="primary" %}
+  {% endif %}
+{% elif self_paced_cohort %}
+  {% url 'cohort' course_family.slug self_paced_cohort.identifier as family_action_url %}
+  {% include "core/_button.html" with href=family_action_url label="Start the self-paced course" variant="primary" %}
+{% elif materials_on_platform %}
+  {% include "core/_button.html" with href=materials_url label="Start module 1" variant="primary" %}
+{% elif materials_url %}
+  {% include "core/_button.html" with href=materials_url label="Open the course on GitHub" variant="primary" target="_blank" rel="noopener noreferrer" %}
+{% endif %}

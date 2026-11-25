@@ -330,7 +330,7 @@ class MainHomepageRoutingTests(TestCase):
             body,
         )
         self.assertIn(
-            '<p class="mono-label mono-label-indigo podcast-meta">',
+            '<p class="latest-meta">',
             body,
         )
         self.assertIn(
@@ -389,7 +389,7 @@ class MainHomepageRoutingTests(TestCase):
             )
             self.assertContains(rendered, "No active courses right now.")
             self.assertNotContains(rendered, "data-featured-course")
-            self.assertContains(rendered, "Community knowledgebase")
+            self.assertContains(rendered, "Community knowledge base")
 
     def test_homepage_navigation_is_local_and_complete(self) -> None:
         response = self.client.get(reverse("home"))

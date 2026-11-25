@@ -244,6 +244,55 @@ class AcademyPageTests(TestCase):
             html=False,
         )
         self.assertNotContains(response, "noindex")
+
+    def test_a_recap_without_a_recording_says_it_is_coming_and_links_the_slides(self) -> None:
+        body = self.client.get("/academy/sessions/recap/").content.decode()
+        content = body[body.index("content-page-content") :]
+        media = content[content.index("data-session-media") :]
+        media = media[: media.index("</section>")]
+        self.assertIn("Recording and slides", media)
+        self.assertIn("data-recording-pending", media)
+        self.assertIn("Recording coming soon", media)
+        self.assertIn('href="/images/academy/slides/session-1.pdf"', media)
+        self.assertIn("View the slides (PDF)", media)
+        # No player: the site footer links the community's YouTube channel on
+        # every page, so the check is for an embed, not for the word.
+        for marker in ("youtube.com/embed", "youtube-nocookie", "data-video-embed", "<iframe"):
+            self.assertNotIn(marker, body)
+        self.assertNotIn("recording.js", body)
+        # The block sits above the recap's prose.
+        self.assertLess(
+            content.index("data-session-media"), content.index("Synthetic recap section")
+        )
+        pdf = self.client.get("/images/academy/slides/session-1.pdf")
+        self.assertEqual(pdf.status_code, 200)
+        self.assertEqual(pdf["Content-Type"], "application/pdf")
+
+    def test_a_recap_with_a_recording_draws_a_click_to_play_frame(self) -> None:
+        pages = fixture.pages_copy()
+        pages["sessions-recap"][0]["recording"] = "https://youtu.be/AbCdEfGhI_1?si=x"
+        _clear_academy()
+        fixture.publish(fixture.academy_tree(pages=pages))
+        body = self.client.get("/academy/sessions/recap/").content.decode()
+        media = body[body.index("data-session-media") :]
+        media = media[: media.index("</section>")]
+        self.assertIn(
+            'data-video-embed="https://www.youtube-nocookie.com/embed/AbCdEfGhI_1?rel=0"', media
+        )
+        self.assertIn('href="https://www.youtube.com/watch?v=AbCdEfGhI_1"', media)
+        self.assertIn('data-video-title="Watch Synthetic recap heading on YouTube"', media)
+        self.assertIn("academy/recording.js", media)
+        self.assertNotIn("Recording coming soon", media)
+        # Nothing is embedded until the reader presses play.
+        self.assertNotIn("<iframe", body)
+
+    def test_an_article_without_recording_or_slides_has_no_media_block(self) -> None:
+        pages = fixture.pages_copy()
+        del pages["sessions-recap"][0]["slides"]
+        _clear_academy()
+        fixture.publish(fixture.academy_tree(pages=pages))
+        body = self.client.get("/academy/sessions/recap/").content.decode()
+        self.assertNotIn("data-session-media", body)
         documents = [
             json.loads(match)
             for match in re.findall(r'<script type="application/ld\+json">(.*?)</script>', body)
@@ -603,6 +652,18 @@ class CalendarFormatTests(SimpleTestCase):
             unfolded,
         )
 
+    def test_a_moved_session_carries_its_sequence(self) -> None:
+        page = fixture.PAGES["sessions"][0]
+        first, moved = page["sessions"][0], {**page["sessions"][2], "sequence": 1}
+        text = calendar_for(page, [first, moved])
+        self.assertEqual(text.count("SEQUENCE:"), 1)
+        self.assertIn(
+            f"UID:{moved['id']}@series.example.invalid\r\nDTSTAMP:{page['calendar']['stamp']}"
+            f"\r\nDTSTART:{moved['starts'].replace('-', '').replace(':', '')}"
+            f"\r\nDTEND:{moved['ends'].replace('-', '').replace(':', '')}\r\nSEQUENCE:1\r\n",
+            text,
+        )
+
 
 class AcademyParserTests(TestCase):
     def setUp(self) -> None:
@@ -625,6 +686,36 @@ class AcademyParserTests(TestCase):
         media = [item.key for item in self.discover(fixture.academy_tree(), "media")]
         self.assertIn("images/academy/og/home.png", media)
         self.assertIn("images/academy/qr/session-1.svg", media)
+        recap = next(item for item in items if item.key == "/academy/sessions/recap/")
+        self.assertIsNone(recap.data["record"]["video"])
+
+    def test_a_youtube_recording_records_its_video(self) -> None:
+        for link in (
+            "https://www.youtube.com/watch?v=AbCdEfGhI_1&t=30",
+            "https://youtu.be/AbCdEfGhI_1",
+            "https://m.youtube.com/live/AbCdEfGhI_1",
+        ):
+            with self.subTest(link=link):
+                pages = fixture.pages_copy()
+                pages["sessions-recap"][0]["recording"] = link
+                items = self.discover(fixture.academy_tree(pages=pages))
+                recap = next(i for i in items if i.key == "/academy/sessions/recap/")
+                record = recap.data["record"]
+                self.assertEqual(record["data"]["recording"], link)
+                self.assertEqual(record["video"]["id"], "AbCdEfGhI_1")
+
+    def test_only_the_academy_tree_publishes_pdf_media(self) -> None:
+        media = {
+            item.key: item.data["record"]["content_type"]
+            for item in self.discover(fixture.academy_tree(), "media")
+        }
+        self.assertEqual(media["images/academy/slides/session-1.pdf"], "application/pdf")
+        for tree in (
+            {"images/posts/deck.pdf": fixture.PDF},
+            {"images/academy/slides/forged.pdf": b"<html>not a pdf</html>"},
+        ):
+            with self.subTest(tree=list(tree)), self.assertRaises(ContentParserError):
+                self.discover(tree, "media")
 
     def test_a_repository_without_academy_publishes_nothing(self) -> None:
         self.assertEqual(self.discover({"slack.yaml": b"title: x\n"}), [])
@@ -680,6 +771,30 @@ class AcademyParserTests(TestCase):
                 "alternates"
             ][0].update(path="/blog/"),
             "articles index field": lambda pages: pages["guides"][0].update(items=[]),
+            "recording off YouTube": lambda pages: pages["sessions-recap"][0].update(
+                recording="https://vimeo.com/123456789"
+            ),
+            "recording over http": lambda pages: pages["sessions-recap"][0].update(
+                recording="http://www.youtube.com/watch?v=AbCdEfGhI_1"
+            ),
+            "recording without a video": lambda pages: pages["sessions-recap"][0].update(
+                recording="https://www.youtube.com/@somechannel"
+            ),
+            "recording look-alike host": lambda pages: pages["sessions-recap"][0].update(
+                recording="https://youtube.com.example.invalid/watch?v=AbCdEfGhI_1"
+            ),
+            "slides not a PDF": lambda pages: pages["sessions-recap"][0].update(
+                slides="images/academy/og/home.png"
+            ),
+            "slides missing": lambda pages: pages["sessions-recap"][0].update(
+                slides="images/academy/slides/none.pdf"
+            ),
+            "image that is a PDF": lambda pages: pages["faq"][0].update(
+                og_image="images/academy/slides/session-1.pdf"
+            ),
+            "recording on a guide": lambda pages: pages["faq"][0].update(
+                recording="https://youtu.be/AbCdEfGhI_1"
+            ),
         }
         for name, change in cases.items():
             with self.subTest(case=name):

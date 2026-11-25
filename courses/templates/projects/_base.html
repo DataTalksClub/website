@@ -62,7 +62,7 @@
          already carry the system's 2.75rem target height, so it needs only a
          little air under it. */
       .shell > .breadcrumbs {
-        margin-bottom: 0.75rem;
+        margin-bottom: var(--space-3);
       }
 
       /* The page head: the course kicker, the h1, a one-line lede and the row
@@ -71,8 +71,8 @@
          title sits directly above the work and must not shout over it. */
       .project-head {
         display: grid;
-        gap: 0.5rem;
-        margin-bottom: 1.75rem;
+        gap: var(--space-2);
+        margin-bottom: var(--space-head);
       }
 
       .project-head h1 {
@@ -96,14 +96,14 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.6rem;
+        gap: var(--space-2);
       }
 
       /* One vertical rhythm for the page body, so a page can emit sections
          without carrying spacing of its own. */
       .project-stack {
         display: grid;
-        gap: 1.5rem;
+        gap: var(--space-5);
       }
 
       /* A section slab: the card surface at page scale, for each group a page
@@ -114,15 +114,15 @@
         border-radius: 0.9rem;
         box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
         display: grid;
-        gap: 0.9rem;
-        padding: 1.25rem;
+        gap: var(--space-4);
+        padding: var(--space-5);
       }
 
       .project-section-head {
         align-items: baseline;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem 1rem;
+        gap: var(--space-2) var(--space-4);
         justify-content: space-between;
       }
 
@@ -133,7 +133,7 @@
       /* Label-over-value facts, wrapping into as many columns as fit. */
       .project-facts {
         display: grid;
-        gap: 0.75rem 1.5rem;
+        gap: var(--space-3) var(--space-5);
         grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
       }
 
@@ -149,7 +149,7 @@
       .project-facts dd {
         color: var(--ink);
         font-weight: 700;
-        margin-top: 0.2rem;
+        margin-top: var(--space-1);
         overflow-wrap: anywhere;
       }
 
@@ -166,7 +166,7 @@
         border: 2px dashed var(--line-soft);
         border-radius: 0.9rem;
         color: var(--body-text);
-        padding: 1.75rem 1rem;
+        padding: var(--space-6) var(--space-4);
         text-align: center;
       }
 
@@ -182,8 +182,8 @@
         border-radius: 0.9rem;
         color: var(--body-text);
         display: grid;
-        gap: 0.3rem;
-        padding: 0.9rem 1.1rem;
+        gap: var(--space-1);
+        padding: var(--space-4) var(--space-4);
       }
 
       .notice.success {
@@ -209,8 +209,8 @@
 
       .notices {
         display: grid;
-        gap: 0.6rem;
-        margin-bottom: 1.5rem;
+        gap: var(--space-2);
+        margin-bottom: var(--space-5);
       }
 
       /* The live countdown `time_left.js` writes into a deadline line.  It is

@@ -166,18 +166,110 @@ the biggest sizes). The prose rows apply **only inside `.prose`**. A body's own
 headings stay below the band `h2`, so a section of prose never competes with the
 heading of the band it sits in.
 
-## Spacing, radius, borders, shadows
+## Spacing
 
-- **Spacing scale**: `0.35 / 0.5 / 0.6 / 0.75 / 0.85 / 1 / 1.25 / 1.5 / 2 / 2.5rem`.
-  Card gap `0.6rem` inside, `1.25rem` between cards (`0.9rem` between narrow rows).
-- **Band padding**: `padding-block: 2.25rem`, growing to `2.9rem` at ≥62rem.
-- **Shell**: `.shell` centres content at `--shell` = `76rem`, `padding-inline: 1rem`
-  (`1.25rem` at ≥40rem).
+Every margin, padding and gap in page and partial CSS is a token from one scale,
+defined once in `templates/core/_design_system.html` `:root`. Spacing has no theme,
+so dark mode redefines nothing.
+
+### The scale
+
+| Token | Value |
+| --- | --- |
+| `--space-1` | `0.25rem` |
+| `--space-2` | `0.5rem` |
+| `--space-3` | `0.75rem` |
+| `--space-4` | `1rem` |
+| `--space-5` | `1.5rem` |
+| `--space-6` | `2rem` |
+| `--space-7` | `3rem` |
+| `--space-8` | `4rem` |
+
+### The roles
+
+Reach for a role first. A role names *why* two things are apart, so the same
+relationship gets the same distance on every page. A bare scale step is for
+component internals no role names (a pill's padding, a table cell, a form row).
+
+| Role | Value | Where it applies | Examples |
+| --- | --- | --- | --- |
+| `--space-inline` | `--space-2` | icon ↔ label, a row of chips or pills | `.past-supporters`, chip rows |
+| `--space-tight` | `--space-2` | a heading ↔ its own subline; label ↔ value | `.band-head p`, `.band-head` row gap, `.card` gap (title ↔ text) |
+| `--space-eyebrow` | `--space-3` | a page header's eyebrow, kicker, status pill or breadcrumb trail ↔ its `h1` — one value on every page header | `.*-hero h1`, `.person-identity h1`, `.article-hero .breadcrumbs`, `.course-hero .breadcrumbs`, `.event-head` |
+| `--space-stack` | `--space-4` | paragraph ↔ paragraph; `h1` ↔ hero lede; blocks inside a card | `.prose > * + *`, `.*-lede` |
+| `--space-head` | `--space-5` | a heading block ↔ the content it introduces (including an FAQ block under its heading); hero lede ↔ hero actions | `.band-head`, `.article-faq`, `.sponsor-section-heading`, `.module-section-heading`, `.admin-head`, `.*-hero-actions` |
+| `--space-grid` | `--space-5` | between cards in a grid, list or scroller of cards | `.card-grid`, `.catalog-scroller`, `.stories-scroller`, `.featured-supporters`, `.episode-navigation` |
+| `--space-card` | `--space-5` | card and panel padding | `.card`, `.catalog-card`, `.faq-panel` (block padding less the rows' own `--space-3`) |
+| `--space-section` | `--space-7` | between sections inside one band | `.band-head-secondary`, `.family-chapter`, `.member-home-section + …`, `.docs-chapter`, `.course-certificate`, `.course-closing` |
+| `--space-band` | `2.5rem`, `--space-7` at ≥62rem | a band's `padding-block` (and the page header, which is a band) | `.band`, full-bleed breakouts that act as bands (`.zoomcamp-steps`, `.courses-faq`) |
+
+Two shapes recur and have one answer each:
+
+- **Section seams.** A section divided from the previous one by a rule takes
+  `margin-top: var(--space-section)` *and* `padding-top: var(--space-section)` —
+  the section distance on each side of the rule. A section without a rule takes
+  only the margin (`.band-head-secondary`).
+- **Cancelling a band's padding.** An element that must run flush to its band's
+  edge (an ink closing strip, a full-bleed last section) pulls itself out with
+  `calc(var(--space-band) * -1)`, never with a copied literal, so it follows the
+  band at every width.
+
+Prose is a typographic context, not a stack of sections: inside `.prose` a heading
+sits `--space-6` (`h2`) or `--space-5` (`h3`–`h6`) below the block before it and
+`--space-3` above the block it heads, and blocks are `--space-stack` apart.
+
+### Rules
+
+1. Every `margin*`, `padding*`, `gap`, `row-gap`, `column-gap` and `inset*` value in
+   page and partial CSS is `0`, `auto`, a `--space-*` token, or an expression of
+   tokens (`calc(var(--space-2) * -1)`, `clamp(var(--space-5), 4vw, var(--space-7))`).
+2. Heading → content is always `--space-head`. Do not put a margin on a section `h2`
+   to space it from its content; wrap it in `.band-head` and let the head carry it.
+   Do not add a `margin-top` to the first block after a `.band-head`.
+3. Sections inside one band are always `--space-section` apart.
+4. A grid's column formula uses the same token as its gap
+   (`calc((100% - 3 * var(--space-grid)) / 4)`), so the two cannot drift.
+5. Off-scale literals are allowed only for hairline optical nudges of at most
+   `0.15rem` / `2px`, and for reviewed optical alignments listed with a reason in
+   the test's `ALLOWED` table (the wordmark's `0.28rem` lift). Component sizes —
+   `min-height`, `width`, the 2.75rem target height, `font-size`,
+   `scroll-margin-top` — are not spacing and are not scanned.
+6. HTML email templates keep literal pixels: mail clients do not support custom
+   properties.
+
+### Enforcement
+
+`core/tests/test_design_spacing_tokens.py` scans every template under
+`templates/` and `*/templates/` (CSS comments stripped) and fails on any raw
+`rem`/`px` literal in a spacing declaration outside the hairline limit and its
+`ALLOWED` table. It also pins the scale values, the role names, and the structural
+rules (`.band`, `.band-head`, `.band-head-secondary`, `.card-grid`) to their roles.
+Adding an `ALLOWED` row is a design decision with a written reason, not a way to
+silence the test.
+
+## Shell, measure, radius, borders, shadows
+
+- **Shell**: `.shell` centres content at `--shell` = `76rem`, `padding-inline:
+  var(--space-4)` (`var(--space-5)` at ≥40rem).
 - **Measure**: `--measure` = `38rem`, about 70 characters. `.prose-reading` and
   `.prose-lede` are held to it. Ordinary pages use `--content-width` = `56rem`
   (the course platform's `.app-content-shell` width) through `.content-shell`
   rather than choosing a local max width; prose inside the column stays at the
   measure.
+- **Index and hub pages hold the content column too.** `/docs/`, `/wiki` (and its
+  search and special pages), `/blog`, `/podcast`, `/events`, `/books`, `/people`,
+  `/sponsors` and `/slack` all sit at `--content-width`, so their titles share one
+  left edge with each other and with the docs and wiki pages a reader clicks into. A
+  hub does not break its hero or card grids out to the full shell; a card grid picks
+  a column count that fills its rows, or lets its last row stretch. Only the
+  homepage and the `/courses` landing use the full `--shell`.
+- **Index titles use `.page-title`** (the "Page h1" size above). Pages put the class
+  on their `h1`; they do not restate the size in page CSS.
+- **`.hero-split` / `.hero-art`** — an index hero with a drawing: the copy column and
+  a fixed `15rem` picture column at the content column's right edge, so there is no
+  dead band between words and picture. The drawing drops below `48rem`. The picture
+  is a light/dark pair through `core/_hero_illustration.html` (`art=` names
+  `core/illustrations/<art>.webp` and `<art>-dark.webp`).
 - **Radius**: `0.45rem` status pills · `0.5–0.7rem` small controls and CTAs ·
   `0.9rem` cards, modules, player frame · `1.1rem` inset panels · `1.5rem` the
   featured slab · `999px` pills, discs, avatars.
@@ -302,9 +394,11 @@ to this document — do not fork it locally.
 
 - **`.shell`** — the centred content column; direct child of every band.
 - **`.band-head`** — a band's heading block: a `div` holding `h2` plus an optional
-  subline `p`, and a right-hand action (`.band-link` or `.kicker`). Stacked on narrow
-  screens; from 69rem the action sits on the heading's baseline row.
-  `.band-head-secondary` adds top margin for a second head inside one band.
+  subline `p`, and optionally a `.kicker` on the right. Stacked on narrow screens; from
+  69rem the kicker sits on the heading's baseline row. It never holds a link — a
+  section's link is its `.band-more` (see **Section links**).
+  `.band-head-secondary` adds `--space-section` above a second head inside one band;
+  the head itself sits `--space-head` above its content.
 
   ```html
   <div class="band-head">
@@ -312,20 +406,8 @@ to this document — do not fork it locally.
       <h2 id="…">Heading</h2>
       <p>Subline.</p>
     </div>
-    <a class="band-link" href="…">action →</a>
   </div>
   ```
-
-  The action above sits beside the heading when it points to another index the
-  band is teasing (a course catalogue, the full events list) — most of the site's
-  bands, reviewed and shipped this way. A page that reads as one continuous
-  walkthrough rather than a set of independent index teasers instead places that
-  action under the section's own content, immediately after its last block, as a
-  plain `.band-link` — it then reads as the section's own last word rather than a
-  second thing competing with the heading for the reader's eye first. `/tour`
-  (`templates/core/tour.html`) follows this second pattern throughout, via the
-  page-local `.tour-content-link` spacing hook; it is that page's own convention
-  for now, not a retroactive rule for the bands shown above.
 
 - **`.kicker`** — uppercase indigo eyebrow. The mono variant is
   `.mono-label.mono-label-indigo`.
@@ -353,7 +435,7 @@ to this document — do not fork it locally.
 ### Cards and chips
 
 - **`.card`** — white slab, 2px ink border, `0.9rem` radius, hard shadow, column flex
-  with `gap: 0.6rem`. `margin-top: auto` on a child pins it to the card foot.
+  with `gap: var(--space-tight)` and `padding: var(--space-card)`. `margin-top: auto` on a child pins it to the card foot.
 - **`.card-grid`** + **`.card-grid-2` / `.card-grid-3`** — the band's card columns;
   they collapse to one column on narrow screens.
 - **`.interactive-card.interactive-lift`** — the whole-card link treatment. Hover and
@@ -377,11 +459,10 @@ to this document — do not fork it locally.
   `step_index` (1/2/3) picks the badge digit and its `.step-number-2` /
   `.step-number-3` fill. `illustration_template` is the artwork include rendered
   inside, with `illustration_variant` / `illustration_loading` passed through to it.
-  `kicker` is an optional label paragraph (the family page's only). `on_rail` switches
-  the shape: unset draws the homepage's plain grid-flow card (illustration first, the
-  badge grouped with the heading); `on_rail=True` draws the badge astride the card's
-  top-left corner for a page that already draws its own dashed connecting rail behind
-  the row (`.journey-grid::before` stays page-specific, along with the grid itself).
+  Both the homepage and the course family landing draw the plain grid-flow card
+  (illustration first, the badge grouped with the heading). The older `on_rail` shape
+  (badge astride the corner, a dashed rail behind the row, a `kicker` eyebrow) is no
+  longer used by any page.
 - **`.chip`** — round uppercase mini-pill. Variants: `.chip-plain`, `.chip-green`,
   `.chip-live`, `.chip-ink`. **`a.chip-link`** is a chip that opens a page (a wiki
   concept): indigo border and text, underlined on hover.
@@ -421,6 +502,24 @@ to this document — do not fork it locally.
 - **`.pill-button`** — round bordered control (theme toggle, subscribe links) with an
   optional `.dot` swatch: `.dot-green`, `.dot-bubble`, `.dot-clay`, `.dot-gold`.
 - **`.signup-button`** — the masthead's green sign-up pill.
+
+#### Section links
+
+A link that leads from a section to the rest of its kind — "see all events →", "all
+episodes →", "read the blog →", "all course guides →", "open the guide →" — is the
+section's **`.band-more`** line: a `p.band-more` holding one `.band-link`, placed
+**under the section's content**, immediately after its last block, on the content's
+**left edge**, with the shared spacing above it.
+
+```html
+<div class="card-grid card-grid-3">…</div>
+<p class="band-more">
+  <a class="band-link" href="…">see all events →</a>
+</p>
+```
+
+It is never in the heading row (`.band-head`) and never right-aligned; pages do not
+restyle `.band-more`. Enforced by `core/tests/test_design_section_links.py`.
 
 ### State and metadata
 
@@ -565,6 +664,28 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
   does the work: keyboard behaviour and announced expanded state come free and it
   opens with JavaScript off. A bare "Show more" makes the reader click to find out how
   much they are in for.
+
+- **FAQ fold (`.faq-panel` + `.faq-fold`)** — the one way the site writes a list of
+  questions: the article FAQ, the course-family FAQ, the `/faq/` pages and the
+  dashboard's per-homework breakdown all draw it.
+
+  ```html
+  <div class="faq-panel panel panel-outlined">
+    <details class="faq-fold" id="…">
+      <summary class="faq-fold-summary">
+        <h3 class="faq-question-title">Question?</h3>
+        <span class="faq-fold-marker" aria-hidden="true"></span>
+      </summary>
+      <div class="prose faq-answer">…</div>
+    </details>
+  </div>
+  ```
+
+  A white card padded `--space-card` (block padding less the rows' own), rows
+  `--space-3` above and below with a dashed rule between them, the chevron centred on
+  the question's first line in both states, and `--space-head` below the heading that
+  introduces it. A page does not restyle the fold or wrap it in a `.row-list` (that
+  draws a second rule under each row).
 
 - **Timestamp rows** — `.timestamp-row` with a `.timestamp-mark` and a `p`. The same
   shape carries transcript rows with the speaker name as the mark.
@@ -720,7 +841,10 @@ HTML.**
 </form>
 ```
 
-The field grows and the button keeps its size; both wrap on a narrow screen.
+The field grows and the button keeps its size; both wrap on a narrow screen. The row
+is capped at `34rem` and the button is always `cta-primary`: the docs hub, every docs
+page and the wiki draw the same field width and the same button. A page does not
+restate the width or pick another variant.
 
 ## Knowledge graph
 
@@ -828,8 +952,8 @@ section, is the blueprint in `_docs/design/landing-pages.md`.
 - **The hero is the course family hero's title block**: heading and a 2-3
   sentence lede, one primary action (the waitlist, or "Choose my sessions"),
   one credibility line (portrait and sentence), and the key facts at its foot
-  as the courses index's `.stat-tiles` (value over label), two rows of
-  three. Only the home hero carries a
+  as the compact `.spec-strip` a course family landing closes its title block
+  with (label over value), two rows of three. Only the home hero carries a
   drawing (light/dark `.doodle-variants`, dropped below 48rem as the homepage
   hero drops its own). No form, link list or status pill beside or above the
   copy.
@@ -945,20 +1069,48 @@ How an illustration is produced and processed is `_docs/design/illustration-asse
 
 ## Course landings
 
-The course family landing (`courses/course_family.html`) is a landing, like `/tour`:
-the hero and every chapter break out to the full shell (`.shell-breakout`), and every
-chapter is the same frame — a dashed seam above, a real `.band-head`, then the site's
-own components. The chapter order is fixed: about the course, join (the cohort on a
-`.featured` slab beside the start-now card, the weekly commitment as the subline),
-the journey, the syllabus, the certificate, who it is for, cohort editions, stories,
-what people built, the FAQ, and the closing mint panel. A chapter the data cannot fill
-is not drawn.
+The course family landing (`courses/course_family.html`) sits in the ordinary
+content column (`--content-width`, the same column as the Academy pages) from the
+title to the closing action, and **every block fills that column** — no chapter is
+capped narrower than the column it sits in, so none leaves a dead strip on its right.
+The hero is the title, the 2–3 sentence lede, **one** primary action and the drawing
+(scaled to the column, never widening it), closed by the course's facts as a
+`.spec-strip` — format, syllabus size, weekly time, the docs link — the way an Academy
+program closes its title block. The hero carries no secondary text links.
 
-The syllabus is one list drawn by one row component. A project sits at its
-chronological slot with a mono `Project` marker in the index rail instead of a
+Every chapter below is the same frame — a dashed seam above, a real `.band-head`,
+then the site's own components. The chapter order is fixed: about the course (the
+overview at the column width, the outcome numbers as `.stat-tiles-row` under it),
+join (only when a cohort is open: the cohort on a `.featured` slab beside the
+start-on-your-own card), the journey (the homepage's own plain stage cards in a
+`.card-grid-3`, no connecting rail and no eyebrows), the syllabus, the certificate,
+who it is for, cohort editions (one `.list-row` per edition: its title, and a status
+pill only on the current one — the edition's own page carries its dates), stories, what people built, the FAQ, and the
+closing mint panel. A chapter the data cannot fill is not drawn.
+
+**One goal, one action.** The hero and the closing panel draw the same button from
+one include (`courses/_family_primary_action.html`) and its label says where it goes:
+register for the open cohort, apply when approval-gated, start the self-paced
+edition, *Start module 1* on the platform, or open the course on GitHub. The landing
+ends on its own closing panel, so it hides the site-wide Academy and tour stripes
+(`hide_academy_cta`, `hide_tour_cta`); a cohort page ends on the Academy stripe
+alone. The full landing guidance is `_docs/design/landing-pages.md`.
+
+The syllabus is one list drawn by one row component on one card, rows at the full
+column width: a mono index, the title, the one line on what the module builds. A
+project sits at its chronological slot with a mono `Project` marker instead of a
 number; the attempts of one project (`Project Attempt 1`, `Last Project Attempt`,
 `Capstone Project (Attempt 2)`) are one row listing each attempt's own deadlines
-(`courses.course_page_content.merge_syllabus_rows_with_projects`).
+(`courses.course_page_content.merge_syllabus_rows_with_projects`). No rule divides the
+index from the row.
+
+**A shared module page** (`courses/shared_module.html`) is an ordinary detail page at
+the content width: breadcrumb, `Module N of M`, the title and the module's summary;
+then its lessons as one numbered list (no side rail repeating it), each cohort's
+homework for the module as `.list-row`s naming the cohort
+(`courses/_module_homework.html`), and the way on to the next module. There is no
+"choose your delivery" step; the delivery notice is drawn only for an archived
+delivery.
 
 The registration page keeps the ordinary content width. Its campaign copy is one
 editor-owned Markdown field, presented as sections by
@@ -982,7 +1134,8 @@ with a hero banner (which already sets the title) the `h1` is visually hidden.
 4. Reach for the inventory before writing CSS. New page CSS is for layout that is
    genuinely page-specific. If a primitive is missing, add it to the partial and to
    this document — do not fork it locally.
-5. Colours only via tokens; mono only via `--font-mono`; sizes from the type scale.
+5. Colours only via tokens; mono only via `--font-mono`; sizes from the type scale;
+   every margin, padding and gap from the spacing roles or scale (see Spacing).
 6. Design the narrow layout deliberately (reshape, not reflow) in the page's own
    `@media (max-width: 47.99rem)` block.
 7. Keep the template readable: one opening tag per line, structural template tags

@@ -1,19 +1,20 @@
 {% comment %}
-  The key facts as the system's stat tiles, value over label -- the facts
-  element the courses index uses -- at the foot of a landing's title block.
-  facts: a mapping with the strip's accessible label and its label/value
-  items.  Six facts sit as two rows of three (two columns on a phone), never
-  five and an orphan.  funding, when a page has one, is the information
-  callout under the tiles; it keeps the #funding anchor older links use.
+  The key facts as the system's spec strip, label over value, at the foot of
+  a landing's title block -- the same strip a course family landing closes
+  its title block with.  facts: a mapping with the strip's accessible label
+  and its label/value items.  Six facts sit as two rows of three (two
+  columns on a phone), never five and an orphan.  funding, when a page has
+  one, is the information callout under the strip; it keeps the #funding
+  anchor older links use.
 {% endcomment %}
-<div class="stat-tiles stat-tiles-row academy-facts" id="facts" role="list" aria-label="{{ facts.label }}">
+<dl class="spec-strip academy-facts" id="facts" aria-label="{{ facts.label }}">
   {% for fact in facts.items %}
-    <div class="stat-tile" role="listitem">
-      <strong>{{ fact.value }}</strong>
-      <span>{{ fact.label }}</span>
+    <div class="spec">
+      <dt class="mono-label">{{ fact.label }}</dt>
+      <dd>{{ fact.value }}</dd>
     </div>
   {% endfor %}
-</div>
+</dl>
 {% if funding %}
   {% include "academy/_funding.html" %}
 {% endif %}

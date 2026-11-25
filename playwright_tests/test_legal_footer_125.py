@@ -232,7 +232,7 @@ def test_github_icon_is_never_underlined_and_keeps_keyboard_focus(
 ) -> None:
     page.goto(f"{live_server.url}/privacy", wait_until="domcontentloaded")
     _deny_initial_prompt(page)
-    github = page.get_by_role("link", name="Website source on GitHub (opens in a new tab)")
+    github = page.get_by_role("link", name="DataTalks.Club on GitHub (opens in a new tab)")
     github.scroll_into_view_if_needed()
     expect(github).to_have_attribute("target", "_blank")
     expect(github).to_have_attribute("rel", "noopener noreferrer")

@@ -219,7 +219,8 @@ def family_registration_specs(
                 family_date_span(cohort.start_date, cohort.end_date),
             )
         )
-    if registered is not None:
+    # An empty count is not a fact worth a row: "0 people" reads as a warning.
+    if registered:
         specs.append(CourseSpec("registered", f"{registered} people"))
     return tuple(specs)
 

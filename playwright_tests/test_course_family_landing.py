@@ -92,33 +92,38 @@ def test_course_value_precedes_route_choice_and_anchors_work(
         expect(page.locator(".family-audience")).to_contain_text(family.prerequisites)
         expect(page.locator(".family-prerequisites")).to_have_count(0)
         # The journey card is the shared stage-card component
-        # (core/_stage_card.html), on its rail variant.
-        expect(page.locator(".stage-card-rail")).to_have_count(3)
+        # (core/_stage_card.html), in the content-width journey grid.
+        journey = page.locator(".journey-grid .stage-card")
+        expect(journey).to_have_count(3)
         # The cards carry no dashed-divider proof block any more -- the same
         # clean shape as the home page's climb cards.
         expect(page.locator(".journey-proof")).to_have_count(0)
         for card in range(3):
-            # Kicker and description -- nothing follows the description.
-            expect(page.locator(".stage-card-rail").nth(card).locator("p")).to_have_count(2)
+            # The description is the card's only paragraph.
+            expect(journey.nth(card).locator(":scope > p")).to_have_count(1)
         for index, step in enumerate(family.progression):
-            expect(page.locator(".stage-card-rail").nth(index)).to_contain_text(step["heading"])
-        expect(page.locator(".stage-card-figure")).to_have_count(3)
-        expect(page.locator(".family-hero-art")).to_be_visible()
-        visible_hero_art = page.locator(".family-hero-art img:visible")
-        expect(visible_hero_art).to_have_count(1)
+            expect(journey.nth(index)).to_contain_text(step["heading"])
         expected_generic_art = (
             "course-learning-dark.webp" if theme == "dark" else "course-learning.webp"
         )
-        assert expected_generic_art in visible_hero_art.get_attribute("src")
+        if width >= 768:
+            # A phone gets the title, lede and action; wider screens the drawing.
+            expect(page.locator(".family-hero-art")).to_be_visible()
+            visible_hero_art = page.locator(".family-hero-art img:visible")
+            expect(visible_hero_art).to_have_count(1)
+            assert expected_generic_art in visible_hero_art.get_attribute("src")
+        else:
+            expect(page.locator(".family-hero-art")).to_be_hidden()
         # The family's own scene is drawn once, by the hero: the stages draw
         # the shared journey artwork instead of repeating it.
-        expect(page.locator(".stage-card-figure img:visible")).to_have_count(3)
+        journey_art = page.locator(".journey-grid .stage-card img:visible")
+        expect(journey_art).to_have_count(3)
         for index in range(3):
-            source = page.locator(".stage-card-figure img:visible").nth(index).get_attribute("src")
+            source = journey_art.nth(index).get_attribute("src")
             assert expected_generic_art not in source
-        # Each disc sits on the dashed rail behind the row, not inside a
-        # paragraph, so the three stages read as a sequence.
-        expect(page.locator(".stage-card-rail .step-number")).to_have_count(3)
+        # Each stage carries its numbered disc beside its heading, so the
+        # three stages read as a sequence.
+        expect(page.locator(".journey-grid .stage-card-step .step-number")).to_have_count(3)
         # Four modules and the project, one row component; a summary that is
         # only a link is not drawn as a summary.
         expect(page.locator(".family-syllabus-row h3")).to_have_count(5)
@@ -154,24 +159,20 @@ def test_course_value_precedes_route_choice_and_anchors_work(
         for index in range(targets.count()):
             box = targets.nth(index).bounding_box()
             assert box is not None and box["height"] >= 44
-        action = page.locator(".family-hero-actions a[href='#register-heading']")
+        # One goal per page: the hero's single primary action is the open
+        # registration itself, the same one the register chapter offers.
+        registration_url = reverse("registration_campaign", args=[campaign.slug])
+        action = page.locator(".family-hero-actions .cta")
+        expect(action).to_have_count(1)
+        expect(action).to_have_attribute("href", registration_url)
         page.keyboard.press("Tab")
         action.focus()
         expect(action).to_be_focused()
         assert action.evaluate("el => parseFloat(getComputedStyle(el).outlineWidth)") >= 3
         assert action.bounding_box()["height"] >= 44
-        assert page.locator(".family-hero-actions .band-link").bounding_box()["height"] >= 44
-        action.press("Enter")
-        assert page.url.endswith("#register-heading")
-        expect(page.locator("#register-heading")).to_be_in_viewport()
-        registration = page.locator(
-            f".family-register a[href='{reverse('registration_campaign', args=[campaign.slug])}']"
-        )
+        registration = page.locator(f".family-register a[href='{registration_url}']")
         expect(registration).to_be_visible()
-        syllabus_action = page.locator(".family-hero-actions a[href='#syllabus-heading']")
-        syllabus_action.click()
-        expect(page.locator("#syllabus-heading")).to_be_in_viewport()
-        proof = page.locator(".family-proof a").first
+        proof = page.locator(".family-proof-more")
         family_gallery_url = f"{reverse('all_projects')}?course={family.slug}"
         expect(proof).to_have_attribute("href", family_gallery_url)
         # "cards like the rest of the cards - entire card clickable" (owner

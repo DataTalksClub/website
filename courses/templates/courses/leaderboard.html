@@ -35,13 +35,13 @@
       /* The breadcrumb links carry the system's 2.75rem target height, so the
          row brings its own air; fold most of it into the band's top padding. */
       .leaderboard-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
+        margin-bottom: var(--space-2);
+        margin-top: calc(var(--space-3) * -1);
       }
 
       .leaderboard-hero-inner {
         display: grid;
-        gap: 0.6rem;
+        gap: var(--space-2);
       }
 
       .leaderboard-lede {
@@ -54,8 +54,8 @@
 
       .leaderboard-you {
         display: grid;
-        gap: 0.6rem;
-        margin-top: 1.25rem;
+        gap: var(--space-2);
+        margin-top: var(--space-5);
       }
 
       .leaderboard-you h2 {
@@ -73,7 +73,7 @@
         align-items: baseline;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: var(--space-2);
       }
 
       .leaderboard-you-score a {
@@ -84,7 +84,7 @@
       .leaderboard-you-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
+        gap: var(--space-3);
       }
 
       /* --- the ranked rows ---------------------------------------------- */
@@ -94,7 +94,7 @@
          hidden from the accessibility tree and from the stacked narrow
          layout, where a column head has nothing to head. */
       .leaderboard-head {
-        padding-block: 0.4rem 0.5rem;
+        padding-block: var(--space-2) var(--space-2);
       }
 
       .leaderboard-rank {
@@ -106,7 +106,7 @@
       .leaderboard-name {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.35rem 0.6rem;
+        gap: var(--space-2) var(--space-2);
         min-width: 0;
       }
 
@@ -129,7 +129,7 @@
       .leaderboard-row-you {
         background: var(--lavender);
         border-radius: 0.5rem;
-        padding-inline: 0.6rem;
+        padding-inline: var(--space-2);
       }
 
       /* One mark per project this student has passed.  The copied page drew a
@@ -185,7 +185,7 @@
       .leaderboard-data {
         color: var(--body-text);
         font-size: 0.85rem;
-        margin-top: 1.5rem;
+        margin-top: var(--space-5);
       }
 
       .leaderboard-empty {

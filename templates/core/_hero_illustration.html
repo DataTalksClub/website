@@ -1,0 +1,41 @@
+{% load static %}
+{% comment %}
+  An index hero's drawing: the light and dark files of one installed pair
+  (1254x1254, the homepage style), sharing one slot through `.doodle-variants`.
+  Decorative, so the alt is empty.  Each pair is named literally so the static
+  manifest resolves it at build time; a new hero adds its own branch.
+
+  Usage:
+    <div class="hero-art">
+      {% include "core/_hero_illustration.html" with art="podcast-hero" only %}
+    </div>
+{% endcomment %}
+{% if art == "podcast-hero" %}
+  {% static 'core/illustrations/podcast-hero.webp' as art_light %}
+  {% static 'core/illustrations/podcast-hero-dark.webp' as art_dark %}
+{% elif art == "books-hero" %}
+  {% static 'core/illustrations/books-hero.webp' as art_light %}
+  {% static 'core/illustrations/books-hero-dark.webp' as art_dark %}
+{% endif %}
+{% if art_light %}
+  <span class="doodle-variants">
+    <img
+      class="doodle doodle-light"
+      src="{{ art_light }}"
+      alt=""
+      width="1254"
+      height="1254"
+      decoding="async"
+      loading="eager"
+    >
+    <img
+      class="doodle doodle-dark"
+      src="{{ art_dark }}"
+      alt=""
+      width="1254"
+      height="1254"
+      decoding="async"
+      loading="eager"
+    >
+  </span>
+{% endif %}

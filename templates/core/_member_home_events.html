@@ -7,7 +7,6 @@
       <div>
         <h2 id="member-home-events-heading">Upcoming events</h2>
       </div>
-      <a class="band-link" href="{% url 'events' %}">see all events →</a>
     </div>
     <div class="row-list">
       {% for event in upcoming_events %}
@@ -17,5 +16,8 @@
         </div>
       {% endfor %}
     </div>
+    <p class="band-more">
+      <a class="band-link" href="{% url 'events' %}">see all events →</a>
+    </p>
   </section>
 {% endif %}

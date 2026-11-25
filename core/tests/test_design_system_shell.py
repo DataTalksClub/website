@@ -114,24 +114,25 @@ DESIGN_SYSTEM_TEMPLATES = (
 )
 SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 
-# The primary navigation, in the order the site has always offered it.  Slack is
-# the community's main gathering place and stays in the row on every page. FAQ
-# moved off the global masthead onto the course pages that actually need it, so
-# it is no longer one of these entries.
-# A signed-out visitor gets one more entry after these eight: the one-line phone
+# The primary navigation in document order: grouped as Learn, Community and Read
+# (site feedback 2.1), each group keeping the stored order of its entries.  Slack
+# is the community's main gathering place and stays in the row on every page. FAQ
+# moved off the global masthead onto the course pages that actually need it, and
+# Sponsors moved to the footer, so neither is one of these entries.
+# A signed-out visitor gets one more entry after these nine: the one-line phone
 # masthead (issue #179) folds "Log in" into the panel below 40rem, so the shell
 # renders it there for every anonymous request.
+EXPECTED_NAVIGATION_GROUPS = ("Learn", "Community", "Read")
 EXPECTED_NAVIGATION = (
-    ("Events", "events"),
     ("Courses", "course_list"),
     ("Academy", "academy:home"),
-    ("Blog", "articles"),
-    ("Podcast", "podcast"),
-    ("Wiki", "wiki-home"),
-    ("Books", "books"),
     ("Docs", "docs-home"),
-    ("Sponsors", "sponsors"),
+    ("Events", "events"),
+    ("Podcast", "podcast"),
+    ("Books", "books"),
     ("Slack", "slack"),
+    ("Blog", "articles"),
+    ("Wiki", "wiki-home"),
 )
 
 # The scripts every page in the system runs, in the order the shell loads them.
@@ -153,7 +154,13 @@ class ResolvedTemplate(Protocol):
     origin: TemplateOrigin | None
 
 
-NAVIGATION_BLOCK = re.compile(r'<div id="site-navigation-links".*?>(.*?)</div>', re.S)
+NAVIGATION_BLOCK = re.compile(
+    r'<div id="site-navigation-links"[^>]*>(.*?)</div>\s*</div>\s*<div class="masthead-actions">',
+    re.S,
+)
+NAVIGATION_GROUP_TOGGLE = re.compile(
+    r'<button\s+class="nav-link nav-group-toggle[^"]*"[^>]*>([^<]*)<', re.S
+)
 NAVIGATION_LINK = re.compile(r"<a\b(?P<attributes>[^>]*)>(?P<label>.*?)</a>", re.S)
 SCRIPT_SOURCE = re.compile(r'<script src="([^"]+)"')
 
@@ -278,6 +285,36 @@ class DesignFiveAShellTests(TestCase):
                 expected = [*destinations, ("Log in", login)]
                 self.assertEqual([(label, href) for label, href, _ in entries], expected)
 
+    def test_every_design_system_page_groups_the_navigation(self) -> None:
+        for name, body in self.rendered_pages().items():
+            with self.subTest(page=name):
+                block = NAVIGATION_BLOCK.search(body)
+                assert block is not None
+                groups = [
+                    label.strip() for label in NAVIGATION_GROUP_TOGGLE.findall(block.group(1))
+                ]
+                self.assertEqual(groups, list(EXPECTED_NAVIGATION_GROUPS))
+                self.assertNotIn(f'href="{reverse("sponsors")}"', block.group(1))
+
+    def test_every_design_system_page_footer_lists_the_sections(self) -> None:
+        for name, body in self.rendered_pages().items():
+            with self.subTest(page=name):
+                footer = body.split('<footer class="site-footer">', 1)[1]
+                # Academy is reached from its stripe, not the footer (test_homepage).
+                for label, route in (*EXPECTED_NAVIGATION, ("Sponsors", "sponsors")):
+                    link = f'href="{reverse(route)}">{label}</a>'
+                    if route == "academy:home":
+                        self.assertNotIn(link, footer)
+                    else:
+                        self.assertIn(link, footer)
+                for href in (
+                    reverse("newsletter"),
+                    "https://www.youtube.com/@DataTalksClub",
+                    "https://www.linkedin.com/company/datatalks-club/",
+                    "https://x.com/DataTalksClub",
+                ):
+                    self.assertIn(f'href="{href}"', footer)
+
     def test_signed_in_panels_offer_the_nine_destinations_and_no_login(self) -> None:
         """The account menu owns auth once signed in; the panel goes back to nine."""
 
@@ -353,7 +390,8 @@ class DesignFiveAShellTests(TestCase):
 
     def test_every_design_system_page_reaches_the_academy(self) -> None:
         """The Academy sits in the primary row on every page; the closing stripe
-        shows only on the Courses section (home has its own comparison section)."""
+        shows only on the catalogue and the course landing pages, never inside a
+        course (modules, lessons); home has its own comparison section."""
 
         stripe_pages = {"courses index", "course page"}
         for name, body in self.rendered_pages().items():

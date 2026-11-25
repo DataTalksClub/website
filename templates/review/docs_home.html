@@ -34,23 +34,16 @@
     the include's own generic branch, so the hero needs no new art and no new
     slot -- it passes no family slug.
 
-    The guide chapters below break out to the full shell for their three-up
-    cards, so the hero breaks out with them and the title, the drawing and the
-    cards share one left and right edge.  A search result list stays in the
-    ordinary column, and so does the hero above it.
+    The hub holds the ordinary content column, the one every docs page below
+    it holds, so the title does not jump sideways when a reader clicks in.
+    The drawing sits beside the copy at the column's right edge.
   {% endcomment %}
-  <div
-    class="docs-home-hero-inner
-    {% if not docs_query %}
-      shell-breakout
-    {% endif %}
-    "
-  >
+  <div class="hero-split">
     <div class="docs-home-header">
       <p class="mono-label mono-label-indigo">
         docs · {{ docs_total_pages }} page{{ docs_total_pages|pluralize }}
       </p>
-      <h1 id="{{ docs_heading_id }}">{{ docs_heading_title }}</h1>
+      <h1 class="page-title" id="{{ docs_heading_id }}">{{ docs_heading_title }}</h1>
       <div class="prose docs-home-intro">
         {{ docs_html|safe }}
       </div>
@@ -69,7 +62,7 @@
             class="field-input"
             name="q"
             type="search"
-            placeholder="e.g. certificate, homework deadline, GCP credits"
+            placeholder="e.g. certificate, GCP credits"
             value="{{ docs_query|default:'' }}"
             required
           >
@@ -77,7 +70,7 @@
         </div>
       </form>
     </div>
-    <div class="docs-hero-art">
+    <div class="hero-art">
       {% include "core/_course_illustration.html" with loading="eager" only %}
     </div>
   </div>
@@ -93,7 +86,6 @@
           </h2>
           <p>Pages whose title matches come first, then pages that mention it in the text.</p>
         </div>
-        <a class="band-link" href="{% url 'docs-home' %}">Clear search →</a>
       </div>
       {% if docs_results %}
         {% comment %}
@@ -121,23 +113,23 @@
       {% else %}
         <p class="docs-empty">No matching documentation pages were found. Try a broader term.</p>
       {% endif %}
+      <p class="band-more">
+        <a class="band-link" href="{% url 'docs-home' %}">Clear search →</a>
+      </p>
     </section>
   {% else %}
     {% comment %}
       Four chapters, each opened by the family landing's own rule: a solid ink
-      rule, a band-head, and the section's own action.  The first chapter takes
+      rule and a band-head, and closed by the section's own link under it.  The first chapter takes
       no rule -- the band seam above it is one.
     {% endcomment %}
     {% if docs_hub.families %}
-      <section class="docs-chapter docs-chapter-first shell-breakout" aria-labelledby="docs-courses-heading">
+      <section class="docs-chapter docs-chapter-first" aria-labelledby="docs-courses-heading">
         <div class="band-head">
           <div>
             <h2 id="docs-courses-heading">Course guides</h2>
             <p>Every Zoomcamp guide holds the same pages, so the one you need is one click from here.</p>
           </div>
-          {% if docs_hub.courses %}
-            <a class="band-link" href="{{ docs_hub.courses.public_path }}">all course guides →</a>
-          {% endif %}
         </div>
         <div class="card-grid card-grid-3 docs-cards">
           {% for guide in docs_hub.families %}
@@ -156,6 +148,11 @@
             </article>
           {% endfor %}
         </div>
+        {% if docs_hub.courses %}
+          <p class="band-more">
+            <a class="band-link" href="{{ docs_hub.courses.public_path }}">all course guides →</a>
+          </p>
+        {% endif %}
       </section>
     {% endif %}
 
@@ -166,7 +163,7 @@
       the final project -- are the pages readers come to the documentation for.
     {% endcomment %}
     {% for guide in docs_hub.sectioned %}
-      <section class="docs-chapter shell-breakout" aria-labelledby="docs-guide-{{ forloop.counter }}-heading">
+      <section class="docs-chapter" aria-labelledby="docs-guide-{{ forloop.counter }}-heading">
         <div class="band-head">
           <div>
             <h2 id="docs-guide-{{ forloop.counter }}-heading">{{ guide.title }}</h2>
@@ -174,7 +171,6 @@
               <p>{{ guide.description }}</p>
             {% endif %}
           </div>
-          <a class="band-link" href="{{ guide.public_path }}">open the guide →</a>
         </div>
         <div class="card-grid card-grid-3 docs-cards">
           {% for section in guide.sections %}
@@ -192,11 +188,14 @@
             </article>
           {% endfor %}
         </div>
+        <p class="band-more">
+          <a class="band-link" href="{{ guide.public_path }}">open the guide →</a>
+        </p>
       </section>
     {% endfor %}
 
     {% if docs_hub.platform %}
-      <section class="docs-chapter shell-breakout" aria-labelledby="docs-platform-heading">
+      <section class="docs-chapter" aria-labelledby="docs-platform-heading">
         <div class="band-head">
           <div>
             <h2 id="docs-platform-heading">Course platform and FAQ</h2>
@@ -222,7 +221,7 @@
     {% endif %}
 
     {% if docs_hub.community %}
-      <section class="docs-chapter shell-breakout" aria-labelledby="docs-community-heading">
+      <section class="docs-chapter" aria-labelledby="docs-community-heading">
         <div class="band-head">
           <div>
             <h2 id="docs-community-heading">Community and activities</h2>

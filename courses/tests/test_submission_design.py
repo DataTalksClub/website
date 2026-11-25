@@ -109,7 +109,7 @@ class SharedSubmissionPrimitiveTests(SimpleTestCase):
         rule = design_system[start : design_system.index("}", start)]
 
         self.assertIn("display: grid", rule)
-        self.assertIn("gap: 1.25rem", rule)
+        self.assertIn("gap: var(--space-5)", rule)
         self.assertIn("max-width: var(--form-measure)", rule)
         self.assertIn("width: 100%", rule)
         self.assertNotIn("background", rule)

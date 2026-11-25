@@ -9,6 +9,7 @@ from django.utils import timezone
 from content.docs_reader import docs_page
 from content.faq_data import faq_course_for_family_slug, render_faq_answer
 from courses.course_page_content import (
+    CourseSpec,
     course_modules,
     course_specs,
     family_edition_rows,
@@ -543,7 +544,11 @@ def course_family_page_context(family: Course, user) -> dict:
             published=True,
             retired_at__isnull=True,
         ).count()
-        syllabus_fact = f"{len(shared_modules)} modules · {lesson_count} lessons"
+        # A lesson count that only repeats the module count ("4 modules · 4
+        # lessons") says nothing; it is named only when modules hold more.
+        syllabus_fact = f"{len(shared_modules)} modules" + (
+            f" · {lesson_count} lessons" if lesson_count > len(shared_modules) else ""
+        )
         # A shared module carries no due date of its own -- it is shared
         # across every cohort of the family -- so the front cohort's own
         # placement (its terminal homework's real due date) stands in for
@@ -646,6 +651,15 @@ def course_family_page_context(family: Course, user) -> dict:
             submission.repository_label, submission.repository_url = _repository_identity(
                 submission.github_link
             )
+            # The card names the repository, not the host it lives on.
+            # A repository path has no spaces to wrap at; a zero-width break
+            # after each separator lets a long one wrap at "/" or "_" rather
+            # than mid-word.
+            submission.repository_label = (
+                submission.repository_label.removeprefix("github.com/")
+                .replace("/", "/\u200b")
+                .replace("_", "_\u200b")
+            )
     # The same family-wide total the outcome strip publishes, written as the
     # journey's stage-3 proof reads it ("1,874 projects"); one count, one
     # queryset, so the two places on the page can never disagree.
@@ -694,6 +708,9 @@ def course_family_page_context(family: Course, user) -> dict:
         not in {family.title.strip().casefold(), family_lede(family).casefold()}
         else ""
     )
+    # The source text is hard-wrapped at its own column; a single newline is
+    # a wrap, not a break, so only a blank line starts a new paragraph.
+    overview = re.sub(r"(?<!\n)\n(?!\n)", " ", overview)
     current_edition_row, previous_edition_rows = split_current_edition(
         family_edition_rows(
             editions,
@@ -702,6 +719,10 @@ def course_family_page_context(family: Course, user) -> dict:
         )
     )
     family_faq_questions, family_faq_url = family_faq_preview(family)
+    first_module_row = next(
+        (row for row in syllabus_rows if not row.is_project),
+        None,
+    )
     quick_faq_items = family_quick_faq_items(
         family_faq_questions,
         family_has_a_real_cohort=front_cohort is not None,
@@ -742,6 +763,19 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_project_summary": family.project_summary.strip(),
         "certificate_cohort": certificate_cohort,
         "syllabus_fact": syllabus_fact,
+        "family_facts": family_hero_facts(
+            registration_cohort=registration_cohort,
+            current_edition_row=current_edition_row,
+            has_self_paced_route=bool(self_paced_cohort or materials_url),
+            syllabus_fact=syllabus_fact,
+            weekly_commitment=family.weekly_commitment.strip(),
+        ),
+        "family_first_module": first_module_row if materials_on_platform else None,
+        "syllabus_has_brief": any(row.brief_url for row in syllabus_rows),
+        # The landing ends on its own closing action; the site-wide Academy
+        # and tour stripes under it would make three closing calls in a row.
+        "hide_academy_cta": True,
+        "hide_tour_cta": True,
         "family_stories": family_story_rows(
             family.testimonials.filter(
                 placement=TestimonialPlacement.COURSE,
@@ -751,6 +785,47 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_project_cards": project_cards,
         "built_cohort": project_cards[0].cohort if project_cards else None,
     }
+
+
+def family_hero_facts(
+    *,
+    registration_cohort,
+    current_edition_row,
+    has_self_paced_route: bool,
+    syllabus_fact: str,
+    weekly_commitment: str,
+) -> tuple[CourseSpec, ...]:
+    """The facts at the foot of the family hero, only from data the family has.
+
+    The same label-over-value strip an Academy program closes its title block
+    with: when the next cohort starts, how the course runs, how big the
+    syllabus is and the weekly time it asks.  A fact the records cannot back
+    is left out rather than guessed.
+    """
+
+    facts: list[CourseSpec] = []
+    if registration_cohort is not None and registration_cohort.start_date:
+        facts.append(
+            CourseSpec(
+                "Next cohort",
+                registration_cohort.start_date.strftime("%b %-d, %Y"),
+            )
+        )
+    live = registration_cohort is not None or (
+        current_edition_row is not None and current_edition_row.state_words == "in progress"
+    )
+    formats = [
+        words
+        for words, present in (("live cohort", live), ("self-paced", has_self_paced_route))
+        if present
+    ]
+    if formats:
+        facts.append(CourseSpec("Format", " or ".join(formats).capitalize()))
+    if syllabus_fact:
+        facts.append(CourseSpec("Syllabus", syllabus_fact))
+    if weekly_commitment:
+        facts.append(CourseSpec("Time", weekly_commitment))
+    return tuple(facts)
 
 
 def visible_course_editions_for_family(family: Course) -> list[Cohort]:
