@@ -56,6 +56,15 @@ HAIRLINE = {"rem": 0.15, "px": 2.0}
 # Reviewed exceptions: (relative path, declaration text) -> why.
 ALLOWED: dict[tuple[str, str], str] = {
     (
+        "courses/templates/courses/_module_rail_styles.html",
+        "padding-inline-start: calc(1.75rem + var(--space-2) + var(--space-2))",
+    ): "Indents a rail step's text past its 1.75rem marker disc and the two gaps around "
+    "it; the disc width is a component size, the gaps are spacing steps.",
+    (
+        "courses/templates/courses/_module_rail_styles.html",
+        "padding-inline-start: calc(1.75rem + var(--space-2))",
+    ): "The same marker-disc indent for a step without the inner gap.",
+    (
         "templates/core/_design_system.html",
         "padding-bottom: var(--consent-banner-space, 0px)",
     ): "A zero fallback for a runtime-measured banner height, not a spacing step.",
