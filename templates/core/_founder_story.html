@@ -32,12 +32,16 @@
       {% endif %}
       <span>
         <strong>
-          <a href="{{ tour_content.founder_source_url }}" target="_blank" rel="noopener noreferrer">
+          {% if founder and founder.public_path %}
+            <a href="{{ founder.public_path }}">{{ tour_content.founder_name }}</a>
+          {% else %}
             {{ tour_content.founder_name }}
-            <span class="sr-only"> (opens in a new tab)</span>
-          </a>
+          {% endif %}
         </strong>
-        <span class="story-context">{{ tour_content.founder_attribution }}</span>
+        {% comment %}The source of the quote is the link, not the name.{% endcomment %}
+        <span class="story-context">
+          <a href="{{ tour_content.founder_source_url }}" target="_blank" rel="noopener noreferrer">{{ tour_content.founder_attribution }}<span class="sr-only"> (opens in a new tab)</span></a>
+        </span>
       </span>
     </span>
   </figcaption>

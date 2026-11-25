@@ -735,17 +735,30 @@
 
       /* The intro and the origin story read as one text: same size and
          rhythm, rather than a small lede over larger body copy. */
-      .home-about .about-story .band-head p,
+      .about-intro,
       .about-origin {
         font-size: 1rem;
         line-height: 1.65;
         max-width: var(--measure);
       }
 
-      /* The heading's line box adds space above its capitals; pull it up so
-         the letters, not the line box, start level with the quote card. */
-      .home-about .about-story .band-head h2 {
-        margin-top: calc(var(--space-2) * -1);
+      /* The heading spans both columns: the text and the quote card are two
+         parts of one section under it, starting on the same line. */
+      .about-head {
+        margin-bottom: 0;
+      }
+
+      .about-intro {
+        margin-top: 0;
+      }
+
+      .about-story {
+        display: grid;
+        gap: var(--space-4);
+      }
+
+      .about-story p {
+        margin: 0;
       }
 
       .about-facts {
@@ -766,6 +779,7 @@
         .about-grid {
           gap: var(--space-4) var(--space-7);
           grid-template-areas:
+            "head head"
             "story facts"
             "more facts";
           grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
@@ -773,6 +787,10 @@
 
         /* The heading lines up with the top of the quote card and the links
            with the bottom of the figures, so the two columns share edges. */
+        .about-head {
+          grid-area: head;
+        }
+
         .about-story {
           align-self: start;
           grid-area: story;
@@ -1066,15 +1084,15 @@
         {% endcomment %}
         <section class="band band-lavender home-about" aria-labelledby="about-heading">
           <div class="shell about-grid">
-            <div class="about-story">
-              <div class="band-head">
-                <div>
-                  <h2 id="about-heading">What is DataTalks.Club?</h2>
-                  {% if tour_content.hero_intro %}
-                    <p>{{ tour_content.hero_intro }}</p>
-                  {% endif %}
-                </div>
+            <div class="band-head about-head">
+              <div>
+                <h2 id="about-heading">What is DataTalks.Club?</h2>
               </div>
+            </div>
+            <div class="about-story">
+              {% if tour_content.hero_intro %}
+                <p class="about-intro">{{ tour_content.hero_intro }}</p>
+              {% endif %}
               {% if tour_content.founder_context %}
                 <p class="about-origin">{{ tour_content.founder_context }}</p>
               {% endif %}
