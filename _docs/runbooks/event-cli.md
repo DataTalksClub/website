@@ -1,6 +1,6 @@
 # Event management CLI (`dtc`) — Operator & Orin reference
 
-Status: **live** (mirrors AI Shipping Labs `asl` CLI). The full table of where each content type is authored is in [content authoring](../content-authoring.md). During the transition, new live event listings are created on both Luma and the DTC site with `dtc events create` on prod.datatalks.club. `_data/events.yaml` is no longer the path for new live event listings. Luma is removed from the process only when Alexey says the migration is complete.
+Status: **live** (mirrors AI Shipping Labs `asl` CLI). The full table of where each content type is authored is in [content authoring](../content-authoring.md). New live event listings are created only on the DTC site, with `dtc events create` on prod.datatalks.club, and people register only through the site's own registration form. There is no Luma (owner decision, 2026-11-25): never put a Luma, Eventbrite or other third-party registration link in an event's materials. `_data/events.yaml` is not a path for event listings.
 
 This document answers all 10 open questions in `bots-management/agents/contracts/orin/dtc-website-events.md`.
 

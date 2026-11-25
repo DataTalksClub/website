@@ -135,6 +135,10 @@ _NEW_EVENT_ARTIFACT_SCHEMA_VERSION = 1
 _SPEAKER_FIELDS = frozenset({"key", "name", "public_path"})
 _LINK_FIELDS = frozenset({"label", "url"})
 _TYPES = frozenset({"webinar", "workshop", "podcast", "conference"})
+#: Luma's hosts. With any ``eventbrite.<tld>`` host, a third-party registration
+#: page: people register for an event only on this site, so a source link to one
+#: is dropped here and never becomes a material on the event page.
+_LUMA_HOSTS = frozenset({"luma.com", "lu.ma"})
 
 
 class EventContentImportError(ValueError):
@@ -276,6 +280,22 @@ def _link(value: Any) -> ReviewedLink:
     return ReviewedLink(label=_text(value["label"], field="link_label", maximum=255), url=url)
 
 
+def _is_external_registration_link(link: ReviewedLink) -> bool:
+    host = urlsplit(link.url).netloc.lower().removeprefix("www.")
+    return (
+        host in _LUMA_HOSTS
+        or host.endswith((".luma.com", ".lu.ma"))
+        or host.startswith("eventbrite.")
+    )
+
+
+def _links(items: list[Any]) -> tuple[ReviewedLink, ...]:
+    """Every valid link a record carries, minus third-party registration pages."""
+
+    parsed = (_link(item) for item in items)
+    return tuple(link for link in parsed if not _is_external_registration_link(link))
+
+
 def _provenance(value: Any) -> ReviewedProvenance:
     if not isinstance(value, dict) or set(value) - _PROVENANCE_FIELDS:
         raise EventContentImportError("event_content_provenance_shape_invalid")
@@ -364,7 +384,7 @@ def _record(value: Any) -> ReviewedEventContent:
         description_text=description_text,
         description_provenance=provenance_value,
         speakers=parsed_speakers,
-        links=tuple(_link(item) for item in links),
+        links=_links(links),
         provenance=_provenance(value["provenance"]),
     )
 
@@ -637,7 +657,7 @@ def _new_event_record(value: Any) -> NewEventContent:
         description_provenance=description_provenance,
         type_provenance=type_provenance,
         speakers=parsed_speakers,
-        links=tuple(_link(item) for item in links),
+        links=_links(links),
         provenance=_new_event_provenance(value["provenance"]),
     )
 

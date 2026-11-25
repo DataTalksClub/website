@@ -11,8 +11,8 @@ It is the single owner of every step of the bootstrap order in
 reconcile (``COURSE_CATALOGUE_ORDER``), the reviewed one-time imports, the editorial
 stage (``seed_content_sources`` plus one ``sync_content`` per declared editorial
 source, when ``--editorial-checkout-root`` is given), and last the event stage --
-``scripts/prod/import_events.py``'s own ``run()``, including its legacy
-``_data/events.yaml`` leg read from the synced ``dtc-main-site`` checkout.
+``scripts/prod/import_events.py``'s own ``run()``, with the synced
+``dtc-main-site`` checkout's ``_data/events.yaml`` as discovery metadata.
 
 Attendee-level registrant rows (Luma and Eventbrite exports: real people's
 emails) are **not** part of a routine rebuild (``_docs/runbooks/data-ingest.md``
@@ -478,17 +478,15 @@ def run(
         checkout_root=editorial_checkout_root,
         refresh_checkouts=refresh_checkouts,
     )
-    # Step 5: import current Event identities and content.  The legacy
-    # _data/events.yaml leg runs inside the pipeline, last, from the dtc-main-site
-    # checkout the editorial stage just synced: it is where production's upcoming
-    # events got their type, speakers and links, so a rebuild without it lacks them.
-    events_yaml, events_yaml_revision = _events_yaml_input(editorial_checkout_root, editorial)
+    # Step 5: import current Event identities and content.  Luma discovery reads
+    # the dtc-main-site checkout's _data/events.yaml (just synced by the editorial
+    # stage) only for the type and speakers a discovered event is created with.
+    events_yaml = _events_yaml_input(editorial_checkout_root, editorial)
     with _event_import_refusals():
         event_pipeline = run_event_pipeline(
             identity_manifest=identity_manifest,
             luma_source=luma_source,
             events_yaml=events_yaml,
-            events_yaml_revision=events_yaml_revision,
         )
     registrations: dict[str, Any]
     if with_registrants:
@@ -524,21 +522,16 @@ EVENTS_YAML_EDITORIAL_SLUG = "dtc-main-site"
 
 def _events_yaml_input(
     editorial_checkout_root: Path | None, editorial: dict[str, Any]
-) -> tuple[Path | None, str]:
-    """The synced ``dtc-main-site`` checkout's ``_data/events.yaml`` and its commit.
+) -> Path | None:
+    """The synced ``dtc-main-site`` checkout's ``_data/events.yaml``.
 
     Only when the editorial stage actually ran: without a checkout root there is no
-    legacy file to read, and the event stage reports the leg as absent.
+    legacy file to read, and discovery creates no event.
     """
 
     if editorial_checkout_root is None or "skipped" in editorial:
-        return None, "HEAD"
-    source = editorial.get("sources", {}).get(EVENTS_YAML_EDITORIAL_SLUG, {})
-    revision = source.get("commit") or "HEAD"
-    return (
-        editorial_checkout_root / EVENTS_YAML_EDITORIAL_SLUG / EVENTS_YAML_RELATIVE_PATH,
-        revision,
-    )
+        return None
+    return editorial_checkout_root / EVENTS_YAML_EDITORIAL_SLUG / EVENTS_YAML_RELATIVE_PATH
 
 
 def _import_event_registrants(
@@ -630,7 +623,6 @@ def _orchestrator_report(
         "event_content": event_pipeline["event_content"],
         "new_event_content": event_pipeline["new_event_content"],
         "eventbrite_descriptions": event_pipeline["eventbrite_descriptions"],
-        "events_yaml": event_pipeline.get("events_yaml", {"present": False}),
         "event_registrations": registrations,
         "project_repo_enrichment": project_repo_enrichment,
     }

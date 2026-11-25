@@ -407,7 +407,7 @@ class RehearsalSequenceTests(SimpleTestCase):
         self.assertEqual(str(raised.exception), "registration_source_unavailable")
 
     def test_the_event_stage_reads_events_yaml_from_the_synced_main_site(self) -> None:
-        """Production's upcoming events got type and speakers from this file."""
+        """Discovery reads it only for the type and speakers of a discovered event."""
 
         received: dict[str, Any] = {}
 
@@ -419,7 +419,6 @@ class RehearsalSequenceTests(SimpleTestCase):
                 "event_content": {},
                 "new_event_content": {},
                 "eventbrite_descriptions": {},
-                "events_yaml": {"present": True, "created_total": 0},
             }
 
         fixture = self.fixture
@@ -441,9 +440,9 @@ class RehearsalSequenceTests(SimpleTestCase):
             received["events_yaml"],
             fixture.editorial_root / "dtc-main-site" / "_data" / "events.yaml",
         )
-        self.assertEqual(report["events_yaml"], {"present": True, "created_total": 0})
+        self.assertNotIn("events_yaml", report)
 
-    def test_without_an_editorial_root_there_is_no_events_yaml_leg(self) -> None:
+    def test_without_an_editorial_root_there_is_no_discovery_metadata(self) -> None:
         received: dict[str, Any] = {}
 
         def pipeline(**kwargs: Any) -> dict[str, Any]:
@@ -471,7 +470,7 @@ class RehearsalSequenceTests(SimpleTestCase):
             )
         self.assertIn("events_yaml", received)
         self.assertIsNone(received["events_yaml"])
-        self.assertEqual(report["events_yaml"], {"present": False})
+        self.assertNotIn("events_yaml", report)
 
     def test_a_missing_editorial_checkout_names_its_slug(self) -> None:
         (self.fixture.editorial_root / "dtc-faq").rmdir()

@@ -126,6 +126,26 @@ class NewEventContentImportTests(TestCase):
         # Luma states no end anybody reviewed, so the row states none either.
         self.assertIsNone(self.event.end_datetime)
 
+    def test_third_party_registration_links_never_become_materials(self) -> None:
+        """People register only on this site: Luma and Eventbrite links are dropped."""
+
+        links = [
+            {"label": "Register on Luma", "url": "https://luma.com/abc"},
+            {"label": "Register", "url": "https://lu.ma/abc"},
+            {"label": "View event on Eventbrite", "url": "https://www.eventbrite.co.uk/e/1"},
+            {"label": "Watch on YouTube", "url": "https://www.youtube.com/watch?v=x"},
+        ]
+        staged = self._stage([_record(self.event, links=links)])
+        import_new_event_content(path=staged)
+
+        self.event.refresh_from_db()
+        self.assertEqual(
+            self.event.materials,
+            [{"label": "Watch on YouTube", "url": "https://www.youtube.com/watch?v=x"}],
+        )
+        # The dropped links are dropped on every replay too, so it stays a no-op.
+        self.assertTrue(import_new_event_content(path=staged).replayed)
+
     def test_replaying_changes_nothing(self) -> None:
         staged = self._stage([_record(self.event)])
         import_new_event_content(path=staged)
