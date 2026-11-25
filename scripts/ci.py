@@ -158,6 +158,7 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "scripts/tests/test_registrant_import.py",
     "scripts/tests/test_import_event_duplicate_merges.py",
     "scripts/tests/test_import_event_backfill.py",
+    "scripts/tests/test_import_academy_sessions.py",
     "courses/tests/test_enrollment_error_accessibility.py",
     "studio_courses/tests/test_enrollment_sorting.py",
     "courses/tests/test_course_external_links.py",
@@ -168,6 +169,8 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/tests/test_project_gallery_groups.py",
     "courses/tests/test_site_project_gallery.py",
     "courses/views/project_gallery_groups.py",
+    # Homework stepper navigation (answered-step marks).
+    "courses/templatetags/homework_steps_nav.py",
     "courses/views/site_project_gallery.py",
     "scripts/dev/check_course_illustrations.py",
     "scripts/tests/test_check_course_illustrations.py",
@@ -327,6 +330,10 @@ PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod/event_pictures.py",
     # Reviewed event backfill (pictures, fields, sponsors) from a staged manifest.
     "scripts/prod/import_event_backfill.py",
+    # Academy sessions (Hireable With AI series, Zoom links) from the synced content repo.
+    "scripts/prod/import_academy_sessions.py",
+    # Reviewed podcast episode pictures (card / -yt / -og).
+    "scripts/prod/import_podcast_episode_pictures.py",
 )
 TYPECHECK_PATHS: Final = (
     "slack_access",
