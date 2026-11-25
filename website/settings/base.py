@@ -484,7 +484,7 @@ CONTENT_SYNC_CI = {
     "workflow_path": ".github/workflows/content-sync.yml",
     "ref": "refs/heads/main",
     "events": ("schedule", "workflow_dispatch", "repository_dispatch"),
-    "sources": ("dtc-content",),
+    "sources": ("dtc-content", "dtc-main-site"),
 }
 
 # community-base kernel declarations (D0.1a). JOBS_BACKEND and MAIL_BACKEND name
