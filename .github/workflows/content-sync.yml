@@ -38,11 +38,23 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          # Editorial content authored on the new site's content repository.
+          - source: dtc-content
+            repository: DataTalksClub/content
+          # People profiles (_people/) are still authored in the old main-site
+          # repository until they move to DataTalksClub/content.
+          - source: dtc-main-site
+            repository: DataTalksClub/datatalksclub.github.io
     env:
       ENDPOINT: https://prod.datatalks.club/api/content-sync/ci/
       AUDIENCE: https://datatalks.club/api/content-sync/ci/
-      SOURCE: dtc-content
-      CONTENT_REPOSITORY: DataTalksClub/content
+      SOURCE: ${{ matrix.source }}
+      CONTENT_REPOSITORY: ${{ matrix.repository }}
       FORCE: ${{ inputs.force == true }}
       GH_TOKEN: ${{ github.token }}
     steps:

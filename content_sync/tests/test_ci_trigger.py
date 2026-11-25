@@ -116,7 +116,7 @@ class CITriggerTests(TestCase):
                 self.assertEqual(self.get(bearer).status_code, 401)
 
     def test_refuses_undeclared_source(self):
-        response = self.get(token(), source="dtc-main-site")
+        response = self.get(token(), source="dtc-docs")
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {"error": "source_not_allowed"})

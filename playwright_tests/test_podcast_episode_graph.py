@@ -196,7 +196,7 @@ def test_episode_graph_has_complete_links_and_a_bounded_visual_on_desktop(
     assert response is not None and response.status == 200
     _settle_analytics_preferences(page)
 
-    expect(page.get_by_role("heading", name="Related knowledge graph", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Related Wiki pages", exact=True)).to_be_visible()
     expect(page.locator("#episode-graph-connections > li")).to_have_count(23)
     expect(page.locator("#episode-graph-connections a")).to_have_count(23)
     expect(page.locator(".episode-knowledge-graph svg[aria-hidden='true']")).to_have_count(0)
@@ -248,7 +248,7 @@ def test_episode_graph_is_accessible_on_a_mobile_viewport(
     response = page.goto(f"{live_server.url}{episode['public_path']}", wait_until="networkidle")
     assert response is not None and response.status == 200
     _settle_analytics_preferences(page)
-    expect(page.get_by_role("heading", name="Related knowledge graph", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Related Wiki pages", exact=True)).to_be_visible()
     expect(page.locator("#episode-graph-connections > li")).to_have_count(23)
     expect(page.locator("#episode-graph-connections a")).to_have_count(23)
     visual = _visible_graph(page)
@@ -301,9 +301,7 @@ def test_episode_graph_has_a_native_fallback_without_javascript(
             wait_until="domcontentloaded",
         )
         assert response is not None and response.status == 200
-        expect(
-            page.get_by_role("heading", name="Related knowledge graph", exact=True)
-        ).to_be_visible()
+        expect(page.get_by_role("heading", name="Related Wiki pages", exact=True)).to_be_visible()
         expect(page.locator("#episode-graph-connections > li")).to_have_count(23)
         expect(page.locator("#episode-graph-connections a")).to_have_count(23)
         expect(page.locator("#podcast-video-player")).not_to_be_visible()

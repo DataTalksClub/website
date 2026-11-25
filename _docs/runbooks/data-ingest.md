@@ -1611,8 +1611,8 @@ There is no shared secret. The workflow presents a GitHub Actions OIDC token for
 audience in `settings.CONTENT_SYNC_CI`; production verifies it against GitHub's signing
 keys and accepts only this repository (name and immutable id), this workflow file on
 `refs/heads/main`, and the three triggers above. Only the sources listed in
-`CONTENT_SYNC_CI["sources"]` (today `dtc-content`) can be synced this way. The content
-repository has no webhook to production; to re-publish at once after a push, dispatch the
+`CONTENT_SYNC_CI["sources"]` (today `dtc-content` and `dtc-main-site`, the latter for people profiles; the workflow runs them one after the other as a matrix) can be synced this way. The content
+repositories have no webhook to production; to re-publish at once after a push, dispatch the
 workflow (`gh workflow run content-sync.yml -R DataTalksClub/website`, add
 `-f force=true` to re-run the parsers at an already synchronised commit). If the web
 process restarts mid-sync, the engine's source lock expires after ten minutes and the next
