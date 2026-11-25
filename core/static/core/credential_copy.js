@@ -83,6 +83,9 @@
     }
   });
 
+  // A visible control must not accept a click before its handler is ready.
+  copyButton.disabled = false;
+
   window.addEventListener("pagehide", function () {
     token.textContent = "Credential no longer available";
     copyButton.disabled = true;
