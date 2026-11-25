@@ -311,10 +311,12 @@ class ProductionSettingsTests(SimpleTestCase):
             "import json; import website.settings.local as s; "
             "print(json.dumps(s.COMMUNITY_BASE['MAIL_BACKEND']))"
         )
+        environment = os.environ.copy()
+        environment.pop("DTC_LOCAL_OUTBOX_URL", None)
         result = subprocess.run(
             [sys.executable, "-c", command],
             cwd=os.getcwd(),
-            env=os.environ.copy(),
+            env=environment,
             capture_output=True,
             text=True,
             check=False,
@@ -322,6 +324,43 @@ class ProductionSettingsTests(SimpleTestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout), "memory")
+
+    def test_local_outbox_url_switches_mail_to_relay(self) -> None:
+        command = (
+            "import json; import website.settings.local as s; "
+            "c = s.COMMUNITY_BASE; "
+            "print(json.dumps({k: c[k] for k in ('MAIL_BACKEND', 'JOBS_BACKEND', "
+            "'RELAY_BASE_URL', 'RELAY_API_KEY', 'RELAY_WEBHOOK_SECRET', 'SITE_URL')}))"
+        )
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "DTC_LOCAL_OUTBOX_URL": "http://127.0.0.1:8025/",
+                "DTC_LOCAL_SITE_URL": "http://localhost:8015",
+                "RELAY_API_KEY": "must-not-be-sent-to-the-outbox",
+            }
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", command],
+            cwd=os.getcwd(),
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            json.loads(result.stdout),
+            {
+                "MAIL_BACKEND": "relay",
+                "JOBS_BACKEND": "sync",
+                "RELAY_BASE_URL": "http://127.0.0.1:8025",
+                "RELAY_API_KEY": "local-outbox",
+                "RELAY_WEBHOOK_SECRET": "local-outbox-callback-secret",
+                "SITE_URL": "http://localhost:8015",
+            },
+        )
 
 
 class CollectstaticSettingsTests(SimpleTestCase):

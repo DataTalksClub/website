@@ -46,6 +46,30 @@ NOINDEX = True
 # instead of the harmless queued-but-never-submitted state the old JOBS_BACKEND
 # left it in. `memory` matches `website.settings.test`.
 COMMUNITY_BASE = {**COMMUNITY_BASE, "JOBS_BACKEND": "sync", "MAIL_BACKEND": "memory"}  # noqa: F405
+# Opt-in local email testing against a Relay-compatible outbox
+# (https://github.com/DataTalksClub/outbox): DTC_LOCAL_OUTBOX_URL switches
+# mail to the real `relay` backend pointed at it, so every message renders and
+# shows up in the outbox's browser inbox. Jobs stay inline. The key and the
+# callback secret are fixed local placeholders (never real Relay values); the
+# outbox accepts any key and signs its delivery callbacks with
+# LOCAL_OUTBOX_CALLBACK_SECRET when started with that OUTBOX_CALLBACK_SECRET.
+# SITE_URL is the origin mailed links point at. Unset, nothing changes.
+# See _docs/runbooks/local-email-testing.md.
+LOCAL_OUTBOX_API_KEY = "local-outbox"
+LOCAL_OUTBOX_CALLBACK_SECRET = "local-outbox-callback-secret"
+_local_outbox_url = os.getenv("DTC_LOCAL_OUTBOX_URL", "").strip().rstrip("/")  # noqa: F405
+if _local_outbox_url:
+    COMMUNITY_BASE = {
+        **COMMUNITY_BASE,
+        "MAIL_BACKEND": "relay",
+        "RELAY_BASE_URL": _local_outbox_url,
+        "RELAY_API_KEY": LOCAL_OUTBOX_API_KEY,
+        "RELAY_WEBHOOK_SECRET": LOCAL_OUTBOX_CALLBACK_SECRET,
+        "SITE_URL": os.getenv("DTC_LOCAL_SITE_URL", "http://localhost:8000")  # noqa: F405
+        .strip()
+        .rstrip("/"),
+    }
+del _local_outbox_url
 # D2.2a: the package content source model requires a nonblank webhook
 # secret even locally, so local runs fall back to the shared local
 # development placeholder; deployed settings keep the env-only boundary
