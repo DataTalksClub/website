@@ -220,7 +220,8 @@ def test_generic_converter_still_refuses_unpreprocessed_nonempty_flow() -> None:
 
     report = convert_course_repository(root)
 
-    if community_base_version == "0.5.21":
+    # 0.5.21 introduced the per-rule refusals; later releases keep them.
+    if tuple(map(int, community_base_version.split("."))) >= (0, 5, 21):
         refusals = {(item.path, item.rule) for item in report.refusals}
         assert (COHORT, "3.8") in refusals
         for path, body in before.items():
