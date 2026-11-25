@@ -55,6 +55,13 @@ Where the rest went: app and service boundaries are in
 run order, and what `scripts/production_data.py` does — is in
 `_docs/runbooks/data-ingest.md`.
 
+## Page goals
+
+Before creating or changing any page, define its single primary goal and the
+roles it plays. One primary CTA per page that serves that goal; everything
+else is secondary or moved elsewhere. Course pages: the primary goal is
+registration.
+
 ## Throwaway containers
 
 Use `docker run --rm` for throwaway/test containers and add a unique
