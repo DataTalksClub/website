@@ -2,6 +2,12 @@
 {% comment %}
   One row of an archive: a date on the left, and the thing itself as a card.
 
+  It is the same soft card and left rail /events and /podcast draw (the
+  `.event-item` card and the `.event-day-*` rail in
+  `templates/core/_design_system.html`), so the site has one card language:
+  "Jul 28" over "2026" on the rail, a dot on the dotted line, and the card with
+  its title, a two-line summary, the credits and the record's picture.
+
   Every dated index on the site draws the same row — the blog and the books
   archive, the podcast index, and each band of contributions on a person's
   profile — and until this partial existed each of them drew it again in its own
@@ -22,19 +28,22 @@
     fixed-width rail, day above year, so every rail down a page is the same
     height.  A record with no date gives its rail back to the card rather than
     leaving a column of empty space (seventeen podcast episodes have none).
-  * `row_mark` — `"play"` draws the podcast disc as the card's leading mark.
+  * `row_dateline` — a card drawn off any rail (the homepage's latest article)
+    opens with the line the rail would have carried: "Jul 28, 2026 · 12 min
+    read", like the homepage's podcast card.  A row given one draws no rail.
+  * `row_image`, `row_image_fit` — the record's picture, on the card's right
+    like an episode's.  `row_image_fit="contain"` sets a portrait picture (a
+    book cover) whole on the soft ground instead of cropping it.
   * `row_eyebrow` — what this row is to the reader of this page ("guest",
     "speaker", "author"), drawn in the mono line under the title.  Never above
     it: the site carries no eyebrows (design system, "No eyebrows").
   * `row_pill`, `row_pill_variant`, `row_pill_extra` — the status pill and, when
-    a list mixes past and future work, the second bare pill that says which.  A
-    podcast row puts `row_pill` (its season/episode) in the mono line under the
-    title instead.
+    a list mixes past and future work, the second bare pill that says which.
   * `row_meta` — one quiet `.mono-note` line under the title: a fact about the
     record a reader weighs before opening it ("41 questions answered").  Not a
     pill: a count is not a state, and a mono capsule above every title read as
     one.
-  * `row_summary` — clamped, because the record's own page carries the rest.
+  * `row_summary` — clamped to two lines, because the record's own page carries the rest.
   * `row_tags`, `row_tags_label` — linked chips naming why this row is on the
     page (the wiki concepts a related episode shares with the one being read),
     each with a `label` and a `url`.  They sit above the card's stretched link,
@@ -58,46 +67,38 @@
   The events card's own shared rules live in `templates/core/_design_system.html`
   instead, so the homepage and the events index still draw one card.
 {% endcomment %}
-{% with row_rail=row_date|yesno:"archive-row,archive-row archive-row-undated" %}
-  <article class="list-row {{ row_rail }} {{ row_class }}" {{ row_hook }}>
-    {% if row_date %}
-      <p class="mono-note archive-date date-rail">
+  <article class="archive-row{% if not row_date or row_dateline %} archive-row-undated{% endif %} {{ row_class }}" {{ row_hook }}>
+    {% if row_date and not row_dateline %}
+      <p class="event-day-date archive-date">
         <time datetime="{{ row_date|iso_day }}">
-          <span>{{ row_date|day_and_month }}</span>
+          <strong>{{ row_date|short_day }}</strong>
           <span>{{ row_date|year_only }}</span>
         </time>
       </p>
+      <span class="event-day-dot archive-dot" aria-hidden="true"></span>
     {% endif %}
-    {% if row_mark == "play" %}
-      <div class="card archive-card stretched-card-link podcast-card interactive-card interactive-lift">
-    {% else %}
-      <div class="card archive-card stretched-card-link interactive-card interactive-lift">
-    {% endif %}
-      {% if row_mark == "play" %}
-        <span class="play-disc" aria-hidden="true">
-          <svg viewBox="0 0 24 24" focusable="false">
-            <path d="M9 6.5l9 5.5-9 5.5z"/>
-          </svg>
-        </span>
-      {% endif %}
-      <div class="archive-body">
-        {% if row_pill and row_mark != "play" %}
-            <p class="archive-marks">
-              {% if row_pill_variant %}
-                <span class="status-pill {{ row_pill_variant }}">{{ row_pill }}</span>
-              {% else %}
-                <span class="status-pill">{{ row_pill }}</span>
-              {% endif %}
-              {% if row_pill_extra %}
-                <span class="status-pill">{{ row_pill_extra }}</span>
-              {% endif %}
-            </p>
+    <div class="event-item archive-card interactive-card interactive-lift">
+      <div class="event-item-body archive-body">
+        {% if row_dateline %}
+          <p class="event-item-time">{% if row_date %}<time datetime="{{ row_date|iso_day }}">{{ row_dateline }}</time>{% else %}{{ row_dateline }}{% endif %}</p>
+        {% endif %}
+        {% if row_pill %}
+          <p class="archive-marks">
+            {% if row_pill_variant %}
+              <span class="status-pill {{ row_pill_variant }}">{{ row_pill }}</span>
+            {% else %}
+              <span class="status-pill">{{ row_pill }}</span>
+            {% endif %}
+            {% if row_pill_extra %}
+              <span class="status-pill">{{ row_pill_extra }}</span>
+            {% endif %}
+          </p>
         {% endif %}
         <h3 class="archive-title">
           <a href="{{ row_url }}">{{ row_title }}</a>
         </h3>
-        {% if row_eyebrow or row_meta or row_pill and row_mark == "play" %}
-          <p class="mono-note archive-meta">{% if row_eyebrow %}{{ row_eyebrow }}{% endif %}{% if row_pill and row_mark == "play" %}{% if row_eyebrow %} · {% endif %}{{ row_pill }}{% endif %}{% if row_meta %}{% if row_eyebrow or row_pill and row_mark == "play" %} · {% endif %}{{ row_meta }}{% endif %}</p>
+        {% if row_eyebrow or row_meta %}
+          <p class="archive-meta">{% if row_eyebrow %}{{ row_eyebrow }}{% endif %}{% if row_meta %}{% if row_eyebrow %} · {% endif %}{{ row_meta }}{% endif %}</p>
         {% endif %}
         {% if row_summary %}
           <p class="archive-summary">{{ row_summary }}</p>
@@ -112,13 +113,15 @@
           </ul>
         {% endif %}
         {% if row_credits %}
-          <p class="person-chips card-credit">
+          <p class="person-chips event-item-speakers card-credit">
             {% for credit in row_credits %}
               {% include "public/_person_chip.html" with person=credit|person_chip %}
             {% endfor %}
           </p>
         {% endif %}
       </div>
+      {% if row_image %}
+        <img class="event-item-thumb archive-thumb{% if row_image_fit == "contain" %} is-portrait{% else %} is-wide{% endif %}" src="{{ row_image }}" alt="" width="120" height="80" loading="lazy" decoding="async">
+      {% endif %}
     </div>
   </article>
-{% endwith %}

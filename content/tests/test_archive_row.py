@@ -96,16 +96,16 @@ class ArchiveRowSlotTests(TestCase):
             row_hook="data-podcast-episode",
         )
 
-        self.assertIn('class="list-row archive-row episode-row"', body)
+        self.assertIn('class="archive-row episode-row"', body)
         self.assertIn("data-podcast-episode", body)
-        self.assertIn("<span>August 11</span>", body)
+        self.assertIn("<strong>Aug 11</strong>", body)
         self.assertIn("<span>2025</span>", body)
         self.assertIn('<time datetime="2025-08-11">', body)
+        self.assertIn('class="event-day-dot archive-dot"', body)
         self.assertIn(
-            'class="card archive-card stretched-card-link interactive-card interactive-lift"',
+            'class="event-item archive-card interactive-card interactive-lift"',
             body,
         )
-        self.assertIn('<p class="mono-label">guest</p>', body)
         self.assertIn(
             '<span class="status-pill status-pill-mint">2 questions</span>',
             body,
@@ -119,10 +119,10 @@ class ArchiveRowSlotTests(TestCase):
         # The meta line sits between the title and the summary.
         self.assertRegex(
             body,
-            r'</h3>\s*<p class="mono-note archive-meta">12 questions answered</p>'
+            r'</h3>\s*<p class="archive-meta">guest · 12 questions answered</p>'
             r'\s*<p class="archive-summary">',
         )
-        self.assertIn('class="person-chips card-credit"', body)
+        self.assertIn('class="person-chips event-item-speakers card-credit"', body)
         self.assertIn("Alexey Grigorev", body)
 
         # One h3 per row, and the title is the row's only link besides its credit.
@@ -138,47 +138,39 @@ class ArchiveRowSlotTests(TestCase):
         self.assertNotIn("By ", body)
         self.assertNotIn("With ", body)
 
-    def test_a_podcast_row_uses_a_plain_blue_eyebrow_and_keeps_credits_separate(self) -> None:
+    def test_an_off_rail_row_opens_with_its_dateline_and_draws_its_picture(self) -> None:
+        # The homepage's latest article and an episode's related episodes are
+        # drawn off the rail: the card opens with the line the rail would carry.
         body = self.render(
             row_title="How to ship it",
-            row_url="/podcast/s24e6-how-to-ship-it.html",
+            row_url="/blog/how-to-ship-it.html",
             row_date="2025-08-11",
-            row_mark="play",
-            row_pill="Season 24 · Episode 6",
-            row_pill_variant="status-pill-mint",
-            row_summary="What actually worked, and what broke.",
+            row_dateline="Aug 11, 2025 · 12 min read",
+            row_image="/images/posts/ship/cover.png",
             row_credits=[{"name": "Alexey Grigorev", "public_path": "/people/x.html"}],
         )
 
+        self.assertIn("archive-row-undated", body)
+        self.assertNotIn("archive-dot", body)
         self.assertIn(
-            "card archive-card stretched-card-link podcast-card interactive-card interactive-lift",
+            '<p class="event-item-time"><time datetime="2025-08-11">Aug 11, 2025 · 12 min read</time></p>',
             body,
         )
-        self.assertIn(
-            '<p class="mono-label mono-label-indigo podcast-meta">Season 24 · Episode 6</p>',
-            body,
-        )
-        self.assertNotIn('class="status-pill status-pill-mint">Season 24 · Episode 6</span>', body)
-        self.assertIn('class="play-disc"', body)
-        self.assertIn(
-            '<a href="/podcast/s24e6-how-to-ship-it.html">How to ship it</a>',
-            body,
-        )
-        self.assertIn('<a class="band-link person-chip-name" href="/people/x.html">', body)
+        self.assertLess(body.index("event-item-time"), body.index("<h3"))
+        self.assertIn('class="event-item-thumb archive-thumb is-wide" src="/images/posts/ship/cover.png"', body)
         self.assertEqual(
             re.findall(r'<a [^>]*href="([^"]+)"', body),
-            ["/podcast/s24e6-how-to-ship-it.html", "/people/x.html"],
+            ["/blog/how-to-ship-it.html", "/people/x.html"],
         )
         self.assertNotIn('role="link"', body)
         self.assertNotIn("onclick=", body)
-        self.assertNotIn("onkeydown=", body)
 
     def test_a_row_draws_nothing_for_a_fact_its_record_does_not_carry(self) -> None:
         body = self.render(row_title="A quiet record", row_url="/blog/quiet.html")
 
-        self.assertIn('class="list-row archive-row', body)
-        self.assertIn("archive-row-undated", body)
-        self.assertNotIn("date-rail", body)
+        self.assertIn('class="archive-row archive-row-undated', body)
+        self.assertNotIn("archive-date", body)
+        self.assertNotIn("archive-thumb", body)
         self.assertNotIn("<time", body)
         self.assertNotIn("play-disc", body)
         self.assertNotIn("mono-label", body)
@@ -198,7 +190,7 @@ class ArchiveRowSlotTests(TestCase):
 
         self.assertNotIn("archive-row-undated", body)
         self.assertIn('<time datetime="2025-10-06">', body)
-        self.assertIn("<span>October 6</span>", body)
+        self.assertIn("<strong>Oct 6</strong>", body)
         self.assertIn("<span>2025</span>", body)
         self.assertNotIn("00:00", body)
 
@@ -231,19 +223,19 @@ class ArchiveRowTagTests(TestCase):
             render_to_string(ROW_TEMPLATE, {"row_title": "t", "row_url": "/podcast"}),
         )
         styles = DESIGN_SYSTEM.read_text(encoding="utf-8")
-        self.assertIn(".stretched-card-link .archive-tags a", styles)
+        self.assertIn(".archive-tags a {", styles)
 
 
 class ArchiveRowSurfaceTests(TestCase):
     def test_every_dated_index_draws_the_shared_row(self) -> None:
-        for path in ("/blog", "/books", "/podcast", "/people/synthetic-one.html"):
+        for path in ("/blog", "/books", "/people/synthetic-one.html"):
             with self.subTest(path=path):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 200)
                 body = response.content.decode()
                 self.assertTemplateUsed(response, ROW_TEMPLATE)
-                self.assertIn('class="list-row archive-row', body)
-                self.assertIn('class="card archive-card stretched-card-link', body)
+                self.assertIn('class="archive-row', body)
+                self.assertIn('class="event-item archive-card', body)
                 # The row's own markup reaches the page rendered, never as source.
                 self.assertNotIn("row_title=", body)
 
@@ -287,10 +279,7 @@ class ArchiveRowSurfaceTests(TestCase):
 
         self.assertIn(".stretched-card-link .archive-title a::after", design_system)
         self.assertIn(".stretched-card-link .person-chip a", design_system)
-        self.assertIn(".podcast-card:not(.latest-card) {", design_system)
-        for declaration in ("background: transparent;", "border: 0;", "box-shadow: none;"):
-            with self.subTest(declaration=declaration):
-                self.assertIn(declaration, design_system)
+        self.assertIn(".archive-row:not(.archive-row-undated)::before {", design_system)
         self.assertIn(".interactive-lift {", design_system)
         self.assertIn(".interactive-card::before {", design_system)
         self.assertIn('content: "→";', design_system)

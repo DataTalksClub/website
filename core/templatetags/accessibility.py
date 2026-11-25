@@ -67,6 +67,16 @@ def day_and_month(value: object) -> str:
 
 
 @register.filter
+def short_day(value: object) -> str:
+    """The rail's first line: ``Jul 28``, the way the /podcast rail writes it."""
+
+    parsed = _publication_day(value)
+    if parsed is None:
+        return str(value)
+    return f"{parsed:%b} {parsed.day}"
+
+
+@register.filter
 def year_only(value: object) -> str:
     """The year half of a publication date, the second line of a date rail."""
 

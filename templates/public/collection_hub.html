@@ -242,9 +242,9 @@
                   restates the title and byline ("Book of the Week. X by Y"), so
                   the row never draws it.
                 {% endcomment %}
-                {% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_date=record.published row_meta=record.answered_count|counted:"question answered,questions answered" row_summary=record.lead row_credits=record.author_profiles row_class="record-row" only %}
+                {% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_date=record.published row_meta=record.answered_count|counted:"question answered,questions answered" row_summary=record.lead row_credits=record.author_profiles row_image=record.cover_path row_image_fit="contain" row_class="record-row" only %}
               {% else %}
-                {% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_date=record.published row_summary=record.description row_credits=record.author_profiles row_class="record-row" only %}
+                {% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_date=record.published row_summary=record.description row_credits=record.author_profiles row_image=record.image_path row_class="record-row" only %}
               {% endif %}
             {% empty %}
               <p class="collection-empty">

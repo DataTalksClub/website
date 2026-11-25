@@ -11,7 +11,11 @@
   A Django tag cannot be broken across lines, so the call below is one long one.
   Every slot comes from the value the composition already prepared: the role the
   profile states for this link, the pill the kind of work carries (and the second
-  bare pill that says an event has not happened yet), the play disc on an
-  episode, and an article's own one-line description.
+  bare pill that says an event has not happened yet), an episode's season and
+  number in the quiet line under its title, and an article's own one-line description.
 {% endcomment %}
-{% include "public/_archive_row.html" with row_title=item.title row_url=item.public_path row_date=item.date row_mark=item.mark row_eyebrow=item.role row_pill=item.pill_label row_pill_variant=item.pill_variant row_pill_extra=item.state_label row_summary=item.note row_class="person-row" only %}
+{% if item.mark == "play" %}
+  {% include "public/_archive_row.html" with row_title=item.title row_url=item.public_path row_date=item.date row_eyebrow=item.role row_meta=item.pill_label row_summary=item.note row_class="person-row" only %}
+{% else %}
+  {% include "public/_archive_row.html" with row_title=item.title row_url=item.public_path row_date=item.date row_eyebrow=item.role row_pill=item.pill_label row_pill_variant=item.pill_variant row_pill_extra=item.state_label row_summary=item.note row_class="person-row" only %}
+{% endif %}

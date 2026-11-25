@@ -245,6 +245,20 @@ def published_display(value: str) -> str:
     return f"{published:%b} {published.day}, {published:%Y}"
 
 
+def article_dateline(article: dict[str, Any]) -> str:
+    """The homepage article card's opening line: ``Jul 28, 2026 · 12 min read``.
+
+    The /blog rail carries the date; the homepage card has no rail, so it opens
+    with the line the rail would have carried, like its podcast neighbour.
+    """
+
+    read = f"{reading_minutes(article)} min read"
+    published = article.get("published")
+    if isinstance(published, str) and published:
+        return f"{published_display(published[:10])} \u00b7 {read}"
+    return read
+
+
 def _wiki_pages() -> dict[str, dict[str, Any]]:
     return {str(page["slug"]): page for page in wiki_reader.wiki_pages()}
 

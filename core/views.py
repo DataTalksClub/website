@@ -25,6 +25,7 @@ from content.podcast_content import ordered_podcasts
 from content.podcast_hub import hub_episode
 from content.tour_content import homepage_tour_page, tour_page
 from core.home_content import (
+    article_dateline,
     course_catalog,
     featured_course,
     spelled_count,
@@ -130,6 +131,7 @@ def home(request: HttpRequest):
             "course_family_word": spelled_count(len(catalog)),
             "member_stories": homepage_testimonials(),
             "article": article,
+            "article_dateline": article_dateline(article) if article else "",
             "podcast": hub_episode(podcast) if podcast else None,
             "wiki_topics": wiki_topics(),
             "wiki_graph": wiki_graph(),

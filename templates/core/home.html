@@ -392,9 +392,9 @@
       /* The two halves mirror each other: each card stretches to the taller
          one, and both "more" links sit on one line under them (owner
          feedback 2026-11-24: the pair looked lopsided).  The cards themselves
-         are the specialized pages' own partials — the /podcast episode card
-         and the /blog archive row — so nothing here restyles them; the row
-         only gives up the padding and divider it has inside a list. */
+         are the specialized pages' own soft cards — the /podcast episode card
+         and the /blog row drawn off its rail, opening with its date line — so
+         nothing here restyles them. */
       .latest-grid > div {
         display: flex;
         flex-direction: column;
@@ -405,12 +405,7 @@
       }
 
       .latest-grid .archive-row {
-        align-items: stretch;
-        padding-block: 0;
-      }
-
-      .latest-grid .archive-date {
-        align-self: start;
+        padding-bottom: 0;
       }
 
       /* --- wiki graph --------------------------------------------------- */
@@ -1064,7 +1059,7 @@
                 <h3>Latest article</h3>
               </div>
               {% if article %}
-                {% include "public/_archive_row.html" with row_title=article.title row_url=article.public_path row_date=article.published row_summary=article.description row_credits=article.author_profiles row_class="record-row" only %}
+                {% include "public/_archive_row.html" with row_title=article.title row_url=article.public_path row_date=article.published row_dateline=article_dateline row_summary=article.description row_credits=article.author_profiles row_image=article.image_path row_class="record-row" only %}
               {% endif %}
               <p class="band-more">
                 <a class="band-link" href="{% url 'articles' %}">read the blog →</a>

@@ -42,7 +42,7 @@
       </div>
       <div class="row-list" data-related-basis="{{ related.basis }}">
         {% for item in related.items %}
-          {% include "public/_archive_row.html" with row_title=item.episode.title row_url=item.episode.public_path row_mark="play" row_pill=item.episode.season_episode row_summary=item.episode.description row_tags=item.concepts row_tags_label="Shared wiki topics" row_credits=item.episode.guests row_class="episode-row" row_hook="data-related-episode" only %}
+          {% include "public/_archive_row.html" with row_title=item.episode.title row_url=item.episode.public_path row_dateline=item.episode.season_episode row_summary=item.episode.description row_tags=item.concepts row_tags_label="Shared wiki topics" row_credits=item.episode.guests row_class="episode-row" row_hook="data-related-episode" only %}
         {% endfor %}
       </div>
       <p class="band-more">

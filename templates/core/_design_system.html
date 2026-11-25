@@ -551,15 +551,6 @@ Rules for editing:
         width: var(--breakout-width);
       }
 
-      /* The archive date rail: day above year, always two lines.  On one line
-         "January 25, 2026" wraps and "August 11, 2025" does not, so a column of
-         rows would sit at two different heights for no reason a reader can see.
-         Used by every dated index — the blog and books archive, the podcast. */
-      .date-rail time {
-        display: grid;
-        gap: 0.1rem;
-      }
-
       /* The reading width: the same column an article's prose sits in, for the
          index pages that lead into one.  A list of titles and summaries set at
          the full 76rem shell gives every line a long way to track back from,
@@ -1746,19 +1737,9 @@ Rules for editing:
         position: absolute;
       }
 
-      .stretched-card-link .person-chip a,
-      .stretched-card-link .archive-tags a {
+      .stretched-card-link .person-chip a {
         position: relative;
         z-index: 3;
-      }
-
-      /* Podcast archive rows use their dashed list rhythm rather than a filled
-         status box.  The homepage latest-episode card remains a framed card. */
-      .podcast-card:not(.latest-card) {
-        background: transparent;
-        border: 0;
-        border-radius: 0;
-        box-shadow: none;
       }
 
       /* The event card, drawn by the events index and by the homepage's three-up
@@ -3613,47 +3594,60 @@ Rules for editing:
 
       /* --- archive rows ------------------------------------------------- *
        *
-       * The list row every dated index draws: the date on a fixed rail, and the
-       * record beside it as a card.  The blog, the books archive, the podcast
-       * index and each band of a person's profile all use it, through the one
-       * partial `public/_archive_row.html` — see that file for the slots.  It
-       * lives here rather than in four page stylesheets because it had to be
-       * converged by hand in four of them once already.
+       * The list row every dated index draws, through the one partial
+       * `public/_archive_row.html` — see that file for the slots.  It is the
+       * /events and /podcast timeline drawn one record at a time: the date on
+       * the left rail ("Jul 28" over "2026", `.event-day-date`), a dot on the
+       * dotted line (`.event-day-dot`), and the record as the soft
+       * `.event-item` card.  Each row draws its own stretch of the dotted line,
+       * so a list stays one line whatever wraps it (a `.row-list`, a fold).
        */
 
       .archive-row {
-        --row-cols: 7rem minmax(0, 1fr);
-        align-items: start;
-        column-gap: var(--space-5);
+        --day-col: 7.5rem;
+        --dot-col: 1.5rem;
+        column-gap: var(--space-4);
+        display: grid;
+        grid-template-columns: var(--day-col) var(--dot-col) minmax(0, 1fr);
+        padding-bottom: var(--space-4);
+        position: relative;
+      }
+
+      .archive-row:not(.archive-row-undated)::before {
+        border-left: 2px dotted var(--line-soft);
+        bottom: 0;
+        content: "";
+        left: calc(var(--day-col) + var(--space-4) + var(--dot-col) / 2 - 1px);
+        position: absolute;
+        top: 0;
+      }
+
+      .archive-row:last-child {
+        padding-bottom: 0;
       }
 
       /* A record with no date gives the rail back to the card instead of
          leaving a column of empty space down the page. */
       .archive-row-undated {
-        --row-cols: minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
       }
 
-      /* The rail meets the card's first line rather than its top edge. */
-      .archive-date {
-        padding-top: var(--space-4);
+      /* Soft cards are divided by space, not by the list's dashed rule. */
+      .row-list > .archive-row,
+      .row-fold > .archive-row {
+        border-bottom: 0;
       }
 
-      .archive-card {
-        align-items: flex-start;
-        flex-direction: row;
-        gap: var(--space-4);
-        min-width: 0;
-        padding: var(--space-4) var(--space-4);
+      .row-list:has(> .archive-row) {
+        padding-top: var(--space-2);
       }
 
-      .archive-body {
-        display: grid;
-        flex: 1;
-        gap: var(--space-1);
-        justify-items: start;
-        min-width: 0;
+      .archive-dot {
+        z-index: 1;
       }
 
+      /* A card title outside the soft card (the academy home's article
+         cards); inside it the `.event-item` title rule sets the size. */
       .archive-title {
         font-size: 1.05rem;
       }
@@ -3663,8 +3657,11 @@ Rules for editing:
         text-decoration: none;
       }
 
-      .archive-title a:hover {
-        text-decoration: none;
+      .archive-meta {
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-weight: 600;
+        margin: 0;
       }
 
       /* Two pills at most: what the record is, and — where a list mixes past and
@@ -3673,57 +3670,83 @@ Rules for editing:
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-2);
+        margin: 0;
       }
 
-      /* Enough of the record to know whether it is for you; a book summary runs
-         to a full page, so the record's own page carries the rest. */
+      /* Enough of the record to know whether it is for you; the record's own
+         page carries the rest. */
       .archive-summary {
         display: -webkit-box;
         -webkit-box-orient: vertical;
-        -webkit-line-clamp: 3;
-        line-clamp: 3;
-        font-size: 0.9rem;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        color: var(--body-text);
+        font-size: 0.95rem;
+        margin: 0;
         overflow: hidden;
       }
 
       /* Why the row is on this page: a wrapping list of linked chips under the
-         summary.  A long concept name wraps inside its chip rather than pushing
-         a phone-width card sideways. */
+         summary, above the title's stretched link.  A long concept name wraps
+         inside its chip rather than pushing a phone-width card sideways. */
       .archive-tags {
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-2);
         list-style: none;
-        margin: var(--space-1) 0 0;
+        margin: 0;
         padding: 0;
+      }
+
+      .archive-tags a {
+        position: relative;
+        z-index: 1;
       }
 
       .archive-tags .chip {
         white-space: normal;
       }
 
-      /* An episode row: the archive row with the play disc as its leading mark,
-         on /podcast and under an episode as its related episodes.  Its
-         season/episode line is metadata, so it sits in the mono line under
-         the title. */
-      .episode-row > .archive-card {
-        border-radius: 0.9rem;
+      /* An article's picture is a wide social card: cropped to 3:2 rather than
+         a square, so its subject survives. */
+      .archive-thumb.is-wide {
+        aspect-ratio: 3 / 2;
       }
 
-      .episode-row .play-disc {
-        margin-top: var(--space-4);
+      .archive-thumb.is-portrait {
+        object-fit: contain;
       }
 
-      /* A credit under a row's title is a footnote to it, not a second title. */
-      .archive-card .person-chip-name {
-        font-size: 0.85rem;
-      }
-
-      /* Narrow: the rail has no room to be a column, so the date becomes the
-         dateline directly above the card. */
+      /* Narrow: like the /podcast timeline, the date sits on one line above
+         its card and the line and the dot move to the left edge. */
       @media (max-width: 47.99rem) {
+        .archive-row {
+          column-gap: var(--space-3);
+          grid-template-columns: 0.7rem minmax(0, 1fr);
+          row-gap: var(--space-2);
+        }
+
+        .archive-row-undated {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .archive-row:not(.archive-row-undated)::before {
+          left: calc(0.35rem - 1px);
+        }
+
+        .archive-dot {
+          grid-column: 1;
+          grid-row: 1;
+          margin-top: var(--space-1);
+        }
+
         .archive-date {
-          padding-top: 0;
+          grid-column: 2;
+          grid-row: 1;
+        }
+
+        .archive-row:not(.archive-row-undated) > .archive-card {
+          grid-column: 2;
         }
       }
 
