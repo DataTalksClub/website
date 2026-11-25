@@ -555,11 +555,14 @@ class EventIndexDesignSystemTests(StableEventClockTestCase):
         # (owner feedback 2026-11-25): upcoming says where, past says whether
         # there is a recording.
         kind = escape(str(first_upcoming.get("kind_label") or first_upcoming["type"]))
-        self.assertIn(f"<span>{kind.capitalize()} · Live online</span>", upcoming)
+        self.assertRegex(
+            re.sub(r"\s+", " ", upcoming),
+            rf"<span>\s*{re.escape(kind.capitalize())} · Live online\s*</span>",
+        )
         self.assertNotIn(" · Live online", past)
         self.assertRegex(past, r"<span>[^<]+</span>\s*</li>")
         if any(event.get("has_youtube_link") for event in event_groups().recent[:PUBLIC_PAGE_SIZE]):
-            self.assertIn(" · Recording on YouTube</span>", past)
+            self.assertRegex(re.sub(r"\s+", " ", past), r" · Recording on YouTube\s*</span>")
         for body in (upcoming, past):
             self.assertNotRegex(body, r'class="status-pill status-pill-(open|wait|mint)"')
             self.assertNotIn('class="kind-tip"', body)
@@ -670,12 +673,11 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
 
         self.assertEqual(index_response.status_code, 200)
         index_body = index_response.content.decode("utf-8")
-        self.assertIn(
-            f'<span>{tagged["type"].capitalize()} · Академия · Live online</span>', index_body
+        self.assertRegex(
+            re.sub(r"\s+", " ", index_body),
+            rf"<span>\s*{re.escape(tagged['type'].capitalize())} · Академия · Live online\s*</span>",
         )
-        self.assertIn(
-            f'<span class="when-kind">{tagged["type"]} · Академия</span>', detail_body
-        )
+        self.assertIn(f'<span class="when-kind">{tagged["type"]} · Академия</span>', detail_body)
 
     def test_speakers_and_links_keep_their_destinations_and_their_labels(self) -> None:
         event = next(
