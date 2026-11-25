@@ -301,8 +301,8 @@ class PublicNavigationTests(TestCase):
             [(group["label"], [item["label"] for item in group["items"]]) for group in groups],
             [
                 ("Learn", ["Courses", "Academy", "Docs"]),
-                ("Community", ["Events", "Podcast", "Books", "Slack"]),
-                ("Read", ["Blog", "Wiki"]),
+                ("Community", ["Events", "Podcast", "Slack"]),
+                ("Read", ["Blog", "Wiki", "Books"]),
             ],
         )
         self.assertEqual([group["current"] for group in groups], [False, False, True])

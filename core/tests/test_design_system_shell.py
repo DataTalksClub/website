@@ -129,10 +129,10 @@ EXPECTED_NAVIGATION = (
     ("Docs", "docs-home"),
     ("Events", "events"),
     ("Podcast", "podcast"),
-    ("Books", "books"),
     ("Slack", "slack"),
     ("Blog", "articles"),
     ("Wiki", "wiki-home"),
+    ("Books", "books"),
 )
 
 # The scripts every page in the system runs, in the order the shell loads them.

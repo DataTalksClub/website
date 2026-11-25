@@ -94,8 +94,8 @@ DEFAULT_PRIMARY_NAVIGATION: tuple[tuple[str, str, str, int, bool], ...] = (
 # stays in its group.
 NAVIGATION_GROUPS: tuple[tuple[str, str, frozenset[str]], ...] = (
     ("learn", "Learn", frozenset({"courses", "academy", "docs", "faq"})),
-    ("community", "Community", frozenset({"events", "podcast", "books", "slack"})),
-    ("read", "Read", frozenset({"blog", "wiki"})),
+    ("community", "Community", frozenset({"events", "podcast", "slack"})),
+    ("read", "Read", frozenset({"blog", "wiki", "books"})),
 )
 _GROUP_BY_CURRENT_KEY = {
     current_key: key for key, _label, members in NAVIGATION_GROUPS for current_key in members

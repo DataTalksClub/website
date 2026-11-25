@@ -2329,10 +2329,11 @@ Rules for editing:
 
       /* The version is the link to the code that built this page: the exact
          commit for a release, the repository for a local build. */
+      /* Same face, size and weight as the legal links it shares a line with. */
       .footer-version {
         color: var(--muted);
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
+        font: inherit;
+        line-height: 1.3;
         min-width: 0;
         position: relative;
         overflow-wrap: anywhere;
