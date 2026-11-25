@@ -118,6 +118,43 @@ This document answers all 10 open questions in `bots-management/agents/contracts
   ```
 - **Public URL:** served at `/events/<public_id>/banner` and automatically wired into the event page and `og:image`.
 
+### Render the standard event picture
+
+The standard picture is the speaker-led `dtc-event-speaker` template in
+[`banner-generator`](https://github.com/AI-Shipping-Labs/banner-generator) (`~/git/banner-generator`).
+It shows the speaker portraits, names, type pill, weekday + date, local time and title, sized to stay
+readable at the ~290px the event page shows it. Fields are documented in that repo's README.
+
+1. Get the event's facts: `dtc events get <event>` (title, speakers, start time). Download each
+   speaker's portrait from `/images/authors/<short>.jpg` into a local folder.
+2. Write a spec (outside the repo, e.g. `.tmp/`), using the event's own timezone for the date and time:
+   ```json
+   {
+     "template": "dtc-event-speaker",
+     "size": "luma",
+     "output": "/abs/path/.tmp/event-banner.png",
+     "kind": "workshop",
+     "title": "Observing Python Applications Using Prometheus",
+     "date_label": "Tue 13 Dec 2022",
+     "time_label": "17:00 CET",
+     "speakers": [
+       {"name": "Jessica Greene", "image_url": "file:///abs/path/.tmp/jessicagreene.jpg"},
+       {"name": "Vanessa Aguilar", "image_url": "file:///abs/path/.tmp/vanessaaguilar.jpg"}
+     ]
+   }
+   ```
+   `kind` is `webinar`, `workshop`, `podcast` or `conference`. Add `"crop": {"zoom": 1.5, "x": 65, "y": 20}`
+   to a speaker to zoom a portrait that has stray edge content. With no speakers, use `"speakers": []`.
+3. Render it: `cd ~/git/banner-generator && uv run banner-generator render /abs/path/.tmp/event-spec.json`.
+   Look at the PNG at ~290px wide before uploading.
+4. Upload it with `dtc events upload-banner <event> --file /abs/path/.tmp/event-banner.png`, from the
+   Studio event page's banner upload (`studio:event-banner`), or through the API:
+   `POST /api/v1/admin/events/<event_id>/banner` with JSON `{"image_base64": "...", "content_type": "image/png"}`
+   (capability `events.manage.banner`; the CLI chunks large files for you).
+
+`"size": "og"` renders the same picture as a 1200x630 social card (LinkedIn, X, Slack). The site's
+`og:image` still uses the square banner.
+
 ---
 
 ## 4. Export registrants, import attendance, message registrants
