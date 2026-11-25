@@ -81,7 +81,9 @@ class ArchiveRowSlotTests(TestCase):
 
     def test_a_square_picture_is_drawn_whole_like_an_event_banner(self) -> None:
         body = self.render(
-            row_title="t", row_url="/blog/t.html", row_image="/images/posts/t/preview.png",
+            row_title="t",
+            row_url="/blog/t.html",
+            row_image="/images/posts/t/preview.png",
             row_image_fit="square",
         )
         self.assertIn('src="/images/posts/t/preview.png"', body)
@@ -166,7 +168,10 @@ class ArchiveRowSlotTests(TestCase):
             body,
         )
         self.assertLess(body.index("event-item-time"), body.index("<h3"))
-        self.assertIn('class="event-item-thumb archive-thumb is-wide" src="/images/posts/ship/cover.png"', body)
+        self.assertIn(
+            'class="event-item-thumb archive-thumb is-wide" src="/images/posts/ship/cover.png"',
+            body,
+        )
         self.assertEqual(
             re.findall(r'<a [^>]*href="([^"]+)"', body),
             ["/blog/how-to-ship-it.html", "/people/x.html"],

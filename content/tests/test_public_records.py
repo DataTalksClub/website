@@ -240,9 +240,12 @@ class BookRowFactsTests(TestCase):
 class ArticlePreviewTests(TestCase):
     def test_preview_sources_become_public_paths(self) -> None:
         record = article_record(
-            {"image_source": "images/posts/a/cover.png", "authors": [],
-             "preview_source": "images/posts/a/preview.png",
-             "preview_og_source": "images/posts/a/preview-og.png"},
+            {
+                "image_source": "images/posts/a/cover.png",
+                "authors": [],
+                "preview_source": "images/posts/a/preview.png",
+                "preview_og_source": "images/posts/a/preview-og.png",
+            },
             {},
         )
         self.assertEqual(record["preview_path"], "/images/posts/a/preview.png")
