@@ -1242,7 +1242,20 @@ def _learner_scenario(recorder: ScenarioRecorder) -> set[str]:
     homework = recorder.environment.objects["homework"]
     homework.description = " ".join(["Long synthetic homework guidance"] * 120)
     homework.save(update_fields=("description",))
-    recorder.scan("learner.long-content", "homework", text="Long synthetic homework guidance")
+    # The assignment's description is the Introduction step of the homework
+    # stepper; a scored homework opens on its review step instead.
+    intro = recorder.environment.surfaces["homework"]
+    _cookie(recorder.page, recorder.live_server, recorder.environment.users.get(intro.actor))
+    opened = recorder.page.goto(
+        f"{recorder.live_server.url}{intro.path}/intro", wait_until="domcontentloaded"
+    )
+    assert opened is not None and opened.status == 200
+    expect(
+        recorder.page.locator("main, [role='main']")
+        .get_by_text("Long synthetic homework guidance", exact=False)
+        .first
+    ).to_be_visible()
+    recorder.scan_current("learner.long-content")
     return recorder.checked
 
 
