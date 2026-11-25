@@ -221,11 +221,6 @@
         <div class="shell wiki-shell">
           <h1 id="wiki-page-heading">{{ record.title }}</h1>
           <p class="wiki-summary">{{ record.summary }}</p>
-          {% if topic_episodes %}
-            <p class="wiki-episodes-jump">
-              <a class="band-link" href="#episodes">{{ topic_episodes|length }} podcast episode{{ topic_episodes|length|pluralize }} about {{ record.title }} ↓</a>
-            </p>
-          {% endif %}
           {% if topic_chips %}
             <section class="relations" aria-label="Related topics">
               <div class="relation-list">
@@ -234,13 +229,6 @@
                 {% endfor %}
               </div>
             </section>
-          {% endif %}
-          {% if relation_groups.people %}
-            <p class="person-chips wiki-people" aria-label="People">
-              {% for person in relation_groups.people %}
-                {% include "public/_person_chip.html" with person=person|person_chip chip_loading="eager" %}
-              {% endfor %}
-            </p>
           {% endif %}
         </div>
       </section>
