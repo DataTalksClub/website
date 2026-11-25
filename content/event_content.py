@@ -21,6 +21,8 @@ from django.utils import timezone
 from events.lifecycle import has_started
 from events.queries import published_event_records
 
+from .event_banners import event_banner_url
+
 #: The site shows event times in one established timezone, so grouping happens
 #: after conversion rather than by slicing the stored UTC string.
 SITE_TIMEZONE = ZoneInfo("Europe/Berlin")
@@ -57,6 +59,13 @@ class EventDateGroup:
     display_date: str
     weekday: str
     events: tuple[dict[str, Any], ...]
+    #: "Nov 30": the timeline's day heading.
+    short_date: str = ""
+    #: "Today", "Tomorrow" or "Yesterday" when the date is adjacent to the
+    #: site-timezone today, otherwise "".
+    relative_label: str = ""
+    #: The year, only when it is not the current one (the archive spans years).
+    year: str = ""
 
 
 def event_groups(now: datetime | None = None) -> EventGroups:
@@ -99,6 +108,10 @@ def _grouped(now: datetime | None) -> EventGroups:
         if raw.get("ends_at"):
             local_end = datetime.fromisoformat(raw["ends_at"]).astimezone(SITE_TIMEZONE)
             event["display_clock_range"] = f"{local_start:%H:%M} – {local_end:%H:%M %Z}"
+        event["banner_url"] = event_banner_url(event)
+        # A YouTube link on an event is its recording or live stream; the list
+        # says "Recording on YouTube" only for an event that has happened.
+        event["has_youtube_link"] = any("youtu" in link["url"] for link in event["links"])
         event["type_icon"] = EVENT_TYPE_ICONS.get(
             event["type"].casefold(),
             "fas fa-calendar-check",
@@ -119,16 +132,23 @@ def _grouped(now: datetime | None) -> EventGroups:
     return EventGroups(
         tuple(upcoming),
         tuple(recent),
-        event_date_groups(upcoming),
-        event_date_groups(recent, descending=True),
+        event_date_groups(upcoming, now=current),
+        event_date_groups(recent, descending=True, now=current),
     )
 
 
+_RELATIVE_DAYS = {0: "Today", 1: "Tomorrow", -1: "Yesterday"}
+
+
 def event_date_groups(
-    events: list[dict[str, Any]], *, descending: bool = False
+    events: list[dict[str, Any]],
+    *,
+    descending: bool = False,
+    now: datetime | None = None,
 ) -> tuple[EventDateGroup, ...]:
     """Group already-split events by the calendar date a reader sees."""
 
+    today = (now or timezone.now()).astimezone(SITE_TIMEZONE).date()
     grouped: dict[date, list[dict[str, Any]]] = {}
     for event in events:
         local_date = event["starts_at_value"].astimezone(SITE_TIMEZONE).date()
@@ -141,6 +161,9 @@ def event_date_groups(
             display_date=f"{local_date:%b} {local_date.day}, {local_date:%Y}",
             weekday=local_date.strftime("%A"),
             events=tuple(items),
+            short_date=f"{local_date:%b} {local_date.day}",
+            relative_label=_RELATIVE_DAYS.get((local_date - today).days, ""),
+            year="" if local_date.year == today.year else str(local_date.year),
         )
         for local_date, items in sorted(grouped.items(), reverse=descending)
     )

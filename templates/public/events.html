@@ -32,9 +32,8 @@
       {% include "core/_design_system.html" %}
 
       /* ------------------------------------------------------------------ *
-       * Events-specific rules.  Everything visual here is a shared primitive
-       * (.when date rail, .status-pill, .row-list/.list-row, .card, .cta,
-       * .filter-pill, .mono-note); what follows is only this page's layout.
+       * Events-specific rules: the heading with its Upcoming/Past control and
+       * the day-by-day timeline of soft event cards (the owner's option A).
        * ------------------------------------------------------------------ */
 
       /* --page follows the cool ground, since that is what the tail below the
@@ -53,69 +52,244 @@
         padding-top: var(--space-5);
       }
 
-      .events-hero h1 {
-        max-width: 18ch;
+      .events-head {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3) var(--space-5);
+      }
+
+      .events-head h1 {
+        margin: 0;
       }
 
       .events-lede {
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: var(--space-stack);
+        margin-top: var(--space-3);
         max-width: 36em;
       }
 
-      /* The card itself — the link stretched over the whole of it, the clamped
-         summary, the title's colour — is `.event-card` in the design system
-         partial above, because the homepage draws the same card.  This page adds
-         only the shape its rows give it.  */
+      /* Upcoming / Past: one segmented control, the current view filled. */
+      .events-views {
+        background: var(--card);
+        border: 1px solid var(--line-soft);
+        border-radius: 999px;
+        display: inline-flex;
+        flex: none;
+        gap: var(--space-1);
+        padding: var(--space-1);
+      }
 
-      /* The mockup keeps the two view pills on the left and pushes the
-         calendar link to the right edge of the same row. */
-      .events-controls {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-3) var(--space-4);
-        margin-top: var(--space-5);
+      .events-views a {
+        border-radius: 999px;
+        color: var(--body-text);
+        font-size: 0.95rem;
+        font-weight: 700;
+        padding: var(--space-2) var(--space-4);
+        text-decoration: none;
+      }
+
+      .events-views a:hover {
+        color: var(--ink);
+      }
+
+      .events-views a[aria-current="page"] {
+        background: var(--ink);
+        color: var(--cream);
       }
 
       .events-calendar {
+        font-size: 0.9rem;
         margin-left: auto;
       }
 
-      /* One row per event: the date in a fixed first column and the event card
-         filling the rest.  The date sits at the top of its row, beside the
-         card's first line, the way every other dated index sets it; the row no
-         longer stretches, because the only thing that needed the card's full
-         height was the accent rule the date block no longer draws. */
-      .event-rows .list-row {
-        --row-cols: 6.5rem minmax(0, 1fr);
-        align-items: start;
-      }
-
-      .event-card {
-        align-items: center;
-        flex-direction: row;
-        gap: var(--space-4);
-        padding: var(--space-3) var(--space-4);
-      }
-
-      /* The body takes the free width so the action holds the card's right edge. */
-      .event-body {
+      /* ------------------------------------------------------------------ *
+       * The timeline: each date once, a dotted line with one dot per day,
+       * and that day's events stacked beside it.
+       * ------------------------------------------------------------------ */
+      .event-timeline {
+        --day-col: 7.5rem;
+        --dot-col: 1.5rem;
         display: grid;
-        flex: 1;
+        gap: var(--space-6);
+        position: relative;
+      }
+
+      .event-timeline::before {
+        border-left: 2px dotted var(--line-soft);
+        bottom: 0;
+        content: "";
+        left: calc(var(--day-col) + var(--space-4) + var(--dot-col) / 2 - 1px);
+        position: absolute;
+        top: var(--space-3);
+      }
+
+      .event-day {
+        column-gap: var(--space-4);
+        display: grid;
+        grid-template-columns: var(--day-col) var(--dot-col) minmax(0, 1fr);
+      }
+
+      .event-day-date {
+        font-size: 1rem;
+        margin: 0;
+      }
+
+      .event-day-date time {
+        display: grid;
         gap: var(--space-1);
+      }
+
+      .event-day-date strong {
+        color: var(--ink);
+        font-size: 1.1rem;
+        font-weight: 700;
+      }
+
+      .event-day-date span {
+        color: var(--muted);
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      .event-day-dot {
+        background: var(--lavender);
+        border: 2px solid var(--muted);
+        border-radius: 50%;
+        height: 0.7rem;
+        justify-self: center;
+        margin-top: var(--space-2);
+        position: relative;
+        width: 0.7rem;
+      }
+
+      .event-day-cards {
+        display: grid;
+        gap: var(--space-3);
+      }
+
+      /* One event: a soft card the title's link stretches over. */
+      .event-item {
+        align-items: start;
+        background: var(--card);
+        border: 1px solid var(--line-soft);
+        border-radius: 1rem;
+        display: grid;
+        gap: var(--space-4);
+        grid-template-columns: minmax(0, 1fr) 7.5rem;
+        padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
+        position: relative;
+        transition: border-color 0.12s ease, translate 0.12s ease;
+      }
+
+      .event-item:has(> .event-item-body:only-child) {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        .event-item:hover {
+          border-color: var(--indigo-soft);
+          translate: 0 -1px;
+        }
+      }
+
+      .event-item:has(h4 a:focus-visible) {
+        outline: 3px solid var(--indigo);
+        outline-offset: 2px;
+      }
+
+      .event-item-body {
+        display: grid;
+        gap: var(--space-2);
         justify-items: start;
         min-width: 0;
-        padding-right: var(--space-7);
       }
 
-      .event-speakers {
+      .event-item-time {
         color: var(--muted);
-        font-size: 0.9rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin: 0;
       }
 
-      .event-action {
+      .event-item h4 {
+        color: var(--ink);
+        font-size: 1.22rem;
+        line-height: 1.3;
+        margin: 0 0 var(--space-1);
+        text-wrap: pretty;
+      }
+
+      .event-item h4 a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .event-item h4 a::after {
+        content: "";
+        inset: 0;
+        position: absolute;
+      }
+
+      .event-item h4 a:focus-visible {
+        outline: none;
+      }
+
+      .event-item .person-chips {
+        gap: var(--space-1) var(--space-3);
+      }
+
+      .event-item .person-chip a {
+        min-height: 0;
+        position: relative;
+        z-index: 1;
+      }
+
+      .event-item .person-chip-name {
+        font-size: 0.92rem;
+        font-weight: 600;
+      }
+
+      .event-item .person-chip a.person-chip-name {
+        color: var(--body-text);
+        text-decoration: none;
+      }
+
+      .event-item .person-chip a.person-chip-name:hover {
+        color: var(--indigo);
+        text-decoration: underline;
+      }
+
+      .event-item-meta {
+        color: var(--muted);
+        display: grid;
+        font-size: 0.9rem;
+        font-weight: 600;
+        gap: var(--space-1);
+        list-style: none;
+        margin: var(--space-1) 0 0;
+        padding: 0;
+      }
+
+      .event-item-meta li {
+        align-items: center;
+        display: flex;
+        gap: var(--space-2);
+      }
+
+      .event-item-meta svg {
         flex: none;
+        height: 1rem;
+        width: 1rem;
+      }
+
+      .event-item-thumb {
+        aspect-ratio: 1;
+        border-radius: 0.6rem;
+        display: block;
+        height: auto;
+        object-fit: cover;
+        width: 100%;
       }
 
       .event-empty {
@@ -169,22 +343,60 @@
        * action under the title instead of squeezing it beside one.
        * ------------------------------------------------------------------ */
 
+      /* ------------------------------------------------------------------ *
+       * Narrow layout: the date sits on one line above its cards, the line
+       * and the dots move to the left edge, the picture shrinks.
+       * ------------------------------------------------------------------ */
       @media (max-width: 47.99rem) {
-        .event-rows .when {
+        .events-calendar {
+          flex-basis: 100%;
+          margin-left: 0;
+        }
+
+        .event-timeline {
+          gap: var(--space-5);
+        }
+
+        .event-timeline::before {
+          left: calc(0.35rem - 1px);
+          top: var(--space-2);
+        }
+
+        .event-day {
+          column-gap: var(--space-3);
+          grid-template-columns: 0.7rem minmax(0, 1fr);
+          row-gap: var(--space-3);
+        }
+
+        .event-day-dot {
+          grid-column: 1;
+          grid-row: 1;
+          margin-top: var(--space-1);
+        }
+
+        .event-day-date {
+          grid-column: 2;
+          grid-row: 1;
+        }
+
+        .event-day-date time {
           align-items: baseline;
-          column-gap: var(--space-2);
           display: flex;
-          flex-wrap: wrap;
-          padding-top: 0;
+          gap: var(--space-2);
         }
 
-        .event-card {
-          align-items: stretch;
-          flex-direction: column;
+        .event-day-cards {
+          grid-column: 2;
         }
 
-        .event-action {
-          width: 100%;
+        .event-item {
+          gap: var(--space-3);
+          grid-template-columns: minmax(0, 1fr) 5rem;
+          padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+        }
+
+        .event-item h4 {
+          font-size: 1.08rem;
         }
       }
     </style>
@@ -205,31 +417,23 @@
     <main id="main-content" tabindex="-1">
       <section class="band band-cream events-hero" aria-labelledby="events-heading">
         <div class="shell shell-reading">
-          <h1 class="page-title" id="events-heading">Something happening every week</h1>
-          <p class="events-lede">
-            Workshops, podcast recordings and open Q&amp;As with people doing the work.
-            Free, live, recorded if you miss it.
-          </p>
-          <div class="events-controls">
-            <nav class="filter-pills" aria-label="Event views">
-              {% if is_past_events %}
-                <a class="filter-pill interactive-lift" href="{{ upcoming_path }}">Upcoming events</a>
-              {% else %}
-                <a class="filter-pill interactive-lift" href="{{ upcoming_path }}" aria-current="page">Upcoming events</a>
-              {% endif %}
-              {% if is_past_events %}
-                <a class="filter-pill interactive-lift" href="{{ past_path }}" aria-current="page">Past events</a>
-              {% else %}
-                <a class="filter-pill interactive-lift" href="{{ past_path }}">Past events</a>
-              {% endif %}
+          <div class="events-head">
+            <h1 class="page-title" id="events-heading">Events</h1>
+            <nav class="events-views" aria-label="Event views">
+              <a href="{{ upcoming_path }}"{% if not is_past_events %} aria-current="page"{% endif %}>Upcoming</a>
+              <a href="{{ past_path }}"{% if is_past_events %} aria-current="page"{% endif %}>Past</a>
             </nav>
             <a
               class="band-link events-calendar"
               href="https://calendar.google.com/calendar/?cid=ZjhxaWRqbnEwamhzY3A4ODA5azFlZ2hzNjBAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ"
               target="_blank"
               rel="noopener noreferrer"
-            >our Google calendar<span class="sr-only"> (opens in a new tab)</span> →</a>
+            >Google calendar<span class="sr-only"> (opens in a new tab)</span> →</a>
           </div>
+          <p class="events-lede">
+            Workshops, podcast recordings and open Q&amp;As with people doing the work.
+            Free, live, recorded if you miss it.
+          </p>
         </div>
       </section>
 
@@ -242,51 +446,60 @@
               Upcoming events
             {% endif %}
           </h2>
-          <div class="row-list event-rows" data-event-view="{{ event_mode }}">
+          <div class="event-timeline" data-event-view="{{ event_mode }}">
             {% for group in timeline_groups %}
-              {% for event in group.events %}
-                <div class="list-row event-row">
-                  <div class="when">
-                    <strong>
-                      <time datetime="{{ group.key }}">
-                        {{ group.display_date }}
-                      </time>
-                    </strong>
-                    <span class="when-day">
-                      {{ group.weekday }}
-                    </span>
-                    <span class="when-time">
-                      {{ event.display_clock }}
-                    </span>
-                    {% comment %}
-                      The kind is a quiet word under the clock, not a boxed pill
-                      above the title — the same treatment as the homepage's
-                      event cards, where it leads the date line (owner feedback
-                      2026-11-25).  Display tags join it as words.
-                    {% endcomment %}
-                    {% if event.kind_label %}
-                      <span class="when-kind">{{ event.kind_label }}</span>
+              <section class="event-day" aria-labelledby="event-day-{{ group.key }}">
+                <h3 class="event-day-date" id="event-day-{{ group.key }}">
+                  <time datetime="{{ group.key }}">
+                    {% if group.relative_label %}
+                      <strong>{{ group.relative_label }}</strong>
+                      <span>{{ group.short_date }} · {{ group.weekday }}</span>
+                    {% else %}
+                      <strong>{{ group.short_date }}</strong>
+                      <span>{{ group.weekday }}{% if group.year %}, {{ group.year }}{% endif %}</span>
                     {% endif %}
-                  </div>
-                  <article class="card event-card interactive-card interactive-lift">
-                    <div class="event-body">
-                      <h3>
-                        <a href="{{ event.public_path }}">{{ event.title }}</a>
-                      </h3>
-                      {% if event.description_text %}
-                        <p class="event-summary">{{ event.description_text|truncatewords:30 }}</p>
+                  </time>
+                </h3>
+                <span class="event-day-dot" aria-hidden="true"></span>
+                <div class="event-day-cards">
+                  {% for event in group.events %}
+                    <article class="event-item">
+                      <div class="event-item-body">
+                        <p class="event-item-time">{{ event.display_clock }}</p>
+                        <h4><a href="{{ event.public_path }}">{{ event.title }}</a></h4>
+                        {% if event.speakers %}
+                          <p class="person-chips event-item-speakers">
+                            {% for speaker in event.speakers %}
+                              {% include "public/_person_chip.html" with person=speaker|person_chip %}
+                            {% endfor %}
+                          </p>
+                        {% endif %}
+                        {% comment %}
+                          Only what the record says: the kind, then where — the
+                          recording when a past event has a YouTube link, "Live
+                          online" for an event still to come — and the same
+                          registered count the detail page shows, hidden at zero.
+                        {% endcomment %}
+                        <ul class="event-item-meta">
+                          <li>
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 5.3v5.4L11 8z" fill="currentColor"/></svg>
+                            <span>{% if event.kind_label %}{{ event.kind_label|capfirst }}{% else %}Event{% endif %}{% if is_past_events %}{% if event.has_youtube_link %} · Recording on YouTube{% endif %}{% else %} · Live online{% endif %}</span>
+                          </li>
+                          {% if event.registration_count %}
+                            <li>
+                              <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="6" cy="5.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1.8 13.2c.4-2.3 2.1-3.6 4.2-3.6s3.8 1.3 4.2 3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10.6 3.4a2.3 2.3 0 0 1 0 4.4M12.2 9.9c1 .5 1.7 1.6 2 3.1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                              <span>{{ event.registration_count }} registered</span>
+                            </li>
+                          {% endif %}
+                        </ul>
+                      </div>
+                      {% if event.banner_url %}
+                        <img class="event-item-thumb" src="{{ event.banner_url }}" alt="" width="120" height="120" loading="{% if forloop.parentloop.first %}eager{% else %}lazy{% endif %}" decoding="async">
                       {% endif %}
-                      {% if event.speakers %}
-                        <p class="event-speakers person-chips card-credit">
-                          {% for speaker in event.speakers %}
-                            {% include "public/_person_chip.html" with person=speaker|person_chip %}
-                          {% endfor %}
-                        </p>
-                      {% endif %}
-                    </div>
-                  </article>
+                    </article>
+                  {% endfor %}
                 </div>
-              {% endfor %}
+              </section>
             {% empty %}
               <p class="event-empty">
                 {% if is_past_events %}
