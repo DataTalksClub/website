@@ -159,8 +159,8 @@
 
       /* The key facts close the title block as the spec strip a course family
          landing closes its own with (label over value, compact).  Six facts
-         sit as two rows of three, never five and an orphan; two columns on a
-         phone. */
+         sit in one row on a wide screen, two rows of three on a tablet,
+         two columns on a phone. */
       .academy-facts {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         margin-top: 2rem;
@@ -169,6 +169,13 @@
       @media (min-width: 40rem) {
         .academy-facts {
           grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      /* Wide enough for one tidy row: all six facts side by side. */
+      @media (min-width: 62rem) {
+        .academy-facts {
+          grid-template-columns: repeat(6, minmax(0, 1fr));
         }
       }
 
