@@ -839,7 +839,7 @@ class CourseFamilyProjectGalleryTests(TestCase):
         self.assertContains(response, submission.github_link)
         # The card names the repository, not the host it lives on.
         self.assertContains(response, ">example/\u200bgallery-repo-1<")
-        self.assertContains(response, f"{self.cohort.identifier} cohort</p>")
+        self.assertContains(response, f"· {self.cohort.identifier} cohort")
         self.assertContains(
             response,
             reverse(

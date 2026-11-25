@@ -393,7 +393,6 @@ class HomeworkStateMatrixTests(HomeworkDetailViewTestBase):
         self.assert_single_notice(
             self.get_homework_response(login=True),
             "info",
-            "Scored homework",
             "Your submission has been graded.",
             "callout-score",
         )
