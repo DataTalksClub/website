@@ -85,6 +85,26 @@ class PublishedEventRecordTests(TestCase):
         self.assertEqual(record["season"], 24)
         self.assertEqual(record["episode"], 6)
 
+    def test_registration_provider_links_never_reach_the_page(self) -> None:
+        """Luma and Eventbrite links are dropped; registration is on the page."""
+
+        self.event.materials = [
+            {"label": "Register on Luma", "url": "https://luma.com/abc"},
+            {"label": "Register", "url": "https://lu.ma/abc"},
+            {"label": "View event on Eventbrite", "url": "https://eventbrite.com/e/1"},
+            {"label": "Eventbrite UK", "url": "https://www.eventbrite.co.uk/e/2"},
+            {"label": "Watch recording", "url": "https://www.youtube.com/watch?v=x"},
+        ]
+        self.event.save()
+
+        record = published_event_record(self.event.content_id)
+
+        assert record is not None
+        self.assertEqual(
+            record["links"],
+            [{"label": "Watch recording", "url": "https://www.youtube.com/watch?v=x"}],
+        )
+
     def test_a_missing_end_is_absent_rather_than_invented(self) -> None:
         record = published_event_record(self.event.content_id)
 

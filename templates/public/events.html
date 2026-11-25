@@ -109,13 +109,6 @@
         padding-right: var(--space-7);
       }
 
-      .event-pills {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-2);
-      }
-
       .event-speakers {
         color: var(--muted);
         font-size: 0.9rem;
@@ -265,19 +258,18 @@
                     <span class="when-time">
                       {{ event.display_clock }}
                     </span>
+                    {% comment %}
+                      The kind is a quiet word under the clock, not a boxed pill
+                      above the title — the same treatment as the homepage's
+                      event cards, where it leads the date line (owner feedback
+                      2026-11-25).  Display tags join it as words.
+                    {% endcomment %}
+                    {% if event.type or event.tags %}
+                      <span class="when-kind">{% if event.type %}{{ event.type }}{% endif %}{% for tag in event.tags %}{% if event.type or not forloop.first %} · {% endif %}{{ tag }}{% endfor %}</span>
+                    {% endif %}
                   </div>
                   <article class="card event-card interactive-card interactive-lift">
                     <div class="event-body">
-                      {% if event.tags %}
-                        <div class="event-pills">
-                          {% include "public/_event_kind.html" with tip_id=event.public_id|default:forloop.counter0 %}
-                          {% for tag in event.tags %}
-                            <span class="status-pill">{{ tag }}</span>
-                          {% endfor %}
-                        </div>
-                      {% else %}
-                        {% include "public/_event_kind.html" with tip_id=event.public_id|default:forloop.counter0 %}
-                      {% endif %}
                       <h3>
                         <a href="{{ event.public_path }}">{{ event.title }}</a>
                       </h3>

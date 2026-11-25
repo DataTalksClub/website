@@ -478,32 +478,6 @@ class PastEventPaginationTests(StableEventClockTestCase):
         self.assertNotIn("?page=", sitemap)
         self.assertEqual(sitemap.count("https://datatalks.club/events/past"), 1)
 
-    def test_archive_kind_tips_use_the_numeric_public_id_from_the_href(self) -> None:
-        """Date groups reset forloop.counter0, so a fallback id collides across days.
-
-        Each row already links to /events/<public-id>/<slug>.  The tip must reuse
-        that number so aria-describedby stays unique without exposing the UUID.
-        """
-
-        body = self.client.get("/events/past").content.decode()
-        hrefs = re.findall(r'<h3>\s*<a href="(/events/[^"]+)">', body)
-        described = re.findall(r'aria-describedby="(kind-tip-[^"]+)"', body)
-        tip_ids = re.findall(r'<span class="kind-tip" role="tooltip" id="(kind-tip-[^"]+)">', body)
-        public_ids = [href.split("/")[2] for href in hrefs]
-        expected = [f"kind-tip-{public_id}" for public_id in public_ids]
-
-        self.assertTrue(hrefs)
-        self.assertGreater(body.count('<div class="list-row event-row">'), 3)
-        self.assertEqual(described, expected)
-        self.assertEqual(tip_ids, expected)
-        self.assertEqual(len(tip_ids), len(set(tip_ids)))
-        self.assertEqual(len(set(tip_ids)), len(hrefs))
-        for public_id in public_ids:
-            self.assertRegex(public_id, r"^[1-9][0-9]*$")
-        self.assertNotRegex(body, r'id="kind-tip-[0-9a-f]{8}-[0-9a-f]{4}-')
-        archive = "".join(catalogue_page_bodies(self.client, "/events/past"))
-        self.assertNotRegex(archive, r"\bkind-tip-0\b")
-
 
 class EventTimelineTemplateTests(StableEventClockTestCase):
     def test_timeline_uses_numeric_paths_at_runtime(self) -> None:
@@ -569,15 +543,13 @@ class EventIndexDesignSystemTests(StableEventClockTestCase):
                 '<article class="card event-card interactive-card interactive-lift">',
                 body,
             )
-        # The kind pill states the event type in words, and only the surface changes:
-        # lavender for an upcoming session, mint for a podcast, sand for anything past.
-        self.assertRegex(
-            upcoming,
-            rf'class="status-pill status-pill-open"[^>]*>{first_upcoming["type"]}</span>',
-        )
-        self.assertIn('class="status-pill status-pill-wait"', past)
-        self.assertNotIn('class="status-pill status-pill-wait"', upcoming)
-        self.assertNotIn('class="status-pill status-pill-open"', past)
+        # The kind is a quiet word in the date rail, never a boxed pill
+        # (owner feedback 2026-11-25), on both views.
+        self.assertIn(f'<span class="when-kind">{first_upcoming["type"]}</span>', upcoming)
+        self.assertIn('<span class="when-kind">', past)
+        for body in (upcoming, past):
+            self.assertNotRegex(body, r'class="status-pill status-pill-(open|wait|mint)"')
+            self.assertNotIn('class="kind-tip"', body)
 
     def test_the_view_pills_mark_the_current_view_through_aria(self) -> None:
         upcoming = self.client.get("/events").content.decode()
@@ -601,77 +573,6 @@ class EventIndexDesignSystemTests(StableEventClockTestCase):
             '<a class="filter-pill interactive-lift" href="/events">Upcoming events</a>',
             past,
         )
-
-
-class EventKindsExplainerTests(StableEventClockTestCase):
-    """The explainer that gives the rows' kind pills their meaning.
-
-    A visitor's first question on this page is what a "podcast" event is as opposed
-    to a "webinar"; the answer has to stay on the page that asks it, on the upcoming
-    view and the past view alike.
-    """
-
-    EXPLANATIONS = (
-        ("webinar", "Webinars &ndash; events on Tuesday, with slides, mostly technical"),
-        (
-            "podcast",
-            "Live podcasts &ndash; events on Friday, a discussion without slides, "
-            "the recording is published as a podcast",
-        ),
-        ("workshop", "Workshop &ndash; hands-on tutorials about technical topics"),
-        (
-            "conference",
-            "Conference &ndash; bigger events with multiple talks, both webinar-type "
-            "talks and podcast-type talks",
-        ),
-    )
-
-    def collapsed_body(self, path: str) -> str:
-        body = self.client.get(path).content.decode()
-        return re.sub(r"\s+", " ", body)
-
-    def test_both_views_explain_every_kind_a_row_can_carry(self) -> None:
-        """Every kind is still explained — now on the pill that carries it.
-
-        The index used to list all four kinds above the timeline, which said all
-        of them to every reader whether or not they wanted any.  The explanation
-        now hangs off the pill it explains, so the property to hold is that a
-        kind appearing on this page brings its own explanation with it.
-        """
-
-        kinds = {event["type"] for event in published_event_records()}
-        self.assertEqual(kinds, {kind for kind, _ in self.EXPLANATIONS})
-
-        for path in ("/events", "/events/past"):
-            with self.subTest(path=path):
-                body = self.collapsed_body(path)
-                shown = {kind for kind, _ in self.EXPLANATIONS if f">{kind}</span>" in body}
-                self.assertTrue(shown)
-
-                for kind, explanation in self.EXPLANATIONS:
-                    if kind in shown:
-                        self.assertIn(explanation, body)
-
-    def test_every_kind_pill_is_bound_to_its_own_explanation(self) -> None:
-        """The tip is reachable, not hover-only, and it names its pill."""
-
-        for path in ("/events", "/events/past"):
-            with self.subTest(path=path):
-                body = self.collapsed_body(path)
-
-                described = re.findall(r'aria-describedby="(kind-tip-[^"]+)"', body)
-                self.assertTrue(described)
-                self.assertEqual(len(described), len(set(described)))
-                for target in described:
-                    self.assertIn(f'<span class="kind-tip" role="tooltip" id="{target}">', body)
-                    self.assertRegex(target, r"^kind-tip-[1-9][0-9]*$")
-                # A pill that carries a tip takes focus, so a keyboard reaches it.
-                self.assertEqual(
-                    body.count('aria-describedby="kind-tip-'), body.count('tabindex="0"')
-                )
-                # No icon font: these pages load no external CSS, so the pill marks the row.
-                self.assertNotIn("fa-tv", body)
-                self.assertNotIn("fa-microphone-alt", body)
 
 
 class EventDetailDesignSystemTests(StableEventClockTestCase):
@@ -713,7 +614,7 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         # The dateline is one <time> around both the date and the clock: the machine
         # value carries a clock, so the accessible text has to name the zone, and the
         # zone only exists in display_clock.
-        self.assertIn(f'<time class="when event-when" datetime="{event["starts_at"]}">', body)
+        self.assertIn(f'<time class="when" datetime="{event["starts_at"]}">', body)
         self.assertIn('<span class="when-time">', body)
         self.assertIn(f"<strong>{escape(event['display_date'])}</strong>", body)
         # The h1 escapes the title it draws (an "&" in a title reaches the
@@ -723,7 +624,10 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         self.assertEqual(body.count("<h1"), 1)
         self.assertNotIn("primer-button", body)
 
-    def test_the_kind_pill_and_the_state_word_match_the_index(self) -> None:
+    def test_the_kind_leads_the_dateline_and_no_state_pill_is_drawn(self) -> None:
+        """The kind is a word before the date, as on the cards; the date alone says
+        whether the event has happened, so there is no past/upcoming pill."""
+
         groups = event_groups()
         upcoming = groups.upcoming[0]
         past = groups.recent[0]
@@ -731,28 +635,12 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         upcoming_body = self.detail(upcoming)
         past_body = self.detail(past)
 
-        self.assertRegex(
-            upcoming_body,
-            rf'class="status-pill status-pill-open"[^>]*>{upcoming["type"]}</span>',
-        )
-        self.assertRegex(
-            past_body,
-            rf'class="status-pill status-pill-wait"[^>]*>{past["type"]}</span>',
-        )
-        # State is never colour alone: the pill beside the kind carries the word.
-        self.assertIn('<span class="status-pill">upcoming</span>', upcoming_body)
-        self.assertIn('<span class="status-pill">past</span>', past_body)
-        self.assertNotIn('<span class="status-pill">past</span>', upcoming_body)
-        self.assertNotIn('<span class="status-pill">upcoming</span>', past_body)
-
-    def test_a_live_podcast_recording_keeps_the_mint_pill_the_index_gives_it(self) -> None:
-        podcast = {**event_groups().upcoming[0], "type": "podcast"}
-
-        with patch.object(public_views, "event_groups", lambda: EventGroups((podcast,), ())):
-            body = self.detail(podcast)
-
-        self.assertRegex(body, r'class="status-pill status-pill-mint"[^>]*>podcast</span>')
-        self.assertIn('<span class="status-pill">upcoming</span>', body)
+        self.assertIn(f'<span class="when-kind">{upcoming["type"]}</span>', upcoming_body)
+        self.assertIn(f'<span class="when-kind">{past["type"]}</span>', past_body)
+        for body in (upcoming_body, past_body):
+            self.assertNotIn('<span class="status-pill">upcoming</span>', body)
+            self.assertNotIn('<span class="status-pill">past</span>', body)
+            self.assertNotRegex(body, r'class="status-pill status-pill-(open|wait|mint)"')
 
     def test_display_tags_render_on_events_index_and_detail(self) -> None:
         tagged = {
@@ -766,8 +654,9 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
 
         self.assertEqual(index_response.status_code, 200)
         index_body = index_response.content.decode("utf-8")
-        self.assertIn('<span class="status-pill">Академия</span>', index_body)
-        self.assertIn('<span class="status-pill">Академия</span>', detail_body)
+        expected = f'<span class="when-kind">{tagged["type"]} · Академия</span>'
+        self.assertIn(expected, index_body)
+        self.assertIn(expected, detail_body)
 
     def test_speakers_and_links_keep_their_destinations_and_their_labels(self) -> None:
         event = next(

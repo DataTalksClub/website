@@ -42,7 +42,7 @@
       /* ------------------------------------------------------------------ *
        * Event detail, design system (issue #179).  The page a reader reaches by
        * clicking a row on /events, so it is written in that index's own
-       * vocabulary: the same kind pill, the same date rail, the same card
+       * vocabulary: the same kind word, the same date rail, the same card
        * surfaces and the same dark palette.  One inline stylesheet — the
        * shared design system partial, then this page's own layout — and no
        * external CSS at all.
@@ -93,9 +93,10 @@
       .event-banner img {
         aspect-ratio: 1;
         background: var(--card);
-        border: 2px solid var(--line);
+        /* A soft frame, like the site's other image frames: no hard offset
+           shadow, no ink border (owner feedback 2026-11-25). */
+        border: 2px solid var(--line-soft);
         border-radius: 1.2rem;
-        box-shadow: 0.35rem 0.35rem 0 var(--shadow-soft);
         display: block;
         height: auto;
         max-width: 100%;
@@ -108,23 +109,20 @@
         letter-spacing: -0.025em;
       }
 
-      /* The kind pill the row carried, plus the state in a word: colour alone
-         never says whether an event has already happened. */
-      .event-pills {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-2);
-      }
-
       /* The index's date rail, laid on one line: on a detail page the date is
          a single dateline under the title rather than a column beside a row. */
-      .event-when {
+      .event-when,
+      .event-when .when {
         align-items: baseline;
         column-gap: var(--space-2);
         display: flex;
         flex-wrap: wrap;
         padding-top: 0;
-        row-gap: 0.15rem;
+        row-gap: var(--space-1);
+      }
+
+      .event-when .when-sep {
+        color: var(--muted);
       }
 
       .event-links {
@@ -247,33 +245,6 @@
                 </figure>
               {% endif %}
               <header class="event-head">
-              {% comment %}
-                The kind pill maps exactly as the index maps it — sand for anything
-                past, mint for a live podcast recording, lavender for every other
-                upcoming session — so a reader meets the same mark on both pages.
-                The state itself is a word beside it, and it is omitted rather than
-                guessed when the catalogue cannot place this event in time.
-              {% endcomment %}
-              <p class="event-pills">
-                {% comment %}
-                  An event the catalogue gives no kind draws no kind pill: an
-                  empty pill rendered as a blank square ahead of the state.
-                {% endcomment %}
-                {% if not event.type %}
-                {% elif event_state == "past" %}
-                  <span class="status-pill status-pill-wait">{{ event.type }}</span>
-                {% elif event.type == "podcast" %}
-                  <span class="status-pill status-pill-mint">{{ event.type }}</span>
-                {% else %}
-                  <span class="status-pill status-pill-open">{{ event.type }}</span>
-                {% endif %}
-                {% if event_state %}
-                  <span class="status-pill">{{ event_state }}</span>
-                {% endif %}
-                {% for tag in event.tags %}
-                  <span class="status-pill">{{ tag }}</span>
-                {% endfor %}
-              </p>
               <h1 id="event-heading">{{ event.title }}</h1>
               {% comment %}
                 The whole dateline is one <time>, not just the date: the machine value
@@ -282,12 +253,24 @@
                 accessibility_support.py time_issues).  The index escapes this because
                 its machine value is a date-only group key.
               {% endcomment %}
-              <time class="when event-when" datetime="{{ event.starts_at }}">
-                <strong>{{ event.display_date }}</strong>
-                <span class="when-time">
-                  {{ event.display_clock }}
-                </span>
-              </time>
+              {% comment %}
+                The kind leads the dateline as a word, the way the homepage and
+                index cards set it, with no boxed pill above the title.  There is
+                no past/upcoming marker: the date already says which it is
+                (owner feedback 2026-11-25).
+              {% endcomment %}
+              <p class="event-when">
+                {% if event.type or event.tags %}
+                  <span class="when-kind">{% if event.type %}{{ event.type }}{% endif %}{% for tag in event.tags %}{% if event.type or not forloop.first %} · {% endif %}{{ tag }}{% endfor %}</span>
+                  <span class="when-sep" aria-hidden="true">·</span>
+                {% endif %}
+                <time class="when" datetime="{{ event.starts_at }}">
+                  <strong>{{ event.display_date }}</strong>
+                  <span class="when-time">
+                    {{ event.display_clock }}
+                  </span>
+                </time>
+              </p>
               {% if event.registration_count %}
                 <p class="mono-note event-registered">
                   {{ event.registration_count }} registered

@@ -659,13 +659,16 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
   start clock — that is `.when` below, and its card is the shared `.event-card`.
 
 - **Date rail (events index)** — set the way `.date-rail` is set: position and type,
-  no rule.
+  no rule. The event's kind is the rail's last line (`.when-kind`, bold uppercase
+  indigo mono), never a boxed pill above the title; the event page leads its
+  dateline with the same word and draws no past/upcoming pill — the date says it.
 
   ```html
   <div class="when">
     <strong>Aug 17, 2026</strong>
     <span class="when-day">Monday</span>
     <span class="when-time">14:00 CEST</span>
+    <span class="when-kind">webinar</span>
   </div>
   ```
 

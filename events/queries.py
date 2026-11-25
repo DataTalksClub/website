@@ -22,6 +22,7 @@ import uuid
 from collections.abc import Iterable
 from functools import lru_cache
 from typing import Any
+from urllib.parse import urlsplit
 
 from community_base.events.models import Event, EventHost, Host
 from community_base.events.models import EventRegistration as NativeRegistration
@@ -94,13 +95,29 @@ def _record(event: Event) -> dict[str, Any]:
         "links": [
             {"label": entry.get("label", ""), "url": entry.get("url", "")}
             for entry in (event.materials or [])
-            if isinstance(entry, dict)
+            if isinstance(entry, dict) and not _is_registration_provider(entry.get("url", ""))
         ],
         # Where this event came from.  Provenance belongs to the identity, and
         # the reviewed tuple the imports resolve by lives on the site-owned
         # ``content.EventSource`` row.
         "provenance": _provenance(event),
     }
+
+
+def _is_registration_provider(url: object) -> bool:
+    """Whether ``url`` points at a third-party registration provider.
+
+    Registration happens on the event page itself, so a public page never links
+    out to Luma or Eventbrite (any Eventbrite country domain).
+    """
+
+    host = (urlsplit(str(url or "")).hostname or "").lower()
+    labels = host.split(".")
+    return (
+        host in {"luma.com", "lu.ma"}
+        or host.endswith((".luma.com", ".lu.ma"))
+        or ("eventbrite" in labels[:-1])
+    )
 
 
 def _provenance(event: Event) -> dict[str, Any]:

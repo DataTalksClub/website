@@ -352,53 +352,6 @@ Rules for editing:
         width: 100%;
       }
 
-      /* The kind pill and the explanation bound to it.  The tip shows on hover and
-         on keyboard focus — see public/_event_kind.html for why it is not
-         hover-only.  It lives here, not on the events page, because the
-         homepage draws the same pill: kept page-local, the partial rendered its
-         explanation as visible body text on every page that was not /events. */
-      .kind {
-        display: inline-block;
-        position: relative;
-      }
-
-      .kind .status-pill {
-        cursor: help;
-      }
-
-      .kind-tip {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.6rem;
-        bottom: calc(100% + 0.45rem);
-        box-shadow: 0.2rem 0.2rem 0 var(--shadow-soft);
-        color: var(--body-text);
-        display: block;
-        font-size: 0.85rem;
-        left: 0;
-        line-height: 1.4;
-        opacity: 0;
-        padding: var(--space-2) var(--space-3);
-        pointer-events: none;
-        position: absolute;
-        transition: opacity 0.12s ease;
-        width: max-content;
-        max-width: min(22rem, 70vw);
-        z-index: 5;
-      }
-
-      .kind:hover .kind-tip,
-      .kind .status-pill:focus-visible ~ .kind-tip {
-        opacity: 1;
-      }
-
-      /* Anyone who asked for less motion gets the tip without the fade. */
-      @media (prefers-reduced-motion: reduce) {
-        .kind-tip {
-          transition: none;
-        }
-      }
-
       /* A card's credit — the people who made the thing the card is about — sits
          at the foot of the card, under what the card says about it, not wedged
          between the title and the summary.  `margin-top: auto` puts it on the
@@ -1770,8 +1723,7 @@ Rules for editing:
          anchor and its ::after covers the card, so the accessibility tree still
          holds exactly one link per event, named by the title, and keyboard focus
          still lands on it.  Anything else interactive inside — a speaker's
-         profile link, the kind pill that takes focus for its tip — has to sit
-         above that overlay. */
+         profile link — has to sit above that overlay. */
       .event-card {
         position: relative;
       }
@@ -1795,8 +1747,7 @@ Rules for editing:
         position: absolute;
       }
 
-      .event-card .person-chip a,
-      .event-card .kind {
+      .event-card .person-chip a {
         position: relative;
         z-index: 1;
       }
@@ -4051,6 +4002,17 @@ Rules for editing:
         color: var(--indigo);
         font-family: var(--font-mono);
         font-size: 0.72rem;
+      }
+
+      /* The event's kind as a word in the rail, set like the homepage card's
+         `.event-type`: bold uppercase indigo, no box. */
+      .when-kind {
+        color: var(--indigo);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
       /* ------------------------------------------------------------------ *
