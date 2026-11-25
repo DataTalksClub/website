@@ -37,7 +37,7 @@ class EventImportTests(TestCase):
     def setUp(self) -> None:
         from scripts.prod.import_events import import_content, import_identities
 
-        import_identities(manifest=EVENT_IDENTITY_MANIFEST, apply=True)
+        import_identities(manifest=EVENT_IDENTITY_MANIFEST, content=EVENT_CONTENT, apply=True)
         import_content(source=EVENT_CONTENT, apply=True)
 
     def test_the_identity_manifest_replays_without_creating_a_row(self) -> None:
@@ -56,7 +56,9 @@ class EventImportTests(TestCase):
 
         before = Event.objects.count()
 
-        report = import_identities(manifest=EVENT_IDENTITY_MANIFEST, apply=True)
+        report = import_identities(
+            manifest=EVENT_IDENTITY_MANIFEST, content=EVENT_CONTENT, apply=True
+        )
 
         self.assertTrue(report["replayed"])
         self.assertEqual(report["events_created"], 0)
@@ -65,7 +67,9 @@ class EventImportTests(TestCase):
     def test_a_dry_run_writes_nothing(self) -> None:
         from scripts.prod.import_events import import_identities
 
-        report = import_identities(manifest=EVENT_IDENTITY_MANIFEST, apply=False)
+        report = import_identities(
+            manifest=EVENT_IDENTITY_MANIFEST, content=EVENT_CONTENT, apply=False
+        )
 
         self.assertFalse(report["applied"])
 
