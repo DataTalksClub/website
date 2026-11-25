@@ -180,7 +180,10 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # test, and issue #515 enrolls scripts.convert_academy_source, in strict mypy
 # (configuration only, no dependency change); the pyproject seal moves with
 # that reviewed pyproject.
-STUDIO_COURSES_PYPROJECT_SHA256 = "c72e1d4598d441bdb2b48e5cd36f47523be35884bfbe35d020fd5418ee5179dd"
+# Intake bedef4ea (site feedback 3.1) enrolls courses.catalog_facets, its test
+# and scripts.prod.import_course_catalog_facets in strict mypy (configuration
+# only, no dependency change); the pyproject seal moves with that reviewed pyproject.
+STUDIO_COURSES_PYPROJECT_SHA256 = "8faee6258bcb204677052eacc93ae3feceaa9fb0791ce8100587228c5ed322ab"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation

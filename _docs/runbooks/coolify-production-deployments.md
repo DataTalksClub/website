@@ -21,6 +21,14 @@ deploy this Coolify application.
   Coolify trigger, container drain and image rollback. Keep its deployment
   records and the previous image available until live verification passes.
 
+Staging deploys only on a green `ci.yml` verdict for the exact SHA
+(`deploy/ci_verdict.py`). `ci.yml` keeps one pending run, so a burst of main
+pushes cancels the queued CI of every commit but the newest. The staging
+workflow treats such a cancel as *superseded* when `main` has moved strictly
+ahead of that SHA: its `deploy` job is skipped and the run stays green, and the
+newest head deploys on its own verdict. A real CI failure, or a cancel with no
+newer `main` commit, still fails the run.
+
 After each promotion, verify the Coolify deployment record is finished, the
 production `/health/ready` response reports the merged source SHA, and the
 homepage and one representative public page return successfully. If a GitHub

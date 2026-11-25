@@ -75,8 +75,8 @@ def test_course_art_preserves_theme_geometry_and_course_actions(
 
 
 @pytest.mark.parametrize("width", [1440, 768, 390, 320])
-def test_course_index_collage_matches_family_artwork(page: Page, live_server, width: int) -> None:
-    """Catalogue captions and existing listing cards use matching course art."""
+def test_course_index_hero_and_cards_use_matching_art(page: Page, live_server, width: int) -> None:
+    """One hero illustration (site feedback 3.1), and listing cards use their course art."""
     family, _ = Course.objects.get_or_create(
         slug="ml-zoomcamp", defaults={"title": "Machine Learning Zoomcamp"}
     )
@@ -90,8 +90,9 @@ def test_course_index_collage_matches_family_artwork(page: Page, live_server, wi
     response = page.goto(f"{live_server.url}{reverse('course_list')}", wait_until="networkidle")
     assert response is not None and response.status == 200
     expect(page.get_by_text("mascot needed", exact=True)).to_have_count(0)
-    card = page.locator(".hero-collage-card").filter(has_text=family.title)
-    expect(card).to_have_count(1)
+    expect(page.locator(".hero-collage-card")).to_have_count(0)
+    hero_art = page.locator(".courses-hero-art")
+    expect(hero_art.locator(".doodle-light")).to_have_count(1)
     listing = page.locator(".catalog-card").filter(has_text=family.title)
     expect(listing).to_have_count(1)
     listing_link = listing.get_by_role("link", name=family.title, exact=True)
@@ -119,26 +120,34 @@ def test_course_index_collage_matches_family_artwork(page: Page, live_server, wi
             if "axe target-size" in issue
         ]
         assert target_size_issues == []
-    for slot in (card, listing.locator(".catalog-card-media")):
-        slot.locator("img").evaluate_all("imgs => Promise.all(imgs.map(img => img.decode()))")
-        light = slot.locator(".doodle-light")
-        expect(light).to_have_attribute("src", static("core/illustrations/course-ml-zoomcamp.webp"))
-        assert light.evaluate("img => img.complete && img.naturalWidth === 1254")
-        expect(light).to_have_attribute("alt", "")
-        dark = slot.locator(".doodle-dark")
-        expect(dark).to_have_attribute(
-            "src", static("core/illustrations/course-ml-zoomcamp-dark.webp")
-        )
-        assert dark.evaluate("img => img.complete && img.naturalWidth === 1254")
-        expect(dark).to_have_attribute("alt", "")
-    slot_before = card.bounding_box()
+    card = listing.locator(".catalog-card-media")
+    expect(card.locator(".doodle-light")).to_have_attribute(
+        "src", static("core/illustrations/course-ml-zoomcamp.webp")
+    )
+    expect(card.locator(".doodle-dark")).to_have_attribute(
+        "src", static("core/illustrations/course-ml-zoomcamp-dark.webp")
+    )
+    expect(card.locator("img[alt='']")).to_have_count(2)
+
+    def card_size() -> tuple[float, float]:
+        box = card.bounding_box()
+        assert box is not None
+        return box["width"], box["height"]
+
+    size_before = card_size()
     for theme in ("light", "dark"):
         if theme == "dark":
             page.locator("#dark-mode-toggle").click()
-        for slot in (card, listing.locator(".catalog-card-media")):
+        for slot in (card, hero_art):
             expect(slot.locator("img:visible")).to_have_count(1)
             expect(slot.locator(f".doodle-{theme}")).to_be_visible()
-        assert card.bounding_box() == slot_before
+        # The catalogue sits below the fold and its card art is lazy, so only
+        # the visible theme's image loads; bring it into view and wait for it.
+        art = card.locator(f".doodle-{theme}")
+        art.scroll_into_view_if_needed()
+        expect(art).to_have_js_property("complete", True)
+        assert art.evaluate("img => img.naturalWidth") == 1254
+        assert card_size() == size_before
     expect(page.locator("#courses-hero-heading")).to_be_visible()
     assert page.evaluate(
         "document.documentElement.scrollWidth <= document.documentElement.clientWidth"

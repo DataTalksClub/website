@@ -197,6 +197,7 @@ class SubmissionTemplateStructureTests(SimpleTestCase):
         )
         self.assertIn('class="cta cta-primary interactive-lift"', source)
         self.assertIn(">Register for the next cohort</a>", source)
+        self.assertIn('class="cta cta-primary interactive-lift" href="#courses"', source)
         self.assertNotIn("Continue course", source)
         self.assertNotIn("Open course", source)
         self.assertNotIn("cta-ink", source)

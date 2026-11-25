@@ -8,8 +8,10 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    # No "*.md" ignore: a superseded main SHA skips its own release (see the
+    # ci-verdict job), so every main head -- docs-only included -- must get a
+    # run of its own or staging would stall on an older commit.
     paths-ignore:
-      - "*.md"
       - ".github/workflows/deploy-prod.yml"
       - ".github/workflows/deploy-dev.yml"
 
@@ -100,8 +102,45 @@ jobs:
       # read:packages PAT (see agent report; gap documented until Alexey adds it).
       # Do NOT auto-publish the package: keep the org package private.
 
+  ci-verdict:
+    # ci.yml keeps one pending run per concurrency group, so a newer main push
+    # cancels the queued CI of the previous one. A cancelled verdict for a SHA
+    # that main has moved past is "superseded": the release is skipped (deploy
+    # job skipped, run stays green) and the newer head deploys on its own
+    # verdict. Any real failure, or a cancel with no successor, fails here.
+    # Decision logic: deploy/ci_verdict.py.
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      verdict: ${{ steps.verdict.outputs.verdict }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          enable-cache: true
+      - name: Require the full CI verdict for this source SHA
+        id: verdict
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # The head's CI can queue behind a running CI (~20 min each), so the
+        # bounded wait covers two full runs.
+        run: |
+          set -euo pipefail
+          uv sync --frozen --no-dev
+          uv run --frozen python -m deploy.ci_verdict require \
+            --workflow ci.yml \
+            --repository "$GITHUB_REPOSITORY" \
+            --sha "$GITHUB_SHA" \
+            --superseded-on main \
+            --verdict-output "$GITHUB_OUTPUT" \
+            --timeout-seconds 5400 \
+            --interval-seconds 30
+
   deploy:
-    needs: build-and-push
+    needs: [build-and-push, ci-verdict]
+    if: needs.ci-verdict.outputs.verdict == 'green'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -110,21 +149,6 @@ jobs:
     environment: coolify-staging
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
-        with:
-          enable-cache: true
-      - name: Require the full CI verdict for this source SHA
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          uv sync --frozen --no-dev
-          uv run --frozen python -m deploy.ci_verdict require \
-            --workflow ci.yml \
-            --repository "$GITHUB_REPOSITORY" \
-            --sha "$GITHUB_SHA" \
-            --timeout-seconds 1800 \
-            --interval-seconds 30
       - name: Check the Coolify API token
         env:
           COOLIFY_URL: ${{ secrets.COOLIFY_URL }}

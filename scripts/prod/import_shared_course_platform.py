@@ -455,6 +455,14 @@ def _mapping() -> dict[
             "progression": _STAYS,
             "outcome": _STAYS,
             "project_summary": _STAYS,
+            # Site feedback 3.1: /courses catalogue facets are site-side too.
+            "catalog_topic": _STAYS,
+            "catalog_level": _STAYS,
+            "catalog_duration_weeks": _STAYS,
+            "catalog_hours_per_week": _STAYS,
+            "catalog_tools": _STAYS,
+            "catalog_project": _STAYS,
+            "catalog_fits": _STAYS,
         },
         frozenset(
             {
