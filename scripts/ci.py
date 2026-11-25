@@ -289,6 +289,9 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "accounts/tests/provider_fixtures.py",
     "accounts/tests/test_account_entry.py",
     "courses/tests/test_registration_gate_production.py",
+    # Email + password accounts (allauth login/signup, verification).
+    "accounts/tests/test_password_accounts.py",
+    "accounts/views/signed_in.py",
     # Site feedback 3.1: /courses catalogue facets, filters and reviews.
     "courses/catalog_facets.py",
     "courses/tests/test_course_catalog_feedback.py",
@@ -319,6 +322,8 @@ PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod/import_event_duplicate_merges.py",
     # Reviewed /courses catalogue facets (site feedback 3.1).
     "scripts/prod/import_course_catalog_facets.py",
+    # Every event is created with its picture.
+    "scripts/prod/event_pictures.py",
 )
 TYPECHECK_PATHS: Final = (
     "slack_access",
