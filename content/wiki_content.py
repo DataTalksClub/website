@@ -198,9 +198,8 @@ class EpisodeGraphNeighbour:
 class EpisodeGraph:
     """The graph contract exposed to a podcast template.
 
-    ``neighbors`` is complete and is the semantic fallback.  ``visual_neighbors``
-    is only the bounded ring shown in the compact drawing; it is never the source
-    of truth for the accessible list.
+    ``neighbors`` is every directly linked node, strongest first; the page
+    turns it into reader terms through :func:`episode_connections`.
     """
 
     state: str
@@ -208,18 +207,12 @@ class EpisodeGraph:
     url: str
     hub_id: str
     neighbors: tuple[EpisodeGraphNeighbour, ...]
-    visual_neighbors: tuple[EpisodeGraphNeighbour, ...]
     raw_links: int
     unique_neighbors: int
-    layouts: tuple[GraphLayout, ...]
 
     @property
     def available(self) -> bool:
         return self.state == "available"
-
-    @property
-    def visual_count(self) -> int:
-        return len(self.visual_neighbors)
 
     @property
     def neighbours(self) -> tuple[EpisodeGraphNeighbour, ...]:
@@ -377,28 +370,9 @@ def _episode_graph_shell(episode: dict[str, Any], *, state: str) -> EpisodeGraph
         url=url,
         hub_id="",
         neighbors=(),
-        visual_neighbors=(),
         raw_links=0,
         unique_neighbors=0,
-        layouts=(),
     )
-
-
-def _episode_graph_narrow_hub_title(episode: dict[str, Any]) -> str:
-    """Use the exact compact episode identity when the full title cannot fit."""
-
-    season = episode.get("season")
-    number = episode.get("episode")
-    if (
-        isinstance(season, int)
-        and not isinstance(season, bool)
-        and season > 0
-        and isinstance(number, int)
-        and not isinstance(number, bool)
-        and number > 0
-    ):
-        return f"S{season}E{number:02d}"
-    return str(episode["title"])
 
 
 def unavailable_episode_graph(episode: dict[str, Any]) -> EpisodeGraph:
@@ -413,10 +387,8 @@ def unavailable_episode_graph(episode: dict[str, Any]) -> EpisodeGraph:
             url="",
             hub_id="",
             neighbors=(),
-            visual_neighbors=(),
             raw_links=0,
             unique_neighbors=0,
-            layouts=(),
         )
 
 
@@ -533,31 +505,14 @@ def episode_graph(episode: dict[str, Any]) -> EpisodeGraph:
             ),
         )
     )
-    visual_neighbours = neighbours[:RING_SPOKES]
-    layouts: tuple[GraphLayout, ...] = ()
-    if len(visual_neighbours) == RING_SPOKES:
-        layouts = ring_layouts(
-            GraphPoint(title=hub["label"], url=hub["url"]),
-            tuple(
-                GraphPoint(title=neighbour.label, url=neighbour.url)
-                for neighbour in visual_neighbours
-            ),
-            wide_wrap_over=WIDE_WRAP_OVER,
-            narrow_hub=GraphPoint(
-                title=_episode_graph_narrow_hub_title(episode),
-                url=hub["url"],
-            ),
-        )
     return EpisodeGraph(
         state="available",
         title=hub["label"],
         url=hub["url"],
         hub_id=hub["id"],
         neighbors=neighbours,
-        visual_neighbors=visual_neighbours,
         raw_links=raw_incident_links,
         unique_neighbors=len(neighbours),
-        layouts=layouts,
     )
 
 
@@ -792,6 +747,43 @@ def wiki_related_cards(
         for slug in record.get("related") or ()
         if (page := by_slug.get(slug)) is not None
     )
+
+
+@dataclass(frozen=True, slots=True)
+class EpisodeConnections:
+    """What an episode's graph node offers a reader, in reader terms.
+
+    ``topics`` are the wiki pages the episode is filed under or cited by,
+    strongest first; ``reading`` the articles, books and events linked to it.
+    The guests (already on the page's guest cards), other episodes (the
+    related-episodes block) and search-only topics (no page to open) are left
+    out, and no graph relation kind or weight reaches the page.
+    """
+
+    topics: tuple[WikiTopicCard, ...]
+    reading: tuple[WikiTopicCard, ...]
+
+
+def episode_connections(
+    graph: EpisodeGraph, *, pages: tuple[dict[str, Any], ...]
+) -> EpisodeConnections:
+    """Sort an episode's graph neighbours into topics and further reading."""
+
+    by_path = {page["public_path"]: page for page in pages}
+    topics: dict[str, WikiTopicCard] = {}
+    reading: dict[str, WikiTopicCard] = {}
+    groups = {"wiki": topics, "article": reading, "book": reading, "event": reading}
+    for neighbour in graph.neighbors:
+        group = groups.get(neighbour.type)
+        if group is None or not neighbour.url or neighbour.url in group:
+            continue
+        page = by_path.get(neighbour.url) or {}
+        group[neighbour.url] = WikiTopicCard(
+            title=neighbour.label,
+            summary=str(page.get("summary", "")),
+            url=neighbour.url,
+        )
+    return EpisodeConnections(topics=tuple(topics.values()), reading=tuple(reading.values()))
 
 
 def related_episode_matches(

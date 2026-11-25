@@ -1,10 +1,11 @@
 """Related episodes: the episodes the podcast wiki files under the same pages.
 
 An episode page ends on the episodes that share wiki concepts with it, ranked
-by how strongly and how distinctively they share them, each naming the shared
-concepts as chips.  An episode the wiki has not filed falls back to its season,
-and says so.  These checks publish a synthetic graph over the synthetic
-catalogue, so each ranking rule is exercised by a graph built to isolate it.
+by how strongly and how distinctively they share them, drawn as the /podcast
+timeline a wiki page lists its episodes with.  An episode the wiki has not
+filed falls back to its season, and says so.  These checks publish a
+synthetic graph over the synthetic catalogue, so each ranking rule is
+exercised by a graph built to isolate it.
 """
 
 from __future__ import annotations
@@ -184,21 +185,17 @@ class RelatedEpisodeRankingTests(RelatedGraphTestCase):
 
 
 class RelatedEpisodeCompositionTests(TestCase):
-    def test_graph_matches_become_cards_with_at_most_three_concept_chips(self) -> None:
+    def test_graph_matches_are_kept_in_rank_order(self) -> None:
         class Match:
-            slug = OLDER
-            concepts = tuple(
-                SharedConcept(label=f"Concept {index}", url=f"/wiki/c{index}") for index in range(5)
-            )
+            def __init__(self, slug: str) -> None:
+                self.slug = slug
 
-        band = related_episodes(_episode(CURRENT), catalogue.podcasts(), (Match(),))
+        band = related_episodes(
+            _episode(CURRENT), catalogue.podcasts(), (Match(NEWER), Match(CURRENT), Match(OLDER))
+        )
 
         self.assertEqual(band.basis, "graph")
-        self.assertEqual([item.episode.title for item in band.items], [_episode(OLDER)["title"]])
-        self.assertEqual(
-            [concept.label for concept in band.items[0].concepts],
-            ["Concept 0", "Concept 1", "Concept 2"],
-        )
+        self.assertEqual([record["slug"] for record in band.records], [NEWER, OLDER])
 
     def test_no_graph_relations_fall_back_to_the_newest_of_the_season(self) -> None:
         current = _episode(CURRENT)
@@ -206,18 +203,17 @@ class RelatedEpisodeCompositionTests(TestCase):
         band = related_episodes(current, catalogue.podcasts(), ())
 
         self.assertEqual(band.basis, "season")
-        self.assertTrue(band.items)
-        self.assertTrue(all(item.episode.season == current["season"] for item in band.items))
-        self.assertNotIn(current["title"], [item.episode.title for item in band.items])
-        numbers = [item.episode.episode for item in band.items]
+        self.assertTrue(band.records)
+        self.assertTrue(all(record["season"] == current["season"] for record in band.records))
+        self.assertNotIn(current["slug"], [record["slug"] for record in band.records])
+        numbers = [record["episode"] for record in band.records]
         self.assertEqual(numbers, sorted(numbers, reverse=True))
-        self.assertTrue(all(item.concepts == () for item in band.items))
 
     def test_an_episode_alone_in_its_season_with_no_relations_offers_nothing(self) -> None:
         band = related_episodes(_episode(OTHER_SEASON), catalogue.podcasts(), ())
 
         self.assertEqual(band.basis, "")
-        self.assertEqual(band.items, ())
+        self.assertEqual(band.records, ())
 
 
 class RelatedEpisodePageTests(RelatedGraphTestCase):
@@ -226,7 +222,7 @@ class RelatedEpisodePageTests(RelatedGraphTestCase):
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
         start = body.index('<section class="band band-lavender episode-related"')
-        return body[start : body.index("</section>", start)]
+        return body[start : body.index("</main>", start)]
 
     def test_the_page_ends_on_related_episode_rows_naming_their_shared_concepts(self) -> None:
         nodes = [
@@ -243,18 +239,14 @@ class RelatedEpisodePageTests(RelatedGraphTestCase):
 
         self.assertIn('id="related-episodes-heading">Related episodes</h2>', band)
         self.assertIn('data-related-basis="graph"', band)
-        self.assertIn("files\n              under the same topics", band)
-        # The shared archive row, as an episode row (the hub itself now draws
-        # timeline cards, so the row carries no play disc).
-        self.assertEqual(band.count("data-related-episode"), 1)
-        self.assertIn("episode-row", band)
-        self.assertNotIn('class="play-disc"', band)
+        self.assertIn("files under the same topics", band)
+        # The /podcast timeline a wiki page lists its episodes with: the rail
+        # names the season and episode, the shared episode card sits beside it.
+        self.assertIn('<div class="event-timeline">', band)
+        self.assertEqual(band.count("data-podcast-episode"), 1)
+        self.assertIn(f"S{older['season']} · Episode {older['episode']}", band)
         self.assertIn(f'href="{older["public_path"]}"', band)
-        self.assertRegex(
-            band,
-            r'<ul class="archive-tags" aria-label="Shared wiki topics">\s*<li>\s*'
-            r'<a class="chip chip-plain chip-link" href="/wiki/rag">RAG</a>',
-        )
+        self.assertIn('href="/wiki/rag">RAG</a>', band)
         self.assertIn('href="/podcast/s/20/"', band)
 
     def test_the_retired_neighbour_and_season_bands_are_gone(self) -> None:
@@ -272,9 +264,8 @@ class RelatedEpisodePageTests(RelatedGraphTestCase):
         self.assertIn('data-related-basis="season"', band)
         self.assertIn("has not linked this episode to others yet", band)
         self.assertIn("Season 20", band)
-        self.assertNotIn("archive-tags", band)
         self.assertEqual(
-            len(re.findall(r"data-related-episode", band)),
+            len(re.findall(r"data-podcast-episode", band)),
             min(5, sum(1 for item in catalogue.podcasts() if item["season"] == 20) - 1),
         )
 
@@ -286,35 +277,3 @@ class RelatedEpisodePageTests(RelatedGraphTestCase):
             band = self.band()
 
         self.assertIn('data-related-basis="season"', band)
-
-
-class RelatedEpisodeCommonConceptTests(TestCase):
-    def test_concepts_every_card_shares_are_named_once_and_left_off_the_cards(self) -> None:
-        common = SharedConcept(label="AI Engineering", url="/wiki/ai-engineering")
-        rag = SharedConcept(label="RAG", url="/wiki/rag")
-
-        class Match:
-            def __init__(self, slug: str, concepts: tuple[SharedConcept, ...]) -> None:
-                self.slug = slug
-                self.concepts = concepts
-
-        band = related_episodes(
-            _episode(CURRENT),
-            catalogue.podcasts(),
-            (Match(OLDER, (common, rag)), Match(NEWER, (common,))),
-        )
-
-        self.assertEqual(band.common_concepts, (common,))
-        self.assertEqual([item.concepts for item in band.items], [(rag,), ()])
-
-    def test_a_single_card_keeps_its_own_chips(self) -> None:
-        concept = SharedConcept(label="RAG", url="/wiki/rag")
-
-        class Match:
-            slug = OLDER
-            concepts = (concept,)
-
-        band = related_episodes(_episode(CURRENT), catalogue.podcasts(), (Match(),))
-
-        self.assertEqual(band.common_concepts, ())
-        self.assertEqual(band.items[0].concepts, (concept,))

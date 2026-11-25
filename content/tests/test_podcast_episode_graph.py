@@ -12,7 +12,7 @@ from django.test import TestCase
 from content import catalogue
 from content.podcast_routes import podcast_public_id
 from content.public_graph import validate_wiki_graph
-from content.wiki_content import episode_graph
+from content.wiki_content import episode_connections, episode_graph
 
 PODCAST_GRAPH_PATH_PATTERN = re.compile(r"^/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*$")
 
@@ -79,101 +79,6 @@ class EpisodeGraphContractTests(TestCase):
     # real slug added no functional coverage, so it was dropped rather than
     # rewritten.
 
-    def test_visual_nodes_are_native_links_to_their_resolved_targets(self) -> None:
-        nodes = [
-            _graph_node(
-                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01e01/episode"
-            ),
-            *(
-                _graph_node(f"wiki:{index}", f"Wiki {index}", "wiki", f"/wiki/wiki-{index}")
-                for index in range(1, 9)
-            ),
-        ]
-        links = [
-            {"kind": "related", "source": "podcast:episode", "target": node["id"], "weight": 1}
-            for node in nodes[1:]
-        ]
-        episode = _synthetic_episode()
-        self.publish_graph(nodes=nodes, links=links)
-
-        resolved = episode_graph(episode)
-        body = render_to_string(
-            "public/_podcast_episode_knowledge_graph.html", {"episode_graph": resolved}
-        )
-
-        for layout in resolved.layouts:
-            with self.subTest(layout=layout.kind):
-                match = re.search(
-                    rf'<svg\s+class="graph-svg graph-svg-{layout.kind}".*?</svg>',
-                    body,
-                    re.DOTALL,
-                )
-                self.assertIsNotNone(match)
-                assert match is not None
-                svg = match.group(0)
-                self.assertIn('role="group"', svg)
-                self.assertNotIn('aria-hidden="true"', svg.split("\n", 8)[0])
-                self.assertEqual(
-                    len(re.findall(r'<a\s+class="graph-svg-node', svg)),
-                    resolved.visual_count + 1,
-                )
-                self.assertIn(
-                    f'href="{resolved.url}"',
-                    svg,
-                )
-                self.assertIn(
-                    f'aria-label="Open this podcast episode: {resolved.title}"',
-                    svg,
-                )
-                for neighbour in resolved.visual_neighbors:
-                    with self.subTest(node=neighbour.label):
-                        self.assertIn(f'href="{neighbour.url}"', svg)
-                        self.assertIn(f'aria-label="Open {neighbour.label}"', svg)
-
-        self.assertNotIn('href=""', body)
-        self.assertNotRegex(body, r'href="/podcast/[^" ]+\.html"')
-
-    def test_visual_nodes_without_destinations_remain_named_non_links(self) -> None:
-        nodes = [
-            _graph_node(
-                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01e01/episode"
-            ),
-            _graph_node("wiki:safe", "Safe", "wiki", "/wiki/safe"),
-            _graph_node("wiki:missing", "Missing", "wiki"),
-            _graph_node("wiki:external", "External", "wiki", "https://example.com/out"),
-            _graph_node("wiki:protocol", "Protocol", "wiki", "//example.com/out"),
-            _graph_node("wiki:traversal", "Traversal", "wiki", "/wiki/%2e%2e/private"),
-            _graph_node("wiki:four", "Four", "wiki", "/wiki/four"),
-            _graph_node("wiki:five", "Five", "wiki", "/wiki/five"),
-            _graph_node("podcast:missing", "Missing podcast", "podcast"),
-        ]
-        links = [
-            {
-                "kind": "related",
-                "source": "podcast:episode",
-                "target": node["id"],
-                "weight": 1,
-            }
-            for node in nodes[1:]
-        ]
-        episode = _synthetic_episode()
-        self.publish_graph(nodes=nodes, links=links)
-
-        resolved = episode_graph(episode)
-        body = render_to_string(
-            "public/_podcast_episode_knowledge_graph.html", {"episode_graph": resolved}
-        )
-
-        self.assertEqual(resolved.visual_count, 8)
-        self.assertIn('href="/wiki/safe"', body)
-        self.assertIn('class="graph-svg-node graph-svg-node-unavailable"', body)
-        self.assertIn('aria-label="Missing (destination unavailable)"', body)
-        self.assertIn('aria-label="Missing podcast (destination unavailable)"', body)
-        self.assertIn("destination unavailable", body)
-        self.assertNotIn("example.com/out", body)
-        self.assertNotIn("%2e%2e/private", body)
-        self.assertNotIn('href=""', body)
-
     def test_podcast_targets_use_their_hierarchical_catalogue_paths(self) -> None:
         target = {
             "slug": "target-episode.md",
@@ -222,43 +127,6 @@ class EpisodeGraphContractTests(TestCase):
         self.assertNotIn(".html", target_neighbour.url)
         self.assertRegex(resolved.url, PODCAST_GRAPH_PATH_PATTERN)
         self.assertRegex(target_neighbour.url, PODCAST_GRAPH_PATH_PATTERN)
-        body = render_to_string(
-            "public/_podcast_episode_knowledge_graph.html", {"episode_graph": resolved}
-        )
-        self.assertIn(f'href="{expected_target}"', body)
-        self.assertNotRegex(body, r'href="/podcast/[^" ]+\.html"')
-
-    def test_narrow_visual_hub_stays_clear_of_all_eight_spokes(self) -> None:
-        nodes = [
-            _graph_node(
-                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01e01/episode"
-            ),
-            *(
-                _graph_node(f"wiki:{index}", f"Wiki {index}", "wiki", f"/wiki/wiki-{index}")
-                for index in range(1, 9)
-            ),
-        ]
-        links = [
-            {"kind": "related", "source": "podcast:episode", "target": node["id"], "weight": 1}
-            for node in nodes[1:]
-        ]
-        episode = _synthetic_episode()
-        episode.update({"slug": "episode", "season": 1, "episode": 1})
-        self.publish_graph(nodes=nodes, links=links)
-
-        narrow = next(
-            layout for layout in episode_graph(episode).layouts if layout.kind == "narrow"
-        )
-
-        self.assertEqual(narrow.hub.title, "S1E01")
-        for node in narrow.nodes:
-            with self.subTest(node=node.title):
-                self.assertFalse(
-                    node.left < narrow.hub.left + narrow.hub.width
-                    and narrow.hub.left < node.left + node.width
-                    and node.top < narrow.hub.top + narrow.hub.height
-                    and narrow.hub.top < node.top + node.height
-                )
 
     def test_resolution_is_deterministic_and_does_not_use_episode_title_as_identity(self) -> None:
         graph_nodes = [
@@ -330,12 +198,106 @@ class EpisodeGraphContractTests(TestCase):
         for label in ("No destination", "External", "Protocol relative", "Traversal"):
             self.assertEqual(destinations[label], "")
         body = render_to_string(
-            "public/_podcast_episode_knowledge_graph.html", {"episode_graph": resolved}
+            "public/_podcast_episode_topics.html",
+            {"connections": episode_connections(resolved, pages=())},
         )
         self.assertIn('href="/wiki/safe"', body)
         for unsafe in ("example.com/out", "%2e%2e/private"):
             self.assertNotIn(unsafe, body)
         self.assertNotIn('href=""', body)
+
+    def test_connections_keep_reader_destinations_and_drop_graph_internals(self) -> None:
+        nodes = [
+            _graph_node(
+                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01e01/episode"
+            ),
+            _graph_node("person:guest", "The Guest", "person", "/people/guest.html"),
+            _graph_node("wiki:cited", "Cited Topic", "wiki", "/wiki/cited"),
+            _graph_node("wiki:filed", "Filed Topic", "wiki", "/wiki/filed"),
+            _graph_node("topic:search", "Search Only", "topic", "/wiki/search?q=Search"),
+            _graph_node("article:guide", "A Guide", "article", "/wiki/guide"),
+            _graph_node("podcast:other", "Other episode", "podcast", "/podcast/s01e02/other"),
+        ]
+        links = [
+            {
+                "kind": "podcast-person",
+                "source": "podcast:episode",
+                "target": "person:guest",
+                "weight": 9,
+            },
+            {"kind": "wiki-chip", "source": "podcast:episode", "target": "wiki:cited", "weight": 1},
+            {
+                "kind": "podcast-topic",
+                "source": "podcast:episode",
+                "target": "wiki:filed",
+                "weight": 2,
+            },
+            {"kind": "wiki-chip", "source": "podcast:episode", "target": "wiki:filed", "weight": 1},
+            {
+                "kind": "podcast-topic",
+                "source": "podcast:episode",
+                "target": "topic:search",
+                "weight": 2,
+            },
+            {
+                "kind": "article-chip",
+                "source": "podcast:episode",
+                "target": "article:guide",
+                "weight": 1,
+            },
+            {
+                "kind": "related",
+                "source": "podcast:episode",
+                "target": "podcast:other",
+                "weight": 1,
+            },
+        ]
+        self.publish_graph(nodes=nodes, links=links)
+        pages = ({"public_path": "/wiki/filed", "summary": "What filing means."},)
+
+        connections = episode_connections(episode_graph(_synthetic_episode()), pages=pages)
+
+        self.assertEqual(
+            [(topic.title, topic.summary) for topic in connections.topics],
+            [("Filed Topic", "What filing means."), ("Cited Topic", "")],
+        )
+        self.assertEqual([item.title for item in connections.reading], ["A Guide"])
+        body = render_to_string("public/_podcast_episode_topics.html", {"connections": connections})
+        self.assertIn("Topics in this episode", body)
+        for hidden in (
+            "The Guest",
+            "Search Only",
+            "Other episode",
+            "weight",
+            "wiki-chip",
+            "podcast-topic",
+            "article-chip",
+        ):
+            with self.subTest(hidden=hidden):
+                self.assertNotIn(hidden, body)
+
+    def test_more_than_eight_topics_fold_behind_show_all(self) -> None:
+        nodes = [
+            _graph_node(
+                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01e01/episode"
+            ),
+            *(
+                _graph_node(f"wiki:{index}", f"Wiki {index}", "wiki", f"/wiki/wiki-{index}")
+                for index in range(1, 11)
+            ),
+        ]
+        links = [
+            {"kind": "related", "source": "podcast:episode", "target": node["id"], "weight": 1}
+            for node in nodes[1:]
+        ]
+        self.publish_graph(nodes=nodes, links=links)
+
+        connections = episode_connections(episode_graph(_synthetic_episode()), pages=())
+        body = render_to_string("public/_podcast_episode_topics.html", {"connections": connections})
+
+        # Every topic is in the document (the fold is script-only) behind one control.
+        self.assertEqual(body.count('class="event-item interactive-card'), 10)
+        self.assertIn("Show all 10 topics", body)
 
     def test_dangling_incident_reference_fails_closed(self) -> None:
         episode = _synthetic_episode()
@@ -428,14 +390,13 @@ class EpisodeGraphPageTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(resolved.state, "available")
-        self.assertContains(response, '<h2 id="episode-graph-heading">Related Wiki pages</h2>')
-        for _, label, _, _ in neighbours:
+        self.assertContains(response, '<h2 id="episode-topics-heading">Topics in this episode</h2>')
+        for label in ("MLOps", "Synthetic Book One", "Synthetic Guide One"):
             self.assertContains(response, label)
         self.assertEqual(response.context["episode_graph"].raw_links, len(links))
-        self.assertEqual(
-            len(re.findall(r'<li class="card">', response.content.decode())),
-            resolved.unique_neighbors,
-        )
+        self.assertEqual(response.context["episode_graph"].unique_neighbors, len(neighbours))
+        self.assertNotContains(response, "All related connections")
+        self.assertNotContains(response, "· weight")
         self.assertEqual(response.headers["Cache-Control"], "max-age=0, must-revalidate")
         self.assertContains(
             response,
@@ -460,7 +421,7 @@ class EpisodeGraphPageTests(TestCase):
         with patch("content.catalogue.wiki_graph", return_value={"nodes": [], "links": []}):
             no_data_response = self.client.get(episode["public_path"])
         self.assertEqual(no_data_response.status_code, 200)
-        self.assertNotContains(no_data_response, "episode-graph-heading")
+        self.assertNotContains(no_data_response, "episode-topics-heading")
         self.assertNotContains(no_data_response, "No related knowledge-graph connections")
 
         with patch(
@@ -469,8 +430,5 @@ class EpisodeGraphPageTests(TestCase):
         ):
             unavailable_response = self.client.get(episode["public_path"])
         self.assertEqual(unavailable_response.status_code, 200)
-        self.assertContains(
-            unavailable_response,
-            "Related Wiki pages are temporarily unavailable.",
-        )
+        self.assertNotContains(unavailable_response, "episode-topics-heading")
         self.assertNotContains(unavailable_response, "secret graph contract details")

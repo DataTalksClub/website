@@ -911,34 +911,18 @@ def _summary_paragraphs(record: dict[str, Any]) -> tuple[str, ...]:
 
 
 @dataclass(frozen=True, slots=True)
-class RelatedEpisode:
-    """One episode offered under another, with the wiki concepts that relate them.
-
-    ``concepts`` is empty for a same-season fallback card: it has no reason
-    beyond its season to name, and the band says so.
-    """
-
-    episode: Episode
-    concepts: tuple[Any, ...] = ()
-
-
-@dataclass(frozen=True, slots=True)
 class RelatedEpisodes:
-    """The related-episodes band: what it offers and why.
+    """Which episodes the related-episodes block offers, and why.
 
-    ``basis`` is ``"graph"`` when the cards come from shared wiki concepts,
-    ``"season"`` when the episode has no graph relations and the band falls back
-    to the newest other episodes of its season, and ``""`` when there is nothing
-    to offer at all.
-
-    ``common_concepts`` are the concepts every graph card shares with the
-    episode.  The band names them once in its lede rather than repeating the
-    same chips on every card, so a card's chips say what sets it apart.
+    ``basis`` is ``"graph"`` when they come from shared wiki concepts,
+    ``"season"`` when the episode has no graph relations and the block falls
+    back to the newest other episodes of its season, and ``""`` when there is
+    nothing to offer at all.  ``records`` are catalogue records, in order; the
+    page composes them as the podcast timeline's cards.
     """
 
     basis: str
-    items: tuple[RelatedEpisode, ...]
-    common_concepts: tuple[Any, ...] = ()
+    records: tuple[dict[str, Any], ...]
 
 
 def related_episodes(
@@ -946,60 +930,30 @@ def related_episodes(
     records: tuple[dict[str, Any], ...] | list[dict[str, Any]],
     matches: tuple[Any, ...],
     *,
-    people_by_slug: dict[str, dict[str, Any]] | None = None,
     limit: int = 5,
-    concept_chips: int = 3,
 ) -> RelatedEpisodes:
-    """Compose the related-episodes band for one episode page.
+    """Choose the related episodes for one episode page.
 
-    ``matches`` is the ranked graph answer (each with a ``slug`` and its shared
-    ``concepts``, strongest first).  When it is empty the band falls back to the
-    newest other episodes of the same season, so a page never ends on nothing
-    while the wiki has yet to file a new episode.
+    ``matches`` is the ranked graph answer (each with a ``slug``, strongest
+    first).  When it is empty the block falls back to the newest other
+    episodes of the same season, so a page never ends on nothing while the
+    wiki has yet to file a new episode.
     """
-
-    def compose(item: dict[str, Any]) -> Episode:
-        return episode_view(
-            item,
-            people_by_slug=people_by_slug,
-            resource_podcast_records=records,
-            include_transcript=False,
-        )
 
     by_slug = {item.get("slug"): item for item in records}
     kept = tuple(
-        match for match in matches if match.slug in by_slug and match.slug != record.get("slug")
+        by_slug[match.slug]
+        for match in matches
+        if match.slug in by_slug and match.slug != record.get("slug")
     )[:limit]
     if kept:
-        common = (
-            tuple(
-                concept
-                for concept in kept[0].concepts
-                if all(concept in match.concepts for match in kept[1:])
-            )
-            if len(kept) > 1
-            else ()
-        )
-        return RelatedEpisodes(
-            basis="graph",
-            items=tuple(
-                RelatedEpisode(
-                    episode=compose(by_slug[match.slug]),
-                    concepts=tuple(concept for concept in match.concepts if concept not in common)[
-                        :concept_chips
-                    ],
-                )
-                for match in kept
-            ),
-            common_concepts=common,
-        )
-
+        return RelatedEpisodes(basis="graph", records=kept)
     season_items = tuple(
-        RelatedEpisode(episode=compose(item))
+        item
         for item in ordered_podcasts(tuple(records))
         if item.get("season") == record.get("season") and item.get("slug") != record.get("slug")
     )[:limit]
-    return RelatedEpisodes(basis="season" if season_items else "", items=season_items)
+    return RelatedEpisodes(basis="season" if season_items else "", records=season_items)
 
 
 def listening_platform_phrase(episodes: tuple[Episode, ...]) -> str:

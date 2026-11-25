@@ -1,8 +1,12 @@
-"""Browser contracts for the projection-backed episode knowledge graph (issue #217)."""
+"""Browser contracts for an episode's knowledge-graph topics (issue #217).
+
+The graph node's neighbours reach the page in reader terms: the wiki topics as
+topic cards (folded past eight behind "Show all"), never the guests, the
+graph's relation kinds or its weights.
+"""
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Any
 
@@ -10,14 +14,12 @@ import pytest
 from playwright.sync_api import Browser, Page, expect
 
 from content import catalogue
-from content.podcast_routes import podcast_public_id
 from playwright_tests.accessibility_support import assert_accessible_page
 
 pytestmark = [pytest.mark.core]
 
 REPRESENTATIVE = "synthetic-episode-one"
 SCREENSHOTS = Path(".tmp/screenshots/issue-217")
-PODCAST_GRAPH_PATH_PATTERN = re.compile(r"^/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*$")
 
 
 def _episode(slug: str) -> dict[str, Any]:
@@ -91,13 +93,6 @@ def graph_episode(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     return episode
 
 
-def _hierarchical_graph_path(episode: dict[str, Any]) -> str:
-    return (
-        f"/podcast/{podcast_public_id(season=episode['season'], episode=episode['episode'])}/"
-        f"{episode['slug']}"
-    )
-
-
 def _settle_analytics_preferences(page: Page) -> None:
     dialog = page.get_by_role("dialog", name="Optional analytics")
     if dialog.is_visible():
@@ -121,60 +116,9 @@ def _assert_no_horizontal_overflow(page: Page) -> None:
     assert dimensions["content"] <= dimensions["viewport"], dimensions
 
 
-def _assert_narrow_hub_clear(page: Page) -> None:
-    intersections = page.locator(".episode-knowledge-graph .graph-svg-narrow").evaluate(
-        """(svg) => {
-          const box = (node) => {
-            const rect = node.getBBox();
-            return {
-              left: rect.x,
-              top: rect.y,
-              right: rect.x + rect.width,
-              bottom: rect.y + rect.height,
-            };
-          };
-          const hub = box(svg.querySelector(".graph-svg-hub .graph-svg-shape"));
-          return [...svg.querySelectorAll(".graph-svg-node:not(.graph-svg-hub) .graph-svg-shape")]
-            .map((node) => ({label: node.parentElement.textContent.trim(), ...box(node)}))
-            .filter((node) => (
-              node.left < hub.right
-              && hub.left < node.right
-              && node.top < hub.bottom
-              && hub.top < node.bottom
-            ));
-        }"""
-    )
-    assert intersections == [], intersections
-
-
-def _visible_graph(page: Page):
-    graph = page.locator(".episode-knowledge-graph")
-    wide = graph.locator(".graph-svg-wide")
-    if wide.is_visible():
-        return wide
-    return graph.locator(".graph-svg-narrow")
-
-
-def _assert_graph_hrefs_are_safe(graph) -> None:
-    hrefs = graph.locator("a.graph-svg-node").evaluate_all(
-        "nodes => nodes.map(node => node.getAttribute('href'))"
-    )
-    assert all(href and href.startswith("/") and not href.startswith("//") for href in hrefs)
-    podcast_hrefs = [href for href in hrefs if href.startswith("/podcast/")]
-    assert podcast_hrefs
-    for href in podcast_hrefs:
-        assert PODCAST_GRAPH_PATH_PATTERN.fullmatch(href), href
-        assert not href.endswith(".html"), href
-
-
 def _screenshot(page: Page, name: str) -> None:
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
-    page.screenshot(path=SCREENSHOTS / name, full_page=True)
-
-
-def _graph_screenshot(page: Page, name: str) -> None:
-    SCREENSHOTS.mkdir(parents=True, exist_ok=True)
-    page.locator(".episode-knowledge-graph").screenshot(path=SCREENSHOTS / name)
+    page.locator(".episode-topics").screenshot(path=SCREENSHOTS / name)
 
 
 def _assert_no_external_graph_request(urls: list[str]) -> None:
@@ -182,7 +126,21 @@ def _assert_no_external_graph_request(urls: list[str]) -> None:
     assert not [url for url in urls if any(fragment in url for fragment in forbidden_fragments)]
 
 
-def test_episode_graph_has_complete_links_and_a_bounded_visual_on_desktop(
+#: The synthetic graph's wiki neighbours; the one person is the guest.
+TOPICS = 22
+
+
+def _assert_reader_terms_only(page: Page) -> None:
+    topics = page.locator(".episode-topics")
+    expect(topics.get_by_text("Synthetic Rich Profile")).to_have_count(0)
+    expect(topics.get_by_text("weight")).to_have_count(0)
+    expect(topics.get_by_text("related")).to_have_count(0)
+    expect(topics.get_by_role("link", name="MLOps", exact=True)).to_have_attribute(
+        "href", "/wiki/mlops"
+    )
+
+
+def test_episode_topics_fold_past_eight_on_desktop(
     page: Page,
     live_server,
     graph_episode: dict[str, Any],
@@ -196,48 +154,23 @@ def test_episode_graph_has_complete_links_and_a_bounded_visual_on_desktop(
     assert response is not None and response.status == 200
     _settle_analytics_preferences(page)
 
-    expect(page.get_by_role("heading", name="Related Wiki pages", exact=True)).to_be_visible()
-    expect(page.locator("#episode-graph-connections > li")).to_have_count(23)
-    expect(page.locator("#episode-graph-connections a")).to_have_count(23)
-    expect(page.locator(".episode-knowledge-graph svg[aria-hidden='true']")).to_have_count(0)
-    visual = _visible_graph(page)
-    expect(visual).to_have_attribute("role", "group")
-    expect(visual).to_have_attribute("aria-label", re.compile("linked connections"))
-    expect(visual.locator("a.graph-svg-node")).to_have_count(9)
-    expect(visual.locator("a.graph-svg-hub")).to_have_attribute(
-        "href", _hierarchical_graph_path(episode)
-    )
-    _assert_graph_hrefs_are_safe(visual)
-    graph_links = page.locator("#episode-graph-connections")
-    expect(
-        graph_links.get_by_role("link", name=re.compile("Synthetic Rich Profile"))
-    ).to_have_attribute("href", "/people/synthetic-rich-profile.html")
-    expect(graph_links.get_by_role("link", name=re.compile(r"^MLOps \("))).to_have_attribute(
-        "href", "/wiki/mlops"
-    )
-    expect(
-        graph_links.get_by_role("link", name=re.compile(r"^Feature Stores \("))
-    ).to_have_attribute("href", "/wiki/feature-stores")
-
-    first_connection = page.locator("#episode-graph-connections a").first
-    first_connection.focus()
-    expect(first_connection).to_be_focused()
-    visual_spoke = visual.locator("a.graph-svg-node:not(.graph-svg-hub)").first
-    visual_target = visual_spoke.get_attribute("href")
-    assert visual_target and visual_target.startswith("/")
-    expect(visual_spoke).to_have_attribute("aria-label", re.compile(r"^Open "))
-    visual_spoke.click()
-    expect(page).to_have_url(f"{live_server.url}{visual_target}")
-    page.go_back(wait_until="networkidle")
-    expect(page).to_have_url(f"{live_server.url}{episode['public_path']}")
-    _screenshot(page, "synthetic-episode-desktop-1440x900.png")
-    _graph_screenshot(page, "synthetic-episode-desktop-1440x900-graph.png")
+    expect(page.get_by_role("heading", name="Topics in this episode", exact=True)).to_be_visible()
+    expect(page.get_by_text("All related connections")).to_have_count(0)
+    cards = page.locator(".episode-topic-card")
+    expect(cards).to_have_count(TOPICS)
+    expect(page.locator(".episode-topic-card:visible")).to_have_count(8)
+    _assert_reader_terms_only(page)
+    _screenshot(page, "synthetic-episode-desktop-1440x900-topics.png")
+    show_all = page.get_by_role("button", name=f"Show all {TOPICS} topics")
+    show_all.click()
+    expect(page.locator(".episode-topic-card:visible")).to_have_count(TOPICS)
+    expect(show_all).to_have_count(0)
     _assert_no_horizontal_overflow(page)
     _assert_no_external_graph_request(requests)
 
 
 @pytest.mark.accessibility
-def test_episode_graph_is_accessible_on_a_mobile_viewport(
+def test_episode_topics_are_accessible_on_a_mobile_viewport(
     page: Page,
     live_server,
     graph_episode: dict[str, Any],
@@ -248,39 +181,21 @@ def test_episode_graph_is_accessible_on_a_mobile_viewport(
     response = page.goto(f"{live_server.url}{episode['public_path']}", wait_until="networkidle")
     assert response is not None and response.status == 200
     _settle_analytics_preferences(page)
-    expect(page.get_by_role("heading", name="Related Wiki pages", exact=True)).to_be_visible()
-    expect(page.locator("#episode-graph-connections > li")).to_have_count(23)
-    expect(page.locator("#episode-graph-connections a")).to_have_count(23)
-    visual = _visible_graph(page)
-    expect(visual.locator("a.graph-svg-node")).to_have_count(9)
-    _assert_graph_hrefs_are_safe(visual)
-    connection = page.locator("#episode-graph-connections a").first
-    connection.focus()
-    expect(connection).to_be_focused()
-    visual_spoke = visual.locator("a.graph-svg-node:not(.graph-svg-hub)").first
-    visual_target = visual_spoke.get_attribute("href")
-    assert visual_target and visual_target.startswith("/")
-    visual_spoke.focus()
-    expect(visual_spoke).to_be_focused()
-    page.keyboard.press("Enter")
-    expect(page).to_have_url(f"{live_server.url}{visual_target}")
-    page.go_back(wait_until="networkidle")
-    expect(page).to_have_url(f"{live_server.url}{episode['public_path']}")
-    _assert_narrow_hub_clear(page)
-    _screenshot(page, "synthetic-episode-mobile-390x844-light.png")
-    _graph_screenshot(page, "synthetic-episode-mobile-390x844-light-graph.png")
+    expect(page.get_by_role("heading", name="Topics in this episode", exact=True)).to_be_visible()
+    first = page.locator(".episode-topic-card a").first
+    first.focus()
+    expect(first).to_be_focused()
+    _screenshot(page, "synthetic-episode-mobile-390x844-light-topics.png")
     page.locator("#dark-mode-toggle").click()
     expect(page.locator("body.dark-mode")).to_have_count(1)
-    _assert_narrow_hub_clear(page)
-    _screenshot(page, "synthetic-episode-mobile-390x844-dark.png")
-    _graph_screenshot(page, "synthetic-episode-mobile-390x844-dark-graph.png")
+    _screenshot(page, "synthetic-episode-mobile-390x844-dark-topics.png")
     page.locator("#dark-mode-toggle").click()
     expect(page.locator("body.dark-mode")).to_have_count(0)
     _assert_no_horizontal_overflow(page)
     assert_accessible_page(page, "issue-217-s23e06-mobile")
 
 
-def test_episode_graph_has_a_native_fallback_without_javascript(
+def test_episode_topics_all_show_without_javascript(
     browser: Browser,
     live_server,
     graph_episode: dict[str, Any],
@@ -301,20 +216,13 @@ def test_episode_graph_has_a_native_fallback_without_javascript(
             wait_until="domcontentloaded",
         )
         assert response is not None and response.status == 200
-        expect(page.get_by_role("heading", name="Related Wiki pages", exact=True)).to_be_visible()
-        expect(page.locator("#episode-graph-connections > li")).to_have_count(23)
-        expect(page.locator("#episode-graph-connections a")).to_have_count(23)
-        expect(page.locator("#podcast-video-player")).not_to_be_visible()
-        visual = _visible_graph(page)
-        expect(page.locator(".episode-knowledge-graph svg[aria-hidden='true']")).to_have_count(0)
-        expect(visual.locator("a.graph-svg-node")).to_have_count(9)
-        _assert_graph_hrefs_are_safe(visual)
-        connection = page.locator("#episode-graph-connections a").first
-        connection.focus()
-        expect(connection).to_be_focused()
-        _screenshot(page, "synthetic-episode-mobile-390x844-no-js.png")
-        _graph_screenshot(page, "synthetic-episode-mobile-390x844-no-js-graph.png")
+        expect(
+            page.get_by_role("heading", name="Topics in this episode", exact=True)
+        ).to_be_visible()
+        expect(page.locator(".episode-topic-card:visible")).to_have_count(TOPICS)
+        expect(page.locator("[data-episode-topics-more]")).to_be_hidden()
+        _assert_reader_terms_only(page)
+        _screenshot(page, "synthetic-episode-mobile-390x844-no-js-topics.png")
         _assert_no_horizontal_overflow(page)
-
     finally:
         context.close()

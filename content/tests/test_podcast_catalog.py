@@ -13,8 +13,9 @@ from django.test import Client, TestCase
 from django.utils.html import conditional_escape, escape
 
 from content import catalogue
-from content.podcast_hub import podcast_season_path
 from content.podcast_content import (
+    ExternalLink,
+    Guest,
     _spotify_creator_embed,
     episode_view,
     listening_platform_phrase,
@@ -23,6 +24,7 @@ from content.podcast_content import (
     published_display,
     season_episodes,
 )
+from content.podcast_hub import guest_cards, guest_role, podcast_season_path
 from core.seo import validated_canonical_url
 
 AI_PRODUCTION_SLUG = "s24e06-how-to-build-ai-that-actually-ships-in-production"
@@ -543,10 +545,12 @@ class PodcastEpisodeParityTests(TestCase):
             self.assertNotIn("hidden", match.group(0))
 
     def render_record(self, record: dict) -> str:
+        view = episode_view(record, people_by_slug=catalogue.people_by_slug())
         return render_to_string(
             "public/podcast_detail.html",
             {
-                "episode": episode_view(record, people_by_slug=catalogue.people_by_slug()),
+                "episode": view,
+                "guest_cards": guest_cards(view.guests),
                 "record": record,
                 "previous_episode": None,
                 "next_episode": None,
@@ -576,8 +580,57 @@ class PodcastEpisodeParityTests(TestCase):
         # The show-note links and the guest bios live inside Overview.
         self.assertIn("https://example.invalid/synthetic-guest-two", overview_html)
         self.assertIn('id="guest-bios-heading"', overview_html)
+        # The summary is the overview itself: it comes before the guest cards.
+        self.assertLess(
+            overview_html.index("What they discussed."), overview_html.index("guest-bios-heading")
+        )
         self.assertNotIn('id="show-notes"', body)
         self.assertLess(overview_start, body.index('<section id="timestamps"'))
+
+    def test_each_guest_is_a_card_with_role_bio_and_icon_links(self) -> None:
+        record = self.representative()
+        body = self.render_record(record)
+        overview_start = body.index('<section id="overview"')
+        overview_html = body[overview_start : body.index('<section id="timestamps"')]
+        guest = episode_view(record, people_by_slug=catalogue.people_by_slug()).guests[0]
+
+        self.assertEqual(overview_html.count("data-guest-card"), len(record["guest_profiles"]))
+        self.assertIn(f'<a href="{guest.public_path}">{escape(guest.name)}</a>', overview_html)
+        # The role line is the one the podcast hub's person chips carry, read
+        # from the bio; this bio does not open with "<Name> is a …", so none.
+        self.assertEqual(guest_role(guest.summary), "")
+        self.assertNotIn("guest-card-role", overview_html)
+        self.assertIn(escape(guest.summary), overview_html)
+        # "Read more" is script-revealed: without JavaScript the full bio shows.
+        self.assertRegex(overview_html, r"data-guest-bio-more\s+hidden")
+        for link in guest.profile_links:
+            with self.subTest(link=link.label):
+                self.assertIn(f'href="{link.url}"', overview_html)
+                self.assertIn(
+                    f'aria-label="{escape(guest.name)} on {link.label} (opens in a new tab)"',
+                    overview_html,
+                )
+        self.assertNotIn('class="band-link" href="/people', overview_html)
+
+    def test_a_guest_card_names_the_role_and_marks_each_link(self) -> None:
+        (card,) = guest_cards(
+            (
+                Guest(
+                    name="Ada Example",
+                    public_path="/people/ada.html",
+                    summary="Ada Example is a Staff Data Engineer at Example, based in Berlin.",
+                    profile_links=(
+                        ExternalLink(label="LinkedIn", url="https://www.linkedin.com/in/ada"),
+                        ExternalLink(label="Twitter", url="https://twitter.com/ada"),
+                        ExternalLink(label="GitHub", url="https://github.com/ada"),
+                        ExternalLink(label="Website", url="https://ada.example"),
+                    ),
+                ),
+            )
+        )
+
+        self.assertEqual(card.role, "Staff Data Engineer at Example")
+        self.assertEqual([link.icon for link in card.links], ["linkedin", "x", "github", "website"])
 
     def test_without_a_summary_overview_still_leads_with_guests_and_links(self) -> None:
         record = {**self.representative(), "summary": ""}
@@ -863,7 +916,8 @@ class PodcastEpisodeParityTests(TestCase):
             self.assertNotIn(f'id="{heading_id}"', body)
         self.assertNotIn('id="podcast-video-player"', body)
         self.assertNotIn('href="#"', body)
-        self.assertContains(response, "No portrait")
+        # A guest without a portrait gets their initials, decorative, in its place.
+        self.assertContains(response, 'class="guest-card-portrait guest-card-initials"')
         self.assertNotIn("not-available.jpg", body)
         self.assertNotIn('property="og:image"', body)
         self.assertNotIn('name="twitter:image"', body)
@@ -970,9 +1024,7 @@ class PodcastSeasonNavigationTests(TestCase):
         latest_season = seasons[0].number
 
         for season in seasons:
-            path = (
-                "/podcast" if season.number == latest_season else f"/podcast/s/{season.number}/"
-            )
+            path = "/podcast" if season.number == latest_season else f"/podcast/s/{season.number}/"
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.context["season"].number, season.number)
@@ -1387,9 +1439,7 @@ class PodcastSeasonNavigationTests(TestCase):
             if guest["public_path"]:
                 self.assertContains(oldest, f'href="{guest["public_path"]}"')
         special_title = next(item for item in catalogue.podcasts() if "&" in item["title"])
-        season_path = podcast_season_path(
-            special_title["season"], latest=latest_season.number
-        )
+        season_path = podcast_season_path(special_title["season"], latest=latest_season.number)
         escaped_title = str(conditional_escape(special_title["title"]))
         self.assertNotEqual(escaped_title, special_title["title"])
         self.assertContains(self.client.get(season_path), escaped_title)

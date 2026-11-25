@@ -511,50 +511,201 @@
 
       .episode-bios {
         display: grid;
-        gap: var(--space-5);
+        gap: var(--space-4);
         margin-top: var(--space-4);
       }
 
-      .guest-bio-card {
+      /* A guest is a soft card, the /events card surface: portrait, the name
+         linked to the profile, the role line the podcast hub's person chips
+         carry, the bio and the guest's own links as small icon buttons. */
+      .guest-card {
         align-items: start;
+        background: var(--card);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         display: grid;
         gap: var(--space-4);
         grid-template-columns: auto minmax(0, 1fr);
+        padding: var(--space-5);
       }
 
-      .guest-bio-portrait,
-      .guest-bio-placeholder {
-        border: var(--border-strong);
+      .guest-card-portrait {
+        border: var(--border-soft);
         border-radius: var(--radius-pill);
-        height: 5rem;
+        height: 5.5rem;
         object-fit: cover;
-        width: 5rem;
+        width: 5.5rem;
       }
 
-      .guest-bio-placeholder {
+      .guest-card-initials {
         align-items: center;
         background: var(--mint);
+        color: var(--ink);
         display: flex;
-        font-family: var(--font-mono);
-        font-size: 0.75rem;
+        font-size: 1.4rem;
+        font-weight: 800;
         justify-content: center;
-        text-align: center;
       }
 
-      .guest-bio-copy {
+      .guest-card-body {
+        display: grid;
+        gap: var(--space-2);
+        justify-items: start;
         min-width: 0;
       }
 
-      .guest-bio-copy h4 {
-        font-size: 1rem;
+      .guest-card-name {
+        font-size: 1.15rem;
         margin: 0;
       }
 
-      .guest-bio-links {
+      .guest-card-name a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .guest-card-name a:hover,
+      .guest-card-name a:focus-visible {
+        color: var(--indigo);
+        text-decoration: underline;
+      }
+
+      .guest-card-role {
+        color: var(--muted);
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .guest-card-bio {
+        line-height: 1.6;
+        margin: 0;
+      }
+
+      /* Clamped by the script only, so without JavaScript the whole bio shows. */
+      .guest-card-bio.is-clamped {
+        -webkit-box-orient: vertical;
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        line-clamp: 4;
+        overflow: hidden;
+      }
+
+      .guest-card-more {
+        background: none;
+        border: 0;
+        cursor: pointer;
+        font: inherit;
+        padding: 0;
+      }
+
+      .guest-card-more[hidden] {
+        display: none;
+      }
+
+      .guest-card-links {
         display: flex;
         flex-wrap: wrap;
-        gap: var(--space-2) var(--space-4);
+        gap: var(--space-2);
+        list-style: none;
+        margin: var(--space-1) 0 0;
+        padding: 0;
+      }
+
+      .guest-card-link {
+        align-items: center;
+        border: var(--border-soft);
+        border-radius: var(--radius-pill);
+        color: var(--muted);
+        display: inline-flex;
+        height: 2.5rem;
+        justify-content: center;
+        width: 2.5rem;
+      }
+
+      .guest-card-link:hover,
+      .guest-card-link:focus-visible {
+        border-color: var(--indigo-soft);
+        color: var(--ink);
+      }
+
+      .guest-card-link svg {
+        fill: currentColor;
+        height: 1.05rem;
+        width: 1.05rem;
+      }
+
+      /* The topics the graph files the episode under: the wiki's own topic
+         cards, and the articles that cite it as a plain list. */
+      .episode-topics h2 {
+        margin: 0 0 var(--space-5);
+      }
+
+      .episode-topic-grid {
+        gap: var(--space-3);
+      }
+
+      .episode-topic-card {
+        height: 100%;
+        padding: var(--space-4) var(--space-6) var(--space-4) var(--space-4);
+      }
+
+      .episode-topic-card h3 {
+        font-size: 1.05rem;
+        margin: 0;
+      }
+
+      .episode-topic-card p {
+        -webkit-box-orient: vertical;
+        color: var(--muted);
+        display: -webkit-box;
+        font-size: 0.95rem;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      .episode-topics.is-folded .episode-topic-card:nth-child(n + 9) {
+        display: none;
+      }
+
+      .episode-topics-more {
+        background: none;
+        border: 0;
+        cursor: pointer;
+        font: inherit;
+        padding: 0;
+      }
+
+      .episode-topics-more[hidden] {
+        display: none;
+      }
+
+      .episode-topic-grid + .episode-reading,
+      .band-more + .episode-reading {
+        margin-top: var(--space-6);
+      }
+
+      .episode-reading .episode-resource-list {
         margin-top: var(--space-3);
+      }
+
+      .episode-related .event-timeline,
+      .episode-related {
+        --day-col: 8.5rem;
+      }
+
+      @media (min-width: 48rem) {
+        .episode-topic-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 62rem) {
+        .episode-topic-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
       }
 
       /* Transcript: shared timestamp rows, with the section headers the source
@@ -601,8 +752,15 @@
           margin-left: var(--space-2);
         }
 
-        .guest-bio-card {
+        .guest-card {
+          gap: var(--space-3);
           grid-template-columns: minmax(0, 1fr);
+          padding: var(--space-4);
+        }
+
+        .guest-card-portrait {
+          height: 4rem;
+          width: 4rem;
         }
       }
     </style>
@@ -827,57 +985,71 @@
                 <p>{{ episode.description }}</p>
               </div>
             {% endif %}
-            {% if episode.guests %}
+            {% if guest_cards %}
               <div class="episode-overview-block">
-                {% if episode.guests|length != 1 %}
-                  <h3 id="guest-bios-heading" class="episode-overview-heading">About the guests</h3>
-                {% else %}
-                  <h3 id="guest-bios-heading" class="episode-overview-heading">About the guest</h3>
-                {% endif %}
+                <h3 id="guest-bios-heading" class="episode-overview-heading">
+                  About the guest{{ guest_cards|length|pluralize }}
+                </h3>
                 <div class="episode-bios">
-                  {% for guest in episode.guests %}
-                    <article class="guest-bio-card">
-                      {% if guest.media_available %}
-                        <img
-                          class="guest-bio-portrait"
-                          src="{{ guest.image_path }}"
-                          alt="Portrait of {{ guest.name }}"
-                          width="160"
-                          height="160"
-                          loading="lazy"
-                          decoding="async"
-                        >
-                      {% else %}
-                        <div
-                          class="guest-bio-placeholder"
-                          role="img"
-                          aria-label="No portrait available for {{ guest.name }}"
-                        >No portrait</div>
-                      {% endif %}
-                      <div class="guest-bio-copy">
-                        <h4>
-                          {% if guest.public_path %}
-                            <a class="band-link" href="{{ guest.public_path }}">{{ guest.name }}</a>
-                          {% else %}
-                            {{ guest.name }}
+                  {% for card in guest_cards %}
+                    {% with guest=card.guest chip=card.guest|person_chip %}
+                      <article class="guest-card" data-guest-card>
+                        {% if guest.media_available %}
+                          <img
+                            class="guest-card-portrait"
+                            src="{{ guest.image_path }}"
+                            alt=""
+                            width="160"
+                            height="160"
+                            loading="lazy"
+                            decoding="async"
+                          >
+                        {% else %}
+                          <span class="guest-card-portrait guest-card-initials" aria-hidden="true">{{ chip.initials }}</span>
+                        {% endif %}
+                        <div class="guest-card-body">
+                          <h4 class="guest-card-name">
+                            {% if guest.public_path %}
+                              <a href="{{ guest.public_path }}">{{ guest.name }}</a>
+                            {% else %}
+                              {{ guest.name }}
+                            {% endif %}
+                          </h4>
+                          {% if card.role %}
+                            <p class="guest-card-role">{{ card.role }}</p>
                           {% endif %}
-                        </h4>
-                        {% if guest.summary %}
-                          <p>{{ guest.summary }}</p>
-                        {% endif %}
-                        {% if guest.profile_links %}
-                          <ul class="guest-bio-links" aria-label="{{ guest.name }} profile links">
-                            {% for link in guest.profile_links %}
-                              <li>
-                                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
-                                  {{ link.label }}<span class="sr-only"> (opens in a new tab)</span>
-                                </a>
-                              </li>
-                            {% endfor %}
-                          </ul>
-                        {% endif %}
-                      </div>
-                    </article>
+                          {% if guest.summary %}
+                            <p class="guest-card-bio" id="guest-bio-{{ forloop.counter }}" data-guest-bio>{{ guest.summary }}</p>
+                            <button
+                              class="band-link guest-card-more"
+                              type="button"
+                              aria-controls="guest-bio-{{ forloop.counter }}"
+                              aria-expanded="false"
+                              data-guest-bio-more
+                              hidden
+                            >Read more</button>
+                          {% endif %}
+                          {% if card.links %}
+                            <ul class="guest-card-links" aria-label="{{ guest.name }} elsewhere">
+                              {% for link in card.links %}
+                                <li>
+                                  <a
+                                    class="guest-card-link interactive-lift"
+                                    href="{{ link.url }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label="{{ guest.name }} on {{ link.label }} (opens in a new tab)"
+                                    title="{{ link.label }}"
+                                  >
+                                    {% include "core/_social_icon.html" with icon=link.icon only %}
+                                  </a>
+                                </li>
+                              {% endfor %}
+                            </ul>
+                          {% endif %}
+                        </div>
+                      </article>
+                    {% endwith %}
                   {% endfor %}
                 </div>
               </div>
@@ -957,9 +1129,9 @@
         </div>
       </section>
 
-      {% include "public/_podcast_related.html" %}
+      {% include "public/_podcast_episode_topics.html" %}
 
-      {% include "public/_podcast_episode_extensions.html" %}
+      {% include "public/_podcast_related.html" %}
     </main>
     {% include "core/_site_shell_foot.html" %}
     <script>
@@ -1052,6 +1224,41 @@
             link.focus();
           });
         });
+      })();
+
+      /* Clamp each guest bio to four lines behind "Read more", and fold the
+         topics past the first eight behind "Show all".  Both are script-only:
+         without JavaScript every bio and topic shows in full. */
+      (function () {
+        document.querySelectorAll('[data-guest-card]').forEach(function (card) {
+          var bio = card.querySelector('[data-guest-bio]');
+          var more = card.querySelector('[data-guest-bio-more]');
+          if (!bio || !more) {
+            return;
+          }
+          bio.classList.add('is-clamped');
+          if (bio.scrollHeight <= bio.clientHeight + 2) {
+            bio.classList.remove('is-clamped');
+            return;
+          }
+          more.hidden = false;
+          more.addEventListener('click', function () {
+            var open = bio.classList.toggle('is-clamped') === false;
+            more.setAttribute('aria-expanded', open ? 'true' : 'false');
+            more.textContent = open ? 'Show less' : 'Read more';
+          });
+        });
+
+        var topics = document.querySelector('[data-episode-topics]');
+        var showAll = topics ? topics.querySelector('[data-episode-topics-more]') : null;
+        if (showAll) {
+          topics.classList.add('is-folded');
+          showAll.hidden = false;
+          showAll.addEventListener('click', function () {
+            topics.classList.remove('is-folded');
+            showAll.parentNode.remove();
+          });
+        }
       })();
 
       /* Fold a long transcript behind "Read the full transcript".  A link

@@ -236,6 +236,14 @@ def topic_episodes(wiki_path: str) -> tuple[HubEpisode, ...]:
     records = [record for record in ordered_podcasts() if record.get("slug") in weights]
     newest_first = {record["slug"]: index for index, record in enumerate(records)}
     records.sort(key=lambda record: (-weights[record["slug"]], newest_first[record["slug"]]))
+    return hub_episodes(records)
+
+
+def hub_episodes(
+    records: tuple[dict[str, Any], ...] | list[dict[str, Any]],
+) -> tuple[HubEpisode, ...]:
+    """Compose several episodes as hub cards, in the order given."""
+
     events = _event_index()
     people = catalogue.people_by_slug()
     return tuple(
@@ -245,4 +253,56 @@ def topic_episodes(wiki_path: str) -> tuple[HubEpisode, ...]:
             events,
         )
         for record in records
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class GuestProfileLink:
+    """One of a guest's own profile links, with the mark the page draws for it."""
+
+    label: str
+    url: str
+    icon: str
+
+
+@dataclass(frozen=True, slots=True)
+class GuestCard:
+    """One guest as the episode page's "About the guest" card draws them."""
+
+    guest: Guest
+    role: str
+    links: tuple[GuestProfileLink, ...]
+
+
+#: Profile hosts the page draws a brand mark for; any other link is a website.
+_LINK_ICONS: tuple[tuple[str, str], ...] = (
+    ("linkedin.com", "linkedin"),
+    ("x.com", "x"),
+    ("twitter.com", "x"),
+    ("github.com", "github"),
+    ("youtube.com", "youtube"),
+)
+
+
+def _link_icon(url: str) -> str:
+    host = re.sub(r"^https?://", "", url).split("/", 1)[0].casefold()
+    for domain, icon in _LINK_ICONS:
+        if host == domain or host.endswith("." + domain):
+            return icon
+    return "website"
+
+
+def guest_cards(guests: tuple[Guest, ...]) -> tuple[GuestCard, ...]:
+    """Each guest with their role line and their links' marks."""
+
+    return tuple(
+        GuestCard(
+            guest=guest,
+            role=guest_role(guest.summary),
+            links=tuple(
+                GuestProfileLink(label=link.label, url=link.url, icon=_link_icon(link.url))
+                for link in guest.profile_links
+            ),
+        )
+        for guest in guests
     )

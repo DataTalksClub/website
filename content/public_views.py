@@ -80,7 +80,14 @@ from .podcast_content import (
     related_episodes,
     transcript_text,
 )
-from .podcast_hub import HUB_LISTEN_ORDER, hub_season, podcast_season_path, topic_episodes
+from .podcast_hub import (
+    HUB_LISTEN_ORDER,
+    guest_cards,
+    hub_episodes,
+    hub_season,
+    podcast_season_path,
+    topic_episodes,
+)
 from .podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_public_id
 from .public_query import selector_query
 from .review_views import SLACK_PUBLIC_PATH
@@ -1468,12 +1475,7 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         # supply leaves the page up, and the band falls back to the season.
         related_matches = ()
     podcasts = catalogue.podcasts()
-    related = related_episodes(
-        episode,
-        podcasts,
-        related_matches,
-        people_by_slug=catalogue.people_by_slug(),
-    )
+    related = related_episodes(episode, podcasts, related_matches)
     latest_season = max(item["season"] for item in podcasts)
     try:
         episode_graph = wiki_content.episode_graph(episode)
@@ -1483,6 +1485,8 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         # The next import can repair the data while the page keeps its explicit
         # unavailable state.
         episode_graph = wiki_content.unavailable_episode_graph(episode)
+    connections = wiki_content.episode_connections(episode_graph, pages=wiki_reader.wiki_pages())
+    related_cards = hub_episodes(related.records)
     episode_entity = {
         "@type": "PodcastEpisode",
         "url": _canonical(episode["public_path"]),
@@ -1501,6 +1505,11 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         **({"datePublished": episode["published"]} if episode["published"] else {}),
         **({"image": _canonical(image_path)} if image_path else {}),
     }
+    episode_page = episode_view(
+        episode,
+        people_by_slug=catalogue.people_by_slug(),
+        resource_podcast_records=podcasts,
+    )
     response = _render(
         request,
         "public/podcast_detail.html",
@@ -1509,13 +1518,12 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         description=episode["description"],
         context={
             "record": episode,
-            "episode": episode_view(
-                episode,
-                people_by_slug=catalogue.people_by_slug(),
-                resource_podcast_records=catalogue.podcasts(),
-            ),
+            "episode": episode_page,
+            "guest_cards": guest_cards(episode_page.guests),
             "related": related,
             "video_poster_path": poster_path,
+            "related_cards": related_cards,
+            "connections": connections,
             "season_path": podcast_season_path(episode["season"], latest=latest_season),
             "episode_graph": episode_graph,
             "og_type": "article",

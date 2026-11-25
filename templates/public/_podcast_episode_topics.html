@@ -1,0 +1,55 @@
+{% comment %}
+  What the knowledge graph ties this episode to, in reader terms
+  (`content.wiki_content.episode_connections`): the wiki topics it is filed
+  under or cited by, strongest first, as the wiki's own topic cards, and the
+  articles, books and events it links to.  The guests are on the guest cards above and the
+  other episodes in "Related episodes" below, so neither repeats here; no graph
+  relation kind or weight is ever shown.  Past the first eight, the topics fold
+  behind "Show all" (added by script, so without JavaScript all of them show).
+{% endcomment %}
+{% if connections.topics or connections.reading %}
+<section class="band band-lavender episode-topics" aria-labelledby="episode-topics-heading" data-episode-topics>
+  <div class="shell episode-shell">
+    {% if connections.topics %}
+      <h2 id="episode-topics-heading">Topics in this episode</h2>
+      <div class="card-grid episode-topic-grid">
+        {% for topic in connections.topics %}
+          <article class="event-item interactive-card interactive-lift episode-topic-card">
+            <div class="event-item-body">
+              <h3>
+                <a href="{{ topic.url }}">{{ topic.title }}</a>
+              </h3>
+              {% if topic.summary %}
+                <p>{{ topic.summary }}</p>
+              {% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+      {% if connections.topics|length > 8 %}
+        <p class="band-more">
+          <button class="band-link episode-topics-more" type="button" data-episode-topics-more hidden>
+            Show all {{ connections.topics|length }} topics
+          </button>
+        </p>
+      {% endif %}
+    {% endif %}
+    {% if connections.reading %}
+      <div class="episode-reading">
+        {% if connections.topics %}
+          <h3 class="episode-overview-heading">Read more</h3>
+        {% else %}
+          <h2 id="episode-topics-heading">Read more</h2>
+        {% endif %}
+        <ul class="episode-resource-list" aria-label="Further reading">
+          {% for article in connections.reading %}
+            <li>
+              <a href="{{ article.url }}">{{ article.title }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endif %}

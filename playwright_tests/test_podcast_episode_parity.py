@@ -94,11 +94,9 @@ def test_episode_sections_player_and_guest_links_are_keyboard_reachable(
         len(episode["resources"])
     )
     guests = episode["guest_profiles"]
-    expect(page.locator(".guest-bio-card img").first).to_have_attribute(
-        "alt", f"Portrait of {guests[0]['name']}"
-    )
-    # Every guest card carries that guest's own profile links.
-    expect(page.locator(".guest-bio-links a[target='_blank']")).to_have_count(
+    expect(page.locator(".guest-card-name a").first).to_have_text(guests[0]["name"])
+    # Every guest card carries that guest's own profile links, as icon buttons.
+    expect(page.locator(".guest-card-links a[target='_blank']")).to_have_count(
         sum(len(_person(guest["key"])["links"]) for guest in guests)
     )
     expect(page.locator(".chapter-time").first).to_have_attribute("href", _timestamp_href(episode))
