@@ -1,0 +1,31 @@
+{% extends "public/text_page.html" %}
+{% comment %}
+  The landing of an event-registration confirmation link that cannot confirm
+  anything: expired, already superseded, or not a link we sent.  A working link
+  never lands here; it confirms the seat and returns to the event page, whose
+  registration card then says "You're registered".
+{% endcomment %}
+
+{% block document_title %}
+  <title>Confirmation link {% if expired %}expired{% else %}not valid{% endif %} — DataTalks.Club</title>
+{% endblock %}
+
+{% block document_meta %}
+  <meta name="robots" content="noindex">
+{% endblock %}
+
+{% block kicker %}
+  Event registration
+{% endblock %}
+
+{% block title %}
+  {% if expired %}This confirmation link has expired{% else %}This confirmation link is not valid{% endif %}
+{% endblock %}
+
+{% block lede %}
+  Open the event page and register again; we will send you a new link.
+{% endblock %}
+
+{% block actions %}
+  {% include "core/_button.html" with href="/events" label="Upcoming events" variant="primary" %}
+{% endblock %}

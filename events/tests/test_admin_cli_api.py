@@ -157,7 +157,15 @@ class EventAdminAPITests(TestCase):
             },
         )
         self.assertEqual(reg_resp.status_code, 302)
-        self.assertIn("registered=ok", reg_resp["Location"])
+        self.assertNotIn("registered=ok", reg_resp["Location"])
+        # The email form holds a pending seat; the emailed link confirms it.
+        from community_base.mail.models import EmailDelivery
+
+        verify_url = EmailDelivery.objects.get(purpose="event-registration-verify").context_data[
+            "verify_url"
+        ]
+        verify_resp = self.client.get(verify_url[verify_url.index("/events/") :])
+        self.assertEqual(verify_resp.status_code, 302)
 
         # 5. Export registrants
         export_resp = self.client.get(

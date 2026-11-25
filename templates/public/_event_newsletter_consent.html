@@ -1,0 +1,33 @@
+{% comment %}
+  The newsletter agreement both registration forms require (the email form
+  always, the one-click form when the account is not subscribed).  Its text
+  is versioned by settings.EVENT_NEWSLETTER_CONSENT_VERSION.
+{% endcomment %}
+<div class="event-register-agree">
+  <div class="form-check">
+    <input
+      {% if invalid %}
+        class="form-check-input is-invalid"
+        aria-describedby="id_reg_newsletter_consent-error"
+        aria-invalid="true"
+        aria-errormessage="id_reg_newsletter_consent-error"
+      {% else %}
+        class="form-check-input"
+      {% endif %}
+      id="id_reg_newsletter_consent"
+      type="checkbox"
+      name="newsletter_consent"
+      value="true"
+      required
+    >
+    <label class="form-check-label" for="id_reg_newsletter_consent">
+      I agree to subscribe to the newsletter (you can unsubscribe at any time)
+    </label>
+  </div>
+  {% if invalid %}
+    <p id="id_reg_newsletter_consent-error" class="a11y-error">
+      <span class="sr-only">Error:</span>
+      Please agree to subscribe to the newsletter to register.
+    </p>
+  {% endif %}
+</div>

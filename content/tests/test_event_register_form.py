@@ -114,7 +114,7 @@ class EventRegisterFormTests(TestCase):
             body,
             r'class="callout callout-info event-register-notice"\s+role="alert"\s+'
             r'tabindex="-1"\s+data-focus-error-summary\s*>\s*<p>\s*'
-            r"<strong>You are registered for this event.</strong>",
+            r"<strong>You're registered for this event.</strong>",
         )
         self.assertNotIn('class="a11y-error-summary"', body)
         self.assertNotIn('class="cmp-form event-register-form"', body)

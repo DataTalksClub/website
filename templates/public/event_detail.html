@@ -314,34 +314,112 @@
         width: 100%;
       }
 
+      .event-register .cta:disabled {
+        box-shadow: none;
+        cursor: not-allowed;
+        opacity: 0.45;
+        transform: none;
+      }
+
       .event-register-choices {
         display: grid;
         gap: var(--space-2);
       }
 
-      /* Choosing "email only" swaps the two choices for the form and keeps
-         the account route as one small line above it. */
+      /* Choosing "Register with email" swaps the greeting and the two
+         choices for the form; "Log in to register" swaps them for the login
+         panel, in place.  Without JS the email form shows outright and the
+         login button stays a link to the login page. */
       .js .event-register:not(.is-email) .event-register-email,
       .no-js .event-register-email-toggle,
+      .event-register:not(.is-login) .event-register-login,
+      .event-register.is-email .event-register-greeting,
       .event-register.is-email .event-register-choices,
-      .event-register-login-line {
+      .event-register.is-login .event-register-greeting,
+      .event-register.is-login .event-register-choices {
         display: none;
       }
 
-      .js .event-register.is-email .event-register-login-line {
-        display: block;
+      .event-register-pending {
+        display: grid;
+        gap: var(--space-1);
       }
 
-      .event-register-signup,
-      .event-register-login-line {
+      .event-register-pending p {
+        margin: 0;
+      }
+
+      .event-register-pending-to {
+        overflow-wrap: anywhere;
+      }
+
+      .event-register-pending-hint {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .event-register-resend {
+        margin-top: var(--space-2);
+      }
+
+      .event-register-offer {
         color: var(--muted);
         font-size: 0.88rem;
         margin: 0;
       }
 
-      .event-register-signup a,
-      .event-register-login-line a {
+      .event-register-offer a {
         font-weight: 700;
+      }
+
+      .event-register-login {
+        display: grid;
+        gap: var(--space-3);
+      }
+
+      .event-register-login-title {
+        color: var(--ink);
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .event-register-providers {
+        display: grid;
+        gap: var(--space-2);
+      }
+
+      .event-register-providers form {
+        margin: 0;
+      }
+
+      .event-register .cta.event-register-provider {
+        gap: var(--space-2);
+        justify-content: center;
+        width: 100%;
+      }
+
+      .event-register-or {
+        align-items: center;
+        color: var(--muted);
+        display: flex;
+        font-size: 0.82rem;
+        gap: var(--space-2);
+        margin: 0;
+      }
+
+      .event-register-or::before,
+      .event-register-or::after {
+        border-top: 1px solid var(--line-soft);
+        content: "";
+        flex: 1;
+      }
+
+      .event-register-login-error {
+        margin: 0;
+      }
+
+      .event-register-login-error[hidden] {
+        display: none;
       }
 
       .event-section h2 {
@@ -405,12 +483,18 @@
           row-gap: var(--space-2);
         }
 
-        .event-register-email .form-check {
+        .event-register-email .form-check,
+        .event-register-email .event-register-agree {
           grid-column: 1 / -1;
         }
 
-        .event-register-choices {
+        .event-register-choices,
+        .event-register-password .cmp-form-fields {
           grid-template-columns: 1fr 1fr;
+        }
+
+        .event-register-providers {
+          grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
         }
       }
 
@@ -618,24 +702,57 @@
               {% endcomment %}
               {% with registered=request.GET.registered %}
               {% if event_state == "upcoming" or registered == "closed" %}
-                <section class="event-register{% if registered == 'invalid_email' %} is-email{% endif %}" aria-labelledby="event-register-heading">
+                <section class="event-register{% if not request.user.is_authenticated and registered == 'invalid_email' or not request.user.is_authenticated and registered == 'newsletter_required' %} is-email{% endif %}" aria-labelledby="event-register-heading">
                   <div class="event-register-head">
                     <h2 id="event-register-heading">Registration</h2>
                   </div>
                   <div class="event-register-body">
-                    {% if registered == "ok" or viewer_registered %}
+                    {% if registered == "ok" or viewer_registered or email_registration and not email_registration.pending %}
                       <div
                         class="callout callout-info event-register-notice"
-                        {% if registered == "ok" %}
+                        {% if registered == "ok" or email_registration %}
                           role="alert"
                           tabindex="-1"
                           data-focus-error-summary
                         {% endif %}
                       >
                         <p>
-                          <strong>You are registered for this event.</strong>
+                          <strong>You're registered for this event.</strong>
                         </p>
                       </div>
+                      {% if not request.user.is_authenticated %}
+                        <p class="event-register-offer">Want one-click registration next time? <a href="{{ account_entry.create_url }}">Create a free DataTalks.Club account</a></p>
+                      {% endif %}
+                    {% elif event_state == "upcoming" and email_registration.pending %}
+                      {% comment %}
+                        The email form only holds a pending seat: the link we emailed
+                        confirms it.  This state must not read as done, so it is an
+                        attention callout, not the registered notice, and it says what is
+                        left to do.
+                      {% endcomment %}
+                      <div
+                        class="callout callout-attention event-register-pending"
+                        role="status"
+                        tabindex="-1"
+                        data-focus-error-summary
+                      >
+                        <p class="event-register-pending-title"><strong>One last step — we sent you an email.</strong></p>
+                        <p>Please confirm it to finish your registration.</p>
+                        <p class="event-register-pending-to">We sent it to <strong>{{ email_registration.email }}</strong></p>
+                        <p class="event-register-pending-hint">Can't find it? Check your spam folder.</p>
+                        {% if registered == "resent" %}
+                          <p class="event-register-pending-hint"><strong>We sent it again.</strong></p>
+                        {% elif registered == "resend_limit" %}
+                          <p class="event-register-pending-hint"><strong>We can't send more emails for this registration. Check your spam folder, or register again later.</strong></p>
+                        {% endif %}
+                        {% if registered != "resend_limit" %}
+                          <form method="post" action="{{ event.public_path }}/register/resend" class="event-register-resend">
+                            {% csrf_token %}
+                            <button type="submit" class="cta cta-secondary cta-compact">Resend email</button>
+                          </form>
+                        {% endif %}
+                      </div>
+                      <p class="event-register-offer">Want one-click registration next time? <a href="{{ account_entry.create_url }}">Create a free DataTalks.Club account</a></p>
                     {% elif registered == "closed" %}
                       <div
                         class="callout callout-attention event-register-notice"
@@ -647,6 +764,21 @@
                           <strong>Registration for this event is closed.</strong>
                         </p>
                       </div>
+                    {% elif registered == "newsletter_required" %}
+                      <section
+                        class="a11y-error-summary"
+                        role="alert"
+                        aria-labelledby="event-register-error-title"
+                        tabindex="-1"
+                        data-focus-error-summary
+                      >
+                        <h2 id="event-register-error-title">Check the highlighted fields</h2>
+                        <ul>
+                          <li>
+                            <a href="#id_reg_newsletter_consent">Newsletter: Please agree to subscribe to the newsletter to register.</a>
+                          </li>
+                        </ul>
+                      </section>
                     {% elif registered == "invalid_email" %}
                       <section
                         class="a11y-error-summary"
@@ -663,7 +795,7 @@
                         </ul>
                       </section>
                     {% endif %}
-                    {% if event_state == "upcoming" and registered != "ok" and not viewer_registered %}
+                    {% if event_state == "upcoming" and registered != "ok" and not viewer_registered and not email_registration %}
                       {% if request.user.is_authenticated and request.user.email %}
                         {% with viewer_name=request.user.get_full_name|default:request.user.username %}
                           <p class="event-register-greeting">Welcome, {{ request.user.first_name|default:viewer_name }}! To join the event, please register below.</p>
@@ -672,10 +804,13 @@
                             <span class="event-register-who-name">{{ viewer_name }}</span>
                             <span class="event-register-who-email">{{ request.user.email }}</span>
                           </div>
-                          <form method="post" action="{{ event.public_path }}/register" class="cmp-form event-register-form event-register-one-click">
+                          <form method="post" action="{{ event.public_path }}/register" class="cmp-form event-register-form event-register-one-click" data-register-gate>
                             {% csrf_token %}
-                            {% if event.collect_company or event.sponsor_sharing_enabled %}
+                            {% if event.collect_company or event.sponsor_sharing_enabled or not request.user.newsletter_subscribed %}
                               <div class="cmp-form-fields">
+                                {% if not request.user.newsletter_subscribed %}
+                                  {% include "public/_event_newsletter_consent.html" with invalid=newsletter_invalid %}
+                                {% endif %}
                                 {% if event.collect_company %}
                                   <div class="field">
                                     <label class="field-label" for="id_reg_company">Company</label>
@@ -707,7 +842,12 @@
                       {% else %}
                         <p class="event-register-greeting">Register to join the event</p>
                         <div class="event-register-choices">
-                          <a class="cta cta-primary cta-compact event-register-submit interactive-lift" href="{{ account_login_url }}">Log in to register</a>
+                          <a
+                            class="cta cta-primary cta-compact event-register-submit event-register-login-toggle interactive-lift"
+                            href="{{ account_login_url }}"
+                            aria-controls="event-register-login"
+                            aria-expanded="false"
+                          >Log in to register</a>
                           <button
                             type="button"
                             class="cta cta-secondary cta-compact event-register-submit event-register-email-toggle interactive-lift"
@@ -715,12 +855,69 @@
                             aria-expanded="{% if registered == 'invalid_email' %}true{% else %}false{% endif %}"
                           >Register with email</button>
                         </div>
-                        <p class="event-register-login-line">Have an account? <a href="{{ account_login_url }}">Log in to register</a></p>
+                        {% comment %}
+                          Inline login.  Members sign in with a social provider, which has to
+                          show its own page, so each provider runs in a small pop-up window
+                          and the card refreshes itself when the pop-up reports back
+                          (`accounts.views.signed_in`).  A blocked pop-up falls back to the
+                          same form in this window, returning here.  The password form is
+                          the development owner's sign-in and exists only where the login
+                          page offers it.
+                        {% endcomment %}
+                        <div id="event-register-login" class="event-register-login" role="group" aria-labelledby="event-register-login-title">
+                          <p id="event-register-login-title" class="event-register-login-title">Log in to register</p>
+                          <p class="a11y-error event-register-login-error" role="alert" hidden></p>
+                          {% if inline_login_providers %}
+                            <div class="event-register-providers">
+                              {% for provider in inline_login_providers %}
+                                <form
+                                  class="event-register-provider-form"
+                                  method="post"
+                                  action="{{ provider.popup_url }}"
+                                  data-page-action="{{ provider.page_url }}"
+                                >
+                                  {% csrf_token %}
+                                  <button class="cta cta-secondary cta-compact event-register-provider interactive-lift" type="submit">
+                                    {% include "account/_provider_mark.html" with provider_id=provider.id only %}
+                                    {{ provider.name }}
+                                  </button>
+                                </form>
+                              {% endfor %}
+                            </div>
+                          {% endif %}
+                          {% if inline_password_login %}
+                            {% if inline_login_providers %}
+                              <p class="event-register-or">or</p>
+                            {% endif %}
+                            <form
+                              class="cmp-form event-register-password"
+                              method="post"
+                              action="{% url 'login' %}?next={{ event.public_path|urlencode }}"
+                            >
+                              {% csrf_token %}
+                              <div class="cmp-form-fields">
+                                <div class="field">
+                                  <label class="field-label" for="id_login_email">Email</label>
+                                  <input class="field-input" id="id_login_email" type="email" name="email" required autocomplete="email">
+                                </div>
+                                <div class="field">
+                                  <label class="field-label" for="id_login_password">Password</label>
+                                  <input class="field-input" id="id_login_password" type="password" name="password" required autocomplete="current-password">
+                                </div>
+                              </div>
+                              <button type="submit" class="cta cta-primary cta-compact event-register-submit interactive-lift">Log in</button>
+                            </form>
+                          {% endif %}
+                          {% if not inline_login_providers and not inline_password_login %}
+                            <a class="cta cta-primary cta-compact event-register-submit" href="{{ account_login_url }}">Go to the login page</a>
+                          {% endif %}
+                        </div>
                         <form
                           id="event-register-email-form"
                           method="post"
                           action="{{ event.public_path }}/register"
                           class="cmp-form event-register-form event-register-email"
+                          data-register-gate
                         >
                           {% csrf_token %}
                           <div class="cmp-form-fields">
@@ -758,18 +955,7 @@
                                 <input class="field-input" id="id_reg_company" type="text" name="company" autocomplete="organization">
                               </div>
                             {% endif %}
-                            <div class="form-check">
-                              <input
-                                class="form-check-input"
-                                id="id_reg_newsletter_consent"
-                                type="checkbox"
-                                name="newsletter_consent"
-                                value="true"
-                              >
-                              <label class="form-check-label" for="id_reg_newsletter_consent">
-                                Subscribe to the DataTalks.Club newsletter
-                              </label>
-                            </div>
+                            {% include "public/_event_newsletter_consent.html" with invalid=newsletter_invalid %}
                             {% if event.sponsor_sharing_enabled %}
                               <div class="form-check">
                                 <input
@@ -794,20 +980,156 @@
                         </form>
                         <script>
                           (function () {
-                            var toggle = document.querySelector(".event-register-email-toggle");
-                            var form = document.getElementById("event-register-email-form");
-                            if (!toggle || !form) return;
-                            toggle.addEventListener("click", function () {
-                              toggle.setAttribute("aria-expanded", "true");
-                              toggle.closest(".event-register").classList.add("is-email");
+                            var card = document.querySelector(".event-register");
+                            var emailToggle = card && card.querySelector(".event-register-email-toggle");
+                            var loginToggle = card && card.querySelector(".event-register-login-toggle");
+                            var errorLine = card && card.querySelector(".event-register-login-error");
+                            if (!card || !emailToggle || !loginToggle) return;
+                            var POPUP = "dtc-login-popup";
+                            var waiting = false;
+
+                            function showError(text) {
+                              errorLine.textContent = text;
+                              errorLine.hidden = !text;
+                            }
+
+                            emailToggle.addEventListener("click", function () {
+                              emailToggle.setAttribute("aria-expanded", "true");
+                              card.classList.add("is-email");
                               document.getElementById("id_reg_email").focus();
                             });
+
+                            loginToggle.addEventListener("click", function (event) {
+                              event.preventDefault();
+                              loginToggle.setAttribute("aria-expanded", "true");
+                              card.classList.add("is-login");
+                              var first = card.querySelector(".event-register-login button, .event-register-login input");
+                              if (first) first.focus();
+                            });
+
+                            /* After a sign-in, swap this card for the signed-in one from a
+                               fresh copy of the page: no navigation, no lost scroll. */
+                            function refreshCard(fromPopup) {
+                              return fetch(window.location.href, { credentials: "same-origin", cache: "no-store" })
+                                .then(function (response) { return response.text(); })
+                                .then(function (html) {
+                                  var fresh = new DOMParser().parseFromString(html, "text/html").querySelector(".event-register");
+                                  if (!fresh || fresh.querySelector(".event-register-login-toggle")) {
+                                    if (fromPopup) showError("You are not signed in yet. Finish in the sign-in window, or try again.");
+                                    return false;
+                                  }
+                                  waiting = false;
+                                  card.replaceWith(fresh);
+                                  if (window.dtcEventRegisterGate) window.dtcEventRegisterGate(fresh);
+                                  var next = fresh.querySelector(".event-register-one-click button[type=submit]") || fresh.querySelector(".event-register-notice");
+                                  if (next) next.focus({ preventScroll: true });
+                                  return true;
+                                })
+                                .catch(function () {
+                                  showError("Could not refresh the registration. Reload the page.");
+                                  return false;
+                                });
+                            }
+
+                            function onAuthMessage(data) {
+                              if (!data || data.type !== "dtc-auth" || !waiting) return;
+                              if (data.signedIn) refreshCard(false);
+                              else showError("Sign-in did not finish. Try again.");
+                            }
+
+                            try {
+                              new BroadcastChannel("dtc-auth").addEventListener("message", function (event) { onAuthMessage(event.data); });
+                            } catch (error) {}
+                            window.addEventListener("message", function (event) {
+                              if (event.origin === window.location.origin) onAuthMessage(event.data);
+                            });
+                            /* Back from the pop-up without a message (closed, or a browser
+                               without BroadcastChannel): check the session. */
+                            window.addEventListener("focus", function () {
+                              if (waiting) refreshCard(true);
+                            });
+
+                            card.querySelectorAll(".event-register-provider-form").forEach(function (form) {
+                              form.addEventListener("submit", function () {
+                                showError("");
+                                var width = 520, height = 680;
+                                var left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
+                                var top = window.screenY + Math.max(0, (window.outerHeight - height) / 3);
+                                var popup = window.open("", POPUP, "popup,width=" + width + ",height=" + height + ",left=" + left + ",top=" + top);
+                                if (popup) {
+                                  form.target = POPUP;
+                                  waiting = true;
+                                } else {
+                                  form.removeAttribute("target");
+                                  form.action = form.dataset.pageAction;
+                                }
+                              });
+                            });
+
+                            var passwordForm = card.querySelector(".event-register-password");
+                            if (passwordForm) {
+                              passwordForm.addEventListener("submit", function (event) {
+                                event.preventDefault();
+                                showError("");
+                                var submit = passwordForm.querySelector("button[type=submit]");
+                                submit.disabled = true;
+                                fetch(passwordForm.action, {
+                                  method: "POST",
+                                  body: new FormData(passwordForm),
+                                  credentials: "same-origin",
+                                  redirect: "manual"
+                                })
+                                  .then(function (response) {
+                                    if (response.type === "opaqueredirect" || response.status === 302) {
+                                      waiting = true;
+                                      return refreshCard(false);
+                                    }
+                                    return response.text().then(function (html) {
+                                      var notice = new DOMParser().parseFromString(html, "text/html").querySelector("#login-error p");
+                                      showError(notice ? notice.textContent.trim() : "Sign-in was not successful. Check your details and try again.");
+                                      var token = new DOMParser().parseFromString(html, "text/html").querySelector("input[name=csrfmiddlewaretoken]");
+                                      if (token) passwordForm.querySelector("input[name=csrfmiddlewaretoken]").value = token.value;
+                                    });
+                                  })
+                                  .catch(function () {
+                                    showError("Could not reach the server. Try again.");
+                                  })
+                                  .then(function () {
+                                    submit.disabled = false;
+                                  });
+                              });
+                            }
                           })();
                         </script>
                       {% endif %}
                     {% endif %}
                   </div>
                 </section>
+                <script>
+                  /* Register stays disabled until the form can succeed: a
+                     valid-looking email (the email form) and the newsletter
+                     agreement (wherever it is asked).  Without JS the button is
+                     enabled and the server validates. */
+                  window.dtcEventRegisterGate = function (root) {
+                    root.querySelectorAll("form[data-register-gate]").forEach(function (form) {
+                      var button = form.querySelector("button[type=submit]");
+                      var email = form.querySelector("input[type=email]");
+                      var agree = form.querySelector("input[name=newsletter_consent]");
+                      if (!button || (!email && !agree)) return;
+                      function update() {
+                        var emailOk = !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
+                        button.disabled = !(emailOk && (!agree || agree.checked));
+                      }
+                      form.addEventListener("input", update);
+                      form.addEventListener("change", update);
+                      update();
+                    });
+                  };
+                  (function () {
+                    var card = document.querySelector(".event-register");
+                    if (card) window.dtcEventRegisterGate(card);
+                  })();
+                </script>
               {% endif %}
               {% endwith %}
 

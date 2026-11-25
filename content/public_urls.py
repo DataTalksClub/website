@@ -140,6 +140,16 @@ urlpatterns = [
         public_views.event_banner,
         name="public-event-banner",
     ),
+    path(
+        "events/registration/verify",
+        public_views.event_registration_verify,
+        name="public-event-registration-verify",
+    ),
+    re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)/register/resend$",
+        public_views.event_register_resend,
+        name="public-event-register-resend",
+    ),
     re_path(
         r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)/register$",
         public_views.event_register,

@@ -607,6 +607,11 @@ ACADEMY_API_ORIGIN = os.getenv(
 # The consent text version the backend records with every signup; it changes only
 # together with the Academy privacy notice.
 ACADEMY_CONSENT_VERSION = "2026-11-13.v1"
+# The version of the newsletter agreement an event registration records ("I
+# agree to subscribe to the newsletter (you can unsubscribe at any time)",
+# required to register); it changes together with that text and the privacy
+# notice.
+EVENT_NEWSLETTER_CONSENT_VERSION = "2026-11-25.v1"
 
 # Certificate generation.  Rendering goes through the private Banner Generator
 # (AI-Shipping-Labs/banner-generator Lambda Function URL, bearer token).  Published PDFs/PNGs are

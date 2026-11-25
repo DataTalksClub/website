@@ -3,13 +3,16 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from datetime import timedelta
 from functools import wraps
 from io import BytesIO
 from typing import Any
+from urllib.parse import urlencode
 from xml.sax.saxutils import escape as xml_escape
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.db import transaction
 from django.http import (
     FileResponse,
     Http404,
@@ -22,6 +25,7 @@ from django.http import (
 )
 from django.http.response import HttpResponseBase
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
@@ -540,6 +544,44 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             event=identity,
             status=EventRegistration.Status.CONFIRMED,
         ).exists()
+    # A signed-out visitor logs in inside the card: each provider's sign-in
+    # runs in a pop-up that lands on `login_popup_done`, and without a pop-up
+    # (blocked, or no JavaScript) the same form returns to this page.
+    inline_login_providers: list[dict[str, str]] = []
+    # The email form's outcome for this browser: "pending" until the emailed
+    # link is followed, then "confirmed".
+    email_registration = None
+    if not viewer.is_authenticated:
+        from community_base.events.models import EventRegistration
+
+        remembered = _remembered_email_registration(request, identity)
+        if remembered is not None and remembered.status in {
+            EventRegistration.Status.PENDING_VERIFICATION,
+            EventRegistration.Status.CONFIRMED,
+        }:
+            email_registration = {
+                "email": remembered.original_email,
+                "pending": remembered.status == EventRegistration.Status.PENDING_VERIFICATION,
+            }
+    if event_state == "upcoming" and not viewer.is_authenticated:
+        from django.urls import reverse
+
+        from accounts.views.login import get_available_providers
+
+        popup_next = reverse("login_popup_done")
+        page_urls = {
+            provider["id"]: provider["login_url"]
+            for provider in get_available_providers(event["public_path"])
+        }
+        inline_login_providers = [
+            {
+                "id": provider["id"],
+                "name": provider["name"],
+                "popup_url": provider["login_url"],
+                "page_url": page_urls[provider["id"]],
+            }
+            for provider in get_available_providers(popup_next)
+        ]
     response = _render(
         request,
         "public/event_detail.html",
@@ -553,6 +595,13 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             "speaker_bios": any(speaker.get("bio_blocks") for speaker in event["speakers"]),
             "event_state": event_state,
             "viewer_registered": viewer_registered,
+            "inline_login_providers": inline_login_providers,
+            "email_registration": email_registration,
+            "newsletter_invalid": request.GET.get("registered") == "newsletter_required",
+            # The password form is the development owner's sign-in; members
+            # sign in with a provider.  It is offered only where the login
+            # page offers it.
+            "inline_password_login": bool(settings.DEVELOPMENT_OWNER_LOGIN_ENABLED),
             "qna_url": qna_url,
             "og_type": "event",
             "og_image_url": (_canonical(event["banner_url"]) if event["banner_url"] else ""),
@@ -647,20 +696,33 @@ def event_register(request: HttpRequest, event_id: str, slug: str) -> HttpRespon
     # A signed-in visitor registers in one click: the account supplies the
     # address and the name, and the seat is tied to the account.  Everyone else
     # posts the one-off email form.
+    #
+    # Registering means agreeing to the newsletter: the email form always asks,
+    # and the one-click form asks only an account that is not subscribed (an
+    # account's subscription is its consent on record, so its registration does
+    # not record a second one).
     account = request.user if request.user.is_authenticated and request.user.email else None
+    agreed = request.POST.get("newsletter_consent") in {"on", "true", "1", "yes"}
     if account is not None:
         email = account.email.strip()
         display_name = (account.get_full_name() or account.username).strip()[:200]
-        newsletter_consent = False
+        consent_required = not account.newsletter_subscribed
     else:
         email = str(request.POST.get("email") or "").strip()
         display_name = str(request.POST.get("display_name") or "").strip()[:200]
-        newsletter_consent = request.POST.get("newsletter_consent") in {"on", "true", "1", "yes"}
+        consent_required = True
     normalized_email = email.lower()
     try:
         validate_email(normalized_email)
     except ValidationError:
         return redirect(f"{canonical}?registered=invalid_email")
+    if consent_required and not agreed:
+        return redirect(f"{canonical}?registered=newsletter_required")
+    newsletter_consent: bool | None = True if consent_required else None
+    consent_version = settings.EVENT_NEWSLETTER_CONSENT_VERSION if consent_required else ""
+    if account is not None and consent_required:
+        account.newsletter_subscribed = True
+        account.save(update_fields=["newsletter_subscribed"])
 
     company = str(request.POST.get("company") or "").strip()[:200]
     config = EventOperatorConfig.objects.filter(event=identity).first()
@@ -670,46 +732,228 @@ def event_register(request: HttpRequest, event_id: str, slug: str) -> HttpRespon
         else None
     )
 
+    # An account registers at once: the address is the account's own.  The
+    # email form only holds a pending seat; the link emailed to that address
+    # confirms it (`event_registration_verify`).
+    Status = EventRegistration.Status
+    initial_status = Status.CONFIRMED if account is not None else Status.PENDING_VERIFICATION
     now = timezone.now()
-    registration, created = EventRegistration.objects.get_or_create(
-        event=identity,
-        normalized_email=normalized_email,
-        defaults={
-            "user": account,
-            "original_email": email,
-            "display_name": display_name,
-            "status": EventRegistration.Status.CONFIRMED,
-            "verified_at": now,
-            "newsletter_consent": newsletter_consent,
-            "newsletter_consent_source": "event-registration",
-            "newsletter_consented_at": now if newsletter_consent else None,
-        },
-    )
-    if not created and registration.status in {
-        EventRegistration.Status.CANCELLED,
-        EventRegistration.Status.EXPIRED,
-    }:
-        registration.version += 1
-        registration.status = EventRegistration.Status.CONFIRMED
-        registration.display_name = display_name
-        registration.cancelled_at = None
-        registration.verified_at = now
-        registration.newsletter_consent = newsletter_consent
-        registration.newsletter_consented_at = now if newsletter_consent else None
-        registration.save()
-    if account is not None and registration.user_id is None:
-        registration.user = account
-        registration.save(update_fields=["user", "updated_at"])
+    expires_at = None if account is not None else now + EVENT_VERIFICATION_TTL
+    with transaction.atomic():
+        registration, created = EventRegistration.objects.select_for_update().get_or_create(
+            event=identity,
+            normalized_email=normalized_email,
+            defaults={
+                "user": account,
+                "original_email": email,
+                "display_name": display_name,
+                "status": initial_status,
+                "verified_at": now if account is not None else None,
+                "verification_expires_at": expires_at,
+                "newsletter_consent": newsletter_consent,
+                "newsletter_consent_version": consent_version,
+                "newsletter_consent_source": "event-registration" if newsletter_consent else "",
+                "newsletter_consented_at": now if newsletter_consent else None,
+            },
+        )
+        if not created and registration.status in {Status.CANCELLED, Status.EXPIRED}:
+            registration.version += 1
+            registration.status = initial_status
+            registration.original_email = email
+            registration.display_name = display_name
+            registration.cancelled_at = None
+            registration.verified_at = now if account is not None else None
+            registration.verification_expires_at = expires_at
+            registration.newsletter_consent = newsletter_consent
+            registration.newsletter_consent_version = consent_version
+            registration.newsletter_consent_source = (
+                "event-registration" if newsletter_consent else ""
+            )
+            registration.newsletter_consented_at = now if newsletter_consent else None
+            registration.save()
+        elif not created and registration.status == Status.PENDING_VERIFICATION:
+            if account is not None:
+                registration.status = Status.CONFIRMED
+                registration.verified_at = now
+                registration.verification_expires_at = None
+            else:
+                registration.display_name = display_name or registration.display_name
+                registration.verification_expires_at = expires_at
+            registration.save()
+        if not created and newsletter_consent and not registration.newsletter_consent:
+            registration.newsletter_consent = True
+            registration.newsletter_consent_version = consent_version
+            registration.newsletter_consent_source = "event-registration"
+            registration.newsletter_consented_at = now
+            registration.save()
+        if account is not None and registration.user_id is None:
+            registration.user = account
+            registration.save(update_fields=["user", "updated_at"])
 
-    EventRegistrationMeta.objects.update_or_create(
-        registration=registration,
-        defaults={
-            "company": company if (config is not None and config.collect_company) else "",
-            "sponsor_sharing_consent": sponsor_consent,
-            "sponsor_sharing_consented_at": now if sponsor_consent is not None else None,
-        },
+        EventRegistrationMeta.objects.update_or_create(
+            registration=registration,
+            defaults={
+                "company": company if (config is not None and config.collect_company) else "",
+                "sponsor_sharing_consent": sponsor_consent,
+                "sponsor_sharing_consented_at": now if sponsor_consent is not None else None,
+            },
+        )
+        if account is None and registration.status == Status.PENDING_VERIFICATION:
+            _send_event_registration_verification(registration, identity, canonical)
+    if account is not None:
+        return redirect(f"{canonical}?registered=ok")
+    _remember_email_registration(request, registration)
+    return redirect(canonical)
+
+
+#: How long the link in an email registration's confirmation message works.
+EVENT_VERIFICATION_TTL = timedelta(hours=24)
+#: Confirmation emails one pending registration may trigger (form submits and
+#: "Resend email" together), so the form cannot be used to flood an inbox.
+EVENT_VERIFICATION_MAX_SENDS = 5
+EVENT_REGISTRATION_SESSION_KEY = "event_email_registrations"
+
+
+def _send_event_registration_verification(registration, identity, canonical: str) -> bool:
+    """Queue the "confirm your registration" email; False once the cap is hit."""
+
+    from community_base.events.tokens import generate_registration_token
+
+    from course_management.package_mail import mail_idempotency_key, send_package_mail
+
+    sends = int((registration.abuse_metadata or {}).get("verification_sends", 0))
+    if sends >= EVENT_VERIFICATION_MAX_SENDS:
+        return False
+    registration.abuse_metadata = {
+        **(registration.abuse_metadata or {}),
+        "verification_sends": sends + 1,
+    }
+    registration.save(update_fields=["abuse_metadata", "updated_at"])
+    site = str(settings.COMMUNITY_BASE["SITE_URL"]).rstrip("/")
+    token = generate_registration_token(
+        registration,
+        action="verify",
+        expiry_hours=int(EVENT_VERIFICATION_TTL.total_seconds() // 3600),
     )
-    return redirect(f"{canonical}?registered=ok")
+    send_package_mail(
+        purpose="event-registration-verify",
+        to=registration.normalized_email,
+        context={
+            "event_title": identity.title,
+            "event_url": f"{site}{canonical}",
+            "verify_url": f"{site}/events/registration/verify?{urlencode({'token': token})}",
+        },
+        idempotency_key=mail_idempotency_key(
+            "event-registration-verify",
+            str(registration.pk),
+            str(registration.version),
+            str(sends + 1),
+        ),
+        category="events",
+        user=registration.user,
+    )
+    return True
+
+
+def _remember_email_registration(request: HttpRequest, registration) -> None:
+    """Let this browser's event card show the registration's state.
+
+    The card never reads the address or the state from the URL: only the
+    browser that submitted the form (or opened the confirmation link) sees it.
+    """
+
+    remembered = dict(request.session.get(EVENT_REGISTRATION_SESSION_KEY) or {})
+    remembered[str(registration.event_id)] = {
+        "registration": str(registration.pk),
+        "email": registration.original_email,
+    }
+    request.session[EVENT_REGISTRATION_SESSION_KEY] = remembered
+
+
+def _remembered_email_registration(request: HttpRequest, identity):
+    from community_base.events.models import EventRegistration
+
+    entry = (request.session.get(EVENT_REGISTRATION_SESSION_KEY) or {}).get(str(identity.pk))
+    if not entry:
+        return None
+    return (
+        EventRegistration.objects.filter(pk=entry.get("registration"), event=identity)
+        .only("id", "status", "original_email", "event_id")
+        .first()
+    )
+
+
+def event_register_resend(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
+    """Send the confirmation email again for this browser's pending registration."""
+
+    from community_base.events.models import EventRegistration
+    from django.shortcuts import redirect
+
+    try:
+        identity = resolve_public_id(event_id)
+    except EventIdentityNotFound as exc:
+        raise Http404 from exc
+    canonical = canonical_detail_path(identity.content_id)
+    if request.method != "POST":
+        return redirect(canonical)
+    remembered = _remembered_email_registration(request, identity)
+    outcome = "resent"
+    with transaction.atomic():
+        registration = (
+            EventRegistration.objects.select_for_update()
+            .filter(pk=getattr(remembered, "pk", None))
+            .first()
+        )
+        pending = EventRegistration.Status.PENDING_VERIFICATION
+        if registration is None or registration.status != pending:
+            return redirect(canonical)
+        registration.verification_expires_at = timezone.now() + EVENT_VERIFICATION_TTL
+        registration.save(update_fields=["verification_expires_at", "updated_at"])
+        if not _send_event_registration_verification(registration, identity, canonical):
+            outcome = "resend_limit"
+    return redirect(f"{canonical}?registered={outcome}")
+
+
+def event_registration_verify(request: HttpRequest) -> HttpResponse:
+    """The link in the confirmation email: it, and only it, confirms the seat."""
+
+    from community_base.events.models import EventRegistration
+    from community_base.events.tokens import RegistrationTokenError, load_registration_token
+    from django.shortcuts import redirect
+
+    try:
+        payload = load_registration_token(request.GET.get("token", ""), action="verify")
+    except RegistrationTokenError as error:
+        return _no_store(
+            render(
+                request,
+                "public/event_registration_link.html",
+                {"expired": error.code == "expired"},
+                status=400,
+            )
+        )
+    with transaction.atomic():
+        registration = (
+            EventRegistration.objects.select_for_update()
+            .select_related("event")
+            .filter(pk=payload["registration_id"])
+            .first()
+        )
+        if registration is None or registration.version != payload["registration_version"]:
+            return _no_store(
+                render(
+                    request, "public/event_registration_link.html", {"expired": False}, status=400
+                )
+            )
+        if registration.status == EventRegistration.Status.PENDING_VERIFICATION:
+            registration.status = EventRegistration.Status.CONFIRMED
+            registration.verified_at = timezone.now()
+            registration.verification_expires_at = None
+            registration.save(
+                update_fields=["status", "verified_at", "verification_expires_at", "updated_at"]
+            )
+    _remember_email_registration(request, registration)
+    return redirect(canonical_detail_path(registration.event.content_id))
 
 
 # The two collections behind `public/collection_hub.html`.  Both are dated archives

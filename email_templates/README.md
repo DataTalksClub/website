@@ -27,6 +27,7 @@ the deploy step are never edited by hand.
 | `application-rejected` | Applicant not offered a place after operator review | `course_title` |
 | `deadline-reminder` | Homework/deadline nudge for an enrolled learner | `course_title`, `course_url`, `deadline` |
 | `course-registration-confirmation` | Registration accepted for a course (double opt-in: the learner MUST click the confirmation link) | `course_title`, `course_url`, `confirmation_url` (required); `start_date`, `verify_email_prompt` (optional: empty unless a start date is announced / the registering account's email still needs verifying); `requires_approval` (block-tag-only flag: when true the body adds the "awaiting review, we will email you after review" paragraph instead of implying acceptance) |
+| `event-registration-verify` | Confirm an event registration made with the email form (double opt-in: the seat is confirmed only by the link) | `event_title`, `event_url`, `verify_url` |
 | `enrollment-confirmation` | Enrollment confirmed in a cohort | `course_title`, `course_url`, `cohort_name` |
 | `certificate-ready` | Completion certificate is available | `course_title`, `certificate_url` |
 | `slack-access` | Invitation to the course Slack community | `course_title`, `slack_url` |

@@ -10,6 +10,7 @@ from accounts.views.email_preferences import account_email_preferences
 from accounts.views.home_dismissals import dismiss_home_item
 from accounts.views.impersonation import stop_impersonating
 from accounts.views.login import social_login_view
+from accounts.views.signed_in import login_popup_done
 from accounts.views.social_connections import (
     disconnect_social_account,
     social_connections_moved,
@@ -22,6 +23,7 @@ urlpatterns = [
     path('welcome/', welcome, name='account_welcome'),
     path('home/dismiss/', dismiss_home_item, name='dismiss_home_item'),
     path('login/', social_login_view, name='login'),
+    path('signed-in/', login_popup_done, name='login_popup_done'),
     path('email/', disabled),
     path('password/reset/', disabled),
     path('toggle-dark-mode/', toggle_dark_mode, name='toggle_dark_mode'),

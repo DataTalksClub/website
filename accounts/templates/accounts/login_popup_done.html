@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>{% if signed_in %}Signed in{% else %}Not signed in{% endif %} — DataTalks.Club</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 0; padding: 2rem 1rem; text-align: center; color: #1f1d3a; background: #fff; }
+      @media (prefers-color-scheme: dark) { body { color: #ecebf7; background: #17162a; } a { color: #b9bff0; } }
+    </style>
+  </head>
+  <body>
+    {% if signed_in %}
+      <p>You are signed in. You can close this window and return to the page.</p>
+    {% else %}
+      <p>Sign-in did not finish. Close this window and try again.</p>
+    {% endif %}
+    <p><a href="/">DataTalks.Club</a></p>
+    <script>
+      (function () {
+        var message = { type: "dtc-auth", signedIn: {{ signed_in|yesno:"true,false" }} };
+        try {
+          var channel = new BroadcastChannel("dtc-auth");
+          channel.postMessage(message);
+          channel.close();
+        } catch (error) {}
+        try {
+          if (window.opener) window.opener.postMessage(message, window.location.origin);
+        } catch (error) {}
+        if (window.name === "dtc-login-popup") window.setTimeout(function () { window.close(); }, 150);
+      })();
+    </script>
+  </body>
+</html>
