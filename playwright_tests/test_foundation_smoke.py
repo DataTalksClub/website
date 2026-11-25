@@ -369,8 +369,6 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
         f"{episode_target}/": episode_target,
         f"{wiki_target}/": wiki_target,
         "/slack/": "/slack",
-        "/tour": "/about",
-        "/tour/": "/about",
         "/about/": "/about",
         "/sponsors/": "/sponsors",
     }

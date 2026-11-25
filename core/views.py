@@ -165,7 +165,7 @@ def tour(request: HttpRequest) -> HttpResponse:
     events, the latest article and podcast. The About page answers a different
     question: "what actually is this, and is it for me?" It was published as
     the tour, which is the name the view, the template, the editorial record
-    and the old address (``/tour``, a permanent redirect here) still carry.
+    still carry (the old ``/tour`` address no longer exists).
 
     The editorial copy and the member stories are published database records (the
     page record via ``content.tour_content``, stories through the narrow
