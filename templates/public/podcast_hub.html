@@ -176,6 +176,22 @@
         z-index: 20;
       }
 
+      /* The open season names itself once above the timeline; the rail then
+         carries each episode's date and number, the way /events carries each
+         day. */
+      .podcast-season-heading {
+        font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+        margin: 0 0 var(--space-5);
+      }
+
+      .podcast-season-heading span {
+        color: var(--muted);
+        display: block;
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-top: var(--space-1);
+      }
+
       .podcast-seasons-bottom {
         display: grid;
         gap: var(--space-3);
@@ -318,24 +334,27 @@
               <a class="band-link" href="{% url 'events' %}">events page</a>.
             </p>
           {% else %}
+            <h2 class="podcast-season-heading" id="season-heading">
+              Season {{ season.number }}
+              <span>{% if season.span %}{{ season.span }} · {% endif %}{{ season.episodes|length }} episode{{ season.episodes|length|pluralize }}</span>
+            </h2>
             <div class="event-timeline" data-podcast-season="{{ season.number }}">
-              <section class="event-day" aria-labelledby="season-heading">
-                <h2 class="event-day-date" id="season-heading">
-                  <span>
-                    <strong>Season {{ season.number }}</strong>
-                    {% if season.span %}<span>{{ season.span }}</span>{% endif %}
-                    <span>{{ season.episodes|length }} episode{{ season.episodes|length|pluralize }}</span>
-                  </span>
-                </h2>
-                <span class="event-day-dot" aria-hidden="true"></span>
-                <div class="event-day-cards">
-                  {% for item in season.episodes %}
-                    {% with episode=item.episode %}
+              {% for item in season.episodes %}
+                {% with episode=item.episode %}
+                  <section class="event-day" aria-label="Episode {{ episode.episode }}">
+                    <p class="event-day-date">
+                      <span>
+                        <strong>{% if item.date %}{{ item.short_date }}{% else %}Episode {{ episode.episode }}{% endif %}</strong>
+                        {% if item.date %}<span>Episode {{ episode.episode }}</span>{% endif %}
+                      </span>
+                    </p>
+                    <span class="event-day-dot" aria-hidden="true"></span>
+                    <div class="event-day-cards">
                       <article class="event-item interactive-card interactive-lift" data-podcast-episode>
                         <div class="event-item-body">
-                          <p class="event-item-time">
-                            <b>Episode {{ episode.episode }}</b>{% if item.date %} · <time datetime="{{ item.date|date:'Y-m-d' }}">{{ item.short_date }}</time>{% endif %}{% if item.minutes %} · {{ item.minutes }} min{% endif %}
-                          </p>
+                          {% if item.minutes %}
+                            <p class="event-item-time">{{ item.minutes }} min</p>
+                          {% endif %}
                           <h3><a href="{{ episode.public_path }}">{{ episode.title }}</a></h3>
                           {% if item.guests %}
                             <p class="person-chips event-item-speakers">
@@ -376,10 +395,10 @@
                           <img class="event-item-thumb{% if item.picture_is_portrait %} is-portrait{% endif %}" src="{{ item.picture_url }}" alt="" width="120" height="120" loading="{% if forloop.counter <= 3 %}eager{% else %}lazy{% endif %}" decoding="async">
                         {% endif %}
                       </article>
-                    {% endwith %}
-                  {% endfor %}
-                </div>
-              </section>
+                    </div>
+                  </section>
+                {% endwith %}
+              {% endfor %}
             </div>
 
             <nav class="podcast-seasons-bottom" aria-label="More podcast seasons">
