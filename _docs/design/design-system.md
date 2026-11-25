@@ -53,7 +53,8 @@ scripts and routes inside those blocks. They do **not** recreate the doctype,
 masthead/footer or top-level bands, and do not create a competing normal width.
 
 A genuinely wide table or diagram may use `.shell-breakout` inside the content
-surface, with a page-specific reason.
+surface, with a page-specific reason. The breakout grows to the home shell's
+content box (`--shell-content`) and never past it.
 
 The only top-level layout exceptions are the **homepage** (`core/home.html`) and the
 **authentication pages**. Auth may use its own entrance width and composition, but
@@ -250,7 +251,20 @@ silence the test.
 ## Shell, measure, radius, borders, shadows
 
 - **Shell**: `.shell` centres content at `--shell` = `76rem`, `padding-inline:
-  var(--space-4)` (`var(--space-5)` at ≥40rem).
+  var(--shell-gutter)` (`var(--space-4)`, `var(--space-5)` at ≥40rem). The box
+  inside that padding is `--shell-content` (`76rem` less two gutters, `73rem` on
+  a desktop): the homepage's column, and the footer's.
+- **Home shell = maximum content width; pages may be narrower, never wider.** No
+  content on any page -- a breakout section, a wide table or chart, the inner
+  column of a full-bleed band -- may start left of, or end right of, the home
+  shell's content box. Full-bleed band *backgrounds* may run to the viewport
+  edge; what sits on them is capped at `--shell-content` with
+  `--shell-gutter` as the band's inline padding. `.shell-breakout` and the
+  wide-table breakout are bounded by it, so a page cannot widen past it by
+  using them. Enforced in a browser by
+  `playwright_tests/test_shell_width_guard.py`, which measures every visible
+  content box in `<main>` of every public page type at 1440, 900 and 390px
+  against the footer's content box.
 - **Measure**: `--measure` = `38rem`, about 70 characters. `.prose-reading` and
   `.prose-lede` are held to it. Ordinary pages use `--content-width` = `56rem`
   (the course platform's `.app-content-shell` width) through `.content-shell`

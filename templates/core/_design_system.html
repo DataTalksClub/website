@@ -88,6 +88,14 @@ Rules for editing:
         --font-sans: "Quicksand", ui-rounded, "Segoe UI", system-ui, -apple-system,
           BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
         --shell: 76rem;
+        /* The shell's inline padding, and the content box it leaves: the
+           homepage's column.  `--shell-content` is the widest any content on
+           any page may be -- pages may be narrower, never wider (see
+           _docs/design/design-system.md#widths and
+           playwright_tests/test_shell_width_guard.py).  The gutter grows at
+           40rem, so both are restated there. */
+        --shell-gutter: var(--space-4);
+        --shell-content: calc(var(--shell) - 2 * var(--shell-gutter));
         /* The long-form reading measure: about 70 characters of `.prose` body
            text, the width a page of prose is set to. */
         --measure: 38rem;
@@ -348,7 +356,7 @@ Rules for editing:
       .shell {
         margin-inline: auto;
         max-width: var(--shell);
-        padding-inline: var(--space-4);
+        padding-inline: var(--shell-gutter);
         width: 100%;
       }
 
@@ -433,6 +441,10 @@ Rules for editing:
         border-right: 2px solid var(--indigo);
         flex: none;
         height: var(--fold-marker);
+        /* Rotated 45deg, the square's corners reach (sqrt(2) - 1) / 2 of its
+           side past its box; the inline margin keeps the drawn chevron inside
+           the column instead of a pixel or two past the shell's edge. */
+        margin-inline-end: calc(var(--fold-marker) * 0.21);
         margin-top: calc((1lh - var(--fold-marker)) / 2);
         transform: translateY(-35%) rotate(45deg);
         transition: transform 0.15s ease;
@@ -474,11 +486,13 @@ Rules for editing:
 
          A child cannot simply be wider than its parent, so it is widened and
          then pulled back by half the difference, which recentres it on the page.
-         It is bounded by the full shell and by the viewport, so it grows to the
-         page rather than to the screen edge, and it never widens the document —
-         below the reading measure the two widths are equal and this is inert. */
+         It is bounded by the homepage's content box (`--shell-content`) and by
+         the viewport less the same gutter, so it grows to the home column and
+         never past it: no page is wider than the homepage.  It never widens
+         the document — below the reading measure the two widths are equal and
+         this is inert. */
       .shell-breakout {
-        --breakout-width: min(var(--shell), calc(100vw - 2rem));
+        --breakout-width: min(var(--shell-content), calc(100vw - 2 * var(--shell-gutter)));
         margin-inline: calc((100% - var(--breakout-width)) / 2);
         max-width: none;
         width: var(--breakout-width);
@@ -4916,7 +4930,7 @@ Rules for editing:
          shrinks back to the viewport on small screens (owner feedback
          2026-11-24).  Narrow tables stay in the column. */
       .prose-scroll:has(th:nth-child(4)) {
-        --table-breakout: min(var(--content-width), calc(100vw - 2rem));
+        --table-breakout: min(var(--content-width), calc(100vw - 2 * var(--shell-gutter)));
         margin-inline: calc((100% - var(--table-breakout)) / 2);
         max-width: none;
         width: var(--table-breakout);
@@ -5057,8 +5071,9 @@ Rules for editing:
       }
 
       @media (min-width: 40rem) {
-        .shell {
-          padding-inline: var(--space-5);
+        :root {
+          --shell-gutter: var(--space-5);
+          --shell-content: calc(var(--shell) - 2 * var(--shell-gutter));
         }
 
         .card-grid-2 {

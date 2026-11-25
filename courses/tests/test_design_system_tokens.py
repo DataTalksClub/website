@@ -46,6 +46,8 @@ THEME_NEUTRAL_TOKENS = {
     "--measure",
     "--reading-width",
     "--shell",
+    "--shell-content",
+    "--shell-gutter",
     # Spacing has no theme: the scale and its roles are declared once.
     "--space-1",
     "--space-2",

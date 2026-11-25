@@ -34,7 +34,8 @@
        * inline: the shared design system partial first, then this page's own
        * layout.  It deliberately loads none of the older site CSS.
        *
-       * The mockup composes at the full 76rem shell -- a two-column hero with
+       * The mockup composes at the full shell -- the homepage's content box,
+       * never wider -- a two-column hero with
        * an illustration collage, a featured open-registration slab and
        * horizontal running-now cards.  Those are genuinely wide elements, so
        * each one is a `.shell-breakout` section while the page underneath
@@ -340,14 +341,14 @@
         /* 100vw leaves the shell's own inline padding behind; the facts
            stripe carries it back the same way, so the columns keep a
            gutter on narrow viewports where the shell cap never binds. */
-        padding-inline: var(--space-4);
+        padding-inline: var(--shell-gutter);
         padding-block: var(--space-band);
       }
 
       .zoomcamp-steps.shell-breakout .band-head,
       .zoomcamp-steps .step-grid {
         margin-inline: auto;
-        max-width: var(--shell);
+        max-width: var(--shell-content);
       }
 
       .step-grid {
@@ -414,7 +415,7 @@
         --breakout-width: 100vw;
         background: var(--lavender);
         border-top: 2px dashed var(--line-soft);
-        padding-inline: var(--space-4);
+        padding-inline: var(--shell-gutter);
         padding-block: var(--space-band);
       }
 
@@ -426,7 +427,7 @@
       .courses-faq.shell-breakout .faq-grid,
       .courses-faq.shell-breakout .faq-note {
         margin-inline: auto;
-        max-width: var(--shell);
+        max-width: var(--shell-content);
       }
 
       /* --- FAQ ------------------------------------------------------------------------
