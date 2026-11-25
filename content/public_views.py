@@ -502,6 +502,19 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
     }
     if event["banner_url"]:
         entity["image"] = _canonical(event["banner_url"])
+    if event.get("sponsors"):
+        entity["sponsor"] = [
+            {
+                "@type": "Organization",
+                "name": sponsor["name"],
+                **(
+                    {"url": sponsor["url"] if sponsor["external"] else _canonical(sponsor["url"])}
+                    if sponsor["url"]
+                    else {}
+                ),
+            }
+            for sponsor in event["sponsors"]
+        ]
     if event["ends_at"]:
         entity["endDate"] = event["ends_at"]
     qna_url = ""

@@ -95,7 +95,8 @@ This document answers all 10 open questions in `bots-management/agents/contracts
     - `--reminder-intervals` (e.g. `24h,20m`, `24h`, or `none`)
     - `--sponsor-sharing` / `--no-sponsor-sharing`
     - `--collect-company` / `--no-collect-company`
-    - `--sponsor-name`
+    - `--sponsor-name` (who registrants consent to share their email with, section 6)
+    - `--sponsor` (sponsored event: comma-separated sponsor directory keys, section 6a)
     - `--publish` / `--no-publish`
   - **Update:** `dtc events update <event> [--title ...] [--start-datetime ...] ...` (only passed flags are sent; schedule/location changes bump `ics_sequence`).
   - **Publish:** `dtc events publish <event>` (`draft` -> published, allocates `public_id`; the event then reports `upcoming`, `in_progress` or `past` from its schedule). A draft has no `public_id` yet, so address it by its UUID or slug until it is published; publishing needs a type and at least one speaker. Before 2026-11-25 every publish on prod failed with `internal_error` (the package's series-enrolment step used `FOR UPDATE` over an outer join, which PostgreSQL rejects); fixed in website PR #558.
@@ -218,6 +219,25 @@ readable at the ~290px the event page shows it. Fields are documented in that re
   ```
 - When enabled, the public registration form on `/events/<public_id>/<slug>` displays the **Company** field and **"Share my email with the event sponsor (Acme Corp)"** checkbox.
 - Both `company` and `sponsor_sharing_consent` are included in `dtc events export-registrants`, and `--sponsor-consented-only` filters to consenting registrants.
+
+## 6a. Sponsored events: the sponsor's logo
+
+- A sponsored workshop or webinar links to one or more entries of the sponsor
+  directory (`/sponsors`, Studio > Sponsors), by key:
+  ```bash
+  dtc events update <event> --sponsor dlthub
+  dtc events update <event> --sponsor ''   # remove
+  ```
+  The same `sponsors` list (of keys) is accepted by the admin API and the Studio
+  event endpoints on create and update; it replaces the whole list. An unknown
+  key is refused (`unknown_sponsor`): add the sponsor to the directory first,
+  with its logo (`logo_asset_key`, a file under `core/static/core/sponsors/`).
+- The event page shows "Sponsored by" with the logo under the picture, the
+  `/events` card shows the logo in its meta row, and both link to the sponsor's
+  `/sponsors` entry (or its own site when it is not listed there).
+- `dtc events create` renders the picture with the first sponsor's logo
+  ("Sponsored by" row of banner-generator's `dtc-event-speaker`). For an existing
+  event, re-render the picture and `dtc events upload-banner` it.
 
 ---
 

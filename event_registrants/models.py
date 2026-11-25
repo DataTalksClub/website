@@ -330,6 +330,43 @@ class EventOperatorConfig(models.Model):
         raise EventPictureRequired()
 
 
+class EventSponsor(models.Model):
+    """One sponsor of one event, linked to the sponsor directory (``core.Sponsor``).
+
+    A sponsored workshop or webinar names its sponsor(s) here; the public event
+    page, the ``/events`` card and the event picture read the sponsor's name and
+    logo from the directory row, never from copy of their own.  ``position``
+    orders several sponsors of one event.  Written only by
+    ``events.admin_services`` (``sponsors`` on create/update), which replaces the
+    whole list.  Unrelated to ``EventOperatorConfig.sponsor_name``, which is the
+    party registrants consent to share their email with.
+    """
+
+    event = models.ForeignKey(
+        "events.Event", on_delete=models.CASCADE, related_name="event_sponsors"
+    )
+    sponsor = models.ForeignKey(
+        "core.Sponsor", on_delete=models.PROTECT, related_name="event_links"
+    )
+    position = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("event_id", "position", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("event", "sponsor"), name="event_registrants_event_sponsor_unique"
+            ),
+            models.UniqueConstraint(
+                fields=("event", "position"),
+                name="event_registrants_event_sponsor_position_unique",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"event-sponsor:{self.event_id}:{self.sponsor_id}"
+
+
 class EventRegistrationMeta(models.Model):
     """Site-side registration metadata (company and sponsor-sharing consent).
 

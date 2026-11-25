@@ -169,7 +169,20 @@ def _apply_common_flags(func: Any) -> Any:
             default=None,
             help="Collect company name on registration.",
         ),
-        click.option("--sponsor-name", default=None, help="Sponsor display name."),
+        click.option(
+            "--sponsor-name",
+            default=None,
+            help="Who registrants consent to share their email with (see --sponsor-sharing).",
+        ),
+        click.option(
+            "--sponsor",
+            "sponsors",
+            default=None,
+            help=(
+                "Sponsored event: comma-separated sponsor directory keys (e.g. dlthub), "
+                "shown with their logos on the event page; '' clears."
+            ),
+        ),
         click.option(
             "--publish/--no-publish",
             default=None,
@@ -219,6 +232,8 @@ def _build_event_payload(kwargs: dict[str, Any], *, is_create: bool) -> dict[str
         body["speakers"] = _split_csv(kwargs["speakers"])
     if kwargs.get("tags") is not None:
         body["tags"] = _split_csv(kwargs["tags"])
+    if kwargs.get("sponsors") is not None:
+        body["sponsors"] = _split_csv(kwargs["sponsors"])
     if kwargs.get("materials") is not None:
         body["materials"] = _load_json_or_file(kwargs["materials"], label="--materials")
     if is_create:
@@ -293,6 +308,35 @@ def _speaker_entries(client: Any, shorts: list[str], workdir: Path) -> list[dict
     return entries
 
 
+def _sponsor_entry(client: Any, key: str, workdir: Path) -> dict[str, Any] | None:
+    """Name and local logo of a sponsor directory entry, for the picture's sponsor row."""
+    try:
+        found = client.get(f"{API}/sponsors", params={"key": key})
+    except Exception:  # noqa: BLE001 - the picture is still useful without the sponsor
+        return None
+    items = [item for item in found.get("items") or [] if str(item.get("key")) == key]
+    if not items:
+        return None
+    entry: dict[str, Any] = {"name": str(items[0].get("name") or key)}
+    logo = str(items[0].get("logo_url") or "")
+    base_url = str(getattr(client, "base_url", "") or "").rstrip("/")
+    if logo:
+        try:
+            response = httpx.get(
+                logo if logo.startswith("http") else f"{base_url}{logo}",
+                timeout=20.0,
+                follow_redirects=True,
+            )
+            mime = _sniff_mime(response.content) if response.status_code == 200 else None
+            if mime:
+                path = workdir / f"sponsor-{key}.{mime.split('/')[1]}"
+                path.write_bytes(response.content)
+                entry["logo_url"] = path.resolve().as_uri()
+        except httpx.HTTPError:
+            pass
+    return entry
+
+
 def render_standard_picture(
     body: dict[str, Any],
     *,
@@ -344,6 +388,14 @@ def render_standard_picture(
             "time_label": time_label,
             "speakers": _speaker_entries(client, list(body["speakers"]), workdir),
         }
+        # A sponsored event shows its (first) sponsor's logo on the picture.
+        sponsor = (
+            _sponsor_entry(client, str(body["sponsors"][0]), workdir)
+            if body.get("sponsors")
+            else None
+        )
+        if sponsor is not None:
+            spec["sponsor"] = sponsor
         spec_path = workdir / "event-picture.json"
         spec_path.write_text(json.dumps(spec, indent=2), encoding="utf-8")
         completed = subprocess.run(  # noqa: S603 - fixed argv, local trusted tool

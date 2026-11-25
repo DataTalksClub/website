@@ -50,6 +50,7 @@ from .identity import (
     host_profile_url,
 )
 from .lifecycle import PUBLISHED_STATUSES, is_published
+from .sponsors import sponsor_entries, sponsor_links_prefetch
 
 
 def _operator_config(event: Event) -> EventOperatorConfig | None:
@@ -88,6 +89,8 @@ def _record(event: Event) -> dict[str, Any]:
         "collect_company": bool(config is not None and config.collect_company),
         "sponsor_sharing_enabled": bool(config is not None and config.sponsor_sharing_enabled),
         "sponsor_name": config.sponsor_name if config is not None else "",
+        # A sponsored event's directory sponsors: name, logo URL, link.
+        "sponsors": sponsor_entries(event),
         "speakers": [
             {
                 "key": link.host.external_ref,
@@ -215,7 +218,8 @@ def _published() -> Any:
             Prefetch(
                 "event_host_links",
                 queryset=EventHost.objects.select_related("host").order_by("position", "pk"),
-            )
+            ),
+            sponsor_links_prefetch(),
         )
     )
 
@@ -250,6 +254,23 @@ def _stamp(model: Any, field: str) -> tuple[int, str]:
     return (int(agg["total"] or 0), str(agg["latest"] or ""))
 
 
+def _event_stamp() -> tuple[int, str]:
+    """The ``Event`` stamp, joined with the event sponsor links and their directory rows."""
+
+    agg = Event.objects.aggregate(
+        total=Count("id", distinct=True),
+        latest=Max("updated_at"),
+        links=Count("event_sponsors", distinct=True),
+        link_latest=Max("event_sponsors__created_at"),
+        sponsor_latest=Max("event_sponsors__sponsor__updated_at"),
+    )
+    return (
+        int(agg["total"] or 0),
+        f"{agg['latest'] or ''}|{agg['links']}|{agg['link_latest'] or ''}"
+        f"|{agg['sponsor_latest'] or ''}",
+    )
+
+
 def _published_records_stamp() -> tuple[tuple[int, str], ...]:
     """The exact cache key for :func:`published_event_records`.
 
@@ -266,6 +287,11 @@ def _published_records_stamp() -> tuple[tuple[int, str], ...]:
     * Registration counts are annotated from the imported provider rows
       (``event_registrants``) and the native rows the site's own register
       form writes (``community_base.events``), so both join in too.
+    * Sponsors are ``EventSponsor`` link rows (replaced wholesale, so a new
+      ``created_at`` marks every change) read through the directory's
+      ``Sponsor`` rows, whose name or logo may change on their own; both ride
+      in the event stamp's one aggregate (:func:`_event_stamp`), so they cost
+      no extra round trip.
     * Provenance is read off the site-owned ``EventSource`` row, and a
       speaker's profile path is resolved against the synced people catalogue
       at record time, so both stamps join as well.
@@ -276,7 +302,7 @@ def _published_records_stamp() -> tuple[tuple[int, str], ...]:
 
     def read() -> tuple[tuple[int, str], ...]:
         return (
-            _stamp(Event, "updated_at"),
+            _event_stamp(),
             _stamp(Host, "updated_at"),
             _stamp(EventHost, "id"),
             _stamp(ProviderRegistration, "updated_at"),
@@ -285,7 +311,7 @@ def _published_records_stamp() -> tuple[tuple[int, str], ...]:
             synced_stamp(PEOPLE_SOURCE_SLUG),
         )
 
-    # The seven aggregates run once per request; the stamp-keyed ``lru_cache``
+    # The aggregates run once per request; the stamp-keyed ``lru_cache``
     # on the records stays the cross-request authority.
     return memoized("events.queries.published_records_stamp", read)
 

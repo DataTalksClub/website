@@ -61,6 +61,7 @@ from .pictures import (
     EventPictureRequired,
 )
 from .publication import EventNotPublishable, require_publishable
+from .sponsors import UnknownEventSponsor, set_event_sponsors, sponsor_entries
 
 DEFAULT_REMINDER_INTERVALS: tuple[str, ...] = ("24h", "20m")
 ALLOWED_BANNER_TYPES: dict[str, str] = ALLOWED_PICTURE_TYPES
@@ -207,6 +208,8 @@ def serialize_admin_event(event: Event, *, include_registrations: bool = False) 
         "sponsor_sharing_enabled": config.sponsor_sharing_enabled if config is not None else False,
         "collect_company": config.collect_company if config is not None else False,
         "sponsor_name": config.sponsor_name if config is not None else "",
+        # Directory sponsors of a sponsored event (``events.sponsors``), in order.
+        "sponsors": sponsor_entries(event),
         "published_at": _iso(event.published_at),
         "updated_at": _iso(event.updated_at),
     }
@@ -393,6 +396,7 @@ def _audit_snapshot(event: Event) -> dict[str, Any]:
         "sponsor_sharing_enabled": (config.sponsor_sharing_enabled if config is not None else None),
         "collect_company": config.collect_company if config is not None else None,
         "sponsor_name": config.sponsor_name if config is not None else None,
+        "sponsors": [item["key"] for item in sponsor_entries(event)],
     }
 
 
@@ -422,6 +426,17 @@ def _audit_event_write(
         changes=changes,
         metadata={"public_id": event.public_id},
     )
+
+
+def _apply_sponsors(event: Event, raw: Any) -> None:
+    """Replace the event's directory sponsors with the keys in ``raw`` (a list)."""
+
+    if not isinstance(raw, list):
+        raise EventAdminError("sponsors must be a list of sponsor directory keys.")
+    try:
+        set_event_sponsors(event, [str(item) for item in raw])
+    except UnknownEventSponsor as exc:
+        raise EventAdminError(str(exc), code="unknown_sponsor") from exc
 
 
 def _validate_materials(raw: Any) -> list[dict[str, str]]:
@@ -619,6 +634,8 @@ def create_event(
     except EventIdentityError as exc:
         raise EventAdminError(str(exc), code=str(exc)) from exc
     _consume_staged_picture(data.get("picture"))
+    if data.get("sponsors") is not None:
+        _apply_sponsors(event, data["sponsors"])
 
     if publish_now:
         event = _publish(event)
@@ -728,6 +745,8 @@ def update_event(
 
     if "speakers" in data and data["speakers"] is not None:
         _sync_event_speakers(event, [str(item) for item in data["speakers"]])
+    if "sponsors" in data and data["sponsors"] is not None:
+        _apply_sponsors(event, data["sponsors"])
 
     config = _require_picture_config(event)
     if "reminder_intervals" in data:
