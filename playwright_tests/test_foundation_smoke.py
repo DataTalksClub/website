@@ -534,9 +534,7 @@ def test_wiki_catalogue_page_two_is_usable_without_javascript(
     try:
         response = page.goto(f"{live_server.url}/wiki?page=2")
         assert response is not None and response.status == 200
-        expect(
-            page.get_by_role("heading", name="Wiki", exact=True)
-        ).to_be_visible()
+        expect(page.get_by_role("heading", name="Wiki", exact=True)).to_be_visible()
         expect(page.get_by_role("navigation", name="Wiki exploration")).to_be_visible()
         expect(page.get_by_role("link", name="Graph", exact=False).first).to_be_visible()
         expect(page.locator('a[href="/wiki?q="]')).to_be_visible()

@@ -301,9 +301,7 @@ def test_episode_graph_has_a_native_fallback_without_javascript(
             wait_until="domcontentloaded",
         )
         assert response is not None and response.status == 200
-        expect(
-            page.get_by_role("heading", name="Related Wiki pages", exact=True)
-        ).to_be_visible()
+        expect(page.get_by_role("heading", name="Related Wiki pages", exact=True)).to_be_visible()
         expect(page.locator("#episode-graph-connections > li")).to_have_count(23)
         expect(page.locator("#episode-graph-connections a")).to_have_count(23)
         expect(page.locator("#podcast-video-player")).not_to_be_visible()
