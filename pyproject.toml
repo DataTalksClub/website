@@ -334,6 +334,7 @@ module = [
     "accounts.checks",
     "accounts.tests.provider_fixtures",
     "accounts.tests.test_account_entry",
+    "accounts.tests.test_unconfigured_provider",
     "courses.tests.test_registration_gate_production",
     # Issue #515: the one-time Astro Academy to content-repository converter.
     "scripts.convert_academy_source",
