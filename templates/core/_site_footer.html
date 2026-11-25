@@ -12,11 +12,68 @@
       The footer is where people look for "everything else" (site feedback 2.2):
       the masthead's sections again, grouped the same way and read from the same
       database-owned menu, then the newsletter and sponsorship (Sponsors left the
-      masthead for this column); the social icons sit in the row below.  Academy is the one
+      masthead for this column).  The brand, tagline and social icons are one
+      identity block beside the link groups; legal links and the version share
+      the bottom line.  Academy is the one
       section left out: the owner removed it from the footer, and the Academy
       stripe above is its route here (core/tests/test_homepage.py).
     {% endcomment %}
-    <div class="site-footer-sections">
+    <div class="site-footer-main">
+      <div class="site-footer-identity">
+        <p class="site-footer-name">DataTalks.Club</p>
+        <p class="site-footer-tagline">Free courses to learn data.</p>
+        <nav class="site-footer-social" aria-label="DataTalks.Club elsewhere">
+          <a
+            class="site-footer-link site-footer-icon app-link"
+            href="https://www.linkedin.com/company/datatalks-club/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="DataTalks.Club on LinkedIn (opens in a new tab)"
+            title="LinkedIn"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-2.354 3.37-2.354 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.125 2.062 2.062 0 0 1 0 4.125zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0z"/>
+            </svg>
+          </a>
+          <a
+            class="site-footer-link site-footer-icon app-link"
+            href="https://x.com/DataTalksClub"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="DataTalks.Club on X (opens in a new tab)"
+            title="X"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932zM17.61 20.644h2.039L6.486 3.24H4.298z"/>
+            </svg>
+          </a>
+          <a
+            class="site-footer-link site-footer-icon app-link"
+            href="https://www.youtube.com/@DataTalksClub"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="DataTalks.Club on YouTube (opens in a new tab)"
+            title="YouTube"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12z"/>
+            </svg>
+          </a>
+          <a
+            class="site-footer-link site-footer-icon site-footer-github app-link"
+            href="https://github.com/DataTalksClub"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="DataTalks.Club on GitHub (opens in a new tab)"
+            title="GitHub"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+          </a>
+        </nav>
+      </div>
+
       <nav class="site-footer-nav" aria-label="Footer">
         {% for group in primary_navigation_groups %}
           <div class="site-footer-column">
@@ -50,83 +107,25 @@
       </nav>
     </div>
 
-    <div class="site-footer-identity">
-      <span class="site-footer-brand">
-        <span class="site-footer-name">DataTalks.Club</span>
-        <span class="site-footer-tagline">Free courses to learn data.</span>
-      </span>
-    </div>
-
-    <nav class="site-footer-legal" aria-label="Legal">
-      <a class="site-footer-legal-control app-link" href="/terms">
-        Terms of Service
-      </a>
-      <a class="site-footer-legal-control app-link" href="/privacy">
-        Privacy Policy
-      </a>
-      <button
-        type="button"
-        class="site-footer-legal-control site-footer-preferences app-link interactive-lift"
-        data-analytics-preferences-open
-        aria-haspopup="dialog"
-        aria-controls="analytics-preferences-dialog"
-      >
-        Analytics preferences
-      </button>
-      <a class="site-footer-legal-control app-link" href="/impressum">
-        Impressum
-      </a>
-    </nav>
-
-    <div class="site-footer-runtime">
-      <nav class="site-footer-social" aria-label="DataTalks.Club elsewhere">
-        <a
-          class="site-footer-link site-footer-icon app-link"
-          href="https://www.linkedin.com/company/datatalks-club/"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="DataTalks.Club on LinkedIn (opens in a new tab)"
-          title="LinkedIn"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-2.354 3.37-2.354 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.125 2.062 2.062 0 0 1 0 4.125zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0z"/>
-          </svg>
+    <div class="site-footer-base">
+      <nav class="site-footer-legal" aria-label="Legal">
+        <a class="site-footer-legal-control app-link" href="/terms">
+          Terms of Service
         </a>
-        <a
-          class="site-footer-link site-footer-icon app-link"
-          href="https://x.com/DataTalksClub"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="DataTalks.Club on X (opens in a new tab)"
-          title="X"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932zM17.61 20.644h2.039L6.486 3.24H4.298z"/>
-          </svg>
+        <a class="site-footer-legal-control app-link" href="/privacy">
+          Privacy Policy
         </a>
-        <a
-          class="site-footer-link site-footer-icon app-link"
-          href="https://www.youtube.com/@DataTalksClub"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="DataTalks.Club on YouTube (opens in a new tab)"
-          title="YouTube"
+        <button
+          type="button"
+          class="site-footer-legal-control site-footer-preferences app-link"
+          data-analytics-preferences-open
+          aria-haspopup="dialog"
+          aria-controls="analytics-preferences-dialog"
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12z"/>
-          </svg>
-        </a>
-        <a
-          class="site-footer-link site-footer-icon site-footer-github app-link"
-          href="https://github.com/DataTalksClub"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="DataTalks.Club on GitHub (opens in a new tab)"
-          title="GitHub"
-        >
-          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-          </svg>
+          Analytics preferences
+        </button>
+        <a class="site-footer-legal-control app-link" href="/impressum">
+          Impressum
         </a>
       </nav>
       <a

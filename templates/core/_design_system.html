@@ -2165,48 +2165,71 @@ Rules for editing:
         color: var(--muted);
       }
 
-      /* The footer is one deliberate strip at the masthead's own shell width:
-         the brand on the left and the legal row on the right, with the build
-         line (source link and version) under a dashed rule.  Narrow screens
-         stack the three groups, left-aligned like the rest of the page. */
+      /* The footer is one block at the masthead's own shell width.  On wide
+         screens the identity (brand, tagline, social icons) sits on the left
+         and the link groups sit compactly on the right; one quiet rule
+         separates them from the base line, where the legal links and the
+         version share a row.  Narrow screens stack the identity over a
+         two-column grid of link groups. */
       .site-footer {
         border-top: 2px dashed var(--line-soft);
       }
 
       .site-footer-inner {
-        align-items: center;
-        display: grid;
-        gap: var(--space-2) var(--space-6);
-        grid-template-areas:
-          "sections"
-          "identity"
-          "legal"
-          "runtime";
-        padding-block: var(--space-5) var(--space-4);
+        --footer-mark: 1.25rem;
+        --footer-target: 2.75rem;
+        padding-block: var(--space-7) var(--space-5);
       }
 
-      /* Section columns above the brand strip: two to a row on phones, one row
-         of four from 48rem. */
-      .site-footer-sections {
-        border-bottom: 2px dashed var(--line-soft);
-        grid-area: sections;
-        margin-bottom: var(--space-2);
-        padding-bottom: var(--space-4);
+      .site-footer-main {
+        display: grid;
+        gap: var(--space-6);
+        padding-bottom: var(--space-6);
+      }
+
+      .site-footer-identity {
+        display: grid;
+        gap: var(--space-1);
+        justify-items: start;
+        min-width: 0;
+      }
+
+      .site-footer-name {
+        color: var(--ink);
+        font-size: 1.15rem;
+        font-weight: 800;
+        letter-spacing: -0.015em;
+        line-height: 1.2;
+        margin: 0;
+      }
+
+      .site-footer-tagline {
+        color: var(--muted);
+        font-size: 0.92rem;
+        margin: 0;
+      }
+
+      /* Each icon keeps its 2.75rem target; the row's negative inline-start
+         margin pulls the first target out so the drawn mark, not its
+         invisible box, lines up with the brand above it. */
+      .site-footer-social {
+        display: flex;
+        flex-wrap: wrap;
+        margin-block-start: var(--space-2);
+        margin-inline-start: calc((var(--footer-mark) - var(--footer-target)) / 2);
       }
 
       .site-footer-nav {
         display: grid;
-        gap: var(--space-4) var(--space-5);
+        gap: var(--space-5) var(--space-5);
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .site-footer-heading {
-        color: var(--ink);
-        font-size: 0.78rem;
-        font-weight: 800;
-        letter-spacing: 0.06em;
+        color: var(--muted);
+        font-size: 0.85rem;
+        font-weight: 700;
         margin: 0 0 var(--space-1);
-        text-transform: uppercase;
       }
 
       .site-footer-list {
@@ -2215,92 +2238,66 @@ Rules for editing:
         padding: 0;
       }
 
-      .site-footer-nav-link {
-        color: var(--indigo);
-        display: inline-flex;
+      .site-footer .site-footer-nav-link {
         align-items: center;
-        font-size: 0.92rem;
+        color: var(--ink);
+        display: inline-flex;
+        font-size: 0.95rem;
+        font-weight: 600;
         min-height: 2.75rem;
+        text-decoration: none;
+      }
+
+      .site-footer .site-footer-nav-link:hover,
+      .site-footer .site-footer-nav-link:focus-visible {
+        color: var(--indigo);
         text-decoration: underline;
-        text-underline-offset: 0.18em;
+        text-underline-offset: 0.2em;
       }
 
       @media (min-width: 48rem) {
-        .site-footer-nav {
-          grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+        .site-footer-main {
+          align-items: start;
+          grid-template-columns: minmax(0, 1fr) auto;
         }
 
-        .site-footer-nav-link {
+        .site-footer-nav {
+          column-gap: var(--space-7);
+          grid-template-columns: repeat(4, auto);
+        }
+
+        .site-footer .site-footer-nav-link {
           min-height: 2rem;
         }
       }
 
-      .site-footer-identity {
-        grid-area: identity;
-        min-width: 0;
-      }
-
-      .site-footer-brand {
-        align-items: baseline;
-        display: inline-flex;
-        flex-wrap: wrap;
-        gap: 0.15rem var(--space-2);
-      }
-
-      .site-footer-name {
-        color: var(--ink);
-        font-weight: 800;
-      }
-
-      .site-footer-tagline {
-        color: var(--muted);
-        font-size: 0.92rem;
-      }
-
-      /* The meta row sits on the same two edges as the row above it: the
-         community's icon links start where the brand starts, and the version
-         ends where the legal links end.  Each icon keeps its 2.75rem target;
-         the row's negative inline-start margin pulls the first target out so
-         the drawn mark, not its invisible box, sits on the edge, the same way
-         the legal row pulls its own link padding out. */
-      .site-footer-runtime {
-        --footer-mark: 1.25rem;
-        --footer-target: 2.75rem;
+      /* The base line: legal links on the left, the version on the right,
+         under the footer's one rule. */
+      .site-footer-base {
         align-items: center;
-        border-top: 2px dashed var(--line-soft);
+        border-top: 1px solid var(--line-soft);
         display: flex;
         flex-wrap: wrap;
-        gap: 0 var(--space-4);
-        grid-area: runtime;
+        gap: var(--space-2) var(--space-5);
         justify-content: space-between;
-        min-width: 0;
-        padding-top: var(--space-1);
-      }
-
-      /* Under text zoom the icons and the version wrap rather than widen the
-         page. */
-      .site-footer-social {
-        display: flex;
-        flex-wrap: wrap;
-        margin-inline-start: calc((var(--footer-mark) - var(--footer-target)) / 2);
+        padding-top: var(--space-3);
       }
 
       .site-footer-legal {
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        font-size: 0.88rem;
-        gap: 0 var(--space-4);
-        grid-area: legal;
+        font-size: 0.85rem;
+        gap: 0 var(--space-3);
         margin-inline: calc(var(--space-2) * -1);
       }
 
-      .site-footer-legal-control {
+      .site-footer .site-footer-legal-control {
         align-items: center;
         background: transparent;
         border: 0;
         border-radius: 0.25rem;
-        color: var(--indigo);
+        color: var(--muted);
         display: inline-flex;
         font: inherit;
         line-height: 1.3;
@@ -2308,40 +2305,29 @@ Rules for editing:
         min-height: 2.75rem;
         padding: var(--space-2) var(--space-2);
         text-align: left;
+        text-decoration: none;
+      }
+
+      .site-footer .site-footer-legal-control:hover,
+      .site-footer .site-footer-legal-control:focus-visible {
+        color: var(--ink);
         text-decoration: underline;
-        text-underline-offset: 0.18em;
+        text-underline-offset: 0.2em;
       }
 
       .site-footer-preferences {
         cursor: pointer;
       }
 
-      @media (min-width: 48rem) {
-        .site-footer-inner {
-          grid-template-areas:
-            "sections sections"
-            "identity legal"
-            "runtime runtime";
-          grid-template-columns: minmax(0, 1fr) auto;
-        }
-
-        .site-footer-legal {
-          justify-content: flex-end;
-          margin-inline: 0 calc(var(--space-2) * -1);
-        }
-      }
-
       /* The version is the link to the code that built this page: the exact
          commit for a release, the repository for a local build. */
       .footer-version {
         color: var(--muted);
-        flex: 1 1 6rem;
         font-family: var(--font-mono);
         font-size: 0.72rem;
         min-width: 0;
         position: relative;
         overflow-wrap: anywhere;
-        text-align: end;
         text-decoration: none;
       }
 

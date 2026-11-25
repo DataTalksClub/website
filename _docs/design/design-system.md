@@ -913,11 +913,14 @@ styled by the partial, and their **markup is shared too**:
 </body>
 ```
 
-**The footer** is one strip at the masthead's shell width: the brand and tagline on
-the left, the legal row (Terms, Privacy, Analytics preferences, Impressum) on the
-right, and the build line (source link and version) under a dashed rule; below 48rem
-the three groups stack, left-aligned. It carries no Academy links — the site-wide
-Academy stripe above it is the Academy route.
+**The footer** is one block at the masthead's shell width: an identity block on the
+left (brand, tagline, social icons) and the link groups compact on the right (muted
+sentence-case headings, links without an underline until hover); one quiet rule, then
+the base line with the legal row (Terms, Privacy, Analytics preferences, Impressum)
+and the version. Analytics preferences is a `<button>` drawn and behaving exactly like
+the legal links beside it — no `interactive-lift`. Below 48rem the identity stacks over
+a two-column grid of link groups. It carries no Academy links — the site-wide Academy
+stripe above it is the Academy route.
 
 **The analytics choice** is one `<dialog>` in two states. While nothing is chosen it is
 a non-modal consent banner fixed to the viewport foot, never part of the page flow;

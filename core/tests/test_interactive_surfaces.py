@@ -27,6 +27,9 @@ CONTROL_CLASSES = {
     "site-navigation-toggle",
     "user-menu-toggle",
 }
+# A button drawn as a text link among other text links (the footer's Analytics
+# preferences control) behaves exactly like those links: no lift.
+TEXT_LINK_BUTTON_CLASSES = {"site-footer-legal-control"}
 
 
 class InteractiveSurfaceContractTests(SimpleTestCase):
@@ -50,10 +53,22 @@ class InteractiveSurfaceContractTests(SimpleTestCase):
         missing: list[str] = []
         for path, source in self.template_sources():
             for match in re.finditer(r"<button\b[^>]*>", source, flags=re.DOTALL):
+                classes = re.search(r'class="([^"]+)"', match.group(0))
+                if classes and set(classes.group(1).split()) & TEXT_LINK_BUTTON_CLASSES:
+                    continue
                 if "interactive-lift" not in match.group(0):
                     relative = path.relative_to(REPOSITORY_ROOT)
                     missing.append(str(relative))
         self.assertEqual(missing, [])
+
+    def test_footer_analytics_preferences_is_a_plain_text_link_button(self) -> None:
+        source = (REPOSITORY_ROOT / "templates/core/_site_footer.html").read_text(encoding="utf-8")
+        button = re.search(r"<button\b[^>]*data-analytics-preferences-open[^>]*>", source, re.S)
+        assert button is not None, "the footer's Analytics preferences button is missing"
+        classes = re.search(r'class="([^"]+)"', button.group(0))
+        assert classes is not None
+        self.assertIn("site-footer-legal-control", classes.group(1).split())
+        self.assertNotIn("interactive-lift", classes.group(1).split())
 
     def test_whole_card_destinations_use_lift_and_bottom_right_indicator(self) -> None:
         for path, source in self.template_sources():

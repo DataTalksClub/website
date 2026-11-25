@@ -67,7 +67,7 @@ def _assert_no_horizontal_overflow(page: Page) -> None:
 
 
 def _assert_footer_runtime_alignment(page: Page) -> None:
-    runtime = page.locator(".site-footer-runtime")
+    runtime = page.locator(".site-footer-base")
     github_box = runtime.locator(".site-footer-github").bounding_box()
     version_box = runtime.locator(".footer-version").bounding_box()
     assert github_box is not None
