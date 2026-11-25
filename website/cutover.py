@@ -10,6 +10,7 @@ from django.http import (
 )
 from django.middleware.clickjacking import XFrameOptionsMiddleware
 from django.middleware.security import SecurityMiddleware
+from django.urls import Resolver404, resolve
 
 from core.cache_policy import ROUTE_CACHE_CLASSES, SHAREABLE_CACHE_CLASSES
 from core.middleware import (
@@ -26,7 +27,15 @@ def _public_success(request, response):
         part.partition("=")[0].strip().lower()
         for part in response.get("Cache-Control", "").split(",")
     }
-    view = _resolved_view_path(getattr(request, "resolver_match", None))
+    match = getattr(request, "resolver_match", None)
+    if match is None:
+        # An anonymous page-cache hit returns before Django resolves the URL,
+        # so resolve it here; otherwise cached public pages stay noindex.
+        try:
+            match = resolve(request.path_info)
+        except Resolver404:
+            match = None
+    view = _resolved_view_path(match)
     return (
         request.method in {"GET", "HEAD"}
         and response.status_code == 200
