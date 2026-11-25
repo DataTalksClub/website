@@ -81,6 +81,11 @@ BACKEND_TEST_PATTERNS = (
 BACKEND_PATTERN_EXCEPTIONS: dict[Path, frozenset[str]] = {
     # Slack approval/ban/redemption share a transaction lock. PostgreSQL locks
     # the graph row; SQLite serializes committed writers at database level.
+    # Event publish serializes on the event row. community_base's own publish
+    # step locks with an outer join (FOR UPDATE over event_series) that
+    # PostgreSQL refuses; this one locks the row alone, and SQLite serializes
+    # the transaction at database level.
+    Path("events/admin_services.py"): frozenset({"select_for_update"}),
     Path("slack_access/services.py"): frozenset({"select_for_update"}),
     Path("slack_access/monitoring.py"): frozenset({"select_for_update"}),
     Path("slack_access/management_services.py"): frozenset({"select_for_update"}),
