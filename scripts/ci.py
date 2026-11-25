@@ -171,6 +171,14 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/views/project_gallery_groups.py",
     # Homework stepper navigation (answered-step marks).
     "courses/templatetags/homework_steps_nav.py",
+    # Learner attempt flow, homework states, project criteria and the
+    # cohort.yaml projects import.
+    "courses/services/attempt_flow.py",
+    "courses/views/homework_states.py",
+    "courses/views/project_criteria.py",
+    "courses/tests/test_cohort_projects_import.py",
+    "courses/tests/test_homework_learner_state.py",
+    "courses/templatetags/attempt_rail.py",
     "courses/views/site_project_gallery.py",
     "scripts/dev/check_course_illustrations.py",
     "scripts/tests/test_check_course_illustrations.py",

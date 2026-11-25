@@ -47,11 +47,9 @@ def learner_homework_states(user, course, homeworks) -> dict:
     questions_by_homework = defaultdict(list)
     for question in Question.objects.filter(homework__in=homeworks).order_by("id"):
         questions_by_homework[question.homework_id].append(question)
-    submissions = {}
-    for submission in Submission.objects.filter(student=user, homework__in=homeworks).order_by(
-        "id"
-    ):
-        submissions.setdefault(submission.homework_id, submission)
+    submissions: dict[int, Submission] = {}
+    for row in Submission.objects.filter(student=user, homework__in=homeworks).order_by("id"):
+        submissions.setdefault(row.homework_id, row)
     answers_by_submission = defaultdict(list)
     for answer in Answer.objects.filter(submission__in=list(submissions.values())):
         answers_by_submission[answer.submission_id].append(answer)

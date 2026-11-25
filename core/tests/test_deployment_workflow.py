@@ -188,7 +188,10 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # The 2026-11-25 prod-ingest plan enrolls scripts.prod.import_event_backfill and
 # its test in strict mypy (configuration only, no dependency change).
 # The community-base pin moves to v0.5.39 (learner attempt flow, review autosave).
-STUDIO_COURSES_PYPROJECT_SHA256 = "43fefffc3a99cba4fbe46c1f424625b727577a6ea497c353e0c5e88061f265de"
+# CI unblock 2026-11-25 enrolls courses.services.attempt_flow, courses.views.homework_states,
+# courses.views.project_criteria, courses.templatetags.attempt_rail and two tests
+# in strict mypy (configuration only).
+STUDIO_COURSES_PYPROJECT_SHA256 = "106b5be2a53a5f63098f5a9888256564acf32a05141c18d4b76e8b36eec9cded"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation

@@ -906,7 +906,7 @@ class AcademyTemplateContractTests(SimpleTestCase):
     def test_templates_stay_readable(self) -> None:
         from core.accessibility_registry import template_readability_issues
 
-        failures = []
+        failures: list[str] = []
         for path in sorted((REPOSITORY_ROOT / "academy/templates/academy").glob("*.html")):
             failures.extend(
                 f"{path.name}:{issue}" for issue in template_readability_issues(path.read_text())
