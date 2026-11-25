@@ -16,7 +16,8 @@ profiles (see the last row); its README and PR template say so. `_data/events.ya
 | Academy pages and the Hireable With AI landing/sessions page | PR to `DataTalksClub/content`: `academy/*.md` (session dates live in `academy/sessions.md` front matter) | Content Sync |
 | `/slack` page copy | PR to `DataTalksClub/content`: `slack.yaml` | Content Sync |
 | Sponsors | Website database, Studio `/studio/sponsors/` (staff sign-in) | Live at once |
-| Header announcement banner, navigation | Website repository (`DataTalksClub/website`): reviewed template change | Normal website deploy |
+| Header announcement banner | Studio `/studio/settings` (`site.announcement.enabled` and `site.announcement.message`, one safe line) | Live at once |
+| Navigation | Website repository (`DataTalksClub/website`): reviewed template change | Normal website deploy |
 | Course content | The course repositories registered on the website (see [course content push and pull](runbooks/course-content-push-and-pull.md)) | Course repository sync |
 | Newsletter | Authored in the newsletter tool (Relay/Datamailer), not in any website repository | Not part of the website |
 | People (speaker/author profiles) | Interim: `_people/<short>.md` + `images/authors/<short>.jpg` in the old repository, plus `dtc events speakers create` for the event system | Content Sync of `dtc-main-site` (now on the same ten-minute schedule); moving this into `DataTalksClub/content` is tracked as a follow-up |
