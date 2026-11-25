@@ -159,9 +159,8 @@
          group a page shows (a table, a form, a set of facts). */
       .admin-section {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         display: grid;
         gap: var(--space-4);
         padding: var(--space-5);
@@ -226,7 +225,7 @@
       }
 
       .admin-table thead th {
-        border-bottom: 2px dashed var(--line-soft);
+        border-bottom: var(--rule);
         color: var(--body-text);
         font-family: var(--font-mono);
         font-size: 0.66rem;
@@ -238,7 +237,7 @@
       }
 
       .admin-table td {
-        border-bottom: 1.5px dashed var(--line-soft);
+        border-bottom: var(--rule);
       }
 
       .admin-table tbody tr:last-child td {
@@ -289,8 +288,8 @@
          Inline literals inside running copy stay on the system's .mono-code. */
       .admin-code {
         background: var(--lavender);
-        border: 1.5px solid var(--line-soft);
-        border-radius: 0.5rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-control);
         color: var(--ink);
         display: block;
         font-family: var(--font-mono);
@@ -319,8 +318,8 @@
       }
 
       .admin-fieldset {
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         display: grid;
         gap: var(--space-3);
         padding: var(--space-4) var(--space-4);
@@ -381,8 +380,8 @@
          --sand clears 4.5:1 in both themes), never by colour alone. */
       .a11y-error-summary {
         background: var(--sand);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         color: var(--ink);
         margin-block: var(--space-4);
         max-width: 48rem;
@@ -421,8 +420,8 @@
        * apart by their label. */
       .admin-notice {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-media);
         color: var(--body-text);
         display: grid;
         gap: var(--space-1);
@@ -452,8 +451,8 @@
 
       /* --- empty state and pagination ----------------------------------- */
       .admin-empty {
-        border: 2px dashed var(--line-soft);
-        border-radius: 0.9rem;
+        border: var(--border-quiet);
+        border-radius: var(--radius-media);
         color: var(--body-text);
         padding: var(--space-6) var(--space-4);
         text-align: center;
@@ -480,8 +479,8 @@
       .admin-menu-toggle {
         align-items: center;
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.6rem;
+        border: var(--border-strong);
+        border-radius: var(--radius-control);
         color: var(--ink);
         cursor: pointer;
         display: inline-flex;
@@ -499,9 +498,9 @@
 
       .admin-menu-panel {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.7rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
+        box-shadow: var(--shadow-popover);
         display: grid;
         gap: 0.15rem;
         inset-inline-end: 0;
@@ -521,7 +520,7 @@
         align-items: center;
         background: none;
         border: 0;
-        border-radius: 0.45rem;
+        border-radius: var(--radius-sm);
         color: var(--ink);
         cursor: pointer;
         display: flex;
