@@ -87,16 +87,19 @@ class SponsorArticleChartTests(TestCase):
         for title in ("Roles", "Seniority", "Geography"):
             with self.subTest(chart=title):
                 self.assertIn(f'<p class="prose-chart-title">{title}</p>', body)
+        # The source drew three of them as pies: they are donuts again, each
+        # value named in the drawing's accessible name and shown in its legend.
+        self.assertEqual(body.count('class="prose-chart-donut"'), 3)
         self.assertIn(
-            'aria-label="Roles. Horizontal bar chart of 6 answers by share of respondents; '
-            'highest: Data engineering, 28.5%."',
+            'aria-label="Roles. Pie chart of 6 answers: Data engineering, 28.5%; '
+            "Data science &amp; ML, 26.8%;",
             body,
         )
-        # Every value is both drawn and read out by the hidden table.
-        self.assertEqual(body.count(">28.5%</text>"), 1)
-        self.assertIn('<th scope="row">Senior individual contributors</th>', body)
-        self.assertIn("<td>40.6%</td>", body)
-        # A count is not a share.
+        self.assertIn('<span class="prose-chart-legend-value">40.6%</span>', body)
+        # A caption that only repeated the numbers is gone; one that adds a fact
+        # stays, under the card.
+        self.assertIn("<figcaption>Members come from more than 65 countries.</figcaption>", body)
+        # A count is not a share, and a chart the source drew as bars stays bars.
         self.assertIn(">117</text>", body)
         self.assertNotIn(">117%", body)
         self.assertNotIn("Chart unavailable.", body)

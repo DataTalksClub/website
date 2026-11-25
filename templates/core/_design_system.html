@@ -73,6 +73,18 @@ Rules for editing:
            enough to read as grey (checked with the dataviz palette validator
            against --card in each theme). */
         --chart-bar: var(--indigo);
+        /* The answers of a pie chart, in fixed order: the brand indigo, green,
+           plum, clay and teal, each a step deep enough to hold 3:1 on the card,
+           and a neutral for "Other" and anything past five.  Checked with the
+           dataviz palette validator (adjacent CVD separation >= 8) against
+           --card in each theme; the legend names every answer, so no tone
+           carries identity alone. */
+        --chart-tone-1: var(--chart-bar);
+        --chart-tone-2: #3a9a47;
+        --chart-tone-3: #9b5fb5;
+        --chart-tone-4: #d06a5e;
+        --chart-tone-5: #0e93a8;
+        --chart-tone-rest: #b9bfd8;
         --font-sans: "Quicksand", ui-rounded, "Segoe UI", system-ui, -apple-system,
           BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
         --shell: 76rem;
@@ -209,6 +221,8 @@ Rules for editing:
         --page: #222530;
         --chart-ground: #f7f7f5;
         --chart-bar: #7f88e6;
+        --chart-tone-1: #7f88e6;
+        --chart-tone-rest: #6f7690;
         --lavender-deep: #333a54;
         --sand: #33302b;
         --olive: #e2d3a6;
@@ -4804,15 +4818,16 @@ Rules for editing:
         margin-top: var(--space-2);
       }
 
-      /* A survey chart in a body: a framed block like a table — its own card
-         surface inside a soft 2px border — holding the chart's title, the bars
-         (one indigo series, labels in body ink, values in ink on tabular
-         digits) and the source caption.  The drawing is inline SVG built from
-         typed data; see templates/public/_prose_blocks.html. */
-      /* The figure contains its hidden data table: a table cannot be squeezed
-         to the 1px .sr-only box, so without a positioned, clipping figure the
+      /* A survey chart in a body: a framed card like a table — its own card
+         surface inside a soft 2px border — holding the chart's title and the
+         bars (one indigo series, labels in body ink, values in ink on tabular
+         digits).  The source caption sits under the card, outside the frame,
+         styled like any image's figcaption.  The drawing is inline SVG built
+         from typed data; see templates/public/_prose_blocks.html. */
+      /* The card contains the hidden data table: a table cannot be squeezed
+         to the 1px .sr-only box, so without a positioned, clipping card the
          table's own width widened the whole page. */
-      .prose-chart {
+      .prose-chart-card {
         background: var(--card);
         border: 2px solid var(--line-soft);
         border-radius: 0.7rem;
@@ -4847,6 +4862,73 @@ Rules for editing:
 
       .prose-chart-bar {
         fill: var(--chart-bar);
+      }
+
+      /* A source pie, drawn as a donut beside its legend; the legend drops
+         under the donut when the card is narrow (two charts to a row, or a
+         phone).  A 2px card-coloured edge separates the wedges. */
+      .prose-chart-pie {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-4) var(--space-6);
+        justify-content: center;
+      }
+
+      .prose-chart-donut {
+        display: block;
+        flex: 0 0 auto;
+        height: 9rem;
+        width: 9rem;
+      }
+
+      .prose-chart-slice {
+        stroke: var(--card);
+        stroke-linejoin: round;
+        stroke-width: 1.2;
+      }
+
+      .prose-chart-tone-1 { fill: var(--chart-tone-1); background: var(--chart-tone-1); }
+      .prose-chart-tone-2 { fill: var(--chart-tone-2); background: var(--chart-tone-2); }
+      .prose-chart-tone-3 { fill: var(--chart-tone-3); background: var(--chart-tone-3); }
+      .prose-chart-tone-4 { fill: var(--chart-tone-4); background: var(--chart-tone-4); }
+      .prose-chart-tone-5 { fill: var(--chart-tone-5); background: var(--chart-tone-5); }
+      .prose-chart-tone-rest { fill: var(--chart-tone-rest); background: var(--chart-tone-rest); }
+
+      .prose .prose-chart-legend {
+        display: grid;
+        flex: 1 1 12rem;
+        font-size: 0.85rem;
+        max-width: 24rem;
+        gap: var(--space-1);
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .prose .prose-chart-legend li {
+        align-items: baseline;
+        display: flex;
+        gap: var(--space-2);
+        margin: 0;
+      }
+
+      .prose-chart-swatch {
+        border-radius: 3px;
+        flex: 0 0 auto;
+        height: 0.7rem;
+        width: 0.7rem;
+      }
+
+      .prose-chart-legend-label {
+        color: var(--body-text);
+        flex: 1 1 auto;
+      }
+
+      .prose-chart-legend-value {
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
       }
 
       .prose hr {

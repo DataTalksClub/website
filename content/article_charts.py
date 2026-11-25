@@ -18,10 +18,18 @@ Bars keep the author's order: several charts are ordinal (team sizes, how long
 someone has used a tool, a model count), and the rest were written largest
 first.  The longest bar spans ``BAR_SPAN`` percent of the width, which leaves
 room for its value label on a phone-width column.
+
+A chart the source drew as a pie (``shape: "pie"``) is drawn as a donut again,
+with a legend of every answer and its value beside it, as long as its values
+make one whole (they add up to about 100%).  A multiple-choice question whose
+shares add up to well over 100% was never a whole, so it keeps the bars.  The
+first ``PIE_TONES`` answers take the chart palette in order; an "Other" answer
+and any answer past those take the neutral tone, never a generated hue.
 """
 
 from __future__ import annotations
 
+import math
 import textwrap
 from dataclasses import dataclass
 from typing import Any
@@ -53,6 +61,27 @@ class ChartBar:
     width: str
 
 
+# A pie is drawn only when its shares make one whole, give or take rounding.
+PIE_WHOLE = (97.0, 103.0)
+# Categorical tones a pie can use before the rest go neutral.
+PIE_TONES = 5
+# Donut geometry in viewBox units (the drawing is 100 x 100).
+PIE_OUTER = 50.0
+PIE_INNER = 30.0
+
+
+@dataclass(frozen=True, slots=True)
+class ChartSlice:
+    """One answer of a pie: its wedge path and its legend entry."""
+
+    label: str
+    value_text: str
+    # SVG path data in the 100 x 100 viewBox; empty for a zero share.
+    path: str
+    # "1".."PIE_TONES", or "rest" for the neutral tone.
+    tone: str
+
+
 @dataclass(frozen=True, slots=True)
 class ArticleChart:
     """A survey chart as the page draws it."""
@@ -63,16 +92,25 @@ class ArticleChart:
     bars: tuple[ChartBar, ...]
     height: int
     bar_height: int = BAR_HEIGHT
+    shape: str = "bar"
+    slices: tuple[ChartSlice, ...] = ()
 
     @property
     def summary(self) -> str:
-        """The chart's accessible name: what it shows and where it peaks."""
+        """The chart's accessible name: what it shows and where it peaks.
 
-        top = max(self.bars, key=lambda bar: _number(bar.value_text))
-        measure = "share of respondents" if self.unit == "percent" else "respondents"
+        A pie names every answer with its value: its legend is drawn for the
+        eye, so the drawing's name is where a screen reader hears the numbers.
+        """
+
         title = self.title or "Survey chart"
         if not title.endswith((".", "?", "!")):
             title += "."
+        if self.shape == "pie":
+            answers = "; ".join(f"{part.label}, {part.value_text}" for part in self.slices)
+            return f"{title} Pie chart of {len(self.slices)} answers: {answers}."
+        top = max(self.bars, key=lambda bar: _number(bar.value_text))
+        measure = "share of respondents" if self.unit == "percent" else "respondents"
         return (
             f"{title} Horizontal bar chart of {len(self.bars)} answers by {measure}; "
             f"highest: {top.label}, {top.value_text}."
@@ -104,6 +142,19 @@ def chart_view(block: dict[str, Any]) -> ArticleChart | None:
         rows.append((label, value))
     if not rows:
         return None
+    caption = str(block.get("caption") or "")
+    title = str(block.get("title") or "")
+    total = sum(value for _, value in rows)
+    if block.get("shape") == "pie" and unit == "percent" and PIE_WHOLE[0] <= total <= PIE_WHOLE[1]:
+        return ArticleChart(
+            title=title,
+            caption=caption,
+            unit=unit,
+            bars=(),
+            height=0,
+            shape="pie",
+            slices=_pie_slices(rows, total, unit),
+        )
     largest = max(value for _, value in rows) or 1
     bars: list[ChartBar] = []
     top = 0
@@ -124,9 +175,51 @@ def chart_view(block: dict[str, Any]) -> ArticleChart | None:
         )
         top = bar_y + BAR_HEIGHT + ROW_GAP
     return ArticleChart(
-        title=str(block.get("title") or ""),
-        caption=str(block.get("caption") or ""),
+        title=title,
+        caption=caption,
         unit=unit,
         bars=tuple(bars),
         height=top - ROW_GAP + 2,
     )
+
+
+def _point(radius: float, turn: float) -> str:
+    # ``turn`` is a fraction of the circle, clockwise from twelve o'clock.
+    angle = 2 * math.pi * turn - math.pi / 2
+    return f"{50 + radius * math.cos(angle):.3f} {50 + radius * math.sin(angle):.3f}"
+
+
+def _wedge(start: float, end: float) -> str:
+    """Return the donut segment from ``start`` to ``end`` (fractions of a turn)."""
+
+    if end - start >= 0.9999:
+        # A full ring cannot be one arc; draw it as two halves.
+        return _wedge(0.0, 0.5) + " " + _wedge(0.5, 1.0)
+    large = 1 if end - start > 0.5 else 0
+    return (
+        f"M {_point(PIE_OUTER, start)} "
+        f"A {PIE_OUTER:g} {PIE_OUTER:g} 0 {large} 1 {_point(PIE_OUTER, end)} "
+        f"L {_point(PIE_INNER, end)} "
+        f"A {PIE_INNER:g} {PIE_INNER:g} 0 {large} 0 {_point(PIE_INNER, start)} Z"
+    )
+
+
+def _pie_slices(
+    rows: list[tuple[str, int | float]], total: float, unit: str
+) -> tuple[ChartSlice, ...]:
+    slices: list[ChartSlice] = []
+    used = 0
+    turn = 0.0
+    for label, value in rows:
+        if label.casefold().startswith("other") or used >= PIE_TONES:
+            tone = "rest"
+        else:
+            used += 1
+            tone = str(used)
+        share = value / total
+        path = _wedge(turn, turn + share) if share > 0 else ""
+        turn += share
+        slices.append(
+            ChartSlice(label=label, value_text=_value_text(value, unit), path=path, tone=tone)
+        )
+    return tuple(slices)

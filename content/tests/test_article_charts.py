@@ -76,6 +76,77 @@ class ChartViewTests(SimpleTestCase):
         self.assertIn('<th scope="row">Second</th>', markup)
         self.assertIn("<td>4.0%</td>", markup)
         self.assertIn("<figcaption>Most use the first one.</figcaption>", markup)
+        # The caption sits under the framed card, outside it, like an image's.
+        card_end = markup.index("</div>", markup.index('class="prose-chart-card"'))
+        self.assertLess(card_end, markup.index("<figcaption>"))
+        self.assertLess(markup.index("<figcaption>"), markup.index("</figure>"))
         self.assertNotIn("viewBox", markup)
         self.assertNotIn("prose-unavailable", markup)
         self.assertNotIn("<script", markup)
+
+
+PIE: dict[str, Any] = {
+    "kind": "chart",
+    "title": "Roles",
+    "unit": "percent",
+    "shape": "pie",
+    "bars": [
+        {"label": "Data engineering", "value": 40},
+        {"label": "Other", "value": 10},
+        {"label": "Analytics", "value": 25},
+        {"label": "Software", "value": 10},
+        {"label": "Management", "value": 5},
+        {"label": "Research", "value": 5},
+        {"label": "Students", "value": 5},
+    ],
+}
+
+
+class PieChartTests(SimpleTestCase):
+    def test_a_source_pie_that_makes_a_whole_is_drawn_as_a_donut(self) -> None:
+        chart = chart_view(PIE)
+        assert chart is not None
+
+        self.assertEqual(chart.shape, "pie")
+        self.assertEqual(chart.bars, ())
+        self.assertEqual([part.value_text for part in chart.slices][:3], ["40%", "10%", "25%"])
+        # Tones in order, "Other" neutral, and the answer past five neutral too.
+        self.assertEqual(
+            [part.tone for part in chart.slices], ["1", "rest", "2", "3", "4", "5", "rest"]
+        )
+        self.assertTrue(all(part.path.startswith("M ") for part in chart.slices))
+        self.assertEqual(
+            chart.summary,
+            "Roles. Pie chart of 7 answers: Data engineering, 40%; Other, 10%; Analytics, 25%; "
+            "Software, 10%; Management, 5%; Research, 5%; Students, 5%.",
+        )
+
+    def test_shares_that_overlap_past_a_whole_keep_the_bars(self) -> None:
+        chart = chart_view(
+            {**PIE, "bars": [{"label": "A", "value": 70}, {"label": "B", "value": 60}]}
+        )
+        assert chart is not None
+
+        self.assertEqual(chart.shape, "bar")
+        self.assertEqual(len(chart.bars), 2)
+
+    def test_a_single_whole_answer_is_a_full_ring(self) -> None:
+        chart = chart_view({**PIE, "bars": [{"label": "Yes", "value": 100}]})
+        assert chart is not None
+
+        self.assertEqual(chart.slices[0].path.count("M "), 2)
+
+    def test_rendered_pie_names_every_value_and_hides_the_visual_legend(self) -> None:
+        markup = render_to_string(
+            "public/_prose_blocks.html",
+            {"sections": prose_sections(({**PIE, "caption": "Members from 65 countries."},))},
+        )
+
+        self.assertIn('class="prose-chart-donut" viewBox="0 0 100 100" role="img"', markup)
+        self.assertIn('aria-label="Roles. Pie chart of 7 answers: Data engineering, 40%;', markup)
+        self.assertEqual(markup.count('class="prose-chart-slice'), 7)
+        self.assertIn('<ul class="prose-chart-legend" aria-hidden="true">', markup)
+        self.assertNotIn('<table class="sr-only">', markup)
+        # Both the pie row and the card close before the caption opens.
+        between = markup[markup.index("</ul>") : markup.index("<figcaption>")]
+        self.assertEqual(between.count("</div>"), 2)

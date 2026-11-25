@@ -563,7 +563,9 @@ MAX_ARTICLE_TABLE_CELLS = 400
 # (title, caption, labels, values and the unit the values are in) and the page
 # draws it as static SVG with no script.  `data-type`, `data-orientation`,
 # `data-legend`, `data-height` and `data-width` only steered the old library's
-# drawing and are not carried: every chart is drawn as labelled horizontal bars.
+# drawing and are not carried.  `data-type` is: a source pie or doughnut is
+# recorded as ``shape: "pie"`` so the page can draw it as one again; every
+# other chart is drawn as labelled horizontal bars.
 # The source writes the arrays inside single-quoted attributes and some labels
 # carry a straight apostrophe ("We don't self-host"), which ends a quoted HTML
 # attribute early; the arrays are therefore read up to their closing `]'`.
@@ -571,6 +573,9 @@ ARTICLE_CHART_ARRAY = re.compile(
     r"""\b(data-labels|data-values)[ \t\r\n]*=[ \t\r\n]*"""
     r"""(?:'(\[.*?\])'|"(\[.*?\])")(?=[ \t\r\n/>]|$)""",
     re.DOTALL | re.IGNORECASE,
+)
+ARTICLE_CHART_TYPE = re.compile(
+    r"""\bdata-type[ \t\r\n]*=[ \t\r\n]*(?:"([^"]*)"|'([^']*)')""", re.IGNORECASE
 )
 ARTICLE_CHART_TITLE = re.compile(
     r"""\bdata-title[ \t\r\n]*=[ \t\r\n]*(?:"([^"]*)"|'([^']*)')""", re.IGNORECASE
@@ -988,6 +993,12 @@ def _article_chart_block(
         "unit": unit,
         "bars": bars,
     }
+    type_match = ARTICLE_CHART_TYPE.search(canvas_attributes)
+    source_type = (
+        (type_match.group(1) or type_match.group(2) or "").strip().casefold() if type_match else ""
+    )
+    if source_type in {"pie", "doughnut"}:
+        block["shape"] = "pie"
     if caption_text:
         block["caption"] = caption_text
     return block

@@ -317,6 +317,7 @@ class PublicProjectionBuilderTests(TestCase):
                     {"label": "Data science & ML", "value": 26},
                     {"label": "Other", "value": 7.0},
                 ],
+                "shape": "pie",
                 "caption": "Data engineering leads the roles.",
             },
         )
@@ -335,6 +336,7 @@ class PublicProjectionBuilderTests(TestCase):
             [{"label": "We don't self-host LLMs", "value": 74.1}, {"label": "vLLM", "value": 9.4}],
         )
         self.assertNotIn("caption", block)
+        self.assertNotIn("shape", block)
 
     def test_chart_counts_above_one_hundred_are_counts_and_unlabelled_values_drop(self) -> None:
         block = builder._article_chart_block(

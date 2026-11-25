@@ -570,6 +570,7 @@
             }
           ],
           "kind": "chart",
+          "shape": "pie",
           "title": "Roles",
           "unit": "percent"
         },
@@ -601,6 +602,7 @@
             }
           ],
           "kind": "chart",
+          "shape": "pie",
           "title": "Seniority",
           "unit": "percent"
         },
@@ -631,7 +633,9 @@
               "value": 2.6
             }
           ],
+          "caption": "Members come from more than 65 countries.",
           "kind": "chart",
+          "shape": "pie",
           "title": "Geography",
           "unit": "percent"
         },
