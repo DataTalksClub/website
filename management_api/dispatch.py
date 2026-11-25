@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
+from community_base.kernel.redaction import redact
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import DatabaseError, IntegrityError, NotSupportedError, OperationalError
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -20,6 +24,49 @@ from management_registry import CAPABILITY_REGISTRY
 
 from .authentication import authenticate, authorize, mark_used
 from .errors import APIError, error_response, permission_denied, strip_cors
+
+logger = logging.getLogger(__name__)
+
+
+def _classify_unhandled_error(exc: Exception, capability_key: str) -> APIError:
+    """Turn an unexpected exception into a specific, safe APIError."""
+    exc_name = type(exc).__name__
+    if isinstance(exc, DjangoValidationError):
+        detail = "; ".join(exc.messages) if hasattr(exc, "messages") else str(exc)
+        safe = str(redact(detail))[:300]
+        return APIError(400, "validation_error", safe or "Validation failed.")
+    if isinstance(exc, NotSupportedError):
+        return APIError(
+            500,
+            "database_not_supported",
+            f"Database operation is not supported by the backend ({exc_name}) "
+            f"while executing {capability_key}.",
+        )
+    if isinstance(exc, IntegrityError):
+        return APIError(
+            409,
+            "database_integrity_error",
+            f"Database integrity constraint failed ({exc_name}) while executing {capability_key}.",
+        )
+    if isinstance(exc, OperationalError):
+        return APIError(
+            503,
+            "database_unavailable",
+            f"Database is temporarily unavailable ({exc_name}) while executing {capability_key}.",
+        )
+    if isinstance(exc, DatabaseError):
+        return APIError(
+            500,
+            "database_error",
+            f"Database error ({exc_name}) while executing {capability_key}.",
+        )
+    raw_detail = str(exc).strip()
+    safe_detail = str(redact(raw_detail))[:200] if raw_detail else ""
+    if safe_detail:
+        message = f"Unhandled {exc_name} while executing {capability_key}: {safe_detail}"
+    else:
+        message = f"Unhandled {exc_name} while executing {capability_key}."
+    return APIError(500, "internal_error", message)
 
 
 def admin_capability(
@@ -49,25 +96,32 @@ def admin_capability(
                         "The request method is not allowed.",
                         headers={"Allow": ", ".join(sorted(allowed_methods))},
                     )
-                rate_class = (
-                    APIRateAdmission.CostClass.READ
-                    if capability.admin_api.rate_class == "read"
-                    else APIRateAdmission.CostClass.WRITE
+                is_banner_continuation = (
+                    capability.key == "events.manage.banner"
+                    and request.headers.get("X-Banner-Upload-Chunk") == "1"
                 )
-                try:
-                    admit(
-                        cost_class=rate_class,
-                        cost=capability.admin_api.rate_cost,
-                        principal=identity.principal,
+                if not is_banner_continuation:
+                    rate_class = (
+                        APIRateAdmission.CostClass.READ
+                        if capability.admin_api.rate_class == "read"
+                        else APIRateAdmission.CostClass.WRITE
                     )
-                except (RateLimitExceeded, RateLimitUnavailable) as error:
-                    retry_after = error.retry_after if isinstance(error, RateLimitExceeded) else 60
-                    raise APIError(
-                        429,
-                        "rate_limited",
-                        "The management API rate limit was reached.",
-                        headers={"Retry-After": str(retry_after)},
-                    ) from error
+                    try:
+                        admit(
+                            cost_class=rate_class,
+                            cost=capability.admin_api.rate_cost,
+                            principal=identity.principal,
+                        )
+                    except (RateLimitExceeded, RateLimitUnavailable) as error:
+                        retry_after = (
+                            error.retry_after if isinstance(error, RateLimitExceeded) else 60
+                        )
+                        raise APIError(
+                            429,
+                            "rate_limited",
+                            "The management API rate limit was reached.",
+                            headers={"Retry-After": str(retry_after)},
+                        ) from error
                 request.api_identity = identity  # type: ignore[attr-defined]
                 request.management_capability = capability  # type: ignore[attr-defined]
                 response = view(request, *args, **kwargs)
@@ -131,15 +185,13 @@ def admin_capability(
                         ),
                     )
                 return error_response(request, error)
-            except Exception:
-                return error_response(
-                    request,
-                    APIError(
-                        500,
-                        "internal_error",
-                        "The management request could not be completed.",
-                    ),
+            except Exception as exc:
+                logger.exception(
+                    "Unhandled exception in management API capability=%s request_id=%s",
+                    capability_key,
+                    getattr(request, "request_id", ""),
                 )
+                return error_response(request, _classify_unhandled_error(exc, capability_key))
 
         wrapped.management_capability_key = capability_key  # type: ignore[attr-defined]
         capability = CAPABILITY_REGISTRY.get(capability_key)

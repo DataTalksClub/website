@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import csv
 import json
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,8 @@ from dtc_cli.client import get_client
 from dtc_cli.output import emit, format_csv
 
 API = "/api/v1/admin"
+# Keep each banner JSON request safely under CloudFront WAF's 8,192-byte body limit.
+BANNER_CHUNK_RAW_BYTES = 4096
 
 BANNER_MIME = {
     ".png": "image/png",
@@ -280,14 +283,43 @@ def events_upload_banner(event: str, banner_file: Path) -> None:
     mime = BANNER_MIME.get(banner_file.suffix.lower())
     if mime is None:
         raise click.UsageError("Banner file must be .png, .jpg, .jpeg, or .webp.")
-    encoded = base64.b64encode(banner_file.read_bytes()).decode("ascii")
+    raw_bytes = banner_file.read_bytes()
+    if not raw_bytes:
+        raise click.UsageError("Banner file is empty.")
     event_uuid = _resolve_event_uuid(event)
-    emit(
-        get_client().post(
-            f"{API}/events/{event_uuid}/banner",
-            json_body={"content_type": mime, "image_base64": encoded},
+    client = get_client()
+    path = f"{API}/events/{event_uuid}/banner"
+    if len(raw_bytes) <= BANNER_CHUNK_RAW_BYTES:
+        encoded = base64.b64encode(raw_bytes).decode("ascii")
+        emit(
+            client.post(
+                path,
+                json_body={"content_type": mime, "image_base64": encoded},
+            )
         )
-    )
+        return
+
+    chunks = [
+        raw_bytes[offset : offset + BANNER_CHUNK_RAW_BYTES]
+        for offset in range(0, len(raw_bytes), BANNER_CHUNK_RAW_BYTES)
+    ]
+    upload_id = str(uuid.uuid4())
+    chunk_count = len(chunks)
+    last_response: dict[str, Any] = {}
+    for index, chunk in enumerate(chunks):
+        extra_headers = {"X-Banner-Upload-Chunk": "1"} if index > 0 else None
+        last_response = client.post(
+            path,
+            json_body={
+                "upload_id": upload_id,
+                "chunk_index": index,
+                "chunk_count": chunk_count,
+                "content_type": mime,
+                "chunk_base64": base64.b64encode(chunk).decode("ascii"),
+            },
+            extra_headers=extra_headers,
+        )
+    emit(last_response)
 
 
 @events.command("export-registrants")

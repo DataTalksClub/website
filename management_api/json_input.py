@@ -25,7 +25,7 @@ def _object_from_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return value
 
 
-def parse_json_object(request: HttpRequest) -> dict[str, Any]:
+def parse_json_object(request: HttpRequest, *, max_bytes: int = MAX_JSON_BYTES) -> dict[str, Any]:
     content_type, parameters = parse_header_parameters(request.META.get("CONTENT_TYPE", ""))
     if content_type.casefold() != "application/json" or any(
         key.casefold() != "charset" or value.casefold() != "utf-8"
@@ -36,18 +36,18 @@ def parse_json_object(request: HttpRequest) -> dict[str, Any]:
         length = int(request.META.get("CONTENT_LENGTH") or 0)
     except ValueError as error:
         raise APIError(400, "invalid_request", "The request body is invalid.") from error
-    if length > MAX_JSON_BYTES:
-        raise APIError(413, "request_too_large", "The request body exceeds 65,536 bytes.")
+    if length > max_bytes:
+        raise APIError(413, "request_too_large", f"The request body exceeds {max_bytes:,} bytes.")
     try:
         raw = request.body
     except Exception as error:
         raise APIError(
             413,
             "request_too_large",
-            "The request body exceeds 65,536 bytes.",
+            f"The request body exceeds {max_bytes:,} bytes.",
         ) from error
-    if len(raw) > MAX_JSON_BYTES:
-        raise APIError(413, "request_too_large", "The request body exceeds 65,536 bytes.")
+    if len(raw) > max_bytes:
+        raise APIError(413, "request_too_large", f"The request body exceeds {max_bytes:,} bytes.")
     try:
         decoded = raw.decode("utf-8", errors="strict")
         parsed = json.loads(
@@ -55,6 +55,10 @@ def parse_json_object(request: HttpRequest) -> dict[str, Any]:
             object_pairs_hook=_object_from_pairs,
             parse_constant=lambda _value: (_ for _ in ()).throw(ValueError()),
         )
+        if max_bytes > MAX_JSON_BYTES:
+            if not isinstance(parsed, dict):
+                raise ValueError("JSON root must be an object.")
+            return parsed
         return canonical_json_object(parsed)
     except (
         UnicodeDecodeError,
