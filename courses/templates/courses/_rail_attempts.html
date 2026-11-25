@@ -1,0 +1,21 @@
+{% comment %}
+  The cohort's project attempts placed in this module, as rail rows after the
+  homework: the learner's attempt status under the title (community-base
+  attempt_flow labels), and on the attempt's own pages the row opens into its
+  steps -- Submit, Review N: <peer>, Feedback -- through the same
+  `courses/_rail_substeps.html` the homework uses.
+{% endcomment %}
+{% for row in rows %}
+  <li class="rail-unit rail-homework-step rail-attempt-step{% if row.is_current %} is-current{% endif %}" data-attempt="{{ row.project.slug }}">
+    <a class="rail-unit-link" href="{{ row.url|default:row.project_url }}"{% if row.is_current %} aria-current="page"{% endif %}>
+      <span class="read-indicator rail-homework-mark" aria-hidden="true">PR</span>
+      <span class="rail-unit-title">{{ row.project.title }}</span>
+    </a>
+    {% if row.show_status and row.status %}
+      <p class="rail-unit-status"><span class="status-pill {{ row.pill }}" data-attempt-status="{{ row.status_key }}">{{ row.status }}</span></p>
+    {% endif %}
+    {% if row.steps %}
+      {% include "courses/_rail_substeps.html" with items=row.steps label="Project steps" done_suffix=", done" testid="attempt-rail-steps" %}
+    {% endif %}
+  </li>
+{% endfor %}

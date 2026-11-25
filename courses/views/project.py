@@ -1,42 +1,38 @@
 import logging
 
-from django.http import HttpRequest
-
+from community_base.coursework.attempt_flow import SUBMIT_PAGE
+from community_base.coursework.project_forms import update_commit_action
 from django.contrib import messages
-from django.shortcuts import render, get_object_or_404, redirect
 from django.core.exceptions import ValidationError
+from django.http import HttpRequest
+from django.shortcuts import get_object_or_404, redirect, render
 
 from course_management.observability import record_event
 from courses.models.cohort import Cohort
 from courses.models.project import Project, project_yaml_criteria
-from courses.services.attempt_flow import criteria_url
 from courses.registration_wall import require_registration_approval
+from courses.services.attempt_flow import criteria_url, project_rail_context
 from courses.views.project_page_context import (
     project_accepting_submissions,
     project_build_context,
     project_context_submission,
 )
-from community_base.coursework.project_forms import update_commit_action
-from courses.services.project_form_adapter import build_project_submission_form
 from courses.views.project_submission_edit import (
     project_delete_submission,
     project_submit_form,
     project_submit_post,
 )
 from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
+
 logger = logging.getLogger(__name__)
 
 PROJECT_SUBMISSION_DELETED_MESSAGE = (
     "Your project submission is deleted. You can still make a new submission if you want."
 )
-PROJECT_SUBMISSION_SAVED_MESSAGE = (
-    "Thank you for submitting your project, it is now saved. You can update your submission at any point before the due date."
-)
+PROJECT_SUBMISSION_SAVED_MESSAGE = "Thank you for submitting your project, it is now saved. You can update your submission at any point before the due date."
 
 
-def project_login_required_response(
-    request: HttpRequest, course: Cohort, project: Project
-):
+def project_login_required_response(request: HttpRequest, course: Cohort, project: Project):
     messages.error(
         request,
         "You need to be logged in to submit a project",
@@ -49,9 +45,7 @@ def project_login_required_response(
     )
 
 
-def closed_project_submission_response(
-    request: HttpRequest, course: Cohort, project: Project
-):
+def closed_project_submission_response(request: HttpRequest, course: Cohort, project: Project):
     messages.error(
         request,
         "Project submission form is closed.",
@@ -102,9 +96,7 @@ def project_validation_failed_event(request: HttpRequest, course: Cohort, projec
             "cohort_identifier": course.identifier,
             "project_slug": project.slug,
             "project_id": project.id,
-            "error_count": sum(
-                len(messages) for messages in form.errors.values()
-            ),
+            "error_count": sum(len(messages) for messages in form.errors.values()),
         },
     )
 
@@ -154,9 +146,7 @@ def handle_project_post(request: HttpRequest, course: Cohort, project: Project):
     require_registration_approval(course, request.user)
 
     if not project_accepting_submissions(project):
-        return closed_project_submission_response(
-            request, course, project
-        )
+        return closed_project_submission_response(request, course, project)
 
     action = request.POST.get("action")
     if action == "delete":
@@ -199,9 +189,7 @@ def handle_project_post(request: HttpRequest, course: Cohort, project: Project):
 
 def project_view(request, course_slug, project_slug, cohort_identifier=None):
     course = get_cohort_or_404(course_slug, cohort_identifier)
-    project = get_object_or_404(
-        Project, course=course, slug=project_slug
-    )
+    project = get_object_or_404(Project, course=course, slug=project_slug)
 
     if request.method == "POST":
         return handle_project_post(
@@ -213,5 +201,6 @@ def project_view(request, course_slug, project_slug, cohort_identifier=None):
     context = project_build_context(request, course, project)
     if project_yaml_criteria(project):
         context["project_criteria_url"] = criteria_url(project)
+    context.update(project_rail_context(project, page=SUBMIT_PAGE))
 
     return render(request, "projects/project.html", context)

@@ -2,7 +2,7 @@ import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from community_base.coursework.attempt_flow import review_heading
+from community_base.coursework.attempt_flow import REVIEW_PAGE, review_heading
 from community_base.coursework.github_commit import github_commit_url
 from community_base.coursework.peer_review_form import evaluation_form
 from django.http import HttpRequest
@@ -15,6 +15,7 @@ from courses.models.project import (
     ReviewCriteria,
     project_yaml_criteria,
 )
+from courses.services.attempt_flow import project_rail_context
 from courses.votes import (
     PROJECT_VOTES_PER_PROJECT,
     get_project_vote_counts,
@@ -32,9 +33,7 @@ class ProjectEvalSubmitPage:
     review_criteria: Iterable[ReviewCriteria]
 
 
-def project_eval_submit_context(
-    request: HttpRequest, page: ProjectEvalSubmitPage
-):
+def project_eval_submit_context(request: HttpRequest, page: ProjectEvalSubmitPage):
     # Read-only by contract (audit BE-07): building the review page must not
     # create an enrollment.  The resolved review already carries the
     # authoritative participation relations; a missing enrollment renders
@@ -48,6 +47,9 @@ def project_eval_submit_context(
         page.review,
         page.review_criteria,
         enrollment,
+    )
+    context.update(
+        project_rail_context(page.project, page=REVIEW_PAGE, current_review_id=page.review.pk)
     )
     context["course"] = page.course
     context["course_family"] = page.course.course
@@ -102,9 +104,7 @@ def project_eval_review_context(
             responses_by_criteria_id,
         )
         yaml_form = None
-    disable_learning_in_public = project_eval_disable_learning_in_public(
-        enrollment
-    )
+    disable_learning_in_public = project_eval_disable_learning_in_public(enrollment)
     submission = review.submission_under_evaluation
 
     context = {

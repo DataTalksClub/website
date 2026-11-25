@@ -123,7 +123,7 @@ def attempt_rows(attempts: LearnerAttempts) -> list[dict]:
             reviews_url=reviews_url(project),
             when=project.submission_due_date,
         )
-        rows.append({"project": project, **row})
+        rows.append({"project": project, "project_url": submit_url(project), **row})
     return rows
 
 
@@ -150,3 +150,22 @@ def criteria_page(user, cohort) -> dict | None:
     if page is None:
         return None
     return {**page, "attempts": attempts}
+
+
+def project_rail_context(project, *, page: str, current_review_id=None) -> dict:
+    """What a project page needs to show its module rail, or nothing when unplaced."""
+    from courses.models.shared_curriculum import SharedLesson
+    from courses.services.course_context import context_query
+
+    module = project.shared_module
+    if module is None:
+        return {}
+    return {
+        "shared_project_module": module,
+        "shared_project_module_lessons": list(
+            SharedLesson.objects.filter(module=module, published=True).order_by("position", "id")
+        ),
+        "context_q": context_query(project.course),
+        "attempt_page": page,
+        "current_review_id": current_review_id,
+    }

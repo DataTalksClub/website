@@ -1,4 +1,4 @@
-{% load homework_steps_nav %}
+{% load homework_steps_nav attempt_rail %}
 {% comment %}
 "In this module" navigation for the shared, cohort-free module and lesson
 pages.
@@ -62,6 +62,9 @@ module.
             {% include "courses/_rail_substeps.html" with items=stepper|homework_nav_steps label="Homework steps" done_suffix=", answered" testid="homework-rail-steps" %}
           {% endif %}
         </li>
+      {% endif %}
+      {% if delivery_cohort %}
+        {% rail_attempts module delivery_cohort current_project attempt_page current_review_id %}
       {% endif %}
     </ol>
   {% endif %}

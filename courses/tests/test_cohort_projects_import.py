@@ -162,3 +162,52 @@ class CriteriaPageTests(TestCase):
             page,
             f'href="{reverse("cohort_project_criteria", kwargs=kwargs)}">Evaluation criteria</a>',
         )
+
+
+class AttemptRailTests(TestCase):
+    def test_project_and_review_pages_open_the_attempt_steps_in_the_module_rail(self) -> None:
+        from community_base.coursework.peer_pseudonym import peer_pseudonym
+        from django.contrib.auth import get_user_model
+        from django.urls import reverse
+
+        from courses.models import Enrollment
+        from courses.models.project import PeerReview, ProjectSubmission
+
+        import_course_repository_curriculum(make_command(project_snapshot()))
+        project = Project.objects.get(slug="project-attempt-1")
+        project.state = ProjectState.PEER_REVIEWING.value
+        project.save(update_fields=["state"])
+        users = [
+            get_user_model().objects.create_user(f"rail-{i}", f"rail-{i}@example.test", "pw")
+            for i in range(2)
+        ]
+        submissions = [
+            ProjectSubmission.objects.create(
+                project=project,
+                student=user,
+                enrollment=Enrollment.objects.create(student=user, course=project.course),
+                github_link=f"https://github.com/example/rail-{i}",
+                commit_id="1234567",
+            )
+            for i, user in enumerate(users)
+        ]
+        review = PeerReview.objects.create(
+            submission_under_evaluation=submissions[1], reviewer=submissions[0]
+        )
+        kwargs = {
+            "course_slug": project.course.course.slug,
+            "cohort_identifier": project.course.identifier,
+            "project_slug": project.slug,
+        }
+        self.client.force_login(users[0])
+        page = self.client.get(
+            reverse("cohort_projects_eval_submit", kwargs={**kwargs, "review_id": review.pk})
+        )
+        self.assertContains(page, 'data-testid="attempt-rail-steps"')
+        peer = peer_pseudonym(users[1].pk, project.course_id)
+        self.assertContains(page, 'aria-current="step"')
+        self.assertContains(page, f"Review 1: {peer}")
+        self.assertContains(page, 'data-attempt-status="review">Review 0/1</span>')
+
+        submit_page = self.client.get(reverse("cohort_project", kwargs=kwargs))
+        self.assertContains(submit_page, 'data-step-done="true"')
