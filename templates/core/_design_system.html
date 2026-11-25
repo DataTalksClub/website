@@ -2264,14 +2264,17 @@ Rules for editing:
       }
 
       @media (min-width: 48rem) {
+        /* The link groups share the row's width in equal columns, so the footer
+           reads as one band instead of a block on the left, a gap, and a
+           cluster on the right. */
         .site-footer-main {
           align-items: start;
-          grid-template-columns: minmax(0, 1fr) auto;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
         }
 
         .site-footer-nav {
-          column-gap: var(--space-7);
-          grid-template-columns: repeat(4, auto);
+          column-gap: var(--space-5);
+          grid-template-columns: repeat(4, minmax(0, 1fr));
         }
 
         .site-footer .site-footer-nav-link {
@@ -2333,6 +2336,7 @@ Rules for editing:
       .footer-version {
         color: var(--muted);
         font: inherit;
+        font-size: 0.85rem;
         line-height: 1.3;
         min-width: 0;
         position: relative;
