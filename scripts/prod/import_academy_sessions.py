@@ -34,6 +34,9 @@ campaign parameters) is not opened:
 ``sessions``         the chosen session ids (``["session-1", ...]`` or ``"a,b"``)
 ``confirmed`` / ``status == "confirmed"`` / ``confirmed_at``
                      the double opt-in; an unconfirmed row is skipped
+``unsubscribed``     true once the person used the backend's unsubscribe
+                     link; such a row is skipped
+``is_test``          the backend's own test signups; skipped
 ``name``             optional first name
 ``created_at``, ``confirmed_at``  ISO 8601 or epoch seconds, optional
 ``consent_version``  the Academy privacy-notice version the signup accepted
@@ -48,8 +51,26 @@ the signup time, and ``academy_optin`` with the consent version in
 ``acquisition_metadata`` -- and no newsletter consent, which the Academy form
 never asked for.  An address already registered for that event is left
 exactly as it is.  Nothing here sends mail: no confirmation, no
-verification.  (Reminders, where an event has them, treat these seats like
-any other confirmed seat -- the Academy form promised a reminder.)
+verification, and the site's reminders skip these seats too
+(``event_registrants.registrant_mail.IMPORTED_SOURCES`` names this source):
+the Academy backend's own scheduled reminders keep reaching the people who
+signed up there, so the site must not send a second set.
+
+The backend is the ``academy-signup-api`` Lambda with the DynamoDB table
+``academy-signups`` (eu-west-1, the main AWS account).  Session signups are
+the items with ``sk = "SOURCE#layoff_proof"``; a read-only export of the
+fields above::
+
+    aws --profile main --region eu-west-1 dynamodb scan \
+        --table-name academy-signups \
+        --filter-expression "sk = :sk" \
+        --expression-attribute-values '{":sk":{"S":"SOURCE#layoff_proof"}}' \
+        --projection-expression "email, #n, sessions, confirmed, confirmed_at, \
+created_at, unsubscribed, is_test, consent_version, academy_optin" \
+        --expression-attribute-names '{"#n":"name"}'
+
+(typed attribute values, flattened to plain JSON before this script reads
+them).
 
 Dry run by default: every change is computed inside a transaction that is
 rolled back, and the report says what ``--apply`` would write.  Replaying is
@@ -111,6 +132,8 @@ class Report:
     unresolved_sessions: dict[str, str] = field(default_factory=dict)
     signup_rows: int = 0
     signup_rows_unconfirmed: int = 0
+    signup_rows_unsubscribed: int = 0
+    signup_rows_test: int = 0
     signup_rows_without_sessions: int = 0
     signup_rows_invalid_email: int = 0
     session_selections: int = 0
@@ -132,6 +155,8 @@ class Report:
             "unresolved_sessions": self.unresolved_sessions,
             "signup_rows": self.signup_rows,
             "signup_rows_unconfirmed": self.signup_rows_unconfirmed,
+            "signup_rows_unsubscribed": self.signup_rows_unsubscribed,
+            "signup_rows_test": self.signup_rows_test,
             "signup_rows_without_sessions": self.signup_rows_without_sessions,
             "signup_rows_invalid_email": self.signup_rows_invalid_email,
             "session_selections": self.session_selections,
@@ -319,8 +344,14 @@ def _import_signups(
     now = timezone.now()
     for row in rows:
         report.signup_rows += 1
+        if _optin(row.get("is_test")):
+            report.signup_rows_test += 1
+            continue
         if not _confirmed(row):
             report.signup_rows_unconfirmed += 1
+            continue
+        if _optin(row.get("unsubscribed")):
+            report.signup_rows_unsubscribed += 1
             continue
         chosen = _session_ids(row.get("sessions"))
         if not chosen:
