@@ -1157,6 +1157,14 @@ Rules for editing:
         gap: 0.1rem;
       }
 
+      /* Until the full link row takes over at 69rem the actions sit with Menu at
+         the right end, not centred between the brand and Menu. */
+      @media (max-width: 68.99rem) {
+        .masthead-actions {
+          margin-inline-start: auto;
+        }
+      }
+
       /* One-line phone masthead.  Measured at 16px root: the full treatment (brand
          146.8 + labelled theme pill 78 + Log in 57.2 + Sign up free 102.2 + Menu
          61.4, plus gaps and shell padding) needs ~530px, so it wraps below that and
@@ -1198,6 +1206,25 @@ Rules for editing:
           display: block;
         }
 
+        /* The open panel hangs from the whole masthead row, not from the Menu
+           button: full shell width under the masthead, every group open under
+           its heading, scrolling inside itself if a short screen cannot hold it. */
+        .masthead-inner {
+          position: relative;
+        }
+
+        .site-navigation {
+          position: static;
+        }
+
+        .site-navigation-links {
+          inset-inline: var(--space-4);
+          max-height: calc(100dvh - 5.5rem);
+          min-width: 0;
+          overflow-y: auto;
+          top: calc(100% - var(--space-2));
+        }
+
         .masthead .account-nav > summary {
           padding-inline: var(--space-2);
         }
@@ -1215,11 +1242,13 @@ Rules for editing:
         }
       }
 
-      /* The compact row with the wordmark needs ~375px, so below 24rem the
-         wordmark goes visually hidden — the DTC bubble carries the brand, and the
-         link keeps its "DataTalks.Club" accessible name — leaving ~270px of row
-         at the 320px floor. */
-      @media (max-width: 23.99rem) {
+      /* The compact row with the wordmark needs ~440px since the masthead
+         action became "Create free account" (brand 141 + theme 44 + action 152 +
+         Menu 44, three gaps and the shell gutters), so below 28rem the wordmark
+         goes visually hidden — the DTC bubble carries the brand, and the link
+         keeps its "DataTalks.Club" accessible name — leaving ~330px of row, which
+         still holds at the 360px floor phones ship with. */
+      @media (max-width: 27.99rem) {
         .brand-name {
           clip: rect(0 0 0 0);
           clip-path: inset(50%);
@@ -1228,6 +1257,15 @@ Rules for editing:
           position: absolute;
           white-space: nowrap;
           width: 1px;
+        }
+      }
+
+      /* At the 320px floor the bubble-only row is still 8px too wide with the
+         ordinary gaps, so they tighten a step there. */
+      @media (max-width: 22.49rem) {
+        .masthead-inner,
+        .masthead-actions {
+          column-gap: var(--space-1);
         }
       }
 

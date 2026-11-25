@@ -72,7 +72,7 @@
   });
 
   window.addEventListener("resize", function () {
-    if (window.matchMedia("(min-width: 80rem)").matches) setOpen(false);
+    if (window.matchMedia("(min-width: 69rem)").matches) setOpen(false);
     closeGroups(null);
   });
 })();
