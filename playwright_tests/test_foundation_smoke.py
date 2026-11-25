@@ -277,8 +277,8 @@ def test_podcast_latest_middle_and_oldest_seasons(
     assert len({latest, middle, oldest}) == 3, numbers
     scenarios = (
         (latest, "/podcast"),
-        (middle, f"/podcast?season={middle}"),
-        (oldest, f"/podcast?season={oldest}"),
+        (middle, f"/podcast/s/{middle}/"),
+        (oldest, f"/podcast/s/{oldest}/"),
     )
     for season, path in scenarios:
         response = page.goto(f"{origin}{path}")
