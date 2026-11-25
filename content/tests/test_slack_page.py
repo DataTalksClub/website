@@ -4,9 +4,9 @@
 front door, and it is the page the first shell copies quietly broke: five pages
 lost the Slack link because each carried its own masthead.  The page now includes
 the shared shell instead, so these tests pin what the rebuilt page must still
-offer -- the title, lede, every channel, and the one action it owns, all read
-from the page's own synced row -- next to the design contract every page in
-the system carries.
+offer -- the hero, the benefits with their channels, the joining steps, the FAQ
+and the one action it owns, all read from the page's own synced row -- next to
+the design contract every page in the system carries.
 """
 
 from __future__ import annotations
@@ -34,13 +34,8 @@ TEMPLATE_SYNTAX = ("{#", "#}", "{%", "%}", "{{", "}}")
 def _synthetic_page() -> dict[str, Any]:
     from test_support.reference_data import SLACK_PAGE
 
-    page = json.loads(SLACK_PAGE.read_text(encoding="utf-8"))["page"]
-    return {
-        "title": page["title"],
-        "lead": page["lead"],
-        "channels": page["channels"],
-        "troubleshooting_url": page["troubleshooting_url"],
-    }
+    page: dict[str, Any] = json.loads(SLACK_PAGE.read_text(encoding="utf-8"))["page"]
+    return page
 
 
 class SlackPageAbsentTests(TestCase):
@@ -82,13 +77,6 @@ class SlackPageTests(TestCase):
         for partial in ("core/_site_shell_head.html", "core/_site_shell_foot.html"):
             self.assertTemplateUsed(self.response, partial)
 
-    def test_the_page_is_the_shared_text_page_rather_than_a_document_of_its_own(
-        self,
-    ) -> None:
-        """A heading and some prose is a text page, so `/slack` is one (issue #179)."""
-
-        self.assertTemplateUsed(self.response, "public/text_page.html")
-
     def test_the_page_leaks_no_unrendered_template_syntax(self) -> None:
         for token in TEMPLATE_SYNTAX:
             self.assertNotIn(token, self.body, token)
@@ -99,69 +87,55 @@ class SlackPageTests(TestCase):
             r'href="' + re.escape(reverse("slack")) + r'"\s+aria-current="page"\s+>Slack</a>',
         )
 
-    def test_the_hero_truthfully_describes_the_available_slack_help(self) -> None:
-        # The heading and the standfirst are the shared text page's own slots, so
-        # they carry its identifier and its `.prose-lede` face (issue #179).
+    def test_the_hero_states_the_title_lead_proof_and_the_join_action(self) -> None:
         self.assertRegex(
-            self.body,
-            r'<h1\s+id="text-page-heading"\s+class="page-title"\s*>\s*'
-            + re.escape(escape(str(self.page["title"])))
-            + r"\s*</h1>",
+            self.body, r"<h1>\s*" + re.escape(escape(str(self.page["title"]))) + r"\s*</h1>"
         )
-        self.assertRegex(
-            self.body,
-            r'<p class="prose-lede">\s*' + re.escape(escape(str(self.page["lead"]))) + r"\s*</p>",
-        )
+        self.assertIn(escape(str(self.page["lead"])), self.body)
+        self.assertIn(escape(str(self.page["proof"])), self.body)
         self.assertEqual(self.body.count("<h1"), 1)
 
-    def test_every_channel_is_offered_as_a_chip_holding_a_mono_literal(self) -> None:
+    def test_one_join_action_repeats_at_hero_middle_and_close(self) -> None:
+        """One goal: the same primary button, same label and destination, three times."""
+
+        joins = re.findall(
+            r'<a class="cta cta-primary interactive-lift" href="/community/slack/">Join Slack</a>',
+            self.body,
+        )
+        # Hero and close always; the middle one sits under "Who's there",
+        # which draws only when the survey record is published.
+        self.assertGreaterEqual(len(joins), 2)
+        main = self.body[self.body.index("<main") : self.body.index("</main>")]
+        self.assertEqual(main.count("cta-primary"), len(joins))
+
+    def test_every_benefit_channel_is_a_chip_holding_a_mono_literal(self) -> None:
         """A channel name is a literal, so it keeps the system's `.mono-code` face."""
 
-        self.assertIn('<h2 id="slack-channels-heading">Find your conversation</h2>', self.body)
-        channels = self.page["channels"]
+        channels = [channel for benefit in self.page["benefits"] for channel in benefit["channels"]]
         self.assertTrue(channels)
         for channel in channels:
             with self.subTest(channel=channel):
                 self.assertIn(f'<code class="mono-code">{channel}</code>', self.body)
         self.assertEqual(self.body.count('class="chip chip-plain channel"'), len(channels))
+        for benefit in self.page["benefits"]:
+            self.assertIn(escape(benefit["title"]), self.body)
 
-    def test_the_channels_section_links_to_the_slack_guide_in_the_docs(self) -> None:
-        """The chips name the channels; the docs guide says what each one is for."""
-
+    def test_the_benefits_link_to_the_slack_guide_in_the_docs(self) -> None:
         guide = reverse("docs-page", args=["general/slack/"])
         self.assertEqual(guide, "/docs/general/slack/")
-        self.assertRegex(
-            self.body,
-            r'<a class="band-link slack-guide-link" href="'
-            + re.escape(guide)
-            + r'">Read the Slack guide: channels and how to get help',
-        )
-        self.assertLess(
-            self.body.index('id="slack-channels-heading"'),
-            self.body.index(f'href="{guide}"'),
+        self.assertIn(
+            f'<a class="band-link slack-guide-link" href="{guide}">Read the Slack guide', self.body
         )
 
-    def test_the_page_offers_approval_flow_and_existing_help(self) -> None:
-        self.assertIn('<h2 id="slack-join-heading">Join Slack</h2>', self.body)
-        self.assertIn('<h2 id="slack-help-heading">Need help with Slack?</h2>', self.body)
-        self.assertIn('href="/community/slack/"', self.body)
-        self.assertRegex(
-            self.body,
-            r'<a\s+class="cta cta-primary cta-compact interactive-lift"'
-            r'\s+href="/community/slack/"\s*>\s*Join Slack\s*</a>',
-        )
-        self.assertIn(
-            "Contact the community team and they will reply with the appropriate next step.",
-            self.body,
-        )
-        self.assertRegex(
-            self.body,
-            r'<a\s+class="cta cta-secondary cta-compact interactive-lift"\s+href="'
-            + re.escape(str(self.page["troubleshooting_url"]))
-            + r'"\s+target="_blank"\s+rel="noreferrer"\s*>\s*Contact the community team',
-        )
-        self.assertIn('<span class="sr-only">(opens in a new tab)</span>', self.body)
-        self.assertLess(
-            self.body.index("Contact the community team"),
-            self.body.index('id="slack-channels-heading"'),
-        )
+    def test_the_three_joining_steps_and_the_faq_render(self) -> None:
+        for step in self.page["steps"]:
+            self.assertIn(escape(step["title"]), self.body)
+        self.assertEqual(self.body.count('class="card slack-step"'), 3)
+        # FAQ answers are Markdown, rendered to sanitized links.
+        self.assertIn(escape(self.page["faq"][0]["question"]), self.body)
+        self.assertIn('<a href="https://example.invalid/troubleshooting">help form</a>', self.body)
+
+    def test_the_page_draws_no_eyebrow(self) -> None:
+        main = self.body[self.body.index("<main") : self.body.index("</main>")]
+        self.assertNotIn("kicker", main)
+        self.assertNotIn("mono-label", main)

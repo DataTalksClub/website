@@ -587,13 +587,7 @@ def load_synced_site_pages() -> int:
 
     platforms = json.loads(PODCAST_PLATFORMS_SEED.read_text(encoding="utf-8"))
     page = json.loads(SLACK_PAGE.read_text(encoding="utf-8"))["page"]
-    slack_record = {
-        "public_path": "/slack",
-        "title": page["title"],
-        "lead": page["lead"],
-        "channels": page["channels"],
-        "troubleshooting_url": page["troubleshooting_url"],
-    }
+    slack_record = {key: value for key, value in page.items() if key != "source_path"}
     editorial_source, _ = _sync_engine_sources()
     rows = [
         SyncedDocument(

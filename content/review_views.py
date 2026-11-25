@@ -18,6 +18,7 @@ from django.views.decorators.http import require_safe
 from core.breadcrumbs import trail
 
 from . import catalogue
+from .article_faq import render_article_faq_answer
 from .docs_presentation import (
     docs_body_without_primary_heading,
     docs_curriculum,
@@ -51,6 +52,7 @@ from .faq_data import (
 from .faq_data import (
     faq_course as faq_course_data,
 )
+from .tour_content import tour_page
 
 #: Route, not content: the page's own address is owned by the URL configuration,
 #: while everything the page says comes from its synced ``slack_page`` row.
@@ -365,16 +367,24 @@ def slack(request: HttpRequest) -> HttpResponse:
     if record is None:
         raise Http404("The Slack page is unavailable.")
     # The page's own shape is the row's own shape: the parser stores exactly
-    # the fields this page renders, in the record the catalogue reads.
-    channels = record.get("channels")
+    # the fields this page renders, in the record the catalogue reads.  The
+    # FAQ answers are Markdown, rendered and sanitized the way an article's
+    # FAQ answers are.  "Who's there" draws the community survey figures from
+    # the About page's record, so the numbers live in one place.
     lead = str(record.get("lead") or "")
     title = str(record.get("title") or "")
     page: dict[str, Any] = {
+        **record,
         "public_path": str(record.get("public_path") or SLACK_PUBLIC_PATH),
         "title": title,
         "lead": lead,
-        "channels": tuple(channels) if isinstance(channels, list) else (),
-        "troubleshooting_url": str(record.get("troubleshooting_url") or ""),
+        "faq": tuple(
+            {
+                "question": entry["question"],
+                "answer_html": render_article_faq_answer(entry["answer"]),
+            }
+            for entry in record.get("faq") or ()
+        ),
     }
     return _render(
         request,
@@ -382,5 +392,5 @@ def slack(request: HttpRequest) -> HttpResponse:
         path=page["public_path"],
         title=title,
         description=lead,
-        context={"slack": page},
+        context={"slack": page, "tour_content": tour_page(), "hide_tour_cta": True},
     )

@@ -3,9 +3,10 @@
 The page is authored in the structured content repository (``slack.yaml``); it
 used to be a Liquid page in the legacy main-site repository that the staged
 pipeline rendered into a ``resolve_public_document`` row.  The record carries
-exactly what the page renders -- the title, the lead, the channel names in
-their offered order, and the troubleshooting form's URL -- so the view keeps
-reading a row's own shape instead of a rendered-document column it never used.
+exactly what the page renders -- the hero copy, the benefits with the channels
+each one names, the three joining steps, the FAQ (Markdown answers), the
+closing line -- so the view keeps reading a
+row's own shape instead of a rendered-document column it never used.
 
 Like the platform catalog, the page is one published row: it exists when the
 repository authors it and 404s when none does, which is the contract the
@@ -14,6 +15,7 @@ navigation listing already encodes.
 
 import re
 from pathlib import PurePosixPath
+from typing import Any
 
 from community_base.content_sync.orchestration import UpsertResult
 from community_base.content_sync.parsers import SourceItem, register_parser
@@ -31,6 +33,55 @@ PUBLIC_PATH = "/slack"
 
 _CHANNEL = re.compile(r"#[a-z0-9][a-z0-9_-]*\Z")
 
+#: The page's plain-text fields and their length caps, in reading order.
+_TEXT_FIELDS = {
+    "title": 200,
+    "lead": 500,
+    "proof": 200,
+    "benefits_intro": 400,
+    "start_here": 300,
+    "close_title": 200,
+    "close_text": 400,
+}
+_FIELDS = {*_TEXT_FIELDS, "benefits", "steps", "faq"}
+
+
+def _entries(
+    raw: Any,
+    name: str,
+    text_fields: dict[str, int],
+    extra: frozenset[str] = frozenset(),
+) -> list[dict[str, Any]]:
+    """A non-empty list of mappings holding exactly ``text_fields`` (+ ``extra``)."""
+
+    if not isinstance(raw, list) or not raw:
+        base.fail(f"slack page {name} rejected", SOURCE_FILE)
+    entries: list[dict[str, Any]] = []
+    for entry in raw:
+        if not isinstance(entry, dict) or set(entry) != {*text_fields, *extra}:
+            base.fail(f"slack page {name} entry rejected", SOURCE_FILE)
+        prepared = {
+            field: builder._string(entry[field], field=f"slack page {name} {field}", maximum=cap)
+            for field, cap in text_fields.items()
+        }
+        prepared.update({field: entry[field] for field in extra})
+        entries.append(prepared)
+    return entries
+
+
+def _channels(raw: Any) -> list[str]:
+    if not isinstance(raw, list) or not raw:
+        base.fail("slack page channels rejected", SOURCE_FILE)
+    channels: list[str] = []
+    for channel in raw:
+        name = builder._string(channel, field="slack channel name", maximum=100)
+        if not _CHANNEL.fullmatch(name):
+            base.fail("slack channel name rejected", SOURCE_FILE)
+        if name in channels:
+            base.fail("duplicate slack channel", SOURCE_FILE)
+        channels.append(name)
+    return channels
+
 
 class SlackPageParser:
     def discover(self, checkout, source):
@@ -42,38 +93,31 @@ class SlackPageParser:
             # no /slack row, and the stale row goes with the source.
             return []
         raw = builder._load_yaml(base.snapshot_path(checkout, SOURCE_FILE))
-        if not isinstance(raw, dict) or not set(raw) <= {
-            "title",
-            "lead",
-            "channels",
-            "troubleshooting_url",
-        }:
+        if not isinstance(raw, dict) or not set(raw) <= _FIELDS:
             base.fail("slack page record rejected", SOURCE_FILE)
-        title = builder._string(raw.get("title"), field="slack page title", maximum=200)
-        lead = builder._string(raw.get("lead"), field="slack page lead", maximum=500)
-        raw_channels = raw.get("channels")
-        if not isinstance(raw_channels, list) or not raw_channels:
-            base.fail("slack page channels rejected", SOURCE_FILE)
-        channels: list[str] = []
-        for channel in raw_channels:
-            name = builder._string(channel, field="slack channel name", maximum=100)
-            if not _CHANNEL.fullmatch(name):
-                base.fail("slack channel name rejected", SOURCE_FILE)
-            if name in channels:
-                base.fail("duplicate slack channel", SOURCE_FILE)
-            channels.append(name)
-        troubleshooting_url = builder._safe_url(
-            raw.get("troubleshooting_url"),
-            field="slack troubleshooting URL",
-        )
-        if troubleshooting_url and not troubleshooting_url.startswith("https://"):
-            base.fail("slack troubleshooting URL must use HTTPS", SOURCE_FILE)
+        page = {
+            name: builder._string(raw.get(name), field=f"slack page {name}", maximum=maximum)
+            for name, maximum in _TEXT_FIELDS.items()
+        }
+        benefits = [
+            {**entry, "channels": _channels(entry["channels"])}
+            for entry in _entries(
+                raw.get("benefits"),
+                "benefits",
+                {"title": 100, "body": 400},
+                frozenset({"channels"}),
+            )
+        ]
+        steps = _entries(raw.get("steps"), "steps", {"title": 100, "body": 400})
+        if len(steps) != 3:
+            base.fail("slack page steps must be three", SOURCE_FILE)
+        faq = _entries(raw.get("faq"), "faq", {"question": 200, "answer": 1000})
         record = {
             "public_path": PUBLIC_PATH,
-            "title": title,
-            "lead": lead,
-            "channels": channels,
-            "troubleshooting_url": troubleshooting_url,
+            **page,
+            "benefits": benefits,
+            "steps": steps,
+            "faq": faq,
             "provenance": builder._provenance(
                 repository=REPOSITORY,
                 revision=checkout.commit_sha,

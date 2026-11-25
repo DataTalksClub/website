@@ -1487,10 +1487,23 @@ def _slack_yaml() -> bytes:
     return (
         b"title: Synthetic Slack\n"
         b"lead: A synthetic lead.\n"
-        b"channels:\n"
-        b'- "#synthetic-general"\n'
-        b'- "#synthetic-random"\n'
-        b"troubleshooting_url: https://example.invalid/troubleshooting\n"
+        b"proof: A synthetic proof.\n"
+        b"benefits_intro: A synthetic intro.\n"
+        b"benefits:\n"
+        b"- title: Ask\n"
+        b"  body: Ask a question.\n"
+        b"  channels:\n"
+        b'  - "#synthetic-general"\n'
+        b'  - "#synthetic-random"\n'
+        b"start_here: Say hi.\n"
+        b"steps:\n"
+        b"- {title: One, body: First.}\n"
+        b"- {title: Two, body: Second.}\n"
+        b"- {title: Three, body: Third.}\n"
+        b"faq:\n"
+        b"- {question: Is it free, answer: Yes.}\n"
+        b"close_title: Join\n"
+        b"close_text: Request access.\n"
     )
 
 
@@ -1511,10 +1524,11 @@ class SlackPageParserTests(_CheckoutCase):
             self.assertEqual(record["public_path"], "/slack")
             self.assertEqual(record["title"], "Synthetic Slack")
             self.assertEqual(record["lead"], "A synthetic lead.")
-            self.assertEqual(record["channels"], ["#synthetic-general", "#synthetic-random"])
             self.assertEqual(
-                record["troubleshooting_url"], "https://example.invalid/troubleshooting"
+                record["benefits"][0]["channels"], ["#synthetic-general", "#synthetic-random"]
             )
+            self.assertEqual([step["title"] for step in record["steps"]], ["One", "Two", "Three"])
+            self.assertEqual(record["faq"], [{"question": "Is it free", "answer": "Yes."}])
             self.assertEqual(record["provenance"]["revision"], "a" * 40)
             result = parser.upsert(items[0], source, media_store())
         self.assertEqual(result.action, "created")

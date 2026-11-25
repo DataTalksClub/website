@@ -1,161 +1,317 @@
-{% extends "public/text_page.html" %}
+{% extends "core/content_page.html" %}
 {% comment %}
-  The Slack landing page (issue #179).  A short page with one job: say what the
-  community is, show where the conversations happen, and offer the one action the
-  page owns.  That is a text page, so it is one — public/text_page.html — and all
-  this template holds is the page's own words, the channels it lists, and the
-  little CSS the chip row needs.
+  The Slack landing page.  One goal -- join the Slack -- and one action, drawn
+  identically at the hero, after "Who's there" and in the closing panel
+  (_docs/design/landing-pages.md, _docs/design/page-goals.md).
+
+  Every word is the synced ``slack_page`` row (DataTalksClub/content
+  ``slack.yaml``); the survey figures are the About page's record, drawn by the
+  shared stat strip, so the numbers live in one place.  The skeleton is the
+  About page's: hero with the community drawing, then chapters on the lavender
+  ground, with "Who's there" seated full-bleed on cream the way /courses seats
+  its steps band, and a closing mint panel.
 {% endcomment %}
 
-{% block title_attributes %}
-  class="page-title"
+{% block document_title %}
+  <title>{{ seo_title }} — DataTalks.Club</title>
 {% endblock %}
 
-{% block title %}
-  {{ slack.title }}
-{% endblock %}
-
-{% block lede %}
-  {{ slack.lead }}
-{% endblock %}
-
-{% block content %}
-  <div class="slack-options">
-    <section class="slack-option slack-option-primary" aria-labelledby="slack-join-heading">
-      <h2 id="slack-join-heading">Join Slack</h2>
-      <p>Request Slack access on this website, or ask an existing member you know to vouch for you.</p>
-      <a class="cta cta-primary cta-compact interactive-lift" href="{% url 'slack-access:application' %}">
-        Join Slack
-      </a>
-    </section>
-    <section class="slack-option" aria-labelledby="slack-help-heading">
-      <h2 id="slack-help-heading">Need help with Slack?</h2>
-      <p>Contact the community team and they will reply with the appropriate next step.</p>
-      <a
-        class="cta cta-secondary cta-compact interactive-lift"
-        href="{{ slack.troubleshooting_url }}"
-        target="_blank"
-        rel="noreferrer"
-      >
-        Contact the community team
-        <span class="sr-only">(opens in a new tab)</span>
-      </a>
-    </section>
-  </div>
-  <section class="slack-channels" aria-labelledby="slack-channels-heading">
-    <h2 id="slack-channels-heading">Find your conversation</h2>
-    <p>The workspace has channels for every course, for careers, for data topics and for local meetups. These are a good place to start.</p>
-    <ul class="channel-list">
-      {% for channel in slack.channels %}
-        <li class="chip chip-plain channel">
-          <code class="mono-code">{{ channel }}</code>
-        </li>
-      {% endfor %}
-    </ul>
-    <a class="band-link slack-guide-link" href="{% url 'docs-page' 'general/slack/' %}">Read the Slack guide: channels and how to get help →</a>
-  </section>
-{% endblock %}
-
-{% block actions %}
+{% block metadata %}
+  {{ block.super }}
+  <meta name="description" content="{{ seo_description }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="DataTalks.Club">
+  <meta property="og:title" content="{{ seo_title }}">
+  <meta property="og:description" content="{{ seo_description }}">
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="@DataTalksClub">
 {% endblock %}
 
 {% block page_styles %}
-      /* ------------------------------------------------------------------ *
-       * Slack page rules.  Two option cards (join is the primary action,
-       * help is secondary), then the channels as one row of plain chips.
-       * ------------------------------------------------------------------ */
+  :root { --page: var(--lavender); }
 
-      /* A hub page, not a document: it holds the ordinary content column the
-         sponsors and other top-navigation pages hold, not the narrower
-         reading width a legal text keeps.  The lede keeps the measure the
-         other hub ledes keep, rather than running the column's full width. */
-      .text-page-shell {
-        max-width: var(--content-width);
-      }
+  /* --- hero: the About page's hero grid -- title, lede, the one action and
+         the proof line beside the community drawing. */
+  .slack-hero-inner {
+    align-items: center;
+    display: grid;
+    gap: var(--space-5) var(--space-6);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 18rem);
+  }
+  .slack-hero-inner > * { min-width: 0; }
+  .slack-hero h1 {
+    font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+    letter-spacing: -0.03em;
+    max-width: 19ch;
+    text-wrap: balance;
+  }
+  .slack-lede {
+    color: var(--body-text);
+    font-size: 1.15rem;
+    line-height: 1.6;
+    margin-top: var(--space-stack);
+    max-width: var(--measure);
+  }
+  .slack-hero-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3) var(--space-5);
+    margin-top: var(--space-head);
+  }
+  .slack-hero-actions .cta { min-height: 3.25rem; }
+  .slack-proof {
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .slack-hero-art {
+    aspect-ratio: 1;
+    justify-self: end;
+    max-width: 20rem;
+    width: 100%;
+  }
+  .slack-hero-art .doodle { height: 100%; object-fit: contain; }
 
-      .text-page-head {
-        --measure: 38rem;
-      }
+  /* --- chapters: the About page's rhythm, a rule and the section space
+         above every chapter after the first. */
+  .slack-chapter + .slack-chapter {
+    border-top: 2px solid var(--line);
+    margin-top: var(--space-section);
+    padding-top: var(--space-section);
+  }
 
-      .slack-options {
-        display: grid;
-        gap: var(--space-5);
-        grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-      }
+  /* --- benefits: one card per thing members do, the channels it happens
+         in as plain chips holding mono literals. */
+  .slack-benefits {
+    display: grid;
+    gap: var(--space-grid);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .slack-benefit {
+    align-content: start;
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-5);
+  }
+  .slack-benefit h3 { font-size: 1.1rem; }
+  .slack-benefit p { color: var(--body-text); font-size: 0.95rem; margin: 0; }
+  .channel-list {
+    align-self: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .channel .mono-code {
+    background: none;
+    border: 0;
+    font-size: 0.8rem;
+    padding: 0;
+  }
+  .slack-start {
+    color: var(--body-text);
+    margin-top: var(--space-5);
+  }
+  .slack-start .band-link { margin-left: var(--space-2); }
 
-      /* Heading, text, then the action pinned to the card's foot, so the two
-         cards' buttons sit on one line whatever the text length (owner
-         feedback 2026-11-24: "make it more balanced"). */
-      .slack-option {
-        align-content: start;
-        background: var(--card);
-        grid-template-rows: auto 1fr auto;
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
-        display: grid;
-        gap: var(--space-3);
-        justify-items: start;
-        padding: var(--space-5);
-      }
+  /* --- who's there: full-bleed cream between two lavender chapters, its
+         contents capped at the shell, as /courses seats its steps band. */
+  .slack-who.shell-breakout {
+    --breakout-width: 100vw;
+    background: var(--cream);
+    border-block: 2px dashed var(--line-soft);
+    margin-block: var(--space-section);
+    padding: var(--space-band) var(--shell-gutter);
+  }
+  .slack-who > * {
+    margin-inline: auto;
+    max-width: calc(var(--content-width) - 2 * var(--shell-gutter));
+  }
+  .slack-who + .slack-chapter { border-top: 0; margin-top: 0; padding-top: 0; }
+  .slack-who-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3) var(--space-5);
+    margin-top: var(--space-head);
+  }
+  .slack-who-actions .band-link,
+  .slack-start .band-link {
+    align-items: center;
+    display: inline-flex;
+    min-height: 2.75rem;
+  }
 
-      .slack-option h2 {
-        font-size: 1.25rem;
-        margin: 0;
-      }
+  /* --- how joining works: three numbered cards on the shared badge. */
+  .slack-steps {
+    display: grid;
+    gap: var(--space-grid);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .slack-step {
+    align-content: start;
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-5);
+  }
+  .slack-step-head { align-items: center; display: flex; gap: var(--space-3); }
+  .slack-step h3 { font-size: 1.1rem; }
+  .slack-step p { color: var(--body-text); font-size: 0.95rem; margin: 0; }
 
-      .slack-option .cta {
-        white-space: nowrap;
-      }
+  /* --- closing: the course landing's mint panel with the same action. */
+  .slack-close-panel {
+    align-items: center;
+    display: grid;
+    gap: var(--space-4) var(--space-6);
+    padding: var(--space-6);
+  }
+  .slack-close-panel p { color: var(--body-text); margin-top: var(--space-2); }
+  .slack-close-panel .cta { justify-self: start; }
 
-      .slack-option p {
-        margin: 0 0 var(--space-2);
-      }
+  @media (min-width: 48rem) {
+    .slack-benefits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .slack-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .slack-close-panel { grid-template-columns: minmax(0, 1fr) auto; }
+  }
+  @media (min-width: 62rem) {
+    .slack-benefits { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
 
-      .slack-channels {
-        margin-top: var(--space-section);
-      }
+  /* --- narrow: reshape, not reflow */
+  @media (max-width: 47.99rem) {
+    .slack-hero-inner { grid-template-columns: minmax(0, 1fr); }
+    .slack-hero-art { display: none; }
+    .slack-hero-actions .cta,
+    .slack-who-actions .cta,
+    .slack-close-panel .cta { justify-content: center; width: 100%; }
+    .slack-start .band-link { margin-left: 0; }
+  }
+{% endblock %}
 
-      .slack-channels h2 {
-        margin: 0 0 var(--space-head);
-      }
+{% block header_band_class %}
+  slack-hero
+{% endblock %}
 
-      .channel-list,
-      .prose .channel-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-2);
-        list-style: none;
-        margin: 0;
-        padding: 0;
-      }
+{% block page_header %}
+  {% url 'slack-access:application' as join_url %}
+  <div class="slack-hero-inner">
+    <div>
+      <h1>{{ slack.title }}</h1>
+      <p class="slack-lede">{{ slack.lead }}</p>
+      <div class="slack-hero-actions">
+        <a class="cta cta-primary interactive-lift" href="{{ join_url }}">Join Slack</a>
+      </div>
+      <p class="cta-hint slack-proof">{{ slack.proof }}</p>
+    </div>
+    <div class="slack-hero-art">
+      {% include "core/_tour_hero_illustration.html" with loading="eager" only %}
+    </div>
+  </div>
+{% endblock %}
 
-      .channel-list li {
-        margin: 0;
-      }
+{% block page_content %}
+  {% url 'slack-access:application' as join_url %}
 
-      /* The chips sit on one baseline: the row's gap spaces them, not the
-         body's list rhythm. */
-      .channel-list li + li {
-        margin-top: 0;
-      }
+  <section class="slack-chapter" aria-labelledby="slack-benefits-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="slack-benefits-heading">What you'll find inside</h2>
+        <p>{{ slack.benefits_intro }}</p>
+      </div>
+    </div>
+    <ul class="slack-benefits">
+      {% for benefit in slack.benefits %}
+        <li class="card slack-benefit">
+          <h3>{{ benefit.title }}</h3>
+          <p>{{ benefit.body }}</p>
+          <ul class="channel-list" aria-label="Channels">
+            {% for channel in benefit.channels %}
+              <li class="chip chip-plain channel"><code class="mono-code">{{ channel }}</code></li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% endfor %}
+    </ul>
+    <p class="slack-start">
+      {{ slack.start_here }}
+      <a class="band-link slack-guide-link" href="{% url 'docs-page' 'general/slack/' %}">Read the Slack guide: every channel and how to get help →</a>
+    </p>
+  </section>
 
-      /* A channel name is a literal, so it keeps the mono face. */
-      .channel .mono-code {
-        background: none;
-        border: 0;
-        font-size: 0.85rem;
-        padding: 0;
-      }
+  {% if tour_content.stats %}
+    <section class="slack-who shell-breakout" aria-labelledby="slack-who-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="slack-who-heading">Who's there</h2>
+          <p>{{ tour_content.stats_intro }}</p>
+        </div>
+      </div>
+      {% include "core/_community_stats.html" with tour_content=tour_content tiles_variant="stat-tiles-row" only %}
+      <div class="slack-who-actions">
+        <a class="cta cta-primary interactive-lift" href="{{ join_url }}">Join Slack</a>
+        <a class="band-link" href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full survey →</a>
+      </div>
+    </section>
+  {% endif %}
 
-      .slack-channels > p {
-        margin: 0 0 var(--space-4);
-      }
+  <section class="slack-chapter" aria-labelledby="slack-steps-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="slack-steps-heading">How joining works</h2>
+      </div>
+    </div>
+    <ol class="slack-steps">
+      {% for step in slack.steps %}
+        <li class="card slack-step">
+          <div class="slack-step-head">
+            {% if forloop.counter == 2 %}
+              <span class="step-number step-number-2" aria-hidden="true">2</span>
+            {% elif forloop.counter == 3 %}
+              <span class="step-number step-number-3" aria-hidden="true">3</span>
+            {% else %}
+              <span class="step-number" aria-hidden="true">1</span>
+            {% endif %}
+            <h3>{{ step.title }}</h3>
+          </div>
+          <p>{{ step.body }}</p>
+        </li>
+      {% endfor %}
+    </ol>
+  </section>
 
-      /* The guide link closes the section, under the chips: it reads as the
-         section's last word, the way /tour places its content links. */
-      .slack-guide-link {
-        display: inline-block;
-        margin-top: var(--space-5);
-      }
+  <section class="slack-chapter" aria-labelledby="slack-faq-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="slack-faq-heading">Questions before you join</h2>
+      </div>
+    </div>
+    <div class="faq-panel panel panel-outlined">
+      {% for item in slack.faq %}
+        <details class="faq-fold" id="slack-faq-{{ forloop.counter }}">
+          <summary class="faq-fold-summary">
+            <h3 class="faq-question-title">{{ item.question }}</h3>
+            <span class="faq-fold-marker" aria-hidden="true"></span>
+          </summary>
+          <div class="prose faq-answer">{{ item.answer_html|safe }}</div>
+        </details>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="slack-chapter" aria-labelledby="slack-close-heading">
+    <div class="panel panel-mint panel-outlined slack-close-panel">
+      <div>
+        <h2 id="slack-close-heading">{{ slack.close_title }}</h2>
+        <p>{{ slack.close_text }}</p>
+      </div>
+      <a class="cta cta-primary interactive-lift" href="{{ join_url }}">Join Slack</a>
+    </div>
+  </section>
 {% endblock %}

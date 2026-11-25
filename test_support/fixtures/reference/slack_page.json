@@ -1,13 +1,34 @@
 {
   "page": {
-    "channels": [
-      "#synthetic-general",
-      "#synthetic-random"
+    "benefits": [
+      {
+        "body": "Synthetic benefit body.",
+        "channels": [
+          "#synthetic-general",
+          "#synthetic-random"
+        ],
+        "title": "Synthetic benefit"
+      }
+    ],
+    "benefits_intro": "Synthetic benefits intro.",
+    "close_text": "Synthetic closing line.",
+    "close_title": "Synthetic closing title",
+    "faq": [
+      {
+        "answer": "Use the [help form](https://example.invalid/troubleshooting).",
+        "question": "Synthetic question?"
+      }
     ],
     "lead": "Synthetic Slack lead copy.",
+    "proof": "Synthetic proof line.",
     "public_path": "/slack",
-    "source_path": "slack.md",
-    "title": "Synthetic Slack",
-    "troubleshooting_url": "https://example.invalid/troubleshooting"
+    "source_path": "slack.yaml",
+    "start_here": "Synthetic start line.",
+    "steps": [
+      {"body": "Synthetic step one.", "title": "Step one"},
+      {"body": "Synthetic step two.", "title": "Step two"},
+      {"body": "Synthetic step three.", "title": "Step three"}
+    ],
+    "title": "Synthetic Slack"
   }
 }
