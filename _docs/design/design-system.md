@@ -1121,6 +1121,10 @@ with a hero banner (which already sets the title) the `h1` is visually hidden.
 
 ## Building a new page — checklist
 
+0. Define the page's single primary goal and the roles it plays in
+   `_docs/design/page-goals.md` before writing markup: one primary CTA
+   (`.cta-primary`) per page serving that goal; everything else secondary or
+   moved elsewhere.
 1. Extend `templates/core/content_page.html` unless the page is the homepage or an
    auth entrance. If it is one of those, start from `templates/core/home.html`'s
    skeleton: doctype, the `no-js`/`js` class swap, meta/OG tags, one `<style>` whose

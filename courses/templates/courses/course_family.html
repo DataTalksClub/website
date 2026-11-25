@@ -929,7 +929,12 @@
       {% endif %}
 
 
-      {% if current_edition_row or previous_edition_rows %}
+      {% comment %}
+        Cohort editions belong to the LMS layer and are shown only to signed-in
+        learners so anonymous visitors meet a focused registration landing
+        without mixed LMS links.
+      {% endcomment %}
+      {% if request.user.is_authenticated and current_edition_row or request.user.is_authenticated and previous_edition_rows %}
         <section class="family-chapter family-editions" aria-labelledby="editions-heading">
           <div class="band-head">
             <div>

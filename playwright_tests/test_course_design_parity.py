@@ -358,17 +358,9 @@ def test_database_course_catalog_renders_the_design_system_index(
     expect(
         page.get_by_role("heading", level=1, name=ACTIVE_COURSE["title"], exact=True)
     ).to_be_visible()
-    expect(page.get_by_role("heading", name="Cohort editions", exact=True)).to_be_visible()
-    cohort_path = reverse(
-        "cohort",
-        kwargs={
-            "course_slug": cmp_course_catalog["active"].course.slug,
-            "cohort_identifier": cmp_course_catalog["active"].identifier,
-        },
-    )
-    expect(page.get_by_role("link", name=ACTIVE_COURSE["title"], exact=True)).to_have_attribute(
-        "href", cohort_path
-    )
+    # Cohort editions belong to the LMS layer and are hidden from anonymous
+    # visitors on the public course landing page.
+    expect(page.get_by_role("heading", name="Cohort editions", exact=True)).to_have_count(0)
     _assert_no_horizontal_overflow(page)
     page.screenshot(path=SCREENSHOTS / f"course-detail-cmp-{suffix}.png", full_page=True)
 

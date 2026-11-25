@@ -181,7 +181,7 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
                 self.assertIn("content-shell", shell)
 
     def test_the_course_profile_is_an_action_beside_the_others(self):
-        """Every control the course offers is in the one row of actions."""
+        """Workspace navigation sits in the cohort tab strip below the primary action."""
 
         self.client.login(**credentials)
 
@@ -194,8 +194,38 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
                 "cohort_identifier": self.course.identifier,
             },
         )
-        self.assertLess(body.index('class="course-actions"'), body.index(profile_url))
+        self.assertLess(body.index('class="course-actions"'), body.index('class="cohort-tabs"'))
+        self.assertLess(body.index('class="cohort-tabs"'), body.index(profile_url))
         self.assertLess(body.index(profile_url), body.index("Your work in this course"))
+
+    def test_cohort_header_has_single_primary_action_and_workspace_tabs(self):
+        """Course header carries at most one primary button; LMS links live in tabs."""
+
+        body = self.client.get(self.course_url()).content.decode()
+
+        actions_match = re.search(
+            r'<div class="course-actions">(.*?)</div>',
+            body,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(actions_match)
+        assert actions_match is not None
+        actions_html = actions_match.group(1)
+        self.assertLessEqual(len(re.findall(r'class="[^"]*\bcta\b', actions_html)), 1)
+        self.assertNotIn("Course leaderboard", actions_html)
+        self.assertNotIn("Course dashboard", actions_html)
+        self.assertNotIn("Project submissions", actions_html)
+
+        tabs_match = re.search(
+            r'<nav class="cohort-tabs" aria-label="Cohort navigation">(.*?)</nav>',
+            body,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(tabs_match)
+        assert tabs_match is not None
+        tabs_html = tabs_match.group(1)
+        for label in ("Overview", "Course leaderboard", "Course dashboard", "Project submissions"):
+            self.assertIn(label, tabs_html)
 
     def test_a_signed_out_visitor_sees_no_learner_panel(self):
         response = self.client.get(self.course_url())

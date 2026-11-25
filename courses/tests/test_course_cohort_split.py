@@ -214,7 +214,23 @@ class CanonicalCourseRouteTests(TestCase):
     def test_family_landing_and_cohort_detail_use_the_canonical_contract(self):
         family_response = self.client.get("/courses/de-zoomcamp")
         self.assertEqual(family_response.status_code, 200)
-        self.assertContains(family_response, "/courses/de-zoomcamp/2026")
+        self.assertContains(
+            family_response,
+            '<link rel="canonical" href="https://datatalks.club/courses/de-zoomcamp">',
+        )
+        # Signed-in learners see the canonical cohort link in Cohort editions.
+        from django.contrib.auth import get_user_model
+
+        user = get_user_model().objects.create_user(
+            username="canonical-cohort-viewer",
+            email="canonical-cohort-viewer@example.invalid",
+            password="test-password-123!",
+        )
+        self.client.force_login(user)
+        signed_in_family_response = self.client.get("/courses/de-zoomcamp")
+        self.assertEqual(signed_in_family_response.status_code, 200)
+        self.assertContains(signed_in_family_response, "/courses/de-zoomcamp/2026")
+        self.client.logout()
 
         cohort_response = self.client.get("/courses/de-zoomcamp/2026")
         self.assertEqual(cohort_response.status_code, 200)
