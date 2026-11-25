@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.utils import timezone
 
@@ -19,11 +20,15 @@ class ProjectActionsAPITestCase(ProjectAPITestBase):
         for index in range(4):
             self._create_project_submission(project, f"student-{index}")
 
-        response = self.client.post(
-            f"/api/courses/{self.course.slug}/projects/{project.id}/assign-reviews/"
-        )
+        with patch(
+            "api.views.project_actions.send_peer_review_assignment_notification"
+        ) as notify:
+            response = self.client.post(
+                f"/api/courses/{self.course.slug}/projects/{project.id}/assign-reviews/"
+            )
 
         self.assertEqual(response.status_code, 200)
+        notify.assert_called_once_with(project)
         data = response.json()
         self.assertEqual(data["status"], "OK")
         self.assertEqual(data["project_slug"], "proj1")

@@ -13,6 +13,7 @@ from courses.project_assignment import (
     ProjectActionStatus,
     assign_peer_reviews_for_project,
 )
+from courses.package_notifications import send_peer_review_assignment_notification
 from courses.scoring_jobs import enqueue_project_notify, enqueue_project_score
 
 
@@ -22,6 +23,7 @@ def assign_peer_reviews_for_project_admin(
     for project in queryset:
         status, message = assign_peer_reviews_for_project(project)
         if status == ProjectActionStatus.OK:
+            send_peer_review_assignment_notification(project)
             modeladmin.message_user(
                 request, message, level=messages.SUCCESS
             )
