@@ -67,6 +67,11 @@ class _WithoutSeedEvents(TestCase):
     def setUp(self) -> None:
         super().setUp()
         Event.objects.all().delete()
+        # Several tests write rows the rule would refuse (that is the point of
+        # them).  On PostgreSQL the completeness triggers are deferred to the
+        # commit point, which Django's TestCase forces at teardown; deleting a
+        # whole event is always allowed, so leave none behind.
+        self.addCleanup(Event.objects.all().delete)
 
 
 class CompletenessReportTests(_WithoutSeedEvents):
