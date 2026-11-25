@@ -19,6 +19,10 @@ Rehearse against a copy:
     uv run --frozen python scripts/prod/import_event_duplicate_merges.py \\
         --database .tmp/dataset-copy.sqlite3 --pair 150:422 --pair 86:426
 
+A reviewed set of pairs can live in a file outside the repository instead
+(``--pairs-file``, see :func:`pairs_from_file`); the row ids are then checked
+against each pair's content UUIDs before anything is merged.
+
 Production, after the pairs are approved:
 
     uv run --frozen python scripts/prod/import_event_duplicate_merges.py \\
@@ -54,6 +58,44 @@ def _pair(value: str) -> Any:
         raise argparse.ArgumentTypeError(str(error)) from error
 
 
+def pairs_from_file(path: Path) -> list[str]:
+    """``KEEP_ID:DUPLICATE_ID`` values from a reviewed pairs file.
+
+    The file is ``{"schema_version": 1, "pairs": [{"keep_id": 150,
+    "duplicate_id": 422, "keep_content_id": "<uuid>", "duplicate_content_id":
+    "<uuid>"}, ...]}``.  Row ids are what the merge takes; the content UUIDs
+    guard them -- a row that exists under that id must carry that UUID, or the
+    run refuses before anything is merged.  A duplicate row that no longer
+    exists is passed through, so a replay reports ``already_merged``.
+    """
+
+    from community_base.events.models import Event
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"pairs_file_unreadable: {error}") from error
+    if not isinstance(data, dict) or data.get("schema_version") != 1:
+        raise ValueError("pairs_file_schema_version_unsupported")
+    values: list[str] = []
+    for index, pair in enumerate(data.get("pairs") or []):
+        try:
+            keep_id, duplicate_id = int(pair["keep_id"]), int(pair["duplicate_id"])
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError(f"pairs_file_entry_invalid: {index}") from error
+        for row_id, key in ((keep_id, "keep_content_id"), (duplicate_id, "duplicate_content_id")):
+            expected = str(pair.get(key) or "").replace("-", "").lower()
+            row = Event.objects.filter(pk=row_id).values_list("content_id", flat=True).first()
+            if row is not None and expected and row.hex != expected:
+                raise ValueError(f"pairs_file_content_id_mismatch: {index}: row {row_id}")
+            if row is None and key == "keep_content_id":
+                raise ValueError(f"pairs_file_keep_missing: {index}: row {row_id}")
+        values.append(f"{keep_id}:{duplicate_id}")
+    if not values:
+        raise ValueError("pairs_file_empty")
+    return values
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -63,9 +105,18 @@ def _parser() -> argparse.ArgumentParser:
         "--pair",
         dest="pairs",
         action="append",
-        required=True,
+        default=[],
         metavar="KEEP_ID:DUPLICATE_ID",
         help="one reviewed pair of event row ids; repeat for several pairs",
+    )
+    parser.add_argument(
+        "--pairs-file",
+        type=Path,
+        default=None,
+        help=(
+            "a reviewed JSON file of pairs (outside the repository, e.g. under "
+            "~/prod/dtc-data/); each pair's content UUIDs are checked against the rows"
+        ),
     )
     parser.add_argument(
         "--apply",
@@ -105,13 +156,18 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.max_days_apart < 0:
         parser.error("--max-days-apart must not be negative")
+    if not args.pairs and args.pairs_file is None:
+        parser.error("name at least one pair: --pair KEEP_ID:DUPLICATE_ID or --pairs-file PATH")
     configure_target(parser, args)
 
     from events.merge import EventMergeRunAborted, merge_pairs
 
     # Django is configured only now, so the pair type is parsed late as well.
     try:
-        pairs = [_pair(value) for value in args.pairs]
+        values = list(args.pairs)
+        if args.pairs_file is not None:
+            values.extend(pairs_from_file(args.pairs_file.expanduser()))
+        pairs = [_pair(value) for value in values]
         report = merge_pairs(
             pairs,
             apply=args.apply,
