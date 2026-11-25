@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import pytest
@@ -295,7 +296,8 @@ def test_podcast_latest_middle_and_oldest_seasons(
             f"https://datatalks.club{path}",
         )
         expect(page.locator("[data-podcast-season]")).to_have_count(1)
-        expect(page.get_by_role("link", name=f"Season {latest}", exact=True)).to_have_count(
+        # The open season's pill is the current marker, not a link to go elsewhere.
+        expect(page.locator(f'a[aria-label="Season {latest}"]:not([aria-current])')).to_have_count(
             0 if season == latest else 1
         )
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
