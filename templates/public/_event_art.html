@@ -1,0 +1,58 @@
+{% load people %}
+{% comment %}
+  The top of an event's picture, drawn in HTML rather than shown as the PNG:
+  the kind's coloured blob, the round speaker portrait (two or more overlap),
+  the kind pill, and the speaker names, date and time on the right — the same
+  composition banner-generator's `dtc-event-speaker` template paints at the top
+  of the 1000 × 1000 picture.  The picture's title is left out: the surface
+  that includes this sets the title itself, as real text.
+
+  Pass the event record from `content.event_content.event_groups`:
+
+      {% include "public/_event_art.html" with event=event %}
+
+  The geometry lives in `.event-art` in the design system partial, in units of
+  the picture's 1000-wide canvas, so the drawing scales with whatever width the
+  card gives it.  Portraits are decorative (the names beside them are the
+  credit); a speaker without one gets their initials, as on the picture.
+{% endcomment %}
+<div class="event-art event-art-{{ event.art_kind }}">
+  <span class="event-art-blob" aria-hidden="true"></span>
+  {% with shown=event.speakers|slice:":4" count=event.speakers|length %}
+    {% if count %}
+      <div class="event-art-faces event-art-n{{ shown|length }}" aria-hidden="true">
+        {% for speaker in shown %}
+          {% with person=speaker|person_chip %}
+            {% if person.media_available %}
+              <img class="event-art-avatar" src="{{ person.image_path }}" alt="" width="96" height="96" decoding="async" loading="lazy">
+            {% else %}
+              <span class="event-art-avatar event-art-initials">{{ person.initials }}</span>
+            {% endif %}
+          {% endwith %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="event-art-faces event-art-n1">
+        <span class="event-art-avatar event-art-datedisc">
+          <b>{{ event.display_art_date }}</b>
+          <i>{{ event.display_clock }}</i>
+        </span>
+      </div>
+    {% endif %}
+    <div class="event-art-side">
+      <span class="event-art-pill">{{ event.type|default:"event" }}</span>
+      {% if count %}
+        <p class="event-art-who event-art-who-{{ shown|length }}">
+          {% if count > 3 %}
+            <b>{{ count }} speakers</b>
+          {% else %}
+            {% for speaker in shown %}<b>{{ speaker.name }}</b>{% endfor %}
+          {% endif %}
+        </p>
+        <p class="event-art-when">
+          <time datetime="{{ event.starts_at }}"><b>{{ event.display_art_date }}</b> <span>{{ event.display_clock }}</span></time>
+        </p>
+      {% endif %}
+    </div>
+  {% endwith %}
+</div>

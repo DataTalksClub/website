@@ -25,7 +25,6 @@ from content.podcast_content import ordered_podcasts
 from content.tour_content import homepage_tour_page, tour_page
 from core.home_content import (
     course_catalog,
-    event_time_display,
     featured_course,
     published_display,
     reading_minutes,
@@ -96,10 +95,9 @@ def home(request: HttpRequest):
     # The template drops the panel whose record is missing.
     article = next(iter(catalogue.articles()), None)
     podcast = next(iter(ordered_podcasts()), None)
-    upcoming = tuple(
-        {**event, "home_time": event_time_display(event["starts_at"])}
-        for event in events.upcoming[:3]
-    )
+    # The tiles draw the event picture's top in HTML (`public/_event_art.html`)
+    # from fields every event record already carries.
+    upcoming = events.upcoming[:3]
     # The featured panel is the cohort an editor flagged ``featured``, or nothing at
     # all when none is flagged; the template renders no hero in that case.
     #

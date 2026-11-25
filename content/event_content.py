@@ -104,6 +104,9 @@ def _grouped(now: datetime | None) -> EventGroups:
         event["display_month"] = f"{local_start:%b}"
         event["display_day"] = str(local_start.day)
         event["display_date_long"] = f"{local_start:%A, %B} {local_start.day}, {local_start:%Y}"
+        # The event picture's own date label ("Mon 30 Nov 2026"), for the art
+        # drawn in HTML by ``public/_event_art.html``.
+        event["display_art_date"] = f"{local_start:%a} {local_start.day} {local_start:%b %Y}"
         event["display_clock_range"] = event["display_clock"]
         if raw.get("ends_at"):
             local_end = datetime.fromisoformat(raw["ends_at"]).astimezone(SITE_TIMEZONE)
@@ -112,6 +115,10 @@ def _grouped(now: datetime | None) -> EventGroups:
         # A YouTube link on an event is its recording or live stream; the list
         # says "Recording on YouTube" only for an event that has happened.
         event["has_youtube_link"] = any("youtu" in link["url"] for link in event["links"])
+        # The picture's palette: the first word of the type when it is one of
+        # the four drawn kinds, else the webinar palette (as the picture does).
+        kind = event["type"].split("·")[0].strip().casefold()
+        event["art_kind"] = kind if kind in EVENT_TYPE_ICONS else "webinar"
         event["type_icon"] = EVENT_TYPE_ICONS.get(
             event["type"].casefold(),
             "fas fa-calendar-check",

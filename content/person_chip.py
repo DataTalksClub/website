@@ -40,6 +40,15 @@ class PersonChip:
     image_path: str
     media_available: bool
 
+    @property
+    def initials(self) -> str:
+        """First and last initials, drawn where a picture has no portrait."""
+
+        parts = [part for part in self.name.split() if part[:1].isalpha()]
+        if not parts:
+            return ""
+        return (parts[0][0] + (parts[-1][0] if len(parts) > 1 else "")).upper()
+
 
 def _field(credit: Any, *names: str) -> str:
     for name in names:
