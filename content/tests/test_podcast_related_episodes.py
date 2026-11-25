@@ -244,17 +244,18 @@ class RelatedEpisodePageTests(RelatedGraphTestCase):
         self.assertIn('id="related-episodes-heading">Related episodes</h2>', band)
         self.assertIn('data-related-basis="graph"', band)
         self.assertIn("files\n              under the same topics", band)
-        # The shared episode row /podcast draws, with the play disc.
+        # The shared archive row, as an episode row (the hub itself now draws
+        # timeline cards, so the row carries no play disc).
         self.assertEqual(band.count("data-related-episode"), 1)
         self.assertIn("episode-row", band)
-        self.assertIn('class="play-disc"', band)
+        self.assertNotIn('class="play-disc"', band)
         self.assertIn(f'href="{older["public_path"]}"', band)
         self.assertRegex(
             band,
             r'<ul class="archive-tags" aria-label="Shared wiki topics">\s*<li>\s*'
             r'<a class="chip chip-plain chip-link" href="/wiki/rag">RAG</a>',
         )
-        self.assertIn('href="/podcast?season=20"', band)
+        self.assertIn('href="/podcast/s/20/"', band)
 
     def test_the_retired_neighbour_and_season_bands_are_gone(self) -> None:
         body = self.client.get(_episode(CURRENT)["public_path"]).content.decode()

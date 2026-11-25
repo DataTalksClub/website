@@ -55,15 +55,17 @@ class PodcastPlatformDataTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(
             response,
-            '<div class="podcast-platforms" role="group" aria-label="Podcast platforms">',
+            '<span>Follow the show on</span>',
         )
+        self.assertContains(response, '<p class="podcast-follow">', count=1)
         listener_links = [
             link
             for link in podcast_platform_links(catalogue.podcast_platforms())
             if link.provider != "spotify_for_creators"
         ]
         for link in listener_links:
-            link_start = body.index(f'data-podcast-platform="{link.provider}"')
+            marker = body.index(f'data-podcast-platform="{link.provider}"')
+            link_start = body.rindex("<a ", 0, marker)
             link_markup = body[link_start : body.index("</a>", link_start)]
             self.assertIn(f'href="{link.url}"', link_markup)
             self.assertIn('target="_blank"', link_markup)
@@ -88,8 +90,17 @@ class PodcastPlatformDataTests(TestCase):
             Path(__file__).resolve().parents[2] / "templates/public/podcast_detail.html"
         ).read_text(encoding="utf-8")
 
+        # The hub's follow line and every card's "Listen on" row draw the mark
+        # through the shared icon partial; the episode page draws pill buttons.
+        icon = '{% include "public/_podcast_platform_icon.html" with provider=link.provider'
+        self.assertIn(icon, hub)
+        self.assertIn(
+            icon,
+            (
+                Path(__file__).resolve().parents[2] / "templates/public/_podcast_episode_card.html"
+            ).read_text(encoding="utf-8"),
+        )
         include = '{% include "public/_podcast_platform_button.html" with link=link only %}'
-        self.assertIn(include, hub)
         self.assertIn(include, detail)
         self.assertNotIn("data-podcast-platform-icon=", hub)
         self.assertNotIn("data-podcast-platform-icon=", detail)
