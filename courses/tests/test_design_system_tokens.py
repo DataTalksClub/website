@@ -189,7 +189,7 @@ class DesignSystemTokenTests(SimpleTestCase):
 
         # The keyboard focus ring is one token, restated by the dark palette.
         focus = _rule_body(stylesheet, ":focus-visible")
-        self.assertIn("outline: 3px solid var(--focus)", focus)
+        self.assertIn("outline: var(--outline-focus)", focus)
         self.assertNotRegex(focus, LITERAL_COLOR)
 
         # The impersonation banner and its return control are token-drawn too.
