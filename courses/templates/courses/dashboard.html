@@ -268,15 +268,15 @@
          quieter line-soft used for dashed separators. */
       .range-track {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 999px;
+        border: var(--border-strong);
+        border-radius: var(--radius-pill);
         height: 1rem;
         position: relative;
       }
 
       .range-iqr {
         background: var(--indigo-soft);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         bottom: 0;
         position: absolute;
         top: 0;
@@ -284,7 +284,7 @@
 
       .range-median {
         background: var(--ink);
-        border-radius: 2px;
+        border-radius: var(--radius-sm);
         bottom: -4px;
         position: absolute;
         top: -4px;
@@ -295,7 +295,7 @@
       .range-mean {
         background: var(--card);
         border: 2px solid var(--ink);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         height: 0.55rem;
         position: absolute;
         top: 50%;
@@ -327,7 +327,7 @@
 
       .k-iqr {
         background: var(--indigo-soft);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         display: inline-block;
         height: 0.6rem;
         width: 1.1rem;
@@ -335,7 +335,7 @@
 
       .k-med {
         background: var(--ink);
-        border-radius: 2px;
+        border-radius: var(--radius-sm);
         display: inline-block;
         height: 0.9rem;
         width: 3px;
@@ -344,7 +344,7 @@
       .k-mean {
         background: var(--card);
         border: 2px solid var(--ink);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         display: inline-block;
         height: 0.55rem;
         width: 0.55rem;
@@ -354,8 +354,8 @@
 
       .share {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.5rem;
+        border: var(--border-strong);
+        border-radius: var(--radius-control);
         display: flex;
         height: 2.1rem;
         overflow: hidden;
@@ -489,8 +489,8 @@
       }
 
       .share-legend .sw {
-        border: 1.5px solid var(--line-soft);
-        border-radius: 0.25rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-sm);
         height: 1rem;
         width: 1rem;
       }
@@ -583,8 +583,8 @@
 
       .time-split {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 999px;
+        border: var(--border-strong);
+        border-radius: var(--radius-pill);
         display: flex;
         height: 0.625rem;
         max-width: 9rem;

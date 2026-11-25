@@ -199,7 +199,7 @@ class DesignSystemTokenTests(SimpleTestCase):
         self.assertNotRegex(banner, LITERAL_COLOR)
         return_button = _rule_body(stylesheet, ".impersonation-return-button")
         self.assertIn("background: var(--card)", return_button)
-        self.assertIn("border: 2px solid var(--line)", return_button)
+        self.assertIn("border: var(--border-strong)", return_button)
         self.assertIn("color: var(--ink)", return_button)
         self.assertNotRegex(return_button, LITERAL_COLOR)
 
@@ -225,7 +225,7 @@ class DesignSystemTokenTests(SimpleTestCase):
         self.assertNotRegex(code_block, LITERAL_COLOR)
 
         copy_button = _rule_body(stylesheet, ".code-block-copy")
-        for token in ("--card", "--line-soft", "--ink"):
+        for token in ("--card", "--border-soft", "--ink"):
             with self.subTest(token=token):
                 self.assertIn(f"var({token})", copy_button)
         self.assertNotRegex(copy_button, LITERAL_COLOR)

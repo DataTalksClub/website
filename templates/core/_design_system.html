@@ -410,7 +410,7 @@ Rules for editing:
       :focus-visible {
         outline: 3px solid var(--focus);
         outline-offset: 2px;
-        border-radius: 0.25rem;
+        border-radius: var(--radius-sm);
       }
 
       /* The skip link moves focus here; the landmark itself must not be outlined. */
@@ -421,7 +421,7 @@ Rules for editing:
 
       .skip-link {
         background: var(--ink);
-        border-radius: 0.375rem;
+        border-radius: var(--radius-sm);
         color: var(--cream);
         left: 0.5rem;
         padding: var(--space-3) var(--space-4);
@@ -775,7 +775,7 @@ Rules for editing:
       }
 
       .nav-link {
-        border-radius: 0.5rem;
+        border-radius: var(--radius-control);
         color: var(--ink);
         display: inline-flex;
         align-items: center;
@@ -795,8 +795,8 @@ Rules for editing:
       .pill-button {
         align-items: center;
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 999px;
+        border: var(--border-strong);
+        border-radius: var(--radius-pill);
         color: var(--ink);
         cursor: pointer;
         display: inline-flex;
@@ -812,7 +812,7 @@ Rules for editing:
 
       .pill-button .dot {
         background: var(--ink);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         height: 0.9rem;
         width: 0.9rem;
       }
@@ -861,9 +861,9 @@ Rules for editing:
       .signup-button {
         align-items: center;
         background: var(--green);
-        border: 2px solid var(--line);
-        border-radius: 999px;
-        box-shadow: 0 3px 0 var(--shadow);
+        border: var(--border-strong);
+        border-radius: var(--radius-pill);
+        box-shadow: var(--shadow-cta-pill);
         color: var(--on-green);
         display: inline-flex;
         font-weight: 700;
@@ -880,9 +880,9 @@ Rules for editing:
       .cb-button-primary {
         align-items: center;
         background: var(--green);
-        border: 2px solid var(--line);
-        border-radius: 999px;
-        box-shadow: 0 3px 0 var(--shadow);
+        border: var(--border-strong);
+        border-radius: var(--radius-pill);
+        box-shadow: var(--shadow-cta-pill);
         color: var(--on-green);
         cursor: pointer;
         display: inline-flex;
@@ -910,8 +910,8 @@ Rules for editing:
       .cb-button {
         align-items: center;
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 999px;
+        border: var(--border-strong);
+        border-radius: var(--radius-pill);
         color: var(--ink);
         cursor: pointer;
         display: inline-flex;
@@ -971,8 +971,8 @@ Rules for editing:
 
       .cb-badge {
         background: var(--mint);
-        border: 2px solid var(--line);
-        border-radius: 999px;
+        border: var(--border-soft);
+        border-radius: var(--radius-pill);
         color: var(--ink);
         display: inline-flex;
         font-size: 0.8rem;
@@ -1015,8 +1015,8 @@ Rules for editing:
       .site-navigation-toggle {
         align-items: center;
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 999px;
+        border: var(--border-strong);
+        border-radius: var(--radius-pill);
         color: var(--ink);
         cursor: pointer;
         display: inline-flex;
@@ -1152,8 +1152,8 @@ Rules for editing:
       .account-nav > summary {
         align-items: center;
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 999px;
+        border: var(--border-strong);
+        border-radius: var(--radius-pill);
         color: var(--ink);
         cursor: pointer;
         display: inline-flex;
@@ -1547,9 +1547,9 @@ Rules for editing:
       .cta {
         align-items: center;
         appearance: none;
-        border: 2px solid var(--line);
-        border-radius: 0.7rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow);
+        border: var(--border-strong);
+        border-radius: var(--radius-control);
+        box-shadow: var(--shadow-cta);
         cursor: pointer;
         display: inline-flex;
         font: inherit;
@@ -2018,7 +2018,7 @@ Rules for editing:
       .event-art-pill {
         background: var(--art-pill);
         border: calc(var(--art-u) * 5) solid var(--art-line);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         box-shadow: calc(var(--art-u) * 8) calc(var(--art-u) * 8) 0 var(--art-shadow);
         color: var(--art-pill-ink);
         font-size: calc(var(--art-u) * 44);
@@ -2088,8 +2088,8 @@ Rules for editing:
 
       .chip {
         align-items: center;
-        border: 1.5px solid var(--line-soft);
-        border-radius: 999px;
+        border: var(--border-soft);
+        border-radius: var(--radius-pill);
         color: var(--ink);
         display: inline-flex;
         font-size: 0.72rem;
@@ -2142,8 +2142,8 @@ Rules for editing:
           var(--card) 3px,
           var(--card) 6px
         );
-        border: 2px solid var(--line);
-        border-radius: 999px;
+        border: var(--border-strong);
+        border-radius: var(--radius-pill);
         flex: none;
         height: 2.6rem;
         object-fit: cover;
@@ -2194,7 +2194,7 @@ Rules for editing:
 
       .story-elapsed {
         background: var(--lavender);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         color: var(--indigo);
         flex: none;
         font-size: 0.78rem;
@@ -2308,7 +2308,7 @@ Rules for editing:
       .person-chip-portrait {
         align-self: center;
         border: 1px solid var(--line);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         flex: none;
         height: 1.6rem;
         object-fit: cover;
@@ -2401,8 +2401,8 @@ Rules for editing:
       .scroller-button {
         align-items: center;
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 999px;
+        border: var(--border-strong);
+        border-radius: var(--radius-pill);
         color: var(--ink);
         cursor: pointer;
         display: inline-flex;
@@ -2491,8 +2491,8 @@ Rules for editing:
 
       .impersonation-return-button {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.5rem;
+        border: var(--border-strong);
+        border-radius: var(--radius-control);
         color: var(--ink);
         cursor: pointer;
         font: inherit;
@@ -2633,7 +2633,7 @@ Rules for editing:
         align-items: center;
         background: transparent;
         border: 0;
-        border-radius: 0.25rem;
+        border-radius: var(--radius-sm);
         color: var(--muted);
         display: inline-flex;
         font: inherit;
@@ -2679,7 +2679,7 @@ Rules for editing:
 
       .site-footer-icon {
         align-items: center;
-        border-radius: 0.25rem;
+        border-radius: var(--radius-sm);
         color: var(--muted);
         display: inline-flex;
         height: var(--footer-target);
@@ -2800,9 +2800,9 @@ Rules for editing:
       }
 
       .analytics-preferences-choice {
-        border: 2px solid var(--line);
-        border-radius: 0.7rem;
-        box-shadow: 0.2rem 0.2rem 0 var(--shadow);
+        border: var(--border-strong);
+        border-radius: var(--radius-control);
+        box-shadow: var(--shadow-cta-sm);
         cursor: pointer;
         font-size: 0.92rem;
         font-weight: 700;
@@ -3160,7 +3160,7 @@ Rules for editing:
 
       .event-item-sponsors img {
         background: var(--chart-ground);
-        border-radius: 0.35rem;
+        border-radius: var(--radius-sm);
         box-sizing: content-box;
         display: block;
         height: auto;
@@ -3336,8 +3336,8 @@ Rules for editing:
       .filter-pill {
         align-items: center;
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 999px;
+        border: var(--border-strong);
+        border-radius: var(--radius-pill);
         color: var(--ink);
         cursor: pointer;
         display: inline-flex;
@@ -3372,8 +3372,8 @@ Rules for editing:
       .status-pill {
         align-items: center;
         background: var(--cream);
-        border: 1.5px solid var(--line-soft);
-        border-radius: 0.45rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-sm);
         color: var(--body-text);
         display: inline-flex;
         font-family: var(--font-mono);
@@ -3493,7 +3493,7 @@ Rules for editing:
       /* The little state dot, on a status pill or beside a band heading. */
       .status-dot {
         background: var(--green-bright);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         display: inline-block;
         flex: none;
         height: 0.6rem;
@@ -3542,8 +3542,8 @@ Rules for editing:
          carries role="progressbar" with aria-valuemin/max/now and a label. */
       .progress {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 999px;
+        border: var(--border-strong);
+        border-radius: var(--radius-pill);
         height: 0.625rem;
         overflow: hidden;
       }
@@ -3852,7 +3852,7 @@ Rules for editing:
       .play-disc {
         align-items: center;
         background: var(--bubble);
-        border: 2px solid var(--line);
+        border: var(--border-strong);
         border-radius: var(--drawn-circle);
         display: inline-flex;
         flex: none;
@@ -3939,7 +3939,7 @@ Rules for editing:
          to survive being seen three times at once. */
       .step-number {
         align-items: center;
-        border: 2px solid var(--line);
+        border: var(--border-strong);
         border-radius: var(--drawn-circle);
         display: inline-flex;
         flex: none;
@@ -4152,7 +4152,7 @@ Rules for editing:
       .module-number {
         align-items: center;
         background: var(--bubble);
-        border: 2px solid var(--line);
+        border: var(--border-strong);
         border-radius: var(--drawn-circle);
         color: var(--on-bubble);
         display: inline-flex;
@@ -4842,7 +4842,7 @@ Rules for editing:
       .graph-node {
         background: var(--lavender);
         border: 2px solid var(--indigo);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         color: var(--ink);
         font-size: 0.74rem;
         font-weight: 600;
@@ -4912,7 +4912,7 @@ Rules for editing:
 
       .legend-swatch {
         border: 1.5px solid var(--line);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         height: 0.7rem;
         width: 0.7rem;
       }
@@ -4931,7 +4931,7 @@ Rules for editing:
       /* The third key: the drawn edge between two nodes. */
       .legend-swatch-line {
         background: var(--graph-edge);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         height: 0.2rem;
         width: 1.1rem;
       }
@@ -5053,7 +5053,7 @@ Rules for editing:
          actions (Register buttons in list rows). */
       .cta-ink {
         background: var(--ink);
-        box-shadow: 0.25rem 0.25rem 0 var(--bubble);
+        box-shadow: var(--shadow-cta-bubble);
         color: var(--cream);
       }
 
@@ -5078,11 +5078,11 @@ Rules for editing:
       }
 
       .cta-lift {
-        box-shadow: 0.25rem 0.25rem 0 var(--bubble);
+        box-shadow: var(--shadow-cta-bubble);
       }
 
       .cta-compact {
-        border-radius: 0.6rem;
+        border-radius: var(--radius-control);
         font-size: 0.92rem;
         min-height: 2.75rem;
         padding: var(--space-2) var(--space-4);
@@ -5189,8 +5189,8 @@ Rules for editing:
 
       .prose code {
         background: var(--lavender-deep);
-        border: 1.5px solid var(--line-soft);
-        border-radius: 0.45rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-sm);
         color: var(--ink);
         font-family: var(--font-mono);
         font-size: 0.85em;
@@ -5329,8 +5329,8 @@ Rules for editing:
       .code-block-copy {
         align-items: center;
         background: var(--card);
-        border: 1.5px solid var(--line-soft);
-        border-radius: 0.5rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-control);
         color: var(--ink);
         cursor: pointer;
         display: inline-flex;
@@ -5563,7 +5563,7 @@ Rules for editing:
       }
 
       .prose-chart-swatch {
-        border-radius: 3px;
+        border-radius: var(--radius-sm);
         flex: 0 0 auto;
         height: 0.7rem;
         width: 0.7rem;
@@ -5855,7 +5855,7 @@ Rules for editing:
         }
 
         :root:not(.no-js) .masthead .nav-group-links .nav-link {
-          border-radius: 0.5rem;
+          border-radius: var(--radius-control);
           min-height: 2.25rem;
           padding: var(--space-1) var(--space-3);
         }
