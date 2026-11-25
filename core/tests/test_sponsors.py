@@ -450,10 +450,13 @@ class SponsorPublicSurfaceTests(TestCase):
             '<link rel="canonical" href="https://datatalks.club/sponsors">',
         )
 
-    def test_top_navigation_links_to_sponsor_directory(self) -> None:
+    def test_footer_links_to_sponsorship_and_masthead_leaves_sponsors_out(self) -> None:
         response = self.client.get(reverse("home"))
 
-        self.assertContains(response, ">Sponsors</a>")
+        # Sponsors is not in the masthead; the footer carries "Sponsor us".
+        self.assertNotContains(response, ">Sponsors</a>")
+        self.assertContains(response, 'href="/blog/sponsor-datatalks-club.html">Sponsor us</a>')
+        # The home page's own sponsors band still reaches the directory.
         self.assertContains(response, f'href="{reverse("sponsors")}"')
 
 

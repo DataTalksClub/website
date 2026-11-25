@@ -60,6 +60,16 @@ STRUCTURAL_LEFT_BORDERS: dict[tuple[str, str], str] = {
         ".build-check::after",
     ): "Two borders rotated 45 degrees draw the check glyph itself; there is no block to mark.",
     (
+        "templates/core/_design_system.html",
+        ".event-timeline::before",
+    ): "The dotted spine of the dated rail: one hairline connecting the day dots of the "
+    "events list; it draws the timeline itself, not a mark on any block.",
+    (
+        "templates/core/_design_system.html",
+        ".archive-row:not(.archive-row-undated)::before",
+    ): "The same dotted spine on archive lists (blog, podcast): a per-row segment that joins "
+    "the dated rail, not a mark on the row.",
+    (
         "templates/core/home.html",
         ".latest-grid > * + *",
     ): "The dashed rule between the two latest-columns, drawn only at >=40rem, is the divider "

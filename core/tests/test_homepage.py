@@ -311,19 +311,11 @@ class MainHomepageRoutingTests(TestCase):
             'class="card course-card stretched-card-link interactive-card interactive-lift"',
             body,
         )
-        self.assertIn(
-            "card latest-card stretched-card-link podcast-card interactive-card interactive-lift",
-            body,
-        )
-        self.assertIn(
-            '<p class="latest-meta">',
-            body,
-        )
-        self.assertIn(
-            'class="card latest-card stretched-card-link interactive-card interactive-lift">',
-            body,
-        )
-        self.assertIn(".stretched-card-link .latest-item h3 a::after", body)
+        # The latest-from-the-community band reuses the specialized pages' own
+        # soft cards (the /podcast episode card, the blog archive row) rather
+        # than a home-only card, so there is one card language.
+        self.assertIn('<div class="latest-grid">', body)
+        self.assertNotIn("latest-card", body)
         self.assertIn(".stretched-card-link .course-link::after", body)
         self.assertIn(">View course</a>", body)
         self.assertNotIn(">View course →</a>", body)

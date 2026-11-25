@@ -64,6 +64,22 @@ ALLOWED: dict[tuple[str, str], str] = {
         "margin-block-end: 0.28rem",
     ): "Optical: lifts the wordmark by half of it to centre it on the drawn DTC mark "
     "(the comment above .brand-name has the arithmetic); a glyph alignment, not a gap.",
+    (
+        "templates/core/_design_system.html",
+        "padding: 0.2rem 0.4rem",
+    ): "Optical padding around a sponsor/podcast logo chip; a glyph-scale inset, not a gap.",
+    (
+        "templates/core/_design_system.html",
+        "margin-top: 0.2rem",
+    ): "Optical: aligns a 1em meta icon with the first text baseline.",
+    (
+        "templates/public/article_detail.html",
+        "gap: var(--space-4) 1.2rem",
+    ): "Column gap of the prose chart grid, tuned to the chart's axis labels.",
+    (
+        "accounts/templates/accounts/login_popup_done.html",
+        "padding: 2rem 1rem",
+    ): "Standalone popup-close page: it does not load the design-system partial, so no tokens.",
 }
 
 COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)

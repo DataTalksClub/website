@@ -141,7 +141,7 @@ class HomeEventsCmpRenderingTests(TestCase):
         self.assertContains(catalog, "Events")
         self.assertContains(catalog, "Upcoming events")
         self.assertContains(catalog, "Past events")
-        self.assertContains(catalog, "our Google calendar")
+        self.assertContains(catalog, "Google calendar")
         self.assertContains(catalog, f'href="{featured_event_path}"')
         self.assertNotContains(catalog, "/static/core/site.css")
 

@@ -284,12 +284,18 @@ class TourStripeTests(TestCase):
 
     def test_newcomer_pages_lead_to_the_about_page(self):
         # The stripe is selective (#546): it renders on newcomer-facing pages only.
-        for route in ("events", "faq-home", "slack"):
+        for route in ("events", "faq-home"):
             with self.subTest(route=route):
                 body = self.client.get(reverse(route)).content.decode()
                 self.assertIn("tour-cta-heading", body)
                 self.assertIn('href="/about">About DataTalks.Club</a>', body)
                 self.assertNotIn('href="/tour"', body)
+
+    def test_slack_landing_page_ends_with_its_own_closing_panel(self):
+        # /slack is a landing page with one goal (Join Slack); it closes on its
+        # own panel, so the About stripe is not stacked under it.
+        body = self.client.get(reverse("slack")).content.decode()
+        self.assertNotIn("tour-cta-heading", body)
 
     def test_courses_shows_academy_stripe_without_about_stripe(self):
         body = self.client.get(reverse("course_list")).content.decode()
@@ -299,29 +305,22 @@ class TourStripeTests(TestCase):
 
 
 class AboutAddressTests(TestCase):
-    """/about is the page's address; the tour's two spellings still reach it."""
+    """/about is the page's address; the old tour spellings are gone."""
 
     def test_about_is_served_at_its_own_address(self):
         response = self.client.get("/about")
         self.assertEqual(response.status_code, 200)
         self.assertIs(response.resolver_match.func, core_views.tour)
 
-    def test_every_old_and_slash_spelling_redirects_once_to_about(self):
-        for source in ("/tour", "/tour/", "/about/"):
-            with self.subTest(source=source):
-                response = self.client.get(f"{source}?source=browser", follow=False)
-                self.assertEqual(response.status_code, 301)
-                self.assertEqual(response.headers["Location"], "/about?source=browser")
+    def test_the_trailing_slash_spelling_redirects_once_to_about(self):
+        response = self.client.get("/about/?source=browser", follow=False)
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response.headers["Location"], "/about?source=browser")
 
-    def test_the_old_addresses_are_no_longer_served_as_pages(self):
+    def test_the_old_tour_addresses_are_not_served(self):
         for source in ("/tour", "/tour/"):
             with self.subTest(source=source):
-                response = self.client.get(source, follow=True)
-                self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.redirect_chain, [("/about", 301)])
-                self.assertIn(
-                    'rel="canonical" href="https://datatalks.club/about"', response.content.decode()
-                )
+                self.assertEqual(self.client.get(source).status_code, 404)
 
 
 class HomepageAboutBandTests(PublishedTourPage):

@@ -21,7 +21,9 @@
   <div class="card auth-panel">
     {% if account_entry.providers %}
       {% include "account/_social_provider_choices.html" with provider_list=account_entry.providers provider_url_mode="provided" provider_container_class="auth-choices" %}
-      <p class="auth-or"><span>or</span></p>
+      <p class="auth-or">
+        <span>or</span>
+      </p>
     {% endif %}
     <section aria-labelledby="signup-email-heading">
       <h2 id="signup-email-heading" class="sr-only">Sign up with email and password</h2>

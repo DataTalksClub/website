@@ -19,7 +19,9 @@
     {% if providers %}
       {% include "account/_social_provider_choices.html" with provider_list=providers provider_url_mode="provided" provider_container_class="auth-choices" %}
       {% if password_login_available %}
-        <p class="auth-or"><span>or</span></p>
+        <p class="auth-or">
+          <span>or</span>
+        </p>
       {% endif %}
     {% endif %}
     {% if password_login_available %}
@@ -50,7 +52,9 @@
             autocomplete="email"
             autocapitalize="none"
             maxlength="254"
-            {% if login_error %}aria-describedby="login-error" aria-invalid="true"{% endif %}
+            {% if login_error %}
+              aria-describedby="login-error" aria-invalid="true"
+            {% endif %}
           >
         </div>
         <div class="field">
@@ -67,7 +71,9 @@
             name="password"
             required
             autocomplete="current-password"
-            {% if login_error %}aria-describedby="login-error" aria-invalid="true"{% endif %}
+            {% if login_error %}
+              aria-describedby="login-error" aria-invalid="true"
+            {% endif %}
           >
         </div>
         <input type="hidden" name="next" value="{{ safe_next }}">

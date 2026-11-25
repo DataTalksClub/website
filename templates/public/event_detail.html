@@ -855,7 +855,7 @@
                         {% if registered != "resend_limit" %}
                           <form method="post" action="{{ event.public_path }}/register/resend" class="event-register-resend">
                             {% csrf_token %}
-                            <button type="submit" class="cta cta-secondary cta-compact">Resend email</button>
+                            <button type="submit" class="cta cta-secondary cta-compact interactive-lift">Resend email</button>
                           </form>
                         {% endif %}
                       </div>

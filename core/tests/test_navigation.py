@@ -269,7 +269,11 @@ class PublicNavigationTests(TestCase):
     def test_default_markup_and_override_are_visible_on_the_next_request(self) -> None:
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        for _key, label, target, _position, _visible in DEFAULT_PRIMARY_NAVIGATION:
+        for key, label, target, _position, _visible in DEFAULT_PRIMARY_NAVIGATION:
+            if key == "sponsors":
+                # Sponsors lives in the footer ("Sponsor us"), not the masthead.
+                self.assertNotContains(response, ">Sponsors</a>")
+                continue
             self.assertContains(response, f">{label}</a>")
             self.assertContains(response, f'href="{reverse(target)}"')
 
