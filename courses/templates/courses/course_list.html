@@ -29,18 +29,29 @@
 
 {% block page_styles %}
       /* ------------------------------------------------------------------ *
-       * Courses index.  Site feedback 3.1 (_docs/audits/2026-11-19-site-
-       * feedback.md) reshaped it into a landing page first and a catalogue
-       * second: a hero with one illustration, the benefits of our courses,
-       * how a zoomcamp works, a "which course fits me?" helper, the
-       * filterable catalogue, learner projects, reviews, a one-column FAQ
-       * and a closing call to action.  Like every rebuilt page it carries
-       * its complete stylesheet inline on top of the shared design system
-       * partial, and reuses that partial's components (stat tiles, catalogue
-       * cards, filter pills, status pills, chips, the stories scroller, the
-       * FAQ fold) rather than drawing new ones.
+       * Courses index, the owner's Courses_Landing mockup mapped onto this
+       * system.  Like every rebuilt page it carries its complete stylesheet
+       * inline: the shared design system partial first, then this page's own
+       * layout.  It deliberately loads none of the older site CSS.
+       *
+       * The mockup composes at the full 76rem shell -- a two-column hero with
+       * an illustration collage, a featured open-registration slab and
+       * horizontal running-now cards.  Those are genuinely wide elements, so
+       * each one is a `.shell-breakout` section while the page underneath
+       * stays an ordinary content page: the cream hero band and the lavender
+       * content band remain the parent's.  The facts strip that used to be
+       * the mockup's own dark stripe now draws with the shared
+       * `.stat-tiles`/`.stat-tile` primitive instead (2026-09): the site
+       * owner asked for one stats-strip shape shared with the family page,
+       * not two ad hoc grids, so it sits on the ordinary lavender ground at
+       * the ordinary content width like the rest of the page's sections.
        * ------------------------------------------------------------------ */
 
+      /* The page draws with the design system's tokens — the same palette,
+         buttons and cards the homepage renders; the shared partial owns
+         both themes.  Only the artwork's genuinely one-off colours are
+         named here, so the dark theme can restate them instead of each
+         rule carrying a light-only literal. */
       :root {
         --hatch-line: #9a9dbb;
         --panel-line: #a9cfa0;
@@ -57,19 +68,19 @@
 
       /* --- hero ----------------------------------------------------------- */
 
-      /* Text left, one illustration right: the generic "learning a course"
-         scene stands for every course, instead of four of the seven family
-         covers (feedback 3.1: "only 4 courses of 7 are shown up top"). */
+      /* Text left, illustration collage right, like the mockup's opening
+         composition.  The two tracks collapse below 62rem, where a side-by-side
+         hero would squeeze both. */
       .courses-hero-grid.shell-breakout {
         align-items: center;
         display: grid;
-        gap: var(--space-6) var(--space-7);
+        gap: var(--space-7) var(--space-7);
         grid-template-columns: minmax(0, 1fr);
       }
 
       @media (min-width: 62rem) {
         .courses-hero-grid.shell-breakout {
-          grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+          grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
         }
       }
 
@@ -81,297 +92,73 @@
 
       .courses-lede {
         font-size: clamp(1.02rem, 1.5vw, 1.2rem);
-        margin-top: var(--space-4);
-        max-width: 40ch;
+        margin-top: var(--space-stack);
+        max-width: 36ch;
       }
 
       .hero-actions {
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-3);
-        margin-top: var(--space-5);
+        margin-top: var(--space-head);
       }
 
-      .hero-register {
-        margin-top: var(--space-4);
-      }
+      /* --- hero collage ---------------------------------------------------- */
 
-      .hero-register .band-link {
-        align-items: center;
-        display: inline-flex;
-        min-height: 2.75rem;
-      }
-
-      .courses-hero-art {
-        justify-self: center;
-        max-width: 26rem;
+      /* Keep the original four-card collage; cream lets each blurb meet its
+         surface without a contrasting white picture plate. */
+      .hero-collage {
+        align-self: center;
+        display: grid;
+        gap: var(--space-5) var(--space-5);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-width: 31rem;
         width: 100%;
       }
 
-      .courses-hero-art .doodle {
+      .hero-collage-card {
+        background: var(--cream);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        min-width: 0;
+        padding: var(--space-3);
+      }
+
+      .hero-collage-card .doodle {
         aspect-ratio: 1;
         height: auto;
         object-fit: contain;
         width: 100%;
       }
 
-      /* --- benefits -------------------------------------------------------
-         Feedback 3.1 asked for "what makes our courses different" in place
-         of the "7 zoomcamps / €0 / 100% open" tiles: six short cards, then
-         the numbers with their context underneath. */
-      .courses-benefits.shell-breakout,
-      .course-fit.shell-breakout {
-        padding-inline: 0;
-      }
-
-      .courses-benefits {
-        margin-top: var(--space-section);
-      }
-
-      .benefit-grid {
-        display: grid;
-        gap: var(--space-4);
-        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-      }
-
-      .benefit-card {
-        display: grid;
-        gap: var(--space-2);
-        padding: var(--space-5);
-      }
-
-      .benefit-card h3 {
-        font-size: 1.15rem;
-        letter-spacing: -0.01em;
-      }
-
-      .benefit-card p {
-        color: var(--body-text);
-        font-size: 0.95rem;
-      }
-
-      .courses-numbers {
-        margin-top: var(--space-5);
-      }
-
-      /* --- which course fits me ------------------------------------------- */
-      .course-fit {
-        margin-top: var(--space-section);
-      }
-
-      .fit-grid {
-        display: grid;
-        gap: var(--space-4);
-        grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-      }
-
-      .fit-option {
-        color: var(--ink);
-        display: grid;
-        gap: var(--space-2);
-        padding: var(--space-4) var(--space-4);
-        text-decoration: none;
-      }
-
-      .fit-option strong {
-        font-size: 1.05rem;
-      }
-
-      .fit-option span {
-        color: var(--body-text);
-        font-size: 0.9rem;
-      }
-
-      .fit-option .fit-courses {
-        color: var(--green-text);
-        font-family: var(--font-mono);
-        font-size: 0.75rem;
-      }
-
-      .fit-option.is-active {
-        background: var(--ink);
-        border-color: var(--ink);
-      }
-
-      .fit-option.is-active,
-      .fit-option.is-active span,
-      .fit-option.is-active .fit-courses {
-        color: var(--cream);
-      }
-
-      /* --- catalogue filters ---------------------------------------------- */
-      .courses-catalog {
-        margin-top: var(--space-section);
-        scroll-margin-top: 5rem;
-      }
-
-      .catalog-filters {
-        display: grid;
-        gap: var(--space-4);
-        margin-bottom: var(--space-4);
-      }
-
-      .filter-row {
-        align-items: baseline;
-        display: grid;
-        gap: var(--space-2) var(--space-4);
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      @media (min-width: 48rem) {
-        .filter-row {
-          grid-template-columns: 9.5rem minmax(0, 1fr);
-        }
-      }
-
-      .filter-row-label {
+      .hero-collage-caption {
         color: var(--muted);
         font-family: var(--font-mono);
-        font-size: 0.75rem;
+        font-size: 0.66rem;
         letter-spacing: 0.08em;
+        margin: var(--space-2) 0 0;
+        text-align: center;
         text-transform: uppercase;
       }
 
-      .catalog-filters .filter-pill {
-        font-size: 0.85rem;
-        min-height: 2.5rem;
-        padding: var(--space-1) var(--space-4);
+      /* --- facts strip --------------------------------------------------
+         Owner feedback (2026-09): this used to be its own bespoke dark
+         full-bleed stripe (.courses-stats-grid) -- a different shape from
+         the family page's real per-family numbers a few clicks away, drawn
+         with the shared design system's .stat-tiles/.stat-tile primitive
+         instead (see templates/core/_design_system.html and
+         course_family.html's .family-outcomes).  The catalogue's own facts
+         (zoomcamp count, open-cohort sign-ups, the free/open framing) stay
+         page-specific; only the tile shape is now shared. */
+      .courses-stats {
+        margin-bottom: var(--space-section);
       }
 
-      .catalog-active {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-2) var(--space-3);
-        margin-bottom: var(--space-4);
-        min-height: 2.75rem;
-      }
-
-      .catalog-count {
-        color: var(--muted);
-        font-family: var(--font-mono);
-        font-size: 0.8rem;
-        margin-right: var(--space-1);
-      }
-
-      .active-chip {
-        align-items: center;
-        background: var(--card);
-        border: 1.5px solid var(--line);
-        border-radius: 999px;
-        color: var(--ink);
-        display: inline-flex;
-        font-size: 0.82rem;
-        font-weight: 700;
-        gap: var(--space-2);
-        min-height: 2.25rem;
-        padding: var(--space-1) var(--space-3);
-        text-decoration: none;
-      }
-
-      .active-chip span[aria-hidden] {
-        font-size: 1rem;
-        line-height: 1;
-      }
-
-      .catalog-clear {
-        font-size: 0.85rem;
-        font-weight: 700;
-      }
-
-      .catalog-empty {
-        padding: var(--space-5);
-      }
-
-      .catalog-empty p + p {
-        margin-top: var(--space-2);
-      }
-
-      /* --- catalogue cards -------------------------------------------------
-         Every card carries the same fields in the same order (feedback 3.1):
-         status and start, topic and level, length, key tools, what you will
-         build, and a "View course" link. */
-      .courses-catalog-list .catalog-card-body {
-        align-content: start;
-        flex: 1;
-        gap: var(--space-2);
-      }
-
-      .courses-catalog-list .catalog-card-body h3 a {
-        align-items: center;
-        display: inline-flex;
-        min-height: 2.75rem;
-      }
-
-      .card-status {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-2) var(--space-2);
-      }
-
-      .card-status-when {
-        color: var(--body-text);
-        font-size: 0.85rem;
-      }
-
-      .card-facts {
-        color: var(--body-text);
-        display: grid;
-        font-size: 0.88rem;
-        gap: var(--space-1);
-      }
-
-      .card-tools {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-1);
-      }
-
-      .card-builds {
-        border-top: 1px dashed var(--line-soft);
-        font-size: 0.9rem;
-        padding-top: var(--space-2);
-      }
-
-      .card-builds strong {
-        display: block;
-        font-family: var(--font-mono);
-        font-size: 0.7rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      .card-more {
-        color: var(--ink);
-        font-weight: 700;
-        margin-top: auto;
-      }
-
-      /* The shared .card and .band-link set their own display, which would
-         otherwise beat the hidden attribute the filters toggle. */
-      .courses-catalog [hidden] {
-        display: none !important;
-      }
-
-      /* --- wrapped entry point ------------------------------------------ */
-      .courses-wrapped .band-head {
-        margin-bottom: 0;
-      }
-
-      .courses-wrapped-action {
-        align-self: center;
-        justify-self: start;
-      }
-
-      /* --- reviews --------------------------------------------------------- */
-      .courses-stories .band-head h2 {
-        font-size: clamp(1.75rem, 3.4vw, 3rem);
-        letter-spacing: -0.02em;
-      }
-
-      .story-course {
-        margin-top: var(--space-1);
+      /* Unless the Wrapped entry point sits directly above: the strip then
+         stays in the flow the entry point already opened. */
+      .courses-wrapped + .courses-stats {
+        margin-top: 0;
       }
 
       /* --- projects section -------------------------------------------------
@@ -441,7 +228,7 @@
       .courses-projects-copy .band-link {
         align-items: center;
         display: inline-flex;
-        margin-top: var(--space-4);
+        margin-top: var(--space-5);
         min-height: 2.75rem;
       }
 
@@ -452,16 +239,15 @@
          column and the note rides the heading's own baseline row. */
       .catalogue-section .band-head,
       .zoomcamp-steps .band-head,
-      .courses-faq .band-head,
-      .courses-benefits .band-head,
-      .course-fit .band-head {
+      .courses-faq .band-head {
         grid-template-columns: minmax(0, 1fr);
       }
 
-      /* Site feedback 3.1: "How our zoomcamps work" now sits right after the
-         benefits, so the cream band opens under them with the same air the
-         catalogue used to leave above it. */
-      .courses-benefits + .zoomcamp-steps {
+      /* The cream steps band closes the lavender catalogue the way the
+         mockup draws it: the catalogue's own trailing air, then the band
+         seam.  The lavender FAQ band then sits flush against the cream,
+         like the mockup's two lavender bands sandwiching it. */
+      #courses + .zoomcamp-steps {
         margin-top: var(--space-section);
       }
 
@@ -472,7 +258,7 @@
       .band-head-row {
         display: flex;
         flex-direction: column;
-        gap: var(--space-1);
+        gap: var(--space-2);
       }
 
       .band-head-row h2 {
@@ -488,7 +274,7 @@
 
       .band-head .band-head-sub {
         font-size: 0.95rem;
-        margin-top: var(--space-2);
+        margin-top: var(--space-tight);
         max-width: 44rem;
       }
 
@@ -548,8 +334,7 @@
       /* The mockup draws this band full-bleed: edge-to-edge cream between the
          two lavender bands, its columns still capped at the shell — the same
          widening the facts stripe uses. */
-      .zoomcamp-steps.shell-breakout,
-      .courses-stories.shell-breakout {
+      .zoomcamp-steps.shell-breakout {
         --breakout-width: 100vw;
         background: var(--cream);
         /* 100vw leaves the shell's own inline padding behind; the facts
@@ -560,9 +345,7 @@
       }
 
       .zoomcamp-steps.shell-breakout .band-head,
-      .zoomcamp-steps .step-grid,
-      .courses-stories.shell-breakout .band-head,
-      .courses-stories .stories-scroller {
+      .zoomcamp-steps .step-grid {
         margin-inline: auto;
         max-width: var(--shell);
       }
@@ -625,7 +408,8 @@
 
       /* The FAQ is the mockup's second lavender band: a full-bleed surface
          seated flush under the cream steps band, with the band's own air
-         around the shell-capped answers. */
+         around the shell-capped answers.  It closes the content band, so it
+         takes over that band's bottom padding instead of stacking on it. */
       .courses-faq.shell-breakout {
         --breakout-width: 100vw;
         background: var(--lavender);
@@ -634,51 +418,53 @@
         padding-block: var(--space-band);
       }
 
+      .courses-faq.shell-breakout:last-child {
+        margin-bottom: calc(var(--space-band) * -1);
+      }
+
       .courses-faq.shell-breakout .band-head,
-      .courses-faq.shell-breakout .faq-list,
+      .courses-faq.shell-breakout .faq-grid,
       .courses-faq.shell-breakout .faq-note {
         margin-inline: auto;
         max-width: var(--shell);
       }
 
-      /* --- FAQ -------------------------------------------------------------
-         Feedback 3.1: one column, read top to bottom, each question a fold
-         like the course page's own FAQ (the shared .faq-fold component). */
-      .faq-list .faq-answer {
-        max-width: 70ch;
-        padding-bottom: var(--space-4);
+      /* --- FAQ ------------------------------------------------------------------------
+     The mockup shows the answers: two columns of question-and-answer pairs
+     divided by a thin rule, not disclosures. */
+      .faq-grid {
+        display: grid;
+        gap: 0 var(--space-7);
+      }
+
+      .faq-item {
+        border-top: 1px solid var(--line-soft);
+        display: grid;
+        gap: var(--space-2);
+        padding: var(--space-5) 0;
+      }
+
+      .faq-item h3 {
+        font-size: 1.15rem;
+        letter-spacing: -0.01em;
+        text-wrap: pretty;
+      }
+
+      .faq-item p {
+        color: var(--body-text);
+        font-size: 0.95rem;
+        line-height: 1.6;
+        text-wrap: pretty;
+      }
+
+      @media (min-width: 48rem) {
+        .faq-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
       }
 
       .faq-note {
         margin-top: var(--space-5);
-      }
-
-      /* --- closing call to action ----------------------------------------- */
-      .courses-closing.shell-breakout {
-        align-items: center;
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 1rem;
-        box-shadow: 0.35rem 0.35rem 0 var(--shadow-soft);
-        display: grid;
-        gap: var(--space-4) var(--space-6);
-        margin-block: var(--space-section) var(--space-4);
-        padding: clamp(var(--space-5), 3.5vw, var(--space-6));
-      }
-
-      @media (min-width: 48rem) {
-        .courses-closing.shell-breakout {
-          grid-template-columns: minmax(0, 1fr) auto;
-        }
-      }
-
-      .courses-closing h2 {
-        font-size: clamp(1.5rem, 2.8vw, 2.25rem);
-      }
-
-      .courses-closing p {
-        margin-top: var(--space-2);
-        max-width: 48ch;
       }
 {% endblock %}
 
@@ -694,81 +480,131 @@
           <div class="courses-hero-intro">
             <h1 id="courses-hero-heading">Learn data skills. For free. Together.</h1>
             <p class="courses-lede">
-              Free, practical zoomcamps on data engineering, machine learning and AI.
-              Learn with a cohort, do weekly homework, and finish with a project of
-              your own for your portfolio.
+              Community-created zoomcamps with real projects, weekly deadlines and
+              thousands of classmates doing the homework at the same time as you.
             </p>
             <div class="hero-actions">
-              <a class="cta cta-primary interactive-lift" href="#courses">Explore the courses</a>
-              <a class="cta cta-secondary interactive-lift" href="#course-fit">Which course fits me?</a>
+              {% if hero_register_url %}
+                <a class="cta cta-primary interactive-lift" href="{{ hero_register_url }}">Register for the next cohort</a>
+              {% else %}
+                <a class="cta cta-primary interactive-lift" href="#courses">Explore the courses</a>
+              {% endif %}
+              <a class="cta cta-secondary interactive-lift" href="{% url 'slack' %}">Join Slack</a>
             </div>
-            {% if hero_register_url %}
-              <p class="hero-register">
-                Registration is open.
-                <a class="band-link" href="{{ hero_register_url }}">Register for the next cohort</a>
-              </p>
-            {% endif %}
           </div>
-          <div class="courses-hero-art" aria-hidden="true">
-            {% include "core/_course_illustration.html" with family_slug="" only %}
-          </div>
+          {% if hero_collage %}
+            <div class="hero-collage" aria-hidden="true">
+              {% for mascot in hero_collage %}
+                <div class="hero-collage-card">
+                  {% include "core/_course_illustration.html" with family_slug=mascot.family_slug only %}
+                  <p class="hero-collage-caption">{{ mascot.title }}</p>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
         </div>
 {% endblock %}
 
 {% block page_content %}
-      <section class="courses-benefits shell-breakout" id="why" aria-labelledby="benefits-heading">
-        <div class="band-head">
-          <div class="band-head-row">
-            <h2 id="benefits-heading">Why learn with our zoomcamps</h2>
+      {% if SHOW_WRAPPED and wrapped_year %}
+        {% comment %}
+          The site's only entry point into Wrapped.  It sits between the hero and the
+          catalogue rather than inside a course section.
+        {% endcomment %}
+        <section class="courses-wrapped" aria-labelledby="wrapped-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="wrapped-heading">
+                DataTalks.Club Wrapped {{ wrapped_year }}
+              </h2>
+              <p>
+                Check out your year of learning in review: statistics, course
+                progress, and your {{ wrapped_year }} leaderboard rank.
+              </p>
+            </div>
+            <a class="cta cta-secondary cta-compact courses-wrapped-action interactive-lift" href="{% url 'wrapped' wrapped_year %}">
+              View your {{ wrapped_year }} wrapped →
+            </a>
           </div>
-        </div>
-        <div class="benefit-grid">
-          <article class="card benefit-card">
-            <h3>Free, now and always</h3>
-            <p>Every video and lesson is open to everyone, and a free account unlocks homework, projects and certificates. Nothing to buy.</p>
-          </article>
-          <article class="card benefit-card">
-            <h3>Learn by doing</h3>
-            <p>Weekly hands-on homework, and every course ends with a project of your own.</p>
-          </article>
-          <article class="card benefit-card">
-            <h3>Learn with a cohort</h3>
-            <p>Deadlines, a public leaderboard, peer review and a Slack channel for each course.</p>
-          </article>
-          <article class="card benefit-card">
-            <h3>A certificate for your project</h3>
-            <p>Your project is reviewed by other learners, and passing it earns the certificate.</p>
-          </article>
-          <article class="card benefit-card">
-            <h3>Taught by practitioners</h3>
-            <p>Instructors who build data and AI systems for a living, teaching the tools they use.</p>
-          </article>
-          <article class="card benefit-card">
-            <h3>Open on GitHub</h3>
-            <p>All materials stay public between cohorts, so you can also learn at your own pace.</p>
-          </article>
-        </div>
-        <div class="stat-tiles stat-tiles-row courses-numbers" aria-label="Courses in numbers">
+        </section>
+      {% endif %}
+      <section class="courses-stats" aria-label="Courses in numbers">
+        <div class="stat-tiles stat-tiles-row">
           <div class="stat-tile">
             <strong>{{ course_family_count }}</strong>
-            <span>free courses to choose from</span>
+            <span>zoomcamps</span>
           </div>
           {% if total_open_registration_count %}
             <div class="stat-tile">
               <strong>{{ total_open_registration_count|thousands }}</strong>
-              <span>people registered for the open cohorts</span>
+              <span>registered for the open cohorts</span>
             </div>
           {% endif %}
           <div class="stat-tile">
-            <strong>130,000</strong>
-            <span>people in the DataTalks.Club community to learn with</span>
+            <strong>€0</strong>
+            <span>now and always</span>
+          </div>
+          <div class="stat-tile">
+            <strong>100%</strong>
+            <span>open</span>
           </div>
         </div>
       </section>
+      <div id="courses">
+        {% comment %}
+          One unified catalogue: every visible family, in the site's reviewed
+          order, as one plain and consistent grid of identical cards -- no
+          section, badge, background or CTA singles a card out by its state.
+          The view still computes each family's real state (``entry.kind``:
+          ``active``, ``open_dated``, ``open_undated``, ``self_paced`` or
+          ``archived``) because it drives real ordering and the family page's
+          own call to action -- it just is not drawn on the card.  Every card
+          links to that one real place: the family page, which always shows
+          its current, accurate state.  Three columns, the shared
+          ``.card-grid-3`` density the family page's own past-editions grid
+          already uses, so the card stays light: title, a one-line outcome,
+          one link.
+        {% endcomment %}
+        <section class="catalogue-section courses-catalog shell-breakout" aria-labelledby="catalog-heading">
+          <div class="band-head">
+            <div class="band-head-row">
+              <h2 id="catalog-heading">Course catalogue</h2>
+            </div>
+          </div>
+          {% if catalog_cards %}
+            <div class="card-grid card-grid-3 courses-catalog-list">
+              {% for entry in catalog_cards %}
+                  {% url 'course_family' entry.family.slug as family_url %}
+                  <article class="card catalog-card interactive-card interactive-lift stretched-card-link">
+                    <div class="catalog-card-media">
+                      {% comment %}
+                        Always the generic per-family illustration, never a
+                        campaign's own authored (and often non-square) hero
+                        photo: one consistent shape for every card, and a
+                        quieter icon rather than a dominant banner.
+                      {% endcomment %}
+                      {% include "core/_course_illustration.html" with family_slug=entry.family.slug loading="lazy" only %}
+                    </div>
+                    <div class="catalog-card-body">
+                      <h3>
+                        <a class="course-link" href="{{ family_url }}">{{ entry.title }}</a>
+                      </h3>
+                      {% if entry.outcome %}
+                        <p>{{ entry.outcome }}</p>
+                      {% endif %}
+                    </div>
+                  </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="band-note">No active courses right now.</p>
+          {% endif %}
+        </section>
+      </div>
       <section class="zoomcamp-steps shell-breakout" aria-labelledby="how-it-works-heading" id="how-it-works">
         <div class="band-head">
           <div class="band-head-row">
-            <h2 id="how-it-works-heading">How our zoomcamps work</h2>
+            <h2 id="how-it-works-heading">How our zoomcamp works</h2>
           </div>
         </div>
         <div class="step-grid">
@@ -794,161 +630,6 @@
           </div>
         </div>
       </section>
-      {% if course_fit_options %}
-        <section class="course-fit shell-breakout" id="course-fit" aria-labelledby="course-fit-heading">
-          <div class="band-head">
-            <div class="band-head-row">
-              <h2 id="course-fit-heading">Which course fits me?</h2>
-            </div>
-            <p class="band-head-sub">Pick the line that sounds like you, and the catalogue below shows the courses to start with.</p>
-          </div>
-          <div class="fit-grid">
-            {% for option in course_fit_options %}
-              <a
-                class="card fit-option interactive-lift {{ option.active|yesno:'is-active,' }}"
-                href="{{ option.href }}"
-                data-filter-key="for"
-                data-filter-value="{{ option.value }}"
-                {{ option.active|yesno:"aria-current=true," }}
-              >
-                <strong>{{ option.label }}</strong>
-                <span>{{ option.hint }}</span>
-                <span class="fit-courses">→ {{ option.titles|join:" · " }}</span>
-              </a>
-            {% endfor %}
-          </div>
-        </section>
-      {% endif %}
-      <div id="courses">
-        <section class="catalogue-section courses-catalog shell-breakout" aria-labelledby="catalog-heading" data-catalog>
-          <div class="band-head">
-            <div class="band-head-row">
-              <h2 id="catalog-heading">Course catalogue</h2>
-            </div>
-            <p class="band-head-sub">Nearest start dates first. Filter by what matters to you; the link keeps your filters, so you can share it.</p>
-          </div>
-          {% if catalog_filter_groups %}
-            <div class="catalog-filters" aria-label="Filter courses" role="group">
-              {% for group in catalog_filter_groups %}
-                <div class="filter-row">
-                  <span class="filter-row-label" id="filter-{{ group.key }}-label">{{ group.label }}</span>
-                  <div class="filter-pills" role="group" aria-labelledby="filter-{{ group.key }}-label">
-                    {% for option in group.options %}
-                      <a
-                        class="filter-pill interactive-lift {{ option.active|yesno:'is-active,' }}"
-                        href="{{ option.href }}"
-                        rel="nofollow"
-                        data-filter-key="{{ group.key }}"
-                        data-filter-value="{{ option.value }}"
-                        {{ option.active|yesno:"aria-current=true," }}
-                      >{{ option.label }}</a>
-                    {% endfor %}
-                  </div>
-                </div>
-              {% endfor %}
-            </div>
-          {% endif %}
-          <div class="catalog-active" data-catalog-active aria-live="polite">
-            <span class="catalog-count" data-catalog-count>
-              {{ catalog_count_label }}
-            </span>
-            {% for chip in active_filter_chips %}
-              <a class="active-chip" href="{{ chip.href }}" rel="nofollow" data-filter-key="{{ chip.key }}" data-filter-value="{{ chip.value }}">
-                {{ chip.label }}
-                <span aria-hidden="true">×</span>
-                <span class="sr-only"> (remove filter)</span>
-              </a>
-            {% endfor %}
-            <a class="band-link catalog-clear" href="{{ clear_filters_href }}" rel="nofollow" data-filter-clear {{ active_filter_chips|yesno:",hidden" }}>Clear all filters</a>
-          </div>
-          {% if catalog_rows %}
-            <div class="card catalog-empty" data-catalog-empty {{ catalog_visible_count|yesno:"hidden," }}>
-              <p>
-                <strong>No course matches all of these filters.</strong>
-              </p>
-              <p>
-                Try removing one of the filters above, or
-                <a class="band-link" href="{{ clear_filters_href }}" rel="nofollow" data-filter-clear>see all {{ catalog_rows|length }} courses</a>.
-              </p>
-            </div>
-            <div class="card-grid card-grid-3 courses-catalog-list">
-              {% for row in catalog_rows %}
-                {% with entry=row.entry %}
-                  {% url 'course_family' entry.family.slug as family_url %}
-                  <article class="card catalog-card interactive-card interactive-lift stretched-card-link"
-                    data-catalog-card
-                    data-filter-for="{{ entry.filter_data.for }}"
-                    data-filter-topic="{{ entry.filter_data.topic }}"
-                    data-filter-level="{{ entry.filter_data.level }}"
-                    data-filter-length="{{ entry.filter_data.length }}"
-                    data-filter-status="{{ entry.filter_data.status }}"
-                    data-filter-tool="{{ entry.filter_data.tool }}"
-                    {{ row.visible|yesno:",hidden" }}
-                  >
-                    <div class="catalog-card-media">
-                      {% include "core/_course_illustration.html" with family_slug=entry.family.slug loading="lazy" only %}
-                    </div>
-                    <div class="catalog-card-body">
-                      <p class="card-status">
-                        {% if entry.kind == "open_dated" %}
-                          <span class="status-pill status-pill-live">Registration open</span>
-                          {% if entry.cohort.start_date %}
-                            <span class="card-status-when">Starts {{ entry.cohort.start_date|date:"M j, Y" }}</span>
-                          {% endif %}
-                        {% elif entry.kind == "active" %}
-                          <span class="status-pill status-pill-open">Running now</span>
-                          {% if entry.cohort.start_date %}
-                            <span class="card-status-when">Started {{ entry.cohort.start_date|date:"M j, Y" }}</span>
-                          {% endif %}
-                        {% elif entry.kind == "open_undated" %}
-                          <span class="status-pill status-pill-wait">Next cohort</span>
-                          <span class="card-status-when">Dates coming soon</span>
-                        {% else %}
-                          <span class="status-pill">Self-paced</span>
-                          <span class="card-status-when">Start any time</span>
-                        {% endif %}
-                      </p>
-                      <h3>
-                        <a class="course-link" href="{{ family_url }}">{{ entry.title }}</a>
-                      </h3>
-                      {% if entry.has_facets %}
-                        <div class="card-facts">
-                          {% if entry.topic_level_line %}
-                            <span>{{ entry.topic_level_line }}</span>
-                          {% endif %}
-                          {% if entry.length_line %}
-                            <span>{{ entry.length_line }}</span>
-                          {% endif %}
-                        </div>
-                        {% if entry.family.catalog_tools %}
-                          <div class="card-tools" aria-label="Key tools">
-                            {% for tool in entry.family.catalog_tools %}
-                              <span class="chip chip-plain">{{ tool }}</span>
-                            {% endfor %}
-                          </div>
-                        {% endif %}
-                        {% if entry.family.catalog_project %}
-                          <p class="card-builds">
-                            <strong>You will build</strong>
-                            {{ entry.family.catalog_project }}
-                          </p>
-                        {% elif entry.outcome %}
-                          <p class="card-builds">{{ entry.outcome }}</p>
-                        {% endif %}
-                      {% elif entry.outcome %}
-                        <p>{{ entry.outcome }}</p>
-                      {% endif %}
-                      <span class="card-more" aria-hidden="true">View course →</span>
-                    </div>
-                  </article>
-                {% endwith %}
-              {% endfor %}
-            </div>
-          {% else %}
-            <p class="band-note">No active courses right now.</p>
-          {% endif %}
-        </section>
-      </div>
       {% if all_projects_url %}
         <section class="courses-projects shell-breakout" aria-labelledby="courses-projects-heading">
           <div class="courses-projects-grid">
@@ -968,357 +649,59 @@
           </div>
         </section>
       {% endif %}
-      {% if SHOW_WRAPPED and wrapped_year %}
-        {% comment %}
-          The site's only entry point into Wrapped.
-        {% endcomment %}
-        <section class="courses-wrapped" aria-labelledby="wrapped-heading">
-          <div class="band-head">
-            <div>
-              <h2 id="wrapped-heading">
-                DataTalks.Club Wrapped {{ wrapped_year }}
-              </h2>
-              <p>
-                Check out your year of learning in review: statistics, course
-                progress, and your {{ wrapped_year }} leaderboard rank.
-              </p>
-            </div>
-            <a class="cta cta-secondary cta-compact courses-wrapped-action interactive-lift" href="{% url 'wrapped' wrapped_year %}">
-              View your {{ wrapped_year }} wrapped →
-            </a>
-          </div>
-        </section>
-      {% endif %}
-      {% if catalog_testimonials %}
-        <section class="courses-stories shell-breakout" aria-labelledby="courses-stories-heading">
-          <div class="band-head">
-            <div>
-              <h2 id="courses-stories-heading">What learners say about our courses</h2>
-            </div>
-            <div class="scroller-controls">
-              <button class="scroller-button interactive-lift" type="button" data-scroll="-1" data-scroll-target="courses-stories-scroller" aria-label="Scroll course reviews left">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="M15 5l-7 7 7 7"/>
-                </svg>
-              </button>
-              <button class="scroller-button interactive-lift" type="button" data-scroll="1" data-scroll-target="courses-stories-scroller" aria-label="Scroll course reviews right">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="M9 5l7 7-7 7"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div class="stories-scroller" id="courses-stories-scroller" role="group" aria-label="Course reviews" tabindex="0">
-            {% for story in catalog_testimonials %}
-              <figure class="card">
-                {% if story.role_before and story.role_after %}
-                  <div class="story-transition">
-                    <span class="chip chip-plain">{{ story.role_before }}</span>
-                    <span aria-hidden="true">→</span>
-                    <span class="chip chip-plain chip-green">{{ story.role_after }}</span>
-                  </div>
-                {% endif %}
-                <blockquote class="story-quote">“{{ story.quote }}”</blockquote>
-                <figcaption class="story-person">
-                  <span class="story-identity">
-                    {% if story.portrait_url %}
-                      <img class="avatar" src="{{ story.portrait_url }}" alt="" loading="lazy">
-                    {% else %}
-                      <span class="avatar" aria-hidden="true"></span>
-                    {% endif %}
-                    <span>
-                      <strong>
-                        {% if story.source_url %}
-                          <a href="{{ story.source_url }}" target="_blank" rel="noopener noreferrer">
-                            {{ story.name }}
-                            <span class="sr-only"> (opens in a new tab)</span>
-                          </a>
-                        {% else %}
-                          {{ story.name }}
-                        {% endif %}
-                      </strong>
-                      <span class="story-context">{{ story.attribution }}</span>
-                      {% if story.course %}
-                        <span class="story-context story-course">{{ story.course.title }}</span>
-                      {% endif %}
-                    </span>
-                  </span>
-                  {% if story.elapsed %}
-                    <span class="story-elapsed">{{ story.elapsed }}</span>
-                  {% endif %}
-                </figcaption>
-              </figure>
-            {% endfor %}
-          </div>
-        </section>
-      {% endif %}
       <section class="courses-faq shell-breakout" aria-labelledby="courses-faq-heading">
         <div class="band-head">
           <div class="band-head-row">
             <h2 id="courses-faq-heading">Frequent questions</h2>
           </div>
         </div>
-        <div class="faq-list">
-          <details class="faq-fold" id="faq-free">
-            <summary class="faq-fold-summary">
-              <h3 class="faq-question-title">Is it really free?</h3>
-              <span class="faq-fold-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="prose faq-answer">
-              <p>Yes. Every video and lesson is open to everyone, and a free account unlocks homework, projects and certificates. There is nothing to pay and nothing to upsell.</p>
-            </div>
-          </details>
-          <details class="faq-fold" id="faq-join-late">
-            <summary class="faq-fold-summary">
-              <h3 class="faq-question-title">Can I join after a cohort starts?</h3>
-              <span class="faq-fold-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="prose faq-answer">
-              <p>Yes, while it is still running. Catch up on the recordings and submit whatever homework is still open.</p>
-            </div>
-          </details>
-          <details class="faq-fold" id="faq-time">
-            <summary class="faq-fold-summary">
-              <h3 class="faq-question-title">How much time do I need?</h3>
-              <span class="faq-fold-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="prose faq-answer">
-              <p>Enough for the weekly videos plus hands-on practice. Most people do it alongside a full-time job — each course's own syllabus lays out its pace.</p>
-            </div>
-          </details>
-          <details class="faq-fold" id="faq-prerequisites">
-            <summary class="faq-fold-summary">
-              <h3 class="faq-question-title">What should I know beforehand?</h3>
-              <span class="faq-fold-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="prose faq-answer">
-              <p>Comfort with Python and the command line goes a long way. Each course page lists its exact prerequisites.</p>
-            </div>
-          </details>
-          <details class="faq-fold" id="faq-certificate">
-            <summary class="faq-fold-summary">
-              <h3 class="faq-question-title">Do I get a certificate?</h3>
-              <span class="faq-fold-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="prose faq-answer">
-              <p>To get a certificate you need to pass a project.</p>
-            </div>
-          </details>
-          <details class="faq-fold" id="faq-start">
-            <summary class="faq-fold-summary">
-              <h3 class="faq-question-title">Which course should I start with?</h3>
-              <span class="faq-fold-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="prose faq-answer">
-              <p>
-                Switching into data? Start with Data Engineering Zoomcamp or Machine Learning Zoomcamp.
-                Already shipping models? Try MLOps Zoomcamp or LLM Zoomcamp.
-                <a href="#course-fit">Which course fits me?</a>
-                above narrows the catalogue for you.
-              </p>
-            </div>
-          </details>
+        <div class="faq-grid">
+          <div class="faq-item">
+            <h3>Is it really free?</h3>
+            <p>
+              Yes. Every video, homework and solution stays public — there is nothing
+              to pay and nothing to upsell.
+            </p>
+          </div>
+          <div class="faq-item">
+            <h3>Can I join after a cohort starts?</h3>
+            <p>
+              Yes, while it is still running. Catch up on the recordings and submit
+              whatever homework is still open.
+            </p>
+          </div>
+          <div class="faq-item">
+            <h3>How much time do I need?</h3>
+            <p>
+              Enough for the weekly videos plus hands-on practice. Most people do it
+              alongside a full-time job — each course's own syllabus lays out its pace.
+            </p>
+          </div>
+          <div class="faq-item">
+            <h3>What should I know beforehand?</h3>
+            <p>
+              Comfort with Python and the command line goes a long way. Each course
+              page lists its exact prerequisites.
+            </p>
+          </div>
+          <div class="faq-item">
+            <h3>Do I get a certificate?</h3>
+            <p>
+              To get a certificate you need to pass a project.
+            </p>
+          </div>
+          <div class="faq-item">
+            <h3>Which course should I start with?</h3>
+            <p>
+              Switching into data? Start with Data Engineering Zoomcamp or Machine
+              Learning Zoomcamp. Already shipping models? Try MLOps Zoomcamp or LLM
+              Zoomcamp.
+            </p>
+          </div>
         </div>
         <p class="faq-note">
           Have more questions? <a class="band-link" href="{% url 'slack' %}">Join Slack</a>
           and ask away.
         </p>
       </section>
-      {% url 'newsletter' as newsletter_url %}
-      <section class="courses-closing shell-breakout" aria-labelledby="courses-closing-heading">
-        <div>
-          <h2 id="courses-closing-heading">Didn't find the course you need?</h2>
-          <p>Subscribe to the weekly digest to hear when a new course or the next cohort opens.</p>
-        </div>
-        <div class="hero-actions">
-          {% if newsletter_url %}
-            <a class="cta cta-primary interactive-lift" href="{{ newsletter_url }}">Subscribe to the digest</a>
-          {% endif %}
-          <a class="cta cta-secondary interactive-lift" href="{% url 'slack' %}">Join Slack</a>
-        </div>
-      </section>
-{% endblock %}
-
-{% block page_scripts %}
-  <script>
-    (function () {
-      // Reviews strip: the home page's carousel contract (each button names
-      // its scroller by id).
-      Array.prototype.forEach.call(document.querySelectorAll('[data-scroll]'), function (button) {
-        var scroller = document.getElementById(button.getAttribute('data-scroll-target'));
-        if (!scroller) {
-          return;
-        }
-        button.addEventListener('click', function () {
-          var card = scroller.firstElementChild;
-          var step = card ? card.getBoundingClientRect().width + 20 : 320;
-          var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-          scroller.scrollBy({
-            left: step * Number(button.getAttribute('data-scroll')),
-            behavior: calm ? 'auto' : 'smooth',
-          });
-        });
-      });
-
-      // Catalogue filters.  Every pill, fit card and chip is a real link the
-      // server already renders the result of, so the page works without this
-      // script; with it, a click filters in place and the address keeps the
-      // selection (?topic=mlops,llm-ai&level=beginner) so it can be shared.
-      // OR within a filter, AND across filters -- the same rules as
-      // courses/catalog_facets.py.
-      var catalog = document.querySelector('[data-catalog]');
-      if (!catalog || !window.history || !window.URLSearchParams) {
-        return;
-      }
-      var KEYS = ['for', 'topic', 'level', 'length', 'status', 'tool'];
-      var cards = Array.prototype.slice.call(catalog.querySelectorAll('[data-catalog-card]'));
-      var activeBox = catalog.querySelector('[data-catalog-active]');
-      var countEl = catalog.querySelector('[data-catalog-count]');
-      var emptyEl = catalog.querySelector('[data-catalog-empty]');
-      var clearLink = activeBox.querySelector('[data-filter-clear]');
-      var controls = Array.prototype.slice.call(
-        document.querySelectorAll('.filter-pill[data-filter-key], .fit-option[data-filter-key]')
-      );
-      var labels = {};
-      controls.forEach(function (control) {
-        var key = control.getAttribute('data-filter-key') + ':' + control.getAttribute('data-filter-value');
-        var strong = control.querySelector('strong');
-        labels[key] = (strong || control).textContent.trim();
-      });
-
-      function readSelection(search) {
-        var params = new URLSearchParams(search);
-        var selection = {};
-        KEYS.forEach(function (key) {
-          var values = [];
-          (params.get(key) || '').split(',').forEach(function (value) {
-            value = value.trim().toLowerCase();
-            if (value && labels[key + ':' + value] && values.indexOf(value) === -1) {
-              values.push(value);
-            }
-          });
-          if (values.length) {
-            selection[key] = values;
-          }
-        });
-        return selection;
-      }
-
-      function selectionUrl(selection) {
-        var parts = [];
-        KEYS.forEach(function (key) {
-          if (selection[key] && selection[key].length) {
-            parts.push(key + '=' + selection[key].join(','));
-          }
-        });
-        return window.location.pathname + (parts.length ? '?' + parts.join('&') : '');
-      }
-
-      function matches(card, selection) {
-        return Object.keys(selection).every(function (key) {
-          var have = (card.getAttribute('data-filter-' + key) || '').split(' ');
-          return selection[key].some(function (value) {
-            return have.indexOf(value) !== -1;
-          });
-        });
-      }
-
-      function render(selection) {
-        var shown = 0;
-        cards.forEach(function (card) {
-          var ok = matches(card, selection);
-          card.hidden = !ok;
-          if (ok) {
-            shown += 1;
-          }
-        });
-        controls.forEach(function (control) {
-          var key = control.getAttribute('data-filter-key');
-          var on = (selection[key] || []).indexOf(control.getAttribute('data-filter-value')) !== -1;
-          control.classList.toggle('is-active', on);
-          if (on) {
-            control.setAttribute('aria-current', 'true');
-          } else {
-            control.removeAttribute('aria-current');
-          }
-        });
-        Array.prototype.forEach.call(activeBox.querySelectorAll('.active-chip'), function (chip) {
-          chip.remove();
-        });
-        var any = false;
-        KEYS.forEach(function (key) {
-          (selection[key] || []).forEach(function (value) {
-            any = true;
-            var chip = document.createElement('a');
-            chip.className = 'active-chip';
-            chip.href = '#courses';
-            chip.setAttribute('data-filter-key', key);
-            chip.setAttribute('data-filter-value', value);
-            chip.setAttribute('data-filter-remove', '');
-            chip.textContent = labels[key + ':' + value] + ' ';
-            var x = document.createElement('span');
-            x.setAttribute('aria-hidden', 'true');
-            x.textContent = '×';
-            var sr = document.createElement('span');
-            sr.className = 'sr-only';
-            sr.textContent = ' (remove filter)';
-            chip.appendChild(x);
-            chip.appendChild(sr);
-            activeBox.insertBefore(chip, clearLink);
-          });
-        });
-        clearLink.hidden = !any;
-        countEl.textContent = any ? shown + ' of ' + cards.length + ' courses' : cards.length + ' courses';
-        if (emptyEl) {
-          emptyEl.hidden = shown > 0;
-        }
-      }
-
-      var selection = readSelection(window.location.search);
-
-      function apply(next, scroll) {
-        selection = next;
-        window.history.replaceState(null, '', selectionUrl(selection) + '#courses');
-        render(selection);
-        if (scroll) {
-          document.getElementById('courses').scrollIntoView({ block: 'start' });
-        }
-      }
-
-      document.addEventListener('click', function (event) {
-        var target = event.target.closest('[data-filter-key], [data-filter-clear]');
-        if (!target || event.metaKey || event.ctrlKey || event.shiftKey) {
-          return;
-        }
-        event.preventDefault();
-        if (target.hasAttribute('data-filter-clear')) {
-          apply({}, false);
-          return;
-        }
-        var key = target.getAttribute('data-filter-key');
-        var value = target.getAttribute('data-filter-value');
-        var next = {};
-        KEYS.forEach(function (k) {
-          if (selection[k]) {
-            next[k] = selection[k].slice();
-          }
-        });
-        var values = next[key] || [];
-        var at = values.indexOf(value);
-        if (at === -1) {
-          values.push(value);
-        } else {
-          values.splice(at, 1);
-        }
-        if (values.length) {
-          next[key] = values;
-        } else {
-          delete next[key];
-        }
-        // A "which course fits me?" card sits above the catalogue, so it
-        // brings the filtered grid into view; the pills are already there.
-        apply(next, target.classList.contains('fit-option'));
-      });
-    })();
-  </script>
 {% endblock %}

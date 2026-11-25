@@ -41,10 +41,33 @@ live, still to be judged one by one.
 
 | # | Idea | Why | Tried in | Status |
 |---|---|---|---|---|
-| 3.1 | /courses as a landing page plus a filterable catalogue, benefits, reviews, one-column FAQ | Page was neither a catalogue nor a landing page; only 4 of 7 courses at the top | #551 | review |
+| 3.1 | /courses as a landing page plus a filterable catalogue, benefits, reviews, one-column FAQ | Page was neither a catalogue nor a landing page; only 4 of 7 courses at the top | #551 | idea. Page back to the polished design; ideas listed one by one under "Courses catalogue (/courses)" |
 | 3.2 | Course family landing: 11-block structure, guests do not see the LMS editions list | Landing and LMS were mixed | #563, #566 | review |
 | 3.3 | Cohort page: one primary button, workspace links as tabs, personal statuses hidden from guests | Too many equal buttons | #563, #566 | review |
 | Academy | Landing blueprint, week-by-week syllabus, facts strip, guides | Landing-page best practice (`_docs/design/landing-pages.md`) | 24 Nov redesign | review. Alexey: design is bad but the ideas are good; keep the ideas, rework the look |
+
+## Courses catalogue (/courses)
+
+On 25 Nov 2026 Alexey judged that #551 "changed too much" at once. The /courses
+template and view went back to the pre-#551 design (as at `a7d8fa24^1`). The data
+side stays: migration 0038 with the `Course.catalog_*` fields (topic, level, weeks,
+hours a week, tools, project, fits), `courses/catalog_facets.py` and
+`scripts/prod/import_course_catalog_facets.py`. The page does not show these fields
+yet. A `?topic=...` link still loads the full page; the filter is ignored.
+
+| # | Idea | Why (Valeriia, 3.1) | Tried in #551 | Status |
+|---|---|---|---|---|
+| C1 | One generic hero illustration ("learning a course") instead of 4 family covers | Only 4 of 7 courses were shown at the top, for no clear reason; one picture can show what our courses are about | `course-learning` illustration in the hero | idea |
+| C2 | Subtitle names the outcome: finish with your own portfolio project | The headline is good; the subtitle should name the result, not only the format | New hero subtitle; CTAs to the catalogue and to the course-fit helper | idea |
+| C3 | Benefits section (free forever, learn by doing, cohort, certificate, practitioners, open on GitHub) instead of the "7 zoomcamps / €0 / 100% open" tiles | The tiles do not say why our courses are good; numbers need context ("100% open" means nothing alone) | Six benefit rows with the 130,000+ community figure | idea |
+| C4 | "How our zoomcamps work" moved up, right after the benefits | It answers "how does this work", which people need before they pick a course | Section moved above the catalogue | idea |
+| C5 | Filter pills above the grid: topic, level, length, format/status, tools; selection kept in the URL; active chips with "Clear all"; hint when nothing matches | People choose a course by topic, length, tools, level; with 7 courses a row of pills is simpler than a sidebar; a shareable link like "ML for beginners" (Baymard) | Server-rendered pills plus JS, `?topic=mlops&level=beginner`, OR within a filter and AND across filters | idea |
+| C6 | Sort by nearest start date | The soonest cohort is what most visitors can act on | Dated open registration first (soonest first), then running, then undated, then self-paced | idea |
+| C7 | "Which course fits me?" helper (new to data / developer / already work with models), each button sets a filter | The question is hidden in the FAQ; a short guide helps people pick | Buttons above the catalogue naming the matching courses | idea |
+| C8 | Every card has the same fields in the same order: status and start date, topic and level, length and hours a week, 3–4 tools, "You will build", "View course" | Cards are hard to compare when they show different things | Unified card field order, read from the `catalog_*` fields | idea |
+| C9 | Reviews band with people's stories about our courses, results first | Stories with a result ("found my first job") work better than general praise; they are already in the site data | All published homepage and course testimonials, de-duplicated, in the shared story card | idea |
+| C10 | FAQ in one column of folds | Two columns are harder to read in order; folds take less space, like on the course page | One column of shared `faq-fold` disclosures | idea |
+| C11 | Closing CTA: "Did not find your course? Subscribe to hear about new cohorts" | The page ends without a next step for people who found nothing | Digest subscribe band at the end | idea |
 
 ## How to bring an idea back
 

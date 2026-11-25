@@ -73,16 +73,12 @@ class CourseListProjectsSectionTest(CourseListViewTestBase):
 class CourseListCatalogCardLinkTest(CourseListViewTestBase):
     """The catalogue card has one title link stretched over its surface."""
 
-    def test_catalog_card_view_course_cue_is_not_a_second_link(self):
-        # Site feedback 3.1 asks every card to end with a "View course" cue; the
-        # whole card is still one stretched link, so the cue is decorative text.
+    def test_catalog_card_has_no_redundant_view_course_link(self):
         response = self.course_list_response()
         content = response.content.decode()
         course_card = self.course_card_html(content, self.course)
 
-        self.assertIn(
-            '<span class="card-more" aria-hidden="true">View course →</span>', course_card
-        )
+        self.assertNotIn("View course", course_card)
         self.assertIn("stretched-card-link", course_card)
         self.assertIn('class="course-link"', course_card)
         self.assertNotIn('role="link"', course_card)
@@ -90,14 +86,15 @@ class CourseListCatalogCardLinkTest(CourseListViewTestBase):
 
 
 class CourseListStatsLabelTest(CourseListViewTestBase):
-    def test_benefits_replace_the_open_and_free_chips(self):
-        # Site feedback 3.1: the "7 zoomcamps / €0 / 100% open" tiles became a
-        # benefits section, with numbers that carry their own context.
+    def test_materials_stat_drops_the_github_framing(self):
         response = self.course_list_response()
+        content = response.content.decode()
 
-        self.assertNotContains(response, "<strong>100%</strong>")
-        self.assertNotContains(response, "<strong>€0</strong>")
-        self.assertContains(response, 'id="benefits-heading"')
-        self.assertContains(response, "Free, now and always")
-        self.assertContains(response, "people in the DataTalks.Club community to learn with")
+        # The big number ("100%") already carries the "100%"; the label
+        # below it just names what it is, without repeating the number or
+        # naming GitHub specifically.
+        stat_index = content.index("<strong>100%</strong>")
+        stat_html = content[stat_index : stat_index + 200]
+
+        self.assertIn("<span>open</span>", stat_html)
         self.assertNotContains(response, "materials public on GitHub")
