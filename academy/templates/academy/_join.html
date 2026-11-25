@@ -14,8 +14,23 @@
                   card sit straight on the band, as the homepage newsletter
                   band does, rather than in a mint panel on a mint ground
 {% endcomment %}
-<section class="academy-section{% if band %} academy-band band-mint{% endif %}" id="join" aria-labelledby="join-heading">
-  <div class="{% if band %}academy-closing-open{% else %}panel panel-mint panel-outlined{% endif %} academy-closing academy-closing-form">
+<section
+  class="academy-section
+    {% if band %}
+      academy-band band-mint
+    {% endif %}"
+  id="join"
+  aria-labelledby="join-heading"
+>
+  <div
+    class="
+      {% if band %}
+        academy-closing-open
+      {% else %}
+        panel panel-mint panel-outlined
+      {% endif %}
+      academy-closing academy-closing-form"
+  >
     <div class="academy-closing-copy">
       <h2 id="join-heading">{{ shared.join.heading }}</h2>
       <p>{{ shared.join.text }}</p>

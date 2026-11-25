@@ -6,7 +6,14 @@
 
   band  the home page's alternating ground (a band-* class name)
 {% endcomment %}
-<section class="academy-section{% if band %} academy-band {{ band }}{% endif %}" id="admission" aria-labelledby="admission-heading">
+<section
+  class="academy-section
+    {% if band %}
+      academy-band {{ band }}
+    {% endif %}"
+  id="admission"
+  aria-labelledby="admission-heading"
+>
   <div class="band-head">
     <div>
       <h2 id="admission-heading">{{ shared.admission.heading }}</h2>

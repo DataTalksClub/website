@@ -320,7 +320,7 @@ class AcademyPageTests(TestCase):
             index.index('href="/academy/guides/synthetic/"'),
             index.index('href="/academy/sessions/recap/"'),
         )
-        self.assertEqual(index.count('class="list-row archive-row'), 2)
+        self.assertEqual(index.count('<article class="archive-row'), 2)
         home = self.client.get("/academy/").content.decode()
         articles = home[home.index('id="articles"') :]
         articles = articles[: articles.index("</section>")]
