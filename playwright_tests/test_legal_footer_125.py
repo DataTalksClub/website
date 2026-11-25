@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -66,15 +67,45 @@ def _assert_no_horizontal_overflow(page: Page) -> None:
     assert result["scrollWidth"] <= result["width"] + 1, result
 
 
-def _assert_footer_runtime_alignment(page: Page) -> None:
-    runtime = page.locator(".site-footer-base")
-    github_box = runtime.locator(".site-footer-github").bounding_box()
-    version_box = runtime.locator(".footer-version").bounding_box()
-    assert github_box is not None
-    assert version_box is not None
-    github_center = github_box["y"] + github_box["height"] / 2
-    version_center = version_box["y"] + version_box["height"] / 2
-    assert abs(github_center - version_center) <= 1
+SOCIAL_LINKS = (
+    ("LinkedIn", "https://www.linkedin.com/company/datatalks-club/"),
+    ("X", "https://x.com/DataTalksClub"),
+    ("YouTube", "https://www.youtube.com/@DataTalksClub"),
+    ("GitHub", "https://github.com/DataTalksClub"),
+)
+
+
+def _assert_footer_layout(page: Page) -> None:
+    """The social icons belong to the identity block; the base row holds legal + version."""
+    identity = page.locator(".site-footer-identity")
+    expect(identity.locator(".site-footer-name")).to_have_text("DataTalks.Club")
+    social = identity.get_by_role("navigation", name="DataTalks.Club elsewhere")
+    for network, href in SOCIAL_LINKS:
+        link = social.get_by_role("link", name=f"DataTalks.Club on {network} (opens in a new tab)")
+        expect(link).to_be_visible()
+        expect(link).to_have_attribute("href", href)
+        expect(link).to_have_attribute("target", "_blank")
+    base = page.locator(".site-footer-base")
+    expect(base.locator(".site-footer-icon")).to_have_count(0)
+    expect(base.get_by_role("navigation", name="Legal")).to_be_visible()
+    version = base.locator(".footer-version")
+    expect(version).to_be_visible()
+    expect(version).to_have_attribute(
+        "href", re.compile(r"^https://github\.com/DataTalksClub/website(/commit/[0-9a-f]+)?$")
+    )
+    # Every footer control (icons, legal links, version) stays inside the viewport.
+    # The containers' own scrollWidth is not a signal: the legal nav's negative
+    # inline margin lets padded hit areas align with the text edge on purpose.
+    assert page.evaluate(
+        """
+        () => [...document.querySelectorAll(
+          '.site-footer-identity a, .site-footer-base a, .site-footer-base button'
+        )].every((element) => {
+          const rect = element.getBoundingClientRect();
+          return rect.left >= -1 && rect.right <= window.innerWidth + 1;
+        })
+        """
+    )
 
 
 @pytest.mark.parametrize(("viewport_name", "viewport"), VIEWPORTS)
@@ -280,7 +311,7 @@ def test_legal_footer_reflows_at_320px_and_200_percent(page: Page, live_server) 
     assert page.evaluate("visualViewport.scale") == 2
     _assert_no_horizontal_overflow(page)
     expect(page.get_by_role("navigation", name="Legal")).to_be_visible()
-    _assert_footer_runtime_alignment(page)
+    _assert_footer_layout(page)
     assert structure_issues(page, "issue125.legal.200-percent") == []
     cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 1})
     SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)

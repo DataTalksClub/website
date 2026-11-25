@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 import pytest
@@ -61,18 +62,37 @@ def test_all_three_shells_show_only_the_readable_version(
         assert page.locator(".footer-version-value").evaluate(
             "element => element.scrollWidth <= element.clientWidth + 1"
         )
-        if viewport_name == "mobile":
-            footer_meta = page.locator(".site-footer-base")
-            github_link = footer_meta.locator(".site-footer-github")
-            footer_version = footer_meta.locator(".footer-version")
-            assert footer_meta.evaluate("element => element.scrollWidth <= element.clientWidth + 1")
-            github_box = github_link.bounding_box()
-            version_box = footer_version.bounding_box()
-            assert github_box is not None
-            assert version_box is not None
-            github_center = github_box["y"] + github_box["height"] / 2
-            version_center = version_box["y"] + version_box["height"] / 2
-            assert abs(github_center - version_center) <= 1
+        footer_version = page.locator(".site-footer-base .footer-version")
+        expect(footer_version).to_be_visible()
+        expect(footer_version).to_have_attribute(
+            "href",
+            re.compile(r"^https://github\.com/DataTalksClub/website(/commit/[0-9a-f]+)?$"),
+        )
+        expect(
+            page.locator(".site-footer-identity").get_by_role(
+                "link", name="DataTalks.Club on GitHub (opens in a new tab)"
+            )
+        ).to_have_attribute("href", "https://github.com/DataTalksClub")
+        # At 125% text size the footer still fits the viewport.
+        page.evaluate("document.documentElement.style.fontSize = '125%'")
+        # Every footer control (icons, legal links, version) stays inside the viewport.
+        # The containers' own scrollWidth is not a signal: the legal nav's negative
+        # inline margin lets padded hit areas align with the text edge on purpose.
+        assert page.evaluate(
+            """
+            () => [...document.querySelectorAll(
+              '.site-footer-identity a, .site-footer-base a, .site-footer-base button'
+            )].every((element) => {
+              const rect = element.getBoundingClientRect();
+              return rect.left >= -1 && rect.right <= window.innerWidth + 1;
+            })
+            """
+        )
+        assert page.evaluate(
+            "Math.max(document.documentElement.scrollWidth, document.body.scrollWidth)"
+            " <= window.innerWidth + 1"
+        )
+        page.evaluate("document.documentElement.style.fontSize = ''")
         _capture(page, name, viewport_name)
 
     _authenticate(page, live_server, suffix=viewport_name)
