@@ -17,6 +17,7 @@ from playwright.sync_api import Browser, BrowserContext, Route
 from pytest_django import live_server_helper
 
 from test_support.email_backend import SYNTHETIC_EMAIL_BACKEND
+from test_support.local_paths import LocalPathGuard
 from test_support.messaging import (
     CaptureSafetyError,
     artifact_canaries,
@@ -482,7 +483,7 @@ def _deny_external_network() -> Generator[None]:
 
     if settings.configured:
         settings.EMAIL_BACKEND = SYNTHETIC_EMAIL_BACKEND
-    with NetworkGuard():
+    with NetworkGuard(), LocalPathGuard():
         yield
 
 

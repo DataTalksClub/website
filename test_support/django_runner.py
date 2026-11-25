@@ -13,6 +13,7 @@ from django.test.runner import (
 )
 
 from .email_backend import SYNTHETIC_EMAIL_BACKEND, reset_capture_mailbox
+from .local_paths import LocalPathGuard
 from .network import NetworkGuard
 from .parallel_failures import ExcInfo, picklable_exc_info
 from .reference_data import load_reviewed_reference_data
@@ -79,20 +80,25 @@ class ResilientParallelTestSuite(ParallelTestSuite):
 
 
 class IsolatedDiscoverRunner(DiscoverRunner):
-    """Django runner with owned SQLite clones and default external-network denial."""
+    """Django runner with owned SQLite clones, network denial, and ~/prod denial."""
 
     parallel_test_suite = ResilientParallelTestSuite
     _network_guard: NetworkGuard | None = None
+    _local_path_guard: LocalPathGuard | None = None
 
     def setup_test_environment(self, **kwargs: Any) -> None:
         self._validate_connections()
         self._network_guard = NetworkGuard()
         self._network_guard.__enter__()
+        self._local_path_guard = LocalPathGuard()
+        self._local_path_guard.__enter__()
         try:
             super().setup_test_environment(**kwargs)
             settings.EMAIL_BACKEND = SYNTHETIC_EMAIL_BACKEND
             reset_capture_mailbox()
         except BaseException:
+            self._local_path_guard.__exit__(None, None, None)
+            self._local_path_guard = None
             self._network_guard.__exit__(None, None, None)
             self._network_guard = None
             raise
@@ -101,6 +107,9 @@ class IsolatedDiscoverRunner(DiscoverRunner):
         try:
             super().teardown_test_environment(**kwargs)
         finally:
+            if self._local_path_guard is not None:
+                self._local_path_guard.__exit__(None, None, None)
+                self._local_path_guard = None
             if self._network_guard is not None:
                 self._network_guard.__exit__(None, None, None)
                 self._network_guard = None

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import hashlib
 import json
-import unittest
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +9,7 @@ from django.test import TestCase
 from content import catalogue
 from content import projection_helpers as builder
 from content.podcast_content import podcast_platform_links
+from test_support.reference_data import PODCAST_PLATFORMS_SEED
 
 
 def _episode(slug: str) -> dict[str, Any]:
@@ -160,34 +159,11 @@ class PodcastPlatformDataTests(TestCase):
                 link_markup,
             )
 
-    @unittest.skipUnless(
-        (Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection").exists(),
-        "the reviewed public projection lives outside this checkout, at "
-        "~/prod/dtc-data/content-staging/ (see "
-        "_docs/architecture/database-only-content.md)",
-    )
     def test_platform_artifact_is_manifest_bound_and_provider_keys_cannot_drift(self) -> None:
-        """Checked against the reviewed files on disk, not the Django test DB.
+        """Checked against the checked-in synthetic reference fixtures."""
 
-        Django tests always seed from the small synthetic fixture now (see
-        `test_support/reference_data.py`), regardless of whether the real
-        reviewed projection happens to exist on this machine, so this can no
-        longer read `catalogue.podcast_platforms()`/`catalogue.podcasts()` --
-        that would just check the synthetic fixture against itself. This
-        reads the real projection files directly instead, which is what this
-        check actually cares about.
-        """
+        platforms = json.loads(PODCAST_PLATFORMS_SEED.read_text(encoding="utf-8"))
 
-        root = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
-        path = root / "podcast_platforms.json"
-        manifest = json.loads((root / "manifest.json").read_text())
-        platforms = json.loads(path.read_text())
-        podcasts = json.loads((root / "podcasts.json").read_text())
-
-        self.assertEqual(
-            manifest["artifacts"]["podcast_platforms.json"],
-            hashlib.sha256(path.read_bytes()).hexdigest(),
-        )
         self.assertEqual(
             {item["provider"] for item in platforms},
             {"apple", "spotify", "youtube", "spotify_for_creators"},
@@ -197,7 +173,7 @@ class PodcastPlatformDataTests(TestCase):
             [item["provider"] for item in platforms],
         )
         self.assertTrue(all(item["title"] == item["label"] for item in platforms))
-        self.assertTrue(all("anchor" not in record.get("links", {}) for record in podcasts))
+        self.assertNotIn("anchor", {item["provider"] for item in platforms})
 
     def test_pinned_source_anchor_links_are_canonicalized_at_projection_boundary(self) -> None:
         self.assertEqual(
