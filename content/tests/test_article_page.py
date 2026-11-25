@@ -37,6 +37,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 # test below), never disappear.
 PROJECTED_BLOCK_KINDS = {
     "chart",
+    "chart_group_caption",
     "code",
     "heading",
     "image",
@@ -109,6 +110,12 @@ class ArticleCompositionTests(TestCase):
                 for section in prose_sections(record["blocks"]):
                     if section.kind == "list":
                         drawn.extend("list_item" for _ in section.items)
+                    elif section.kind == "chart_group":
+                        # A run of charts is drawn as one figure group; its
+                        # caption, when written, closes the group.
+                        drawn.extend("chart" for _ in section.items)
+                        if section.caption:
+                            drawn.append("chart_group_caption")
                     else:
                         drawn.append(section.kind)
                 self.assertEqual(drawn, [block["kind"] for block in record["blocks"]])
@@ -123,6 +130,8 @@ class ArticleCompositionTests(TestCase):
         for record in catalogue.articles():
             for section in prose_sections(record["blocks"]):
                 found[section.kind] = found.get(section.kind, 0) + 1
+                if section.kind == "chart_group":
+                    found["chart"] = found.get("chart", 0) + len(section.items)
                 with self.subTest(slug=record["slug"], kind=section.kind):
                     if section.kind == "image":
                         # A site-relative address, and a size the page can reserve.

@@ -7,6 +7,7 @@ from typing import Any
 from django.template.loader import render_to_string
 from django.test import SimpleTestCase
 
+from content import projection_helpers as builder
 from content.article_charts import BAR_SPAN, chart_view
 from content.article_content import prose_sections
 
@@ -150,3 +151,63 @@ class PieChartTests(SimpleTestCase):
         # Both the pie row and the card close before the caption opens.
         between = markup[markup.index("</ul>") : markup.index("<figcaption>")]
         self.assertEqual(between.count("</div>"), 2)
+
+
+class ChartGroupTests(SimpleTestCase):
+    """Charts set side by side are one figure with one caption under the grid."""
+
+    def test_a_run_of_charts_is_one_group_with_the_group_caption_once(self) -> None:
+        caption = "Survey, 2025: roles and seniority."
+        sections = prose_sections(
+            (
+                {**PIE, "title": "Roles"},
+                {**PIE, "title": "Seniority"},
+                {"kind": "chart_group_caption", "text": caption},
+                {"kind": "paragraph", "text": "After."},
+            )
+        )
+
+        self.assertEqual([section.kind for section in sections], ["chart_group", "paragraph"])
+        self.assertEqual(len(sections[0].items), 2)
+        markup = render_to_string("public/_prose_blocks.html", {"sections": sections})
+        self.assertEqual(markup.count('<figure class="prose-chart">'), 2)
+        self.assertEqual(markup.count("<figcaption>"), 1)
+        # The caption closes the group after the whole grid, not under one card.
+        grid_end = markup.index("</div>", markup.rindex('<figure class="prose-chart">'))
+        self.assertLess(grid_end, markup.index("<figcaption>"))
+        after_caption = markup[markup.index(f"<figcaption>{caption}</figcaption>") :]
+        self.assertTrue(after_caption.split("</figcaption>", 1)[1].strip().startswith("</figure>"))
+
+    def test_a_lone_chart_without_a_group_caption_stays_on_its_own(self) -> None:
+        sections = prose_sections((BLOCK, {"kind": "paragraph", "text": "After."}))
+
+        self.assertEqual([section.kind for section in sections], ["chart", "paragraph"])
+
+    def test_the_import_reads_a_caption_after_the_charts_as_the_group_caption(self) -> None:
+        canvas = (
+            '<figure><canvas class="ai-chart" data-type="pie" data-title="{title}"'
+            " data-labels='[\"A\", \"B\"]' data-values='[60, 40]'></canvas></figure>"
+        )
+        body = "\n\n".join(
+            (
+                '<div style="display: grid;">',
+                canvas.format(title="One"),
+                canvas.format(title="Two"),
+                "<figcaption>Both, from the survey.</figcaption>",
+                "</div>",
+            )
+        )
+
+        blocks = builder._article_blocks(body, media_root=None, counters={})
+
+        self.assertEqual(
+            [block["kind"] for block in blocks], ["chart", "chart", "chart_group_caption"]
+        )
+        self.assertEqual(blocks[-1]["text"], "Both, from the survey.")
+
+    def test_a_caption_chunk_that_follows_no_chart_stays_text(self) -> None:
+        blocks = builder._article_blocks(
+            "Text.\n\n<figcaption>Orphan.</figcaption>", media_root=None, counters={}
+        )
+
+        self.assertEqual([block["kind"] for block in blocks], ["paragraph", "paragraph"])

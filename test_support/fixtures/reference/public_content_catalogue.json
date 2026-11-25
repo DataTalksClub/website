@@ -633,7 +633,6 @@
               "value": 2.6
             }
           ],
-          "caption": "Members come from more than 65 countries.",
           "kind": "chart",
           "shape": "pie",
           "title": "Geography",
@@ -657,6 +656,10 @@
           "kind": "chart",
           "title": "Synthetic team sizes",
           "unit": "count"
+        },
+        {
+          "kind": "chart_group_caption",
+          "text": "DataTalks.Club community survey, 2025: roles, seniority, location and industry of members. Members come from more than 65 countries."
         },
         {
           "kind": "paragraph",

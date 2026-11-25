@@ -135,82 +135,24 @@
   {% elif section.kind == "separator" %}
     <hr>
   {% elif section.kind == "chart" %}
+    {% include "public/_prose_chart.html" with chart=section.chart %}
+  {% elif section.kind == "chart_group" %}
     {% comment %}
-      A survey chart, drawn here from its typed data (content/article_charts.py)
-      with no script.  The drawing is one image to assistive technology, named by
-      its summary; the hidden table beside it reads every value out.  Bars and
-      value positions are percentages of the column, rows are fixed pixel
-      heights, so the text stays at body size at any width.  The card frames
-      the title and the bars; the caption sits under the card, outside it, the
-      way an image's caption sits under the image.  A source pie is drawn as a
-      donut with a legend; its accessible name reads every value, so the legend
-      is hidden from assistive technology and no data table repeats it.
+      Charts the source set side by side are one figure: the run sits two to a
+      row once the column has room (article_detail.html), and the group's own
+      caption is drawn once, centred under the whole grid, in the standard
+      figcaption style.  Each chart keeps its own card and title.
     {% endcomment %}
-    {% with chart=section.chart %}
-      <figure class="prose-chart">
-        <div class="prose-chart-card">
-          {% if chart.title %}
-            <p class="prose-chart-title">{{ chart.title }}</p>
-          {% endif %}
-          {% if chart.shape == "pie" %}
-            <div class="prose-chart-pie">
-              <svg class="prose-chart-donut" viewBox="0 0 100 100" role="img" aria-label="{{ chart.summary }}" focusable="false">
-                {% for part in chart.slices %}
-                  {% if part.path %}
-                    <path class="prose-chart-slice prose-chart-tone-{{ part.tone }}" d="{{ part.path }}"></path>
-                  {% endif %}
-                {% endfor %}
-              </svg>
-              <ul class="prose-chart-legend" aria-hidden="true">
-                {% for part in chart.slices %}
-                  <li>
-                    <span class="prose-chart-swatch prose-chart-tone-{{ part.tone }}"></span>
-                    <span class="prose-chart-legend-label">{{ part.label }}</span>
-                    <span class="prose-chart-legend-value">{{ part.value_text }}</span>
-                  </li>
-                {% endfor %}
-              </ul>
-            </div>
-          {% else %}
-            <svg class="prose-chart-plot" width="100%" height="{{ chart.height }}" role="img" aria-label="{{ chart.summary }}" focusable="false">
-              {% for bar in chart.bars %}
-                {% for y, line in bar.label_lines %}
-                  <text class="prose-chart-label" x="0" y="{{ y }}">{{ line }}</text>
-                {% endfor %}
-                <rect class="prose-chart-bar" x="0" y="{{ bar.bar_y }}" width="{{ bar.width }}" height="{{ chart.bar_height }}" rx="3"></rect>
-                <text class="prose-chart-value" x="{{ bar.width }}" dx="8" y="{{ bar.value_y }}">{{ bar.value_text }}</text>
-              {% endfor %}
-            </svg>
-            <table class="sr-only">
-              {% if chart.title %}
-                <caption>{{ chart.title }}</caption>
-              {% endif %}
-              <thead>
-                <tr>
-                  <th scope="col">Answer</th>
-                  {% if chart.unit == "percent" %}
-                    <th scope="col">Share of respondents</th>
-                  {% else %}
-                    <th scope="col">Respondents</th>
-                  {% endif %}
-                </tr>
-              </thead>
-              <tbody>
-                {% for bar in chart.bars %}
-                  <tr>
-                    <th scope="row">{{ bar.label }}</th>
-                    <td>{{ bar.value_text }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          {% endif %}
-        </div>
-        {% if chart.caption %}
-          <figcaption>{{ chart.caption }}</figcaption>
-        {% endif %}
-      </figure>
-    {% endwith %}
+    <figure class="prose-chart-group">
+      <div class="prose-chart-grid">
+        {% for item in section.items %}
+          {% include "public/_prose_chart.html" with chart=item.chart %}
+        {% endfor %}
+      </div>
+      {% if section.caption %}
+        <figcaption>{{ section.caption }}</figcaption>
+      {% endif %}
+    </figure>
   {% elif section.block_level %}
     <div class="prose-embed">{{ section.html|safe }}</div>
   {% elif section.html %}

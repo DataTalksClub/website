@@ -137,7 +137,8 @@ class ProseSection:
     """One rendered piece of an article body.
 
     ``kind`` is what the template switches on: ``heading``, ``list``,
-    ``paragraph``, ``quote``, ``code``, ``image``, ``table``, ``chart`` or
+    ``paragraph``, ``quote``, ``code``, ``image``, ``table``, ``chart``,
+    ``chart_group`` (a run of charts in ``items`` with one ``caption``) or
     ``separator``.  Only the fields that kind uses are populated.
 
     ``html`` is sanitized markup when the source carried more than plain text;
@@ -412,6 +413,10 @@ def prose_sections(blocks: Any) -> tuple[ProseSection, ...]:
             if chart is not None:
                 sections.append(ProseSection(kind="chart", chart=chart))
             continue
+        if kind == "chart_group_caption":
+            if text:
+                sections.append(ProseSection(kind="chart_group_caption", text=text))
+            continue
         if not text and not html:
             continue
         sections.append(
@@ -423,7 +428,42 @@ def prose_sections(blocks: Any) -> tuple[ProseSection, ...]:
             )
         )
     flush()
-    return tuple(sections)
+    return _grouped_charts(sections)
+
+
+def _grouped_charts(sections: list[ProseSection]) -> tuple[ProseSection, ...]:
+    """Return ``sections`` with each run of charts gathered into one figure group.
+
+    Charts the source set side by side (a survey's breakdowns) are one figure:
+    the page lays the run out two to a row and draws the run's caption once,
+    under the whole group.  A caption the source wrote for the group arrives as
+    a ``chart_group_caption`` block right after the run.  A lone chart without
+    a group caption stays a chart of its own.
+    """
+
+    grouped: list[ProseSection] = []
+    run: list[ProseSection] = []
+
+    def close(caption: str = "") -> None:
+        if len(run) > 1 or (run and caption):
+            grouped.append(ProseSection(kind="chart_group", items=tuple(run), caption=caption))
+        else:
+            grouped.extend(run)
+        run.clear()
+
+    for section in sections:
+        if section.kind == "chart":
+            run.append(section)
+            continue
+        if section.kind == "chart_group_caption":
+            if not run:
+                raise ImproperlyConfigured("Public article chart group caption follows no chart.")
+            close(section.text)
+            continue
+        close()
+        grouped.append(section)
+    close()
+    return tuple(grouped)
 
 
 def article_view(

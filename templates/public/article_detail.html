@@ -193,33 +193,25 @@
         border-radius: 0.7rem;
         padding: var(--space-2);
       }
-      /* A run of charts (a survey's breakdowns) reads two to a row once the
-         column has room, instead of a long stack of single plots.  Position in
-         the run alternates the side and each new pair clears the last, so a
-         run of up to six pairs up even when captions differ in length; the
-         first block after the run clears it. */
+      /* A run of charts (a survey's breakdowns) is one figure group
+         (public/_prose_blocks.html): it reads two to a row once the column has
+         room, instead of a long stack of single plots, and the group's caption
+         sits once under the whole grid. */
+      .article-body .prose-chart-grid {
+        display: grid;
+        gap: var(--space-4) 1.2rem;
+      }
+      /* Cards in one row share its height, so a row of donuts lines up. */
+      .article-body .prose-chart-grid > .prose-chart {
+        display: flex;
+        flex-direction: column;
+      }
+      .article-body .prose-chart-grid .prose-chart-card {
+        flex: 1;
+      }
       @media (min-width: 40rem) {
-        .article-body .prose-chart:has(+ .prose-chart),
-        .article-body .prose-chart + .prose-chart {
-          float: left;
-          margin-bottom: var(--space-4);
-          width: calc(50% - 0.6rem);
-        }
-        .article-body .prose-chart + .prose-chart,
-        .article-body .prose-chart + .prose-chart + .prose-chart + .prose-chart,
-        .article-body .prose-chart + .prose-chart + .prose-chart + .prose-chart
-          + .prose-chart + .prose-chart {
-          clear: none;
-          float: right;
-        }
-        .article-body .prose-chart + .prose-chart + .prose-chart,
-        .article-body .prose-chart + .prose-chart + .prose-chart + .prose-chart
-          + .prose-chart {
-          clear: both;
-          float: left;
-        }
-        .article-body .prose-chart + :not(.prose-chart) {
-          clear: both;
+        .article-body .prose-chart-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
 

@@ -96,9 +96,16 @@ class SponsorArticleChartTests(TestCase):
             body,
         )
         self.assertIn('<span class="prose-chart-legend-value">40.6%</span>', body)
-        # A caption that only repeated the numbers is gone; one that adds a fact
-        # stays, under the card.
-        self.assertIn("<figcaption>Members come from more than 65 countries.</figcaption>", body)
+        # The 2x2 grid is one figure: one caption, citing the survey, under the
+        # whole group rather than under any single chart.
+        self.assertEqual(body.count('<figure class="prose-chart-group">'), 1)
+        self.assertIn(
+            "<figcaption>DataTalks.Club community survey, 2025: roles, seniority, location"
+            " and industry of members. Members come from more than 65 countries.</figcaption>",
+            body,
+        )
+        group = body[body.index('<figure class="prose-chart-group">') :]
+        self.assertNotIn("<figcaption>", group[: group.index("<figcaption>DataTalks")])
         # A count is not a share, and a chart the source drew as bars stays bars.
         self.assertIn(">117</text>", body)
         self.assertNotIn(">117%", body)

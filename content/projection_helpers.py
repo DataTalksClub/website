@@ -496,8 +496,9 @@ def _body_blocks(body: str, *, preserve_links: bool = False) -> list[dict[str, A
 #
 # `_article_blocks` therefore keeps the same block-list contract (a flat, ordered,
 # JSON-safe list, so the recovered-FAQ split index still means what it meant) and
-# widens the vocabulary: `image`, `table`, `code`, `quote`, `separator`, `chart`
-# and `embed` join `heading`, `paragraph` and `list_item`.  Two properties are
+# widens the vocabulary: `image`, `table`, `code`, `quote`, `separator`, `chart`,
+# `chart_group_caption` (one caption for a run of charts set side by side) and
+# `embed` join `heading`, `paragraph` and `list_item`.  Two properties are
 # deliberate:
 #
 #   * `text` keeps the exact plain-text projection it had before, so reading time,
@@ -1048,6 +1049,15 @@ def _article_blocks(
         """
 
         stripped = [line.strip() for line in lines]
+        # A caption standing on its own right after charts set side by side
+        # (inside their layout wrapper) names the whole group: the page draws
+        # it once under the grid.  Anywhere else such a chunk is read as text,
+        # as before (a figure whose body is split by blank lines ends in one).
+        group_caption = ARTICLE_FIGCAPTION.fullmatch("\n".join(stripped).strip())
+        if group_caption is not None and blocks and blocks[-1]["kind"] == "chart":
+            caption_text = _plain_inline(_article_segment(group_caption.group(1)))
+            if caption_text:
+                return [{"kind": "chart_group_caption", "text": caption_text}]
         if (
             len(lines) > 2
             and "|" in stripped[0]
