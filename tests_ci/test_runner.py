@@ -105,7 +105,11 @@ def test_runner_records_the_selected_tester_role(monkeypatch, tmp_path) -> None:
 
     def completed(command, **_kwargs):
         if command == ["uv", "--version"]:
-            return subprocess.CompletedProcess(command, 0, stdout="uv 0.10.11\n")
+            # Echo the uv the plan was fingerprinted with, so the check holds
+            # on any host rather than only where uv is the CI-pinned version.
+            return subprocess.CompletedProcess(
+                command, 0, stdout=f"uv {plan['environment']['uv']}\n"
+            )
         if command[:3] == ["git", "-C", str(tmp_path / "repository")]:
             if command[3:5] == ["status", "--porcelain"]:
                 # The fake source-binding check sees a clean checkout.
