@@ -943,7 +943,9 @@ def seed_design_review_data(*, execution_namespace: str = "local-review") -> Des
         ),
         ReviewSurface(
             "legacy-score-breakdown",
-            _route("cohort_leaderboard_score_breakdown", legacy, enrollment_id=legacy_enrollment.id),
+            _route(
+                "cohort_leaderboard_score_breakdown", legacy, enrollment_id=legacy_enrollment.id
+            ),
             "active-learner",
             "score detail",
             "adopted legacy curriculum",
