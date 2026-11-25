@@ -176,6 +176,32 @@ Rules for editing:
            mode — so pairing that text with --gold's still-light dark-mode
            value read as a washed-out, unreadable pill. */
         --graph-podcast: var(--gold);
+        /* The event art (public/_event_art.html): the picture's four roles per
+           kind -- ground, blob, pill (+ its text) and the date's accent -- in
+           banner-generator dtc-event-speaker's own values, plus the portrait
+           ring and the drawn offset shadow.  Dark restates every one below. */
+        --art-line: var(--ink);
+        --art-shadow: var(--ink);
+        --art-webinar-ground: var(--cream);
+        --art-webinar-shape: var(--lavender-deep);
+        --art-webinar-pill: var(--bubble);
+        --art-webinar-pill-ink: #1e2136;
+        --art-webinar-accent: var(--indigo);
+        --art-podcast-ground: var(--cream);
+        --art-podcast-shape: #f3e3b5;
+        --art-podcast-pill: var(--gold);
+        --art-podcast-pill-ink: #1e2136;
+        --art-podcast-accent: #8a6a1c;
+        --art-workshop-ground: var(--mint);
+        --art-workshop-shape: var(--lavender-deep);
+        --art-workshop-pill: var(--green);
+        --art-workshop-pill-ink: #ffffff;
+        --art-workshop-accent: var(--green);
+        --art-conference-ground: var(--lavender);
+        --art-conference-shape: var(--bubble);
+        --art-conference-pill: var(--indigo);
+        --art-conference-pill-ink: #ffffff;
+        --art-conference-accent: var(--indigo);
         /* Syntax roles are semantic rather than language-specific.  The
            highlighter uses these names for Python, shell, SQL, YAML, JSON,
            JavaScript, markup and the other source languages the content
@@ -238,6 +264,33 @@ Rules for editing:
         --bubble: #3c4463;
         --on-bubble: #f4f1ea;
         --graph-podcast: #5c4b26;
+        /* The event art in dark: one ground a step lifted from the card, so
+           the art and the tile below read as one surface; each blob a muted
+           but clearly hued tint of its kind; light pills under dark text; the
+           date accents hold >= 4.5:1 on the ground.  Ring stays the light
+           ink, the offset shadow drops to the near-black of dark shadows. */
+        --art-line: #f4f1ea;
+        --art-shadow: #10121b;
+        --art-webinar-ground: #31364a;
+        --art-webinar-shape: #454d82;
+        --art-webinar-pill: #b9bff0;
+        --art-webinar-pill-ink: #1e2136;
+        --art-webinar-accent: #b5bdf8;
+        --art-podcast-ground: #31364a;
+        --art-podcast-shape: #a98d44;
+        --art-podcast-pill: #e8cf88;
+        --art-podcast-pill-ink: #1e2136;
+        --art-podcast-accent: #ecd595;
+        --art-workshop-ground: #31364a;
+        --art-workshop-shape: #2f6a40;
+        --art-workshop-pill: #8fd49b;
+        --art-workshop-pill-ink: #1e2136;
+        --art-workshop-accent: #96d9a2;
+        --art-conference-ground: #323856;
+        --art-conference-shape: #5a62c4;
+        --art-conference-pill: #9aa1f0;
+        --art-conference-pill-ink: #1e2136;
+        --art-conference-accent: #c3c9fa;
         --code-comment: #aab0c4;
         --code-keyword: #c4b5fd;
         --code-string: #9bd3ac;
@@ -1769,17 +1822,18 @@ Rules for editing:
          banner-generator's dtc-event-speaker composition above its title.
          Every length is in --art-u, one pixel of the picture's 1000-wide
          canvas, so the drawing is the picture's own proportions at any card
-         width; the box is the canvas's top 560 rows, where the picture's
-         title would begin.  The kind sets the palette through the same four
+         width; the box is the canvas's top 590 rows, down into the gap above
+         the picture's title (two wrapped speaker names over the two-line date
+         reach row 578).  The kind sets the palette through the same four
          roles the picture uses: ground, blob, pill and the date's accent. */
       .event-art {
         --art-u: 0.1cqw;
-        --art-ground: var(--cream);
-        --art-shape: var(--lavender-deep);
-        --art-pill: var(--bubble);
-        --art-pill-ink: var(--on-bubble);
-        --art-accent: var(--indigo);
-        aspect-ratio: 1000 / 560;
+        --art-ground: var(--art-webinar-ground);
+        --art-shape: var(--art-webinar-shape);
+        --art-pill: var(--art-webinar-pill);
+        --art-pill-ink: var(--art-webinar-pill-ink);
+        --art-accent: var(--art-webinar-accent);
+        aspect-ratio: 1000 / 590;
         background: var(--art-ground);
         color: var(--ink);
         container-type: inline-size;
@@ -1790,24 +1844,27 @@ Rules for editing:
       }
 
       .event-art-podcast {
-        --art-shape: color-mix(in srgb, var(--gold) 50%, var(--cream));
-        --art-pill: var(--graph-podcast);
-        --art-pill-ink: var(--ink);
-        --art-accent: var(--olive);
+        --art-ground: var(--art-podcast-ground);
+        --art-shape: var(--art-podcast-shape);
+        --art-pill: var(--art-podcast-pill);
+        --art-pill-ink: var(--art-podcast-pill-ink);
+        --art-accent: var(--art-podcast-accent);
       }
 
       .event-art-workshop {
-        --art-ground: var(--mint);
-        --art-pill: var(--green);
-        --art-pill-ink: #fff;
-        --art-accent: var(--green-ship);
+        --art-ground: var(--art-workshop-ground);
+        --art-shape: var(--art-workshop-shape);
+        --art-pill: var(--art-workshop-pill);
+        --art-pill-ink: var(--art-workshop-pill-ink);
+        --art-accent: var(--art-workshop-accent);
       }
 
       .event-art-conference {
-        --art-ground: var(--lavender);
-        --art-shape: var(--bubble);
-        --art-pill: var(--indigo);
-        --art-pill-ink: var(--card);
+        --art-ground: var(--art-conference-ground);
+        --art-shape: var(--art-conference-shape);
+        --art-pill: var(--art-conference-pill);
+        --art-pill-ink: var(--art-conference-pill-ink);
+        --art-accent: var(--art-conference-accent);
       }
 
       .event-art p {
@@ -1836,9 +1893,9 @@ Rules for editing:
       .event-art-avatar {
         aspect-ratio: 1;
         background: var(--art-pill);
-        border: calc(var(--art-u) * 6) solid var(--ink);
+        border: calc(var(--art-u) * 6) solid var(--art-line);
         border-radius: 50%;
-        box-shadow: calc(var(--art-u) * 12) calc(var(--art-u) * 12) 0 var(--ink);
+        box-shadow: calc(var(--art-u) * 12) calc(var(--art-u) * 12) 0 var(--art-shadow);
         box-sizing: border-box;
         color: var(--art-pill-ink);
         display: grid;
@@ -1874,7 +1931,7 @@ Rules for editing:
 
       .event-art-n3 .event-art-avatar,
       .event-art-n4 .event-art-avatar {
-        box-shadow: calc(var(--art-u) * 8) calc(var(--art-u) * 8) 0 var(--ink);
+        box-shadow: calc(var(--art-u) * 8) calc(var(--art-u) * 8) 0 var(--art-shadow);
         font-size: calc(var(--art-u) * 80);
         width: calc(var(--art-u) * 222);
       }
@@ -1936,9 +1993,9 @@ Rules for editing:
 
       .event-art-pill {
         background: var(--art-pill);
-        border: calc(var(--art-u) * 5) solid var(--ink);
+        border: calc(var(--art-u) * 5) solid var(--art-line);
         border-radius: 999px;
-        box-shadow: calc(var(--art-u) * 8) calc(var(--art-u) * 8) 0 var(--ink);
+        box-shadow: calc(var(--art-u) * 8) calc(var(--art-u) * 8) 0 var(--art-shadow);
         color: var(--art-pill-ink);
         font-size: calc(var(--art-u) * 44);
         letter-spacing: 0.06em;

@@ -125,6 +125,18 @@ extended token used as *text*. **When a page first needs `--sand` or
 `--lavender-deep` as a text pairing in dark, move that token and its text partner
 together — never one of the pair alone.**
 
+### Event art tokens
+
+The event picture drawn in HTML (`public/_event_art.html`, the home event tiles)
+takes its palette from `--art-<kind>-{ground,shape,pill,pill-ink,accent}` for the
+four kinds (webinar, podcast, workshop, conference), plus `--art-line` (portrait
+ring, pill outline) and `--art-shadow` (their offset shadow). Light values are
+banner-generator `dtc-event-speaker`'s own, so the art matches the PNG. Dark
+restates every one: a single ground a step lifted from `--card` (`#31364a`) so art
+and tile read as one surface, a muted but clearly hued blob per kind (gold, not
+brown, for podcasts), light pills under `#1e2136` text, date accents ≥ 4.5:1 on the
+ground, the ring in the light ink and the shadow near-black.
+
 The system has **no danger colour** and does not need one: an error reads as
 `--olive` on the page ground and inside the `--sand` error summary (≈5.5:1 in both
 themes). Colour is reinforcement; the words are the message.
