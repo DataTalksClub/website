@@ -527,6 +527,19 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
         EventQnaSession.State.CLOSED,
     }:
         qna_url = f"{event['public_path']}/qna/"
+    # A signed-in visitor registers in one click with the account's address, so
+    # the card needs to know whether that account already holds a seat.
+    viewer = request.user
+    viewer_registered = False
+    if event_state == "upcoming" and viewer.is_authenticated and viewer.email:
+        from community_base.events.models import EventRegistration
+        from django.db.models import Q
+
+        viewer_registered = EventRegistration.objects.filter(
+            Q(user=viewer) | Q(normalized_email=viewer.email.strip().lower()),
+            event=identity,
+            status=EventRegistration.Status.CONFIRMED,
+        ).exists()
     response = _render(
         request,
         "public/event_detail.html",
@@ -539,6 +552,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             # speaker has one; otherwise the side column's list is the credit.
             "speaker_bios": any(speaker.get("bio_blocks") for speaker in event["speakers"]),
             "event_state": event_state,
+            "viewer_registered": viewer_registered,
             "qna_url": qna_url,
             "og_type": "event",
             "og_image_url": (_canonical(event["banner_url"]) if event["banner_url"] else ""),
@@ -630,15 +644,24 @@ def event_register(request: HttpRequest, event_id: str, slug: str) -> HttpRespon
     if not accepts_registrations(identity):
         return redirect(f"{canonical}?registered=closed")
 
-    email = str(request.POST.get("email") or "").strip()
+    # A signed-in visitor registers in one click: the account supplies the
+    # address and the name, and the seat is tied to the account.  Everyone else
+    # posts the one-off email form.
+    account = request.user if request.user.is_authenticated and request.user.email else None
+    if account is not None:
+        email = account.email.strip()
+        display_name = (account.get_full_name() or account.username).strip()[:200]
+        newsletter_consent = False
+    else:
+        email = str(request.POST.get("email") or "").strip()
+        display_name = str(request.POST.get("display_name") or "").strip()[:200]
+        newsletter_consent = request.POST.get("newsletter_consent") in {"on", "true", "1", "yes"}
     normalized_email = email.lower()
     try:
         validate_email(normalized_email)
     except ValidationError:
         return redirect(f"{canonical}?registered=invalid_email")
 
-    display_name = str(request.POST.get("display_name") or "").strip()[:200]
-    newsletter_consent = request.POST.get("newsletter_consent") in {"on", "true", "1", "yes"}
     company = str(request.POST.get("company") or "").strip()[:200]
     config = EventOperatorConfig.objects.filter(event=identity).first()
     sponsor_consent = (
@@ -652,6 +675,7 @@ def event_register(request: HttpRequest, event_id: str, slug: str) -> HttpRespon
         event=identity,
         normalized_email=normalized_email,
         defaults={
+            "user": account,
             "original_email": email,
             "display_name": display_name,
             "status": EventRegistration.Status.CONFIRMED,
@@ -673,6 +697,9 @@ def event_register(request: HttpRequest, event_id: str, slug: str) -> HttpRespon
         registration.newsletter_consent = newsletter_consent
         registration.newsletter_consented_at = now if newsletter_consent else None
         registration.save()
+    if account is not None and registration.user_id is None:
+        registration.user = account
+        registration.save(update_fields=["user", "updated_at"])
 
     EventRegistrationMeta.objects.update_or_create(
         registration=registration,

@@ -234,26 +234,184 @@
         justify-self: start;
       }
 
-      /* Registration: the shared card, its own small heading, then the
-         outcome notice and the form (or the count once the event is over). */
+      /* Registration, after Luma: a light card with a small header strip, a
+         greeting, and the shortest way in.  A signed-in visitor sees who they
+         are and one Register button; a signed-out visitor gets "Log in to
+         register in one click" first and the one-off email form one click
+         behind it (shown outright without JS).  One soft 1px edge and no
+         offset shadow.  Input edges hold 3:1 against the card (WCAG 1.4.11):
+         half ink on white in light, the --line ink in dark. */
       .event-register {
-        gap: var(--space-4);
+        --event-field-edge: color-mix(in srgb, var(--line) 52%, var(--card));
+        background: var(--card);
+        border: 1px solid var(--line-soft);
+        border-radius: 0.75rem;
+        overflow: hidden;
       }
 
-      .event-register h2,
+      body.dark-mode .event-register {
+        --event-field-edge: var(--line);
+      }
+
+      .event-register-head {
+        background: var(--lavender);
+        border-bottom: 1px solid var(--line-soft);
+        padding: var(--space-2) var(--space-4);
+      }
+
+      .event-register-head h2 {
+        color: var(--muted);
+        font-size: 0.88rem;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      .event-register-body {
+        display: grid;
+        gap: var(--space-3);
+        padding: var(--space-4);
+      }
+
+      .event-register-greeting {
+        color: var(--body-text);
+        margin: 0;
+      }
+
+      .event-register-who {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-1) var(--space-2);
+        min-width: 0;
+      }
+
+      .event-register-avatar {
+        align-items: center;
+        background: var(--indigo-soft);
+        border-radius: 999px;
+        color: var(--ink);
+        display: inline-flex;
+        flex: none;
+        font-size: 0.8rem;
+        font-weight: 700;
+        height: 1.75rem;
+        justify-content: center;
+        width: 1.75rem;
+      }
+
+      .event-register-who-name {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .event-register-who-email {
+        color: var(--muted);
+        font-size: 0.9rem;
+        overflow-wrap: anywhere;
+      }
+
+      .event-register .cta.event-register-submit {
+        width: 100%;
+      }
+
+      .event-register-choices {
+        display: grid;
+        gap: var(--space-2);
+      }
+
+      /* Choosing "email only" swaps the two choices for the form and keeps
+         the account route as one small line above it. */
+      .js .event-register:not(.is-email) .event-register-email,
+      .no-js .event-register-email-toggle,
+      .event-register.is-email .event-register-choices,
+      .event-register-login-line {
+        display: none;
+      }
+
+      .js .event-register.is-email .event-register-login-line {
+        display: block;
+      }
+
+      .event-register-signup,
+      .event-register-login-line {
+        color: var(--muted);
+        font-size: 0.88rem;
+        margin: 0;
+      }
+
+      .event-register-signup a,
+      .event-register-login-line a {
+        font-weight: 700;
+      }
+
       .event-section h2 {
         font-size: 1.15rem;
         letter-spacing: -0.01em;
       }
 
       .event-register .cmp-form {
+        gap: var(--space-3);
         max-width: none;
       }
 
-      .event-register-count {
-        color: var(--muted);
+      .event-register .cmp-form-fields {
+        gap: var(--space-3);
+      }
+
+      .event-register .field {
+        align-content: start;
+        gap: var(--space-1);
+      }
+
+      .event-register .field-label {
+        font-size: 0.82rem;
+      }
+
+      .event-register .field-input {
+        border: 1px solid var(--event-field-edge);
+        border-radius: 0.5rem;
         font-size: 0.95rem;
-        margin: 0;
+        min-height: 2.5rem;
+        padding: var(--space-2) var(--space-3);
+      }
+
+      .event-register .field-input:focus-visible {
+        border-color: var(--indigo);
+      }
+
+      .event-register .field-input.is-invalid {
+        border-color: var(--olive);
+      }
+
+      .event-register .form-check {
+        font-size: 0.88rem;
+        min-height: 2rem;
+      }
+
+      .event-register .form-check-input {
+        height: 1.1rem;
+        width: 1.1rem;
+      }
+
+      .event-register .cmp-form-actions {
+        border-top: 0;
+        margin-top: 0;
+        padding-top: 0;
+      }
+
+      @media (min-width: 48rem) {
+        .event-register-email .cmp-form-fields {
+          grid-template-columns: 1fr 1fr;
+          row-gap: var(--space-2);
+        }
+
+        .event-register-email .form-check {
+          grid-column: 1 / -1;
+        }
+
+        .event-register-choices {
+          grid-template-columns: 1fr 1fr;
+        }
       }
 
       .event-section {
@@ -412,7 +570,7 @@
                       </span>
                     </li>
                   {% endfor %}
-                  {% if event.registration_count and event_state != "upcoming" %}
+                  {% if event.registration_count %}
                     <li class="event-fact event-registered">
                       <span class="event-tile" aria-hidden="true">
                         <svg viewBox="0 0 24 24" focusable="false">
@@ -455,126 +613,203 @@
                 redirect, so it is an alert and takes focus through the shared
                 focus-on-load hook (`data-focus-error-summary`, accessibility.js); a
                 successful registration replaces the form rather than sitting above an
-                empty copy of it.  A past event keeps the card for its count alone.
+                empty copy of it.  The registered count is a fact row in the header, for
+                upcoming and past events alike, never part of this card.
               {% endcomment %}
               {% with registered=request.GET.registered %}
               {% if event_state == "upcoming" or registered == "closed" %}
-                <section class="card event-register" aria-labelledby="event-register-heading">
-                  <h2 id="event-register-heading">Registration</h2>
-                  {% if event.registration_count and event_state == "upcoming" %}
-                    <p class="event-register-count event-registered">{{ event.registration_count }} registered</p>
-                  {% endif %}
-                  {% if registered == "ok" %}
-                    <div
-                      class="callout callout-info event-register-notice"
-                      role="alert"
-                      tabindex="-1"
-                      data-focus-error-summary
-                    >
-                      <p>
-                        <strong>You are registered for this event.</strong>
-                      </p>
-                    </div>
-                  {% elif registered == "closed" %}
-                    <div
-                      class="callout callout-attention event-register-notice"
-                      role="alert"
-                      tabindex="-1"
-                      data-focus-error-summary
-                    >
-                      <p>
-                        <strong>Registration for this event is closed.</strong>
-                      </p>
-                    </div>
-                  {% elif registered == "invalid_email" %}
-                    <section
-                      class="a11y-error-summary"
-                      role="alert"
-                      aria-labelledby="event-register-error-title"
-                      tabindex="-1"
-                      data-focus-error-summary
-                    >
-                      <h2 id="event-register-error-title">Check the highlighted fields</h2>
-                      <ul>
-                        <li>
-                          <a href="#id_reg_email">Email: Please enter a valid email address.</a>
-                        </li>
-                      </ul>
-                    </section>
-                  {% endif %}
-                  {% if event_state == "upcoming" and registered != "ok" %}
-                    <form method="post" action="{{ event.public_path }}/register" class="cmp-form event-register-form">
-                      {% csrf_token %}
-                      <div class="cmp-form-fields">
-                        <div class="field">
-                          <label class="field-label" for="id_reg_email">Email</label>
-                          <input
-                            {% if registered == "invalid_email" %}
-                              class="field-input is-invalid"
-                              aria-describedby="id_reg_email-error"
-                              aria-invalid="true"
-                              aria-errormessage="id_reg_email-error"
-                            {% else %}
-                              class="field-input"
+                <section class="event-register{% if registered == 'invalid_email' %} is-email{% endif %}" aria-labelledby="event-register-heading">
+                  <div class="event-register-head">
+                    <h2 id="event-register-heading">Registration</h2>
+                  </div>
+                  <div class="event-register-body">
+                    {% if registered == "ok" or viewer_registered %}
+                      <div
+                        class="callout callout-info event-register-notice"
+                        {% if registered == "ok" %}
+                          role="alert"
+                          tabindex="-1"
+                          data-focus-error-summary
+                        {% endif %}
+                      >
+                        <p>
+                          <strong>You are registered for this event.</strong>
+                        </p>
+                      </div>
+                    {% elif registered == "closed" %}
+                      <div
+                        class="callout callout-attention event-register-notice"
+                        role="alert"
+                        tabindex="-1"
+                        data-focus-error-summary
+                      >
+                        <p>
+                          <strong>Registration for this event is closed.</strong>
+                        </p>
+                      </div>
+                    {% elif registered == "invalid_email" %}
+                      <section
+                        class="a11y-error-summary"
+                        role="alert"
+                        aria-labelledby="event-register-error-title"
+                        tabindex="-1"
+                        data-focus-error-summary
+                      >
+                        <h2 id="event-register-error-title">Check the highlighted fields</h2>
+                        <ul>
+                          <li>
+                            <a href="#id_reg_email">Email: Please enter a valid email address.</a>
+                          </li>
+                        </ul>
+                      </section>
+                    {% endif %}
+                    {% if event_state == "upcoming" and registered != "ok" and not viewer_registered %}
+                      {% if request.user.is_authenticated and request.user.email %}
+                        {% with viewer_name=request.user.get_full_name|default:request.user.username %}
+                          <p class="event-register-greeting">Welcome, {{ request.user.first_name|default:viewer_name }}! To join the event, please register below.</p>
+                          <div class="event-register-who">
+                            <span class="event-register-avatar" aria-hidden="true">{{ viewer_name|first|upper }}</span>
+                            <span class="event-register-who-name">{{ viewer_name }}</span>
+                            <span class="event-register-who-email">{{ request.user.email }}</span>
+                          </div>
+                          <form method="post" action="{{ event.public_path }}/register" class="cmp-form event-register-form event-register-one-click">
+                            {% csrf_token %}
+                            {% if event.collect_company or event.sponsor_sharing_enabled %}
+                              <div class="cmp-form-fields">
+                                {% if event.collect_company %}
+                                  <div class="field">
+                                    <label class="field-label" for="id_reg_company">Company</label>
+                                    <input class="field-input" id="id_reg_company" type="text" name="company" autocomplete="organization">
+                                  </div>
+                                {% endif %}
+                                {% if event.sponsor_sharing_enabled %}
+                                  <div class="form-check">
+                                    <input
+                                      class="form-check-input"
+                                      id="id_reg_sponsor_sharing_consent"
+                                      type="checkbox"
+                                      name="sponsor_sharing_consent"
+                                      value="true"
+                                    >
+                                    <label class="form-check-label" for="id_reg_sponsor_sharing_consent">
+                                      Share my email with the event sponsor
+                                      {% if event.sponsor_name %}
+                                        ({{ event.sponsor_name }})
+                                      {% endif %}
+                                    </label>
+                                  </div>
+                                {% endif %}
+                              </div>
                             {% endif %}
-                            id="id_reg_email"
-                            type="email"
-                            name="email"
-                            required
-                            autocomplete="email"
-                          >
-                          {% if registered == "invalid_email" %}
-                            <p id="id_reg_email-error" class="a11y-error">
-                              <span class="sr-only">Error:</span>
-                              Please enter a valid email address.
-                            </p>
-                          {% endif %}
+                            <button type="submit" class="cta cta-primary cta-compact event-register-submit interactive-lift">Register</button>
+                          </form>
+                        {% endwith %}
+                      {% else %}
+                        <p class="event-register-greeting">Welcome! To join the event, please register below.</p>
+                        <div class="event-register-choices">
+                          <a class="cta cta-primary cta-compact event-register-submit interactive-lift" href="{{ account_login_url }}">Log in to register in one click</a>
+                          <button
+                            type="button"
+                            class="cta cta-secondary cta-compact event-register-submit event-register-email-toggle"
+                            aria-controls="event-register-email-form"
+                            aria-expanded="{% if registered == 'invalid_email' %}true{% else %}false{% endif %}"
+                          >Register with email only</button>
                         </div>
-                        <div class="field">
-                          <label class="field-label" for="id_reg_name">Name (optional)</label>
-                          <input class="field-input" id="id_reg_name" type="text" name="display_name" autocomplete="name">
-                        </div>
-                        {% if event.collect_company %}
-                          <div class="field">
-                            <label class="field-label" for="id_reg_company">Company</label>
-                            <input class="field-input" id="id_reg_company" type="text" name="company" autocomplete="organization">
-                          </div>
-                        {% endif %}
-                        <div class="form-check">
-                          <input
-                            class="form-check-input"
-                            id="id_reg_newsletter_consent"
-                            type="checkbox"
-                            name="newsletter_consent"
-                            value="true"
-                          >
-                          <label class="form-check-label" for="id_reg_newsletter_consent">
-                            Subscribe to the DataTalks.Club newsletter
-                          </label>
-                        </div>
-                        {% if event.sponsor_sharing_enabled %}
-                          <div class="form-check">
-                            <input
-                              class="form-check-input"
-                              id="id_reg_sponsor_sharing_consent"
-                              type="checkbox"
-                              name="sponsor_sharing_consent"
-                              value="true"
-                            >
-                            <label class="form-check-label" for="id_reg_sponsor_sharing_consent">
-                              Share my email with the event sponsor
-                              {% if event.sponsor_name %}
-                                ({{ event.sponsor_name }})
+                        <p class="event-register-login-line">Have an account? <a href="{{ account_login_url }}">Log in to register in one click</a></p>
+                        <form
+                          id="event-register-email-form"
+                          method="post"
+                          action="{{ event.public_path }}/register"
+                          class="cmp-form event-register-form event-register-email"
+                        >
+                          {% csrf_token %}
+                          <div class="cmp-form-fields">
+                            <div class="field">
+                              <label class="field-label" for="id_reg_email">Email</label>
+                              <input
+                                {% if registered == "invalid_email" %}
+                                  class="field-input is-invalid"
+                                  aria-describedby="id_reg_email-error"
+                                  aria-invalid="true"
+                                  aria-errormessage="id_reg_email-error"
+                                {% else %}
+                                  class="field-input"
+                                {% endif %}
+                                id="id_reg_email"
+                                type="email"
+                                name="email"
+                                required
+                                autocomplete="email"
+                              >
+                              {% if registered == "invalid_email" %}
+                                <p id="id_reg_email-error" class="a11y-error">
+                                  <span class="sr-only">Error:</span>
+                                  Please enter a valid email address.
+                                </p>
                               {% endif %}
-                            </label>
+                            </div>
+                            <div class="field">
+                              <label class="field-label" for="id_reg_name">Name (optional)</label>
+                              <input class="field-input" id="id_reg_name" type="text" name="display_name" autocomplete="name">
+                            </div>
+                            {% if event.collect_company %}
+                              <div class="field">
+                                <label class="field-label" for="id_reg_company">Company</label>
+                                <input class="field-input" id="id_reg_company" type="text" name="company" autocomplete="organization">
+                              </div>
+                            {% endif %}
+                            <div class="form-check">
+                              <input
+                                class="form-check-input"
+                                id="id_reg_newsletter_consent"
+                                type="checkbox"
+                                name="newsletter_consent"
+                                value="true"
+                              >
+                              <label class="form-check-label" for="id_reg_newsletter_consent">
+                                Subscribe to the DataTalks.Club newsletter
+                              </label>
+                            </div>
+                            {% if event.sponsor_sharing_enabled %}
+                              <div class="form-check">
+                                <input
+                                  class="form-check-input"
+                                  id="id_reg_sponsor_sharing_consent"
+                                  type="checkbox"
+                                  name="sponsor_sharing_consent"
+                                  value="true"
+                                >
+                                <label class="form-check-label" for="id_reg_sponsor_sharing_consent">
+                                  Share my email with the event sponsor
+                                  {% if event.sponsor_name %}
+                                    ({{ event.sponsor_name }})
+                                  {% endif %}
+                                </label>
+                              </div>
+                            {% endif %}
                           </div>
+                          <div class="cmp-form-actions">
+                            <button type="submit" class="cta cta-primary cta-compact interactive-lift">Register</button>
+                          </div>
+                        </form>
+                        {% if account_entry.signup_url %}
+                          <p class="event-register-signup">No account yet? <a href="{{ account_entry.create_url }}">Create a free account</a></p>
                         {% endif %}
-                      </div>
-                      <div class="cmp-form-actions">
-                        <button type="submit" class="cta cta-primary interactive-lift">Register</button>
-                      </div>
-                    </form>
-                  {% endif %}
+                        <script>
+                          (function () {
+                            var toggle = document.querySelector(".event-register-email-toggle");
+                            var form = document.getElementById("event-register-email-form");
+                            if (!toggle || !form) return;
+                            toggle.addEventListener("click", function () {
+                              toggle.setAttribute("aria-expanded", "true");
+                              toggle.closest(".event-register").classList.add("is-email");
+                              document.getElementById("id_reg_email").focus();
+                            });
+                          })();
+                        </script>
+                      {% endif %}
+                    {% endif %}
+                  </div>
                 </section>
               {% endif %}
               {% endwith %}
