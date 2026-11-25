@@ -1,7 +1,6 @@
 from django.core.exceptions import ImproperlyConfigured
 
 from core.bootstrap import require_environment
-from core.seo_cutover import noindex_for_apex_cutover
 
 from .base import *  # noqa: F403
 
@@ -27,11 +26,11 @@ ACCOUNT_CANONICAL_ORIGIN = CSRF_TRUSTED_ORIGINS[0]
 # prod.datatalks.club is staging for its entire life: the apex still serves the
 # indexed legacy corpus, so the same pages must not be indexable twice
 # (_docs/runbooks/production-hosting-and-dns-migration.md section 9.3).  This is the
-# application half of the contract; robots_header_value is the edge half.  Both flip
-# together, under review, at the stage-2 apex swap and never before, which is why
-# the safe value remains the default. Set DTC_APEX_CUTOVER=true only during
-# the reviewed apex swap, together with the edge robots policy.
-NOINDEX = noindex_for_apex_cutover(os.getenv("DTC_APEX_CUTOVER"))  # noqa: F405
+# application default stays restrictive. The host-scoped middleware admits only
+# public apex responses when DTC_APEX_CUTOVER=true during the reviewed swap;
+# prod/dev and private responses keep their indexing restriction throughout.
+NOINDEX = True
+APEX_CUTOVER_ENABLED = env_flag("DTC_APEX_CUTOVER", default=False)  # noqa: F405
 DATABASES = {
     "default": database_from_environment(  # noqa: F405
         environment=RuntimeEnvironment.PRODUCTION,  # noqa: F405

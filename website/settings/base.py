@@ -194,6 +194,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "website.cutover.ApexCutoverMiddleware",
     # This policy must wrap short-circuits from health, SecurityMiddleware,
     # WhiteNoise, URL resolution, and error handlers.
     "core.middleware.ResponsePolicyMiddleware",
@@ -436,6 +437,7 @@ PUBLIC_MEDIA_MAX_OBJECT_BYTES = int(
 
 
 NOINDEX = False
+APEX_CUTOVER_ENABLED = False
 # Anonymous-only full-page cache for public GETs (core.page_cache).  Off by
 # default so tests, local development and management commands always render
 # live; production opts in explicitly.  Credentialed responses are never
