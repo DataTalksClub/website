@@ -1,8 +1,25 @@
 {% comment %}
-  The project form's FAQ contribution extra field (issue #456), rendering the
-  bound shared-form field with this site's hint and enforced URL pattern.
-  `clean_faq_contribution_url` stays the server-side check behind it.
+  The project form's site extra fields: the project description peers see on
+  the review page, and the FAQ contribution field (issue #456) with this
+  site's hint and enforced URL pattern. `clean_faq_contribution_url` stays the
+  server-side check behind it.
 {% endcomment %}
+<div class="cb-field" data-project-field="description">
+  <label class="cb-label" for="{{ project_form.description.id_for_label }}">
+    Project description <span class="cb-card-meta">(optional)</span>
+  </label>
+  <p class="cb-card-meta">A few sentences on what you built and how to run it. Your reviewers see this next to your repository.</p>
+  <textarea
+    class="cb-input"
+    id="{{ project_form.description.id_for_label }}"
+    name="{{ project_form.description.html_name }}"
+    rows="5"
+    maxlength="5000"
+    {% if not project_form.editable %}disabled{% endif %}
+  >{{ project_form.description.value|default:'' }}</textarea>
+  {% for error in project_form.description.errors %}<p class="cb-form-error" data-field-error="description">{{ error }}</p>{% endfor %}
+</div>
+{% if project_form.faq_contribution_url %}
 <div class="cb-field" data-project-field="faq_contribution_url">
   <label class="cb-label" for="{{ project_form.faq_contribution_url.id_for_label }}">
     FAQ contribution PR or issue URL <span class="cb-card-meta">(optional)</span>
@@ -29,3 +46,4 @@
   />
   {% for error in project_form.faq_contribution_url.errors %}<p class="cb-form-error" data-field-error="faq_contribution_url">{{ error }}</p>{% endfor %}
 </div>
+{% endif %}

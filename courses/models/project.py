@@ -191,6 +191,10 @@ class ProjectSubmission(models.Model):
 
     github_link = models.URLField(validators=[URLValidator(), validate_url_200])
     commit_id = models.CharField(max_length=40)
+    description = models.TextField(
+        blank=True,
+        help_text="What the learner built, shown to the peers who review it.",
+    )
 
     learning_in_public_links = models.JSONField(blank=True, null=True)
     faq_contribution = models.TextField(blank=True)

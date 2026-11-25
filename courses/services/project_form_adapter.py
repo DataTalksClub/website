@@ -72,6 +72,12 @@ class ProjectSubmissionForm(BaseProjectSubmissionForm):
     # django-stubs run; this form persists the site's ProjectSubmission rows.
     submission: ProjectSubmission | None
 
+    description = forms.CharField(
+        label="Project description",
+        required=False,
+        max_length=5000,
+        widget=forms.Textarea,
+    )
     faq_contribution_url = forms.URLField(
         label="FAQ contribution PR or issue URL",
         required=False,
@@ -107,6 +113,8 @@ class ProjectSubmissionForm(BaseProjectSubmissionForm):
 
     def _initial_from(self, submission, enrollment) -> dict:
         initial = super()._initial_from(submission, enrollment)
+        if submission is not None:
+            initial["description"] = submission.description
         if enrollment is not None:
             initial["certificate_name"] = learner_profile_certificate_name(enrollment)
         return initial
@@ -155,6 +163,7 @@ class ProjectSubmissionForm(BaseProjectSubmissionForm):
                 submission.time_spent = data.get("time_spent")
             if "faq_contribution_url" in self.fields:
                 submission.faq_contribution_url = data.get("faq_contribution_url") or ""
+            submission.description = (data.get("description") or "").strip()
             submission.full_clean()
             submission.save()
             self._save_certificate_name()
