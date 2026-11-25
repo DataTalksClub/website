@@ -3,7 +3,7 @@
 Two separate switches decide whether a new person can get in:
 
 * ``AccountAdapter.is_open_for_signup`` -- plain email/password signup.  Open
-  locally and in tests, closed in production by design (``accounts/auth.py``).
+  in every environment (``accounts/auth.py``).
 * the site's ``SocialApp`` rows -- the Google, GitHub and Slack sign-in
   buttons.  ``ConsolidatingSocialAccountAdapter`` lets a social login with no
   matching member create the account, so in production these buttons *are*

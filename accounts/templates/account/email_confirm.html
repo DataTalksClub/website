@@ -1,0 +1,50 @@
+{% extends "account/auth_page.html" %}
+
+{% block title %}
+  <title>Confirm your email · DataTalks.Club</title>
+{% endblock %}
+
+{% block auth_header %}
+  {% if confirmation and can_confirm %}
+    <h1 id="auth-heading">Confirm your email</h1>
+    <p class="entrance-lede">
+      One click and your DataTalks.Club account is ready.
+    </p>
+  {% elif confirmation %}
+    <h1 id="auth-heading">This address is taken</h1>
+  {% else %}
+    <h1 id="auth-heading">This link no longer works</h1>
+  {% endif %}
+{% endblock %}
+
+{% block auth_content %}
+  <div class="card entrance-panel">
+    {% if confirmation %}
+      {% if can_confirm %}
+        <p>Confirm that <strong>{{ confirmation.email_address.email }}</strong> is your email address.</p>
+        <form class="entrance-form" method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+          {% csrf_token %}
+          {{ redirect_field }}
+          <button class="cta cta-primary interactive-lift auth-submit" type="submit">Confirm my email</button>
+        </form>
+      {% else %}
+        <p>
+          {{ confirmation.email_address.email }} is already confirmed by a different
+          account. Sign in to that account, or reset its password.
+        </p>
+        <div class="entrance-actions">
+          <a class="cta cta-primary interactive-lift" href="{% url 'login' %}">Sign in</a>
+          <a class="cta cta-secondary interactive-lift" href="{% url 'account_reset_password' %}">Reset password</a>
+        </div>
+      {% endif %}
+    {% else %}
+      <p>
+        The confirmation link has expired or was already used. Sign in with your
+        email and password and we will send you a fresh link.
+      </p>
+      <div class="entrance-actions">
+        <a class="cta cta-primary interactive-lift" href="{% url 'login' %}">Sign in</a>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

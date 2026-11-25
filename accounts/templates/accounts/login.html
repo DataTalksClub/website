@@ -1,5 +1,4 @@
 {% extends "account/auth_page.html" %}
-{% load accessibility %}
 
 {% block title %}
   <title>Sign in — DataTalks.Club</title>
@@ -7,42 +6,25 @@
 
 {% block auth_header %}
   <h1 id="auth-heading">Sign In</h1>
-  {% if development_owner_login_enabled or providers %}
-    <p class="auth-lede">Choose your preferred login method</p>
-  {% endif %}
+  <p class="auth-lede">Continue with a social account, or with your email and password.</p>
 {% endblock %}
 
 {% block auth_content %}
-  {% if providers %}
-    <div class="card auth-panel">
-      <h2>Continue with a social account</h2>
+  {% comment %}
+    One card, two ways in: the providers, then allauth's email + password
+    form (`accounts.views.login.SiteLoginView`).  The error block keeps the
+    `#login-error p` shape the event page's inline login reads.
+  {% endcomment %}
+  <div class="card auth-panel">
+    {% if providers %}
       {% include "account/_social_provider_choices.html" with provider_list=providers provider_url_mode="provided" provider_container_class="auth-choices" %}
-      <p class="auth-reassurance">
-        Secure login — we never store your social media passwords
-      </p>
-    </div>
-  {% endif %}
-  {% if providers and not development_owner_login_enabled and account_signup_url %}
-    <p class="auth-account-links">
-      New here?
-      <a href="{{ account_signup_url }}?next={{ safe_next|urlencode }}">
-        Create an account
-      </a>
-    </p>
-  {% elif providers and not account_signup_url %}
-    <p class="auth-account-links">
-      New here? Continuing with {{ account_entry.provider_names }} creates your
-      free account.
-    </p>
-  {% endif %}
-  {% if providers and development_owner_login_enabled %}
-    <p class="auth-or">
-      <span>or sign in with email</span>
-    </p>
-  {% endif %}
-  {% if development_owner_login_enabled %}
-    <section class="card auth-panel" aria-labelledby="sign-in-password-heading">
-      <h2 id="sign-in-password-heading">Sign in with email</h2>
+      {% if password_login_available %}
+        <p class="auth-or"><span>or</span></p>
+      {% endif %}
+    {% endif %}
+    {% if password_login_available %}
+      <section aria-labelledby="sign-in-password-heading" class="auth-password">
+      <h2 id="sign-in-password-heading" class="sr-only">Sign in with email and password</h2>
       {% if login_error %}
         <div
           class="auth-notice"
@@ -54,41 +36,61 @@
           <p>{{ login_error }}</p>
         </div>
       {% endif %}
-      <form class="auth-form" method="post">
+      <form class="auth-form" method="post" action="{% url 'login' %}">
         {% csrf_token %}
         <div class="field">
-          <label class="field-label" for="{{ development_owner_form.email.id_for_label }}">
-            Email
-          </label>
-          {% accessible_widget development_owner_form.email %}
+          <label class="field-label" for="id_login">Email</label>
+          <input
+            class="field-input"
+            id="id_login"
+            type="email"
+            name="login"
+            value="{{ form.login.value|default_if_none:'' }}"
+            required
+            autocomplete="email"
+            autocapitalize="none"
+            maxlength="254"
+            {% if login_error %}aria-describedby="login-error" aria-invalid="true"{% endif %}
+          >
         </div>
         <div class="field">
-          <label class="field-label" for="{{ development_owner_form.password.id_for_label }}">
-            Password
-          </label>
-          {% accessible_widget development_owner_form.password %}
+          <div class="auth-field-head">
+            <label class="field-label" for="id_password">Password</label>
+            {% if password_reset_url %}
+              <a class="auth-small-link" href="{{ password_reset_url }}">Forgot password?</a>
+            {% endif %}
+          </div>
+          <input
+            class="field-input"
+            id="id_password"
+            type="password"
+            name="password"
+            required
+            autocomplete="current-password"
+            {% if login_error %}aria-describedby="login-error" aria-invalid="true"{% endif %}
+          >
         </div>
-        <div>
-          <button
-            class="cta cta-primary interactive-lift"
-            type="submit"
-            data-busy-label="Signing in…"
-          >Sign in</button>
-        </div>
+        <input type="hidden" name="next" value="{{ safe_next }}">
+        <button
+          class="cta cta-primary interactive-lift auth-submit"
+          type="submit"
+          data-busy-label="Signing in…"
+        >Sign in</button>
       </form>
-      {% if account_signup_url %}
-        <p class="auth-account-links">
-          <a href="{{ account_signup_url }}?next={{ safe_next|urlencode }}">
-            Create an account
-          </a>
-        </p>
-      {% endif %}
     </section>
-  {% elif not providers %}
-    <div class="auth-fallback">
+    {% elif not providers %}
       <div class="auth-notice" role="status">
         {% include "account/_no_sign_in_method.html" %}
       </div>
-    </div>
+    {% endif %}
+  </div>
+  {% if account_signup_url %}
+    <p class="auth-account-links">
+      New here?
+      <a href="{{ account_signup_url }}?next={{ safe_next|urlencode }}">Create an account</a>
+    </p>
   {% endif %}
+  <p class="auth-reassurance">
+    We never see your social media passwords.
+  </p>
 {% endblock %}

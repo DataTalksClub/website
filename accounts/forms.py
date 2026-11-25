@@ -1,4 +1,6 @@
+from allauth.account import forms as allauth_forms
 from django import forms
+from django.conf import settings
 
 from accounts.models import User
 from accounts.services.timezones import build_timezone_options, is_valid_timezone
@@ -21,27 +23,100 @@ from courses.models.learner_profile import (
 from courses.registration import ordered_countries, region_for_country
 
 
-class DevelopmentOwnerLoginForm(forms.Form):
-    email = forms.EmailField(
-        max_length=254,
-        widget=forms.EmailInput(
-            attrs={
-                "autocomplete": "username",
-                "autocapitalize": "none",
-                "class": "form-control",
-            }
-        ),
-    )
-    password = forms.CharField(
-        max_length=4096,
-        strip=False,
-        widget=forms.PasswordInput(
-            attrs={
-                "autocomplete": "current-password",
-                "class": "form-control",
-            }
-        ),
-    )
+def _account_for_email(email: str):
+    """The one active account that owns ``email``, by the normalized key.
+
+    allauth's own lookup (``filter_users_by_email``) compares the stored
+    ``User.email`` exactly, and imported accounts keep the case they were
+    created with, so a lowercase address would miss them.  The durable
+    backend's normalized lookup is the site's single answer to "whose address
+    is this"; two matches count as none.
+    """
+
+    from accounts.backends import DurableAccountBackend
+
+    candidates = DurableAccountBackend()._email_candidates(email)
+    return candidates[0] if len(candidates) == 1 else None
+
+
+class SiteLoginForm(allauth_forms.LoginForm):
+    """allauth's email + password login, with the development owner exempt.
+
+    The development owner is provisioned by an operator command with an
+    address the operator chose, never through a mailed link, so the
+    mandatory-verification stage would only lock that account out of the
+    development hosts (where Relay is in dry-run).  The exemption reaches the
+    exact development owner only, and only where
+    ``DEVELOPMENT_OWNER_LOGIN_ENABLED`` lets staff use a password at all.
+    """
+
+    def _login_with_password(self, request, redirect_url, credentials):
+        from accounts.views.login import is_exact_development_owner
+
+        if settings.DEVELOPMENT_OWNER_LOGIN_ENABLED and is_exact_development_owner(
+            self._login.user
+        ):
+            self._login.email_verification = "none"
+        return super()._login_with_password(request, redirect_url, credentials)
+
+
+PASSWORD_HELP = "At least 10 characters. Not a common or all-numeric password."
+
+
+class _QuietPasswordFieldsMixin:
+    """One short password hint instead of the validators' four-line list.
+
+    The labels name the fields, so allauth's placeholders that repeat them are
+    dropped.  The validators themselves are unchanged and still explain a
+    refusal in the field's error.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            field.widget.attrs.pop("placeholder", None)
+            if name in {"password1", "password"} and "password2" in self.fields:
+                field.help_text = PASSWORD_HELP
+            elif name == "password2":
+                field.label = "Repeat the password"
+
+
+class SiteSetPasswordForm(_QuietPasswordFieldsMixin, allauth_forms.SetPasswordForm):
+    pass
+
+
+class SiteChangePasswordForm(_QuietPasswordFieldsMixin, allauth_forms.ChangePasswordForm):
+    pass
+
+
+class SiteResetPasswordKeyForm(_QuietPasswordFieldsMixin, allauth_forms.ResetPasswordKeyForm):
+    pass
+
+
+class SiteSignupForm(_QuietPasswordFieldsMixin, allauth_forms.SignupForm):
+    """Signup whose "address already taken" check uses the normalized key."""
+
+    def validate_unique_email(self, value):
+        email = super().validate_unique_email(value)
+        if not self.account_already_exists and _account_for_email(email) is not None:
+            self.account_already_exists = True
+        return email
+
+
+class SiteResetPasswordForm(allauth_forms.ResetPasswordForm):
+    """Reset request that finds imported, mixed-case addresses too.
+
+    Accounts without a password (social-only, or created by the one-click
+    event registration) get the same link: following it is how such an
+    account chooses its first password without signing in first.
+    """
+
+    def clean_email(self):
+        email = super().clean_email()
+        if not self.users:
+            account = _account_for_email(email)
+            self.users = [account] if account is not None else []
+        return email
 
 
 PREFERRED_TIMEZONE_WIDGET = forms.Select(attrs={"class": "form-control"})
@@ -246,9 +321,7 @@ class AboutYouForm(forms.ModelForm):
             "about_me": "About me",
         }
         help_texts = {
-            "certificate_name": (
-                "Used on your certificates, across all your course enrollments."
-            ),
+            "certificate_name": ("Used on your certificates, across all your course enrollments."),
             "country": "Used to prefill course registration.",
         }
         widgets = {

@@ -1039,12 +1039,12 @@ def test_javascript_off_public_policy_rejects_missing_fixture_route(
 
 def _account_scenario(recorder: ScenarioRecorder) -> set[str]:
     recorder.scan("account.signed-out-login", "login", text="Sign In")
-    recorder.scan("account.invalid-login", "login-error", text="Sign-in was not successful")
+    recorder.scan("account.invalid-login", "login-error", text="are not correct")
     with override_settings(DEVELOPMENT_OWNER_LOGIN_ENABLED=False):
         recorder.scan(
             "account.unavailable-login",
             "login",
-            text="Signing in isn't available right now",
+            text="Sign In",
         )
 
     recorder.scan("account.settings", "account-settings", text="Account settings")

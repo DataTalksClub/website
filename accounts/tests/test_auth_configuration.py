@@ -115,9 +115,9 @@ class LoginPageConfigurationTests(TestCase):
             response = self.client.get("/accounts/login/?next=/books")
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'name="email"')
+        self.assertContains(response, 'name="login"')
         self.assertContains(response, 'name="password"')
-        self.assertContains(response, "Choose your preferred login method")
+        self.assertContains(response, "with your email and password")
         self.assertNotContains(response, "Back to courses")
         self.assertNotContains(response, "Signing in isn't available right now")
 
@@ -142,22 +142,17 @@ class LoginPageConfigurationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Sign In")
-        self.assertContains(response, 'name="email"')
         self.assertNotContains(response, "Create an account")
         self.assertNotContains(response, "/accounts/signup/")
 
-    def test_empty_auth_configuration_has_no_misleading_course_fallback(self) -> None:
+    def test_without_providers_the_password_form_is_the_way_in(self) -> None:
         with override_settings(DEVELOPMENT_OWNER_LOGIN_ENABLED=False):
-            for next_path in ("/books", "/accounts/signup/"):
-                with self.subTest(next_path=next_path):
-                    response = self.client.get(f"/accounts/login/?next={next_path}")
+            response = self.client.get("/accounts/login/?next=/books")
 
-                self.assertEqual(response.status_code, 200)
-                self.assertContains(response, "Signing in isn't available right now")
-                self.assertContains(response, "mailto:alexey@datatalks.club")
-                self.assertNotContains(response, "temporarily unavailable")
-                self.assertNotContains(response, "Back to courses")
-                self.assertNotContains(response, "Choose your preferred login method")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="login"')
+        self.assertContains(response, 'href="/accounts/password/reset/"')
+        self.assertNotContains(response, "Back to courses")
 
     def test_seeded_cmp_providers_render_on_login(self) -> None:
         # This only checks `/accounts/login/` — signup's own provider
@@ -169,16 +164,12 @@ class LoginPageConfigurationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Sign In")
-        self.assertContains(response, "Choose your preferred login method")
-        self.assertNotContains(response, "Signing in isn't available right now")
+        self.assertContains(response, 'name="login"')
         for provider, name in PLACEHOLDER_PROVIDERS:
             with self.subTest(provider=provider):
                 self.assertContains(response, f"Continue with {name}")
                 self.assertContains(response, f"/accounts/{provider}/login/")
-        self.assertContains(
-            response,
-            "Secure login — we never store your social media passwords",
-        )
+        self.assertContains(response, "We never see your social media passwords.")
 
     def test_social_methods_precede_the_email_method_on_login(self) -> None:
         # This only checks `/accounts/login/`; signup's own ordering is
@@ -193,7 +184,6 @@ class LoginPageConfigurationTests(TestCase):
         form_at = body.index('class="auth-form"')
         self.assertLess(provider_at, divider_at)
         self.assertLess(divider_at, form_at)
-        self.assertIn("or sign in with email", body)
 
     def test_site_bound_social_apps_render_cmp_provider_choices_and_next(self) -> None:
         site = Site.objects.get(pk=settings.SITE_ID)

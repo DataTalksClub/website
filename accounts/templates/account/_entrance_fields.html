@@ -1,0 +1,26 @@
+{% load accessibility %}
+{% comment %}
+  The field loop the account entrance forms share (sign up, set and change
+  password): label, the accessible widget, help text and the error line.
+{% endcomment %}
+{% accessibility_error_summary form %}
+{% for field in form.hidden_fields %}
+  {{ field }}
+{% endfor %}
+{% for field in form.visible_fields %}
+  {% accessibility_help_id field as help_id %}
+  {% accessibility_error_id field as error_id %}
+  <div class="field">
+    <label class="field-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {% accessible_widget field %}
+    {% if field.help_text %}
+      <div id="{{ help_id }}" class="a11y-help">{{ field.help_text }}</div>
+    {% endif %}
+    {% if field.errors %}
+      <p id="{{ error_id }}" class="a11y-error">
+        <span class="sr-only">Error:</span>
+        {{ field.errors|join:" " }}
+      </p>
+    {% endif %}
+  </div>
+{% endfor %}

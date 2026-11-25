@@ -25,6 +25,10 @@ from core.models import MailTemplatePublication
 #: application-review purposes mirroring CMP intake 4d0452a8.
 EXPECTED_KEYS = frozenset(
     {
+        "account-already-exists",
+        "account-password-changed",
+        "account-password-reset",
+        "account-verify-email",
         "application-approved",
         "application-pending-operator",
         "application-rejected",

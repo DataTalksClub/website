@@ -1,11 +1,11 @@
 """No account entrance dead-ends, whatever the sign-in configuration.
 
-Production closes email/password signup (``accounts.auth.AccountAdapter``) and
-lets the first Google/GitHub/Slack sign-in create a new member's account.  So
-the sign-in page and the (closed) signup page must offer the configured
-providers, and with none configured must say so honestly, give the contact
-address, and make the misconfiguration loud for operators (system check
-``accounts.W001`` and the ``account_entry_no_providers`` log event).
+Email + password signup is open everywhere (``accounts.auth.AccountAdapter``),
+next to the Google/GitHub/Slack buttons.  The sign-in and signup pages offer
+the configured providers with the visitor's ``next``, and the password form is
+always there; with no provider configured the misconfiguration stays loud for
+operators (system check ``accounts.W001`` and the
+``account_entry_no_providers`` log event).
 
 The course registration gate's side is
 ``courses/tests/test_registration_gate_production.py``.
@@ -34,7 +34,7 @@ class ProviderCacheResetTestCase(TestCase):
 
 @override_settings(ENVIRONMENT="production", DEVELOPMENT_OWNER_LOGIN_ENABLED=False)
 class ProductionLoginPageTests(ProviderCacheResetTestCase):
-    def test_providers_render_and_new_members_are_told_they_create_the_account(self) -> None:
+    def test_providers_and_the_password_form_render_with_next(self) -> None:
         configure_site_providers(*ALL_PROVIDERS)
 
         response = self.client.get("/accounts/login/?next=/courses/")
@@ -44,26 +44,17 @@ class ProductionLoginPageTests(ProviderCacheResetTestCase):
             with self.subTest(provider=provider):
                 self.assertContains(response, f"Continue with {name}")
                 self.assertContains(response, f"/accounts/{provider}/login/?next=%2Fcourses%2F")
-        self.assertContains(
-            response,
-            "New here? Continuing with Google, GitHub or Slack creates your",
-        )
-        # Never the old "Create an account" link to the closed signup form.
-        self.assertNotContains(response, "/accounts/signup/?next=/courses/")
-        self.assertNotContains(response, "Create an account")
+        self.assertContains(response, 'name="login"')
+        self.assertContains(response, 'href="/accounts/signup/?next=%2Fcourses%2F"')
 
-    def test_no_providers_is_honest_gives_a_contact_and_logs_for_operators(self) -> None:
+    def test_no_providers_still_offers_the_password_form_and_logs(self) -> None:
         with self.assertLogs("accounts.account_entry", level="WARNING") as logs:
             response = self.client.get("/accounts/login/?next=/courses/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Signing in isn't available right now")
-        self.assertContains(response, 'href="mailto:alexey@datatalks.club"')
-        self.assertNotContains(response, "temporarily unavailable")
-        self.assertNotContains(response, "Create an account")
+        self.assertContains(response, 'name="login"')
         [record] = logs.records
         self.assertEqual(record.getMessage(), NO_PROVIDERS_LOG_EVENT)
-        self.assertEqual(getattr(record, "event", None), NO_PROVIDERS_LOG_EVENT)
         self.assertEqual(getattr(record, "surface", None), "login")
         self.assertEqual(getattr(record, "environment", None), "production")
 
@@ -75,19 +66,14 @@ class ProductionLoginPageTests(ProviderCacheResetTestCase):
 
 
 @override_settings(ENVIRONMENT="production")
-class ProductionSignupClosedPageTests(ProviderCacheResetTestCase):
-    def test_closed_signup_offers_the_providers_with_next(self) -> None:
+class ProductionSignupPageTests(ProviderCacheResetTestCase):
+    def test_signup_offers_the_providers_with_next_and_the_password_form(self) -> None:
         configure_site_providers(*ALL_PROVIDERS)
 
         response = self.client.get("/accounts/signup/?next=/courses/llm-zoomcamp/register")
 
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "account/signup_closed.html")
-        self.assertContains(response, "Create your account")
-        self.assertContains(
-            response,
-            "New accounts are created by signing in with\n              Google, GitHub or Slack.",
-        )
+        self.assertTemplateUsed(response, "account/signup.html")
         for provider, name in ALL_PROVIDERS:
             with self.subTest(provider=provider):
                 self.assertContains(response, f"Continue with {name}")
@@ -95,38 +81,15 @@ class ProductionSignupClosedPageTests(ProviderCacheResetTestCase):
                     response,
                     f"/accounts/{provider}/login/?next=%2Fcourses%2Fllm-zoomcamp%2Fregister",
                 )
-        self.assertNotContains(response, "Sign-up is closed")
-        self.assertNotContains(response, 'name="password1"')
-        # The section heading must not stutter into the "Continue with ..."
-        # buttons directly beneath it.
-        self.assertContains(response, "Choose how to sign in</h2>")
-        self.assertNotContains(response, "Continue with</h2>")
+        self.assertContains(response, 'name="password1"')
 
-    def test_closed_signup_with_providers_does_not_log(self) -> None:
+    def test_signup_with_providers_does_not_log(self) -> None:
         configure_site_providers(*ALL_PROVIDERS)
 
         with self.assertNoLogs("accounts.account_entry", level="WARNING"):
             self.client.get("/accounts/signup/")
 
-    def test_closed_signup_without_providers_is_honest_and_gives_a_contact(self) -> None:
-        with self.assertLogs("accounts.account_entry", level="WARNING") as logs:
-            response = self.client.get("/accounts/signup/")
-
-        [record] = logs.records
-        self.assertEqual(record.getMessage(), NO_PROVIDERS_LOG_EVENT)
-        self.assertEqual(getattr(record, "surface", None), "account_signup")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "account/signup_closed.html")
-        self.assertContains(response, "Sign-up is closed")
-        self.assertContains(response, "Signing in isn't available right now")
-        self.assertContains(response, 'href="mailto:alexey@datatalks.club"')
-        self.assertContains(response, "Browse courses")
-        # The old page's only action was "Sign in", which led to the same
-        # dead end on the login page.
-        self.assertNotContains(response, ">Sign in</a>")
-
-    def test_email_signup_stays_closed_even_with_providers(self) -> None:
+    def test_email_signup_creates_an_unverified_account(self) -> None:
         configure_site_providers(*ALL_PROVIDERS)
 
         self.client.post(
@@ -138,7 +101,7 @@ class ProductionSignupClosedPageTests(ProviderCacheResetTestCase):
             },
         )
 
-        self.assertFalse(User.objects.filter(email=FRESH_EMAIL).exists())
+        self.assertTrue(User.objects.filter(email=FRESH_EMAIL).exists())
         self.assertNotIn("_auth_user_id", self.client.session)
 
 

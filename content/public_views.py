@@ -606,10 +606,9 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             "account_ready": viewer.is_authenticated
             and request.session.get(QUICK_ACCOUNT_READY_SESSION_KEY) == str(identity.pk),
             "newsletter_invalid": request.GET.get("registered") == "newsletter_required",
-            # The password form is the development owner's sign-in; members
-            # sign in with a provider.  It is offered only where the login
-            # page offers it.
-            "inline_password_login": bool(settings.DEVELOPMENT_OWNER_LOGIN_ENABLED),
+            # Email + password sign-in, next to the providers, as on the
+            # login page.
+            "inline_password_login": True,
             "qna_url": qna_url,
             "og_type": "event",
             "og_image_url": (_canonical(event["banner_url"]) if event["banner_url"] else ""),

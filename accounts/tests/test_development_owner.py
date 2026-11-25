@@ -19,7 +19,6 @@ from accounts.development_owner import (
     DevelopmentOwnerBootstrapDenied,
     bootstrap_development_owner,
 )
-from accounts.forms import DevelopmentOwnerLoginForm
 from accounts.models import Token
 from accounts.studio_roles import MANAGE_API_CREDENTIALS
 from core.bootstrap import RuntimeEnvironment
@@ -304,14 +303,6 @@ class DevelopmentOwnerLoginTests(TestCase):
             allow_test=True,
         )
 
-    def test_owner_login_controls_use_the_cmp_form_control_contract(self) -> None:
-        form = DevelopmentOwnerLoginForm()
-
-        for field_name in ("email", "password"):
-            with self.subTest(field_name=field_name):
-                classes = form.fields[field_name].widget.attrs["class"].split()
-                self.assertIn("form-control", classes)
-
     def test_csrf_login_rotates_session_creates_staff_session_and_uses_safe_next(self) -> None:
         client = Client(enforce_csrf_checks=True)
         session = client.session
@@ -324,13 +315,13 @@ class DevelopmentOwnerLoginTests(TestCase):
 
         missing_csrf = Client(enforce_csrf_checks=True).post(
             login_url,
-            {"email": OWNER_EMAIL, "password": OWNER_PASSWORD},
+            {"login": OWNER_EMAIL, "password": OWNER_PASSWORD},
         )
         self.assertEqual(missing_csrf.status_code, 403)
         response = client.post(
             login_url,
             {
-                "email": OWNER_EMAIL,
+                "login": OWNER_EMAIL,
                 "password": OWNER_PASSWORD,
                 "csrfmiddlewaretoken": csrf,
             },
@@ -350,7 +341,7 @@ class DevelopmentOwnerLoginTests(TestCase):
 
         hostile = Client().post(
             f"{reverse('login')}?next=https%3A%2F%2Fevil.invalid%2F",
-            {"email": OWNER_EMAIL, "password": OWNER_PASSWORD},
+            {"login": OWNER_EMAIL, "password": OWNER_PASSWORD},
         )
         self.assertEqual(hostile.status_code, 302)
         self.assertEqual(hostile.headers["Location"], "/")
@@ -358,45 +349,35 @@ class DevelopmentOwnerLoginTests(TestCase):
     def test_invalid_duplicate_inactive_and_rate_limited_attempts_are_safe(self) -> None:
         invalid = self.client.post(
             reverse("login"),
-            {"email": OWNER_EMAIL, "password": "wrong-password"},
+            {"login": OWNER_EMAIL, "password": "wrong-password"},
         )
         self.assertEqual(invalid.status_code, 200)
-        self.assertContains(
-            invalid,
-            "Sign-in was not successful. Check your details and try again.",
-        )
-        self.assertNotContains(invalid, OWNER_EMAIL)
+        self.assertContains(invalid, 'id="login-error"')
+        self.assertNotIn("_auth_user_id", self.client.session)
 
         user = get_user_model().objects.get()
         user.is_active = False
         user.save(update_fields=("is_active",))
-        inactive = self.client.post(
+        self.client.post(
             reverse("login"),
-            {"email": OWNER_EMAIL, "password": OWNER_PASSWORD},
+            {"login": OWNER_EMAIL, "password": OWNER_PASSWORD},
         )
-        self.assertContains(
-            inactive,
-            "Sign-in was not successful. Check your details and try again.",
-        )
+        self.assertNotIn("_auth_user_id", self.client.session)
 
-        for attempt in range(10):
+        # The durable per-address limit (10 a minute) answers 429.
+        for _attempt in range(10):
             self.client.post(
                 reverse("login"),
-                {
-                    "email": f"rate-{attempt}@example.test",
-                    "password": "wrong-password",
-                },
-                REMOTE_ADDR="192.0.2.107",
+                {"login": "rate@example.test", "password": "wrong-password"},
             )
         limited = self.client.post(
             reverse("login"),
-            {"email": "rate-final@example.test", "password": "wrong-password"},
-            REMOTE_ADDR="192.0.2.107",
+            {"login": "rate@example.test", "password": "wrong-password"},
         )
         self.assertEqual(limited.status_code, 429)
         self.assertContains(
             limited,
-            "Sign-in is temporarily unavailable. Wait a minute and try again.",
+            "Too many sign-in attempts. Wait a minute and try again.",
             status_code=429,
         )
 
@@ -409,7 +390,7 @@ class DevelopmentOwnerLoginTests(TestCase):
         )
         duplicate_response = self.client.post(
             reverse("login"),
-            {"email": OWNER_EMAIL, "password": OWNER_PASSWORD},
+            {"login": OWNER_EMAIL, "password": OWNER_PASSWORD},
         )
         self.assertEqual(duplicate_response.status_code, 200)
         duplicate.delete()
@@ -439,21 +420,18 @@ class DevelopmentOwnerLoginTests(TestCase):
             with self.subTest(username=candidate.username):
                 response = self.client.post(
                     reverse("login"),
-                    {"email": candidate.email, "password": OWNER_PASSWORD},
+                    {"login": candidate.email, "password": OWNER_PASSWORD},
                 )
                 self.assertEqual(response.status_code, 200)
-                self.assertContains(
-                    response,
-                    "Sign-in was not successful. Check your details and try again.",
-                )
-                self.assertNotContains(response, candidate.email)
+                self.assertContains(response, 'id="login-error"')
+                self.assertNotIn("_auth_user_id", self.client.session)
 
         principal = APIPrincipal.objects.get(kind=APIPrincipal.Kind.HUMAN)
         principal.is_active = False
         principal.save(update_fields=("is_active", "updated_at"))
         principal_denied = self.client.post(
             reverse("login"),
-            {"email": OWNER_EMAIL, "password": OWNER_PASSWORD},
+            {"login": OWNER_EMAIL, "password": OWNER_PASSWORD},
         )
         self.assertEqual(principal_denied.status_code, 200)
         self.assertEqual(StaffSession.objects.count(), 0)
@@ -497,7 +475,7 @@ class DevelopmentOwnerLoginTests(TestCase):
 
             public_login = fixture_client.post(
                 reverse("login"),
-                {"email": staff.email, "password": OWNER_PASSWORD},
+                {"login": staff.email, "password": OWNER_PASSWORD},
             )
             django_admin_login = fixture_client.post(
                 "/admin/login/?next=/admin/",

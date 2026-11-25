@@ -294,19 +294,61 @@ SITE_ID = 2
 # errors already give it).  Account entrances fall back to it when no sign-in
 # method is configured, so a visitor is never left without a way to reach us.
 SITE_CONTACT_EMAIL = "alexey@datatalks.club"
-ACCOUNT_EMAIL_VERIFICATION = "none"
+# Email + password accounts are open to everyone, next to the social
+# providers.  An address must be verified before a password login succeeds
+# (``mandatory``); the verification, reset and "password changed" emails go
+# through the site's package mail (Relay) via ``AccountAdapter.send_mail``.
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+# Social sign-in keeps its own rule: the provider's per-address ``verified``
+# flag, checked by ``ConsolidatingSocialAccountAdapter``, is the evidence.
+# Without this, the account-level ``mandatory`` above would also stop a
+# provider login whose account has no verified ``EmailAddress`` row yet.
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USER_MODEL_EMAIL_FIELD = "email"
-# Plain password signup remains available for local development and tests;
-# `AccountAdapter` closes it in production. Most members already have a
-# CMP-imported identity, so local duplicate-email attempts should surface a
-# clear error rather than allauth's default silent no-op-and-email behavior.
-# The production signup closure also prevents an unverified password account
-# from being planted before a member's first social sign-in.
-ACCOUNT_PREVENT_ENUMERATION = False
+ACCOUNT_FORMS = {
+    "login": "accounts.forms.SiteLoginForm",
+    "signup": "accounts.forms.SiteSignupForm",
+    "reset_password": "accounts.forms.SiteResetPasswordForm",
+    "reset_password_from_key": "accounts.forms.SiteResetPasswordKeyForm",
+    "set_password": "accounts.forms.SiteSetPasswordForm",
+    "change_password": "accounts.forms.SiteChangePasswordForm",
+}
+# No account enumeration: a signup with a known address shows the same "check
+# your email" page and mails the owner an "you already have an account" note;
+# a reset request always shows the same "check your email" page.  Nothing is
+# mailed to an address with no account.
+ACCOUNT_PREVENT_ENUMERATION = True
+ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False
+# "Your password was set / changed / reset" notices.
+ACCOUNT_EMAIL_NOTIFICATIONS = True
+# Sessions persist as they do for a social sign-in; no "remember me" box.
+ACCOUNT_SESSION_REMEMBER = True
+# A verification link opens a confirm page with a button, so a mail scanner
+# that prefetches links cannot confirm (or sign in) on the member's behalf.
+ACCOUNT_CONFIRM_EMAIL_ON_GET = False
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_LOGIN_ON_PASSWORD_RESET = False
+ACCOUNT_EMAIL_SUBJECT_PREFIX = ""
+ACCOUNT_USER_DISPLAY = "accounts.auth.user_display"
+# allauth's built-in throttles (login failures per address and per IP,
+# signup and reset requests per IP, confirmation resend cooldown) are kept at
+# their defaults.  The login view adds a database-backed per-address limit on
+# top, because the default cache is process-local.  Behind a reverse proxy
+# the client IP comes from X-Forwarded-For only when the proxy count is set.
+ALLAUTH_TRUSTED_PROXY_COUNT = int(os.getenv("ALLAUTH_TRUSTED_PROXY_COUNT", "0"))
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 10},
+    },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
 
 # Course registration is account-owned (`_docs/specs/open-decisions.md` §6,
 # `_docs/specs/04-courses-and-cohorts.md`), and the signed-in-home spec §8.3

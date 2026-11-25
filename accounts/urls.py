@@ -25,7 +25,6 @@ urlpatterns = [
     path('login/', social_login_view, name='login'),
     path('signed-in/', login_popup_done, name='login_popup_done'),
     path('email/', disabled),
-    path('password/reset/', disabled),
     path('toggle-dark-mode/', toggle_dark_mode, name='toggle_dark_mode'),
     path(
         'settings/toggle/',

@@ -1,0 +1,26 @@
+{% extends "account/auth_page.html" %}
+
+{% block title %}
+  <title>Check your email · DataTalks.Club</title>
+{% endblock %}
+
+{% block auth_header %}
+  <h1 id="auth-heading">Check your email</h1>
+  <p class="entrance-lede">
+    We have sent you a link to confirm your email address. Open it to finish
+    and sign in.
+  </p>
+{% endblock %}
+
+{% block auth_content %}
+  <div class="card entrance-panel">
+    <p>
+      The email comes from DataTalks.Club. If it is not in your inbox within a
+      few minutes, check the spam folder.
+    </p>
+    <p class="entrance-fineprint">
+      Already confirmed?
+      <a class="band-link" href="{% url 'login' %}">Sign in</a>.
+    </p>
+  </div>
+{% endblock %}

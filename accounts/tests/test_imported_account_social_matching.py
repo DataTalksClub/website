@@ -482,7 +482,10 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
         self.assertEqual(User.objects.count(), 1)
         self.assert_history_is_visible(client, history)
 
-    def test_unverified_password_account_cannot_be_claimed_by_social_login(self) -> None:
+    def test_unused_unverified_password_signup_is_taken_over_by_social_login(self) -> None:
+        # Mandatory verification kept this account from ever signing in; the
+        # provider's verified address is the stronger proof, so the sign-in
+        # takes it over and clears the password nobody proved.
         email = "unverified.password.account@example.invalid"
         user = User.objects.create_user(
             username=email,
@@ -496,9 +499,36 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
             primary=True,
         )
 
-        client, response = self.sign_in(
+        client, _response = self.sign_in(
             provider="google",
             routes=self.google_routes(uid="google-uid-unverified-password", email=email),
+        )
+
+        self.assert_signed_in_as(client, user)
+        user.refresh_from_db()
+        self.assertTrue(SocialAccount.objects.filter(user=user).exists())
+        self.assertFalse(user.has_usable_password())
+        self.assertTrue(EmailAddress.objects.get(user=user, email=email).verified)
+
+    def test_used_unverified_password_account_cannot_be_claimed_by_social_login(self) -> None:
+        email = "used.password.account@example.invalid"
+        user = User.objects.create_user(
+            username=email,
+            email=email,
+            password="synthetic-password-not-a-secret",
+        )
+        user.last_login = timezone.now()
+        user.save(update_fields=["last_login"])
+        EmailAddress.objects.create(
+            user=user,
+            email=email,
+            verified=False,
+            primary=True,
+        )
+
+        client, response = self.sign_in(
+            provider="google",
+            routes=self.google_routes(uid="google-uid-used-password", email=email),
         )
 
         self.assertEqual(response.status_code, 409)

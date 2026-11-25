@@ -488,6 +488,15 @@
         margin: 0;
       }
 
+      .event-register-login-links {
+        color: var(--muted);
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.82rem;
+        gap: var(--space-2);
+        margin: 0;
+      }
+
       .event-register-login-error[hidden] {
         display: none;
       }
@@ -1165,7 +1174,14 @@
                             .then(function (response) {
                               if (response.type === "opaqueredirect" || response.status === 302) {
                                 waiting = true;
-                                return refreshCard(false);
+                                return refreshCard(false).then(function (signedIn) {
+                                  /* Redirected without a session: the address is not
+                                     verified yet, and allauth has just mailed the link. */
+                                  if (!signedIn) {
+                                    waiting = false;
+                                    showError("Confirm your email address first: we have sent you a link. Then log in here.");
+                                  }
+                                });
                               }
                               return response.text().then(function (html) {
                                 var doc = new DOMParser().parseFromString(html, "text/html");

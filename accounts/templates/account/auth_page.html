@@ -51,15 +51,24 @@
         gap: var(--space-4);
       }
 
-      .auth-form .form-control {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.625rem;
-        color: var(--ink);
-        font: inherit;
-        min-height: 2.75rem;
-        padding: var(--space-3) var(--space-3);
+      .auth-field-head {
+        align-items: baseline;
+        display: flex;
+        gap: var(--space-3);
+        justify-content: space-between;
+      }
+
+      .auth-small-link {
+        font-size: 0.85rem;
+      }
+
+      .auth-submit {
+        justify-content: center;
         width: 100%;
+      }
+
+      .auth-panel .auth-or {
+        margin-block: var(--space-1);
       }
 
       .auth-notice {
@@ -117,7 +126,8 @@
 
       .auth-reassurance {
         font-size: 0.85rem;
-        margin-top: var(--space-4);
+        margin-top: var(--space-2);
+        text-align: center;
       }
 
       @media (max-width: 47.99rem) {

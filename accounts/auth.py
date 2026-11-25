@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 from functools import wraps
 from typing import Any, NoReturn
@@ -32,6 +33,8 @@ from accounts_ext.models import (
     normalized_email_of,
 )
 from course_management.observability import record_event
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 LIVE_CONFLICT_SNAPSHOT_ID = sha256_text("live-account-link-conflict-v1")
@@ -254,8 +257,42 @@ def _candidate_users_for_verified_email(email: str) -> tuple[Any, ...]:
         user
         for user in users
         if user.pk in verified_row_ids
-        or (_account_email(user) == email and not user.has_usable_password())
+        or (
+            _account_email(user) == email
+            and (not user.has_usable_password() or _is_unclaimed_password_signup(user))
+        )
     )
+
+
+def _is_unclaimed_password_signup(user: Any) -> bool:
+    """A password signup whose address was never verified and never used.
+
+    Mandatory email verification keeps such an account from signing in, so
+    ``last_login`` stays empty.  It may be the address owner who never
+    clicked the link, or someone who typed another person's address.  Either
+    way the provider's verified address is the stronger proof: the sign-in
+    takes the account over and clears the password nobody proved
+    (``_claim_unverified_password_signup``).
+    """
+
+    return (
+        user.has_usable_password()
+        and user.last_login is None
+        and not EmailAddress.objects.filter(user_id=user.pk, verified=True).exists()
+    )
+
+
+def _claim_unverified_password_signup(user: Any, email: str) -> None:
+    if not _is_unclaimed_password_signup(user):
+        return
+    user.set_unusable_password()
+    user.save(update_fields=["password"])
+    address = EmailAddress.objects.filter(user_id=user.pk, email__iexact=email).first()
+    if address is None:
+        EmailAddress.objects.create(user=user, email=email, verified=True, primary=True)
+    elif not address.verified:
+        address.verified = True
+        address.save(update_fields=["verified"])
 
 
 def _flush_other_user_sessions(request: Any, user: Any) -> None:
@@ -367,21 +404,39 @@ def _provider_uid_conflicts(sociallogin: object, user: Any) -> bool:
     return different_uid_for_provider.exists()
 
 
-class AccountAdapter(DefaultAccountAdapter):
-    """Keep plain signup available locally and closed on production hosts.
+#: allauth's email templates -> the site's package mail purposes
+#: (``email_templates/<purpose>.md``, published to Relay by
+#: ``import_mail_templates``).  allauth renders nothing itself: each send
+#: becomes one durable package delivery, like every other site email.
+ACCOUNT_MAIL_PURPOSES = {
+    "account/email/email_confirmation_signup": "account-verify-email",
+    "account/email/email_confirmation": "account-verify-email",
+    "account/email/password_reset_key": "account-password-reset",
+    "account/email/account_already_exists": "account-already-exists",
+    "account/email/password_changed": "account-password-changed",
+    "account/email/password_set": "account-password-changed",
+    "account/email/password_reset": "account-password-changed",
+}
+_PASSWORD_ACTIONS = {
+    "account/email/password_changed": "changed",
+    "account/email/password_set": "set",
+    "account/email/password_reset": "reset",
+}
 
-    Most members already have a CMP-imported identity, so a plain signup with
-    an email that matches one is the common case, not the exception.  Rather
-    than silently creating a conflicting second account (the original risk
-    this adapter closed against), ``ACCOUNT_PREVENT_ENUMERATION = False``
-    (``website/settings/base.py``) makes allauth surface a plain "an account
-    already exists" error instead of creating one — no merge, no new row.  The
-    error text below points a returning member at the two real ways back into
-    their existing account: social sign-in (see
-    ``ConsolidatingSocialAccountAdapter`` for how that safely resolves to the
-    right account) or a password reset.  A genuinely new email signs up
-    normally in local and test environments; production disables password
-    signup because production members use social sign-in.
+
+class AccountAdapter(DefaultAccountAdapter):
+    """Email + password accounts, open to everyone, mailed through Relay.
+
+    Signup is open in every environment next to the social providers.  A
+    signup with an address that already has an account never creates a second
+    one and never says so on the page (``ACCOUNT_PREVENT_ENUMERATION``): the
+    visitor sees the usual "check your email" page and the address's owner is
+    mailed a note pointing at sign-in and password reset.  An unverified
+    password account cannot sign in (``ACCOUNT_EMAIL_VERIFICATION =
+    "mandatory"``), and the first provider sign-in that proves the address
+    takes it over and clears that password (see
+    ``ConsolidatingSocialAccountAdapter``), so planting an account on someone
+    else's address gains nothing.
     """
 
     error_messages = {
@@ -394,7 +449,82 @@ class AccountAdapter(DefaultAccountAdapter):
 
     def is_open_for_signup(self, request):
         del request
-        return getattr(settings, "ENVIRONMENT", "local") != "production"
+        return True
+
+    def populate_username(self, request, user):
+        """Give a new account a unique opaque username, as imported ones have.
+
+        Members sign in by email (``ACCOUNT_USER_MODEL_USERNAME_FIELD =
+        None``), so allauth leaves ``username`` blank, and the model's unique
+        ``username`` would refuse the second blank one.
+        """
+
+        del request
+        if getattr(user, "username", None):
+            return
+        from django.utils.crypto import get_random_string
+
+        alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
+        while True:
+            candidate = get_random_string(8, alphabet)
+            if not User.objects.filter(username=candidate).exists():
+                user.username = candidate
+                return
+
+    def send_notification_mail(self, template_prefix, user, context=None, email=None):
+        # Imported and one-click accounts often have no ``EmailAddress`` row;
+        # the account address is where their notices go.
+        if not email and not EmailAddress.objects.filter(user=user, primary=True).exists():
+            email = getattr(user, "email", None) or None
+        return super().send_notification_mail(template_prefix, user, context, email)
+
+    def send_mail(self, template_prefix: str, email: str, context: dict) -> None:
+        import uuid
+
+        from course_management.package_mail import mail_idempotency_key, send_package_mail
+
+        purpose = ACCOUNT_MAIL_PURPOSES.get(template_prefix)
+        if purpose is None:
+            # A notice this site has no template for (e.g. a provider was
+            # connected).  It was never sent before notifications were on.
+            logger.info("account_mail_skipped template=%s", template_prefix)
+            return
+        user = context.get("user")
+        if user is None:
+            from accounts.forms import _account_for_email
+
+            user = _account_for_email(email)
+        send_package_mail(
+            purpose=purpose,
+            to=email,
+            context=self._mail_context(template_prefix, context),
+            idempotency_key=mail_idempotency_key("account", purpose, uuid.uuid4().hex),
+            category="account",
+            user=user,
+        )
+        record_event(
+            "auth.account_mail_queued",
+            user=user,
+            properties={"purpose": purpose},
+        )
+
+    def _mail_context(self, template_prefix: str, context: dict) -> dict:
+        from django.urls import reverse
+
+        site = str(settings.COMMUNITY_BASE["SITE_URL"]).rstrip("/")
+        if template_prefix.startswith("account/email/email_confirmation"):
+            return {"verify_url": context["activate_url"]}
+        if template_prefix == "account/email/password_reset_key":
+            return {"reset_url": context["password_reset_url"]}
+        if template_prefix == "account/email/account_already_exists":
+            return {
+                "login_url": f"{site}{reverse('login')}",
+                "reset_url": f"{site}{reverse('account_reset_password')}",
+            }
+        return {
+            "password_action": _PASSWORD_ACTIONS[template_prefix],
+            "reset_url": f"{site}{reverse('account_reset_password')}",
+        }
 
 
 class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):
@@ -533,6 +663,7 @@ class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):
                 user_ids=(resolved_user.pk,),
             )
         with transaction.atomic():
+            _claim_unverified_password_signup(resolved_user, verified_email)
             sociallogin.connect(request, resolved_user)
             _flush_other_user_sessions(request, resolved_user)
         provider = _provider_key(sociallogin)
@@ -662,3 +793,10 @@ def token_required(view):
     # reviewed exemption for setting an attribute on a plain function.
     decorated.requires_token_auth = True  # type: ignore[attr-defined]
     return decorated
+
+
+def user_display(user) -> str:
+    """How allauth names a member in its messages: the address, never the
+    opaque generated username."""
+
+    return getattr(user, "email", "") or "your account"

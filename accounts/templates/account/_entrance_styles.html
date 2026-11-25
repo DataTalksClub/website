@@ -64,17 +64,46 @@
    move `accounts/templates/accounts/login.html` makes for its own widget
    class: give the copied control the system's look rather than edit the form
    in Python to carry a class name. */
+/* Soft inputs, as on the event registration card: one 1px edge that still
+   holds 3:1 against the card (WCAG 1.4.11): half ink on white in light, the
+   --line ink in dark; indigo on focus.  The sign-in form's `.field-input`
+   controls share the treatment. */
+:root {
+  --entrance-field-edge: color-mix(in srgb, var(--line) 52%, var(--card));
+}
+
+body.dark-mode {
+  --entrance-field-edge: var(--line);
+}
+
 .entrance-form input[type="email"],
 .entrance-form input[type="password"],
-.entrance-form input[type="text"] {
+.entrance-form input[type="text"],
+.auth-form .field-input {
   background: var(--card);
-  border: 2px solid var(--line);
-  border-radius: 0.625rem;
+  border: 1px solid var(--entrance-field-edge);
+  border-radius: 0.5rem;
   color: var(--ink);
   font: inherit;
+  font-size: 0.95rem;
   min-height: 2.75rem;
-  padding: var(--space-3) var(--space-3);
+  padding: var(--space-2) var(--space-3);
   width: 100%;
+}
+
+.entrance-form input:focus-visible,
+.auth-form .field-input:focus-visible {
+  border-color: var(--indigo);
+}
+
+.entrance-form input[aria-invalid="true"],
+.auth-form .field-input[aria-invalid="true"] {
+  border-color: var(--olive);
+}
+
+.entrance-form .field-label,
+.auth-form .field-label {
+  font-size: 0.85rem;
 }
 
 /* allauth's own widgets carry a placeholder that repeats the label.  The

@@ -238,9 +238,7 @@ class AccountSettingsProfileViewTestCase(AccountSettingsViewTestBase):
         self.assert_profile_update_saved()
 
     def test_account_settings_profile_save_preserves_dark_mode_toggle(self):
-        LearnerProfile.objects.update_or_create(
-            user=self.user, defaults={"dark_mode": True}
-        )
+        LearnerProfile.objects.update_or_create(user=self.user, defaults={"dark_mode": True})
         self.client.force_login(self.user)
         account_settings_url = reverse("account_settings")
         payload = {
@@ -304,7 +302,7 @@ class AccountSignInMethodsViewTestCase(AccountSettingsViewTestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="sign-in-methods"', body)
-        self.assertIn("<h2 id=\"sign-in-methods-heading\">Sign-in methods</h2>", body)
+        self.assertIn('<h2 id="sign-in-methods-heading">Sign-in methods</h2>', body)
         self.assertIn("GitHub", body)
         self.assertIn("student", body)
         self.assertIn(f'action="{reverse("disconnect_social_account")}"', body)
@@ -322,12 +320,19 @@ class AccountSignInMethodsViewTestCase(AccountSettingsViewTestBase):
         body = self.client.get(reverse("account_settings")).content.decode()
 
         self.assertIn('id="sign-in-methods"', body)
-        self.assertIn("You sign in with your email address.", body)
+        self.assertIn("Email and password", body)
         self.assertNotIn(f'action="{reverse("disconnect_social_account")}"', body)
 
     def test_disconnect_removes_the_provider_and_returns_to_the_section(self):
+        from allauth.account.models import EmailAddress
+
         self.user.set_password("a-usable-password")
         self.user.save(update_fields=["password"])
+        # With mandatory verification allauth also wants a verified address
+        # before the account may lose a provider.
+        EmailAddress.objects.create(
+            user=self.user, email=self.user.email, verified=True, primary=True
+        )
         connection = self.link_github()
         self.client.force_login(self.user)
 

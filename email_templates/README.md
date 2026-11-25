@@ -28,6 +28,10 @@ the deploy step are never edited by hand.
 | `deadline-reminder` | Homework/deadline nudge for an enrolled learner | `course_title`, `course_url`, `deadline` |
 | `course-registration-confirmation` | Registration accepted for a course (double opt-in: the learner MUST click the confirmation link) | `course_title`, `course_url`, `confirmation_url` (required); `start_date`, `verify_email_prompt` (optional: empty unless a start date is announced / the registering account's email still needs verifying); `requires_approval` (block-tag-only flag: when true the body adds the "awaiting review, we will email you after review" paragraph instead of implying acceptance) |
 | `event-registration-verify` | Confirm an event registration made with the email form (double opt-in: the seat is confirmed only by the link) | `event_title`, `event_url`, `verify_url` |
+| `account-verify-email` | Confirm the address of a new email + password account (allauth `email_confirmation[_signup]`; a password login is refused until confirmed) | `verify_url` |
+| `account-password-reset` | Forgot-password link (allauth `password_reset_key`); also how an account without a password sets its first one | `reset_url` |
+| `account-already-exists` | Sent instead of creating a second account when someone signs up with an address that already has one (no enumeration on the page) | `login_url`, `reset_url` |
+| `account-password-changed` | Notice after a password is set, changed or reset (allauth `password_set` / `password_changed` / `password_reset`) | `password_action` (`set`, `changed` or `reset`), `reset_url` |
 | `enrollment-confirmation` | Enrollment confirmed in a cohort | `course_title`, `course_url`, `cohort_name` |
 | `certificate-ready` | Completion certificate is available | `course_title`, `certificate_url` |
 | `slack-access` | Invitation to the course Slack community | `course_title`, `slack_url` |

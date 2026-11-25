@@ -59,7 +59,7 @@ def assert_visible_login_controls(page: Page) -> None:
     boxes = []
     for control in controls:
         expect(control).to_be_visible()
-        expect(control).to_have_class(re.compile(r"(^|\s)form-control(\s|$)"))
+        expect(control).to_have_class(re.compile(r"(^|\s)field-input(\s|$)"))
         box = control.bounding_box()
         assert box is not None
         assert box["width"] >= 240
@@ -164,7 +164,7 @@ def test_owner_login_distinct_surfaces_and_credential_lifecycle(
     page.get_by_label("Email", exact=True).fill("invalid-owner@example.test")
     page.get_by_label("Password", exact=True).fill("invalid-password")
     page.get_by_role("button", name="Sign in", exact=True).click()
-    expect(page.get_by_role("alert")).to_contain_text("Sign-in was not successful")
+    expect(page.get_by_role("alert")).to_contain_text("are not correct")
     expect(page.get_by_label("Password", exact=True)).to_have_value("")
     assert "invalid-password" not in page.content()
     assert_visible_login_controls(page)

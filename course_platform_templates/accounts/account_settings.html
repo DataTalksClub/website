@@ -566,7 +566,7 @@
           <div class="band-head">
             <div>
               <h2 id="sign-in-methods-heading">Sign-in methods</h2>
-              <p>The accounts you can use to sign in to DataTalks.Club.</p>
+              <p>The ways you can sign in to DataTalks.Club.</p>
             </div>
           </div>
           {% if messages %}
@@ -576,33 +576,54 @@
               {% endfor %}
             </div>
           {% endif %}
-          {% if social_connections %}
-            <div class="row-list">
-              {% for connection in social_connections %}
-                <div class="list-row">
-                  <div>
-                    <p class="connection-name">{{ connection.provider_name }}</p>
-                    <p class="connection-address">{{ connection.identifier }}</p>
-                  </div>
-                  <form
-                    class="connection-form"
-                    method="post"
-                    action="{% url 'disconnect_social_account' %}"
-                  >
-                    {% csrf_token %}
-                    <input type="hidden" name="account" value="{{ connection.pk }}">
-                    <button class="cta cta-compact cta-secondary" type="submit">
-                      Disconnect
-                      <span class="sr-only">&nbsp;{{ connection.provider_name }}</span>
-                    </button>
-                  </form>
-                </div>
-              {% endfor %}
+          {% comment %}
+            The email + password row comes first.  An account without a usable
+            password (social-only, or created by a one-click event
+            registration) sets one here; one with a password changes it.
+          {% endcomment %}
+          <div class="row-list">
+            <div class="list-row" id="password-sign-in">
+              <div>
+                <p class="connection-name">Email and password</p>
+                <p class="connection-address">
+                  {% if user.has_usable_password %}
+                    {{ user.email }}
+                  {% else %}
+                    No password yet. Set one to sign in with {{ user.email|default:"your email address" }}.
+                  {% endif %}
+                </p>
+              </div>
+              {% if user.has_usable_password %}
+                <a class="cta cta-compact cta-secondary" href="{% url 'account_change_password' %}?next={% url 'account_settings' %}">Change password</a>
+              {% else %}
+                <a class="cta cta-compact cta-secondary" href="{% url 'account_set_password' %}?next={% url 'account_settings' %}">Set password</a>
+              {% endif %}
             </div>
-          {% else %}
+            {% for connection in social_connections %}
+              <div class="list-row">
+                <div>
+                  <p class="connection-name">{{ connection.provider_name }}</p>
+                  <p class="connection-address">{{ connection.identifier }}</p>
+                </div>
+                <form
+                  class="connection-form"
+                  method="post"
+                  action="{% url 'disconnect_social_account' %}"
+                >
+                  {% csrf_token %}
+                  <input type="hidden" name="account" value="{{ connection.pk }}">
+                  <button class="cta cta-compact cta-secondary" type="submit">
+                    Disconnect
+                    <span class="sr-only">&nbsp;{{ connection.provider_name }}</span>
+                  </button>
+                </form>
+              </div>
+            {% endfor %}
+          </div>
+          {% if not social_connections %}
             <p class="settings-note">
-              You sign in with your email address. Connecting a provider below
-              adds another way in; it does not replace the one you have.
+              Connecting a provider below adds another way in; it does not
+              replace the one you have.
             </p>
           {% endif %}
           {% get_providers as socialaccount_providers %}
