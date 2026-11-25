@@ -471,7 +471,9 @@ def _body_blocks(
         pending_kind = "paragraph"
         segment = _localize_editorial_links(source) if preserve_links else source
         if preserve_links and wiki_href is not None:
-            segment = link_wiki_tokens(segment)
+            # The page renders links only, so strong emphasis would show as
+            # literal asterisks; the plain text drops it the same way.
+            segment = link_wiki_tokens(segment).replace("**", "")
         text = _plain_inline(segment)
         if text:
             block = {"kind": kind, "text": text}

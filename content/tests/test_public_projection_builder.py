@@ -187,7 +187,7 @@ class PublicProjectionBuilderTests(TestCase):
         source = (
             "- Full-stack builders start at Stage 1, then add RAG,\n"
             "  and monitoring. [[cite:s23e01@1:02=>Skill Stack]]\n"
-            "- Then use [[AI Engineer Role]] and\n"
+            "- **Then** use [[AI Engineer Role]] and\n"
             "lazy [[missing-page=>a missing page]] and [[event:meetup]].\n"
             "\n"
             "1. Reproduce it.\n"
