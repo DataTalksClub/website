@@ -1363,6 +1363,14 @@ Rules for editing:
          in the heading row, never right-aligned (owner rule 2026-11-24).
          Enforced by core/tests/test_design_section_links.py. */
       .band-more {
+        align-items: baseline;
+        display: flex;
+        flex-wrap: wrap;
+        /* A section that leads on to two places ("browse topics A-Z" and
+           "full graph") shows two separate targets with a clear gap between
+           them, never one underlined run that reads as a single link; on a
+           narrow screen the second wraps under the first. */
+        gap: var(--space-2) var(--space-5);
         margin-top: var(--space-4, var(--space-4));
       }
 

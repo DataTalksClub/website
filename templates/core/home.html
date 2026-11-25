@@ -490,12 +490,32 @@
         visibility: hidden;
       }
 
+      /* A hub can have hundreds of extra neighbours (MLOps has 200+).  The
+         open list wraps them as compact chips inside a capped, scrolling
+         box, so expanding it never stretches the card — and with it the
+         whole wiki grid — to thousands of pixels. */
       .home-graph-more-list {
-        display: grid;
+        border-top: 1px dashed var(--line);
+        display: flex;
+        flex-wrap: wrap;
         gap: var(--space-2);
         list-style: none;
         margin: var(--space-3) 0 0;
-        padding: 0;
+        max-height: calc(var(--space-6) * 6);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: var(--space-3) var(--space-1) var(--space-1) 0;
+      }
+
+      /* While the list is open the graph card is taller than the topic
+         column; keep the topic cards at their own size rather than
+         stretching each one to fill the extra height. */
+      .wiki-grid:has(.home-graph-more[open]) .topic-list {
+        align-content: start;
+      }
+
+      .home-graph-more-list li {
+        max-width: 100%;
       }
 
       .home-graph-more-item {
@@ -508,9 +528,9 @@
         font-size: 0.78rem;
         font-weight: 600;
         padding: var(--space-1) var(--space-3);
+        max-width: 100%;
         text-align: left;
         transition: background 0.15s ease, transform 0.15s ease;
-        width: 100%;
       }
 
       .home-graph-more-item:hover {
@@ -1238,10 +1258,10 @@
         <div class="shell">
           <div class="band-head">
             <div>
-              <h2 id="wiki-heading">Community knowledge base</h2>
+              <h2 id="wiki-heading">Wiki</h2>
               <p>
-                {{ counts.wiki }} member-written topics wired to each other — click a node to
-                explore its neighbours. Open a page only when you choose to.
+                {{ counts.wiki }} topics written from our podcast episodes and community
+                knowledge, linked to each other so one question leads you to the next.
               </p>
             </div>
           </div>
