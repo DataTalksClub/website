@@ -119,6 +119,11 @@ BACKEND_PATTERN_EXCEPTIONS: dict[Path, frozenset[str]] = {
     # two rows; SQLite serializes the same transaction at database level, so
     # the behavior is portable and only the token is backend-specific.
     Path("events/merge.py"): frozenset({"select_for_update"}),
+    # Event registration (email double opt-in, one-click, confirm, resend)
+    # serializes writers on the single registration row so a repeated submit
+    # or a link click cannot create or confirm it twice. PostgreSQL locks the
+    # row; SQLite serializes the same transaction at database level.
+    Path("content/public_views.py"): frozenset({"select_for_update"}),
     # The Coolify deploy preflight audits catalog ownership as the
     # migration role before any DDL. It refuses to run anywhere but the
     # deployed engine, so the behavior is intentionally PostgreSQL-only
