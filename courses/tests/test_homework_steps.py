@@ -466,3 +466,53 @@ class HomeworkLearningInPublicStepTests(HomeworkDetailViewTestBase):
         self.assertEqual(response.status_code, 302)
         self.submission.refresh_from_db()
         self.assertEqual(self.submission.learning_in_public_links, ["https://example.org/kept"])
+
+
+class HomeworkStepCheckMarkTests(HomeworkDetailViewTestBase):
+    def setUp(self):
+        super().setUp()
+        self.homework.learning_in_public_cap = 0
+        self.homework.save()
+        self.client.login(**credentials)
+
+    def step_url(self, step):
+        return reverse(
+            "cohort_homework_step",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_identifier": self.course.identifier,
+                "homework_slug": self.homework.slug,
+                "homework_step": step,
+            },
+        )
+
+    def test_answered_draft_steps_carry_a_check_and_accessible_label(self):
+        self.client.get(self.homework_url())
+        draft = HomeworkDraft.objects.get(
+            user=self.user, assignment_key=assignment_key(self.homework)
+        )
+        self.client.post(
+            self.step_url(f"q-{self.question1.pk}"),
+            {
+                "assignment_key": assignment_key(self.homework),
+                "draft_token": str(draft.token),
+                "homework_step": f"q-{self.question1.pk}",
+                "revision": 0,
+                "answer": "2",
+                "intent": "save",
+            },
+        )
+
+        page = self.client.get(self.step_url(f"q-{self.question2.pk}"))
+        html = page.content.decode()
+        answered = (
+            f'<a href="{self.step_url(f"q-{self.question1.pk}")}" data-step-done="true">'
+            '<span class="homework-step-check" aria-hidden="true">✓</span>'
+            'Question 1<span class="sr-only">, answered</span></a>'
+        )
+        self.assertIn(answered, html)
+        self.assertIn(
+            f'<a href="{self.step_url(f"q-{self.question2.pk}")}" aria-current="step">Question 2</a>',
+            html,
+        )
+        self.assertEqual(html.count(", answered</span>"), 1)

@@ -1,5 +1,5 @@
-{% load static %}
-<section class="homework-steps" aria-label="{{ stepper.assignment.title }} homework steps">
+{% load static homework_steps_nav %}
+<section class="homework-steps{% if shared_homework_module %} homework-steps--with-rail{% endif %}" aria-label="{{ stepper.assignment.title }} homework steps">
   <p class="homework-steps-progress" aria-live="polite">Step {{ stepper.step_number|add:1 }} of {{ stepper.step_count }}</p>
   {% if stepper.has_pending_changes %}
     <p role="status">Your submitted version remains accepted. Saved changes are a draft until you submit them.</p>
@@ -9,10 +9,16 @@
   {% if stepper.notice %}<p role="status">This question changed. Your saved answers are still here.</p>{% endif %}
   {% if stepper.error %}<p role="alert">{{ stepper.error }}</p>{% endif %}
   {% if stepper.reason and not stepper.can_write %}<p role="status">{{ stepper.reason }}</p>{% endif %}
-  <nav aria-label="Homework steps">
+  {% comment %}
+    The step chips.  Where the module rail sits beside the page (a shared
+    curriculum homework on a wide screen) the rail lists these same steps
+    under the homework row, so the chips step aside there; on a phone the rail
+    stacks below the page and the chips are the in-place route.
+  {% endcomment %}
+  <nav class="homework-step-nav" aria-label="Homework steps">
     <ol class="homework-step-list">
-      {% for title, url, current in stepper.nav_steps %}
-        <li><a href="{{ url }}"{% if current %} aria-current="step"{% endif %}>{{ title }}</a></li>
+      {% for item in stepper|homework_nav_steps %}
+        <li><a href="{{ item.url }}"{% if item.current %} aria-current="step"{% endif %}{% if item.done %} data-step-done="true"{% endif %}>{% if item.done %}<span class="homework-step-check" aria-hidden="true">✓</span>{% endif %}{{ item.title }}{% if item.done %}<span class="sr-only">, answered</span>{% endif %}</a></li>
       {% endfor %}
     </ol>
   </nav>
