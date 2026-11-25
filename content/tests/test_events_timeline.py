@@ -155,7 +155,7 @@ class EventTimelineRouteTests(StableEventClockTestCase):
         self.assertEqual(
             len(
                 re.findall(
-                    r'<article class="card event-card interactive-card interactive-lift">',
+                    r'<article class="event-item interactive-card interactive-lift">',
                     past_page.content.decode(),
                 )
             ),
@@ -239,7 +239,7 @@ class PastEventPaginationTests(StableEventClockTestCase):
         seen: list[str] = []
         for index, body in enumerate(pages):
             expected = recent[index * PUBLIC_PAGE_SIZE : (index + 1) * PUBLIC_PAGE_SIZE]
-            found = re.findall(r'<h3>\s*<a href="(/events/[^"]+)">', body)
+            found = re.findall(r'<h4><a href="(/events/[^"]+)">', body)
             self.assertEqual(found, [event["public_path"] for event in expected])
             seen.extend(found)
         self.assertEqual(len(seen), len(set(seen)))
@@ -281,18 +281,22 @@ class PastEventPaginationTests(StableEventClockTestCase):
             second = self.client.get("/events/past?page=2").content.decode()
 
         key = conference_day.date().isoformat()
-        # The rail repeats the day beside each of that day's rows, so the same
-        # heading appears on both pages: two of the four sessions on each.
-        self.assertEqual(first.count(f'<time datetime="{key}">'), 2)
-        self.assertEqual(second.count(f'<time datetime="{key}">'), 2)
+        # The timeline draws one day heading per page for the group, so the same
+        # heading appears once on each page, over two of the four sessions.
+        self.assertEqual(first.count(f'<time datetime="{key}">'), 1)
+        self.assertEqual(second.count(f'<time datetime="{key}">'), 1)
+        for page in (first, second):
+            day = page.split(f'<time datetime="{key}">')[1]
+            day = day.split("</section>")[0]
+            self.assertEqual(day.count('<article class="event-item'), 2)
         # The split does not change how many events each page carries, and no event
         # is duplicated across the boundary or lost at it.
         self.assertEqual(
-            first.count('<article class="card event-card interactive-card interactive-lift">'),
+            first.count('<article class="event-item interactive-card interactive-lift">'),
             PUBLIC_PAGE_SIZE,
         )
         self.assertEqual(
-            second.count('<article class="card event-card interactive-card interactive-lift">'),
+            second.count('<article class="event-item interactive-card interactive-lift">'),
             5,
         )
         titles = re.findall(r"Composed past event \d\d", first + second)
@@ -416,7 +420,10 @@ class PastEventPaginationTests(StableEventClockTestCase):
                 self.assertNotContains(response, escape(query), status_code=400)
                 self.assertNotContains(response, 'rel="canonical"', status_code=400)
                 self.assertNotContains(response, "Traceback", status_code=400)
-                self.assertLess(len(response.content), 200_000)
+                # The inlined design-system stylesheet alone is ~190 KB, so the
+                # budget is a runaway guard (a reflected or looping page), not a
+                # byte count of the shell.
+                self.assertLess(len(response.content), 300_000)
 
     def test_page_two_publishes_its_exact_canonical_and_og_url(self) -> None:
         """Canonical and OG agree with the selected representation on every page.
@@ -456,7 +463,7 @@ class PastEventPaginationTests(StableEventClockTestCase):
 
     def test_every_archive_link_is_the_numeric_current_slug_canonical(self) -> None:
         body = "".join(catalogue_page_bodies(self.client, "/events/past"))
-        hrefs = re.findall(r'<h3>\s*<a href="(/events/[^"]+)">', body)
+        hrefs = re.findall(r'<h4><a href="(/events/[^"]+)">', body)
 
         self.assertTrue(hrefs)
         for href in hrefs:
@@ -535,21 +542,28 @@ class EventIndexDesignSystemTests(StableEventClockTestCase):
         first_upcoming = event_groups().upcoming[0]
 
         for body in (upcoming, past):
-            self.assertIn('<div class="list-row event-row">', body)
-            self.assertIn('<div class="when">', body)
-            self.assertIn('<span class="when-day">', body)
-            self.assertIn('<span class="when-time">', body)
+            self.assertIn('<div class="event-timeline" data-event-view=', body)
+            self.assertIn('<section class="event-day" aria-labelledby="event-day-', body)
+            self.assertIn('<span class="event-day-dot" aria-hidden="true"></span>', body)
+            self.assertIn('<p class="event-item-time">', body)
+            self.assertIn('<ul class="event-item-meta">', body)
             self.assertIn(
-                '<article class="card event-card interactive-card interactive-lift">',
+                '<article class="event-item interactive-card interactive-lift">',
                 body,
             )
-        # The kind is a quiet word in the date rail, never a boxed pill
-        # (owner feedback 2026-11-25), on both views.
-        self.assertIn(f'<span class="when-kind">{first_upcoming["type"]}</span>', upcoming)
-        self.assertIn('<span class="when-kind">', past)
+        # The kind is a quiet word in the card's meta line, never a boxed pill
+        # (owner feedback 2026-11-25): upcoming says where, past says whether
+        # there is a recording.
+        kind = escape(str(first_upcoming.get("kind_label") or first_upcoming["type"]))
+        self.assertIn(f"<span>{kind.capitalize()} · Live online</span>", upcoming)
+        self.assertNotIn(" · Live online", past)
+        self.assertRegex(past, r"<span>[^<]+</span>\s*</li>")
+        if any(event.get("has_youtube_link") for event in event_groups().recent[:PUBLIC_PAGE_SIZE]):
+            self.assertIn(" · Recording on YouTube</span>", past)
         for body in (upcoming, past):
             self.assertNotRegex(body, r'class="status-pill status-pill-(open|wait|mint)"')
             self.assertNotIn('class="kind-tip"', body)
+            self.assertNotIn('class="when-kind"', body)
 
     def test_the_view_pills_mark_the_current_view_through_aria(self) -> None:
         upcoming = self.client.get("/events").content.decode()
@@ -614,9 +628,9 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         # The dateline is one <time> around both the date and the clock: the machine
         # value carries a clock, so the accessible text has to name the zone, and the
         # zone only exists in display_clock.
-        self.assertIn(f'<time class="when" datetime="{event["starts_at"]}">', body)
-        self.assertIn('<span class="when-time">', body)
-        self.assertIn(f"<strong>{escape(event['display_date'])}</strong>", body)
+        self.assertIn(f'<time class="event-fact-text" datetime="{event["starts_at"]}">', body)
+        self.assertIn('<span class="when-time-range">', body)
+        self.assertIn(f"<strong>{escape(event['display_date_long'])}</strong>", body)
         # The h1 escapes the title it draws (an "&" in a title reaches the
         # document as "&amp;"), so the expected markup is the escaped form.
         self.assertIn(f'<h1 id="event-heading">{escape(event["title"])}</h1>', body)
@@ -656,9 +670,12 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
 
         self.assertEqual(index_response.status_code, 200)
         index_body = index_response.content.decode("utf-8")
-        expected = f'<span class="when-kind">{tagged["type"]} · Академия</span>'
-        self.assertIn(expected, index_body)
-        self.assertIn(expected, detail_body)
+        self.assertIn(
+            f'<span>{tagged["type"].capitalize()} · Академия · Live online</span>', index_body
+        )
+        self.assertIn(
+            f'<span class="when-kind">{tagged["type"]} · Академия</span>', detail_body
+        )
 
     def test_speakers_and_links_keep_their_destinations_and_their_labels(self) -> None:
         event = next(
@@ -668,8 +685,8 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         )
         body = self.detail(event)
 
-        self.assertIn('<h2 id="event-speakers-heading">Speakers</h2>', body)
-        self.assertIn('<ul class="row-list speaker-rows">', body)
+        self.assertIn('<h2 id="event-hosts-heading" class="event-side-heading">Speakers</h2>', body)
+        self.assertIn('<ul class="event-host-list">', body)
         for speaker in event["speakers"]:
             # A speaker is the shared person chip: their portrait beside their
             # name, and the name is the link to their profile.
@@ -680,8 +697,8 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
             )
         # The links keep the group label the old heading carried, so the actions are
         # still named without adding a heading between the title and the body.
-        self.assertIn('aria-label="Event links"', body)
-        self.assertEqual(body.count('aria-label="Event links"'), 1)
+        self.assertIn('<ul class="event-facts">', body)
+        self.assertEqual(body.count('<li class="event-fact event-link">'), len(event["links"]))
         for link in event["links"]:
             self.assertIn(f'href="{link["url"]}"', body)
             self.assertIn(escape(link["label"]), body)
@@ -697,7 +714,10 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         bio = catalogue.people_by_slug()[speaker["key"]]["blocks"][0]["text"]
         body = self.detail(event)
 
-        self.assertIn('<h2 id="event-speakers-heading">Speakers</h2>', body)
+        self.assertIn(
+            '<h2 id="event-speakers-heading" class="event-section-head">About the speakers</h2>',
+            body,
+        )
         self.assertIn('<article class="event-speaker">', body)
         self.assertIn('<div class="prose event-speaker-bio">', body)
         self.assertIn(escape(bio), body)
