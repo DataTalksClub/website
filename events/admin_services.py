@@ -11,6 +11,8 @@ from datetime import datetime
 from typing import Any
 
 import mistune
+from community_base.events import registration as _package_registration
+from community_base.events import services as _package_services
 from community_base.events.models import Event, EventHost, EventRegistration, EventReminder, Host
 from community_base.events.services import cancel_event, publish_event
 from community_base.kernel.services import ServiceContext
@@ -251,6 +253,35 @@ def _publish(event: Event) -> Event:
     except EventNotPublishable as exc:
         raise EventAdminError(exc.messages[0], code="event_not_publishable") from exc
     return publish_event(event)
+
+
+def _enroll_series_registrants_without_outer_join_lock(event: Event) -> Any:
+    """Series enrolment for a site that has no event series.
+
+    ``community_base``'s ``publish_event`` ends with
+    ``enroll_series_registrants_in_event``, which runs
+    ``select_for_update().select_related("event_series")``.  PostgreSQL refuses
+    ``FOR UPDATE`` over the nullable side of that outer join, so on production
+    every publish failed with ``internal_error`` (SQLite, which the tests use,
+    ignores ``FOR UPDATE``).  Lock the event row alone and, when it belongs to no
+    series (every event on this site), return the package's own "nothing to do"
+    summary; only a series event falls through to the package implementation.
+    """
+
+    series_id = (
+        Event.objects.select_for_update()
+        .filter(pk=event.pk)
+        .values_list("event_series_id", flat=True)
+        .first()
+    )
+    if series_id is None:
+        return _package_registration.SeriesEnrollmentSummary(0, 0, 0, 0, 1)
+    return _package_registration.enroll_series_registrants_in_event(event)
+
+
+_package_services.enroll_series_registrants_in_event = (
+    _enroll_series_registrants_without_outer_join_lock
+)
 
 
 def _sync_event_speakers(event: Event, speaker_shorts: list[str]) -> None:

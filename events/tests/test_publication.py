@@ -102,3 +102,33 @@ class IncompletePublishedEventsTests(_WithSpeaker):
 
         self.assertEqual([item["public_id"] for item in incomplete], [bare.public_id])
         self.assertEqual(incomplete[0]["missing"], ["type", "speakers"])
+
+
+class PublishAvoidsSeriesEnrolmentLockTests(_WithSpeaker):
+    """PostgreSQL rejects the package's series-enrolment lock; publishing must not use it."""
+
+    def test_the_package_publish_step_uses_the_lock_free_enrolment(self) -> None:
+        from community_base.events import registration, services
+
+        import events.admin_services as admin_services
+
+        self.assertIs(
+            services.enroll_series_registrants_in_event,
+            admin_services._enroll_series_registrants_without_outer_join_lock,
+        )
+        self.assertIsNot(
+            services.enroll_series_registrants_in_event,
+            registration.enroll_series_registrants_in_event,
+        )
+
+    def test_publish_does_not_run_the_package_enrolment_for_a_series_less_event(self) -> None:
+        from unittest import mock
+
+        created = create_event(_payload(publish=False))["event"]
+        with mock.patch(
+            "community_base.events.registration.enroll_series_registrants_in_event",
+            side_effect=AssertionError("series enrolment must not run on publish"),
+        ):
+            published = publish_event_action(event_id=created["id"])["event"]
+        self.assertEqual(published["status"], "upcoming")
+        self.assertIsNotNone(published["public_id"])

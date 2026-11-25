@@ -1,5 +1,33 @@
 # Structured content authoring and source ownership
 
+## Where each kind of content is authored (since 2026-11-25)
+
+All new DataTalks.Club content is authored on the new site's sources. The old repository
+`DataTalksClub/datatalksclub.github.io` is read-only history plus the interim home of people
+profiles (see the last row); its README and PR template say so. `_data/events.yaml` and
+`_podcast/`, `_posts/`, `_books/` there are **not** edited any more.
+
+| Content | Author it here | How it reaches the site |
+| --- | --- | --- |
+| Events (webinars, workshops, podcast live sessions, Hireable With AI sessions), banners, recordings | Website database through the `dtc` CLI: `dtc events create / update / upload-banner / publish / complete` ([event CLI runbook](runbooks/event-cli.md)) | Live at once on https://prod.datatalks.club (no sync step) |
+| Podcast episodes and transcripts | PR to `DataTalksClub/content`: `podcasts/sNN/eMM.yaml` and `eMM-transcript.yaml`, image in `images/podcast/` | Content Sync workflow (every ten minutes, or `gh workflow run content-sync.yml -R DataTalksClub/website`) |
+| Articles / blog | PR to `DataTalksClub/content`: `articles/YYYY/yy-mm-dd-slug.md`, images in `images/posts/` | Content Sync |
+| Books (Book of the Week) | PR to `DataTalksClub/content`: `books/YYYY/yy-mm-dd-slug.yaml`, images in `images/books/` | Content Sync |
+| Academy pages and the Hireable With AI landing/sessions page | PR to `DataTalksClub/content`: `academy/*.md` (session dates live in `academy/sessions.md` front matter) | Content Sync |
+| `/slack` page copy | PR to `DataTalksClub/content`: `slack.yaml` | Content Sync |
+| Sponsors | Website database, Studio `/studio/sponsors/` (staff sign-in) | Live at once |
+| Header announcement banner | Studio `/studio/settings` (`site.announcement.enabled` and `site.announcement.message`, one safe line) | Live at once |
+| Navigation | Website repository (`DataTalksClub/website`): reviewed template change | Normal website deploy |
+| Course content | The course repositories registered on the website (see [course content push and pull](runbooks/course-content-push-and-pull.md)) | Course repository sync |
+| Newsletter | Authored in the newsletter tool (Relay/Datamailer), not in any website repository | Not part of the website |
+| People (speaker/author profiles) | Interim: `_people/<short>.md` + `images/authors/<short>.jpg` in the old repository, plus `dtc events speakers create` for the event system | Content Sync of `dtc-main-site` (now on the same ten-minute schedule); moving this into `DataTalksClub/content` is tracked as a follow-up |
+
+An event on the website always needs a type and at least one speaker before it can be published.
+Order for a new event: `dtc events create --no-publish`, `dtc events upload-banner`, `dtc events publish`
+(or create with the default publish when the banner is not needed yet).
+
+Every PR to `DataTalksClub/content` runs `uv run python scripts/validate_content.py`; merge when it is green.
+
 `DataTalksClub/content` is the sole editorial source for DataTalks.Club articles, podcast episodes,
 podcast transcripts, books, and their adopted media. Published database overrides are not allowed.
 `DataTalksClub/datatalksclub.github.io` remains the migration and URL-contract provenance for these

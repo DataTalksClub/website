@@ -1,6 +1,6 @@
 # Event management CLI (`dtc`) — Operator & Orin reference
 
-Status: **live** (mirrors AI Shipping Labs `asl` CLI). During the transition, new live event listings are created on both Luma and the DTC site with `dtc events create` on prod.datatalks.club. `_data/events.yaml` is no longer the path for new live event listings. Luma is removed from the process only when Alexey says the migration is complete.
+Status: **live** (mirrors AI Shipping Labs `asl` CLI). The full table of where each content type is authored is in [content authoring](../content-authoring.md). During the transition, new live event listings are created on both Luma and the DTC site with `dtc events create` on prod.datatalks.club. `_data/events.yaml` is no longer the path for new live event listings. Luma is removed from the process only when Alexey says the migration is complete.
 
 This document answers all 10 open questions in `bots-management/agents/contracts/orin/dtc-website-events.md`.
 
@@ -87,7 +87,9 @@ This document answers all 10 open questions in `bots-management/agents/contracts
     - `--sponsor-name`
     - `--publish` / `--no-publish`
   - **Update:** `dtc events update <event> [--title ...] [--start-datetime ...] ...` (only passed flags are sent; schedule/location changes bump `ics_sequence`).
-  - **Publish:** `dtc events publish <event>` (`draft` -> published, allocates `public_id`; the event then reports `upcoming`, `in_progress` or `past` from its schedule).
+  - **Publish:** `dtc events publish <event>` (`draft` -> published, allocates `public_id`; the event then reports `upcoming`, `in_progress` or `past` from its schedule). A draft has no `public_id` yet, so address it by its UUID or slug until it is published; publishing needs a type and at least one speaker. Before 2026-11-25 every publish on prod failed with `internal_error` (the package's series-enrolment step used `FOR UPDATE` over an outer join, which PostgreSQL rejects); fixed in website PR #558.
+  - **Hireable With AI sessions and other Academy sessions:** the public sessions page is `academy/sessions.md` in `DataTalksClub/content` (dates, titles, calendar sequence); the matching event listing is created and rescheduled with `dtc events create` / `dtc events update`. Change both in the same session.
+  - **Recordings:** `dtc events update <event> --recording-url https://www.youtube.com/watch?v=...` (works on past events). The old `_data/events.yaml` `youtube:` field maps to `recording_url`.
   - **Cancel:** `dtc events cancel <event> [--reason "..."]` (closes registration, bumps `ics_sequence`, queues cancellation email + cancelled ICS). A `past` event cannot be cancelled.
   - **Complete:** `dtc events complete <event> [--recording-url "https://youtube.com/..."]` (stores no status: refuses an event that has not ended yet, or a draft/cancelled/archived one, and only attaches the recording; the event reports `past` because its end has passed).
 
@@ -102,7 +104,7 @@ This document answers all 10 open questions in `bots-management/agents/contracts
     dtc events speakers create --short janedoe --name "Jane Doe" --title "Staff ML Engineer"
     dtc events speakers list [--search jane]
     ```
-  - For a full public `/people/<short>.html` profile page, also open a PR in `DataTalksClub/datatalksclub.github.io` adding `_people/<short>.md` (and `images/authors/<short>.jpg`).
+  - For a full public `/people/<short>.html` profile page, add `_people/<short>.md` (and `images/authors/<short>.jpg`) in `DataTalksClub/datatalksclub.github.io`. This is the one content type that is still authored on the old repository (interim); the `dtc-main-site` source is now part of the ten-minute Content Sync schedule, so the profile appears on the site within about ten minutes of the push. Moving people authoring to `DataTalksClub/content` is a tracked follow-up.
 
 ---
 
@@ -194,5 +196,5 @@ This document answers all 10 open questions in `bots-management/agents/contracts
 | --- | --- |
 | Podcast episode pages | `DataTalksClub/content` (`podcasts/<slug>.yaml`, synced via `dtc-content` webhook) |
 | Podcast transcripts | `DataTalksClub/content` (`podcasts/transcripts/<slug>.yaml`, synced via `dtc-content` webhook) |
-| Speaker profiles (`/people/<short>.html`) | `DataTalksClub/datatalksclub.github.io` (`_people/<short>.md`, synced via `dtc-main-site` webhook) + `dtc events speakers create` |
-| `_data/events.yaml` + Luma scraping | Website database via `dtc events list --upcoming --format json` (update `week_sources.py` / `week_sources.rb` to read this instead of `_data/events.yaml`) |
+| Speaker profiles (`/people/<short>.html`) | Interim: `DataTalksClub/datatalksclub.github.io` (`_people/<short>.md`, synced by the Content Sync workflow, source `dtc-main-site`) + `dtc events speakers create` |
+| `_data/events.yaml` + Luma scraping (no longer edited; the old file is frozen at 2026-11-25) | Website database via `dtc events list --upcoming --format json` (update `week_sources.py` / `week_sources.rb` to read this instead of `_data/events.yaml`) |
