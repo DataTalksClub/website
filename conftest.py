@@ -49,6 +49,11 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
     "test_homepage_latest_episode_and_global_podcast_journey": (
         (re.compile(r"^/images/posts/[a-z0-9-]+/og-image\.jpg$"), 404),
     ),
+    # The homepage's latest-article card draws the article's picture; the test
+    # media store holds no objects, so the synthetic article's picture is a 404.
+    "test_home_events_and_detail_match_cmp_composition": (
+        (re.compile(r"^/images/posts/ai-dev-tools-zoomcamp/og-image\.jpg$"), 404),
+    ),
     "test_alias_query_and_safe_denial_browser_matrix": (
         (re.compile(r"^/podcast/s/[0-9]+/$"), 404),
     ),

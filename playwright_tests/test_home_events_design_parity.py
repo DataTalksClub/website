@@ -26,12 +26,14 @@ CREAM_PAGE_BACKGROUND = "rgb(253, 250, 243)"
 LAVENDER_PAGE_BACKGROUND = "rgb(239, 241, 252)"
 DARK_PAGE_BACKGROUND = "rgb(34, 37, 48)"
 HOME_HEADING = "Learn the fundamentals. Build real projects. Share your work."
-EVENTS_HEADING = "Something happening every week"
+EVENTS_HEADING = "Events"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ADOPTED_BASE = REPOSITORY_ROOT / "course_platform_templates/base.html"
 ADOPTED_CSS = REPOSITORY_ROOT / "courses/static/courses.css"
 SCREENSHOTS = Path(".tmp/screenshots/issue-130-remediation/after")
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
+# The test media store holds no objects: the homepage article card's synthetic picture 404s.
+MISSING_PICTURE = "/images/posts/ai-dev-tools-zoomcamp/og-image.jpg"
 
 
 def _featured_event_path() -> str:
@@ -194,12 +196,19 @@ def test_home_events_and_detail_match_cmp_composition(
         lambda response: (
             bad_responses.append(f"{response.status} {response.url}")
             if response.status >= 400
+            # The test media store holds no objects, so the homepage article
+            # card's synthetic picture is the one expected miss.
+            and not response.url.endswith(MISSING_PICTURE)
             else None
         ),
     )
     page.on(
         "console",
-        lambda message: console_errors.append(message.text) if message.type == "error" else None,
+        lambda message: (
+            console_errors.append(message.text)
+            if message.type == "error" and not message.location["url"].endswith(MISSING_PICTURE)
+            else None
+        ),
     )
 
     for path, label, heading in SURFACES:
@@ -218,12 +227,15 @@ def test_home_events_and_detail_match_cmp_composition(
             expect(page.get_by_role("link", name="all courses")).to_have_count(0)
         elif path == "/events":
             expect(page.locator("main .events-hero")).to_have_count(1)
-            expect(page.locator("main .event-rows .list-row").first).to_have_css("display", "grid")
-            expect(page.locator("main .event-rows .when").first).to_be_visible()
+            expect(page.locator("main .event-timeline .event-day").first).to_be_visible()
+            expect(page.locator("main .event-timeline .event-item").first).to_have_css(
+                "display", "grid"
+            )
+            expect(page.locator("main .event-timeline .event-item-time").first).to_be_visible()
             expect(page.get_by_role("link", name="Past events", exact=True)).to_have_attribute(
                 "href", "/events/past"
             )
-            expect(page.get_by_role("link", name="our Google calendar")).to_have_attribute(
+            expect(page.get_by_role("link", name="Google calendar (opens in a new tab) →")).to_have_attribute(
                 "target", "_blank"
             )
         else:
