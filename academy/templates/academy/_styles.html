@@ -854,6 +854,21 @@
         width: fit-content;
       }
 
+      /* The sessions page's registration slab: the upcoming sessions as the
+       * same rows the header lists, each linking to its event page. */
+      .academy-register .academy-hero-sessions {
+        border-top: 0;
+        margin: 0;
+      }
+
+      .academy-register .academy-hero-sessions .list-row:first-child {
+        padding-top: 0;
+      }
+
+      .academy-register .academy-hero-sessions .list-row:last-child {
+        padding-bottom: 0;
+      }
+
       .academy-session-body {
         display: grid;
         gap: 0.6rem;

@@ -134,6 +134,8 @@
               {{ session.title }}
               {% if session.past and session.recap %}
                 <a class="band-link" href="{{ session.recap.href }}">{{ session.recap.label }}</a>
+              {% elif not session.past and session.event_path %}
+                <a class="band-link" href="{{ session.event_path }}">Register on the event page →</a>
               {% endif %}
             </span>
           </li>

@@ -214,66 +214,42 @@ def test_program_page_failure_then_success(
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
 def test_session_registration(page: Page, academy, viewport: dict[str, int], suffix: str) -> None:
+    """The sessions are ordinary events: each upcoming one links to its event page."""
+
+    from community_base.events.models import Event, EventSeries
+
+    from events.identity import create_event_identity
+    from test_support.event_pictures import TEST_EVENT_PICTURE
+
+    series = EventSeries.objects.create(
+        name="Synthetic Series", slug="synthetic-series", cadence="none"
+    )
+    paths = {}
+    for number in (1, 2, 3):
+        event = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            title=f"Synthetic Series #{number}: Session {number}",
+            event_type="webinar",
+            speakers=[("janedoe", "Jane Doe")],
+            description="What the session is about.",
+            starts_at=datetime(2030, 1, number, 16, tzinfo=UTC),
+        )
+        Event.objects.filter(pk=event.pk).update(event_series=series, series_position=number)
+        paths[number] = f"/events/{event.public_id}/{event.slug}"
     page.set_viewport_size(viewport)
     calls = backend(page, {})
     page.goto(f"{academy.url}/academy/sessions/?utm_source=synthetic")
     no_overflow(page)
-    form = page.locator("#register")
-    form.get_by_label("Synthetic session email").fill("synthetic@example.invalid")
-    form.get_by_label("Synthetic first name").fill("Synthetic")
-    # No session is picked by default, and the form needs at least one.
-    for number in (1, 2, 3):
-        expect(form.get_by_label(f"Synthetic session {number}")).not_to_be_checked()
-    form.get_by_role("button", name="Synthetic register").click()
-    expect(form.get_by_role("alert").filter(has_text="Synthetic pick one.")).to_be_visible()
+    register = page.locator("#register")
+    expect(register.locator("form")).to_have_count(0)
+    links = register.get_by_role("link", name="Register on the event page →")
+    expect(links).to_have_count(3)
+    for index, number in enumerate((1, 2, 3)):
+        expect(links.nth(index)).to_have_attribute("href", paths[number])
+    shot(page, f"sessions-register-{suffix}")
+    links.first.click()
+    page.wait_for_url(f"**{paths[1]}")
     assert calls == []
-    form.get_by_label("Synthetic session 1").check()
-    form.get_by_label("Synthetic session 3").check()
-    form.get_by_label("Option ai", exact=True).check()
-    form.get_by_label("Option job_hunting").check()
-    form.get_by_label("Synthetic years").fill("7")
-    form.get_by_label("Option outside").check()
-    form.get_by_label("Option dont_know").check()
-    form.get_by_label("Synthetic learn?").fill("Synthetic wish")
-    form.get_by_label("Synthetic opt in").check()
-    form.get_by_role("button", name="Synthetic register").click()
-    expect(form.get_by_role("heading", name="Synthetic you are in")).to_be_visible()
-    body = calls[0]["body"]
-    assert list(body) == [
-        "source",
-        "form",
-        "email",
-        "name",
-        "status",
-        "academy_optin",
-        "utm_source",
-        "referrer",
-        "page",
-        "lang",
-        "consent_version",
-        "website",
-        "sessions",
-        "track_interest",
-        "years_dev",
-        "based_in",
-        "bildungsgutschein",
-        "free_text",
-    ]
-    assert body["source"] == "layoff_proof"
-    assert body["form"] == "main"
-    assert body["sessions"] == ["session-1", "session-3"]
-    assert body["track_interest"] == "ai"
-    assert body["status"] == "job_hunting"
-    assert body["academy_optin"] == "yes"
-    assert body["years_dev"] == "7"
-    assert body["based_in"] == "outside"
-    assert body["bildungsgutschein"] == "dont_know"
-    assert body["free_text"] == "Synthetic wish"
-    assert body["page"] == "/sessions/"
-    expect(form.get_by_role("link", name="Synthetic session 1")).to_be_visible()
-    expect(form.get_by_role("link", name="Synthetic session 2")).to_be_hidden()
-    expect(form.get_by_role("link", name="Synthetic all sessions")).to_be_visible()
-    shot(page, f"sessions-registered-{suffix}")
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)

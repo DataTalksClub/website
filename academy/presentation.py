@@ -385,16 +385,43 @@ def sessions_page_of(pages: Sequence[Record]) -> Record | None:
     return next((page for page in pages if page.get("layout") == "sessions"), None)
 
 
+def session_event_paths(series_slug: str) -> dict[int, str]:
+    """Each session's event page, by session number.
+
+    The free sessions are ordinary site events: people register on the event
+    page, like for any other event.  The series' events belong to the event
+    series whose slug is the sessions page's ``calendar_slug``, at the
+    position of the session's number (``scripts/prod/import_academy_sessions.py``
+    links them), so the lookup is one indexed query and never guesses by title
+    or date.
+    """
+
+    from community_base.events.models import Event
+
+    from events.lifecycle import PUBLISHED_STATUSES
+
+    rows = Event.objects.filter(
+        event_series__slug=series_slug,
+        series_position__isnull=False,
+        public_id__isnull=False,
+        status__in=PUBLISHED_STATUSES,
+    ).values_list("series_position", "public_id", "slug")
+    return {position: f"/events/{public_id}/{slug}" for position, public_id, slug in rows}
+
+
 def sessions_context(page: Record) -> dict[str, Any]:
     data = page["data"]
     now = timezone.now()
+    event_paths = session_event_paths(data["series"]["calendar_slug"])
     sessions = [
         {
             **session,
             "blocks": session_blocks(session["description"]),
-            # A session that has ended is no longer offered in the form; its
+            # A session that has ended no longer takes registrations; its
             # recap, when it has one, is linked wherever it is listed.
             "past": datetime.fromisoformat(session["ends"].replace("Z", "+00:00")) < now,
+            # Where to register: the session's own event page.
+            "event_path": event_paths.get(session["number"], ""),
         }
         for session in data["sessions"]
     ]

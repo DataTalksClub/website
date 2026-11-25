@@ -281,15 +281,15 @@
     });
   });
 
-  /* 4. The free sessions (source "layoff_proof"): the main registration form
-        and the QR recording form. */
+  /* 4. The free sessions (source "layoff_proof"): the QR recording form.
+        Registering for a session happens on its event page, not here. */
   function checked(form, name) {
     var input = one('input[name="' + name + '"]:checked', form);
     return input ? input.value : '';
   }
 
   all('[data-academy-sessions]').forEach(function (card) {
-    var kind = card.dataset.formKind === 'qr' ? 'qr' : 'main';
+    var kind = 'qr';
     var api = card.dataset.apiOrigin || '';
     var form = one('form', card);
     var email = one('input[name="email"]', form);
@@ -297,7 +297,6 @@
     var button = one('button[type="submit"]', form);
     var invalidError = one('[data-error="invalid"]', form);
     var failedError = one('[data-error="failed"]', form);
-    var sessionsError = one('[data-error="sessions"]', form);
     var success = one('[data-success]', card);
     var known = (card.dataset.sessionIds || '').split(/\s+/).filter(Boolean);
     var qrParam = new URLSearchParams(window.location.search).get('session') || '';
@@ -307,9 +306,6 @@
     form.addEventListener('submit', function (event) {
       event.preventDefault();
       failedError.hidden = true;
-      if (sessionsError) {
-        sessionsError.hidden = true;
-      }
       var address = email.value.trim();
       email.value = address;
       if (!email.checkValidity() || !EMAIL_RE.test(address)) {
@@ -320,21 +316,11 @@
       }
       invalidError.hidden = true;
       email.removeAttribute('aria-invalid');
-      var sessions = all('input[name="sessions"]:checked', form).map(function (input) { return input.value; });
-      if (kind === 'main' && sessions.length === 0) {
-        sessionsError.hidden = false;
-        var firstSession = one('input[name="sessions"]', form);
-        if (firstSession) {
-          firstSession.focus();
-        }
-        return;
-      }
-      if (kind === 'qr' && !qrSession) {
+      if (!qrSession) {
         failedError.hidden = false;
         return;
       }
       busy(button, true);
-      var years = one('input[name="years_dev"]', form);
       var optin = one('input[name="academy_optin"]', form);
       var name = one('input[name="name"]', form);
       var body = assign(
@@ -355,19 +341,7 @@
         consent_version: card.dataset.consentVersion,
         website: honeypot.value
       });
-      if (kind === 'main') {
-        var freeText = one('textarea[name="free_text"]', form);
-        assign(body, {
-          sessions: sessions,
-          track_interest: checked(form, 'track_interest'),
-          years_dev: years ? years.value.trim() : '',
-          based_in: checked(form, 'based_in'),
-          bildungsgutschein: checked(form, 'bildungsgutschein'),
-          free_text: freeText ? freeText.value.trim() : ''
-        });
-      } else {
-        body.session = qrSession;
-      }
+      body.session = qrSession;
       post(api, '/signup', body).then(function (ok) {
         busy(button, false);
         if (!ok) {
@@ -376,15 +350,6 @@
         }
         form.hidden = true;
         success.hidden = false;
-        if (kind === 'main') {
-          /* Calendar files only for the chosen sessions, plus the series file. */
-          all('[data-calendar-session]', success).forEach(function (item) {
-            item.hidden = sessions.indexOf(item.dataset.calendarSession || '') === -1;
-          });
-          all('[data-meetup]', success).forEach(function (link) {
-            link.hidden = sessions.indexOf(link.dataset.meetup || '') === -1;
-          });
-        }
         var title = one('[data-success-title]', success);
         if (title) {
           title.focus();

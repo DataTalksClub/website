@@ -62,6 +62,32 @@ def _clear_academy() -> None:
     ).delete()
 
 
+def _session_events() -> dict[int, str]:
+    """The synthetic sessions as site events in their series; their page paths."""
+
+    from community_base.events.models import Event, EventSeries
+
+    from events.identity import create_event_identity
+    from test_support.event_pictures import TEST_EVENT_PICTURE
+
+    series = EventSeries.objects.create(
+        name="Synthetic Series", slug="synthetic-series", cadence="none"
+    )
+    paths = {}
+    for number in (1, 2, 3):
+        event = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            title=f"Synthetic Series #{number}: Session {number}",
+            event_type="webinar",
+            speakers=[("janedoe", "Jane Doe")],
+            description="What the session is about.",
+            starts_at=datetime(2026, 11, 20 + number, 16, tzinfo=UTC),
+        )
+        Event.objects.filter(pk=event.pk).update(event_series=series, series_position=number)
+        paths[number] = f"/events/{event.public_id}/{event.slug}"
+    return paths
+
+
 class EmptyAcademyTests(TestCase):
     def setUp(self) -> None:
         _clear_academy()
@@ -149,7 +175,8 @@ class AcademyPageTests(TestCase):
             ("/academy/", 1),
             ("/academy/agentic-engineering/", 1),
             ("/academy/ai-engineering/", 1),
-            ("/academy/sessions/", 1),
+            # The sessions page holds no form: people register on the events.
+            ("/academy/sessions/", 0),
             ("/academy/sessions/materials/?session=1", 1),
         ):
             with self.subTest(path=path):
@@ -176,18 +203,37 @@ class AcademyPageTests(TestCase):
         for path in ("/academy/", "/academy/sessions/", "/academy/faq/"):
             self.assertNotIn("data-academy-sticky", self.client.get(path).content.decode())
 
-    def test_the_sessions_page_opens_on_its_form(self) -> None:
+    @mock.patch("academy.presentation.timezone.now", return_value=BEFORE_SESSIONS)
+    def test_the_sessions_page_opens_on_registration(self, _now: mock.Mock) -> None:
+        paths = _session_events()
         body = self.client.get("/academy/sessions/").content.decode()
         header = body[: body.index("content-page-content")]
         self.assertIn('href="#register"', header)
         self.assertEqual(header.count('<li class="list-row">'), 3)
-        # The form is the first chapter under the header, and the page's only one.
+        # Registration is the first chapter under the header: each session's
+        # link to its event page, where the site's own registration card is.
         content = body[body.index("content-page-content") :]
         first = content[: content.index("</section>")]
         self.assertIn('id="final-heading"', first)
         self.assertIn('id="register"', first)
-        self.assertEqual(body.count("data-academy-sessions"), 1)
+        for path in paths.values():
+            link = f'<a class="band-link" href="{path}">Register on the event page →</a>'
+            self.assertIn(link, first)
+        # No form of its own any more, and nothing posts to the signup backend.
+        self.assertEqual(body.count("data-academy-sessions"), 0)
+        self.assertNotIn("<form", body)
+        self.assertNotIn("academy/academy.js", body)
         self.assertEqual(body.count('class="list-row academy-session"'), 3)
+        # The home page's session rows link the same event pages.
+        home = self.client.get("/academy/").content.decode()
+        sessions = home[home.index('id="sessions"') :]
+        sessions = sessions[: sessions.index("</section>")]
+        for path in paths.values():
+            self.assertIn(f'href="{path}">Register on the event page →</a>', sessions)
+
+    def test_a_session_without_a_linked_event_offers_no_link(self) -> None:
+        body = self.client.get("/academy/sessions/").content.decode()
+        self.assertNotIn("Register on the event page", body)
 
     def test_the_german_guide_points_to_the_english_page(self) -> None:
         guide = self.client.get("/academy/bildungsgutschein/").content.decode()
@@ -503,13 +549,16 @@ class AcademyPageTests(TestCase):
         self.assertIn("Synthetic week 5", interviews)
 
     def test_a_past_session_links_its_recap_and_is_no_longer_offered(self) -> None:
+        paths = _session_events()
         after = datetime(2026, 11, 22, 12, tzinfo=UTC)
         with mock.patch("academy.presentation.timezone.now", return_value=after):
             body = self.client.get("/academy/sessions/").content.decode()
         header = body[: body.index("content-page-content")]
         self.assertIn('href="/academy/sessions/recap/">Synthetic recap</a>', header)
-        self.assertNotIn('name="sessions" value="session-1"', body)
-        self.assertIn('name="sessions" value="session-3"', body)
+        register = body[body.index('id="register"') :]
+        register = register[: register.index("</section>")]
+        self.assertNotIn(paths[1], register)
+        self.assertIn(paths[3], register)
 
     @mock.patch("academy.presentation.timezone.now", return_value=BEFORE_SESSIONS)
     def test_forms_carry_the_backend_contract(self, _now: mock.Mock) -> None:
@@ -527,20 +576,9 @@ class AcademyPageTests(TestCase):
         self.assertEqual(program.count("data-academy-signup"), 1)
         self.assertIn('data-track="ai-engineering"', program)
         sessions = self.client.get("/academy/sessions/").content.decode()
-        for name in (
-            'name="sessions" value="session-1"',
-            'name="track_interest" value="agentic"',
-            'name="status" value="job_hunting"',
-            'name="years_dev"',
-            'name="based_in" value="outside"',
-            'name="bildungsgutschein" value="dont_know"',
-            'name="free_text"',
-            'name="academy_optin" value="yes"',
-            'data-form-kind="main"',
-            'href="/academy/sessions/session-2.ics"',
-            'href="/academy/sessions/synthetic-series.ics"',
-        ):
-            self.assertIn(name, sessions)
+        # The free sessions register on their event pages, not through the backend.
+        for name in ('name="sessions"', 'name="track_interest"', 'data-form-kind="main"'):
+            self.assertNotIn(name, sessions)
         materials = self.client.get("/academy/sessions/materials/?session=1").content.decode()
         self.assertIn('data-form-kind="qr"', materials)
         self.assertIn('data-session-ids="session-1 session-2 session-3"', materials)

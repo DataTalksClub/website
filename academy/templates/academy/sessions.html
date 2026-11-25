@@ -4,13 +4,15 @@
   The free session series (/academy/sessions/), composed like the program
   pages.  The cream header is the title block: the series, its lede and its
   dates as dashed list rows across the whole column.  Below the seam every
-  chapter is the same frame -- a dashed seam and a band head: the
-  registration form on the featured slab first (the page's one action, in
-  the first view as it was on the retired site), who it is for, the sessions
-  one per row, who runs them, the numbers behind the first one, and the
-  questions.  The calendars the success state links to are
-  /academy/sessions/<id>.ics, drawn from the same session list.  Copy:
-  academy/sessions.md.
+  chapter is the same frame -- a dashed seam and a band head: registration
+  on the featured slab first (the page's one action, in the first view as
+  it was on the retired site), who it is for, the sessions one per row, who
+  runs them, the numbers behind the first one, and the questions.  The
+  sessions are ordinary site events, so registration is each upcoming
+  session's link to its event page (the registration card, the registered
+  count and the private Zoom link live there); this page holds no form.
+  The calendars /academy/sessions/<id>.ics are drawn from the same session
+  list.  Copy: academy/sessions.md.
 {% endcomment %}
 
 {% block document_title %}
@@ -62,10 +64,25 @@
       <div>
         <h2 id="final-heading">{{ data.final.heading }}</h2>
         <p>{{ data.final.text }}</p>
-        <p>{{ data.hero.under_button }}</p>
       </div>
     </div>
-    {% include "academy/_sessions_form.html" with kind="main" %}
+    <div class="featured academy-join academy-register" id="register">
+      <ol class="row-list academy-hero-sessions">
+        {% for session in sessions %}
+          {% if not session.past %}
+            <li class="list-row" data-session-id="{{ session.id }}">
+              <span class="mono-note">{{ session.date_label }}, {{ session.hero_time|default:data.series.hero_time }}</span>
+              <span class="academy-hero-session-title">
+                {{ session.hero_topic }}
+                {% if session.event_path %}
+                  <a class="band-link" href="{{ session.event_path }}">Register on the event page →</a>
+                {% endif %}
+              </span>
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ol>
+    </div>
   </section>
 
   <section class="academy-section" aria-labelledby="audience-heading">
@@ -112,6 +129,10 @@
             {% if session.recap %}
               <p class="academy-session-recap">
                 <a class="band-link" href="{{ session.recap.href }}">{{ session.recap.label }}</a>
+              </p>
+            {% elif not session.past and session.event_path %}
+              <p class="academy-session-recap">
+                <a class="band-link" href="{{ session.event_path }}">Register on the event page →</a>
               </p>
             {% endif %}
           </div>
@@ -161,6 +182,3 @@
   </section>
 {% endblock %}
 
-{% block page_scripts %}
-  <script src="{% static 'academy/academy.js' %}" defer></script>
-{% endblock %}
