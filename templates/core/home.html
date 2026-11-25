@@ -779,8 +779,17 @@
         line-height: 1.35;
       }
 
+      /* The intro and the origin story read as one text: same size and
+         rhythm, rather than a small lede over larger body copy. */
+      .home-about .about-story .band-head p,
       .about-origin {
+        font-size: 1rem;
+        line-height: 1.65;
         max-width: var(--measure);
+      }
+
+      .home-about .about-story .band-head h2 {
+        margin-top: 0;
       }
 
       .about-facts {
@@ -806,8 +815,10 @@
           grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
         }
 
+        /* The heading lines up with the top of the quote card and the links
+           with the bottom of the figures, so the two columns share edges. */
         .about-story {
-          align-self: end;
+          align-self: start;
           grid-area: story;
         }
 
@@ -816,7 +827,7 @@
         }
 
         .about-more {
-          align-self: start;
+          align-self: end;
           grid-area: more;
         }
 
