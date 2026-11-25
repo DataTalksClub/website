@@ -9,7 +9,7 @@
   family hero's shape, and the key facts as the spec strip at its foot (as
   on the program pages).  Below the seam every chapter keeps the content
   column and the same frame -- a dashed seam and a band head: the two
-  programs as cards (with the comparison page in the head's action slot),
+  programs as cards (the comparison page linked under them),
   funding with its guides, the free session series, the three newest
   articles as a card grid, a few questions from the FAQ, and the closing mint
   panel holding the one waitlist form the hero's action points to.  The
@@ -70,9 +70,6 @@
       <div>
         <h2 id="tracks-heading">{{ data.tracks.label }}</h2>
       </div>
-      {% if data.tracks.compare %}
-        <a class="band-link" href="{{ data.tracks.compare.href }}">{{ data.tracks.compare.label }} →</a>
-      {% endif %}
     </div>
     <div class="card-grid card-grid-2" data-tracks>
       {% for track in tracks %}
@@ -88,6 +85,11 @@
         </article>
       {% endfor %}
     </div>
+    {% if data.tracks.compare %}
+      <p class="band-more">
+        <a class="band-link" href="{{ data.tracks.compare.href }}">{{ data.tracks.compare.label }} →</a>
+      </p>
+    {% endif %}
   </section>
 
   {% if data.funding %}
@@ -126,7 +128,6 @@
           <h2 id="sessions-heading">{{ data.sessions.heading }}</h2>
           <p>{{ data.sessions.text }}</p>
         </div>
-        <a class="band-link" href="{{ sessions_path }}">{{ data.sessions.link_label }} →</a>
       </div>
       <ol class="row-list academy-hero-sessions">
         {% for session in home_sessions %}
@@ -141,6 +142,9 @@
           </li>
         {% endfor %}
       </ol>
+      <p class="band-more">
+        <a class="band-link" href="{{ sessions_path }}">{{ data.sessions.link_label }} →</a>
+      </p>
     </section>
   {% endif %}
 
@@ -181,9 +185,11 @@
         <div>
           <h2 id="faq-heading">{{ data.faq.heading }}</h2>
         </div>
-        <a class="band-link" href="{{ faq_path }}">{{ data.faq.link_label }} →</a>
       </div>
       {% include "academy/_faq.html" with items=home_faq prefix="faq" label="" %}
+      <p class="band-more">
+        <a class="band-link" href="{{ faq_path }}">{{ data.faq.link_label }} →</a>
+      </p>
       {% include "academy/_contact.html" %}
     </section>
   {% endif %}
