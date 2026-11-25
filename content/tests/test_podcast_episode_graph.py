@@ -428,7 +428,7 @@ class EpisodeGraphPageTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(resolved.state, "available")
-        self.assertContains(response, '<h2 id="episode-graph-heading">Related knowledge graph</h2>')
+        self.assertContains(response, '<h2 id="episode-graph-heading">Related Wiki pages</h2>')
         for _, label, _, _ in neighbours:
             self.assertContains(response, label)
         self.assertEqual(response.context["episode_graph"].raw_links, len(links))
@@ -471,6 +471,6 @@ class EpisodeGraphPageTests(TestCase):
         self.assertEqual(unavailable_response.status_code, 200)
         self.assertContains(
             unavailable_response,
-            "Related knowledge graph is temporarily unavailable.",
+            "Related Wiki pages are temporarily unavailable.",
         )
         self.assertNotContains(unavailable_response, "secret graph contract details")

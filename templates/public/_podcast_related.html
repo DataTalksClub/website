@@ -1,7 +1,7 @@
 {% comment %}
   Related episodes, at the foot of an episode page.
 
-  The cards are the episodes the podcast wiki files under the same pages as this
+  The cards are the episodes the Wiki files under the same pages as this
   one (`content.wiki_content.related_episode_matches`), each naming the shared
   wiki pages that put it here as linked chips.  An episode the wiki has not
   filed yet falls back to the newest other episodes of its season, and the
@@ -19,7 +19,7 @@
           <h2 id="related-episodes-heading">Related episodes</h2>
           {% if related.basis == "graph" %}
             <p>
-              Conversations the <a href="{% url 'wiki-home' %}">podcast wiki</a> files
+              Conversations the <a href="{% url 'wiki-home' %}">Wiki</a> files
               under the same topics as this one.{% if related.common_concepts %}
                 Every one of them shares:{% endif %}
             </p>

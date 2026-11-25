@@ -177,7 +177,7 @@ def _public_rendered_states(
         # headline; "Events" survives only as the navigation label and the page title.
         PublicRenderedState("public.events-hub", "events", "Something happening every week"),
         PublicRenderedState("public.courses-hub", "courses", "Learn data skills"),
-        PublicRenderedState("public.wiki-hub", "wiki", "Podcast Wiki"),
+        PublicRenderedState("public.wiki-hub", "wiki", "Wiki"),
         PublicRenderedState("public.docs-hub", "docs", "Documentation"),
         PublicRenderedState("public.faq-hub", "faq", "Frequently Asked Questions"),
         PublicRenderedState("public.slack", "slack", "Slack"),
@@ -192,7 +192,7 @@ def _public_rendered_states(
         PublicRenderedState("public.faq-anchor", "faq-anchor", faq["question"]),
         PublicRenderedState("public.wiki-results", "wiki-results", "results for"),
         PublicRenderedState("public.wiki-zero-results", "wiki-zero", "0 results"),
-        PublicRenderedState("public.wiki-graph", "wiki-graph", "Podcast Graph"),
+        PublicRenderedState("public.wiki-graph", "wiki-graph", "Wiki"),
         PublicRenderedState("public.wiki-special-pages", "wiki-special", "Special pages"),
         PublicRenderedState("public.missing-media", "missing-media", "unavailable"),
         PublicRenderedState("public.empty-state", "wiki-zero", "0 results"),

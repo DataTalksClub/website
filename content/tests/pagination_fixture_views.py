@@ -37,7 +37,7 @@ FIXTURES = {
     # Exactly one full page, so the controls must not be rendered at all.
     "events": PaginationFixture("/events/past", "Past event pages", "Past events", 20),
     # Empty, so page one is a valid 200 with no controls and page two is a 404.
-    "wiki": PaginationFixture("/wiki", "Wiki catalogue pages", "Podcast Wiki", 0),
+    "wiki": PaginationFixture("/wiki", "Wiki catalogue pages", "Wiki", 0),
 }
 
 
