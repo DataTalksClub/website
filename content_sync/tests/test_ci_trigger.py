@@ -121,6 +121,13 @@ class CITriggerTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {"error": "source_not_allowed"})
 
+    def test_declares_both_scheduled_sources(self):
+        # The workflow matrix syncs both; a source missing here makes every
+        # scheduled run fail with source_not_allowed.
+        from django.conf import settings
+
+        self.assertEqual(settings.CONTENT_SYNC_CI["sources"], ("dtc-content", "dtc-main-site"))
+
     def test_post_starts_the_sync_and_answers_at_once(self):
         with patch.object(ci_trigger, "start_sync") as start:
             response = self.post(
