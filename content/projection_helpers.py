@@ -21,6 +21,7 @@ import hashlib
 import html
 import json
 import re
+from collections.abc import Callable
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -70,6 +71,7 @@ LIQUID = re.compile(r"{%.*?%}|{{.*?}}", re.DOTALL)
 MARKDOWN_IMAGE = re.compile(r"!\[([^]]*)\]\([^)]*\)")
 MARKDOWN_LINK = re.compile(r"\[([^]]+)\]\([^)]*\)")
 WIKI_TOKEN = re.compile(r"\[\[([^]]+)\]\]")
+BODY_LIST_ITEM = re.compile(r"^([-*+]|\d{1,3}[.)])[ \t]+(.+)$")
 YOUTUBE_VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{6,20}$")
 
 WIKI_PUBLIC_ASSETS = ("assets/og-default.png",)
@@ -409,6 +411,12 @@ def _slugify(value: str) -> str:
     return value or "section"
 
 
+def _wiki_plain_label(token: str) -> str:
+    """The text an unlinked ``[[...]]`` token reads as."""
+
+    return token.split("=>", 1)[-1].split(":", 1)[-1].split("@", 1)[0]
+
+
 def _plain_inline(value: str) -> str:
     value = LIQUID.sub("", value)
     value = strip_target_attributes_from_links(value)
@@ -416,11 +424,7 @@ def _plain_inline(value: str) -> str:
     value = MARKDOWN_IMAGE.sub(lambda match: match.group(1), value)
     value = MARKDOWN_LINK.sub(lambda match: match.group(1), value)
 
-    def wiki_label(match: re.Match[str]) -> str:
-        token = match.group(1)
-        return token.split("=>", 1)[-1].split(":", 1)[-1].split("@", 1)[0]
-
-    value = WIKI_TOKEN.sub(wiki_label, value)
+    value = WIKI_TOKEN.sub(lambda match: _wiki_plain_label(match.group(1)), value)
     value = HTML_TAG.sub(" ", value)
     value = html.unescape(value)
     value = re.sub(r"[`*_~]", "", value)
@@ -428,18 +432,49 @@ def _plain_inline(value: str) -> str:
     return value
 
 
-def _body_blocks(body: str, *, preserve_links: bool = False) -> list[dict[str, Any]]:
+def _body_blocks(
+    body: str,
+    *,
+    preserve_links: bool = False,
+    wiki_href: Callable[[str], str] | None = None,
+) -> list[dict[str, Any]]:
+    """Project a Markdown body to headings, paragraphs and list items.
+
+    A list item runs until a blank line, a heading or the next item: its
+    continuation lines -- indented or lazy, as CommonMark reads them -- belong to
+    the item, so a hard-wrapped bullet stays one item.  With ``wiki_href`` a
+    ``[[target=>label]]`` token whose target resolves becomes a Markdown link to
+    the returned site path; one that does not resolve keeps its label as text.
+    """
+
     blocks: list[dict[str, Any]] = []
-    paragraph: list[str] = []
+    pending: list[str] = []
+    pending_kind = "paragraph"
     used_ids: dict[str, int] = {}
 
+    def link_wiki_tokens(value: str) -> str:
+        def replace(match: re.Match[str]) -> str:
+            token = match.group(1).strip()
+            label = _wiki_token_label(token)
+            href = wiki_href(token) if wiki_href is not None else ""
+            if not href or not label or "]" in label or "[" in label:
+                return _wiki_plain_label(match.group(1))
+            return f"[{label}]({href})"
+
+        return WIKI_TOKEN.sub(replace, value)
+
     def flush() -> None:
-        source = " ".join(paragraph)
-        paragraph.clear()
+        nonlocal pending_kind
+        source = " ".join(pending)
+        kind = pending_kind
+        pending.clear()
+        pending_kind = "paragraph"
         segment = _localize_editorial_links(source) if preserve_links else source
+        if preserve_links and wiki_href is not None:
+            segment = link_wiki_tokens(segment)
         text = _plain_inline(segment)
         if text:
-            block = {"kind": "paragraph", "text": text}
+            block = {"kind": kind, "text": text}
             if preserve_links and MARKDOWN_LINK.search(segment):
                 block["markdown"] = segment
             blocks.append(block)
@@ -468,19 +503,49 @@ def _body_blocks(body: str, *, preserve_links: bool = False) -> list[dict[str, A
         if line.startswith(("```", "~~~")):
             flush()
             continue
-        if line.startswith(("- ", "* ", "+ ")):
+        item = BODY_LIST_ITEM.match(line)
+        if item:
             flush()
-            segment = _localize_editorial_links(line[2:]) if preserve_links else line[2:]
-            text = _plain_inline(segment)
-            if text:
-                block = {"kind": "list_item", "text": text}
-                if preserve_links and MARKDOWN_LINK.search(segment):
-                    block["markdown"] = segment
-                blocks.append(block)
+            pending_kind = "ordered_item" if item.group(1)[0].isdigit() else "list_item"
+            pending.append(item.group(2))
             continue
-        paragraph.append(line)
+        pending.append(line)
     flush()
+    for block in blocks:
+        if block["kind"] == "ordered_item":
+            block["kind"] = "list_item"
+            block["ordered"] = True
     return blocks
+
+
+def _wiki_token_label(token: str) -> str:
+    target, separator, label = token.partition("=>")
+    return (label if separator else target).strip()
+
+
+def _wiki_token_href(
+    token: str,
+    title_to_slug: dict[str, str],
+    podcast_paths: dict[str, str],
+    book_paths: dict[str, str],
+    people_paths: dict[str, str],
+) -> tuple[str, str]:
+    """Resolve one ``[[...]]`` token to its relation type and site path ("" if none)."""
+
+    target = token.strip().partition("=>")[0].strip()
+    if target.startswith("cite:"):
+        episode = target.removeprefix("cite:").split("@", 1)[0]
+        return "citation", podcast_paths.get(episode, "") if SAFE_KEY.fullmatch(episode) else ""
+    if ":" in target:
+        relation_type, key = target.split(":", 1)
+        paths = {"person": people_paths, "book": book_paths, "podcast": podcast_paths}.get(
+            relation_type, {}
+        )
+        return relation_type, paths.get(key, "") if SAFE_KEY.fullmatch(key) else ""
+    slug = title_to_slug.get(target.casefold()) or _slugify(target)
+    if slug in title_to_slug.values():
+        return "wiki", f"/wiki/{slug}"
+    return "wiki", ""
 
 
 # ---------------------------------------------------------------------------
@@ -1269,28 +1334,10 @@ def _wiki_relations(
     seen: set[tuple[str, str, str]] = set()
     for match in WIKI_TOKEN.finditer(body):
         token = match.group(1).strip()
-        target, separator, label = token.partition("=>")
-        label = (label if separator else target).strip()
-        relation_type = "wiki"
-        href = ""
-        if target.startswith("cite:"):
-            relation_type = "citation"
-            episode = target.removeprefix("cite:").split("@", 1)[0]
-            if SAFE_KEY.fullmatch(episode):
-                href = podcast_paths.get(episode, "")
-        elif ":" in target:
-            relation_type, key = target.split(":", 1)
-            if SAFE_KEY.fullmatch(key):
-                if relation_type == "person":
-                    href = people_paths.get(key, "")
-                elif relation_type == "book":
-                    href = book_paths.get(key, "")
-                elif relation_type == "podcast":
-                    href = podcast_paths.get(key, "")
-        else:
-            slug = title_to_slug.get(target.casefold()) or _slugify(target)
-            if slug in title_to_slug.values():
-                href = f"/wiki/{slug}"
+        label = _wiki_token_label(token)
+        relation_type, href = _wiki_token_href(
+            token, title_to_slug, podcast_paths, book_paths, people_paths
+        )
         if relation_type in {"podcast", "citation"} and not href:
             continue
         relation = (relation_type, label, href)

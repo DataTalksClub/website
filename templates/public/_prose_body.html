@@ -10,17 +10,22 @@
   Headings keep the identifier the source gives them, so every in-page anchor and
   every "#section" link into a wiki page still lands.  Paragraph text keeps its own
   line breaks (`white-space: pre-line`), so the opening tag and the value stay on
-  one line here.
+  one line here.  Consecutive list items arrive grouped (`prose_runs`) and draw as one
+  real list.
 {% endcomment %}
-{% for block in blocks %}
+{% for block in blocks|prose_runs %}
   {% if block.kind == "heading" %}
     {% if block.level == 2 %}
       <h2 id="{{ block.id }}">{{ block.text }}</h2>
     {% else %}
       <h3 id="{{ block.id }}">{{ block.text }}</h3>
     {% endif %}
-  {% elif block.kind == "list_item" %}
-    <p class="prose-item">{{ block.markdown|default:block.text|public_text }}</p>
+  {% elif block.kind == "list" %}
+    {% if block.ordered %}<ol>{% else %}<ul>{% endif %}
+      {% for item in block.items %}
+        <li>{{ item.markdown|default:item.text|public_text }}</li>
+      {% endfor %}
+    {% if block.ordered %}</ol>{% else %}</ul>{% endif %}
   {% else %}
     <p class="prose-paragraph">{{ block.markdown|default:block.text|public_text }}</p>
   {% endif %}

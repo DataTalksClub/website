@@ -4988,17 +4988,6 @@ Rules for editing:
         white-space: pre-line;
       }
 
-      /* A list item arrives as its own block, so it is a paragraph that draws
-         a marker rather than a real <li> inside a list the source never marks. */
-      .prose-item {
-        display: list-item;
-        margin-left: var(--space-5);
-      }
-
-      .prose-item + .prose-item {
-        margin-top: var(--space-2);
-      }
-
       /* Search row: a labelled query field and its primary submit button on
          one line.  One component everywhere a page searches -- the wiki hub and
          results, the docs hub and every docs page -- so the field is the same
@@ -5065,7 +5054,7 @@ Rules for editing:
        * the slightly larger body on a longer leading.  Everything else here is
        * additive — deeper headings, real lists, quotes, code, figures, rules
        * and tables — so a page that only carries headings, paragraphs and
-       * `.prose-item` blocks renders exactly as it did before.
+       * lists renders exactly as it did before.
        * ------------------------------------------------------------------ */
 
       /* A page whose body is the point of the page: hold it to the reading
@@ -5117,10 +5106,8 @@ Rules for editing:
         margin-top: var(--space-3);
       }
 
-      /* Where a body's blocks really are a list — consecutive list items the
-         source marked — a page may group them into one real list instead of
-         drawing loose `.prose-item` markers.  Same marker, same indent, same
-         rhythm; the reader of a screen reader also hears how many items. */
+      /* A body's consecutive list items are grouped into one real list, so a
+         screen reader also hears how many items there are. */
       .prose ul,
       .prose ol {
         padding-left: var(--space-5);

@@ -737,7 +737,7 @@ class WikiPageTests(TestCase):
                 if block["kind"] == "heading":
                     self.assertIn(f'<h2 id="{block["id"]}">{text}</h2>', self.body)
                 elif block["kind"] == "list_item":
-                    self.assertIn(f'<p class="prose-item">{text}</p>', self.body)
+                    self.assertIn(f"<li>{text}</li>", self.body)
                 else:
                     self.assertIn(f'<p class="prose-paragraph">{text}</p>', self.body)
         self.assertTrue(

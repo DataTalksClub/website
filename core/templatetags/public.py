@@ -44,3 +44,26 @@ def public_text(value: object) -> str:
         position = match.end()
     output.append(conditional_escape(raw[position:]))
     return mark_safe("<br>".join("".join(output).splitlines()))
+
+
+@register.filter
+def prose_runs(blocks: object) -> list[dict]:
+    """Group a body's consecutive list items into one list run.
+
+    The projection keeps a flat block list; a page draws each run of source list
+    items as one real ``<ul>``/``<ol>`` so the items read (and are announced) as a
+    list.  Every other block passes through unchanged.
+    """
+
+    runs: list[dict] = []
+    for block in blocks or ():
+        if block.get("kind") == "list_item":
+            ordered = bool(block.get("ordered"))
+            previous = runs[-1] if runs else None
+            if previous and previous["kind"] == "list" and previous["ordered"] == ordered:
+                previous["items"].append(block)
+            else:
+                runs.append({"kind": "list", "ordered": ordered, "items": [block]})
+        else:
+            runs.append(block)
+    return runs

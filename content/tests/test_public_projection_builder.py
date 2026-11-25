@@ -183,6 +183,73 @@ class PublicProjectionBuilderTests(TestCase):
             [{"kind": "paragraph", "text": "Read the guide."}],
         )
 
+    def test_wiki_list_items_keep_wrapped_lines_and_link_resolved_wiki_tokens(self) -> None:
+        source = (
+            "- Full-stack builders start at Stage 1, then add RAG,\n"
+            "  and monitoring. [[cite:s23e01@1:02=>Skill Stack]]\n"
+            "- Then use [[AI Engineer Role]] and\n"
+            "lazy [[missing-page=>a missing page]] and [[event:meetup]].\n"
+            "\n"
+            "1. Reproduce it.\n"
+            "2. Ship it.\n"
+            "\n"
+            "After the list."
+        )
+
+        def href(token: str) -> str:
+            return builder._wiki_token_href(
+                token,
+                {"ai engineer role": "ai-engineer-role"},
+                {"s23e01": "/podcast/s23e01-skill-stack"},
+                {},
+                {},
+            )[1]
+
+        self.assertEqual(
+            builder._body_blocks(source, preserve_links=True, wiki_href=href),
+            [
+                {
+                    "kind": "list_item",
+                    "text": "Full-stack builders start at Stage 1, then add RAG, "
+                    "and monitoring. Skill Stack",
+                    "markdown": "Full-stack builders start at Stage 1, then add RAG, "
+                    "and monitoring. [Skill Stack](/podcast/s23e01-skill-stack)",
+                },
+                {
+                    "kind": "list_item",
+                    "text": "Then use AI Engineer Role and lazy a missing page and meetup.",
+                    "markdown": "Then use [AI Engineer Role](/wiki/ai-engineer-role) and "
+                    "lazy a missing page and meetup.",
+                },
+                {"kind": "list_item", "text": "Reproduce it.", "ordered": True},
+                {"kind": "list_item", "text": "Ship it.", "ordered": True},
+                {"kind": "paragraph", "text": "After the list."},
+            ],
+        )
+
+    def test_prose_body_draws_each_run_of_list_items_as_one_real_list(self) -> None:
+        from django.template.loader import render_to_string
+
+        rendered = render_to_string(
+            "public/_prose_body.html",
+            {
+                "blocks": [
+                    {"kind": "list_item", "text": "One", "markdown": "[One](/wiki/one)"},
+                    {"kind": "list_item", "text": "Two"},
+                    {"kind": "list_item", "text": "First", "ordered": True},
+                    {"kind": "paragraph", "text": "after"},
+                ]
+            },
+        )
+        compact = " ".join(rendered.split())
+
+        self.assertIn(
+            '<ul> <li><a class="app-link" href="/wiki/one">One</a></li> <li>Two</li> </ul>',
+            compact,
+        )
+        self.assertIn("<ol> <li>First</li> </ol>", compact)
+        self.assertIn('<p class="prose-paragraph">after</p>', compact)
+
     def test_wiki_graph_localizes_host_variants_and_preserves_url_suffixes(self) -> None:
         payload = {
             "nodes": [

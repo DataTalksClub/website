@@ -835,14 +835,16 @@ A page whose text arrives as typed blocks renders them inside `.prose`:
 <div class="prose">
   <h2 id="purpose-of-aa-tests">Purpose of A/A Tests</h2>
   <p class="prose-paragraph">…</p>
-  <p class="prose-item">…</p>
+  <ul>
+    <li>…</li>
+  </ul>
 </div>
 ```
 
 Rhythm comes from `.prose > * + *`. `.prose-paragraph` keeps the source's own line
 breaks (`white-space: pre-line`), so its opening tag and value stay on one line. A
-list item that arrives as its own block is `.prose-item` (`display: list-item`)
-instead of the page inventing a `<ul>` the source never marked. Headings keep the
+run of consecutive source list items (a hard-wrapped item keeps its continuation
+lines) is grouped by the `prose_runs` filter into one real `<ul>` or `<ol>`. Headings keep the
 identifier the source gives them, which is what in-page anchors land on, and get
 `scroll-margin-top` so an anchored heading does not land against the viewport top.
 

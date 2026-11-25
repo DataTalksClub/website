@@ -410,7 +410,13 @@ class PodwikiParser:
         relative = path.as_posix()
         slug = path.stem
         tags = builder._safe_key_list(metadata.get("tags"), field="wiki tag")
-        blocks = builder._body_blocks(body, preserve_links=True)
+        blocks = builder._body_blocks(
+            body,
+            preserve_links=True,
+            wiki_href=lambda token: builder._wiki_token_href(
+                token, title_to_slug, podcast_paths, book_paths, people_paths
+            )[1],
+        )
         fragments = expected_fragments.get(slug, {})
         rendered_fragments: set[str] = set()
         for block in blocks:
