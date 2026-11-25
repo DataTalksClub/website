@@ -70,13 +70,13 @@ from .pagination import (
 )
 from .person_content import person_view
 from .podcast_content import (
+    PlatformLink,
     episode_view,
-    listening_platform_phrase,
     podcast_platform_links,
     podcast_seasons,
     related_episodes,
-    season_episodes,
 )
+from .podcast_hub import HUB_LISTEN_ORDER, hub_season, podcast_season_path
 from .podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_public_id
 from .public_query import selector_query
 from .review_views import SLACK_PUBLIC_PATH
@@ -90,8 +90,6 @@ WIKI_SPECIAL_CATEGORIES = {
     "transitions": "transition",
     "how-tos": "how-to",
 }
-PODCAST_SEASON_QUERY = re.compile(r"season=([1-9][0-9]{0,8})\Z", re.ASCII)
-PODCAST_SEASON_SELECTORS = frozenset({"season"})
 # `/events?filter=past[&page=N]` is the one legacy spelling that still redirects into the
 # archive, so the hub keeps a parser for it.  The archive itself no longer has a parser of
 # its own: past events, books and the Wiki catalogue all read `content.pagination`.
@@ -346,24 +344,6 @@ def _public_event_route(view):
         return response
 
     return csrf_exempt(wrapped)
-
-
-def _podcast_season_number(request: HttpRequest) -> tuple[bool, int | None]:
-    raw_query = selector_query(
-        request.META.get("QUERY_STRING", ""), selectors=PODCAST_SEASON_SELECTORS
-    )
-    if raw_query is None:
-        return False, None
-    if not raw_query:
-        return True, None
-    if len(raw_query) > 32:
-        return False, None
-    match = PODCAST_SEASON_QUERY.fullmatch(raw_query)
-    return (True, int(match.group(1))) if match else (False, None)
-
-
-def _podcast_season_path(number: int, *, latest: int) -> str:
-    return "/podcast" if number == latest else f"/podcast?season={number}"
 
 
 @csrf_exempt
@@ -1041,35 +1021,37 @@ def collection_hub(request: HttpRequest, *, collection: str) -> HttpResponse:
 # CSRF middleware runs before method decorators. This read-only callback is exempt so
 # unsafe methods reach the explicit 405 response; it performs no mutation.
 @csrf_exempt
-def podcast_hub(request: HttpRequest) -> HttpResponse:
+def podcast_hub(request: HttpRequest, season: str | None = None) -> HttpResponse:
+    """The podcast index: the newest season at ``/podcast``, any other at ``/podcast/s/<N>/``.
+
+    One season per page, drawn as the /events timeline (``content.podcast_hub``).
+    The query string carries nothing; the season lives in the path.
+    """
+
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
 
-    valid_query, requested_season = _podcast_season_number(request)
-    if not valid_query:
-        return _no_store(HttpResponseBadRequest("Bad request."))
-
+    description = (
+        "DataTalks.Club weekly podcast episodes with data science experts, ML "
+        "engineers, and AI researchers. Listen on Spotify, Apple Podcasts, YouTube."
+    )
+    platform_links = _hub_platform_links()
     records = catalogue.podcasts()
     if not records:
         # An empty catalogue (a fresh environment before the podcast ingest)
         # still draws the hub, with no season to list, rather than failing.
-        if requested_season is not None:
+        if season is not None:
             return _no_store(HttpResponse("Page not found.", status=404))
         response = _render(
             request,
             "public/podcast_hub.html",
             path="/podcast",
             title="DataTalks.Club Podcast — DataTalks.Club",
-            description=(
-                "DataTalks.Club weekly podcast episodes with data science experts, ML "
-                "engineers, and AI researchers. Listen on Apple Podcasts, Spotify, YouTube."
-            ),
+            description=description,
             context={
                 "season": None,
-                "episodes": (),
                 "episode_total": 0,
-                "listening_platforms": listening_platform_phrase(()),
-                "podcast_platform_links": podcast_platform_links(catalogue.podcast_platforms()),
+                "podcast_platform_links": platform_links,
                 "season_links": (),
             },
         )
@@ -1077,70 +1059,62 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
         return response
     seasons = podcast_seasons(records)
     latest_season = seasons[0].number
-    selected_number = latest_season if requested_season is None else requested_season
+    selected_number = latest_season if season is None else int(season)
     season_index = next(
-        (index for index, season in enumerate(seasons) if season.number == selected_number),
+        (index for index, available in enumerate(seasons) if available.number == selected_number),
         None,
     )
     if season_index is None:
         return _no_store(HttpResponse("Page not found.", status=404))
 
-    selected_season = seasons[season_index]
-    episodes = season_episodes(selected_season.episodes)
     newer_season = seasons[season_index - 1] if season_index > 0 else None
     older_season = seasons[season_index + 1] if season_index + 1 < len(seasons) else None
-    canonical_path = _podcast_season_path(selected_number, latest=latest_season)
+    newer_path = (
+        podcast_season_path(newer_season.number, latest=latest_season) if newer_season else ""
+    )
+    older_path = (
+        podcast_season_path(older_season.number, latest=latest_season) if older_season else ""
+    )
     title = "DataTalks.Club Podcast"
     if selected_number != latest_season:
         title = f"{title} — Season {selected_number}"
     response = _render(
         request,
         "public/podcast_hub.html",
-        path=canonical_path,
+        # The newest season's own path is the hub itself.
+        path=podcast_season_path(selected_number, latest=latest_season),
         title=f"{title} — DataTalks.Club",
-        description=(
-            "DataTalks.Club weekly podcast episodes with data science experts, ML "
-            "engineers, and AI researchers. Listen on Apple Podcasts, Spotify, YouTube."
-        ),
+        description=description,
         context={
-            "season": selected_season,
-            "episodes": episodes,
+            "season": hub_season(seasons[season_index]),
             "episode_total": sum(len(available.episodes) for available in seasons),
-            "listening_platforms": listening_platform_phrase(episodes),
-            "podcast_platform_links": podcast_platform_links(catalogue.podcast_platforms()),
+            "podcast_platform_links": platform_links,
             "season_links": tuple(
                 {
                     "number": available.number,
-                    "path": _podcast_season_path(available.number, latest=latest_season),
+                    "path": podcast_season_path(available.number, latest=latest_season),
                 }
                 for available in seasons
             ),
             "newer_season": newer_season,
-            "newer_path": (
-                _podcast_season_path(newer_season.number, latest=latest_season)
-                if newer_season
-                else ""
-            ),
+            "newer_path": newer_path,
             "older_season": older_season,
-            "older_path": (
-                _podcast_season_path(older_season.number, latest=latest_season)
-                if older_season
-                else ""
-            ),
-            "previous_url": (
-                _canonical(_podcast_season_path(newer_season.number, latest=latest_season))
-                if newer_season
-                else ""
-            ),
-            "next_url": (
-                _canonical(_podcast_season_path(older_season.number, latest=latest_season))
-                if older_season
-                else ""
-            ),
+            "older_path": older_path,
+            "previous_url": _canonical(newer_path) if newer_path else "",
+            "next_url": _canonical(older_path) if older_path else "",
         },
     )
     response["Cache-Control"] = "max-age=0, must-revalidate"
     return response
+
+
+def _hub_platform_links() -> tuple[PlatformLink, ...]:
+    """The show's listener destinations in the hub's order (no creator dashboard)."""
+
+    by_provider = {
+        link.provider: link for link in podcast_platform_links(catalogue.podcast_platforms())
+    }
+    return tuple(by_provider[key] for key in HUB_LISTEN_ORDER if key in by_provider)
 
 
 def _article_faq_structured_data(article: dict, faq: ArticleFaq | None) -> tuple[dict, ...]:
@@ -1296,7 +1270,7 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
                 resource_podcast_records=catalogue.podcasts(),
             ),
             "related": related,
-            "season_path": _podcast_season_path(episode["season"], latest=latest_season),
+            "season_path": podcast_season_path(episode["season"], latest=latest_season),
             "episode_graph": episode_graph,
             "og_type": "article",
             "og_image_url": _canonical(image_path) if image_path else "",

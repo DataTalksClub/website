@@ -23,6 +23,8 @@
   The picture is given its intrinsic square so it reserves its own space and the
   line it sits on cannot shift as it arrives.  A chip in a page's opening screen
   passes `chip_loading="eager"`; everything further down keeps the lazy default.
+  A `chip_role` ("Staff Data Engineer at …") stacks under the name, and the
+  portrait grows to the two lines it then sits beside.
 {% endcomment %}
 <span class="person-chip">
   {% if person.media_available %}
@@ -38,9 +40,11 @@
   {% else %}
     <span class="avatar avatar-striped person-chip-portrait" aria-hidden="true"></span>
   {% endif %}
+  {% if chip_role %}<span class="person-chip-text">{% endif %}
   {% if person.public_path %}
     <a class="band-link person-chip-name" href="{{ person.public_path }}">{{ person.name }}</a>
   {% else %}
     <span class="person-chip-name">{{ person.name }}</span>
   {% endif %}
+  {% if chip_role %}<span class="person-chip-role">{{ chip_role }}</span></span>{% endif %}
 </span>

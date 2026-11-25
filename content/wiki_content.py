@@ -680,6 +680,24 @@ def _current_episode_concepts() -> tuple[dict[str, dict[str, str]], dict[str, di
     return nodes, _episode_concepts(nodes, links, tuple(podcasts))
 
 
+def episode_topics(slug: str, *, limit: int = RELATED_CONCEPT_CHIPS) -> tuple[SharedConcept, ...]:
+    """The wiki pages an episode is filed under most strongly, strongest first.
+
+    The same concept index the related-episode band reads; an episode the
+    graph does not file anywhere has no topics.
+    """
+
+    nodes, concepts = _current_episode_concepts()
+    weights = concepts.get(slug)
+    if not weights:
+        return ()
+    ranked = sorted(weights.items(), key=lambda item: (-item[1], nodes[item[0]]["label"], item[0]))
+    return tuple(
+        SharedConcept(label=nodes[concept_id]["label"], url=nodes[concept_id]["url"])
+        for concept_id, _ in ranked[:limit]
+    )
+
+
 def related_episode_matches(
     episode: dict[str, Any],
     *,

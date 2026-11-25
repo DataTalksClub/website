@@ -1,0 +1,9 @@
+{% comment %}One shared filter pill per season, newest first; the open season is the current one.{% endcomment %}
+{% for season_link in season_links %}
+  <a
+    class="filter-pill interactive-lift"
+    href="{{ season_link.path }}"
+    aria-label="Season {{ season_link.number }}"
+    {% if season and season_link.number == season.number %}aria-current="page"{% endif %}
+  >{{ season_link.number }}</a>
+{% endfor %}

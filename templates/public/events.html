@@ -32,8 +32,9 @@
       {% include "core/_design_system.html" %}
 
       /* ------------------------------------------------------------------ *
-       * Events-specific rules: the heading with its Upcoming/Past control and
-       * the day-by-day timeline of soft event cards (the owner's option A).
+       * Events-specific rules: the heading with its Upcoming/Past control.
+       * The day-by-day timeline of soft event cards (the owner's option A) is
+       * the shared `.event-timeline` in the design system partial above.
        * ------------------------------------------------------------------ */
 
       /* --page follows the cool ground, since that is what the tail below the
@@ -84,196 +85,6 @@
         margin-left: auto;
       }
 
-      /* ------------------------------------------------------------------ *
-       * The timeline: each date once, a dotted line with one dot per day,
-       * and that day's events stacked beside it.
-       * ------------------------------------------------------------------ */
-      .event-timeline {
-        --day-col: 7.5rem;
-        --dot-col: 1.5rem;
-        display: grid;
-        gap: var(--space-6);
-        position: relative;
-      }
-
-      .event-timeline::before {
-        border-left: 2px dotted var(--line-soft);
-        bottom: 0;
-        content: "";
-        left: calc(var(--day-col) + var(--space-4) + var(--dot-col) / 2 - 1px);
-        position: absolute;
-        top: var(--space-3);
-      }
-
-      .event-day {
-        column-gap: var(--space-4);
-        display: grid;
-        grid-template-columns: var(--day-col) var(--dot-col) minmax(0, 1fr);
-      }
-
-      .event-day-date {
-        font-size: 1rem;
-        margin: 0;
-      }
-
-      .event-day-date time {
-        display: grid;
-        gap: var(--space-1);
-      }
-
-      .event-day-date strong {
-        color: var(--ink);
-        font-size: 1.1rem;
-        font-weight: 700;
-      }
-
-      .event-day-date span {
-        color: var(--muted);
-        font-size: 0.95rem;
-        font-weight: 600;
-      }
-
-      .event-day-dot {
-        background: var(--lavender);
-        border: 2px solid var(--muted);
-        border-radius: 50%;
-        height: 0.7rem;
-        justify-self: center;
-        margin-top: var(--space-2);
-        position: relative;
-        width: 0.7rem;
-      }
-
-      .event-day-cards {
-        display: grid;
-        gap: var(--space-3);
-      }
-
-      /* One event: a soft card the title's link stretches over. */
-      .event-item {
-        align-items: start;
-        background: var(--card);
-        border: 1px solid var(--line-soft);
-        border-radius: 1rem;
-        display: grid;
-        gap: var(--space-4);
-        grid-template-columns: minmax(0, 1fr) 7.5rem;
-        padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
-        position: relative;
-        transition: border-color 0.12s ease, translate 0.12s ease;
-      }
-
-      .event-item:has(> .event-item-body:only-child) {
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      @media (hover: hover) and (pointer: fine) {
-        /* The shared card hover (.interactive-card + .interactive-lift: the lift
-           and the → cue) plus a softer border tint for this light card. */
-        .event-item:hover {
-          border-color: var(--indigo-soft);
-        }
-      }
-
-      .event-item:has(h4 a:focus-visible) {
-        outline: 3px solid var(--indigo);
-        outline-offset: 2px;
-      }
-
-      .event-item-body {
-        display: grid;
-        gap: var(--space-2);
-        justify-items: start;
-        min-width: 0;
-      }
-
-      .event-item-time {
-        color: var(--muted);
-        font-size: 0.95rem;
-        font-weight: 600;
-        margin: 0;
-      }
-
-      .event-item h4 {
-        color: var(--ink);
-        font-size: 1.22rem;
-        line-height: 1.3;
-        margin: 0 0 var(--space-1);
-        text-wrap: pretty;
-      }
-
-      .event-item h4 a {
-        color: inherit;
-        text-decoration: none;
-      }
-
-      .event-item h4 a::after {
-        content: "";
-        inset: 0;
-        position: absolute;
-      }
-
-      .event-item h4 a:focus-visible {
-        outline: none;
-      }
-
-      .event-item .person-chips {
-        gap: var(--space-1) var(--space-3);
-      }
-
-      .event-item .person-chip a {
-        min-height: 0;
-        position: relative;
-        z-index: 1;
-      }
-
-      .event-item .person-chip-name {
-        font-size: 0.92rem;
-        font-weight: 600;
-      }
-
-      .event-item .person-chip a.person-chip-name {
-        color: var(--body-text);
-        text-decoration: none;
-      }
-
-      .event-item .person-chip a.person-chip-name:hover {
-        color: var(--indigo);
-        text-decoration: underline;
-      }
-
-      .event-item-meta {
-        color: var(--muted);
-        display: grid;
-        font-size: 0.9rem;
-        font-weight: 600;
-        gap: var(--space-1);
-        list-style: none;
-        margin: var(--space-1) 0 0;
-        padding: 0;
-      }
-
-      .event-item-meta li {
-        align-items: center;
-        display: flex;
-        gap: var(--space-2);
-      }
-
-      .event-item-meta svg {
-        flex: none;
-        height: 1rem;
-        width: 1rem;
-      }
-
-      .event-item-thumb {
-        aspect-ratio: 1;
-        border-radius: 0.6rem;
-        display: block;
-        height: auto;
-        object-fit: cover;
-        width: 100%;
-      }
-
       .event-empty {
         margin-top: var(--space-2);
       }
@@ -319,66 +130,12 @@
          `.pagination` component in the design system partial above, so this page
          adds no pagination rule of its own. */
 
-      /* ------------------------------------------------------------------ *
-       * Narrow layout.  The row reshapes rather than reflows: the date rail
-       * becomes one horizontal line above the card, and the card stacks its
-       * action under the title instead of squeezing it beside one.
-       * ------------------------------------------------------------------ */
-
-      /* ------------------------------------------------------------------ *
-       * Narrow layout: the date sits on one line above its cards, the line
-       * and the dots move to the left edge, the picture shrinks.
-       * ------------------------------------------------------------------ */
+      /* Narrow: the calendar link drops under the pills.  The timeline's own
+         narrow layout lives with it in the design system partial. */
       @media (max-width: 47.99rem) {
         .events-calendar {
           flex-basis: 100%;
           margin-left: 0;
-        }
-
-        .event-timeline {
-          gap: var(--space-5);
-        }
-
-        .event-timeline::before {
-          left: calc(0.35rem - 1px);
-          top: var(--space-2);
-        }
-
-        .event-day {
-          column-gap: var(--space-3);
-          grid-template-columns: 0.7rem minmax(0, 1fr);
-          row-gap: var(--space-3);
-        }
-
-        .event-day-dot {
-          grid-column: 1;
-          grid-row: 1;
-          margin-top: var(--space-1);
-        }
-
-        .event-day-date {
-          grid-column: 2;
-          grid-row: 1;
-        }
-
-        .event-day-date time {
-          align-items: baseline;
-          display: flex;
-          gap: var(--space-2);
-        }
-
-        .event-day-cards {
-          grid-column: 2;
-        }
-
-        .event-item {
-          gap: var(--space-3);
-          grid-template-columns: minmax(0, 1fr) 5rem;
-          padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
-        }
-
-        .event-item h4 {
-          font-size: 1.08rem;
         }
       }
     </style>

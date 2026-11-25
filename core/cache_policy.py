@@ -58,7 +58,6 @@ QUERY_ALLOWLISTS: dict[str, frozenset[str]] = {
     # itself rejects every other combination.
     "content.public_views.events": frozenset({"filter"}),
     "content.public_views.events_past": frozenset({"page"}),
-    "content.public_views.podcast_hub": frozenset({"season"}),
     # `q` is deliberately unlisted: a search request is the spec's search
     # surface and must never be shared, while `page` keeps the catalogue.
     "content.public_views.wiki_hub": frozenset({"page"}),

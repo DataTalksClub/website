@@ -29,6 +29,13 @@ urlpatterns = [
     path("podcast", public_views.podcast_hub, name="podcast"),
     path("podcast.html", public_views.permanent_public_redirect, {"target": "/podcast"}),
     path("podcast/", public_views.permanent_public_redirect, {"target": "/podcast"}),
+    # One season per page; the newest season is the hub itself.  It precedes the
+    # editorial alias catch-all, which would otherwise read it as a flat slug.
+    re_path(
+        r"^podcast/s/(?P<season>[1-9][0-9]{0,3})/$",
+        public_views.podcast_hub,
+        name="podcast-season",
+    ),
     re_path(
         r"^podcast/(?P<episode_id>s[0-9]+e[0-9]+)/(?P<slug>[-a-zA-Z0-9_]+)$",
         public_views.podcast_detail_by_id,
