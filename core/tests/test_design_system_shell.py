@@ -301,16 +301,19 @@ class DesignFiveAShellTests(TestCase):
             with self.subTest(page=name):
                 footer = body.split('<footer class="site-footer">', 1)[1]
                 # The masthead carries every section; the footer does not repeat
-                # them.  It keeps Newsletter and Sponsors (not in the masthead).
+                # them.  It keeps the sponsorship article (Sponsors is not in
+                # the masthead), the social icons and the legal line.
                 for label, route in EXPECTED_NAVIGATION:
                     self.assertNotIn(f'href="{reverse(route)}">{label}</a>', footer)
-                for label, route in (("Newsletter", "newsletter"), ("Sponsors", "sponsors")):
-                    self.assertIn(f'href="{reverse(route)}">{label}</a>', footer)
+                self.assertIn('href="/blog/sponsor-datatalks-club.html">Sponsor us</a>', footer)
                 for href in (
-                    reverse("newsletter"),
                     "https://www.youtube.com/@DataTalksClub",
                     "https://www.linkedin.com/company/datatalks-club/",
                     "https://x.com/DataTalksClub",
+                    "https://github.com/DataTalksClub",
+                    "/terms",
+                    "/privacy",
+                    "/impressum",
                 ):
                     self.assertIn(f'href="{href}"', footer)
 
@@ -408,7 +411,8 @@ class DesignFiveAShellTests(TestCase):
 
     def test_tour_and_academy_stripes_never_stack_and_tour_is_selective(self) -> None:
         """Academy stripe appears on Courses; Tour stripe appears only on
-        newcomer-facing discovery pages, never stacked with Academy."""
+        newcomer-facing discovery pages, never stacked with Academy.  The Slack
+        page closes on its own panel, so it carries no stripe."""
 
         tour_stripe_pages = {
             "events index",
@@ -428,7 +432,6 @@ class DesignFiveAShellTests(TestCase):
             "docs page",
             "faq index",
             "faq course",
-            "slack",
         }
         for name, body in self.rendered_pages().items():
             with self.subTest(page=name):
