@@ -74,6 +74,9 @@
   <div class="sponsors-hero">
   <h1 class="page-title">Our Sponsors</h1>
   <p class="sponsors-lede">These organizations help DataTalks.Club keep courses, events, and community learning free and open to everyone.</p>
+  <p class="band-more">
+    <a class="band-link" href="{% url 'public-article' slug='sponsor-datatalks-club' %}">become a sponsor: audience, formats and how it works →</a>
+  </p>
   </div>
 {% endblock %}
 
@@ -105,5 +108,8 @@
     <ul class="past-supporters">
       {% for supporter in past_supporters %}<li>{{ supporter }}</li>{% endfor %}
     </ul>
+    <p class="band-more">
+      <a class="band-link" href="{% url 'public-article' slug='sponsor-datatalks-club' %}">sponsor DataTalks.Club →</a>
+    </p>
   </section>
 {% endblock %}
