@@ -69,33 +69,14 @@
         max-width: 36em;
       }
 
-      /* Upcoming / Past: one segmented control, the current view filled. */
-      .events-views {
-        background: var(--card);
-        border: 1px solid var(--line-soft);
-        border-radius: 999px;
-        display: inline-flex;
-        flex: none;
-        gap: var(--space-1);
-        padding: var(--space-1);
-      }
-
-      .events-views a {
-        border-radius: 999px;
-        color: var(--body-text);
-        font-size: 0.95rem;
-        font-weight: 700;
-        padding: var(--space-2) var(--space-4);
-        text-decoration: none;
-      }
-
-      .events-views a:hover {
-        color: var(--ink);
-      }
-
-      .events-views a[aria-current="page"] {
-        background: var(--ink);
-        color: var(--cream);
+      /* Upcoming / Past: the shared filter pills, with the calendar link at the
+         right of the same row. */
+      .events-controls {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3) var(--space-5);
+        margin-top: var(--space-5);
       }
 
       .events-calendar {
@@ -418,11 +399,15 @@
     <main id="main-content" tabindex="-1">
       <section class="band band-cream events-hero" aria-labelledby="events-heading">
         <div class="shell shell-reading">
-          <div class="events-head">
-            <h1 class="page-title" id="events-heading">Events</h1>
-            <nav class="events-views" aria-label="Event views">
-              <a href="{{ upcoming_path }}"{% if not is_past_events %} aria-current="page"{% endif %}>Upcoming</a>
-              <a href="{{ past_path }}"{% if is_past_events %} aria-current="page"{% endif %}>Past</a>
+          <h1 class="page-title" id="events-heading">Events</h1>
+          <p class="events-lede">
+            Workshops, podcast recordings and open Q&amp;As with people doing the work.
+            Free, live, recorded if you miss it.
+          </p>
+          <div class="events-controls">
+            <nav class="filter-pills" aria-label="Event views">
+              <a class="filter-pill interactive-lift" href="{{ upcoming_path }}"{% if not is_past_events %} aria-current="page"{% endif %}>Upcoming events</a>
+              <a class="filter-pill interactive-lift" href="{{ past_path }}"{% if is_past_events %} aria-current="page"{% endif %}>Past events</a>
             </nav>
             <a
               class="band-link events-calendar"
@@ -431,10 +416,6 @@
               rel="noopener noreferrer"
             >Google calendar<span class="sr-only"> (opens in a new tab)</span> →</a>
           </div>
-          <p class="events-lede">
-            Workshops, podcast recordings and open Q&amp;As with people doing the work.
-            Free, live, recorded if you miss it.
-          </p>
         </div>
       </section>
 
