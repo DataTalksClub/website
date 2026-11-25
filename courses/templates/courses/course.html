@@ -98,14 +98,48 @@
         margin-bottom: 0;
       }
 
-      /* One wrapping row of controls, as the old page had it: every action this
-         course offers is reachable without opening anything.  They take the
-         compact CTA the course index already uses, so six of them wrap into a
-         row instead of stacking into a wall of full-height buttons. */
+      /* One primary header button (registration when open, or materials once
+         enrolled), followed by a secondary horizontal tab strip for cohort
+         workspace navigation (materials, leaderboard, dashboard, submissions,
+         profile, certificate). */
       .course-actions {
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-2);
+      }
+
+      .cohort-tabs {
+        border-bottom: 2px solid var(--line-soft);
+        display: flex;
+        flex-wrap: nowrap;
+        gap: var(--space-1);
+        margin-top: var(--space-2);
+        overflow-x: auto;
+        scrollbar-width: thin;
+      }
+
+      .cohort-tab {
+        align-items: center;
+        border-bottom: 3px solid transparent;
+        color: var(--muted);
+        display: inline-flex;
+        font-size: 0.92rem;
+        font-weight: 700;
+        margin-bottom: -2px;
+        min-height: 2.75rem;
+        padding: 0 var(--space-3);
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .cohort-tab:hover,
+      .cohort-tab:focus-visible {
+        color: var(--ink);
+      }
+
+      .cohort-tab[aria-current="page"] {
+        border-bottom-color: var(--green-ship);
+        color: var(--ink);
       }
 
       .course-fineprint {
@@ -446,10 +480,10 @@
             <div class="course-lede">{{ course.home_outcome|urlize_target_blank }}</div>
           {% endif %}
           {% comment %}
-            One row with every control the course offers, the way the page
-            carried them before the port: register, the materials, the
-            leaderboard and dashboard, and — for the learner who has them —
-            the course profile and the certificate.
+            Page goal: registration is the single primary CTA in the header
+            while open (or course materials once enrolled/registered). LMS
+            workspace links sit in the secondary tab strip below rather than
+            competing as equal-weight buttons in one cluster.
           {% endcomment %}
           <div class="course-actions">
             {% if registration_wall_blocked %}
@@ -460,26 +494,34 @@
             {% elif next_edition_campaign and not has_enrollment %}
               {% url 'registration_campaign' next_edition_campaign.slug as next_edition_campaign_url %}
               {% include "core/_button.html" with href=next_edition_campaign_url label="Register for the next edition" variant="primary" compact=True %}
-            {% endif %}
-            {% if materials_on_platform %}
-              {% include "core/_button.html" with href=materials_url label="Course materials" variant="secondary" compact=True %}
+            {% elif materials_on_platform %}
+              {% include "core/_button.html" with href=materials_url label="Course materials" variant="primary" compact=True %}
             {% elif materials_url %}
-              {% include "core/_button.html" with href=materials_url label="Course materials on GitHub" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
-            {% endif %}
-            {% url 'cohort_leaderboard' course.course.slug course.identifier as course_leaderboard_url %}
-            {% include "core/_button.html" with href=course_leaderboard_url label="Course leaderboard" variant="secondary" compact=True %}
-            {% url 'cohort_dashboard' course.course.slug course.identifier as course_dashboard_url %}
-            {% include "core/_button.html" with href=course_dashboard_url label="Course dashboard" variant="secondary" compact=True %}
-            {% cohort_projects_url course as project_submissions_url %}
-            {% include "core/_button.html" with href=project_submissions_url label="Project submissions" variant="secondary" compact=True %}
-            {% if is_authenticated and has_enrollment %}
-              {% url 'cohort_enrollment' course.course.slug course.identifier as enrollment_url %}
-              {% include "core/_button.html" with href=enrollment_url label="Edit course profile" variant="secondary" compact=True %}
-            {% endif %}
-            {% if is_authenticated and certificate_url %}
-              {% include "core/_button.html" with href=certificate_url label="Download Certificate" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
+              {% include "core/_button.html" with href=materials_url label="Course materials on GitHub" variant="primary" compact=True target="_blank" rel="noopener noreferrer" %}
             {% endif %}
           </div>
+          <nav class="cohort-tabs" aria-label="Cohort navigation">
+            {% url 'cohort' course.course.slug course.identifier as cohort_overview_url %}
+            <a class="cohort-tab" href="{{ cohort_overview_url }}" aria-current="page">Overview</a>
+            {% if materials_on_platform %}
+              <a class="cohort-tab" href="{{ materials_url }}">Course materials</a>
+            {% elif materials_url %}
+              <a class="cohort-tab" href="{{ materials_url }}" target="_blank" rel="noopener noreferrer">Course materials on GitHub</a>
+            {% endif %}
+            {% url 'cohort_leaderboard' course.course.slug course.identifier as course_leaderboard_url %}
+            <a class="cohort-tab" href="{{ course_leaderboard_url }}">Course leaderboard</a>
+            {% url 'cohort_dashboard' course.course.slug course.identifier as course_dashboard_url %}
+            <a class="cohort-tab" href="{{ course_dashboard_url }}">Course dashboard</a>
+            {% cohort_projects_url course as project_submissions_url %}
+            <a class="cohort-tab" href="{{ project_submissions_url }}">Project submissions</a>
+            {% if is_authenticated and has_enrollment %}
+              {% url 'cohort_enrollment' course.course.slug course.identifier as enrollment_url %}
+              <a class="cohort-tab" href="{{ enrollment_url }}">Edit course profile</a>
+            {% endif %}
+            {% if is_authenticated and certificate_url %}
+              <a class="cohort-tab" href="{{ certificate_url }}" target="_blank" rel="noopener noreferrer">Download Certificate</a>
+            {% endif %}
+          </nav>
           {% if can_access_course_studio %}
             <p class="course-operator">
               <a class="band-link" href="{% url 'studio_courses_course' course.slug %}">
