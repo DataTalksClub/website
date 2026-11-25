@@ -37,7 +37,6 @@
 
 {% block page_header %}
   <div class="academy-hero-copy">
-    <p class="kicker">{{ data.hero.eyebrow }}</p>
     <h1 id="academy-heading">{{ data.hero.headline }}</h1>
     <p class="academy-lede">{{ data.hero.lead }}</p>
     <div class="academy-actions">
@@ -226,6 +225,7 @@
     {% include "academy/_faq.html" with items=faq prefix="faq" label="" %}
     {% include "academy/_contact.html" %}
   </section>
+  {% include "academy/_admission.html" %}
   {% include "academy/_join.html" with choose_program=False %}
 {% endblock %}
 

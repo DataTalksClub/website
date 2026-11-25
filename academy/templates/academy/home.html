@@ -11,10 +11,10 @@
   column and the same frame -- a dashed seam and a band head: the two
   programs as cards (the comparison page linked under them),
   funding with its guides, the free session series, the three newest
-  articles as a card grid, a few questions from the FAQ, and the closing mint
-  panel holding the one waitlist form the hero's action points to.  The
-  anchors older links use (#hero, #signup-hero, #tracks, #facts, #funding)
-  stay on those blocks.  Every word is synced content (academy/index.md,
+  articles as a card grid, a few questions from the FAQ, the limited seats
+  with the four admission steps as cards, and the closing mint band
+  holding the one waitlist form the hero's action points to.  The anchors older links use (#hero, #signup-hero, #tracks, #facts,
+  #funding) stay on those blocks.  Every word is synced content (academy/index.md,
   academy/shared.yaml and the pages it reads from in DataTalksClub/content).
 {% endcomment %}
 
@@ -42,9 +42,6 @@
   <div class="shell-breakout academy-hero-wide">
     <div class="academy-hero-inner">
       <div class="academy-hero-copy">
-        {% if data.hero.eyebrow != shared.brand %}
-          <p class="kicker">{{ data.hero.eyebrow }}</p>
-        {% endif %}
         <h1 id="academy-heading">{{ data.hero.headline }}</h1>
         <p class="academy-lede">{{ data.hero.lead }}</p>
         <div class="academy-actions">
@@ -193,6 +190,8 @@
       {% include "academy/_contact.html" %}
     </section>
   {% endif %}
+
+  {% include "academy/_admission.html" with band="band-cream" %}
 
   {% include "academy/_join.html" with choose_program=True band=True %}
 {% endblock %}

@@ -301,6 +301,47 @@
         padding: 0;
       }
 
+      /* The closing copy is a heading and one line, so it heads the band and
+         the form card runs under it across the column, its fields two by two
+         and the submit beside the fine print -- no tall form beside a short
+         line and an empty column. */
+      .academy-closing.academy-closing-form.academy-closing-open {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      @media (min-width: 48rem) {
+        .academy-closing-form .academy-fields {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        /* A program page's form has three fields: the last one takes the
+           whole row rather than leaving a hole beside it. */
+        .academy-closing-form .academy-fields > :last-child:nth-child(odd) {
+          grid-column: 1 / -1;
+        }
+
+        .academy-closing-form .academy-form-actions {
+          align-items: center;
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--space-3) var(--space-5);
+        }
+
+        .academy-closing-form .academy-form-actions .cta {
+          flex: none;
+          width: auto;
+        }
+
+        .academy-closing-form .academy-fineprint {
+          flex: 1 1 18rem;
+        }
+
+        .academy-closing-form .academy-form-actions .a11y-error {
+          flex-basis: 100%;
+          order: 1;
+        }
+      }
+
       .academy-subhead {
         font-size: 1.1rem;
         margin: 2rem 0 1rem;
@@ -614,10 +655,18 @@
         gap: 0.75rem;
       }
 
-      /* --- limited seats: how you get in ----------------------------------- */
+      /* --- limited seats: how you get in ----------------------------------- *
+       * The four admission steps as numbered cards: one column on a phone,
+       * two on a tablet, one row of four on a wide screen.  The badge and
+       * title sit together on the card's top line, the homepage climb
+       * card's step row. */
+
+      .academy-steps-heading {
+        font-size: 1.1rem;
+        margin-bottom: var(--space-stack);
+      }
 
       .academy-steps {
-        gap: 1.25rem;
         list-style: none;
         margin: 0;
         padding: 0;
@@ -635,20 +684,19 @@
         }
       }
 
-      .academy-steps .card {
-        gap: 0.6rem;
-        padding: 1.25rem;
+      .academy-step {
+        gap: var(--space-3);
       }
 
-      .academy-steps .module-number {
-        grid-row: auto;
+      .academy-step .stage-card-step {
+        margin-top: 0;
       }
 
-      .academy-steps h4 {
+      .academy-step h4 {
         font-size: 1.05rem;
       }
 
-      .academy-steps p {
+      .academy-step p {
         color: var(--body-text);
       }
 
@@ -937,13 +985,6 @@
 
         .academy-closing {
           padding: 2rem 2.5rem;
-        }
-
-        /* The waitlist form beside its heading, at the width a single
-           column of fields reads well. */
-        .academy-closing.academy-closing-form {
-          align-items: start;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 26rem);
         }
       }
 

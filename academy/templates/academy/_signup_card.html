@@ -69,11 +69,10 @@
       </div>
     </form>
     <div class="academy-success" data-success hidden>
-      <p class="mono-label mono-label-green">{{ copy.success.eyebrow }}</p>
       <h3 tabindex="-1" data-success-title>{{ copy.success.title }}</h3>
       <p>{{ copy.success.text }}</p>
       {% include "academy/_confirm_notice.html" %}
-      <p class="mono-label mono-label-green">{{ copy.success.questions_label }}</p>
+      <h4>{{ copy.success.questions_label }}</h4>
       {% for question in copy.success.questions %}
         <div class="academy-question">
           <p id="question-{{ form_id }}-{{ question.key }}">{{ question.question }}</p>
