@@ -53,7 +53,18 @@ This document answers all 10 open questions in `bots-management/agents/contracts
     `in_progress` (started, not yet ended) and `past` (ended; no stored end means one hour after the
     start) are derived from the schedule and are what `status` reports in every response.
   - **Get:** `dtc events get <event>` (returns `public_url`, `public_id`, `id` UUID, `speakers`, `banner_url`, `reminder_intervals`, `registration_counts`, etc.)
-  - **Create** (published by default; pass `--no-publish` for `draft`):
+  - **Create** (published by default; pass `--no-publish` for `draft`). Every event is created with
+    a description and its picture, in one transaction; the server refuses a create without either
+    (`event_description_required`, `event_picture_required`). Pass `--banner FILE` for your own
+    1000x1000 picture; without it the CLI renders the standard picture locally with banner-generator
+    (`dtc-event-speaker`, from the title, type, speakers' names and portraits, and the start time in
+    `--timezone`) and sends it with the create call. The renderer is the banner-generator checkout at
+    `--banner-generator-dir`, `$DTC_BANNER_GENERATOR_DIR`, or `~/git/banner-generator` (it needs the
+    `dtc-event-speaker` template, banner-generator `main` from 9533fea on). `--banner-output PATH` keeps
+    the rendered PNG so you can look at it. The picture goes up in WAF-sized chunks
+    (`{"picture_chunk": ...}` on `POST /api/v1/admin/events`), then the create call names it by
+    `"picture": {"upload_id": ...}`; a direct API caller can instead send
+    `"picture": {"image_base64": ..., "content_type": ...}` inline.
     ```bash
     dtc events create \
       --title "Event Title" \
@@ -110,9 +121,17 @@ This document answers all 10 open questions in `bots-management/agents/contracts
 
 ## 3. Event banner: uploaded, size, and command
 
-- Banners are **uploaded by the operator** (the DTC site does not auto-generate banners).
+- Every event has a picture from the moment it exists (`events/pictures.py`): it is sent with the
+  create call (above), it can be replaced with `upload-banner`, and it can never be cleared. An event
+  written before this rule that still has no picture accepts no other edit until one is uploaded.
+  On PostgreSQL the completeness triggers (`event_registrants` migrations 0005/0007) also refuse to
+  commit an event without a type, speaker, description or picture.
+- Studio's create endpoint (`studio:event-create`) takes the picture as a required `picture` file
+  field (multipart) or the same JSON `picture` object. There is no "Generate standard picture" button:
+  banner-generator documents no HTTP render endpoint the site can call (its Lambda Function URL is
+  private and token-protected), so the standard picture is rendered locally by the CLI.
 - **Size & format:** `1000x1000` square PNG, JPEG, or WebP (max 5 MB).
-- **Command:**
+- **Replace a picture:**
   ```bash
   dtc events upload-banner <event> --file ./banner-1000x1000.png
   ```

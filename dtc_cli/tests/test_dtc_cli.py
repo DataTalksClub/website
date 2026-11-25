@@ -17,37 +17,49 @@ def test_cli_help() -> None:
     assert "login" in result.output
 
 
-def test_events_create_sends_expected_payload() -> None:
+PNG_BYTES = b"\x89PNG\r\n\x1a\n" + (b"x" * 10_000)
+CREATE_ARGS = [
+    "events",
+    "create",
+    "--title",
+    "Test Event",
+    "--type",
+    "webinar",
+    "--description",
+    "What it is about.",
+    "--start-datetime",
+    "2026-12-01T17:00:00+01:00",
+    "--speakers",
+    "alexeygrigorev",
+    "--sponsor-sharing",
+    "--collect-company",
+    "--reminder-intervals",
+    "24h",
+]
+
+
+def test_events_create_sends_the_picture_staged_then_the_event(tmp_path) -> None:
+    banner = tmp_path / "banner.png"
+    banner.write_bytes(PNG_BYTES)
     runner = CliRunner()
     fake_client = MagicMock()
     fake_client.post.return_value = {
         "event": {"id": "11111111-1111-1111-1111-111111111111", "public_id": 999}
     }
     with patch("dtc_cli.commands.events.get_client", return_value=fake_client):
-        result = runner.invoke(
-            cli,
-            [
-                "events",
-                "create",
-                "--title",
-                "Test Event",
-                "--type",
-                "webinar",
-                "--start-datetime",
-                "2026-12-01T17:00:00+01:00",
-                "--speakers",
-                "alexeygrigorev",
-                "--sponsor-sharing",
-                "--collect-company",
-                "--reminder-intervals",
-                "24h",
-            ],
-        )
+        result = runner.invoke(cli, [*CREATE_ARGS, "--banner", str(banner)])
     assert result.exit_code == 0, result.output
-    fake_client.post.assert_called_once()
-    path, kwargs = fake_client.post.call_args[0][0], fake_client.post.call_args[1]
+    calls = fake_client.post.call_args_list
+    # 10,008 bytes in 4,096-byte chunks: three staged chunks, then the create call.
+    assert len(calls) == 4
+    chunks = [c.kwargs["json_body"]["picture_chunk"] for c in calls[:3]]
+    assert {chunk["upload_id"] for chunk in chunks} == {chunks[0]["upload_id"]}
+    assert [chunk["chunk_index"] for chunk in chunks] == [0, 1, 2]
+    assert calls[0].kwargs["extra_headers"] is None
+    assert calls[1].kwargs["extra_headers"] == {"X-Banner-Upload-Chunk": "1"}
+    path, body = calls[3].args[0], calls[3].kwargs["json_body"]
     assert path == "/api/v1/admin/events"
-    body = kwargs["json_body"]
+    assert body["picture"] == {"upload_id": chunks[0]["upload_id"]}
     assert body["title"] == "Test Event"
     assert body["type"] == "webinar"
     assert body["speakers"] == ["alexeygrigorev"]
@@ -55,6 +67,46 @@ def test_events_create_sends_expected_payload() -> None:
     assert body["collect_company"] is True
     assert body["reminder_intervals"] == "24h"
     assert body["publish"] is True
+
+
+def test_events_create_renders_the_standard_picture_without_banner(tmp_path) -> None:
+    runner = CliRunner()
+    fake_client = MagicMock()
+    fake_client.post.return_value = {"event": {"id": "x"}}
+
+    def fake_render(body, *, client, generator_dir, output):
+        assert body["title"] == "Test Event"
+        output.write_bytes(PNG_BYTES[:100])
+        return output
+
+    with (
+        patch("dtc_cli.commands.events.get_client", return_value=fake_client),
+        patch("dtc_cli.commands.events.render_standard_picture", side_effect=fake_render),
+    ):
+        result = runner.invoke(cli, CREATE_ARGS)
+    assert result.exit_code == 0, result.output
+    calls = fake_client.post.call_args_list
+    assert len(calls) == 2
+    assert calls[0].kwargs["json_body"]["picture_chunk"]["content_type"] == "image/png"
+    assert "upload_id" in calls[1].kwargs["json_body"]["picture"]
+
+
+def test_events_create_requires_a_description() -> None:
+    runner = CliRunner()
+    args = [a for a in CREATE_ARGS if a not in {"--description", "What it is about."}]
+    with patch("dtc_cli.commands.events.get_client", return_value=MagicMock()):
+        result = runner.invoke(cli, args)
+    assert result.exit_code == 2
+    assert "description" in result.output
+
+
+def test_picture_labels_use_the_events_timezone() -> None:
+    from dtc_cli.commands.events import _picture_labels
+
+    assert _picture_labels("2022-12-13T16:00:00+00:00", "Europe/Berlin") == (
+        "Tue 13 Dec 2022",
+        "17:00 CET",
+    )
 
 
 def test_events_export_registrants_csv(tmp_path) -> None:

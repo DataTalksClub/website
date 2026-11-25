@@ -5,11 +5,18 @@ from __future__ import annotations
 import base64
 import csv
 import json
+import os
+import shutil
+import subprocess
+import tempfile
 import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import click
+import httpx
 
 from dtc_cli.client import get_client
 from dtc_cli.output import emit, format_csv
@@ -220,12 +227,233 @@ def _build_event_payload(kwargs: dict[str, Any], *, is_create: bool) -> dict[str
     return body
 
 
+DEFAULT_BANNER_GENERATOR_DIR = Path.home() / "git" / "banner-generator"
+BANNER_TEMPLATE = "dtc-event-speaker"
+
+
+def _sniff_mime(raw: bytes) -> str | None:
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if raw.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if len(raw) >= 12 and raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+def _picture_labels(start_raw: str, tz_name: str) -> tuple[str, str]:
+    """``("Tue 13 Dec 2022", "17:00 CET")`` in the event's own timezone."""
+    try:
+        zone = ZoneInfo(tz_name)
+    except (ZoneInfoNotFoundError, ValueError) as exc:
+        raise click.UsageError(f"Unknown --timezone {tz_name!r}.") from exc
+    try:
+        start = datetime.fromisoformat(start_raw)
+    except ValueError as exc:
+        raise click.UsageError("--start-datetime must be ISO 8601.") from exc
+    local = start.replace(tzinfo=zone) if start.tzinfo is None else start.astimezone(zone)
+    return (
+        f"{local:%a} {local.day} {local:%b %Y}",
+        f"{local:%H:%M} {local.tzname() or tz_name}",
+    )
+
+
+def _speaker_entries(client: Any, shorts: list[str], workdir: Path) -> list[dict[str, Any]]:
+    """Name and local portrait for each speaker short key.
+
+    The name comes from the speakers API (the short key when the speaker is new);
+    the portrait is the site's ``/images/authors/<short>.jpg``, left out (the
+    template then draws initials) when the site has none.
+    """
+    entries: list[dict[str, Any]] = []
+    base_url = str(getattr(client, "base_url", "") or "").rstrip("/")
+    for short in shorts:
+        name = short
+        try:
+            found = client.get(f"{API}/events/speakers", params={"search": short})
+            for item in found.get("items") or []:
+                if str(item.get("short")) == short:
+                    name = str(item.get("name") or short)
+                    break
+        except Exception:  # noqa: BLE001 - a missing name falls back to the short key
+            pass
+        entry: dict[str, Any] = {"name": name}
+        if base_url:
+            try:
+                response = httpx.get(
+                    f"{base_url}/images/authors/{short}.jpg", timeout=20.0, follow_redirects=True
+                )
+                if response.status_code == 200 and _sniff_mime(response.content):
+                    portrait = workdir / f"{short}.jpg"
+                    portrait.write_bytes(response.content)
+                    entry["image_url"] = portrait.resolve().as_uri()
+            except httpx.HTTPError:
+                pass
+        entries.append(entry)
+    return entries
+
+
+def render_standard_picture(
+    body: dict[str, Any],
+    *,
+    client: Any,
+    generator_dir: Path,
+    output: Path,
+) -> Path:
+    """Render the standard event picture with banner-generator (``dtc-event-speaker``).
+
+    Runs ``uv run banner-generator render`` in the local banner-generator
+    checkout; see its README, "DataTalks.Club event pictures".
+    """
+    missing = [
+        flag
+        for flag, key in (
+            ("--title", "title"),
+            ("--type", "type"),
+            ("--start-datetime", "start_datetime"),
+            ("--speakers", "speakers"),
+        )
+        if not body.get(key)
+    ]
+    if missing:
+        raise click.UsageError(
+            f"Rendering the standard picture needs {', '.join(missing)} (or pass --banner)."
+        )
+    if not (generator_dir / "pyproject.toml").is_file():
+        raise click.UsageError(
+            f"banner-generator not found at {generator_dir}. Pass --banner FILE, or point "
+            "--banner-generator-dir / DTC_BANNER_GENERATOR_DIR at a checkout."
+        )
+    uv = shutil.which("uv")
+    if uv is None:
+        raise click.UsageError("Rendering the standard picture needs `uv` on PATH.")
+    date_label, time_label = _picture_labels(
+        str(body["start_datetime"]), str(body.get("timezone") or "Europe/Berlin")
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="dtc-event-picture-") as tmp:
+        workdir = Path(tmp)
+        spec = {
+            "template": BANNER_TEMPLATE,
+            "format": "png",
+            "size": "luma",
+            "output": str(output.resolve()),
+            "kind": str(body["type"]),
+            "title": str(body["title"]),
+            "date_label": date_label,
+            "time_label": time_label,
+            "speakers": _speaker_entries(client, list(body["speakers"]), workdir),
+        }
+        spec_path = workdir / "event-picture.json"
+        spec_path.write_text(json.dumps(spec, indent=2), encoding="utf-8")
+        completed = subprocess.run(  # noqa: S603 - fixed argv, local trusted tool
+            [
+                uv,
+                "run",
+                "--project",
+                str(generator_dir),
+                "banner-generator",
+                "render",
+                str(spec_path),
+            ],
+            cwd=str(generator_dir),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if completed.returncode != 0 or not output.is_file():
+            detail = (completed.stderr or completed.stdout).strip().splitlines()[-5:]
+            raise click.ClickException(
+                "banner-generator failed to render the standard picture:\n" + "\n".join(detail)
+            )
+    return output
+
+
+def _stage_picture(client: Any, raw_bytes: bytes, mime: str) -> str:
+    """Send the picture in WAF-sized chunks before the create call; return its upload id."""
+    upload_id = str(uuid.uuid4())
+    chunks = [
+        raw_bytes[offset : offset + BANNER_CHUNK_RAW_BYTES]
+        for offset in range(0, len(raw_bytes), BANNER_CHUNK_RAW_BYTES)
+    ]
+    for index, chunk in enumerate(chunks):
+        client.post(
+            f"{API}/events",
+            json_body={
+                "picture_chunk": {
+                    "upload_id": upload_id,
+                    "chunk_index": index,
+                    "chunk_count": len(chunks),
+                    "content_type": mime,
+                    "chunk_base64": base64.b64encode(chunk).decode("ascii"),
+                }
+            },
+            extra_headers={"X-Banner-Upload-Chunk": "1"} if index > 0 else None,
+        )
+    return upload_id
+
+
 @events.command("create")
 @_apply_common_flags
-def events_create(**kwargs: Any) -> None:
-    """Create an event (published by default; pass --no-publish for draft)."""
+@click.option(
+    "--banner",
+    "banner_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="The event picture: a 1000x1000 PNG, JPEG or WebP. Without it the standard "
+    "picture is rendered with banner-generator from the title, type, speakers and date.",
+)
+@click.option(
+    "--banner-generator-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=None,
+    help="banner-generator checkout used to render the standard picture "
+    "(default: $DTC_BANNER_GENERATOR_DIR or ~/git/banner-generator).",
+)
+@click.option(
+    "--banner-output",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="Keep the rendered standard picture at this path (default: a temporary file).",
+)
+def events_create(
+    banner_file: Path | None,
+    banner_generator_dir: Path | None,
+    banner_output: Path | None,
+    **kwargs: Any,
+) -> None:
+    """Create an event with its picture (published by default; --no-publish for draft).
+
+    Every event has a picture from the moment it exists, so the picture is sent
+    with the create call: --banner FILE, or else the standard picture rendered
+    locally with banner-generator.
+    """
     body = _build_event_payload(kwargs, is_create=True)
-    emit(get_client().post(f"{API}/events", json_body=body))
+    if not str(body.get("description") or "").strip():
+        raise click.UsageError(
+            "Every event needs a description: pass --description or --description-file."
+        )
+    client = get_client()
+    if banner_file is not None:
+        raw_bytes = banner_file.read_bytes()
+    else:
+        generator_dir = banner_generator_dir or Path(
+            os.environ.get("DTC_BANNER_GENERATOR_DIR") or DEFAULT_BANNER_GENERATOR_DIR
+        )
+        with tempfile.TemporaryDirectory(prefix="dtc-event-picture-out-") as out_tmp:
+            output = banner_output or Path(out_tmp) / "event-picture.png"
+            render_standard_picture(body, client=client, generator_dir=generator_dir, output=output)
+            raw_bytes = output.read_bytes()
+        click.echo(
+            f"Rendered the standard picture ({len(raw_bytes)} bytes)"
+            + (f": {banner_output}" if banner_output else "."),
+            err=True,
+        )
+    mime = _sniff_mime(raw_bytes)
+    if mime is None:
+        raise click.UsageError("The picture must be a PNG, JPEG or WebP image.")
+    body["picture"] = {"upload_id": _stage_picture(client, raw_bytes, mime)}
+    emit(client.post(f"{API}/events", json_body=body))
 
 
 @events.command("update")
