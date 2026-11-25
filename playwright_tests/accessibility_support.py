@@ -210,8 +210,16 @@ def focus_issues(page: Page, state: str) -> list[str]:
               if (!(node instanceof HTMLElement) || node === document.body) return null;
               node.scrollIntoView({block: 'center', inline: 'center'});
               const style = getComputedStyle(node);
-              const outline = parseFloat(style.outlineWidth) >= 2
-                && style.outlineStyle !== 'none';
+              // A stretched-link card draws its focus ring on the card itself
+              // (the link is the card), so a ring on that ancestor counts.
+              const cardRing = (el) => {
+                const card = el.closest('.interactive-card');
+                if (!card || card === el) return false;
+                const cs = getComputedStyle(card);
+                return parseFloat(cs.outlineWidth) >= 2 && cs.outlineStyle !== 'none';
+              };
+              const outline = (parseFloat(style.outlineWidth) >= 2
+                && style.outlineStyle !== 'none') || cardRing(node);
               const shadow = style.boxShadow !== 'none';
               const rect = node.getBoundingClientRect();
               const x = Math.min(innerWidth - 1, Math.max(0, rect.left + rect.width / 2));
@@ -272,6 +280,8 @@ def focus_issues(page: Page, state: str) -> list[str]:
                   const node = document.activeElement;
                   if (!(node instanceof HTMLElement)) return null;
                   const style = getComputedStyle(node);
+                  const card = node.closest('.interactive-card');
+                  const cardStyle = card && card !== node ? getComputedStyle(card) : null;
                   const rect = node.getBoundingClientRect();
                   const x = Math.min(innerWidth - 1, Math.max(0, rect.left + rect.width / 2));
                   const y = Math.min(innerHeight - 1, Math.max(0, rect.top + rect.height / 2));
@@ -279,7 +289,10 @@ def focus_issues(page: Page, state: str) -> list[str]:
                   return {
                     focusVisible: (
                       parseFloat(style.outlineWidth) >= 2 && style.outlineStyle !== 'none'
-                    ) || style.boxShadow !== 'none',
+                    ) || style.boxShadow !== 'none' || Boolean(
+                      cardStyle && parseFloat(cardStyle.outlineWidth) >= 2
+                        && cardStyle.outlineStyle !== 'none'
+                    ),
                     obscured: Boolean(
                       top && top !== node && !node.contains(top) && !top.contains(node)
                     ),

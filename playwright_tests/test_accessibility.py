@@ -173,9 +173,7 @@ def _public_rendered_states(
         PublicRenderedState("public.podcast-hub", "podcast", "Podcast"),
         PublicRenderedState("public.books-hub", "books", "Book of the Week"),
         PublicRenderedState("public.people-hub", "people", "All people"),
-        # The design system events index (issue #179, mockup 6c) leads with the mockup's
-        # headline; "Events" survives only as the navigation label and the page title.
-        PublicRenderedState("public.events-hub", "events", "Something happening every week"),
+        PublicRenderedState("public.events-hub", "events", "Events"),
         PublicRenderedState("public.courses-hub", "courses", "Learn data skills"),
         PublicRenderedState("public.wiki-hub", "wiki", "Wiki"),
         PublicRenderedState("public.docs-hub", "docs", "Documentation"),
@@ -190,12 +188,12 @@ def _public_rendered_states(
         PublicRenderedState("public.wiki-detail", "wiki-detail", wiki["title"]),
         PublicRenderedState("public.docs-nested", "docs-detail", docs["title"]),
         PublicRenderedState("public.faq-anchor", "faq-anchor", faq["question"]),
-        PublicRenderedState("public.wiki-results", "wiki-results", "results for"),
-        PublicRenderedState("public.wiki-zero-results", "wiki-zero", "0 results"),
+        PublicRenderedState("public.wiki-results", "wiki-results", "for “machine learning”"),
+        PublicRenderedState("public.wiki-zero-results", "wiki-zero", "0 topics for"),
         PublicRenderedState("public.wiki-graph", "wiki-graph", "Wiki"),
         PublicRenderedState("public.wiki-special-pages", "wiki-special", "Special pages"),
         PublicRenderedState("public.missing-media", "missing-media", "unavailable"),
-        PublicRenderedState("public.empty-state", "wiki-zero", "0 results"),
+        PublicRenderedState("public.empty-state", "wiki-zero", "0 topics for"),
         PublicRenderedState("public.application-404", "missing", "Page not found"),
     )
 
