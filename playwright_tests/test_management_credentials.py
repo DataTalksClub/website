@@ -7,6 +7,7 @@ import pytest
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.template.loader import render_to_string
 from django.test import Client, override_settings
 from playwright.sync_api import Page, expect
 
@@ -155,3 +156,35 @@ def test_one_time_credential_lifecycle_is_accessible_and_nonpersistent(
     assert navigation_token not in page.content()
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
     page.screenshot(path=_screenshot_path("back-secret-gone", viewport), full_page=True)
+
+
+@pytest.mark.parametrize(
+    ("template", "urlconf"),
+    (
+        ("studio/credentials.html", "website.urls"),
+        ("management_api/credential_fixture.html", "management_api.tests.fixture_urlconf"),
+    ),
+)
+def test_copy_waits_for_credential_script(page: Page, live_server, template, urlconf) -> None:
+    """A slow script cannot leave a visible copy control accepting lost clicks."""
+    with override_settings(ROOT_URLCONF=urlconf):
+        html = render_to_string(
+            template,
+            {"raw_token": "synthetic-noncredential-placeholder", "csrf_token": "synthetic-csrf"},
+        )
+    url = f"{live_server.url}/_credential-script-delay/"
+    script = Path("core/static/core/credential_copy.js").read_text()
+    held = []
+    page.route(url, lambda route: route.fulfill(content_type="text/html", body=html))
+    page.route("**/core/credential_copy*.js", lambda route: held.append(route))
+    install_credential_clipboard(page)
+    with page.expect_request(lambda request: "/core/credential_copy" in request.url):
+        page.goto(url, wait_until="commit")
+    expect(page.get_by_role("heading", name="Copy this credential now")).to_be_visible()
+    button = page.get_by_role("button", name="Copy credential")
+    expect(button).to_be_disabled()
+    assert len(held) == 1
+    held[0].fulfill(content_type="application/javascript", body=script)
+    expect(button).to_be_enabled()
+    button.click()
+    assert_credential_was_copied(page)

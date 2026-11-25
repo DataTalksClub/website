@@ -47,6 +47,8 @@ PLAYWRIGHT_EXCLUSIONS: Final = (
 # gate, so keep them next to the command that consumes them.
 ADOPTION_INTEGRATION_PYTHON: Final = (
     "accounts/tests/test_unconfigured_provider.py",
+    "scripts/cutover_preflight.py",
+    "scripts/tests/test_cutover_preflight.py",
     # Certificates intake aa1a414f: per-course templates and generation.
     "courses/admin/certificate.py",
     "courses/certificate_capabilities.py",

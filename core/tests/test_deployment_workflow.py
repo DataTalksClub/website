@@ -185,7 +185,7 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # only, no dependency change); the pyproject seal moves with that reviewed pyproject.
 # Migration intake 842c: reviewed strict-mypy test/checker opt-ins only;
 # dependencies and the lock seal are unchanged.
-STUDIO_COURSES_PYPROJECT_SHA256 = "2c1da87d01f4bdb3c2e5fddbf2c220d5c627f3eda24bf227c3aa13b19afb5d64"
+STUDIO_COURSES_PYPROJECT_SHA256 = "3931e47cd72288cbae36c2b683835aff5dfaeec0a6372350a643e28e07764576"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
