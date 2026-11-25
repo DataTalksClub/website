@@ -102,3 +102,36 @@ class IncompletePublishedEventsTests(_WithSpeaker):
 
         self.assertEqual([item["public_id"] for item in incomplete], [bare.public_id])
         self.assertEqual(incomplete[0]["missing"], ["type", "speakers"])
+
+
+class PublishAvoidsSeriesEnrolmentLockTests(_WithSpeaker):
+    """PostgreSQL rejects the package's series-enrolment lock; publishing must not use it."""
+
+    def test_publish_does_not_call_the_series_enrolment_step(self) -> None:
+        from unittest import mock
+
+        created = create_event(_payload(publish=False))["event"]
+        with mock.patch(
+            "community_base.events.registration.enroll_series_registrants_in_event",
+            side_effect=AssertionError("series enrolment must not run on publish"),
+        ):
+            published = publish_event_action(event_id=created["id"])["event"]
+        self.assertEqual(published["status"], "upcoming")
+        self.assertIsNotNone(published["public_id"])
+
+    def test_publish_sends_the_published_signal_once_committed(self) -> None:
+        from community_base.events.signals import event_published
+
+        created = create_event(_payload(publish=False))["event"]
+        received: list[int] = []
+
+        def receiver(sender: object, event: Event, **_: object) -> None:
+            received.append(event.pk)
+
+        event_published.connect(receiver)
+        try:
+            with self.captureOnCommitCallbacks(execute=True):
+                publish_event_action(event_id=created["id"])
+        finally:
+            event_published.disconnect(receiver)
+        self.assertEqual(len(received), 1)

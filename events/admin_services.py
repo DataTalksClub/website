@@ -12,7 +12,8 @@ from typing import Any
 
 import mistune
 from community_base.events.models import Event, EventHost, EventRegistration, EventReminder, Host
-from community_base.events.services import cancel_event, publish_event
+from community_base.events.services import allocate_public_id, cancel_event
+from community_base.events.signals import event_published
 from community_base.kernel.services import ServiceContext
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
@@ -250,7 +251,31 @@ def _publish(event: Event) -> Event:
         require_publishable(event)
     except EventNotPublishable as exc:
         raise EventAdminError(exc.messages[0], code="event_not_publishable") from exc
-    return publish_event(event)
+    return _publish_locked(event)
+
+
+@transaction.atomic
+def _publish_locked(event: Event) -> Event:
+    """Publish a draft the way ``community_base.events.services.publish_event`` does.
+
+    The package's ``publish_event`` ends with ``enroll_series_registrants_in_event``,
+    which runs ``select_for_update().select_related("event_series")``.  PostgreSQL
+    refuses ``FOR UPDATE`` over the nullable side of that outer join, so on
+    production every publish failed with ``internal_error`` (SQLite, which the
+    tests use, ignores ``FOR UPDATE``).  This site has no event series, so the
+    enrolment step has nothing to do and is left out; status, ``published_at``,
+    the public id and the ``event_published`` signal are unchanged.
+    """
+
+    event = Event.objects.select_for_update().get(pk=event.pk)
+    if event.status not in {"draft", "upcoming"}:
+        raise DjangoValidationError("Only draft or upcoming events can be published.")
+    event.status = "upcoming"
+    event.published_at = event.published_at or timezone.now()
+    event.save(update_fields=("status", "published_at", "updated_at"))
+    event.public_id = allocate_public_id(event)
+    transaction.on_commit(lambda: event_published.send(sender=Event, event=event))
+    return event
 
 
 def _sync_event_speakers(event: Event, speaker_shorts: list[str]) -> None:
