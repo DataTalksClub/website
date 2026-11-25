@@ -160,6 +160,58 @@ Ordering: `migrate` → `uv run --frozen python scripts/content.py sources` →
 `uv run --frozen python scripts/content.py checkouts` (the only networked step) →
 `uv run --frozen python scripts/content.py pull`.
 
+### 3.1 Projects and review criteria sets from `cohort.yaml`
+
+A schema-2 `cohort.yaml` may declare `review_criteria:` (paths to criteria-set YAML
+files inside the cohort directory, community-base `parse_criteria_set` format, slug
+namespaced per course because `ReviewCriteriaSet.slug` is global) and `projects:`
+(`slug`, `title`, optional `module` placement and `description` Markdown path,
+`submission_due`, `review_due`, `peers`, `criteria_set`). The same ingest upserts
+`ReviewCriteriaSet` rows and `courses.Project` rows keyed by (cohort, slug): a re-import
+refreshes title, description, deadlines, peers, criteria set and module placement, and
+never deletes a project or touches its state, submissions or reviews. Parser:
+`content_sync/course_repository_v2.py`; import: `_import_cohort_projects` in
+`courses/services/curriculum_import.py`.
+
+### 3.2 Converting a running legacy cohort: MediaGen 2026 production cutover
+
+`production-ai-agents-generative-media-2026` (legacy until 2026-11-25) moves to the
+schema-2 format: the repository `DataTalksClub/production-ai-agents-for-media-generation`
+now carries `course.yaml`, module manifests, `cohorts/2026/cohort.yaml` (homework 1–3,
+the `mediagen-capstone` criteria set, project attempts 1 and 2) and per-module
+`homework.yaml`. Rehearsed locally on a copy of the prep dataset; production is not
+done yet. Run in this order against production only when the owner schedules it:
+
+1. Deploy the site at or after the commit that adds `courses.0040_project_shared_module`
+   and run `migrate`.
+2. Register the repository as a content source (stable id
+   `production-ai-agents-generative-media`, owner `DataTalksClub`, repository
+   `production-ai-agents-for-media-generation`, branch `main`) with
+   `manage.py register_course_repository ... --enabled`, then pull it once
+   (`scripts/prod/sync_course_repositories.py --stable-id production-ai-agents-generative-media`)
+   or let the push webhook do it. Expected counts: 1 cohort, 4 shared modules,
+   19 lessons, 3 homework, 27 questions, 1 criteria set, 2 projects. The cohort becomes
+   `curriculum_format=shared`; `visible` and `requires_registration_approval` are kept.
+   The importer replaces the cohort `description` with the derived schema-2 text
+   ("The 2026 live delivery of ..."), as for every schema-2 cohort.
+3. Take a fresh CMP export that includes the cohort's Homework 1 (the daily
+   `/data/tmp/rds-export/cmp/` export stopped on 2026-11-17 and the newest usable
+   export predates the cohort, so this could not be rehearsed with real submissions).
+4. On a copy of production first: `scripts/prod/import_cmp_content.py` for the export.
+   The CMP homework slugs (`module1`..) match the repository slugs, so the CMP rows pair
+   with the repository rows by slug and are renamed in place. Check the summary for the
+   cohort: no new questions on `module1` (questions reconcile by text and order; the
+   repository prompts are free-form and their text came from the same `homework.md`). If
+   new questions appear, align the repository prompts with CMP's text and re-pull before
+   going further, otherwise learner answers attach to duplicate questions.
+5. `scripts/prod/import_cmp_learners.py`, then `scripts/prod/import_cmp_learner_history.py`
+   against the same database. Compare the Homework 1 submission count with CMP's and
+   open the homework as an affected learner (impersonation in Studio, not their
+   password): the stepper's Review & submit step shows the accepted CMP answers.
+6. Only then point learners at the site for Homework 2 (closed until the owner opens
+   it) and the capstone (attempt 1 due 2027-01-15, review by 2027-01-22; attempt 2 due
+   2027-01-29, review by 2027-02-05).
+
 ---
 
 ## 4. The projection: sources 2–10
