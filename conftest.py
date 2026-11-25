@@ -44,10 +44,13 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
     "test_unknown_same_origin_image_reaches_the_media_view": (
         (re.compile(r"^/images/not-a-recorded-media-object\.png$"), 404),
     ),
+    # The homepage's article card names a post cover the offline media store
+    # does not hold; the journey is about the podcast, not that image.
+    "test_homepage_latest_episode_and_global_podcast_journey": (
+        (re.compile(r"^/images/posts/[a-z0-9-]+/og-image\.jpg$"), 404),
+    ),
     "test_alias_query_and_safe_denial_browser_matrix": (
-        (re.compile(r"^/podcast$"), 400),
-        (re.compile(r"^/podcast$"), 404),
-        (re.compile(r"^/podcast$"), 405),
+        (re.compile(r"^/podcast/s/[0-9]+/$"), 404),
     ),
     "test_complete_accessibility_registry": (
         (re.compile(r"^/_accessibility/identity-conflict/$"), 409),

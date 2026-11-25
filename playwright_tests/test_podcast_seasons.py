@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import pytest
@@ -8,9 +9,9 @@ from playwright_tests.accessibility_support import assert_accessible_page
 from playwright_tests.navigation_support import primary_navigation_link
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-132")
-# The design system rebuild (issue #179) gave the index the mockup's own headline; the
-# season heading it navigates by is unchanged.
-PODCAST_HEADING = "Conversations with people who ship data"
+# The index opens on a plain "Podcast" page title; the season heading it
+# navigates by (the one h2) names the season on show.
+PODCAST_HEADING = "Podcast"
 
 
 def _season_numbers() -> list[int]:
@@ -34,12 +35,18 @@ def _season_scenarios() -> tuple[tuple[int, str, int | None, int | None], ...]:
     return tuple(
         (
             numbers[index],
-            "/podcast" if index == 0 else f"/podcast?season={numbers[index]}",
+            "/podcast" if index == 0 else f"/podcast/s/{numbers[index]}/",
             numbers[index - 1] if index else None,
             numbers[index + 1] if index + 1 < len(numbers) else None,
         )
         for index in chosen
     )
+
+
+def _season_heading(page: Page, number: int):
+    """The one season heading; its name also carries the season's span and count."""
+
+    return page.locator("#season-heading").filter(has_text=re.compile(rf"^\s*Season {number}\b"))
 
 
 def _screenshot(page: Page, name: str, *, full_page: bool = True) -> None:
@@ -72,15 +79,19 @@ def _assert_no_horizontal_overflow(page: Page) -> None:
 
 
 def _assert_season_targets(page: Page) -> None:
-    targets = page.get_by_role("navigation", name="Podcast seasons").locator(".pagination-target")
+    # The newest seasons are pills; older ones fold into a closed disclosure
+    # whose links have no box until it opens, so only drawn targets are measured.
+    targets = page.get_by_role("navigation", name="Podcast seasons", exact=True).locator(".filter-pill")
     sizes = targets.evaluate_all(
         """(nodes) => nodes.map((node) => {
           const rect = node.getBoundingClientRect();
           return {text: node.textContent.trim(), width: rect.width, height: rect.height};
-        })"""
+        }).filter((item) => item.width > 0)"""
     )
-    assert len(sizes) >= len(_season_numbers())
-    assert all(item["width"] >= 44 and item["height"] >= 44 for item in sizes), sizes
+    assert len(sizes) >= min(8, len(_season_numbers()))
+    # A season pill is 44px tall and at least 2.5rem (40px) wide: a one-digit
+    # season is the narrowest, and the row's spacing keeps it a clear target.
+    assert all(item["width"] >= 40 and item["height"] >= 44 for item in sizes), sizes
 
 
 @pytest.mark.core
@@ -101,7 +112,7 @@ def test_homepage_latest_episode_and_global_podcast_journey(page: Page, live_ser
     primary_navigation_link(page, "Podcast").click()
     expect(page).to_have_url(f"{origin}/podcast")
     expect(
-        page.get_by_role("heading", name=f"Season {_season_numbers()[0]}", exact=True)
+        _season_heading(page, _season_numbers()[0])
     ).to_be_visible()
     expect(page.locator("[data-podcast-episode]").first).to_contain_text(latest["title"])
 
@@ -112,7 +123,6 @@ def test_podcast_card_is_a_whole_keyboard_destination_without_nested_interactive
     live_server,
 ) -> None:
     episode = ordered_podcasts()[0]
-    expected_meta = f"Season {episode['season']} · Episode {episode['episode']}"
     origin = live_server.url
 
     page.set_viewport_size({"width": 390, "height": 844})
@@ -120,47 +130,33 @@ def test_podcast_card_is_a_whole_keyboard_destination_without_nested_interactive
     assert response is not None and response.status == 200
     _settle_analytics_preferences(page)
 
-    card = page.locator("[data-podcast-episode]").first.locator(".podcast-card")
-    expect(card).to_have_count(1)
-    meta = card.locator(".podcast-meta")
-    expect(meta).to_have_count(1)
-    assert meta.evaluate("node => node.textContent.trim()") == expected_meta
+    # The card is the timeline's soft `.event-item`.  Its rail already names the
+    # season (heading) and the episode, so the card opens with its title: there
+    # is no season/episode eyebrow line inside it.
+    card = page.locator("[data-podcast-episode]").first
+    expect(card).to_have_class(re.compile(r"\bevent-item\b"))
+    expect(card.locator(".event-item-time")).to_have_count(0)
+    expect(card.locator(".podcast-meta")).to_have_count(0)
     expect(card.locator(".status-pill")).to_have_count(0)
-    expect(card.locator(".archive-title a")).to_have_attribute(
-        "href",
-        episode["public_path"],
-    )
+    expect(card.locator("h3 a")).to_have_attribute("href", episode["public_path"])
 
     card_style = card.evaluate(
         """(node) => {
           const style = getComputedStyle(node);
           return {
-            background: style.backgroundColor,
+            transparent: style.backgroundColor === 'rgba(0, 0, 0, 0)',
             border: style.borderTopWidth,
+            borderStyle: style.borderTopStyle,
             shadow: style.boxShadow,
           };
         }"""
     )
     assert card_style == {
-        "background": "rgba(0, 0, 0, 0)",
+        "transparent": False,
         "border": "1px",
+        "borderStyle": "solid",
         "shadow": "none",
     }, card_style
-    meta_style = meta.evaluate(
-        """(node) => {
-          const style = getComputedStyle(node);
-          return {
-            background: style.backgroundColor,
-            border: style.borderTopWidth,
-            radius: style.borderTopLeftRadius,
-          };
-        }"""
-    )
-    assert meta_style == {
-        "background": "rgba(0, 0, 0, 0)",
-        "border": "0px",
-        "radius": "0px",
-    }, meta_style
 
     assert card.evaluate("node => node.querySelectorAll('a a, a button, button a').length") == 0
 
@@ -173,7 +169,7 @@ def test_podcast_card_is_a_whole_keyboard_destination_without_nested_interactive
     expect(page).to_have_url(f"{origin}{guest_path}")
     page.go_back(wait_until="networkidle")
     _settle_analytics_preferences(page)
-    card = page.locator("[data-podcast-episode]").first.locator(".podcast-card")
+    card = page.locator("[data-podcast-episode]").first
 
     # A physical point on the card still activates the title anchor's stretched
     # hit area.  The pseudo-element is intentionally the topmost pointer target.
@@ -185,7 +181,7 @@ def test_podcast_card_is_a_whole_keyboard_destination_without_nested_interactive
 
     page.go_back(wait_until="networkidle")
     _settle_analytics_preferences(page)
-    title_link = page.locator("[data-podcast-episode]").first.locator(".archive-title a")
+    title_link = page.locator("[data-podcast-episode]").first.locator("h3 a")
     title_link.focus()
     expect(title_link).to_be_focused()
     page.keyboard.press("Enter")
@@ -226,21 +222,23 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
         _settle_analytics_preferences(page)
         expect(page.locator("main h1")).to_have_count(1)
         expect(page.locator("main h2")).to_have_count(1)
-        expect(page.get_by_role("heading", name=PODCAST_HEADING, exact=True)).to_be_visible()
-        expect(page.get_by_role("heading", name=f"Season {season}", exact=True)).to_be_visible()
+        expect(page.get_by_role("heading", level=1, name=PODCAST_HEADING, exact=True)).to_be_visible()
+        expect(_season_heading(page, season)).to_be_visible()
         expect(page.locator("main h3")).to_have_count(len(inventory[season].episodes))
         expect(page.locator("[data-podcast-season]")).to_have_count(1)
         expect(page.locator("[data-podcast-episode]")).to_have_count(
             len(inventory[season].episodes)
         )
 
-        navigation = page.get_by_role("navigation", name="Podcast seasons")
-        expect(navigation.locator('[aria-current="page"]')).to_have_count(1)
-        expect(navigation.locator('[aria-current="page"]')).to_have_text(f"Season {season}")
-        for number in selected:
-            expect(
-                navigation.get_by_role("link", name=f"Season {number}", exact=True)
-            ).to_have_count(0 if season == number else 1)
+        navigation = page.get_by_role("navigation", name="Podcast seasons", exact=True)
+        # The open season's pill is marked current; an older one also marks the
+        # fold's summary, which then names that season.
+        current = navigation.locator('a[aria-current="page"]')
+        expect(current).to_have_count(1)
+        expect(current).to_have_attribute("href", path)
+        expect(current).to_have_attribute("aria-label", f"Season {season}")
+        for _number, other_path, _n, _o in scenarios:
+            expect(navigation.locator(f'a[href="{other_path}"]')).to_have_count(1)
         expect(page.locator('link[rel="canonical"]')).to_have_attribute(
             "href",
             f"https://datatalks.club{path}",
@@ -250,15 +248,13 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
             f"https://datatalks.club{path}",
         )
 
+        more_seasons = page.get_by_role("navigation", name="More podcast seasons", exact=True)
         if newer is None:
-            expect(navigation.get_by_role("link", name="Newer season", exact=False)).to_have_count(
-                0
-            )
+            expect(more_seasons.locator('a[rel="prev"]')).to_have_count(0)
             expect(page.locator('link[rel="prev"]')).to_have_count(0)
         else:
-            newer_name = f"Newer season — Season {newer}"
-            newer_path = "/podcast" if newer == latest_number else f"/podcast?season={newer}"
-            expect(navigation.get_by_role("link", name=newer_name, exact=True)).to_have_attribute(
+            newer_path = "/podcast" if newer == latest_number else f"/podcast/s/{newer}/"
+            expect(more_seasons.get_by_role("link", name="← Newer season")).to_have_attribute(
                 "href",
                 newer_path,
             )
@@ -268,14 +264,11 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
             )
 
         if older is None:
-            expect(navigation.get_by_role("link", name="Older season", exact=False)).to_have_count(
-                0
-            )
+            expect(more_seasons.locator('a[rel="next"]')).to_have_count(0)
             expect(page.locator('link[rel="next"]')).to_have_count(0)
         else:
-            older_name = f"Older season — Season {older}"
-            older_path = f"/podcast?season={older}"
-            expect(navigation.get_by_role("link", name=older_name, exact=True)).to_have_attribute(
+            older_path = f"/podcast/s/{older}/"
+            expect(more_seasons.get_by_role("link", name="Older season →")).to_have_attribute(
                 "href",
                 older_path,
             )
@@ -301,9 +294,7 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
         focus_season, focus_path, _newer, focus_older = scenarios[1]
         assert focus_older is not None, scenarios
         page.goto(f"{origin}{focus_path}", wait_until="networkidle")
-        older_link = page.get_by_role(
-            "link", name=f"Older season — Season {focus_older}", exact=True
-        )
+        older_link = page.get_by_role("link", name="Older season →")
 
         # Locator.focus() is a programmatic focus and does not establish the
         # keyboard modality that :focus-visible is intended to cover.  Start
@@ -323,7 +314,7 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
                 break
         else:
             raise AssertionError(
-                f"keyboard traversal did not focus Older season — Season {focus_older}"
+                f"keyboard traversal did not focus Older season (Season {focus_older})"
             )
 
         expect(older_link).to_be_focused()
@@ -360,26 +351,34 @@ def test_season_controls_activate_direct_normalized_destinations(page: Page, liv
     assert len({latest, second, middle, oldest}) == 4, numbers
     page.goto(f"{origin}/podcast", wait_until="networkidle")
 
-    page.get_by_role("link", name=f"Older season — Season {second}", exact=True).click()
-    expect(page).to_have_url(f"{origin}/podcast?season={second}")
-    expect(page.get_by_role("heading", name=f"Season {second}", exact=True)).to_be_visible()
+    def season_pill(number: int):
+        # The newest seasons are pills; older ones sit in the "Older" fold.
+        navigation = page.get_by_role("navigation", name="Podcast seasons", exact=True)
+        pill = navigation.locator(f'a[aria-label="Season {number}"]')
+        if not pill.is_visible():
+            navigation.locator("summary").click()
+        return pill
+
+    page.get_by_role("link", name="Older season →").click()
+    expect(page).to_have_url(f"{origin}/podcast/s/{second}/")
+    expect(_season_heading(page, second)).to_be_visible()
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href",
-        f"https://datatalks.club/podcast?season={second}",
+        f"https://datatalks.club/podcast/s/{second}/",
     )
 
-    page.get_by_role("link", name=f"Newer season — Season {latest}", exact=True).click()
+    page.get_by_role("link", name="← Newer season").click()
     expect(page).to_have_url(f"{origin}/podcast")
-    expect(page.get_by_role("heading", name=f"Season {latest}", exact=True)).to_be_visible()
+    expect(_season_heading(page, latest)).to_be_visible()
 
-    page.get_by_role("link", name=f"Season {middle}", exact=True).click()
-    expect(page).to_have_url(f"{origin}/podcast?season={middle}")
-    expect(page.get_by_role("heading", name=f"Season {middle}", exact=True)).to_be_visible()
+    season_pill(middle).click()
+    expect(page).to_have_url(f"{origin}/podcast/s/{middle}/")
+    expect(_season_heading(page, middle)).to_be_visible()
 
-    page.get_by_role("link", name=f"Season {oldest}", exact=True).click()
-    expect(page).to_have_url(f"{origin}/podcast?season={oldest}")
-    expect(page.get_by_role("heading", name=f"Season {oldest}", exact=True)).to_be_visible()
-    expect(page.get_by_role("link", name="Older season", exact=False)).to_have_count(0)
+    season_pill(oldest).click()
+    expect(page).to_have_url(f"{origin}/podcast/s/{oldest}/")
+    expect(_season_heading(page, oldest)).to_be_visible()
+    expect(page.get_by_role("link", name="Older season →")).to_have_count(0)
 
 
 @pytest.mark.core
@@ -397,11 +396,11 @@ def test_no_javascript_320px_reduced_motion_and_200_percent_reflow(
         for season, path, _newer, _older in _season_scenarios():
             response = page.goto(f"{live_server.url}{path}", wait_until="domcontentloaded")
             assert response is not None and response.status == 200
-            expect(page.get_by_role("heading", name=f"Season {season}", exact=True)).to_be_visible()
-            expect(page.get_by_role("navigation", name="Podcast seasons")).to_be_visible()
+            expect(_season_heading(page, season)).to_be_visible()
+            expect(page.get_by_role("navigation", name="Podcast seasons", exact=True)).to_be_visible()
             _assert_no_horizontal_overflow(page)
             _assert_season_targets(page)
-            page.get_by_role("navigation", name="Podcast seasons").scroll_into_view_if_needed()
+            page.get_by_role("navigation", name="Podcast seasons", exact=True).scroll_into_view_if_needed()
             _screenshot(
                 page,
                 f"podcast-season-{season}-320-no-js-reduced-motion.png",
@@ -425,11 +424,11 @@ def test_no_javascript_320px_reduced_motion_and_200_percent_reflow(
         _settle_analytics_preferences(zoom_page)
         zoom_page.evaluate("document.documentElement.style.zoom = '2'")
         expect(
-            zoom_page.get_by_role("heading", name=f"Season {zoom_season}", exact=True)
+            _season_heading(zoom_page, zoom_season)
         ).to_be_visible()
         _assert_no_horizontal_overflow(zoom_page)
         _assert_season_targets(zoom_page)
-        zoom_page.get_by_role("navigation", name="Podcast seasons").scroll_into_view_if_needed()
+        zoom_page.get_by_role("navigation", name="Podcast seasons", exact=True).scroll_into_view_if_needed()
         _screenshot(
             zoom_page,
             f"podcast-season-{zoom_season}-200-percent-zoom.png",
@@ -443,8 +442,9 @@ def test_no_javascript_320px_reduced_motion_and_200_percent_reflow(
 def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> None:
     origin = live_server.url
     # A season the catalogue publishes and one it does not, both read from the
-    # catalogue: the alias carries a live selector, and the denial matrix needs
-    # a well-formed number with no season behind it.
+    # catalogue: the season lives in the path now, so an alias's query is just
+    # carried along, and the denial matrix needs a well-formed season path with
+    # no season behind it.
     numbers = _season_numbers()
     published_season = numbers[len(numbers) // 2]
     absent_season = max(numbers) + 1
@@ -455,6 +455,8 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
         final = page.goto(f"{origin}{alias}?season={published_season}", wait_until="networkidle")
         assert final is not None and final.status == 200
         expect(page).to_have_url(f"{origin}/podcast?season={published_season}")
+        # `?season=` selects nothing: the hub answers its newest season.
+        expect(_season_heading(page, numbers[0])).to_be_visible()
 
         invalid_redirect = page.request.get(f"{origin}{alias}?page=2", max_redirects=0)
         assert invalid_redirect.status == 301
@@ -489,23 +491,22 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
     assert "location" not in unknown.headers
     assert "canonical" not in unknown.text().casefold()
 
-    # A parameter this catalogue does not select on rides along instead of being
-    # refused (`content.public_query`, issue #174 follow-up): `page` is not a
-    # podcast selector, so `/podcast?page=2` answers the clean latest-season page
-    # and declares the clean canonical, which is what keeps a tagged URL from
-    # duplicating the catalogue across a crawl.  The season grammar itself stays
-    # strict: a malformed or doubled selector is still a bad request.
-    ride_along = page.request.get(f"{origin}/podcast?page=2", max_redirects=0)
-    assert ride_along.status == 200
-    assert "page=2" not in ride_along.text()
-    assert 'canonical" href="https://datatalks.club/podcast"' in ride_along.text()
-    assert ride_along.text() == page.request.get(f"{origin}/podcast").text()
+    # A query string selects nothing on the hub (`content.public_query`, issue #174
+    # follow-up): the season lives in the path.  `/podcast?page=2` and even a
+    # malformed `?season=` answer the clean newest-season page and declare the
+    # clean canonical, which is what keeps a tagged URL from duplicating the
+    # catalogue across a crawl.
+    latest_html = page.request.get(f"{origin}/podcast").text()
+    for query in ("page=2", "season=01", "season=1&season=2", f"season={published_season}"):
+        ride_along = page.request.get(f"{origin}/podcast?{query}", max_redirects=0)
+        assert ride_along.status == 200
+        assert query not in ride_along.text()
+        assert 'canonical" href="https://datatalks.club/podcast"' in ride_along.text()
+        assert ride_along.text() == latest_html
 
     denials = (
-        ("GET", "/podcast?season=01", 400),
-        ("GET", "/podcast?season=1&season=2", 400),
-        ("GET", f"/podcast?season={absent_season}", 404),
-        ("POST", f"/podcast?season={published_season}", 405),
+        ("GET", f"/podcast/s/{absent_season}/", 404),
+        ("POST", f"/podcast/s/{published_season}/", 405),
     )
     for method, path, status in denials:
         response = (
@@ -522,13 +523,13 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
         if method == "POST":
             assert response.headers["allow"] == "GET, HEAD"
 
-    browser_error = page.goto(f"{origin}/podcast?season=01")
-    assert browser_error is not None and browser_error.status == 400
+    browser_error = page.goto(f"{origin}/podcast/s/{absent_season}/")
+    assert browser_error is not None and browser_error.status == 404
     expect(page.locator('link[rel="canonical"]')).to_have_count(0)
     expect(page.locator('link[rel="prev"]')).to_have_count(0)
     expect(page.locator('link[rel="next"]')).to_have_count(0)
     expect(page.locator("body")).not_to_contain_text("Traceback")
-    _screenshot(page, "podcast-malformed-season-query-400.png")
+    _screenshot(page, "podcast-absent-season-404.png")
 
 
 @pytest.mark.core

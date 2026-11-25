@@ -18,7 +18,7 @@ from content.podcast_content import ordered_podcasts, podcast_seasons
 pytestmark = [pytest.mark.core]
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-179/podcast")
-PODCAST_HEADING = "Conversations with people who ship data"
+PODCAST_HEADING = "Podcast"
 # The design system page ground: both the season index and an episode page open warm
 # and end on the cool lavender content ground, so `--page` follows it
 # (`_docs/design/design-system.md`).  The dark theme keeps the partial's own `--page`
@@ -134,10 +134,8 @@ def test_index_and_episode_render_the_design_system_in_both_themes(
         expect(page.locator("body")).to_have_css("background-color", LIGHT_BACKGROUND)
         expect(page.locator("body")).not_to_contain_text("Traceback")
         if path == "/podcast":
-            expect(page.get_by_role("group", name="Podcast platforms")).to_be_visible()
-        _assert_platform_buttons(
-            page, ".podcast-platforms" if path == "/podcast" else ".listen-row"
-        )
+            expect(page.locator(".podcast-follow")).to_be_visible()
+        _assert_platform_buttons(page, ".podcast-follow" if path == "/podcast" else ".listen-row")
         _assert_no_horizontal_overflow(page)
         _shot(page, f"podcast-{label}-{suffix}-light.png")
 
@@ -150,9 +148,10 @@ def test_index_and_episode_render_the_design_system_in_both_themes(
         expect(page.locator("body.dark-mode")).to_have_count(0)
 
     page.goto(f"{origin}/podcast", wait_until="networkidle")
-    expect(page.get_by_role("heading", name=PODCAST_HEADING, exact=True)).to_be_visible()
-    expect(page.locator(".row-list .play-disc")).to_have_count(len(season.episodes))
-    expect(page.locator(".episode-row").first.get_by_role("link").first).to_have_attribute(
+    expect(page.get_by_role("heading", level=1, name=PODCAST_HEADING, exact=True)).to_be_visible()
+    # One timeline card per episode, newest first.
+    expect(page.locator("[data-podcast-episode]")).to_have_count(len(season.episodes))
+    expect(page.locator("[data-podcast-episode] h3 a").first).to_have_attribute(
         "href",
         season.episodes[0]["public_path"],
     )
