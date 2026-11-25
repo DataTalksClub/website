@@ -149,20 +149,6 @@
     "article",
     "external",
   ];
-  const TYPE_LABELS = {
-    wiki: "Wiki",
-    guide: "Guide",
-    comparison: "Comparison",
-    roadmap: "Roadmap",
-    transition: "Transition",
-    how_to: "How-to",
-    podcast: "Podcast",
-    person: "Person",
-    book: "Book",
-    topic: "Keyword",
-    article: "Page",
-    external: "External",
-  };
   const PAGE_ACTIONS = {
     wiki: "Open wiki page",
     guide: "Open guide",
@@ -180,7 +166,7 @@
   const live = root.querySelector("[data-home-graph-live]");
   const fallback = root.querySelector("[data-home-graph-fallback]");
   const status = root.querySelector("[data-home-graph-status]");
-  const more = root.querySelector("[data-home-graph-more]");
+  const allLinks = root.querySelector("[data-home-graph-all]");
   const openPage = root.querySelector("[data-home-graph-open]");
   const backButton = root.querySelector("[data-home-graph-back]");
   const randomButton = root.querySelector("[data-home-graph-random]");
@@ -538,31 +524,17 @@
         openPage.classList.add("is-hidden-reserved");
       }
     }
-    if (more) {
-      // Always in flow once JS is driving (see the `.home-graph-more` note
-      // in home.html): an empty `<summary>` reserves the same row height a
-      // real one would, so a hub with 8 or fewer connections doesn't shrink
-      // the frame relative to one with more.
-      more.hidden = false;
-      const extras = linked.filter((item) => !spokes.some((spoke) => spoke.id === item.id));
-      more.classList.toggle("is-empty", extras.length === 0);
-      more.open = false;
-      if (!extras.length) {
-        more.innerHTML = `<summary aria-hidden="true">&nbsp;</summary>`;
+    if (allLinks) {
+      // One fixed-height line pointing at the hub's own page, where every
+      // connection is listed; kept in flow when the hub has no page (see
+      // `.home-graph-all` in home.html) so the frame never changes height.
+      const allLink = allLinks.querySelector("a");
+      if (node.url && allLink) {
+        allLinks.classList.remove("is-hidden-reserved");
+        allLink.setAttribute("href", node.url);
+        allLink.textContent = `all ${linked.length} connection${linked.length === 1 ? "" : "s"} →`;
       } else {
-        more.innerHTML =
-          `<summary>${extras.length} more connection${extras.length === 1 ? "" : "s"}</summary>` +
-          `<ul class="home-graph-more-list">${extras
-            .map(
-              (item) =>
-                `<li><button type="button" class="home-graph-more-item" data-explore-id="${escapeHtml(item.id)}">${escapeHtml(item.label || item.title)} <span>${escapeHtml(TYPE_LABELS[typeKey(item)] || item.type)}</span></button></li>`
-            )
-            .join("")}</ul>`;
-        more.querySelectorAll("[data-explore-id]").forEach((button) => {
-          button.addEventListener("click", (event) =>
-            onExplore(button.getAttribute("data-explore-id"), isKeyboardActivation(event))
-          );
-        });
+        allLinks.classList.add("is-hidden-reserved");
       }
     }
     const legendCount = root.querySelector("[data-home-graph-count]");

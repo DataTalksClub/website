@@ -342,10 +342,17 @@ class HomepageAboutBandTests(PublishedTourPage):
         body = self.body()
         self.assertIn('<h2 id="about-heading">What is DataTalks.Club?</h2>', body)
         self.assertIn(self.page["hero_intro"], body)
-        # The About page's own markup (the one-row stat strip variant), not a
-        # homepage redraw of it.
-        self.assertIn('class="stat-tiles stat-tiles-row community-stats"', body)
+        # The About page's own shared includes, not a homepage redraw: the
+        # figures as the base 2x2 tiles, the founder card quote-only (the
+        # band tells how it started in its own prose, without a mono label).
+        self.assertIn('class="stat-tiles community-stats"', body)
         self.assertIn('class="card founder-story"', body)
+        self.assertIn(f'<p class="about-origin">{self.page["founder_context"]}</p>', body)
+        card = re.search(r'<figure class="card founder-story">.*?</figure>', body, re.DOTALL)
+        assert card is not None
+        self.assertIn(self.page["founder_quote"], card.group())
+        self.assertNotIn(self.page["founder_context"], card.group())
+        self.assertNotIn("mono-label", card.group())
         for stat in self.page["stats"]:
             self.assertIn(f"<strong>{stat['value']}</strong>", body)
             self.assertIn(stat["label"], body)

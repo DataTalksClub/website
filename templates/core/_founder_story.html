@@ -5,12 +5,14 @@
   fragments and no invented portrait: a database without the founder's people
   record draws the shared striped stand-in.
 
-  The About page draws it at chapter width; the homepage's About band draws the
-  same card in a narrower column.
+  The About page draws it at chapter width with both excerpts.  The homepage's
+  About band tells "how it started" in its own prose column and passes
+  ``quote_only`` so this card carries just the founder's quote and row, as a
+  pull-quote beside it.
 {% endcomment %}
 <figure class="card founder-story">
   <div class="founder-story-quotes">
-    {% if tour_content.founder_context %}
+    {% if tour_content.founder_context and not quote_only %}
       <div>
         <span class="mono-label">How it started</span>
         <blockquote class="story-quote">{{ tour_content.founder_context }}</blockquote>
@@ -18,7 +20,7 @@
     {% endif %}
     {% if tour_content.founder_quote %}
       <div>
-        <span class="mono-label">Why it's free</span>
+        {% if not quote_only %}<span class="mono-label">Why it's free</span>{% endif %}
         <blockquote class="story-quote">“{{ tour_content.founder_quote }}”</blockquote>
       </div>
     {% endif %}

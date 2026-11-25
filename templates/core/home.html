@@ -468,82 +468,19 @@
         margin: 0 0 var(--space-3);
       }
 
-      /* Always in flow once the JS-driven explorer takes over (see
-         home_graph.js), whether or not the current hub has extra neighbours
-         to list: an empty `<summary>` reserves the same row height a real
-         one would take, so re-centring on a hub with 8 or fewer connections
-         never shrinks the frame relative to one with more. */
-      .home-graph-more {
-        margin-top: var(--space-3);
-      }
-
-      .home-graph-more summary {
-        color: var(--indigo);
-        cursor: pointer;
+      /* The current hub's full neighbour list lives on its own wiki page, so
+         the card links there instead of expanding in place: one line of fixed
+         height, whichever topic is being explored, so the card never grows
+         past the topic column beside it.  home_graph.js rewrites the count
+         and target on every re-centre; a hub with no page of its own keeps
+         the row (`visibility`, not `display`) so the frame does not shrink. */
+      .home-graph-all {
         font-size: 0.82rem;
-        font-weight: 600;
-      }
-
-      .home-graph-more.is-empty summary {
-        cursor: default;
-        pointer-events: none;
-        visibility: hidden;
-      }
-
-      /* A hub can have hundreds of extra neighbours (MLOps has 200+).  The
-         open list wraps them as compact chips inside a capped, scrolling
-         box, so expanding it never stretches the card — and with it the
-         whole wiki grid — to thousands of pixels. */
-      .home-graph-more-list {
-        border-top: 1px dashed var(--line);
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-2);
-        list-style: none;
         margin: var(--space-3) 0 0;
-        max-height: calc(var(--space-6) * 6);
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        padding: var(--space-3) var(--space-1) var(--space-1) 0;
       }
 
-      /* While the list is open the graph card is taller than the topic
-         column; keep the topic cards at their own size rather than
-         stretching each one to fill the extra height. */
-      .wiki-grid:has(.home-graph-more[open]) .topic-list {
-        align-content: start;
-      }
-
-      .home-graph-more-list li {
-        max-width: 100%;
-      }
-
-      .home-graph-more-item {
-        background: var(--lavender);
-        border: 1.5px solid var(--indigo-soft);
-        border-radius: 999px;
-        color: var(--ink);
-        cursor: pointer;
-        font: inherit;
-        font-size: 0.78rem;
-        font-weight: 600;
-        padding: var(--space-1) var(--space-3);
-        max-width: 100%;
-        text-align: left;
-        transition: background 0.15s ease, transform 0.15s ease;
-      }
-
-      .home-graph-more-item:hover {
-        background: var(--lavender-deep);
-      }
-
-      .home-graph-more-item:active {
-        transform: translateY(1px);
-      }
-
-      .home-graph-more-item span {
-        color: var(--muted);
-        font-weight: 500;
+      .home-graph-all.is-hidden-reserved {
+        visibility: hidden;
       }
 
       .graph-svg-node.graph-svg-type-podcast:not(.graph-svg-hub) .graph-svg-shape {
@@ -779,42 +716,81 @@
       }
 
       /* --- about the community --------------------------------------------
-         The About page's own blocks, reused: its intro line, the shared
-         "Who's here" strip (core/_community_stats.html) and the shared founder
-         story (core/_founder_story.html).  Wide, the facts sit beside the story
-         so the quotes keep a readable measure; narrow, the story stacks under
-         the facts.  Either block alone takes the whole row. */
+         The About page's record, drawn compact: wide, the story column (the
+         heading, the intro line, how it started as plain prose, then the
+         links) sits beside the facts column (the founder's own "why it's
+         free" quote as a pull-quote card over the survey figures), the story
+         and its links held together at the facts column's vertical middle;
+         narrow, the facts stack between the story and the links, so the
+         links still close the band.  The founder card
+         and the figures are the About page's own shared includes
+         (core/_founder_story.html with ``quote_only``,
+         core/_community_stats.html). */
       .about-grid {
         display: grid;
         gap: var(--space-5);
       }
 
-      /* Packed to the top: the taller story column must not stretch the
-         rows of the facts column apart. */
-      .about-part {
+      .about-story .band-head {
+        margin-bottom: var(--space-4);
+      }
+
+      .about-more {
+        margin-top: 0;
+      }
+
+      .home-about .stat-tile {
+        padding: var(--space-3) var(--space-4);
+      }
+
+      .home-about .stat-tile span {
+        display: block;
+        line-height: 1.35;
+      }
+
+      .about-origin {
+        max-width: var(--measure);
+      }
+
+      .about-facts {
         align-content: start;
         display: grid;
-        gap: var(--space-3);
+        gap: var(--space-4);
       }
 
-      .about-part h3 {
-        font-size: 1.1rem;
+      .home-about .founder-story {
+        padding: var(--space-4) var(--space-5);
       }
 
-      /* Wide, the founder's two quotes sit side by side under the figures, so
-         the band reads as two full-width rows instead of two uneven columns. */
+      .home-about .founder-story-quotes {
+        gap: 0;
+      }
+
       @media (min-width: 62rem) {
         .about-grid {
-          gap: var(--space-6);
+          gap: var(--space-4) var(--space-7);
+          grid-template-areas:
+            "story facts"
+            "more facts";
+          grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
         }
 
-        .home-about .founder-story-quotes {
-          gap: var(--space-6);
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+        .about-story {
+          align-self: end;
+          grid-area: story;
         }
 
-        .home-about .founder-story-quotes > div {
-          align-content: start;
+        .about-facts {
+          grid-area: facts;
+        }
+
+        .about-more {
+          align-self: start;
+          grid-area: more;
+        }
+
+        .home-about .community-stats {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
         }
       }
       }
@@ -1142,30 +1118,29 @@
           (or no database to read one) the whole band is absent.
         {% endcomment %}
         <section class="band band-lavender home-about" aria-labelledby="about-heading">
-          <div class="shell">
-            <div class="band-head">
-              <div>
-                <h2 id="about-heading">What is DataTalks.Club?</h2>
-                {% if tour_content.hero_intro %}
-                  <p>{{ tour_content.hero_intro }}</p>
-                {% endif %}
+          <div class="shell about-grid">
+            <div class="about-story">
+              <div class="band-head">
+                <div>
+                  <h2 id="about-heading">What is DataTalks.Club?</h2>
+                  {% if tour_content.hero_intro %}
+                    <p>{{ tour_content.hero_intro }}</p>
+                  {% endif %}
+                </div>
               </div>
+              {% if tour_content.founder_context %}
+                <p class="about-origin">{{ tour_content.founder_context }}</p>
+              {% endif %}
             </div>
-            <div class="about-grid">
+            <div class="about-facts">
+              {% if tour_content.founder_name and tour_content.founder_quote %}
+                {% include "core/_founder_story.html" with tour_content=tour_content founder=founder quote_only=True only %}
+              {% endif %}
               {% if tour_content.stats %}
-                <div class="about-part">
-                  <h3>Who's here</h3>
-                  {% include "core/_community_stats.html" with tour_content=tour_content tiles_variant="stat-tiles-row" only %}
-                </div>
-              {% endif %}
-              {% if tour_content.founder_name %}
-                <div class="about-part">
-                  <h3>How it started, and why it's free</h3>
-                  {% include "core/_founder_story.html" with tour_content=tour_content founder=founder only %}
-                </div>
+                {% include "core/_community_stats.html" with tour_content=tour_content only %}
               {% endif %}
             </div>
-            <p class="band-more">
+            <p class="band-more about-more">
               <a class="band-link" href="{% url 'about' %}">about DataTalks.Club →</a>
               <a class="band-link" href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full survey →</a>
             </p>
@@ -1319,7 +1294,9 @@
               {% endfor %}
               </div>
               <div data-home-graph-live hidden></div>
-              <details class="home-graph-more" data-home-graph-more hidden></details>
+              <p class="home-graph-all" data-home-graph-all>
+                <a class="band-link" href="{{ wiki_graph.hub.public_path }}">all {{ wiki_graph.connections }} connections →</a>
+              </p>
               <p class="graph-legend">
                 <span class="legend-key">
                   <span>

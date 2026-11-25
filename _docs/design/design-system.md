@@ -478,7 +478,10 @@ to this document — do not fork it locally.
   ```
 
   `tiles_variant` is optional: the About page passes `stat-tiles-row` (four figures in
-  one row); the homepage's narrower band leaves it out and keeps the 2×2 grid.
+  one row); the homepage leaves it out. `quote_only=True` draws the founder card with
+  just the "why it's free" quote and the founder row, no mono labels: the homepage's
+  About band tells "how it started" as plain prose in its story column and sets this
+  card beside it as a pull-quote over the figures.
 - **`.chip`** — round uppercase mini-pill. Variants: `.chip-plain`, `.chip-green`,
   `.chip-live`, `.chip-ink`. **`a.chip-link`** is a chip that opens a page (a wiki
   concept): indigo border and text, underlined on hover.
