@@ -1,14 +1,23 @@
-{% load static homework_steps_nav %}
+{% load static homework_steps_nav custom_filters %}
 <section class="homework-steps{% if shared_homework_module %} homework-steps--with-rail{% endif %}" aria-label="{{ stepper.assignment.title }} homework steps">
   <p class="homework-steps-progress" aria-live="polite">Step {{ stepper.step_number|add:1 }} of {{ stepper.step_count }}</p>
+  {% comment %}
+    A closed or scored homework already states that in the band's one notice
+    above (homework/homework.html `content_notices`), so the stepper adds only
+    what that notice cannot know: an unsent draft beside the accepted answers.
+  {% endcomment %}
   {% if stepper.has_pending_changes %}
-    <p role="status">Your submitted version remains accepted. Saved changes are a draft until you submit them.</p>
-  {% elif stepper.submitted %}
+    {% if stepper.closed_review %}
+      <p role="status">Your accepted submission is shown on Review. Later saved changes were not submitted.</p>
+    {% else %}
+      <p role="status">Your submitted version remains accepted. Saved changes are a draft until you submit them.</p>
+    {% endif %}
+  {% elif stepper.submitted and not stepper.closed_review %}
     <p role="status">Your homework was submitted.</p>
   {% endif %}
   {% if stepper.notice %}<p role="status">This question changed. Your saved answers are still here.</p>{% endif %}
   {% if stepper.error %}<p role="alert">{{ stepper.error }}</p>{% endif %}
-  {% if stepper.reason and not stepper.can_write %}<p role="status">{{ stepper.reason }}</p>{% endif %}
+  {% if stepper.reason and not stepper.can_write and not stepper.closed_review %}<p role="status">{{ stepper.reason }}</p>{% endif %}
   {% comment %}
     The step chips.  Where the module rail sits beside the page (a shared
     curriculum homework on a wide screen) the rail lists these same steps
@@ -28,7 +37,7 @@
       {% if stepper.assignment.introduction %}<p>{{ stepper.assignment.introduction }}</p>{% endif %}
       {% if stepper_instructions_html %}<div class="prose">{{ stepper_instructions_html }}</div>{% endif %}
       {% if instructions_url %}<p><a class="band-link" href="{{ instructions_url }}" target="_blank" rel="noopener noreferrer">Full instructions</a></p>{% endif %}
-      <div class="homework-step-actions"><a class="cta cta-primary cta-compact" href="{{ stepper.next_url }}">Start questions</a></div>
+      <div class="homework-step-actions"><a class="cta cta-primary cta-compact" href="{{ stepper.next_url }}">{% if stepper.closed_review %}View questions{% else %}Start questions{% endif %}</a></div>
     </div>
   {% elif stepper.question %}
     <div class="homework-step-panel">
@@ -47,7 +56,19 @@
               <label class="homework-step-option"><input type="{% if stepper.question.type == 'choice' %}radio{% else %}checkbox{% endif %}" name="answer" value="{{ option.key }}"{% if selected %} checked{% endif %}> <span>{{ option.label }}</span></label>
             {% endfor %}
           {% elif stepper.step == 'learning-in-public' %}
-            {% include "homework_steps/_public_links.html" %}
+            {% if stepper.can_write %}
+              {% include "homework_steps/_public_links.html" %}
+            {% else %}
+              {% with links=stepper.answer.splitlines %}
+                {% if links %}
+                  <ul class="homework-public-links-list">
+                    {% for link in links %}{% if link.strip %}<li><a class="band-link" href="{{ link.strip }}" target="_blank" rel="noopener noreferrer">{{ link.strip }}</a></li>{% endif %}{% endfor %}
+                  </ul>
+                {% else %}
+                  <p class="field-hint">No learning in public links submitted.</p>
+                {% endif %}
+              {% endwith %}
+            {% endif %}
           {% elif stepper.question.type == 'long_text' %}
             <label for="homework-answer">Your answer</label>
             <textarea class="field-input form-control" id="homework-answer" name="answer" maxlength="10000" rows="8">{{ stepper.answer }}</textarea>
@@ -56,45 +77,89 @@
             <input class="field-input form-control" id="homework-answer" name="answer" type="{% if stepper.question.key in stepper_integer_keys or stepper.question.key in stepper_float_keys %}number{% else %}text{% endif %}"{% if stepper.question.key in stepper_integer_keys %} step="1" inputmode="numeric"{% elif stepper.question.key in stepper_float_keys %} step="any" inputmode="decimal"{% endif %} maxlength="10000" value="{{ stepper.answer }}">
           {% endif %}
         </fieldset>
-        <p data-save-status role="status" aria-live="polite">{{ stepper.draft_status }}</p>
-        {% include "homework_steps/_draft_status_help.html" %}
-        <div class="homework-step-actions">
-          <button class="cta cta-secondary cta-compact" type="submit" name="next_step" value="{{ stepper.previous }}">Save and back</button>
-          <button class="cta cta-primary cta-compact" type="submit" name="next_step" value="{{ stepper.next }}">Save &amp; continue</button>
-        </div>
+        {% if stepper.question_result %}{% include "homework_steps/_question_result.html" with result=stepper.question_result %}{% endif %}
+        {% if stepper.can_write %}
+          <p data-save-status role="status" aria-live="polite">{{ stepper.draft_status }}</p>
+          {% include "homework_steps/_draft_status_help.html" %}
+          <div class="homework-step-actions">
+            <button class="cta cta-secondary cta-compact" type="submit" name="next_step" value="{{ stepper.previous }}">Save and back</button>
+            <button class="cta cta-primary cta-compact" type="submit" name="next_step" value="{{ stepper.next }}">Save &amp; continue</button>
+          </div>
+        {% else %}
+          {% comment %}Read-only: plain links move between steps; nothing is saved.{% endcomment %}
+          <div class="homework-step-actions">
+            <a class="cta cta-secondary cta-compact" href="{{ stepper.previous_url }}">Back</a>
+            <a class="cta cta-primary cta-compact" href="{{ stepper.next_url }}">{% if stepper.next == 'review' %}Review answers{% else %}Next{% endif %}</a>
+          </div>
+        {% endif %}
       </form>
     </div>
   {% else %}
     <div class="homework-step-panel">
       <h2>Review &amp; submit</h2>
-      <ol class="homework-review-list">
-        {% for row in stepper.review_display_rows %}
-          <li><a class="band-link" href="{{ row.url }}">{% if row.has_semantic_label %}{{ row.step_label }}{% else %}Question {{ row.question_number }}: {{ row.prompt }}{% endif %}</a><span class="homework-review-answer">{% if row.answer %}{{ row.answer|linebreaksbr }}{% else %}No answer saved{% endif %}</span></li>
-        {% endfor %}
-      </ol>
-      <form method="post" action="{{ stepper.action }}" class="homework-step-form" data-homework-autosave data-save-url="{{ stepper.save_url }}">
-        {% csrf_token %}
-        <input type="hidden" name="assignment_key" value="{{ stepper.assignment.key }}">
-        <input type="hidden" name="draft_token" value="{{ stepper.draft_token }}">
-        <input type="hidden" name="{{ stepper.step_param }}" value="review">
-        <input type="hidden" name="revision" value="{{ stepper.revision }}">
-        {% for field, value in stepper.final_field_rows %}
-          <div class="field">
-            <label class="field-label" for="final-{{ field.key }}">{{ field.label }}{% if field.required %} (required){% endif %}</label>
-            {% if field.type == 'textarea' %}
-              <textarea class="field-input form-control" id="final-{{ field.key }}" name="final_{{ field.key }}" maxlength="10000" rows="4"{% if field.required %} required data-final-submit-required{% endif %}>{{ value }}</textarea>
-            {% else %}
-              <input class="field-input form-control" id="final-{{ field.key }}" name="final_{{ field.key }}" type="{{ field.type }}" maxlength="10000" value="{{ value }}"{% if field.required %} required data-final-submit-required{% endif %}>
+      {% if stepper.closed_review %}
+        {% if stepper.accepted_snapshot_primary %}
+          <section class="homework-review-section" aria-labelledby="accepted-submission-title" data-testid="homework-accepted-snapshot">
+            <h3 id="accepted-submission-title">Accepted submission</h3>
+            {% if stepper.accepted_submitted_at %}<p class="homework-review-meta">Submitted {{ stepper.accepted_submitted_at|user_datetime:request }}</p>{% endif %}
+            {% include "homework_steps/_dtc_review_list.html" with rows=stepper.review_display_rows empty_label="No answer was submitted for this question" %}
+            {% if stepper.accepted_field_rows %}
+              <dl class="homework-review-fields">
+                {% for field, value in stepper.accepted_field_rows %}
+                  <div><dt>{{ field.label }}</dt><dd>{{ value|default:"No answer saved"|linebreaksbr }}</dd></div>
+                {% endfor %}
+              </dl>
             {% endif %}
-          </div>
-        {% endfor %}
-        <p data-save-status role="status" aria-live="polite">{{ stepper.draft_status }}</p>
-        {% include "homework_steps/_draft_status_help.html" %}
+          </section>
+          {% if stepper.pending_draft_display_rows or stepper.pending_draft_field_rows %}
+            <section class="homework-review-section" aria-labelledby="unsent-draft-title" data-testid="homework-unsent-draft">
+              <h3 id="unsent-draft-title">Unsubmitted draft</h3>
+              {% include "homework_steps/_dtc_review_list.html" with rows=stepper.pending_draft_display_rows %}
+              {% for field, value in stepper.pending_draft_field_rows %}
+                <p>{{ field.label }}: {{ value|default:"No answer saved" }}</p>
+              {% endfor %}
+            </section>
+          {% endif %}
+        {% elif stepper.homework_state.has_saved_draft %}
+          <section class="homework-review-section" aria-labelledby="saved-draft-title" data-testid="homework-unsent-draft">
+            <h3 id="saved-draft-title">Saved draft — not submitted</h3>
+            {% include "homework_steps/_dtc_review_list.html" with rows=stepper.unsent_draft_display_rows %}
+            {% for field, value in stepper.unsent_draft_field_rows %}
+              <p>{{ field.label }}: {{ value }}</p>
+            {% endfor %}
+          </section>
+        {% else %}
+          <p class="homework-review-meta" data-testid="homework-no-accepted-submission">No submission was accepted.</p>
+        {% endif %}
         <div class="homework-step-actions">
-          <button class="cta cta-secondary cta-compact" type="submit" name="intent" value="save" formnovalidate{% if not stepper.can_write %} disabled{% endif %}>Save draft</button>
-          <button class="cta cta-primary cta-compact" type="submit" name="intent" value="submit"{% if not stepper.can_submit %} disabled{% endif %}>{% if submission.pk %}Update submission{% else %}Submit homework{% endif %}</button>
+          <a class="cta cta-secondary cta-compact" href="{{ stepper.previous_url }}">Back</a>
         </div>
-      </form>
+      {% else %}
+        {% include "homework_steps/_dtc_review_list.html" with rows=stepper.review_display_rows %}
+        <form method="post" action="{{ stepper.action }}" class="homework-step-form" data-homework-autosave data-save-url="{{ stepper.save_url }}">
+          {% csrf_token %}
+          <input type="hidden" name="assignment_key" value="{{ stepper.assignment.key }}">
+          <input type="hidden" name="draft_token" value="{{ stepper.draft_token }}">
+          <input type="hidden" name="{{ stepper.step_param }}" value="review">
+          <input type="hidden" name="revision" value="{{ stepper.revision }}">
+          {% for field, value in stepper.final_field_rows %}
+            <div class="field">
+              <label class="field-label" for="final-{{ field.key }}">{{ field.label }}{% if field.required %} (required){% endif %}</label>
+              {% if field.type == 'textarea' %}
+                <textarea class="field-input form-control" id="final-{{ field.key }}" name="final_{{ field.key }}" maxlength="10000" rows="4"{% if field.required %} required data-final-submit-required{% endif %}>{{ value }}</textarea>
+              {% else %}
+                <input class="field-input form-control" id="final-{{ field.key }}" name="final_{{ field.key }}" type="{{ field.type }}" maxlength="10000" value="{{ value }}"{% if field.required %} required data-final-submit-required{% endif %}>
+              {% endif %}
+            </div>
+          {% endfor %}
+          <p data-save-status role="status" aria-live="polite">{{ stepper.draft_status }}</p>
+          {% include "homework_steps/_draft_status_help.html" %}
+          <div class="homework-step-actions">
+            <button class="cta cta-secondary cta-compact" type="submit" name="intent" value="save" formnovalidate{% if not stepper.can_write %} disabled{% endif %}>Save draft</button>
+            <button class="cta cta-primary cta-compact" type="submit" name="intent" value="submit"{% if not stepper.can_submit %} disabled{% endif %}>{% if submission.pk %}Update submission{% else %}Submit homework{% endif %}</button>
+          </div>
+        </form>
+      {% endif %}
     </div>
   {% endif %}
 </section>

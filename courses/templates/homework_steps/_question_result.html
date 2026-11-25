@@ -1,0 +1,11 @@
+{% comment %}
+  DTC skin for the shared per-question result.  Rendered only beside an
+  accepted answer once the homework is scored (`Assignment.question_results`);
+  the tint is the classic form's own correct/incorrect pair (mint with the
+  green tick, sand with the olive cross), and the words carry the state.
+{% endcomment %}
+<div class="homework-question-result" data-correct="{{ result.correct|yesno:'true,false' }}">
+  <p class="homework-question-result-verdict"><span aria-hidden="true">{% if result.correct %}✓{% else %}×{% endif %}</span> {% if result.correct %}Correct{% else %}Incorrect{% endif %}</p>
+  {% if result.correct_answer %}<p>Correct answer: {{ result.correct_answer }}</p>{% endif %}
+  {% if result.explanation %}<p>{{ result.explanation|linebreaksbr }}</p>{% endif %}
+</div>

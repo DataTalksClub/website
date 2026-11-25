@@ -181,7 +181,11 @@
   {% endcomment %}
   {% block content_notices %}
   {% endblock %}
-  {% if accepting_submissions or submission.pk or homework.is_scored or project or review %}
+  {% comment %}
+    The homework stepper is only served when the learner has something to see
+    (see `stepper_shows_homework`), including a closed homework's unsent draft.
+  {% endcomment %}
+  {% if accepting_submissions or submission.pk or homework.is_scored or project or review or stepper %}
     {% block submission_content %}
     {% endblock %}
   {% endif %}

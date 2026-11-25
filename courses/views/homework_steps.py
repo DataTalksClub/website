@@ -1,12 +1,16 @@
 """DTC's site-owned bridge from cohort homework to shared draft steps."""
 
 from copy import copy
+from dataclasses import replace
 
+from community_base.coursework.answer_crypto import HomeworkAnswerCryptoError
 from community_base.homework_steps.types import (
+    AcceptedSubmission,
     Assignment,
     Eligibility,
     FinalField,
     Option,
+    QuestionResult,
 )
 from community_base.homework_steps.types import (
     Question as StepQuestion,
@@ -17,6 +21,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
+from courses.homework_answer_checks import is_answer_correct
 from courses.models.cohort import Enrollment
 from courses.models.homework import (
     Answer,
@@ -30,7 +35,6 @@ from courses.registration_wall import registration_wall_blocks_user, require_reg
 from courses.views.homework_context import homework_detail_build_context_authenticated
 from courses.views.homework_submission import HomeworkPostData, process_homework_submission
 from courses.views.url_utils import canonical_cohort_url_kwargs
-
 
 LEARNING_IN_PUBLIC_KEY = "learning-in-public"
 LEARNING_IN_PUBLIC_LABEL = "Learning in Public"
@@ -169,6 +173,89 @@ def _existing_final_fields(submission, fields):
     return {field.key: values.get(field.key, "") for field in fields}
 
 
+def homework_availability(homework):
+    """Map DTC's homework state onto the shared ``open|closed|scored`` value.
+
+    The one mapping used by the stepper and by every homework row's status, so
+    a row label and the homework page can never disagree.
+    """
+
+    if homework.state == HomeworkState.OPEN.value:
+        return "open"
+    if homework.state == HomeworkState.SCORED.value:
+        return "scored"
+    return "closed"
+
+
+def _choice_labels(question, indices):
+    labels = question.get_possible_answers()
+    return ", ".join(labels[index - 1] for index in sorted(indices) if 0 < index <= len(labels))
+
+
+def question_result(question, answer):
+    """The revealed verdict on one accepted answer, as the classic page judges it.
+
+    Called only for a scored homework: the classic form shows correctness and
+    the correct answer only once ``Homework.is_scored()``, and so does this.
+    """
+
+    answered = bool(answer and (answer.answer_text or "").strip())
+    correct = answered and is_answer_correct(question, answer)
+    try:
+        if question.has_choice_answers():
+            correct_answer = _choice_labels(question, question.get_correct_answer_indices())
+        elif question.answer_type == AnswerTypes.ANY.value:
+            correct_answer = ""
+        else:
+            correct_answer = (question.resolved_correct_answer() or "").strip()
+    except (HomeworkAnswerCryptoError, ValueError):
+        # An unavailable or malformed key never leaks an error to a learner.
+        correct_answer = ""
+    return QuestionResult(correct=correct, correct_answer=correct_answer)
+
+
+def build_state_assignment(*, course, homework, questions, submission, answers, lip_cap):
+    """The prompt-free descriptor the shared state needs, and the stepper builds on.
+
+    ``answers`` are the submission's ``Answer`` rows. Navigation rows build
+    this for many homework at once from batch-loaded rows, so it reads nothing
+    from the database itself.
+    """
+
+    answer_by_question = {answer.question_id: answer for answer in answers}
+    step_questions = tuple(_step_question(question) for question in questions)
+    existing_answers = {
+        question_key(question): _submitted_answer(question, answer_by_question.get(question.pk))
+        for question in questions
+    }
+    if lip_cap:
+        step_questions += (_learning_in_public_question(),)
+        existing_answers[LEARNING_IN_PUBLIC_KEY] = "\n".join(
+            (submission.learning_in_public_links or []) if submission else []
+        )
+    fields = _final_fields(homework, course)
+    existing_final_fields = _existing_final_fields(submission, fields)
+    return Assignment(
+        key=assignment_key(homework),
+        title=homework.title,
+        questions=step_questions,
+        final_fields=fields,
+        existing_answers=existing_answers,
+        existing_final_fields=existing_final_fields,
+        has_submission=submission is not None,
+        availability=homework_availability(homework),
+        accepted_submission=(
+            AcceptedSubmission(
+                answers=existing_answers,
+                final_fields=existing_final_fields,
+                submitted_at=submission.submitted_at,
+            )
+            if submission is not None
+            else None
+        ),
+    )
+
+
 def build_assignment(*, request, course, homework, questions):
     """Bind one server-resolved cohort assignment and its current options."""
     submission = Submission.objects.filter(homework=homework, student=request.user).first()
@@ -201,36 +288,34 @@ def build_assignment(*, request, course, homework, questions):
         if homework.instructions_markdown
         else ""
     )
-    fields = _final_fields(homework, course)
     lip_cap = learning_in_public_cap(homework, context["disable_learning_in_public"])
     context["learning_in_public_cap"] = lip_cap
-    saved_answers = (
-        Answer.objects.filter(submission=submission, question__homework=homework)
+    answers = (
+        list(Answer.objects.filter(submission=submission, question__homework=homework))
         if submission
-        else ()
+        else []
     )
-    answer_by_question = {answer.question_id: answer for answer in saved_answers}
-    step_questions = tuple(_step_question(question) for question in questions)
-    existing_answers = {
-        question_key(question): _submitted_answer(question, answer_by_question.get(question.pk))
-        for question in questions
-    }
-    if lip_cap:
-        step_questions += (_learning_in_public_question(),)
-        existing_answers[LEARNING_IN_PUBLIC_KEY] = "\n".join(
-            (submission.learning_in_public_links or []) if submission else []
-        )
-    return Assignment(
-        key=assignment_key(homework),
-        title=homework.title,
-        questions=step_questions,
+    state_assignment = build_state_assignment(
+        course=course,
+        homework=homework,
+        questions=questions,
+        submission=submission,
+        answers=answers,
+        lip_cap=lip_cap,
+    )
+    results = None
+    if homework.is_scored() and submission is not None:
+        answer_by_question = {answer.question_id: answer for answer in answers}
+        results = {
+            question_key(question): question_result(question, answer_by_question.get(question.pk))
+            for question in questions
+        }
+    return replace(
+        state_assignment,
         introduction=homework.description,
         instructions=homework.instructions_markdown,
-        final_fields=fields,
-        existing_answers=existing_answers,
-        existing_final_fields=_existing_final_fields(submission, fields),
         context=context,
-        has_submission=submission is not None,
+        question_results=results,
     )
 
 
@@ -247,12 +332,13 @@ class DtcHomeworkStepsAdapter:
             return Eligibility(
                 read=True, write=False, submit=False, reason="Registration approval is required."
             )
-        return Eligibility(
-            read=True,
-            write=is_open,
-            submit=is_open,
-            reason="This homework is not open for submissions." if not is_open else "",
-        )
+        if current.state == HomeworkState.SCORED.value:
+            reason = "This homework has been scored."
+        elif not is_open:
+            reason = "This homework is not open for submissions."
+        else:
+            reason = ""
+        return Eligibility(read=True, write=is_open, submit=is_open, reason=reason)
 
     def submit(self, request, assignment, answers, final_fields):
         current_homework = type(self.homework).objects.get(pk=self.homework.pk)

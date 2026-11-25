@@ -511,8 +511,127 @@ class HomeworkStepCheckMarkTests(HomeworkDetailViewTestBase):
             'Question 1<span class="sr-only">, answered</span></a>'
         )
         self.assertIn(answered, html)
-        self.assertIn(
-            f'<a href="{self.step_url(f"q-{self.question2.pk}")}" aria-current="step">Question 2</a>',
-            html,
-        )
+        current_url = self.step_url(f"q-{self.question2.pk}")
+        self.assertIn(f'<a href="{current_url}" aria-current="step">Question 2</a>', html)
         self.assertEqual(html.count(", answered</span>"), 1)
+
+
+RESULT_ANY = '<div class="homework-question-result"'
+RESULT_CORRECT = '<div class="homework-question-result" data-correct="true">'
+RESULT_INCORRECT = '<div class="homework-question-result" data-correct="false">'
+
+
+class HomeworkClosedAndScoredStepperTests(HomeworkDetailViewTestBase):
+    """Closed and scored homework read as the stepper, never the one-page form."""
+
+    def setUp(self):
+        super().setUp()
+        self.homework.homework_url_field = False
+        self.homework.learning_in_public_cap = 0
+        self.homework.time_spent_lectures_field = False
+        self.homework.time_spent_homework_field = False
+        self.homework.faq_contribution_field = False
+        self.homework.save()
+        self.client.login(**credentials)
+
+    def step_url(self, step):
+        return reverse(
+            "cohort_homework_step",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_identifier": self.course.identifier,
+                "homework_slug": self.homework.slug,
+                "homework_step": step,
+            },
+        )
+
+    def set_state(self, state):
+        self.homework.state = state
+        self.homework.save(update_fields=["state"])
+
+    def test_closed_homework_shows_accepted_submission_read_only(self):
+        self.create_submission_with_answers()
+        self.set_state(HomeworkState.CLOSED.value)
+
+        review = self.client.get(self.homework_url())
+        self.assertTemplateUsed(review, "homework/steps.html")
+        self.assertContains(review, "Accepted submission")
+        self.assertContains(review, "Submitted ")
+        self.assertNotContains(review, 'value="submit"')
+        self.assertNotContains(review, "Correct answer:")
+        self.assertNotContains(review, RESULT_ANY)
+
+        question = self.client.get(self.step_url(f"q-{self.question1.pk}"))
+        self.assertContains(question, '<fieldset class="homework-step-fieldset" disabled>')
+        self.assertContains(question, 'value="3" checked')
+        self.assertNotContains(question, 'name="next_step"')
+        self.assertContains(question, f'href="{self.step_url(f"q-{self.question2.pk}")}"')
+        self.assertNotContains(question, "Correct answer:")
+
+    def test_closed_homework_without_submission_never_previews_questions(self):
+        # DTC also parks not-yet-published homework as closed: with nothing of
+        # the learner's to show, the page keeps the one-notice classic view.
+        self.set_state(HomeworkState.CLOSED.value)
+
+        page = self.client.get(self.homework_url())
+
+        self.assertTemplateNotUsed(page, "homework/steps.html")
+        self.assertNotContains(page, self.question1.text)
+        self.assertFalse(HomeworkDraft.objects.exists())
+
+    def test_closed_homework_with_only_a_draft_shows_the_unsent_draft(self):
+        self.client.get(self.homework_url())
+        draft = HomeworkDraft.objects.get(
+            user=self.user, assignment_key=assignment_key(self.homework)
+        )
+        self.client.post(
+            self.step_url(f"q-{self.question1.pk}"),
+            {
+                "assignment_key": assignment_key(self.homework),
+                "draft_token": str(draft.token),
+                "homework_step": f"q-{self.question1.pk}",
+                "revision": 0,
+                "answer": "2",
+                "intent": "save",
+            },
+        )
+        self.set_state(HomeworkState.CLOSED.value)
+
+        review = self.client.get(self.step_url("review"))
+
+        self.assertContains(review, "Saved draft — not submitted")
+        self.assertNotContains(review, 'value="submit"')
+
+    def test_scored_homework_reveals_results_beside_accepted_answers(self):
+        # Question 1 correct (Paris), question 4 wrong (5 instead of 7).
+        self.create_submission_with_answers()
+        self.submission.answer_set.filter(question=self.question1).update(answer_text="1")
+        self.submission.answer_set.filter(question=self.question4).update(answer_text="1")
+        self.set_state(HomeworkState.SCORED.value)
+
+        review = self.client.get(self.step_url("review"))
+        self.assertContains(review, "Accepted submission")
+        self.assertContains(review, RESULT_CORRECT)
+        self.assertContains(review, RESULT_INCORRECT)
+        self.assertContains(review, "Correct answer: 7")
+
+        question = self.client.get(self.step_url(f"q-{self.question1.pk}"))
+        self.assertContains(question, RESULT_CORRECT)
+        self.assertContains(question, "Correct answer: Paris")
+
+    def test_open_homework_never_reveals_results(self):
+        self.create_submission_with_answers()
+
+        review = self.client.get(self.step_url("review"))
+
+        self.assertNotContains(review, RESULT_ANY)
+        self.assertNotContains(review, "Correct answer:")
+        self.assertContains(review, 'value="submit"')
+
+    def test_scored_homework_without_submission_keeps_the_answer_key_page(self):
+        self.set_state(HomeworkState.SCORED.value)
+
+        page = self.client.get(self.homework_url())
+
+        self.assertTemplateNotUsed(page, "homework/steps.html")
+        self.assertContains(page, "This homework was scored without a submission from you.")

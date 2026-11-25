@@ -1,0 +1,11 @@
+{% comment %}
+  DTC's Review list for the homework stepper: one row per step, the step's
+  name linking back to it, then the answer and, on a scored review, the
+  revealed result.  Context: rows -- `stepper.*_display_rows` items;
+  empty_label -- optional wording for a step with no answer.
+{% endcomment %}
+<ol class="homework-review-list">
+  {% for row in rows %}
+    <li><a class="band-link" href="{{ row.url }}">{% if row.has_semantic_label %}{{ row.step_label }}{% else %}Question {{ row.question_number }}: {{ row.prompt }}{% endif %}</a><span class="homework-review-answer">{% if row.answer %}{{ row.answer|linebreaksbr }}{% else %}{{ empty_label|default:"No answer saved" }}{% endif %}</span>{% if row.result %}{% include "homework_steps/_question_result.html" with result=row.result %}{% endif %}</li>
+  {% endfor %}
+</ol>

@@ -23,6 +23,18 @@
   .homework-review-list { display: grid; gap: var(--space-3); padding-left: var(--space-5); }
   .homework-review-list li { overflow-wrap: anywhere; }
   .homework-review-answer { color: var(--body-text); display: block; margin-top: var(--space-1); }
+  .homework-review-section { display: grid; gap: var(--space-3); }
+  .homework-review-section h3 { font-size: 1.1rem; }
+  .homework-review-meta { color: var(--muted); font-size: 0.9rem; }
+  .homework-review-fields { display: grid; gap: var(--space-2); margin: 0; }
+  .homework-review-fields dt { color: var(--ink); font-size: 0.9rem; font-weight: 700; }
+  .homework-review-fields dd { color: var(--body-text); margin: 0; overflow-wrap: anywhere; }
+  .homework-question-result { background: var(--sand); border: var(--border-soft); border-color: var(--olive); border-radius: var(--radius-control); color: var(--ink); display: grid; gap: var(--space-1); margin-top: var(--space-2); padding: var(--space-2) var(--space-3); }
+  .homework-question-result[data-correct="true"] { background: var(--mint); border-color: var(--green); }
+  .homework-question-result-verdict { font-weight: 700; }
+  .homework-question-result[data-correct="true"] .homework-question-result-verdict span { color: var(--green-ship); }
+  .homework-question-result[data-correct="false"] .homework-question-result-verdict span { color: var(--olive); }
+  .homework-step-fieldset:disabled .homework-step-option { cursor: default; }
   .homework-steps [data-save-status] { color: var(--muted); min-height: 1.2rem; }
   .homework-steps [role="alert"] { background: var(--sand); border: var(--border-soft); border-radius: var(--radius-media); padding: var(--space-3) var(--space-4); }
   /* The shared Learning in Public editor: its script draws plain rows, so the

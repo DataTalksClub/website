@@ -1,17 +1,20 @@
 from dataclasses import dataclass
 from urllib.parse import urlencode
 
+from community_base.homework_steps.models import HomeworkDraft
 from community_base.homework_steps.services import clear_draft
 from community_base.homework_steps.views import handle_stepper
 from django.http import HttpRequest
 from django.shortcuts import redirect, render
 
 from courses.models.cohort import Cohort
-from courses.registration_wall import registration_wall_blocks_user, require_registration_approval
 from courses.models.homework import (
     Homework,
+    HomeworkState,
     Question,
+    Submission,
 )
+from courses.registration_wall import registration_wall_blocks_user, require_registration_approval
 from courses.views.homework_context import (
     AuthenticatedHomeworkContext,
     authenticated_homework_context,
@@ -88,6 +91,29 @@ def authenticated_homework_post_response(
     return response
 
 
+def stepper_shows_homework(user, homework) -> bool:
+    """Whether this learner reads the homework as the stepper.
+
+    Open homework always does. Closed and scored homework does once there is
+    something of the learner's to show: the accepted submission (read-only,
+    with each question's result once scored) or, for a closed homework, a
+    draft saved while it was open. Otherwise the one-notice classic page
+    stays: DTC parks unpublished homework as closed, so its questions are
+    never previewed, and a scored homework's public answer key lives there.
+    """
+
+    if homework.state == HomeworkState.OPEN.value:
+        return True
+    if Submission.objects.filter(homework=homework, student=user).exists():
+        return True
+    return (
+        homework.state == HomeworkState.CLOSED.value
+        and HomeworkDraft.objects.filter(
+            user=user, assignment_key=assignment_key(homework)
+        ).exists()
+    )
+
+
 def homework_view(
     request: HttpRequest,
     course_slug: str,
@@ -122,11 +148,13 @@ def homework_view(
         questions=questions,
     )
     is_step_post = request.method == "POST" and "assignment_key" in request.POST
+    # `?homework_view=classic` keeps the one-page form reachable for the
+    # paths that still post it.
     use_stepper = (
         request.method == "GET"
         and questions
-        and homework.state == "OP"
         and request.GET.get("homework_view") != "classic"
+        and stepper_shows_homework(user, homework)
     ) or is_step_post
     if use_stepper and not registration_wall_blocks_user(course, user):
         try:
