@@ -826,9 +826,10 @@ def _mapping() -> dict[
             "time_spent_evaluation_field": _COPIED,
             "state": _COPIED,
             "criteria_set": "not copied (DTC standalone ReviewCriteriaSet FK)",
+            "shared_module": "not copied (site-side placement in the shared curriculum)",
             "evaluation_criteria": _COPIED,
         },
-        written(site.Project, {"course", "criteria_set"}) | {"cohort"},
+        written(site.Project, {"course", "criteria_set", "shared_module"}) | {"cohort"},
         # Decision 18: DTC has no pooled review window; deriving one from a past due date
         # would fabricate an operator knob, so the package default (7 days) stands.
         # C5.2m: DTC modules stay site-side and submissions already collect commit IDs.
@@ -866,6 +867,7 @@ def _mapping() -> dict[
             "enrollment": _COPIED,
             "github_link": _COPIED,
             "commit_id": _COPIED,
+            "description": "not copied (written site-side for the peers who review it)",
             "learning_in_public_links": _COPIED,
             "faq_contribution": _COPIED,
             "faq_contribution_url": _COPIED,
@@ -882,7 +884,7 @@ def _mapping() -> dict[
             "passed": _COPIED,
             "volunteer_review_only": _COPIED,
         },
-        written(site.ProjectSubmission, set()) | {"review_state"},
+        written(site.ProjectSubmission, {"description"}) | {"review_state"},
         frozenset(),
     )
 
