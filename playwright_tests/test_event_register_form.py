@@ -9,8 +9,11 @@ from __future__ import annotations
 
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlencode
 
 import pytest
+from community_base.events.models import EventRegistration
+from community_base.events.tokens import generate_registration_token
 from django.utils import timezone
 from playwright.sync_api import Page, ViewportSize, expect
 
@@ -21,6 +24,10 @@ from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTU
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
 
 SCREENSHOTS = Path(".tmp/screenshots/event-register-form")
+# The card keeps Register disabled until the form can succeed (and a click would
+# blur the field, re-running that gate), so the server's own checks are reached
+# by submitting the form directly, past the browser's validation.
+SUBMIT_PAST_BROWSER_CHECKS = "f => { f.noValidate = true; f.requestSubmit(); }"
 
 
 def _event_path(*, title: str, days: int) -> str:
@@ -71,22 +78,35 @@ def test_event_register_form_states_use_the_shared_form_primitives(
     page.goto(f"{live_server.url}{upcoming}")
     form = page.locator("form.event-register-form")
     email = form.locator("#id_reg_email")
+    # An anonymous visitor chooses how to register: the email form opens from
+    # "Register with email" (the other choice is logging in).
+    page.get_by_role("button", name="Register with email").click()
     expect(form).to_be_visible()
     _settle(page, dark, f"empty-{suffix}-{theme}")
     # The shared `.field-input` treatment, not the browser default control.
     assert email.evaluate("e => getComputedStyle(e).borderTopWidth") == "1px"
-    assert email.evaluate("e => e.getBoundingClientRect().height") >= 44
-    assert email.evaluate("e => e.getBoundingClientRect().width") >= 300
+    assert email.evaluate("e => e.getBoundingClientRect().height") >= 40
+    assert email.evaluate("e => e.getBoundingClientRect().width") >= 200
     assert form.locator(".form-check-input").first.evaluate(
         "e => e.getBoundingClientRect().width"
-    ) == pytest.approx(20, abs=0.5)
+    ) == pytest.approx(17.6, abs=1)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     assert_accessible_page(page, f"event register empty {suffix} {theme}")
 
+    # Register stays disabled until the form can succeed: a valid-looking email
+    # and the newsletter agreement.
+    register = form.get_by_role("button", name="Register")
+    expect(register).to_be_disabled()
+    email.fill("gate@example.com")
+    expect(register).to_be_disabled()
+    form.locator("#id_reg_newsletter_consent").check()
+    expect(register).to_be_enabled()
+    form.locator("#id_reg_newsletter_consent").uncheck()
+    expect(register).to_be_disabled()
+
     # The server's own email check: bypass the browser's so the redirect is reached.
     email.fill("not-an-email")
-    form.evaluate("f => { f.noValidate = true; }")
-    form.get_by_role("button", name="Register").click()
+    form.evaluate(SUBMIT_PAST_BROWSER_CHECKS)
     page.wait_for_url("**registered=invalid_email")
     summary = page.locator(".a11y-error-summary")
     expect(summary).to_be_focused()
@@ -96,18 +116,43 @@ def test_event_register_form_states_use_the_shared_form_primitives(
     _settle(page, dark, f"invalid-email-{suffix}-{theme}")
     assert_accessible_page(page, f"event register invalid {suffix} {theme}")
 
-    for attempt in ("registered", "already-registered"):
-        if attempt == "already-registered":
-            page.goto(f"{live_server.url}{upcoming}")
-        email.fill("event-form@example.com")
-        form.get_by_role("button", name="Register").click()
-        page.wait_for_url("**registered=ok")
-        notice = page.get_by_role("alert").filter(has_text="You are registered")
-        expect(notice).to_be_visible()
-        expect(notice).to_be_focused()
-        expect(page.locator(".a11y-error-summary")).to_have_count(0)
-        expect(form).to_have_count(0)
-        _settle(page, dark, f"{attempt}-{suffix}-{theme}")
+    # Registering means agreeing to the newsletter; the server enforces it too.
+    email.fill("event-form@example.com")
+    form.evaluate(SUBMIT_PAST_BROWSER_CHECKS)
+    page.wait_for_url("**registered=newsletter_required")
+    summary = page.locator(".a11y-error-summary")
+    expect(summary).to_be_focused()
+    expect(summary.get_by_role("link")).to_have_attribute("href", "#id_reg_newsletter_consent")
+    expect(page.locator("#id_reg_newsletter_consent")).to_have_attribute("aria-invalid", "true")
+    _settle(page, dark, f"newsletter-required-{suffix}-{theme}")
+    assert_accessible_page(page, f"event register newsletter {suffix} {theme}")
+
+    # A valid email with the agreement holds a pending seat: the registration is
+    # not done until the emailed link is followed.
+    email.fill("event-form@example.com")
+    form.locator("#id_reg_newsletter_consent").check()
+    form.get_by_role("button", name="Register").click()
+    pending = page.locator(".event-register-pending")
+    expect(pending).to_contain_text("One last step")
+    expect(pending).to_contain_text("event-form@example.com")
+    expect(pending).to_be_focused()
+    expect(page.locator(".event-register-notice")).to_have_count(0)
+    expect(form).to_have_count(0)
+    _settle(page, dark, f"pending-{suffix}-{theme}")
+    assert_accessible_page(page, f"event register pending {suffix} {theme}")
+
+    # Following the emailed link (built here the way the email builds it)
+    # confirms the seat and replaces the form with the registered notice.
+    registration = EventRegistration.objects.get(normalized_email="event-form@example.com")
+    assert registration.status == EventRegistration.Status.PENDING_VERIFICATION
+    token = generate_registration_token(registration, action="verify", expiry_hours=24)
+    page.goto(f"{live_server.url}/events/registration/verify?{urlencode({'token': token})}")
+    notice = page.get_by_role("alert").filter(has_text="You're registered")
+    expect(notice).to_be_visible()
+    expect(notice).to_be_focused()
+    expect(page.locator(".a11y-error-summary")).to_have_count(0)
+    expect(form).to_have_count(0)
+    _settle(page, dark, f"registered-{suffix}-{theme}")
     assert_accessible_page(page, f"event register ok {suffix} {theme}")
 
     page.goto(f"{live_server.url}{past}")

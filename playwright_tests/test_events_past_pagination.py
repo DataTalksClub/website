@@ -22,7 +22,7 @@ from content.pagination import PUBLIC_PAGE_SIZE
 from playwright_tests.accessibility_support import assert_accessible_page
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-177")
-EVENTS_HEADING = "Something happening every week"
+EVENTS_HEADING = "Events"
 # The control row the shared include draws, named by the label the archive passes.
 ARCHIVE_NAV = "Past event pages"
 
@@ -72,12 +72,12 @@ def _assert_control_targets(page: Page) -> None:
 
 
 def _expected_rail(start: int) -> list[str]:
-    """The Europe/Berlin date keys page `start // 20 + 1` draws, one per row."""
+    """The Europe/Berlin date keys page `start // 20 + 1` draws, one per day group."""
 
     recent = event_groups().recent
     page_slice = list(recent[start : start + PUBLIC_PAGE_SIZE])
     groups = event_date_groups(page_slice, descending=True)
-    return [group.key for group in groups for _ in group.events]
+    return [group.key for group in groups]
 
 
 def _assert_archive_page_contract(page: Page, page_number: int) -> None:
@@ -97,7 +97,7 @@ def _assert_archive_page_contract(page: Page, page_number: int) -> None:
     upcoming_tab = page.get_by_role("link", name="Upcoming events", exact=True)
     expect(upcoming_tab).to_have_attribute("href", "/events")
     expect(upcoming_tab).not_to_have_attribute("aria-current", "page")
-    expect(page.locator(".event-rows")).to_have_attribute("data-event-view", "past")
+    expect(page.locator(".event-timeline")).to_have_attribute("data-event-view", "past")
 
     expect(page.get_by_role("navigation", name=ARCHIVE_NAV)).to_be_visible()
     navigation = page.get_by_role("navigation", name=ARCHIVE_NAV)
@@ -107,13 +107,13 @@ def _assert_archive_page_contract(page: Page, page_number: int) -> None:
     expect(page.locator("body")).not_to_contain_text("?page=1")
 
     # Twenty numeric/current-slug rows, in the archive's deterministic order,
-    # each filed under its Europe/Berlin calendar date.
-    rows = page.locator(".event-rows .event-card h3 a")
+    # each day group filed under its Europe/Berlin calendar date.
+    rows = page.locator(".event-timeline .event-item h4 a")
     expect(rows).to_have_count(len(expected_rows))
     hrefs = rows.evaluate_all("nodes => nodes.map(node => node.getAttribute('href'))")
     assert hrefs == [event["public_path"] for event in expected_rows]
     assert all(re.fullmatch(r"/events/[1-9][0-9]*/[-a-z0-9]+", href) for href in hrefs), hrefs[:5]
-    rail = page.locator(".event-rows time").evaluate_all(
+    rail = page.locator(".event-timeline .event-day-date time").evaluate_all(
         "nodes => nodes.map(node => node.getAttribute('datetime'))"
     )
     assert rail == _expected_rail(start), rail[:6]
@@ -214,7 +214,7 @@ def test_archive_pages_hold_the_shared_contract_at_both_widths(
         "aria-current", "page"
     )
     expect(page.get_by_role("navigation", name=ARCHIVE_NAV)).to_have_count(0)
-    expect(page.locator(".event-rows")).to_have_attribute("data-event-view", "upcoming")
+    expect(page.locator(".event-timeline")).to_have_attribute("data-event-view", "upcoming")
 
     assert failed_requests == []
     assert console_errors == []

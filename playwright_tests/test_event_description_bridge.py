@@ -84,7 +84,7 @@ def test_described_recorded_and_undescribed_event_details(
     response = page.goto(f"{live_server.url}{described_path}")
     assert response is not None and response.status == 200
     expect(page.get_by_role("heading", name=described["title"], exact=True)).to_be_visible()
-    expect(page.locator('section[aria-label="Event description"]')).to_have_count(1)
+    expect(page.locator('section[aria-labelledby="event-about-heading"]')).to_have_count(1)
     recording = page.get_by_role("link", name=_recording_name(described))
     expect(recording).to_be_visible()
     expect(recording).to_have_attribute("target", "_blank")
@@ -102,7 +102,7 @@ def test_described_recorded_and_undescribed_event_details(
     response = page.goto(f"{live_server.url}{undescribed_path}")
     assert response is not None and response.status == 200
     expect(page.get_by_role("heading", name=undescribed["title"], exact=True)).to_be_visible()
-    expect(page.locator('section[aria-label="Event description"]')).to_have_count(0)
+    expect(page.locator('section[aria-labelledby="event-about-heading"]')).to_have_count(0)
     expect(page.get_by_role("heading", name="Event links", exact=True)).to_have_count(0)
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href",
@@ -136,7 +136,7 @@ def test_event_descriptions_are_meaningful_without_javascript(
         response = page.goto(f"{live_server.url}{described['public_path']}")
         assert response is not None and response.status == 200
         expect(page.get_by_role("heading", name=described["title"], exact=True)).to_be_visible()
-        expect(page.locator('section[aria-label="Event description"]')).to_have_count(1)
+        expect(page.locator('section[aria-labelledby="event-about-heading"]')).to_have_count(1)
         expect(page.get_by_role("link", name=_recording_name(described))).to_be_visible()
         _assert_no_provider_action(page)
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
@@ -146,7 +146,7 @@ def test_event_descriptions_are_meaningful_without_javascript(
         response = page.goto(f"{live_server.url}{undescribed['public_path']}")
         assert response is not None and response.status == 200
         expect(page.get_by_role("heading", name=undescribed["title"], exact=True)).to_be_visible()
-        expect(page.locator('section[aria-label="Event description"]')).to_have_count(0)
+        expect(page.locator('section[aria-labelledby="event-about-heading"]')).to_have_count(0)
         _assert_no_provider_action(page)
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
         _screenshot(page, "no-javascript-undescribed-mobile.png")
@@ -163,7 +163,7 @@ def test_event_description_reflows_at_narrow_and_zoom_equivalent_widths(
         page.set_viewport_size({"width": width, "height": 900})
         response = page.goto(f"{live_server.url}{_described_recorded_event()['public_path']}")
         assert response is not None and response.status == 200
-        expect(page.locator('section[aria-label="Event description"]')).to_be_visible()
+        expect(page.locator('section[aria-labelledby="event-about-heading"]')).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
 
 
@@ -179,7 +179,7 @@ def test_event_details_inherit_dark_mode_without_provider_actions(
     assert response is not None and response.status == 200
     page.locator("#dark-mode-toggle:visible").click()
     expect(page.locator("body")).to_have_class(re.compile(r"\bdark-mode\b"))
-    expect(page.locator('section[aria-label="Event description"]')).to_be_visible()
+    expect(page.locator('section[aria-labelledby="event-about-heading"]')).to_be_visible()
     _assert_no_provider_action(page)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     _screenshot(page, "described-recording-dark-desktop.png")
@@ -188,7 +188,7 @@ def test_event_details_inherit_dark_mode_without_provider_actions(
     response = page.goto(f"{live_server.url}{undescribed_path}")
     assert response is not None and response.status == 200
     expect(page.locator("body")).to_have_class(re.compile(r"\bdark-mode\b"))
-    expect(page.locator('section[aria-label="Event description"]')).to_have_count(0)
+    expect(page.locator('section[aria-labelledby="event-about-heading"]')).to_have_count(0)
     _assert_no_provider_action(page)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     _screenshot(page, "undescribed-no-external-links-dark-mobile.png")

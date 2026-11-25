@@ -70,13 +70,13 @@ def test_featured_event_speaker_bio_is_rendered_at_both_viewports(
 
     speakers = page.locator('section[aria-labelledby="event-speakers-heading"]')
     expect(speakers).to_be_visible()
-    expect(speakers.get_by_role("heading", name="Speakers", exact=True)).to_be_visible()
+    expect(speakers.get_by_role("heading", name="About the speakers", exact=True)).to_be_visible()
     row = speakers.locator("li.speaker-row").filter(has_text=FEATURED_SPEAKER_NAME)
     expect(row).to_have_count(1)
     expect(row.get_by_role("link", name=FEATURED_SPEAKER_NAME, exact=True)).to_be_visible()
     expect(row.locator(".event-speaker-bio")).to_have_text(bio_text)
     expect(row.locator("script")).to_have_count(0)
-    expect(page.locator('section[aria-label="Event description"]')).to_be_visible()
+    expect(page.locator('section[aria-labelledby="event-about-heading"]')).to_be_visible()
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
 
     _screenshot(page, f"featured-{suffix}.png")
