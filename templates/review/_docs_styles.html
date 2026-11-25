@@ -45,7 +45,7 @@
    hub used to divide its sections with a local restatement of `.band-head` over
    a dashed rule; a chapter is the ink rule, the band-head, and its own action. */
 .docs-chapter {
-  border-top: 2px solid var(--line);
+  border-top: var(--seam);
   margin-top: var(--space-section);
   padding-top: var(--space-section);
 }
@@ -377,8 +377,8 @@
 }
 
 .docs-on-page {
-  border-bottom: 2px dashed var(--line-soft);
-  border-top: 2px dashed var(--line-soft);
+  border-bottom: var(--seam);
+  border-top: var(--seam);
   margin-bottom: var(--space-5);
   padding: var(--space-3) 0;
 }
@@ -516,7 +516,7 @@
 }
 
 .docs-follow-on {
-  border-top: 2px dashed var(--line-soft);
+  border-top: var(--seam);
   margin-top: var(--space-6);
   padding-top: var(--space-6);
 }
@@ -541,7 +541,7 @@
 }
 
 .docs-pager {
-  border-top: 2px dashed var(--line-soft);
+  border-top: var(--seam);
   display: grid;
   gap: var(--space-4) var(--space-5);
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -588,7 +588,7 @@
   .docs-section-card {
     background: none;
     border: 0;
-    border-bottom: 1.5px dashed var(--line-soft);
+    border-bottom: var(--rule);
     border-radius: 0;
     box-shadow: none;
     padding: 0 0 var(--space-4);

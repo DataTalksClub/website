@@ -131,7 +131,7 @@
          so the second section started on the overview card's bottom border
          with no top rule and no gap. */
       .dashboard-section + .dashboard-section {
-        border-top: 2px dashed var(--line-soft);
+        border-top: var(--seam);
         margin-top: var(--space-section);
         padding-top: var(--space-section);
       }
@@ -621,7 +621,7 @@
 
       @media (min-width: 48rem) {
         .hw-head {
-          border-bottom: 2px dashed var(--line-soft);
+          border-bottom: var(--rule);
           display: grid;
           padding-block: var(--space-2) var(--space-2);
         }
@@ -814,7 +814,7 @@
 
       .week-table th,
       .week-table td {
-        border-bottom: 1.5px dashed var(--line-soft);
+        border-bottom: var(--rule);
         padding: var(--space-2) var(--space-3) var(--space-2) 0;
         text-align: left;
       }

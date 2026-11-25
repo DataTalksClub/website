@@ -229,7 +229,7 @@
        * above and a real band head. */
 
       .academy-section {
-        border-top: 2px dashed var(--line-soft);
+        border-top: var(--seam);
         margin-top: 3rem;
         padding-top: 2.75rem;
       }
@@ -289,7 +289,7 @@
       }
 
       .academy-band + .academy-band::before {
-        border-top: 2px dashed var(--line-soft);
+        border-top: var(--seam);
         content: "";
         inset: 0 -100vmax auto;
         position: absolute;
@@ -507,7 +507,7 @@
       }
 
       .academy-success-group {
-        border-top: 2px dashed var(--line-soft);
+        border-top: var(--seam);
         display: grid;
         gap: 0.5rem;
         padding-top: 1rem;
@@ -555,7 +555,7 @@
 
       .academy-weeks,
       .academy-session-list {
-        border-top: 2px solid var(--line);
+        border-top: var(--rule);
         list-style: none;
         margin: 0;
         padding: 0;
@@ -825,7 +825,7 @@
       /* --- the free sessions ------------------------------------------------ */
 
       .academy-hero-sessions {
-        border-top: 2px dashed var(--line-soft);
+        border-top: var(--seam);
         list-style: none;
         margin: 1.75rem 0 0;
         padding: 0;
@@ -923,7 +923,7 @@
       /* The closing panel of a reading page is its own chapter, framed like
          every other: a dashed seam and the chapter spacing above it. */
       .academy-article-closing > .academy-section:first-child {
-        border-top: 2px dashed var(--line-soft);
+        border-top: var(--seam);
         margin-top: 3rem;
         padding-top: 2.75rem;
       }

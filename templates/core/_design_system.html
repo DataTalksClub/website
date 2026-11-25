@@ -473,7 +473,7 @@ Rules for editing:
          which a scripted accordion would not.  `:target` opens the question a
          deep link names, so a link to #faq-… lands on an open answer. */
       .faq-fold {
-        border-top: 1.5px dashed var(--line-soft);
+        border-top: var(--rule);
         min-width: 0;
         scroll-margin-top: 1.5rem;
       }
@@ -632,7 +632,7 @@ Rules for editing:
 
       .masthead {
         background: var(--cream);
-        border-bottom: 2px dashed var(--line-soft);
+        border-bottom: var(--seam);
       }
 
       .masthead-inner {
@@ -1087,7 +1087,7 @@ Rules for editing:
          its blocks.  From 40rem up the standalone masthead link takes over, in every
          script state, so exactly one "Log in" is visible at any width. */
       .site-navigation-links .nav-auth-menu-item {
-        border-top: 2px dashed var(--line-soft);
+        border-top: var(--rule);
         border-radius: 0 0 0.5rem 0.5rem;
         font-size: 0.92rem;
         margin-top: var(--space-2);
@@ -1110,7 +1110,7 @@ Rules for editing:
 
       .nav-group + .nav-group,
       .nav-group + .nav-link {
-        border-top: 2px dashed var(--line-soft);
+        border-top: var(--rule);
         margin-top: var(--space-1);
         padding-top: var(--space-1);
       }
@@ -1195,7 +1195,7 @@ Rules for editing:
       }
 
       .user-menu-identity {
-        border-bottom: 2px dashed var(--line-soft);
+        border-bottom: var(--rule);
         margin: 0 0 var(--space-2);
         max-width: 14rem;
         overflow: hidden;
@@ -1336,7 +1336,7 @@ Rules for editing:
       /* --- bands -------------------------------------------------------- */
 
       .band {
-        border-bottom: 2px dashed var(--line-soft);
+        border-bottom: var(--seam);
         padding-block: var(--space-band);
       }
 
@@ -2171,7 +2171,7 @@ Rules for editing:
          place stack against the avatar, and the pill holds the right edge. */
       .story-person {
         align-items: center;
-        border-top: 1.5px dashed var(--line-soft);
+        border-top: var(--rule);
         display: flex;
         gap: var(--space-3);
         justify-content: space-between;
@@ -2480,7 +2480,7 @@ Rules for editing:
       .site-announcement,
       .impersonation-banner {
         background: var(--lavender);
-        border-bottom: 2px solid var(--line-soft);
+        border-bottom: var(--rule);
         color: var(--ink);
       }
 
@@ -2522,7 +2522,7 @@ Rules for editing:
          Narrow screens put the brand over a full-width row of links (left)
          and icons (right). */
       .site-footer {
-        border-top: 2px dashed var(--line-soft);
+        border-top: var(--seam);
       }
 
       .site-footer-inner {
@@ -2612,7 +2612,7 @@ Rules for editing:
          under the footer's one rule. */
       .site-footer-base {
         align-items: center;
-        border-top: 1px solid var(--line-soft);
+        border-top: var(--rule);
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-2) var(--space-5);
@@ -3590,7 +3590,7 @@ Rules for editing:
 
       /* Spec rows: label-over-value facts (STARTS / LENGTH / PRICE / …). */
       .spec-strip {
-        border-block: 2px dashed var(--line-soft);
+        border-block: var(--seam);
         display: grid;
         gap: var(--space-4) var(--space-5);
         grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
@@ -3616,7 +3616,7 @@ Rules for editing:
       }
 
       .row-list > * {
-        border-bottom: 1.5px dashed var(--line-soft);
+        border-bottom: var(--rule);
       }
 
       .list-row {
@@ -3806,7 +3806,7 @@ Rules for editing:
        */
 
       .row-fold > .list-row {
-        border-bottom: 1.5px dashed var(--line-soft);
+        border-bottom: var(--rule);
       }
 
       .row-fold > .list-row:last-child {
@@ -3913,7 +3913,7 @@ Rules for editing:
       /* Timestamp rows: mono time mark plus text, dashed separators.
          The same shape carries transcript rows with a speaker mark. */
       .timestamp-row {
-        border-bottom: 1.5px dashed var(--line-soft);
+        border-bottom: var(--rule);
         column-gap: var(--space-3);
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
@@ -4082,7 +4082,7 @@ Rules for editing:
         .stage-card:not(.stage-card-rail) {
           background: none;
           border: 0;
-          border-bottom: 1.5px dashed var(--line-soft);
+          border-bottom: var(--rule);
           border-radius: 0;
           box-shadow: none;
           column-gap: var(--space-3);
@@ -4205,14 +4205,14 @@ Rules for editing:
       }
 
       .module-body {
-        border-top: 1.5px dashed var(--line-soft);
+        border-top: var(--rule);
         display: grid;
         margin-left: var(--space-8);
         padding: var(--space-1) var(--space-4) var(--space-4) 0;
       }
 
       .module-fact {
-        border-bottom: 1.5px dashed var(--line-soft);
+        border-bottom: var(--rule);
         column-gap: var(--space-3);
         display: grid;
         font-size: 0.9rem;
@@ -4289,7 +4289,7 @@ Rules for editing:
       }
 
       .cmp-form-actions {
-        border-top: 2px dashed var(--line-soft);
+        border-top: var(--seam);
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-3);
@@ -4533,7 +4533,7 @@ Rules for editing:
       }
 
       .featured-meta {
-        border-top: 1.5px solid var(--line-soft);
+        border-top: var(--rule);
         color: var(--muted);
         font-size: 0.88rem;
         padding-top: var(--space-3);
@@ -4863,7 +4863,7 @@ Rules for editing:
          `<details>`, so it works with JavaScript off and the browser gives the
          summary its keyboard behaviour and its announced state for free. */
       .graph-index {
-        border-top: 1.5px dashed var(--line-soft);
+        border-top: var(--rule);
         margin-top: var(--space-4);
         padding-top: var(--space-4);
       }
@@ -4887,7 +4887,7 @@ Rules for editing:
 
       .graph-legend {
         align-items: center;
-        border-top: 1.5px dashed var(--line-soft);
+        border-top: var(--rule);
         color: var(--muted);
         display: flex;
         flex-wrap: wrap;
@@ -5582,7 +5582,7 @@ Rules for editing:
 
       .prose hr {
         border: 0;
-        border-top: 2px dashed var(--line-soft);
+        border-top: var(--seam);
         margin-block: var(--space-6);
       }
 
@@ -5630,7 +5630,7 @@ Rules for editing:
          reads as one frame rather than a solid box with dashed insides. */
       .prose th,
       .prose td {
-        border-bottom: 1px solid var(--line-soft);
+        border-bottom: var(--rule);
         padding: var(--space-3) var(--space-4);
         text-align: left;
         vertical-align: top;
@@ -5647,7 +5647,7 @@ Rules for editing:
 
       .prose thead th {
         background: var(--lavender);
-        border-bottom: 1px solid var(--line-soft);
+        border-bottom: var(--rule);
         font-size: 0.82rem;
         font-weight: 700;
         letter-spacing: 0.01em;
@@ -5687,7 +5687,7 @@ Rules for editing:
         }
 
         .prose-scroll:has(thead) tr {
-          border-bottom: 1.5px dashed var(--line-soft);
+          border-bottom: var(--rule);
           padding: var(--space-3) var(--space-4);
         }
 
