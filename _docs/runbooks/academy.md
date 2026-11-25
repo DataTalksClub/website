@@ -17,7 +17,7 @@ In `DataTalksClub/content`:
 | `academy/shared.yaml` | copy several pages share: brand, facts strip, instructor, fit lists, syllabus labels, funding, admission steps, the program FAQ, the closing waitlist panel, the Academy bar (`header`: wordmark, tagline, section links), the program pages' sticky caption, the contact line, the confirmation warning every form shows (`confirm_notice`), the waitlist form's labels, errors, quick questions and survey address |
 | `academy/index.md` | `/academy/` (layout `home`) |
 | `academy/agentic-engineering.md`, `academy/ai-engineering.md` | the program pages (layout `program`): hero, outcomes, project, prerequisites, syllabus groups and modules, Course structured data |
-| `academy/sessions.md` | `/academy/sessions/` (layout `sessions`): the session list with dates, Zoom and Meetup links, the registration form copy, and the calendar identity |
+| `academy/sessions.md` | `/academy/sessions/` (layout `sessions`): the session list with dates, Zoom and Meetup links, the (now unused) registration form copy, and the calendar identity |
 | `academy/sessions-materials.md` | `/academy/sessions/materials/` (layout `materials`), the QR recording form |
 | `academy/confirm.md` | `/academy/confirm/` (layout `confirm`), every confirmation state's words |
 | `academy/bildungsgutschein.md` | the German guide (layout `guide`, `lang: de`) |
@@ -63,9 +63,25 @@ social caches and printed slides reference them.  Only those files are mapped
 (`academy.views.LEGACY_IMAGES`); any other path there is a 404.  Canonicals and
 Open Graph URLs are on `https://datatalks.club/academy/...`.
 
+## The free sessions are site events
+
+The "Hireable With AI" sessions are ordinary events on `/events/`: people register
+on each event page with the site's registration card (one click when signed in, or
+email and a confirmation link), the page counts them like any other event, and the
+event says "Online on Zoom" with the meeting link shown only to a confirmed seat.
+`/academy/sessions/` (the frozen address) keeps its copy and links each upcoming
+session to its event page ("Register on the event page →"), as do the session rows
+on `/academy/`; it has no form of its own. The link comes from the event series whose
+slug is the sessions page's `calendar_slug`, at the session's number
+(`academy.presentation.session_event_paths`); a session with no linked event shows
+no link. `scripts/prod/import_academy_sessions.py` links the events, sets their Zoom
+meeting from the sessions page's `zoom_url`, drops the legacy "Event link" material,
+and moves the backend's confirmed signups for upcoming sessions into event
+registrations without sending mail (`data-ingest.md` §24, run-order step 6).
+
 ## Forms
 
-The waitlist, session and QR forms and the confirmation page talk directly to
+The waitlist and QR forms and the confirmation page talk directly to
 the existing Academy signup backend (AWS Lambda, double opt-in) from
 `academy/static/academy/academy.js`: `POST /signup` and
 `GET /confirm?token=...&format=json`, with the same field keys, values,

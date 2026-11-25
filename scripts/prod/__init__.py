@@ -156,6 +156,12 @@ SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
         "deliberate, separately invoked run rather than something a local rebuild "
         "does on its way past."
     ),
+    "import_academy_sessions": (
+        "Reads attendee-level personal data (the Academy backend's session-signup "
+        "export) and writes registrations for upcoming events only, so it is a "
+        "deliberate, dry-run-first operator command (step 6), never part of a "
+        "dataset rebuild."
+    ),
     "import_event_duplicate_merges": (
         "Deletes Event rows and moves their registrations, and only for pairs a person "
         "named after reviewing a dry run, so it is a typed operator command and never "

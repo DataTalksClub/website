@@ -122,6 +122,7 @@ that way since the database cutover, so a row in §2 never carries it.
 | 20 | Testimonials | Migration seed only | Database | Undecided |
 | 21 | `rds-aisl_prod` — second production database | **Not addressed** | — | **Undecided** |
 | 22 | Project gallery repository enrichment | One-time | Database | One-off export |
+| 24 | Academy session signups (Hireable With AI) | One-time | Database | Explicit protected import |
 
 Sources 3–6 are separate upstream repositories that the owner's original list
 folded into "`DataTalksClub/content`". They are not in that repository and never
@@ -1259,6 +1260,31 @@ uv run --frozen python scripts/prod/import_tour.py \
 no fallback when nothing is published: the editorial sections disappear and the
 catalogue-backed skeleton remains.
 
+### 24 — Academy session signups → event registrations
+
+| | |
+| --- | --- |
+| **Upstream** | The Academy signup backend (AWS Lambda, eu-west-1, double opt-in) that the retired `/academy/sessions/` form posted to (source `layoff_proof`). Its rows never lived in this database. The free sessions ("Hireable With AI") are ordinary site events now: people register on the event page, so this is a one-time move of the signups taken before the switch |
+| **Staging** | An operator-pulled export of the backend's session signups under `~/prod/dtc-data/academy-signups/` (outside the repository; never copied into a worktree): a JSON array or JSON Lines. Per row only `email`, `sessions`, the confirmation (`confirmed` / `status` / `confirmed_at`), `name`, `created_at`, `consent_version` and `academy_optin` are read |
+| **Script** | `scripts/prod/import_academy_sessions.py` |
+| **Writes** | (1) Events: each session of the synced sessions page (`academy/sessions.md`) is matched to the one event linked to the series at its position, else the one event titled `"<series name> #<n>:…"` (none or several → `unresolved_sessions`, never guessed); the event joins the `EventSeries` whose slug is the page's `calendar_slug` at that position (what `/academy/sessions/` and `/academy/` link by), and through `events.admin_services.update_event` gets `platform="zoom"`, the session's Zoom meeting as `zoom_join_url` and its materials without the legacy "Event link" to `/academy/sessions/`. (2) With `--signups`: one confirmed native `community_base.events.EventRegistration` per confirmed signup and chosen **upcoming** session, linked to the account holding the address if any, with `privacy_notice_version` `academy:<consent version>`, the signup time, `newsletter_consent` empty and `acquisition_metadata` `{source: academy-sessions, academy_session, academy_optin, academy_consent_version}` |
+| **Does not read or write** | The backend's track, status, years, location, Bildungsgutschein interest, free text and campaign fields (they stay in the backend). It sends no mail: no confirmation, no verification. An address already registered for the event is left as it is |
+| **Idempotency** | Safe. Dry run by default (computed in a rolled-back transaction); `--apply` writes. A second `--apply` reports every event `unchanged` and every seat `already_present`. The report is counts, session ids and public event ids only |
+| **Bootstrap** | **No.** It reconciles against the synced Academy pages (step 4's editorial sync) and the events (step 5); it belongs to step 6 |
+
+```
+uv run --frozen python scripts/prod/import_academy_sessions.py \
+    --database .tmp/local.sqlite3 \
+    --signups ~/prod/dtc-data/academy-signups/<export>.json          # dry run
+uv run --frozen python scripts/prod/import_academy_sessions.py \
+    --database .tmp/local.sqlite3 \
+    --signups ~/prod/dtc-data/academy-signups/<export>.json --apply
+```
+
+Without `--signups` only the events half runs. On a deployed database use the shared
+target selection (`--deployment-target NAME --allow-production-write NAME`) as for the
+other step-6 importers.
+
 ---
 
 ## 8.1 Rebuilding a local dev database end to end
@@ -1714,8 +1740,12 @@ What genuinely differs, and needs care rather than a separate pipeline:
    (always run) and, since 2026-09-11, `--eventbrite-source`/`--eventbrite-identities`
    (opt-in; a one-time backfill against Eventbrite's frozen export, not a recurring
    pull — see `_docs/runbooks/event-registration-pull.md` §4.5b) — and the Mailchimp
-   importers, which reconcile against the events step 5 wrote. They have no Make
-   target on purpose — see "Not in the bootstrap order, and why" below.
+   importers, which reconcile against the events step 5 wrote. Then
+   `scripts/prod/import_academy_sessions.py` (§24): it turns the free Academy
+   sessions into Zoom events in their series and, with `--signups`, moves the Academy
+   backend's confirmed session signups onto the upcoming events — after the editorial
+   sync (step 4) and the events (step 5), dry run first, `--apply` to write. They have
+   no Make target on purpose — see "Not in the bootstrap order, and why" below.
    **2026-11-25 Eventbrite top-up.** A second Eventbrite pull
    (`~/prod/dtc-data/eventbrite-export-2026-11-25/`, 26 events of May–Sep 2023 that
    aggregate-v1 lacks) is staged as `~/prod/dtc-data/eventbrite-staged-2026-11-25/
@@ -1786,8 +1816,8 @@ compensate for drift the first pass had not produced. Read
 points are deliberately outside it, and the exclusions are checked by
 `scripts/tests/test_prod_conventions.py` rather than left to prose.
 
-- **Step 6** — `import_event_registrants`, `import_mailchimp_event_tags` and
-  `import_mailchimp_subscriptions`. They read attendee-level personal data and need
+- **Step 6** — `import_event_registrants`, `import_mailchimp_event_tags`,
+  `import_mailchimp_subscriptions` and `import_academy_sessions`. They read attendee-level personal data and need
   provider credentials, so they stay separately invoked runs. The rehearsal's own
   registrant leg is opt-in for the same reason (`--with-registrants`, §8.1).
 - **The CMP learner importers** — `scripts/prod/import_cmp_learners.py`,
