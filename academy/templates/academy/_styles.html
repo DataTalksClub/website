@@ -652,6 +652,28 @@
         color: var(--body-text);
       }
 
+      /* --- the newest articles ---------------------------------------------- *
+       * Three cards in the system's three-up grid, the homepage's events
+       * card in shape: the date line, the title (the whole card is the link)
+       * and three lines of the lead. */
+
+      .academy-article-card h3 {
+        font-size: 1.15rem;
+      }
+
+      .academy-article-card h3 a {
+        color: var(--ink);
+      }
+
+      .academy-article-summary {
+        -webkit-box-orient: vertical;
+        color: var(--body-text);
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        overflow: hidden;
+      }
+
       /* --- questions -------------------------------------------------------- */
 
       .academy-section .row-list,

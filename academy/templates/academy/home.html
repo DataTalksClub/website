@@ -10,8 +10,8 @@
   on the program pages).  Below the seam every chapter keeps the content
   column and the same frame -- a dashed seam and a band head: the two
   programs as cards (with the comparison page in the head's action slot),
-  funding with its guides, the free session series, the articles as the
-  site's archive rows, a few questions from the FAQ, and the closing mint
+  funding with its guides, the free session series, the three newest
+  articles as a card grid, a few questions from the FAQ, and the closing mint
   panel holding the one waitlist form the hero's action points to.  The
   anchors older links use (#hero, #signup-hero, #tracks, #facts, #funding)
   stay on those blocks.  Every word is synced content (academy/index.md,
@@ -153,15 +153,25 @@
             <p>{{ data.articles.intro }}</p>
           {% endif %}
         </div>
-        {% if articles_path and data.articles.link_label %}
-          <a class="band-link" href="{{ articles_path }}">{{ data.articles.link_label }} →</a>
-        {% endif %}
       </div>
-      <div class="row-list academy-articles">
+      <div class="card-grid card-grid-3 academy-articles">
         {% for article in articles %}
-          {% include "public/_archive_row.html" with row_title=article.heading row_url=article.path row_date=article.published row_eyebrow=article.eyebrow row_summary=article.lead only %}
+          <article class="card stretched-card-link interactive-card interactive-lift academy-article-card">
+            <p class="mono-note">
+              <time datetime="{{ article.published|date:'Y-m-d' }}">{{ article.published|date:"M j, Y" }}</time>
+            </p>
+            <h3 class="archive-title">
+              <a href="{{ article.path }}">{{ article.heading }}</a>
+            </h3>
+            <p class="academy-article-summary">{{ article.lead }}</p>
+          </article>
         {% endfor %}
       </div>
+      {% if articles_path and data.articles.link_label %}
+        <p class="band-more">
+          <a class="band-link" href="{{ articles_path }}">{{ data.articles.link_label }} →</a>
+        </p>
+      {% endif %}
     </section>
   {% endif %}
 

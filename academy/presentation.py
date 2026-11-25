@@ -32,7 +32,7 @@ ACADEMY_ROOT = "/academy/"
 SESSION_ZONE = ZoneInfo("Europe/Berlin")
 #: How many of the newest articles the home page lists before its link to
 #: the full index.
-HOME_ARTICLES = 5
+HOME_ARTICLES = 3
 _MARKDOWN_LINK = re.compile(r"\[([^\]]+)\]\([^)]+\)")
 #: The layouts that draw the waitlist card (``#signup-hero``) themselves.
 WAITLIST_LAYOUTS = frozenset({"home", "program"})
