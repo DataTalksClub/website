@@ -1,4 +1,4 @@
-"""Integration tests for community-base v0.5.38 peer-review, criteria sets & submission wiring."""
+"""Integration tests for community-base v0.5.39 peer-review, criteria sets & submission wiring."""
 
 import subprocess
 import tempfile

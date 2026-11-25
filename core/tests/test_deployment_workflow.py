@@ -187,7 +187,8 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # dependencies and the lock seal are unchanged.
 # The 2026-11-25 prod-ingest plan enrolls scripts.prod.import_event_backfill and
 # its test in strict mypy (configuration only, no dependency change).
-STUDIO_COURSES_PYPROJECT_SHA256 = "a1f1bc1515600c6cbfadc0a40b34d6bce477d591c7213be76ff25855b102ba01"
+# The community-base pin moves to v0.5.39 (learner attempt flow, review autosave).
+STUDIO_COURSES_PYPROJECT_SHA256 = "b2e5a523d15bb1bbb326500369db18aa94b808e1809f2b4258984a4e80baafdc"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation
@@ -208,8 +209,9 @@ STUDIO_COURSES_PYPROJECT_SHA256 = "a1f1bc1515600c6cbfadc0a40b34d6bce477d591c7213
 # (2ec90c67); the reviewed lock seal tracks the entry and pin reference bytes.
 # Intake 623a5c59 drops python-json-logger and tqdm from the lock.
 # Certificates intake aa1a414f adds segno (QR codes) to pyproject and the lock.
+# Community-base v0.5.39 (learner attempt flow, review autosave) moves the pin.
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "3868e17e872d3c62a631702f763e54c96ae74354ebfe2e68beffa621588743d3"
+    "50659cddc3d547fc5bb670681115d754268078291f6eb7e32c28ba84a9c09e88"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
