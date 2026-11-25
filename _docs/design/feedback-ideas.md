@@ -75,3 +75,27 @@ yet. A `?topic=...` link still loads the full page; the filter is ignored.
 2. Build it with the existing components and tokens; no new visual language.
 3. Screenshot it (desktop and phone, light and dark) next to the current page.
 4. Alexey decides; only then the next row.
+
+## Page-by-page review list (25 Nov 2026)
+
+Every public page that changed in the feedback rounds of 24–25 Nov, and where it
+stands. Home is done; go down this list one page at a time.
+
+| Page | What changed | Source | Status |
+|---|---|---|---|
+| `/` home | Restored to the polished design, then one change at a time (see "Home page" above) | #552, #570 reverted | done |
+| `/courses` | Landing + filterable catalogue | #551 | restored to the polished page; 11 ideas recorded above (C1–C11), none added back yet |
+| `/courses/<family>` course landing | 11-block structure, side-by-side "live cohort vs self-paced" cards, editions list hidden from guests, closing panel repeats both options | #563, #566 | **next to review**: still the new version |
+| `/courses/<family>/<cohort>` cohort page | One primary button, workspace links moved into a tab strip, personal statuses hidden from guests | #563, #566 | **to review**: still the new version |
+| `/about` (was `/tour`) | Renamed About; `/tour` redirects; its figures and founder story shared with home | #554 | to review |
+| Masthead (every page) | Learn / Community / Read dropdowns, theme toggle as an icon, Sponsors moved to the footer, "Create free account" label | #550, #549 | kept; panel restyled, Books moved to Read, phone menu fixed |
+| Footer (every page) | Link columns added | #550 | kept and redesigned |
+| Closing stripes (every page) | Academy stripe only on Courses pages; tour stripe now "About DataTalks.Club" on community pages | #546, #554 | to review |
+| `/blog`, `/podcast`, `/books` lists | Soft 1px borders on article cards | #548 | reverted to the ink border and shadow |
+| `/podcast/<episode>` | Empty show-notes and knowledge-graph blocks hidden | #532 | kept |
+| `/newsletter` | "Subscribe" label; Slack promise removed | #549 | to review |
+| `/slack` | CTA and heading "Join Slack" | #553 | to review |
+| Wiki pages and headings | One name, "Wiki", everywhere | #557 | kept |
+| `/academy/<program>` | Funding sections hidden when the content omits them | #547 | kept |
+| `/academy/...` all pages | Landing blueprint redesign (hero art, facts strip, week-by-week syllabus, guides) | 24 Nov redesign | **to review**: Alexey said the design is bad but the ideas are good |
+| Blog charts (e.g. sponsor page, demographics post) | JS charts became static bar charts; captions inside the card | chart conversion, 24 Nov | being fixed: pies back where the source was a pie, captions below the card, captions that only repeat numbers removed |
