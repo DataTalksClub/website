@@ -104,7 +104,7 @@ This document answers all 10 open questions in `bots-management/agents/contracts
     dtc events speakers create --short janedoe --name "Jane Doe" --title "Staff ML Engineer"
     dtc events speakers list [--search jane]
     ```
-  - For a full public `/people/<short>.html` profile page, add `_people/<short>.md` (and `images/authors/<short>.jpg`) in `DataTalksClub/datatalksclub.github.io`. This is the one content type that is still authored on the old repository (interim); the `dtc-main-site` source is now part of the ten-minute Content Sync schedule, so the profile appears on the site within about ten minutes of the push. Moving people authoring to `DataTalksClub/content` is a tracked follow-up.
+  - For a full public `/people/<short>.html` profile page, add `_people/<short>.md` (and `images/authors/<short>.jpg`) in `DataTalksClub/datatalksclub.github.io`. This is the one content type that is still authored on the old repository (interim); the `dtc-main-site` source is now part of the Content Sync workflow, so the profile appears after the next Content Sync run (dispatch it: `gh workflow run content-sync.yml -R DataTalksClub/website`). Moving people authoring to `DataTalksClub/content` is a tracked follow-up.
 
 ---
 
