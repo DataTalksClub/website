@@ -22,10 +22,17 @@
     <div class="event-item-body">
       {% if not on_rail %}
         <p class="event-item-time">
-          Season {{ episode.season }} · <b>Episode {{ episode.episode }}</b>{% if item.date %} · <time datetime="{{ item.date|date:'Y-m-d' }}">{{ item.short_date }}</time>{% endif %}
+          Season {{ episode.season }} · <b>Episode {{ episode.episode }}</b>
+          {% if item.date %}
+            · <time datetime="{{ item.date|date:'Y-m-d' }}">{{ item.short_date }}</time>
+          {% endif %}
         </p>
       {% endif %}
-      <h3><a href="{{ episode.public_path }}">{{ episode.title }}</a></h3>
+      {% spaceless %}
+      <h3>
+        <a href="{{ episode.public_path }}">{{ episode.title }}</a>
+      </h3>
+      {% endspaceless %}
       {% if item.guests %}
         <p class="person-chips event-item-speakers">
           {% for guest in item.guests %}
@@ -37,7 +44,13 @@
         <ul class="event-item-meta">
           {% if item.listen_links %}
             <li>
-              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 10V8a5.5 5.5 0 0 1 11 0v2" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="9" width="3" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="9" width="3" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+              {% spaceless %}
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2.5 10V8a5.5 5.5 0 0 1 11 0v2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <rect x="2" y="9" width="3" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <rect x="11" y="9" width="3" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              {% endspaceless %}
               <span class="podcast-listen">
                 <span class="podcast-listen-label">Listen on</span>
                 {% for link in item.listen_links %}
@@ -51,9 +64,19 @@
           {% endif %}
           {% if item.topics %}
             <li>
-              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h5.2l6 6-5.2 5.2-6-6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="5.3" cy="5.3" r="1" fill="currentColor"/></svg>
+              {% spaceless %}
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2.5 2.5h5.2l6 6-5.2 5.2-6-6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                <circle cx="5.3" cy="5.3" r="1" fill="currentColor"/>
+              </svg>
+              {% endspaceless %}
               <span class="podcast-topics">
-                {% for topic in item.topics %}{% if not forloop.first %}<span class="podcast-sep" aria-hidden="true"> · </span>{% endif %}<a href="{{ topic.url }}">{{ topic.label }}</a>{% endfor %}
+                {% for topic in item.topics %}
+                  {% if not forloop.first %}
+                    <span class="podcast-sep" aria-hidden="true"> · </span>
+                  {% endif %}
+                  <a href="{{ topic.url }}">{{ topic.label }}</a>
+                {% endfor %}
               </span>
             </li>
           {% endif %}
@@ -61,7 +84,11 @@
       {% endif %}
     </div>
     {% if item.picture_url %}
-      <img class="event-item-thumb{% if item.picture_is_portrait %} is-portrait{% endif %}" src="{{ item.picture_url }}" alt="" width="120" height="120" loading="{{ thumb_loading|default:'lazy' }}" decoding="async">
+      {% if item.picture_is_portrait %}
+        <img class="event-item-thumb is-portrait" src="{{ item.picture_url }}" alt="" width="120" height="120" loading="{{ thumb_loading|default:'lazy' }}" decoding="async">
+      {% else %}
+        <img class="event-item-thumb" src="{{ item.picture_url }}" alt="" width="120" height="120" loading="{{ thumb_loading|default:'lazy' }}" decoding="async">
+      {% endif %}
     {% endif %}
   </article>
 {% endwith %}

@@ -10,13 +10,26 @@
       class="filter-pill interactive-lift"
       href="{{ season_link.path }}"
       aria-label="Season {{ season_link.number }}"
-      {% if season and season_link.number == season.number %}aria-current="page"{% endif %}
+      {% if season and season_link.number == season.number %}
+        aria-current="page"
+      {% endif %}
     >{{ season_link.number }}</a>
   {% endif %}
 {% endfor %}
 {% if season_links|length > 8 %}{% with older_from=season_links.8.number %}
   <details class="podcast-seasons-older">
-    <summary class="filter-pill interactive-lift"{% if season and season.number <= older_from %} aria-current="page"{% endif %}>{% if season and season.number <= older_from %}Season {{ season.number }}{% else %}Older{% endif %}</summary>
+    <summary
+      class="filter-pill interactive-lift"
+      {% if season and season.number <= older_from %}
+        aria-current="page"
+      {% endif %}
+    >
+      {% if season and season.number <= older_from %}
+        Season {{ season.number }}
+      {% else %}
+        Older
+      {% endif %}
+    </summary>
     <div class="podcast-seasons-older-list">
       {% for season_link in season_links %}
         {% if forloop.counter > 8 %}
@@ -24,7 +37,9 @@
             class="filter-pill interactive-lift"
             href="{{ season_link.path }}"
             aria-label="Season {{ season_link.number }}"
-            {% if season and season_link.number == season.number %}aria-current="page"{% endif %}
+            {% if season and season_link.number == season.number %}
+              aria-current="page"
+            {% endif %}
           >{{ season_link.number }}</a>
         {% endif %}
       {% endfor %}

@@ -269,7 +269,13 @@
           {% else %}
             <h2 class="podcast-season-heading" id="season-heading">
               Season {{ season.number }}
-              <span>{% if season.span %}{{ season.span }} · {% endif %}{{ season.episodes|length }} episode{{ season.episodes|length|pluralize }}</span>
+              <span>
+                {% if season.span %}
+                  {{ season.span }} · {{ season.episodes|length }} episode{{ season.episodes|length|pluralize }}
+                {% else %}
+                  {{ season.episodes|length }} episode{{ season.episodes|length|pluralize }}
+                {% endif %}
+              </span>
             </h2>
             <div class="event-timeline" data-podcast-season="{{ season.number }}">
               {% for item in season.episodes %}
@@ -277,8 +283,16 @@
                   <section class="event-day" aria-label="Episode {{ episode.episode }}">
                     <p class="event-day-date">
                       <span>
-                        <strong>{% if item.date %}{{ item.short_date }}{% else %}Episode {{ episode.episode }}{% endif %}</strong>
-                        {% if item.date %}<span>Episode {{ episode.episode }}</span>{% endif %}
+                        <strong>
+                          {% if item.date %}
+                            {{ item.short_date }}
+                          {% else %}
+                            Episode {{ episode.episode }}
+                          {% endif %}
+                        </strong>
+                        {% if item.date %}
+                          <span>Episode {{ episode.episode }}</span>
+                        {% endif %}
                       </span>
                     </p>
                     <span class="event-day-dot" aria-hidden="true"></span>
@@ -297,8 +311,12 @@
             <nav class="podcast-seasons-bottom" aria-label="More podcast seasons">
               {% if newer_season or older_season %}
                 <p class="band-more">
-                  {% if newer_season %}<a class="band-link" href="{{ newer_path }}" rel="prev">← Newer season</a>{% endif %}
-                  {% if older_season %}<a class="band-link" href="{{ older_path }}" rel="next">Older season →</a>{% endif %}
+                  {% if newer_season %}
+                    <a class="band-link" href="{{ newer_path }}" rel="prev">← Newer season</a>
+                  {% endif %}
+                  {% if older_season %}
+                    <a class="band-link" href="{{ older_path }}" rel="next">Older season →</a>
+                  {% endif %}
                 </p>
               {% endif %}
             </nav>
