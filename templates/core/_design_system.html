@@ -148,6 +148,7 @@ Rules for editing:
         --drawn-circle: 50% 44% 55% 46%;
         --drawn-circle-b: 46% 55% 44% 50%;
         --drawn-circle-c: 55% 46% 50% 44%;
+        --field-edge: color-mix(in srgb, var(--line) 52%, var(--card));
         /* Extended tokens introduced with the 6-series pages (courses, course
            detail, events, podcast).  The mono face carries machine-flavoured
            metadata: status pills, spec labels, timestamps and due dates.  The
@@ -306,6 +307,45 @@ Rules for editing:
         --code-heading: #a9b0f2;
         --code-success: #93c7a5;
         --code-error: #ff9a94;
+        --field-edge: var(--line);
+      }
+
+      /* Composite tokens are declared on body as well as :root so each var()
+         inside resolves against the active theme (body.dark-mode restates the
+         colours; a value computed on :root would keep the light ones). */
+      :root,
+      body {
+        /* The border system (_docs/design/design-system.md#borders).  Every
+           border, radius, outline and shadow in page CSS is one of these; the
+           roles, not the pixels, are the decision.  Enforced by
+           core/tests/test_design_border_tokens.py.
+             soft    -- every card, panel, popover and media frame;
+             strong  -- things you press or that are drawn: buttons, CTAs,
+                        pill controls, toggles, numbered discs, portraits;
+             field   -- text inputs, selects and textareas;
+             quiet   -- a placeholder or the quietest notice (dashed box);
+             rule    -- a divider between rows or parts inside one block;
+             seam    -- the dashed seam between bands and page sections. */
+        --border-soft: 1px solid var(--line-soft);
+        --border-strong: 2px solid var(--line);
+        --border-field: 1px solid var(--field-edge);
+        --border-quiet: 1.5px dashed var(--line-soft);
+        --rule: 1px solid var(--line-soft);
+        --seam: 2px dashed var(--line-soft);
+        --radius-sm: 0.4rem; /* status pills, small marks, the focus ring */
+        --radius-control: 0.6rem; /* CTAs, inputs, square buttons, nav links */
+        --radius-media: 0.75rem; /* images, tables, charts, code, quotes, callouts */
+        --radius-card: 1rem; /* cards, panels, popovers */
+        --radius-pill: 999px; /* pills, chips, round buttons, portraits */
+        /* Hard offsets, never blurs -- and only on things you press.  Cards,
+           panels and media carry no shadow; a popover floats on the one soft
+           blur. */
+        --shadow-cta: 0.3rem 0.3rem 0 var(--shadow);
+        --shadow-cta-sm: 0.2rem 0.2rem 0 var(--shadow);
+        --shadow-cta-pill: 0 3px 0 var(--shadow);
+        --shadow-cta-bubble: 0.25rem 0.25rem 0 var(--bubble);
+        --shadow-popover: 0 0.75rem 1.75rem var(--shadow-soft);
+        --outline-focus: 3px solid var(--focus);
       }
 
       *,

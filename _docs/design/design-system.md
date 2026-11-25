@@ -93,15 +93,15 @@ page-local colour holds 4.5:1 in both themes.
 | `--ink` | `#1e2136` | `#f2f1ec` | headings, borders, the dark band |
 | `--body-text` | `#4c5066` | `#c6cad9` | body copy |
 | `--muted` | `#5c6076` | `#a4a9bd` | secondary copy, metadata |
-| `--line` | `#1e2136` | `#454b6b` | 2px component borders |
-| `--line-soft` | `#d6d9e8` | `#333855` | dashed rules, quiet borders |
+| `--line` | `#1e2136` | `#454b6b` | ink edge of `--border-strong` (buttons, drawn marks) |
+| `--line-soft` | `#d6d9e8` | `#333855` | soft frames, rules and seams |
 | `--green` | `#2b7a35` | `#4cb85a` | primary action, hub accents |
 | `--green-bright` | `#3ea94b` | `#4cb85a` | live markers, progress fill |
 | `--green-deep` | `#41704e` | `#8fd39c` | quiet green notes |
 | `--indigo` | `#5a62c4` | `#a6adf0` | links, time marks |
 | `--indigo-soft` | `#c9cdf2` | `#3b4270` | soft indigo fills, avatars |
 | `--shadow` | `rgba(30,33,54,.9)` | `rgba(0,0,0,.7)` | hard CTA shadow |
-| `--shadow-soft` | `rgba(30,33,54,.16)` | `rgba(0,0,0,.45)` | hard card shadow |
+| `--shadow-soft` | `rgba(30,33,54,.16)` | `rgba(0,0,0,.45)` | the popover blur |
 | `--focus` | `#1e2136` | `#f2f1ec` | focus outline |
 | `--page` | `var(--cream)` | `#14172a` | body background |
 
@@ -260,7 +260,7 @@ rules (`.band`, `.band-head`, `.band-head-secondary`, `.card-grid`) to their rol
 Adding an `ALLOWED` row is a design decision with a written reason, not a way to
 silence the test.
 
-## Shell, measure, radius, borders, shadows
+## Shell, measure
 
 - **Shell**: `.shell` centres content at `--shell` = `76rem`, `padding-inline:
   var(--shell-gutter)` (`var(--space-4)`, `var(--space-5)` at ≥40rem). The box
@@ -296,16 +296,67 @@ silence the test.
   dead band between words and picture. The drawing drops below `48rem`. The picture
   is a light/dark pair through `core/_hero_illustration.html` (`art=` names
   `core/illustrations/<art>.webp` and `<art>-dark.webp`).
-- **Radius**: `0.45rem` status pills · `0.5–0.7rem` small controls and CTAs ·
-  `0.9rem` cards, modules, player frame · `1.1rem` inset panels · `1.5rem` the
-  featured slab · `999px` pills, discs, avatars.
-- **Borders**: `2px solid var(--line)` on components; `1.5px` on chips and status
-  pills; `3px solid var(--ink)` only on the featured slab; `2px dashed
-  var(--line-soft)` for band and masthead separators.
-- **Shadows are hard offsets, never blurs**: cards `0.3rem 0.3rem 0
-  var(--shadow-soft)`; CTAs `0.3rem 0.3rem 0 var(--shadow)`; the featured slab
-  `0.45rem 0.45rem 0 var(--shadow-soft)`; the ink/bubble CTA pair `0.25rem 0.25rem 0
-  var(--bubble)`; the signup pill `0 3px 0 var(--shadow)`.
+- **Borders, radius and shadows** are the border system below — tokens, never raw
+  values.
+
+## Borders
+
+One rule decides every edge: **content sits in soft frames; only the things you
+press are drawn in ink.** A card, panel, popover, image, table or chart has a 1px
+`--line-soft` edge and no shadow — the `/events` and `/podcast` cards are the
+reference. The heavy 2px ink edge and the hard offset shadow belong to buttons and
+calls to action (and to the drawn marks that share their hand: numbered discs,
+portraits, toggles). Dashes mean a seam between parts of a page, nothing else.
+
+Every `border`, `border-*`, `border-radius`, `box-shadow` and `outline` in page and
+partial CSS is one of the tokens below, defined once on `:root, body` in
+`templates/core/_design_system.html`. `core/tests/test_design_border_tokens.py`
+fails on a raw width, radius or shadow anywhere else; the few shapes drawn out of
+borders (a chevron, a tick, a chart key) are reviewed rows in that test.
+`border-color` stays free for states (hover, invalid, active).
+
+### Tokens
+
+| Token | Value | Role |
+| --- | --- | --- |
+| `--border-soft` | `1px solid var(--line-soft)` | every card, panel, popover, media frame, chip |
+| `--border-strong` | `2px solid var(--line)` | buttons, CTAs, pill controls, toggles, progress tracks, numbered discs, portraits |
+| `--border-field` | `1px solid var(--field-edge)` | text inputs, selects, textareas (`--field-edge` is ink at 52% on the card, full `--line` in dark) |
+| `--border-quiet` | `1.5px dashed var(--line-soft)` | a placeholder or the quietest notice (`.prose-unavailable`, `.entrance-notice`, empty states) |
+| `--rule` | `1px solid var(--line-soft)` | a divider *inside* one block: list rows, table rows, FAQ folds, menu groups, a card's footer |
+| `--seam` | `2px dashed var(--line-soft)` | the seam *between* parts of a page: band bottoms, masthead, footer, page sections and chapters, form action rows, `hr` |
+| `--radius-sm` | `0.4rem` | status pills, inline `code`, small marks, the focus ring |
+| `--radius-control` | `0.6rem` | CTAs, inputs, square buttons, nav links, option tiles, date tiles |
+| `--radius-media` | `0.75rem` | images, video frames, tables, charts, code blocks, blockquotes, callouts |
+| `--radius-card` | `1rem` | cards, panels, slabs, popovers and menus |
+| `--radius-pill` | `999px` | pills, chips, round buttons, portraits (drawn discs use `--drawn-circle*`) |
+| `--shadow-cta` | `0.3rem 0.3rem 0 var(--shadow)` | `.cta` and other block buttons |
+| `--shadow-cta-sm` | `0.2rem 0.2rem 0 var(--shadow)` | small pressable controls (consent choices, the video play button) |
+| `--shadow-cta-pill` | `0 3px 0 var(--shadow)` | the masthead signup pill and its package twin |
+| `--shadow-cta-bubble` | `0.25rem 0.25rem 0 var(--bubble)` | `.cta-ink` / `.cta-lift` on the ink band |
+| `--shadow-popover` | `0 0.75rem 1.75rem var(--shadow-soft)` | the one blur: menus, popovers, the consent dialog, sticky save bar |
+| `--outline-focus` | `3px solid var(--focus)` | every focus ring (with `outline-offset: 2px`) |
+
+### Roles
+
+| Role | Border | Radius | Shadow | Used by |
+| --- | --- | --- | --- | --- |
+| Card (static or link) | `--border-soft` | `--radius-card` | none | `.card`, `.event-item`, `.home-event`, `.module`, `.stat-tile`, `.topic`, `.graph-frame`, `.newsletter-card`, `.featured`, `.panel-outlined`, `.featured-supporter`, `.course-specs`, `.lesson-list`, `.family-syllabus-list`, `.project-section`, `.event-register` |
+| Interactive card hover | border tints to `--indigo-soft`, lift 2px, `→` cue | — | none | `.interactive-card.interactive-lift` |
+| Popover / menu / dialog | `--border-soft` | `--radius-card` | `--shadow-popover` | nav menus, mobile nav, `.analytics-preferences`, country combobox, `.flag-dialog`, `.save-bar` |
+| Media frame | `--border-soft` | `--radius-media` | none | `.prose img`, `.prose-chart-card`, `.prose-scroll` (tables), `.prose pre`, `.player-frame`, `.unit-video`, `.book-cover`, event media, instructor photos |
+| In-content block | `--border-soft` (or `--border-quiet`) | `--radius-media` | none | `.callout`, `.prose blockquote`, `.cb-alert`, `.book-replies`, empty states |
+| Input | `--border-field` | `--radius-control` | none | `.field-input`, `.form-control`, `.cb-field`, entrance and event-register fields; read-only values use `--border-soft` |
+| Button / CTA | `--border-strong` | `--radius-control` or `--radius-pill` | a `--shadow-cta*` token | `.cta`, `.signup-button`, `.pill-button`, `.filter-pill`, `.scroller-button`, `.cohort-tab`, nav toggles |
+| Chip / status pill | `--border-soft` | `--radius-pill` / `--radius-sm` | none | `.chip`, `.status-pill`, `.cb-badge`, past-supporter names, inline `code`; state variants change only `border-color` |
+| Drawn mark | `--border-strong` | `--drawn-circle*` / `--radius-pill` | none | `.step-number`, `.module-number`, `.promise-mark`, `.play-disc`, `.avatar` and portraits, `.progress` |
+| Rule (inside a block) | `--rule` | — | — | `.row-list` rows, table rows, `.faq-fold`, `.module-fact`, menu groups, timestamp and chapter rows |
+| Seam (between page parts) | `--seam` | — | — | `.band`, `.masthead`, `.site-footer`, `.spec-strip`, page sections and chapters, `.cmp-form-actions`, `.prose hr` |
+| Focus | `--outline-focus` | — | — | every `:focus-visible`, including whole-card focus |
+
+What this rules out: an ink-bordered card or panel, a hard shadow on anything that
+is not pressed, a solid ink rule between page sections, a dashed divider inside a
+card, a radius that is not one of the five steps.
 
 ### No accent left-borders
 
@@ -313,8 +364,8 @@ The system never marks a block with a single-side rail — no `border-inline-sta
 `border-left`, no shorthand equivalent, however quiet the colour.
 
 A block that has to stand apart takes **a surface and a full border**
-(`background: var(--card)` with `2px solid var(--line-soft)`, the tint carrying the
-tone — `--sand` for attention, a dashed border for the quietest notice) or the
+(`background: var(--card)` with `var(--border-soft)`, the tint carrying the
+tone — `--sand` for attention, `--border-quiet` for the quietest notice) or the
 system's **dashed rule** above it.
 
 A border that **separates siblings** (the dashed rule between spec cells), a table
@@ -460,7 +511,7 @@ to this document — do not fork it locally.
 
 ### Cards and chips
 
-- **`.card`** — white slab, 2px ink border, `0.9rem` radius, hard shadow, column flex
+- **`.card`** — white slab, `--border-soft`, `--radius-card`, no shadow, column flex
   with `gap: var(--space-tight)` and `padding: var(--space-card)`. `margin-top: auto` on a child pins it to the card foot.
 - **`.card-grid`** + **`.card-grid-2` / `.card-grid-3`** — the band's card columns;
   they collapse to one column on narrow screens.
@@ -537,7 +588,7 @@ to this document — do not fork it locally.
 
 ### Actions
 
-- **`.cta`** — the block action: 2px ink border, `0.7rem` radius, hard shadow,
+- **`.cta`** — the block action: `--border-strong`, `--radius-control`, `--shadow-cta`,
   `min-height: 3.25rem`. Variants: `.cta-primary` (green, white text),
   `.cta-secondary` (card surface, ink text), `.cta-subtle` (transparent),
   `.cta-ink` (ink fill, cream text, bubble shadow), `.cta-lift` (bubble shadow on any
@@ -568,7 +619,7 @@ restyle `.band-more`. Enforced by `core/tests/test_design_section_links.py`.
 
 ### State and metadata
 
-- **Status pills** — mono uppercase state markers, soft-rectangle (`0.45rem` radius),
+- **Status pills** — mono uppercase state markers, soft-rectangle (`--radius-sm`),
   deliberately distinct from the round `.chip`:
 
   ```html
@@ -600,7 +651,7 @@ restyle `.band-more`. Enforced by `core/tests/test_design_section_links.py`.
   marker (`.status-pill`) and not a metadata line (`.mono-note`).
 - **`.ship-line`** — italic bold `--green-ship`; sits directly under a course title
   everywhere a course is sold.
-- **`.stat-tiles` / `.stat-tile`** — lavender tiles with ink border and hard shadow,
+- **`.stat-tiles` / `.stat-tile`** — white tiles in the soft card frame (`--border-soft`, `--radius-card`, no shadow),
   in a 2×2 grid: a number as `strong`, a label as `span`. **`.stat-tiles-row`** is the
   one-row modifier for a strip of 2-4 live facts (the course family landing's outcome
   numbers, the courses index's own facts strip, the About page's survey figures):
@@ -608,7 +659,7 @@ restyle `.band-more`. Enforced by `core/tests/test_design_section_links.py`.
   itself decides the column count — a lone odd tile spans the full row below 40rem,
   and a fourth tile opens a 4-column row at 40rem instead of wrapping onto its own
   row. These pages share this one component rather than each inventing a grid.
-- **Progress bar** — white track, 2px ink border, `--green-bright` fill. Always pair
+- **Progress bar** — white track, `--border-strong`, `--green-bright` fill. Always pair
   it with a `.mono-note` stating the numbers, and give it the full progressbar ARIA:
 
   ```html
@@ -747,12 +798,12 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
 
 - **`.featured`** (`.featured-main`, `.featured-subline`, `.featured-desc`,
   `.featured-meta`, `.featured-actions`, `.featured-build`) — the featured slab: white,
-  `3px` ink outline, `1.5rem` radius, the larger hard shadow. It marks the one thing a
-  page most wants the reader to act on: the homepage's featured course, a course
+  in the soft card frame (`--border-soft`, `--radius-card`, no shadow); its weight
+  comes from its size and the mint build panel. It marks the one thing a page most wants the reader to act on: the homepage's featured course, a course
   landing's cohort to join, the registration page's account gate. Each page sets its
   own wide-screen columns; the slab itself lives in the partial.
-- **`.panel`** + `.panel-mint` / `.panel-lavender` (+ `.panel-outlined` for the 2px
-  ink border) — tinted inset blocks. A course landing closes on one
+- **`.panel`** + `.panel-mint` / `.panel-lavender` (+ `.panel-outlined` for the
+  soft card edge) — tinted inset blocks. A course landing closes on one
   `panel-mint panel-outlined` holding its strongest action.
 - **`.play-disc`** — bubble-lavender disc with an ink glyph (`2.4rem`;
   `.play-disc-large` `3.5rem`; `.play-disc-card` the white disc inside a player).
@@ -862,7 +913,7 @@ Modifiers:
   block markup, keeping the rhythm inside it.
 - **`.prose-unavailable`** — a dashed plate naming an element this site cannot draw.
 - **`.prose-chart`** — a survey chart in an article body: a framed block on `--card`
-  (soft 2px `--line-soft` border, `0.7rem` radius, no shadow) holding the title, an
+  (`--border-soft`, `--radius-media`, no shadow) holding the title, an
   inline-SVG horizontal bar chart drawn from the block's typed data
   (`content/article_charts.py`, no script), a visually hidden data table, and the
   source caption. One series in `--chart-bar`; labels in `--body-text`, values in
@@ -874,7 +925,7 @@ Modifiers:
   (`core.markdown_actions`, documented in `_docs/content-authoring.md`).
 
 A richer body also carries `h4`–`h6` continuing the ladder, real `ul`/`ol`/`li`,
-`--ink` strong, an italic `blockquote` on the card surface inside a soft 2px border,
+`--ink` strong, an italic `blockquote` on the card surface inside the soft media frame,
 inline `code`, a `pre` block that **wraps rather than scrolling** (a box that scrolls
 sideways with no focus stop of its own cannot be reached from a keyboard), `img`
 bounded to the column with its own `width`/`height` so the box is reserved, a dashed
