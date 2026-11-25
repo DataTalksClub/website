@@ -92,7 +92,7 @@
         margin: 0;
       }
 
-      .event-media img {
+      .event-media > img {
         aspect-ratio: 1;
         background: var(--card);
         /* A soft frame, like the site's other image frames: no hard offset
@@ -103,6 +103,50 @@
         height: auto;
         object-fit: cover;
         width: 100%;
+      }
+
+      /* A sponsored event: "Sponsored by" and the sponsor's logo under the
+         picture, quiet like the side headings.  The logo sits on the light
+         plate the sponsor directory uses (--chart-ground), because sponsor
+         marks are drawn for white. */
+      .event-sponsors {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2) var(--space-3);
+        margin-top: var(--space-3);
+      }
+
+      .event-sponsors-label {
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-weight: 700;
+      }
+
+      .event-sponsor {
+        align-items: center;
+        background: var(--chart-ground);
+        border: 1.5px solid var(--line-soft);
+        border-radius: 0.6rem;
+        color: var(--ink);
+        display: inline-flex;
+        font-weight: 700;
+        min-height: 2.75rem;
+        padding: var(--space-2) var(--space-3);
+        text-decoration: none;
+      }
+
+      a.event-sponsor:hover {
+        border-color: var(--indigo-soft);
+      }
+
+      .event-sponsor img {
+        display: block;
+        height: auto;
+        max-height: 1.75rem;
+        max-width: 9rem;
+        object-fit: contain;
+        width: auto;
       }
 
       .event-hosts {
@@ -597,6 +641,11 @@
                   decoding="async"
                   fetchpriority="high"
                 >
+                {% if event.sponsors %}
+                  <figcaption class="event-sponsors" data-testid="event-sponsors">
+                    {% include "public/_event_sponsors.html" with sponsors=event.sponsors %}
+                  </figcaption>
+                {% endif %}
               </figure>
             {% endif %}
 

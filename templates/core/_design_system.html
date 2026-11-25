@@ -3129,6 +3129,25 @@ Rules for editing:
         width: 1rem;
       }
 
+      /* A sponsored event: the sponsor's logo in the meta row, small, on the
+         light plate sponsor marks are drawn for (--chart-ground). */
+      .event-item-sponsors {
+        flex-wrap: wrap;
+      }
+
+      .event-item-sponsors img {
+        background: var(--chart-ground);
+        border-radius: 0.35rem;
+        box-sizing: content-box;
+        display: block;
+        height: auto;
+        max-height: 1.1rem;
+        max-width: 6.5rem;
+        object-fit: contain;
+        padding: 0.2rem 0.4rem;
+        width: auto;
+      }
+
       .event-item-thumb {
         aspect-ratio: 1;
         border-radius: 0.6rem;
