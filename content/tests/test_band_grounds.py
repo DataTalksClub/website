@@ -30,10 +30,10 @@ BODIES_BELOW_THE_SEAM: dict[str, str] = {
     "templates/public/book_detail.html": '<div class="prose book-summary">',
     "templates/public/collection_hub.html": '<div class="row-list collection-rows"',
     "templates/public/event_detail.html": '<div class="prose prose-reading event-description">',
-    "templates/public/events.html": '<div class="row-list event-rows"',
+    "templates/public/events.html": '<div class="event-timeline"',
     "templates/public/person_detail.html": '<div class="prose person-bio">',
     "templates/public/podcast_detail.html": '<p class="mono-note episode-published">',
-    "templates/public/podcast_hub.html": '<div class="row-list" data-podcast-season=',
+    "templates/public/podcast_hub.html": '<div class="event-timeline" data-podcast-season=',
     "templates/public/text_page.html": '<div class="prose prose-reading text-page-body">',
     "templates/public/wiki_detail.html": '<div class="prose wiki-prose">',
     "templates/review/faq_home.html": '<div class="row-list faq-rows">',
@@ -104,11 +104,20 @@ def band_sequence(template: Path) -> tuple[str, ...]:
     return tuple(BAND_PATTERN.findall(template.read_text(encoding="utf-8")))
 
 
+#: Pages that draw no hero at all.  The event page is one card layout (picture,
+#: facts and registration) that starts straight on the content ground.
+OPENS_ON_THE_CONTENT_GROUND = frozenset({"event_detail.html"})
+
+
 class BandGroundTests(SimpleTestCase):
     def test_every_public_page_puts_its_hero_on_cream(self) -> None:
         for template in GOVERNED_TEMPLATES:
             bands = band_sequence(template)
             if not bands or is_partial(template):
+                continue
+            if template.name in OPENS_ON_THE_CONTENT_GROUND:
+                with self.subTest(template=template.name):
+                    self.assertEqual(set(bands), {"band-lavender"})
                 continue
             with self.subTest(template=template.name):
                 self.assertEqual(

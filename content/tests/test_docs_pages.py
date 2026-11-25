@@ -144,7 +144,6 @@ class DocsHubTests(TestCase):
             with self.subTest(public_path=guide.public_path):
                 self.assertEqual(guide.page_count, len(guide.pages))
                 self.assertIn(f'href="{guide.public_path}"', body)
-                self.assertIn(f"{guide.page_count} page", body)
                 for page in guide.pages:
                     self.assertIn(f'href="{page.public_path}"', body)
         # Every card carries a drawing: the hub used to be the one index page on

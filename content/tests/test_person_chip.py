@@ -287,9 +287,12 @@ class DesignSystemOwnershipTests(TestCase):
         # (`public/_archive_row.html`), which draws the one chip partial itself;
         # the rest name the chip directly.  Either way there is one chip.
         through_the_row = (
+            "templates/core/home.html",
             "templates/public/collection_hub.html",
-            "templates/public/podcast_hub.html",
         )
+        # The podcast hub draws each episode through its card, which draws the
+        # guests' chips itself.
+        through_the_card = "templates/public/podcast_hub.html"
         through_the_speaker = "templates/public/event_detail.html"
         for template in (
             "templates/core/home.html",
@@ -306,6 +309,9 @@ class DesignSystemOwnershipTests(TestCase):
                     self.assertIn('{% include "public/_archive_row.html"', source)
                     self.assertIn("row_credits=", source)
                     continue
+                if template == through_the_card:
+                    self.assertIn('{% include "public/_podcast_episode_card.html"', source)
+                    continue
                 if template == through_the_speaker:
                     self.assertIn('{% include "public/_event_speaker.html"', source)
                     continue
@@ -315,6 +321,9 @@ class DesignSystemOwnershipTests(TestCase):
         row = (root / "templates/public/_archive_row.html").read_text(encoding="utf-8")
         self.assertIn('{% include "public/_person_chip.html"', row)
         self.assertIn("|person_chip", row)
+        card = (root / "templates/public/_podcast_episode_card.html").read_text(encoding="utf-8")
+        self.assertIn('{% include "public/_person_chip.html"', card)
+        self.assertIn("|person_chip", card)
         speaker = (root / "templates/public/_event_speaker.html").read_text(encoding="utf-8")
         self.assertIn('{% include "public/_person_chip.html"', speaker)
         self.assertIn("|person_chip", speaker)
