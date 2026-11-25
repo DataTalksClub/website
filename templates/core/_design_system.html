@@ -5065,22 +5065,59 @@ Rules for editing:
           color: var(--indigo);
         }
 
+        /* A compact card under its toggle: a hairline border instead of the
+           ink outline, rows tight enough to read as one list, and each item's
+           label lined up with the toggle's own label (panel border + padding +
+           item padding, less the toggle's padding, pulls it left). */
         .masthead .nav-group-links {
+          animation: nav-group-panel-in 120ms ease-out;
           background: var(--card);
-          border: 2px solid var(--line);
-          border-radius: 0.9rem;
-          box-shadow: 0 0.75rem 1.75rem var(--shadow-soft);
+          border: 1px solid var(--line-soft);
+          border-radius: 0.75rem;
+          box-shadow: 0 0.5rem 1.25rem var(--shadow-soft);
           display: none;
-          left: 0;
-          min-width: 11rem;
-          padding: var(--space-2);
+          gap: 2px;
+          left: calc(-1 * var(--space-3) - 1px);
+          min-width: 10rem;
+          padding: var(--space-1);
           position: absolute;
-          top: calc(100% + 0.3rem);
+          top: calc(100% + var(--space-1));
+          width: max-content;
           z-index: 60;
         }
 
         .masthead .nav-group.is-open > .nav-group-links {
           display: grid;
+        }
+
+        :root:not(.no-js) .masthead .nav-group-links .nav-link {
+          border-radius: 0.5rem;
+          min-height: 2.25rem;
+          padding: var(--space-1) var(--space-3);
+        }
+
+        :root:not(.no-js) .masthead .nav-group-links .nav-link:hover,
+        :root:not(.no-js) .masthead .nav-group-links .nav-link:focus-visible {
+          background: var(--lavender-deep);
+          color: var(--ink);
+        }
+
+        :root:not(.no-js) .masthead .nav-group-links .nav-link[aria-current="page"] {
+          color: var(--indigo);
+          font-weight: 700;
+        }
+
+        @keyframes nav-group-panel-in {
+          from {
+            opacity: 0;
+            transform: translateY(-0.25rem);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .masthead .nav-group-links {
+            animation: none;
+          }
         }
 
         /* Without JavaScript nothing can open a panel, so the groups lie flat:
@@ -5107,6 +5144,7 @@ Rules for editing:
           min-width: 0;
           padding: 0;
           position: static;
+          width: auto;
         }
 
         .masthead-actions {
