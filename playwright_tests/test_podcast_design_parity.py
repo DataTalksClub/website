@@ -202,7 +202,7 @@ def test_episode_play_control_is_a_labelled_keyboard_destination(
     assert alts.count(artwork_alt) == 0, alts
     # The click-to-play poster is decorative too: its control names the episode.
     assert all(
-        image["alt"] or image["className"] in {"person-chip-portrait", "episode-video-poster"}
+        image["alt"] or image["className"] in {"person-chip-portrait", "guest-card-portrait", "episode-video-poster"}
         for image in image_data
     ), image_data
     # Transcript is not the default tab (Overview is); activate it to reach
