@@ -9,7 +9,7 @@ from django.test import TestCase
 from content.event_banners import EVENT_BANNER_FILENAMES, event_banner_url
 from event_registrants.models import EventOperatorConfig
 from events.identity import canonical_detail_path
-from events.queries import published_event_records
+from events.queries import _cached_published_records, published_event_records
 from test_support.reference_data import load_reviewed_reference_data
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -75,6 +75,11 @@ class EventBannerPageTests(TestCase):
         assert event is not None
         # A row written before the picture rule: queryset delete bypasses the guard.
         EventOperatorConfig.objects.filter(event=event).delete()
+        # The record cache is keyed on table stamps a queryset delete of the
+        # operator config does not move, so earlier tests can leave the old
+        # record behind; drop it so the page is built from the row as it is.
+        _cached_published_records.cache_clear()
+        self.addCleanup(_cached_published_records.cache_clear)
 
         response = self.client.get(canonical_detail_path(event.content_id))
         body = response.content.decode()

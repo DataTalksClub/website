@@ -30,7 +30,16 @@ CONTROL_CLASSES = {
 # A button drawn as a text link among other text links (the footer's Analytics
 # preferences control, the compact wiki graph's "Random topic") behaves exactly
 # like those links: no lift.
-TEXT_LINK_BUTTON_CLASSES = {"site-footer-legal-control", "nav-group-toggle", "home-graph-link"}
+# The "Read more" / "Show all N" expanders on the podcast episode and wiki pages
+# are `band-link` text links that happen to be buttons, so they read as links too.
+TEXT_LINK_BUTTON_CLASSES = {
+    "site-footer-legal-control",
+    "nav-group-toggle",
+    "home-graph-link",
+    "guest-card-more",
+    "episode-topics-more",
+    "wiki-episodes-more",
+}
 
 
 class InteractiveSurfaceContractTests(SimpleTestCase):

@@ -44,7 +44,9 @@ WARM_BUDGETS = {
     "/about": 20,
     "/courses": 8,
     "article": 12,
-    "podcast_episode": 12,
+    # The episode picture lives in the database now: two presence checks (video
+    # poster, social image) and the card list, a constant three per page.
+    "podcast_episode": 15,
     "book": 12,
     "person": 12,
     "wiki_page": 8,
