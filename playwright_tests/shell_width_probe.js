@@ -32,6 +32,13 @@
     let right = Infinity;
     for (let a = el.parentElement; a && a !== document.documentElement; a = a.parentElement) {
       const st = getComputedStyle(a);
+      // A snap scroller (the phone card rows) starts on the shell column and
+      // shows the next card peeking past it by design, as the homepage's own do.
+      if (st.overflowX !== "visible" && st.scrollSnapType !== "none") {
+        left = Math.max(left, reference.left);
+        right = Math.min(right, reference.right);
+        continue;
+      }
       if (st.overflowX !== "visible" || st.contain.includes("paint")) {
         const r = a.getBoundingClientRect();
         left = Math.max(left, r.left);

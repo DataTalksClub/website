@@ -279,6 +279,9 @@
       }
 
       .wiki-az > summary .row-fold-marker {
+        /* Leading in this summary, so the rotated box's corner gets the room
+           the shared marker gives its trailing side. */
+        margin-inline-start: calc(var(--fold-marker) * 0.21);
         margin-top: 0;
       }
 
