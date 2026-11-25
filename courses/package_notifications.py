@@ -1,3 +1,4 @@
+
 """Score, peer-review and submission notifications through the package mail.
 
 D1.2ca moved the last Datamailer-sent mail here. Each recipient gets one
@@ -7,6 +8,8 @@ The context assembly ports the pure builders the Datamailer payloads used.
 """
 
 from __future__ import annotations
+
+import logging
 
 from accounts.services.timezones import format_deadline_for_user
 from course_management.mail_payloads import (
@@ -338,3 +341,18 @@ def send_peer_review_assignment_notification(project) -> int:
         category=SUBMISSION_RESULTS_CATEGORY,
     )
     return len(members)
+
+
+def notify_peer_review_assignment(project) -> int:
+    """Send the assignment email after reviews were assigned; never fail the assignment.
+
+    Assignment has already committed when this runs, so a mail transport failure is
+    logged (by project id) instead of turning a successful assignment into an error.
+    """
+    try:
+        return send_peer_review_assignment_notification(project)
+    except Exception:
+        logging.getLogger(__name__).exception(
+            "Peer review assignment email failed for project %s", project.pk
+        )
+        return 0

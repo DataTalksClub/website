@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 
 from courses.models.project import PeerReview
-from courses.package_notifications import send_peer_review_assignment_notification
+from courses.package_notifications import notify_peer_review_assignment
 from courses.project_assignment import (
     ProjectActionStatus,
     assign_peer_reviews_for_project,
@@ -30,7 +30,7 @@ def project_assign_reviews_response(project):
     if status == ProjectActionStatus.OK:
         assigned_peer_reviews_count = after_count - before_count
         response_status = 200
-        send_peer_review_assignment_notification(project)
+        notify_peer_review_assignment(project)
     else:
         assigned_peer_reviews_count = 0
         response_status = 400

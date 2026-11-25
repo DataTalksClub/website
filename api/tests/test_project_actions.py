@@ -21,7 +21,7 @@ class ProjectActionsAPITestCase(ProjectAPITestBase):
             self._create_project_submission(project, f"student-{index}")
 
         with patch(
-            "api.views.project_actions.send_peer_review_assignment_notification"
+            "api.views.project_actions.notify_peer_review_assignment"
         ) as notify:
             response = self.client.post(
                 f"/api/courses/{self.course.slug}/projects/{project.id}/assign-reviews/"
