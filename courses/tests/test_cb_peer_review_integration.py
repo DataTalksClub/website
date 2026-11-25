@@ -12,6 +12,7 @@ from unittest.mock import patch
 from community_base.content_sync.models import ContentSource, SyncStatus
 from community_base.content_sync.orchestration import sync_content_source
 from community_base.coursework.models import ReviewCriteriaSet
+from community_base.coursework.peer_pseudonym import peer_pseudonym
 from community_base.coursework.project_criteria import parse_criteria
 from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
@@ -314,6 +315,70 @@ class CommunityBasePeerReviewIntegrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'name="criterion-problem"', count=2)
         self.assertEqual(project_yaml_criteria(project)[0]["description"], "")
+
+    def _review_setup(self):
+        project = self._create_project(state=ProjectState.PEER_REVIEWING.value)
+        sub1 = ProjectSubmission.objects.create(
+            project=project,
+            student=self.student1,
+            enrollment=self.enrollment1,
+            github_link="https://github.com/student1/capstone",
+            commit_id="1234567",
+            description="An agent that turns briefs into short videos.",
+        )
+        sub2 = ProjectSubmission.objects.create(
+            project=project,
+            student=self.student2,
+            enrollment=self.enrollment2,
+            github_link="https://github.com/student2/capstone",
+            commit_id="abcdef1",
+        )
+        review = PeerReview.objects.create(submission_under_evaluation=sub1, reviewer=sub2)
+        url = reverse(
+            "cohort_projects_eval_submit",
+            kwargs={
+                "course_slug": self.course.slug,
+                "cohort_identifier": self.cohort.identifier,
+                "project_slug": project.slug,
+                "review_id": review.id,
+            },
+        )
+        return project, review, url
+
+    def test_review_page_names_the_peer_and_shows_the_project_description(self):
+        _project, _review, url = self._review_setup()
+        self.client.force_login(self.student2)
+        response = self.client.get(url)
+        pseudonym = peer_pseudonym(self.student1.pk, self.cohort.pk)
+        self.assertContains(
+            response, f'<h1 id="submission-heading">Evaluate {pseudonym}&#x27;s submission</h1>'
+        )
+        self.assertContains(response, "An agent that turns briefs into short videos.")
+        self.assertContains(response, f'data-autosave-url="{url}"')
+
+    def test_review_autosave_returns_json_and_keeps_the_review_a_draft(self):
+        _project, review, url = self._review_setup()
+        self.client.force_login(self.student2)
+        response = self.client.post(
+            url,
+            {"action": "draft", "criterion-problem-description": "1", "note_to_peer": "Half"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.json(), {"saved": True})
+        review.refresh_from_db()
+        self.assertEqual(review.state, PeerReviewState.TO_REVIEW.value)
+        self.assertEqual(review.criteria_scores["problem-description"], 1)
+
+        review.state = PeerReviewState.SUBMITTED.value
+        review.save(update_fields=["state"])
+        response = self.client.post(
+            url,
+            {"action": "draft", "criterion-problem-description": "0"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.json(), {"saved": False, "submitted": True})
+        review.refresh_from_db()
+        self.assertEqual(review.criteria_scores["problem-description"], 1)
 
     def test_set_project_state_and_close_peer_review_commands(self):
         project = self._create_project(state=ProjectState.COLLECTING_SUBMISSIONS.value)

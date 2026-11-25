@@ -2,8 +2,8 @@ import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from community_base.coursework.attempt_flow import review_heading
 from community_base.coursework.github_commit import github_commit_url
-from community_base.coursework.peer_pseudonym import peer_pseudonym
 from community_base.coursework.peer_review_form import evaluation_form
 from django.http import HttpRequest
 
@@ -110,7 +110,7 @@ def project_eval_review_context(
     context = {
         "criteria_response_pairs": criteria_response_pairs,
         "evaluation_form": yaml_form,
-        "peer_pseudonym": peer_pseudonym(submission.student_id, project.course_id),
+        **_heading_context(review, project),
         "commit_url": github_commit_url(submission.github_link, submission.commit_id),
         "accepting_submissions": accepting_submissions,
         "disabled": disabled,
@@ -199,3 +199,12 @@ def project_eval_disable_learning_in_public(enrollment):
     if enrollment is None:
         return False
     return enrollment.disable_learning_in_public
+
+
+def _heading_context(review, project) -> dict:
+    heading = review_heading(review, project.course_id)
+    return {
+        "peer_pseudonym": heading["peer_name"],
+        "review_heading": heading["heading"],
+        "submission_description": heading["description"],
+    }

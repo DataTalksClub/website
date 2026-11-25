@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from course_management.observability import record_event
@@ -89,6 +89,29 @@ def project_eval_validation_error_response(
     return response
 
 
+def _is_autosave(request) -> bool:
+    return (
+        request.POST.get("action") == "draft"
+        and request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    )
+
+
+def project_eval_autosave_response(request, page: ProjectEvalSubmitPage):
+    """JSON for ``peer_review_autosave.js``: {saved} or {submitted}, never a page."""
+    if page.project.state != ProjectState.PEER_REVIEWING.value:
+        return JsonResponse({"saved": False, "closed": True}, status=409)
+    try:
+        result = project_eval_post_submission(
+            request,
+            page.project,
+            page.review,
+            page.review_criteria,
+        )
+    except ValidationError:
+        return JsonResponse({"saved": False}, status=409)
+    return JsonResponse(result or {"saved": False}, status=200 if result else 409)
+
+
 def project_eval_submission_response(
     request,
     page: ProjectEvalSubmitPage,
@@ -131,6 +154,9 @@ def projects_eval_submit_post_response(
             page.review,
             cohort_identifier=cohort_identifier,
         )
+
+    if _is_autosave(request):
+        return project_eval_autosave_response(request, page)
 
     if page.project.state != ProjectState.PEER_REVIEWING.value:
         return closed_project_eval_response(

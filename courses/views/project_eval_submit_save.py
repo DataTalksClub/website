@@ -3,7 +3,7 @@ from collections.abc import Iterable
 
 from community_base.coursework.peer_review_form import (
     missing_criteria_message,
-    save_draft,
+    autosave,
     save_review,
 )
 from django.contrib import messages
@@ -55,7 +55,7 @@ def _save_yaml_criteria_review(
     project: Project,
     review: PeerReview,
     yaml_criteria: list[dict],
-) -> None:
+) -> dict | None:
     is_draft = request.POST.get("action") == "draft"
     with transaction.atomic():
         project = locked_peer_reviewing_project(project)
@@ -64,7 +64,7 @@ def _save_yaml_criteria_review(
         if project.problems_comments_field:
             review.problems_comments = (request.POST.get("problems_comments") or "").strip()
         if is_draft:
-            save_draft(review, yaml_criteria, request.POST)
+            result = autosave(review, yaml_criteria, request.POST)
             review.save(
                 update_fields=[
                     "learning_in_public_links",
@@ -72,7 +72,7 @@ def _save_yaml_criteria_review(
                     "problems_comments",
                 ]
             )
-            return
+            return result
         form_data, complete = save_review(review, yaml_criteria, request.POST)
         if not complete:
             raise ValidationError(missing_criteria_message(form_data["missing_titles"]))
@@ -108,11 +108,11 @@ def project_eval_post_submission(
     project: Project,
     review: PeerReview,
     review_criteria: Iterable[ReviewCriteria],
-) -> None:
+) -> dict | None:
+    """Save the posted review; a structured-criteria draft returns its autosave result."""
     yaml_criteria = project_yaml_criteria(project)
     if yaml_criteria:
-        _save_yaml_criteria_review(request, project, review, yaml_criteria)
-        return
+        return _save_yaml_criteria_review(request, project, review, yaml_criteria)
 
     review_criteria = tuple(review_criteria)
     answers_by_field = project_eval_answers_from_post(request.POST)

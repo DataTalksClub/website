@@ -68,6 +68,19 @@
     margin: 0;
   }
 
+  .review-description {
+    border-top: var(--rule);
+    display: grid;
+    gap: var(--space-2);
+    max-width: var(--form-measure);
+    padding-top: var(--space-3);
+  }
+
+  .review-description p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
   @media (max-width: 47.99rem) {
     .review-actions {
       display: grid;
@@ -95,11 +108,11 @@
 {% endblock %}
 
 {% block hero_heading %}
-  <h1 id="submission-heading">Evaluate {{ project.title }}</h1>
+  <h1 id="submission-heading">{{ review_heading|default:"Evaluate submission" }}</h1>
 {% endblock %}
 
 {% block hero_lede %}
-  <p class="submission-lede">Score the submission against each criterion.</p>
+  <p class="submission-lede">{{ project.title }}: score the submission against each criterion.</p>
 {% endblock %}
 
 {% block hero_specs %}
@@ -128,6 +141,12 @@
       </dd>
     </div>
   </dl>
+  {% if submission_description %}
+    <section class="review-description" aria-labelledby="review-description-heading">
+      <h2 id="review-description-heading" class="mono-label">project description</h2>
+      <p>{{ submission_description|linebreaksbr }}</p>
+    </section>
+  {% endif %}
   <p class="project-note">
     {% if is_authenticated %}
       Deadlines are shown in your
@@ -204,7 +223,7 @@
     <div class="submission-notices">
       {% include "core/_callout.html" with tone="info" message="Score the submission against each criterion." %}
     </div>
-    <form method="post" class="needs-validation cmp-form review-form submission-form" novalidate>
+    <form method="post" class="needs-validation cmp-form review-form submission-form" novalidate{% if evaluation_form and project.state == 'PR' and review.state == 'TR' %} data-peer-review-autosave data-autosave-url="{{ request.path }}"{% endif %}>
       {% csrf_token %}
       <div class="cmp-form-fields">
         {% if evaluation_form %}
@@ -275,6 +294,9 @@
         </div>
       {% endif %}
       </div>
+      {% if evaluation_form and project.state == 'PR' and review.state == 'TR' %}
+        <p class="field-hint review-save-status" data-save-status role="status" aria-live="polite"></p>
+      {% endif %}
       {% if project.state == 'PR' %}
         <div class="submission-form-actions cmp-form-actions review-toolbar">
           {% if review.state == 'TR' %}
@@ -303,6 +325,7 @@
   <script src="{% static 'time_left.js' %}"></script>
   <script src="{% static 'learning_in_public.js' %}"></script>
   <script src="{% static 'homework.js' %}"></script>
+  <script src="{% static 'community_base/peer_review_autosave.js' %}"></script>
   <script>
     // The "remove review" mutation is a POST with CSRF; this listener keeps
     // its confirm prompt as a pure cancel gate (audit BE-07).
