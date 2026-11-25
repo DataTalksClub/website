@@ -4,7 +4,7 @@ subject: "Reminder: {{ event_title }} starts {{ starts_in }}"
 optional_context: [join_url]
 ---
 
-Hi {{ user_name }},
+Hi{% if user_name %} {{ user_name }}{% endif %},
 
 **{{ event_title }}** starts {{ starts_in }}.
 

@@ -4,7 +4,7 @@ subject: "You're registered: {{ event_title }}"
 optional_context: [join_url]
 ---
 
-Hi {{ user_name }},
+Hi{% if user_name %} {{ user_name }}{% endif %},
 
 You're registered for **{{ event_title }}**.
 
