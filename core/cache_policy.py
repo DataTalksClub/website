@@ -208,7 +208,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "accounts.views.home_dismissals.dismiss_home_item": PRIVATE_DYNAMIC,
     "accounts.views.impersonation.admin_impersonation_exit": PRIVATE_DYNAMIC,
     "accounts.views.impersonation.stop_impersonating": PRIVATE_DYNAMIC,
-    "accounts.views.login.social_login_view": PRIVATE_DYNAMIC,
+    "accounts.views.login.SiteLoginView": PRIVATE_DYNAMIC,
     "accounts.views.signed_in.login_popup_done": PRIVATE_DYNAMIC,
     "accounts.views.social_connections.disconnect_social_account": PRIVATE_DYNAMIC,
     "accounts.views.social_connections.social_connections_moved": PRIVATE_DYNAMIC,
