@@ -43,6 +43,57 @@
        * above; everything below shapes this page's own sections.
        * ------------------------------------------------------------------ */
 
+      /* --- landing rhythm ------------------------------------------------
+         Site feedback 2026-11-19 (1.1, 1.3): the page used to change ground on
+         almost every band (cream, lavender, cream, lavender, cream, mint, ...),
+         each cut off by a dashed rule, so it read as a stack of separate plates.
+         Now one neutral ground carries the page and bands are told apart by
+         space, not colour.  The single tinted band is the course offer, and it
+         fades in and out of the cream instead of starting at a hard edge.
+         Green is kept for the primary buttons alone, so the accent always
+         means "click here"; decorative green and mint are gone from this page. */
+
+      main > .band {
+        border-bottom: 0;
+        padding-block: var(--space-7);
+      }
+
+      main > .band.hero {
+        padding-block: var(--space-band) var(--space-7);
+      }
+
+      /* Related neighbours on the same ground read as one block: the latest
+         episode and article continue the events band ("what is happening in
+         the community") instead of opening a section of their own. */
+      main > .band.band-continued {
+        padding-top: 0;
+      }
+
+      main > .band-soft {
+        background: linear-gradient(
+          to bottom,
+          var(--cream) 0,
+          var(--lavender) 4.5rem,
+          var(--lavender) calc(100% - 4.5rem),
+          var(--cream) 100%
+        );
+        padding-block: calc(var(--space-8) + var(--space-4));
+      }
+
+      main .band-head h2 {
+        font-size: clamp(1.75rem, 3.6vw, 2.5rem);
+        letter-spacing: -0.025em;
+      }
+
+      main .band-head p {
+        font-size: clamp(1rem, 1.4vw, 1.12rem);
+        max-width: 40rem;
+      }
+
+      main .band-head {
+        margin-bottom: var(--space-6);
+      }
+
       /* --- hero --------------------------------------------------------- */
 
       .hero-grid {
@@ -52,15 +103,17 @@
       }
 
       .hero h1 {
-        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
-        letter-spacing: -0.03em;
-        max-width: 19ch;
+        font-size: clamp(2.4rem, 5.6vw, 4rem);
+        letter-spacing: -0.035em;
+        line-height: 1.04;
+        max-width: 16ch;
       }
 
       .hero-lede {
-        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        font-size: clamp(1.1rem, 1.8vw, 1.3rem);
+        line-height: 1.5;
         margin-top: var(--space-stack);
-        max-width: 33rem;
+        max-width: 32rem;
       }
 
       .hero-actions {
@@ -117,7 +170,28 @@
          The climb card itself (.stage-card/.stage-card-step/...) is a
          shared component, drawn once in core/_stage_card.html so a course
          family page's journey stages render with the exact same card.
-         Nothing page-specific is left to say about it here. */
+         Here it reads as a landing step: the step's name as a large title
+         and one short line under it, not a paragraph of small grey text.
+         The last badge drops its green fill, which this page keeps for the
+         buttons. */
+
+      .climb .stage-card {
+        gap: var(--space-3);
+        padding: var(--space-card);
+      }
+
+      .climb .stage-card h3 {
+        font-size: clamp(1.2rem, 1.9vw, 1.4rem);
+      }
+
+      .climb .stage-card > p {
+        font-size: 1.02rem;
+      }
+
+      .climb .step-number-3 {
+        background: var(--lavender-deep);
+        color: var(--ink);
+      }
 
       /* --- member stories -------------------------------------------------
          The member-story card itself (.story-transition/.story-quote/
@@ -155,7 +229,7 @@
       }
 
       .course-cohort {
-        color: var(--green-text);
+        color: var(--ink);
         font-size: 0.82rem;
         font-weight: 700;
       }
@@ -278,10 +352,10 @@
 
       .promise {
         display: grid;
-        gap: 0.15rem;
+        gap: var(--space-1);
         grid-template-columns: auto 1fr;
         column-gap: var(--space-2);
-        font-size: 0.85rem;
+        font-size: 1rem;
       }
 
       /* Drawn, not struck — the 4a mockup's lopsided radius, the same one the
@@ -307,7 +381,7 @@
       }
 
       .promise h3 {
-        font-size: 0.95rem;
+        font-size: 1.2rem;
       }
 
       /* --- events ------------------------------------------------------- */
@@ -316,7 +390,7 @@
          (owner feedback 2026-11-24: the pill beside the date, then beside the
          speaker, looked awkward). */
       .event-card .event-when {
-        color: var(--indigo);
+        color: var(--muted);
         display: flex;
         flex-wrap: wrap;
         font-size: 0.78rem;
@@ -424,7 +498,14 @@
       }
 
       .latest-icon-green {
-        background: var(--mint);
+        background: var(--lavender);
+      }
+
+      /* A member's new role is information, not an action: it keeps the
+         plain chip rather than the green the buttons own. */
+      .story-transition .chip-green {
+        border-color: var(--line);
+        color: var(--ink);
       }
 
       .latest-item h3 {
@@ -648,12 +729,24 @@
 
       /* --- closing band ------------------------------------------------- */
 
+      /* The closing offer is an ink panel sitting on the page's own ground,
+         not a full-bleed dark stripe, so the page does not end on a hard cut. */
+      main > .band-ink {
+        background: var(--page);
+        padding-block: var(--space-4) calc(var(--space-7) + var(--space-2));
+      }
+
       .closing {
         align-items: center;
+        background: var(--band-ink-bg);
+        border-radius: 1.5rem;
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-5);
         justify-content: space-between;
+        max-width: calc(var(--shell) - 2.5rem);
+        padding: clamp(var(--space-5), 4vw, var(--space-7));
+        width: calc(100% - 2rem);
       }
 
       .closing > div {
@@ -666,12 +759,12 @@
 
       .closing h2 {
         color: #ffffff;
-        font-size: clamp(1.15rem, 2.4vw, 1.55rem);
+        font-size: clamp(1.4rem, 2.8vw, 2rem);
       }
 
       .closing p {
         color: #d7d9e6;
-        font-size: 0.88rem;
+        font-size: 1rem;
         margin-top: var(--space-2);
       }
 
@@ -755,6 +848,22 @@
       }
 
       @media (min-width: 62rem) {
+        main > .band {
+          padding-block: var(--space-8);
+        }
+
+        main > .band.hero {
+          padding-block: calc(var(--space-7) + var(--space-2)) var(--space-8);
+        }
+
+        main > .band.band-continued {
+          padding-top: 0;
+        }
+
+        main > .band-soft {
+          padding-block: calc(var(--space-8) + var(--space-6) + var(--space-2));
+        }
+
         .hero-grid {
           gap: var(--space-7);
           grid-template-columns: minmax(0, 1.32fr) minmax(0, 1fr);
@@ -837,7 +946,7 @@
           states nothing the About page does not, and with no record published
           (or no database to read one) the whole band is absent.
         {% endcomment %}
-        <section class="band band-lavender home-about" aria-labelledby="about-heading">
+        <section class="band band-cream home-about" aria-labelledby="about-heading">
           <div class="shell">
             <div class="band-head">
               <div>
@@ -871,7 +980,7 @@
         </section>
       {% endif %}
 
-      <section class="band band-lavender" aria-labelledby="climb-heading">
+      <section class="band band-cream climb" aria-labelledby="climb-heading">
         <div class="shell">
           <div class="band-head">
             <div>
@@ -880,9 +989,9 @@
             </div>
           </div>
           <div class="card-grid card-grid-3">
-            {% include "core/_stage_card.html" with step_index=1 heading="Where do I go from here?" description="I can follow a tutorial. Starting a project of my own still feels like a leap." illustration_template="core/_home_illustration.html" illustration_variant="stuck" %}
-            {% include "core/_stage_card.html" with step_index=2 heading="I’m building, with help along the way" description="I put each lesson into practice, with a community to help when I get stuck." illustration_template="core/_home_illustration.html" illustration_variant="learning" %}
-            {% include "core/_stage_card.html" with step_index=3 heading="I built this. What’s next?" description="I’ve built a working project I’m proud of. Now I’m ready for the next one." illustration_template="core/_home_illustration.html" illustration_variant="shipping" %}
+            {% include "core/_stage_card.html" with step_index=1 heading="Learn the fundamentals" description="Free courses in data and AI, step by step." illustration_template="core/_home_illustration.html" illustration_variant="fundamentals" %}
+            {% include "core/_stage_card.html" with step_index=2 heading="Learn with the community" description="Ask questions and get unstuck together." illustration_template="core/_home_illustration.html" illustration_variant="community" %}
+            {% include "core/_stage_card.html" with step_index=3 heading="Build your own project" description="Ship a project you can show." illustration_template="core/_home_illustration.html" illustration_variant="project" %}
           </div>
         </div>
       </section>
@@ -968,7 +1077,7 @@
         </section>
       {% endif %}
 
-      <section class="band band-lavender" id="courses" aria-labelledby="courses-heading">
+      <section class="band band-lavender band-soft" id="courses" aria-labelledby="courses-heading">
         <div class="shell">
           <div class="band-head">
             <div>
@@ -1110,7 +1219,7 @@
         </div>
       </section>
 
-      <section class="band band-mint" aria-labelledby="events-heading">
+      <section class="band band-cream" aria-labelledby="events-heading">
         <div class="shell">
           <div class="band-head">
             <div>
@@ -1171,7 +1280,7 @@
         </div>
       </section>
 
-      <section class="band band-cream" aria-labelledby="latest-heading">
+      <section class="band band-cream band-continued" aria-labelledby="latest-heading">
         <div class="shell">
           <h2 id="latest-heading" class="sr-only">Latest from the community</h2>
           <div class="latest-grid">
@@ -1232,7 +1341,7 @@
         </div>
       </section>
 
-      <section class="band band-lavender" aria-labelledby="wiki-heading">
+      <section class="band band-cream" aria-labelledby="wiki-heading">
         <div class="shell">
           <div class="band-head">
             <div>
@@ -1361,7 +1470,7 @@
         </section>
       {% endif %}
 
-      <section class="band band-mint" aria-labelledby="newsletter-heading">
+      <section class="band band-cream" aria-labelledby="newsletter-heading">
         <div class="shell newsletter-panel">
           <div>
             <h2 id="newsletter-heading">Get the weekly DataTalks.Club digest</h2>
@@ -1379,7 +1488,7 @@
         </div>
       </section>
 
-      <section class="band band-lavender" id="academy-comparison" aria-labelledby="academy-comparison-heading" data-academy-comparison>
+      <section class="band band-cream" id="academy-comparison" aria-labelledby="academy-comparison-heading" data-academy-comparison>
         <div class="shell">
           <div class="band-head">
             <div>
@@ -1392,7 +1501,7 @@
           </div>
           <div class="card-grid card-grid-2">
             <article class="card comparison-card">
-              <p class="mono-label mono-label-green">Free · Community-powered</p>
+              <p class="mono-label">Free · Community-powered</p>
               <h3>Free courses</h3>
               <p class="comparison-summary">
                 Open-access zoomcamps in data and AI for learning at your own pace or alongside an
@@ -1421,7 +1530,7 @@
               </div>
             </article>
             <article class="card comparison-card">
-              <p class="mono-label mono-label-indigo">Full-time · Live intensive</p>
+              <p class="mono-label">Full-time · Live intensive</p>
               <h3>DataTalks.Club Academy</h3>
               <p class="comparison-summary">
                 A 3-month full-time live bootcamp for experienced developers who want structured

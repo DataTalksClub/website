@@ -116,6 +116,20 @@ filter or a recolour of the light bitmap.
 | Step 2 (`learning`) | `home-step-2.webp` | `home-step-2-dark.webp` | `957x532` |
 | Step 3 (`shipping`) | `home-step-3.webp` | `home-step-3-dark.webp` | `957x532` |
 
+Since the 2026-11-19 site feedback (1.2, "simpler illustrations, one idea per
+image") the homepage itself draws the simplified set below; the four files above
+stay as the anchors for the course pages that still use `learning` / `shipping`.
+Each simplified drawing has one figure and one object, generated with the
+built-in imagegen tool (backend unverified) on `#ff00ff` chroma with
+`home-step-2.webp` / `home-step-2-dark.webp` as the style references.
+
+| Slot | Light | Dark | Canvas |
+| --- | --- | --- | --- |
+| Hero (staircase) | `home-simple-hero.webp` | `home-simple-hero-dark.webp` | `1470x834` |
+| Step 1 (`fundamentals`, reading) | `home-simple-fundamentals.webp` | `home-simple-fundamentals-dark.webp` | `957x532` |
+| Step 2 (`community`, helping) | `home-simple-community.webp` | `home-simple-community-dark.webp` | `957x532` |
+| Step 3 (`project`, laptop check) | `home-simple-project.webp` | `home-simple-project-dark.webp` | `957x532` |
+
 ### Review correction ledger
 
 These decisions came from the illustration review and are part of the asset

@@ -265,9 +265,23 @@ class MainHomepageRoutingTests(TestCase):
         self.assertNotContains(response, "and join our Slack")
         self.assertNotContains(response, "data-academy-cta")
         self.assertContains(response, "From following tutorials to building your own projects.")
-        self.assertContains(response, "Where do I go from here?")
-        self.assertContains(response, "I’m building, with help along the way")
-        self.assertContains(response, "I built this. What’s next?")
+        # Site feedback 2026-11-19 (1.3): each climb card names its step directly,
+        # with one short line under it.
+        self.assertContains(response, "Learn the fundamentals")
+        self.assertContains(response, "Learn with the community")
+        self.assertContains(response, "Build your own project")
+        self.assertNotContains(response, "Where do I go from here?")
+        for variant in ("fundamentals", "community", "project", "hero"):
+            self.assertContains(response, f"core/illustrations/home-simple-{variant}.webp")
+            self.assertContains(response, f"core/illustrations/home-simple-{variant}-dark.webp")
+        # Site feedback 2026-11-19 (1.1): one neutral ground, one tinted band for
+        # the course offer, and no mint anywhere in the homepage's own bands.
+        body = response.content.decode()
+        main = body.split('<main id="main-content"', 1)[1].split("</main>", 1)[0]
+        grounds = re.findall(r'<section class="band (band-[a-z]+)', main)
+        self.assertNotIn("band-mint", grounds)
+        self.assertEqual(grounds.count("band-lavender"), 1)
+        self.assertIn('class="band band-lavender band-soft" id="courses"', main)
         self.assertContains(response, "Courses")
         self.assertContains(response, "AI Dev Tools Zoomcamp")
         self.assertContains(response, "Starts August 31")
