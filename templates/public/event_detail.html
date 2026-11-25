@@ -707,7 +707,7 @@
                       {% else %}
                         <p class="event-register-greeting">Welcome! To join the event, please register below.</p>
                         <div class="event-register-choices">
-                          <a class="cta cta-primary cta-compact event-register-submit interactive-lift" href="{{ account_login_url }}">Log in to register in one click</a>
+                          <a class="cta cta-primary cta-compact event-register-submit interactive-lift" href="{{ account_login_url }}">Log in to register</a>
                           <button
                             type="button"
                             class="cta cta-secondary cta-compact event-register-submit event-register-email-toggle"
@@ -715,7 +715,7 @@
                             aria-expanded="{% if registered == 'invalid_email' %}true{% else %}false{% endif %}"
                           >Register with email only</button>
                         </div>
-                        <p class="event-register-login-line">Have an account? <a href="{{ account_login_url }}">Log in to register in one click</a></p>
+                        <p class="event-register-login-line">Have an account? <a href="{{ account_login_url }}">Log in to register</a></p>
                         <form
                           id="event-register-email-form"
                           method="post"
@@ -792,9 +792,6 @@
                             <button type="submit" class="cta cta-primary cta-compact interactive-lift">Register</button>
                           </div>
                         </form>
-                        {% if account_entry.signup_url %}
-                          <p class="event-register-signup">No account yet? <a href="{{ account_entry.create_url }}">Create a free account</a></p>
-                        {% endif %}
                         <script>
                           (function () {
                             var toggle = document.querySelector(".event-register-email-toggle");
