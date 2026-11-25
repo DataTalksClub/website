@@ -15,6 +15,8 @@ are read:
   (``events/tests/test_event_creation_paths.py`` keeps it the only path);
 * Studio and the management API (``events.admin_services``) create through it,
   and refuse an edit that would strip either from any event;
+* provider discovery (``scripts/prod/import_events.py``) creates an event only
+  when a reviewed source names its type and speakers, and reports the rest;
 * the event ingest pipeline fails its whole run if any published event is
   incomplete, and ``scripts/verify_local_dataset.py`` refuses such a dataset --
   which is how rows written before the rule are found.

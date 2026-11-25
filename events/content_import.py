@@ -36,10 +36,23 @@ to edit an event will not carry a bridge digest at all.
 Replaying is safe. The row is updated to the record's state, and speakers and
 links are replaced as a set, so a second run reports ``replayed`` and changes
 nothing.
+
+The second staging artifact
+---------------------------
+
+The corpus above is frozen at 421 records and cannot grow: its descriptions come
+through the bridge, and the bridge matches on the legacy tuple, which an event
+discovered in a provider export does not have. :func:`import_new_event_content`
+is the other door -- the same validate-everything-then-reconcile shape, reading
+an artifact built by ``scripts/staging/`` for identities minted from a provider
+export instead. It reconciles against the identity's own source triple, so a
+record can only ever land on an event minted from the export it was built from,
+and never on one of the 421.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import uuid
 from dataclasses import dataclass
@@ -88,6 +101,37 @@ _RECORD_FIELDS = frozenset(
 _PROVENANCE_FIELDS = frozenset(
     {"checksum", "repository", "revision", "source_key", "source_path", "source_url"}
 )
+#: The record shape :func:`import_new_event_content` reads. It carries no legacy
+#: tuple -- the identity it names was minted from a provider export, so its
+#: provenance is that export's own source triple -- and it carries the type
+#: review that decided the row's ``type``, which the corpus above never needed
+#: because the legacy source stated one.
+NEW_EVENT_RECORD_SCHEMA_VERSION = 1
+
+_NEW_EVENT_RECORD_FIELDS = frozenset(
+    {
+        "description_html",
+        "description_provenance",
+        "description_text",
+        "ends_at",
+        "episode",
+        "identity_id",
+        "links",
+        "provenance",
+        "record_schema_version",
+        "season",
+        "speakers",
+        "starts_at",
+        "type",
+        "type_provenance",
+    }
+)
+_NEW_EVENT_PROVENANCE_FIELDS = frozenset({"repository", "revision", "source_key"})
+_NEW_EVENT_ARTIFACT_FIELDS = frozenset(
+    {"content_sha256", "counts", "events", "schema_version", "source"}
+)
+_NEW_EVENT_ARTIFACT_SCHEMA_VERSION = 1
+
 _SPEAKER_FIELDS = frozenset({"key", "name", "public_path"})
 _LINK_FIELDS = frozenset({"label", "url"})
 _TYPES = frozenset({"webinar", "workshop", "podcast", "conference"})
@@ -135,6 +179,32 @@ class ReviewedEventContent:
     speakers: tuple[ReviewedSpeaker, ...]
     links: tuple[ReviewedLink, ...]
     provenance: ReviewedProvenance
+
+
+@dataclass(frozen=True, slots=True)
+class NewEventSourceIdentity:
+    """The source triple the identity this record names was minted under."""
+
+    repository: str
+    revision: str
+    source_key: str
+
+
+@dataclass(frozen=True, slots=True)
+class NewEventContent:
+    identity_id: uuid.UUID
+    type: str
+    starts_at: datetime
+    ends_at: datetime | None
+    season: int | None
+    episode: int | None
+    description_html: str
+    description_text: str
+    description_provenance: dict[str, Any]
+    type_provenance: dict[str, Any]
+    speakers: tuple[ReviewedSpeaker, ...]
+    links: tuple[ReviewedLink, ...]
+    provenance: NewEventSourceIdentity
 
 
 @dataclass(frozen=True, slots=True)
@@ -320,8 +390,10 @@ def load_reviewed_event_content(path: Path) -> tuple[ReviewedEventContent, ...]:
     return parse_reviewed_event_content(payload)
 
 
-def _matches(event: Event, record: ReviewedEventContent) -> bool:
-    # Asking exactly what _apply would write is what makes a replay a no-op.
+def _matches(event: Event, record: ReviewedEventContent | NewEventContent) -> bool:
+    # Both record shapes decide the same row state, so both legs ask the same
+    # question of an existing row -- which is what makes a replay a no-op for
+    # either of them.
     stored_type, season, episode = decode_event_tags(event.tags)
     return (
         stored_type == record.type
@@ -331,20 +403,25 @@ def _matches(event: Event, record: ReviewedEventContent) -> bool:
         and episode == record.episode
         and event.description_html == record.description_html
         and event.description == record.description_text
-        and [
-            (link.host.external_ref, link.host.name, link.position)
-            for link in event.event_host_links.all()
-        ]
-        == [
-            (speaker.key, speaker.name, position)
-            for position, speaker in enumerate(record.speakers)
-        ]
+        and (
+            # A staged new-event record states no speakers (its description
+            # export carries no reviewed list) and leaves the row's own alone.
+            not record.speakers
+            or [
+                (link.host.external_ref, link.host.name, link.position)
+                for link in event.event_host_links.all()
+            ]
+            == [
+                (speaker.key, speaker.name, position)
+                for position, speaker in enumerate(record.speakers)
+            ]
+        )
         and (event.materials or [])
         == [{"label": link.label, "url": link.url} for link in record.links]
     )
 
 
-def _apply(event: Event, record: ReviewedEventContent) -> None:
+def _apply(event: Event, record: ReviewedEventContent | NewEventContent) -> None:
     """Write one reviewed record onto its event row, replacing speakers and links."""
 
     event.start_datetime = record.starts_at
@@ -374,7 +451,10 @@ def _apply(event: Event, record: ReviewedEventContent) -> None:
     # Speakers are an ordered set the record owns outright: a re-run replaces
     # them rather than merging into them.  The host row itself is shared across
     # events -- one person is one row, keyed by the source key a credit names
-    # them with.
+    # them with.  A record that states no speakers (a staged new-event
+    # description) keeps the row's: no event may be left without one.
+    if not record.speakers:
+        return
     event.event_host_links.all().delete()
     for position, speaker in enumerate(record.speakers):
         # The display name is the host's own attribute, global across every
@@ -392,7 +472,7 @@ def _apply(event: Event, record: ReviewedEventContent) -> None:
 
 
 def _preflight(
-    records: tuple[ReviewedEventContent, ...],
+    records: tuple[ReviewedEventContent | NewEventContent, ...],
     *,
     error_prefix: str,
 ) -> dict[uuid.UUID, Event]:
@@ -417,13 +497,14 @@ def _preflight(
             or source.source_key != record.provenance.source_key
         ):
             raise EventContentImportError(f"{error_prefix}_provenance_conflict")
-        if (
-            source.source_path != record.provenance.source_path
-            or source.source_checksum != record.provenance.checksum
-        ):
-            raise EventContentImportError(f"{error_prefix}_provenance_conflict")
-        if event.title != record.title or event.slug != record.slug:
-            raise EventContentImportError(f"{error_prefix}_identity_conflict")
+        if isinstance(record, ReviewedEventContent):
+            if (
+                source.source_path != record.provenance.source_path
+                or source.source_checksum != record.provenance.checksum
+            ):
+                raise EventContentImportError(f"{error_prefix}_provenance_conflict")
+            if event.title != record.title or event.slug != record.slug:
+                raise EventContentImportError(f"{error_prefix}_identity_conflict")
     return events
 
 
@@ -476,3 +557,178 @@ def _row_has_content(event: Event) -> bool:
     """
 
     return bool(event.description_html) or event.event_host_links.exists()
+
+
+def _new_event_provenance(value: Any) -> NewEventSourceIdentity:
+    if not isinstance(value, dict) or set(value) != _NEW_EVENT_PROVENANCE_FIELDS:
+        raise EventContentImportError("new_event_content_provenance_shape_invalid")
+    return NewEventSourceIdentity(
+        repository=_text(value["repository"], field="repository", maximum=255),
+        revision=_text(value["revision"], field="revision", maximum=64),
+        source_key=_text(value["source_key"], field="source_key", maximum=512),
+    )
+
+
+def _new_event_record(value: Any) -> NewEventContent:
+    # The per-field validators are the ones above, so their condition codes stay
+    # the shared ``event_content_*`` ones: they say the same thing about the same
+    # field either way. Only what is specific to this leg is renamed.
+    if not isinstance(value, dict) or set(value) != _NEW_EVENT_RECORD_FIELDS:
+        raise EventContentImportError("new_event_content_record_shape_invalid")
+    if value["record_schema_version"] != NEW_EVENT_RECORD_SCHEMA_VERSION:
+        raise EventContentImportError("new_event_content_record_schema_version_invalid")
+
+    identity_id = value["identity_id"]
+    if not isinstance(identity_id, str):
+        raise EventContentImportError("new_event_content_identity_id_invalid")
+    try:
+        parsed_id = uuid.UUID(identity_id)
+    except ValueError as error:
+        raise EventContentImportError("new_event_content_identity_id_invalid") from error
+    if str(parsed_id) != identity_id:
+        raise EventContentImportError("new_event_content_identity_id_invalid")
+
+    kind = value["type"]
+    if kind not in _TYPES:
+        raise EventContentImportError("event_content_type_invalid")
+
+    starts_at = _instant(value["starts_at"], field="starts_at")
+    ends_at = None if value["ends_at"] == "" else _instant(value["ends_at"], field="ends_at")
+    if ends_at is not None and ends_at < starts_at:
+        raise EventContentImportError("event_content_ends_before_start")
+
+    season = _position(value["season"], field="season")
+    episode = _position(value["episode"], field="episode")
+    if (season is None) != (episode is None):
+        raise EventContentImportError("event_content_season_episode_incomplete")
+
+    # A record with no description is the one thing this artifact cannot be for:
+    # the corpus above exists to carry the 421 events' schedules whether or not
+    # they were described, and this exists only to carry a description in.
+    description_html = _text(value["description_html"], field="description_html", maximum=1_000_000)
+    description_text = _text(value["description_text"], field="description_text", maximum=1_000_000)
+
+    description_provenance = value["description_provenance"]
+    if not isinstance(description_provenance, dict) or not description_provenance:
+        raise EventContentImportError("new_event_content_description_provenance_missing")
+    # The type is the one field on the row no source stated, so the review that
+    # decided it has to arrive with it or the row is unreviewed copy.
+    type_provenance = value["type_provenance"]
+    if not isinstance(type_provenance, dict) or not type_provenance:
+        raise EventContentImportError("new_event_content_type_provenance_missing")
+
+    speakers = value["speakers"]
+    links = value["links"]
+    if not isinstance(speakers, list) or not isinstance(links, list):
+        raise EventContentImportError("event_content_collection_invalid")
+    parsed_speakers = tuple(_speaker(item) for item in speakers)
+    if len({speaker.key for speaker in parsed_speakers}) != len(parsed_speakers):
+        raise EventContentImportError("event_content_speaker_key_duplicated")
+
+    return NewEventContent(
+        identity_id=parsed_id,
+        type=kind,
+        starts_at=starts_at,
+        ends_at=ends_at,
+        season=season,
+        episode=episode,
+        description_html=description_html,
+        description_text=description_text,
+        description_provenance=description_provenance,
+        type_provenance=type_provenance,
+        speakers=parsed_speakers,
+        links=tuple(_link(item) for item in links),
+        provenance=_new_event_provenance(value["provenance"]),
+    )
+
+
+def parse_new_event_content(payload: Any) -> tuple[NewEventContent, ...]:
+    """Validate the complete staged candidate, envelope included, before applying any of it.
+
+    The builder digests the artifact and this recomputes it. That is deliberate
+    duplication: the receiving end checks what it was handed rather than trusting
+    that whatever produced the file also produced the number beside it.
+    """
+
+    if not isinstance(payload, dict) or set(payload) != _NEW_EVENT_ARTIFACT_FIELDS:
+        raise EventContentImportError("new_event_content_artifact_shape_invalid")
+    if payload["schema_version"] != _NEW_EVENT_ARTIFACT_SCHEMA_VERSION:
+        raise EventContentImportError("new_event_content_artifact_schema_version_invalid")
+    # Which source built it is provenance a reader wants, not a value this module
+    # may have an opinion about: a second builder is a different string, not a
+    # different importer.
+    _text(payload["source"], field="source", maximum=255)
+    events = payload["events"]
+    if not isinstance(events, list):
+        raise EventContentImportError("new_event_content_artifact_events_invalid")
+    body = {key: value for key, value in payload.items() if key != "content_sha256"}
+    encoded = json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    if payload["content_sha256"] != hashlib.sha256(encoded.encode("utf-8")).hexdigest():
+        raise EventContentImportError("new_event_content_artifact_digest_mismatch")
+    counts = payload["counts"]
+    if not isinstance(counts, dict) or counts.get("events") != len(events):
+        raise EventContentImportError("new_event_content_artifact_count_mismatch")
+
+    records = tuple(_new_event_record(item) for item in events)
+    if len({record.identity_id for record in records}) != len(records):
+        raise EventContentImportError("new_event_content_identity_id_duplicated")
+    return records
+
+
+def load_new_event_content(path: Path) -> tuple[NewEventContent, ...]:
+    """Read and fully check the staged records."""
+
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise EventContentImportError("new_event_content_source_unreadable") from error
+    return parse_new_event_content(payload)
+
+
+@transaction.atomic
+def import_new_event_content(*, path: Path, dry_run: bool = False) -> EventContentImportReport:
+    """Attach staged content to identities minted from a provider export.
+
+    Same posture as :func:`import_event_content`: it reconciles rather than
+    bootstraps, and a record naming an identity this database does not hold is a
+    refusal, never a new event. It reconciles on the identity's own source triple
+    instead of the legacy tuple, which is what keeps it off the 421 -- their
+    triples name the legacy repository and can never equal a provider one.
+    """
+
+    records = load_new_event_content(path)
+    events = _preflight(records, error_prefix="new_event_content")
+
+    from .lifecycle import DRAFT, PUBLISHED_STATUS
+    from .publication import is_publishable
+
+    created = updated = unchanged = 0
+    for record in records:
+        event = events[record.identity_id]
+        if _matches(event, record):
+            unchanged += 1
+        else:
+            if _row_has_content(event):
+                updated += 1
+            else:
+                created += 1
+            if dry_run:
+                continue
+            _apply(event, record)
+        # Discovery mints a draft (events.publication); a reviewed record that
+        # gives it a type and a speaker is what makes it public.
+        if not dry_run and event.status == DRAFT and is_publishable(event):
+            event.status = PUBLISHED_STATUS
+            event.save(update_fields=["status", "updated_at"])
+
+    return EventContentImportReport(
+        total=len(records),
+        described=sum(1 for record in records if record.description_html),
+        created=created,
+        updated=updated,
+        unchanged=unchanged,
+        speakers=sum(len(record.speakers) for record in records),
+        links=sum(len(record.links) for record in records),
+        replayed=created == 0 and updated == 0,
+        dry_run=dry_run,
+    )

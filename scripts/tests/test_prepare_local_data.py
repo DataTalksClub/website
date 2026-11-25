@@ -31,12 +31,16 @@ class OrchestratorReportTests(SimpleTestCase):
     #: keep their report names; every other key carries over unchanged.
     EVENT_PIPELINE = {
         "identities": {"applied": 1},
+        "new_event_identities": {"luma": {"created": 2}},
         "event_content": {"records": 3},
+        "new_event_content": {"descriptions": 4},
         "eventbrite_descriptions": {"applied": 5},
     }
     REPORT_KEYS = {
         "event_identities": "identities",
+        "new_event_identities": "new_event_identities",
         "event_content": "event_content",
+        "new_event_content": "new_event_content",
         "eventbrite_descriptions": "eventbrite_descriptions",
     }
 

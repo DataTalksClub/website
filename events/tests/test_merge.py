@@ -7,11 +7,16 @@ speaker, and a Luma-minted record carrying the registrations and nothing else.
 
 from __future__ import annotations
 
+import csv
 import json
+import tempfile
 from datetime import UTC, datetime
+from pathlib import Path
 from unittest import mock
+from zoneinfo import ZoneInfo
 
 from community_base.events.models import Event, EventHost, Host
+from django.conf import settings
 from django.test import TestCase
 
 from content.models import EventMergedIdentity, EventSource
@@ -449,6 +454,31 @@ class MergedSourceIdentityTests(MergeFixture):
                 title="Again",
             )
 
+    def test_discovery_treats_the_merged_provider_event_as_already_tracked(self) -> None:
+        from scripts.prod.import_events import discover_new_provider_events
+        from scripts.prod.registration_sources.luma_events import DiscoveredLumaEvent
+
+        merge_pair(self.pair, apply=True)
+        before = Event.objects.count()
+        discovered = (
+            DiscoveredLumaEvent(
+                external_event_identifier="evt-Synthetic1",
+                event_url="https://luma.com/synthetic",
+                title="Machine Learning Engineering in Finances",
+                start_at="2024-01-15T11:30:00.000Z",
+                eligible_count=3,
+                excluded_count=0,
+                quarantined_count=0,
+                row_total=3,
+            ),
+        )
+
+        report = discover_new_provider_events(provider="luma", discovered=discovered, apply=True)
+
+        self.assertEqual(report["already_tracked_total"], 1)
+        self.assertEqual(report["created_total"], 0)
+        self.assertEqual(Event.objects.count(), before)
+
     def test_a_registrant_refresh_lands_on_the_kept_event(self) -> None:
         from scripts.prod.registrant_import import (
             PendingEventRegistrants,
@@ -484,3 +514,86 @@ class MergedSourceIdentityTests(MergeFixture):
         self.assertEqual(report.events_awaiting_identity, 0)
         self.assertEqual(report.events_refreshed, 1)
         self.assertEqual(EventRegistration.objects.filter(event=self.keep).count(), 4)
+
+
+class LumaStartTimeBoundaryTests(TestCase):
+    """A Luma export's ``event_start_at`` is a UTC instant and is stored as exactly that.
+
+    The 2026-10-23 pairs differ by 4.5-5 hours because the legacy
+    ``_data/events.yaml`` stamps nearly every entry with a placeholder 17:00
+    Berlin time (the legacy site renders only the date), while Luma records the
+    real slot -- e.g. 12:30 Berlin.  That is not a parse error, and this pins
+    the boundary so that it never becomes one.
+    """
+
+    def setUp(self) -> None:
+        scratch = Path(settings.BASE_DIR) / ".tmp"
+        scratch.mkdir(exist_ok=True)
+        self.temporary = tempfile.TemporaryDirectory(dir=scratch)
+        self.root = Path(self.temporary.name)
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def test_discovery_stores_the_exported_instant_unshifted(self) -> None:
+        from scripts.prod.import_events import discover_new_luma_event_identities
+        from scripts.prod.registrant_import import provider_source_identity
+
+        stem = "2024-01-15_a-winter-podcast_evt-wintertime"
+        (self.root / f"{stem}.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "event_id": "evt-WinterTime",
+                    "event_url": "https://luma.com/winter",
+                }
+            ),
+            encoding="utf-8",
+        )
+        with (self.root / f"{stem}.csv").open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=[
+                    "guest_id",
+                    "email",
+                    "approval_status",
+                    "event_id",
+                    "event_name",
+                    "event_start_at",
+                ],
+            )
+            writer.writeheader()
+            writer.writerow(
+                {
+                    "guest_id": "guest-1",
+                    "email": "canary@example.test",
+                    "approval_status": "approved",
+                    "event_id": "evt-WinterTime",
+                    "event_name": "A Winter Podcast Nobody Else Has",
+                    "event_start_at": "2024-01-15T11:30:00.000Z",
+                }
+            )
+
+        events_yaml = Path(settings.BASE_DIR) / ".tmp" / f"winter-{self.id()}.yaml"
+        events_yaml.write_text(
+            "- time: 2024-01-15 12:30:00\n"
+            "  title: 'A Winter Podcast Nobody Else Has'\n"
+            "  type: podcast\n"
+            "  speakers: [synthetic-speaker]\n"
+            "  link: https://luma.com/winter\n",
+            encoding="utf-8",
+        )
+        self.addCleanup(events_yaml.unlink)
+        discover_new_luma_event_identities(
+            luma_source=self.root, apply=True, events_yaml=events_yaml
+        )
+
+        source = provider_source_identity(
+            provider="luma", external_event_identifier="evt-WinterTime"
+        )
+        event = resolve_source_identity(
+            repository=source.repository, revision=source.revision, source_key=source.source_key
+        )
+        self.assertEqual(event.start_datetime, datetime(2024, 1, 15, 11, 30, tzinfo=UTC))
+        local = event.start_datetime.astimezone(ZoneInfo("Europe/Berlin"))
+        self.assertEqual((local.hour, local.minute), (12, 30))

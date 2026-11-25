@@ -978,10 +978,63 @@ reconciled.
 
 ### Step 5 — Events
 
-New events are not imported: events are registered only on this site and authored
-with the event CLI (`_docs/runbooks/event-cli.md`). The Luma new-event discovery
-pass that used to open this step was removed on 2026-11-25
-(`_docs/runbooks/data-ingest.md` §14.3).
+**First, sync new events against the current export — before anything else in
+this step runs.** The reviewed identity manifest
+(`~/prod/dtc-data/content-staging/event_identity_manifest.json`)
+is frozen at the moment it was built; Luma keeps moving. Confirmed today: four
+real events dated 2026-09-08 through 2026-09-15 exist on Luma but were in
+neither the prepared export available at the time nor the manifest — not a
+bug, the normal gap between a periodic export and Luma's live state, but one
+this playbook must close explicitly on migration day rather than leave to
+chance. Owner's instruction, verbatim: "first import new events, make sure
+they are up to date, then start the imports."
+
+```
+uv run --frozen python scripts/prod/import_events.py \
+    <target> \
+    --luma-source ~/prod/dtc-data/luma-eventbrite-export/luma-aggregate-v1 \
+    --discover-new-events-only
+```
+
+Point `--luma-source` at whatever export is current on migration day — the
+durable copy today lives at
+`~/prod/dtc-data/luma-eventbrite-export/luma-aggregate-v1/`
+(`chmod 700`/`600`, the same protected-export handling as
+`/data/tmp/rds-export/` and `~/prod/dtc-data/mailchimp-export/`), not the
+gitignored, worktree-local default
+path. `--discover-new-events-only` deliberately does not require the export to
+match the pinned checksum in `event-registration-sources.json` — that pin
+protects registration *counts* from drift, and this leg writes no count — so it
+is safe to run against an export newer than the one the rest of this step's
+numbers below were measured against.
+
+This runs the reviewed-manifest import first (replayed, as always), then
+`discover_new_luma_event_identities()`: any Luma event with no existing
+identity — checked against both this database's own `Event` rows and every
+`HistoricalEventMapping`, in any state, so an event already sitting in the
+380-event mapping-review backlog under a different source key is never
+double-created — gets a real `Event` row via `create_event_identity()`. Title
+and canonical path only; this never creates or activates a
+`HistoricalEventMapping`, so it cannot manufacture a registration count.
+Report shape: `new_event_identities.luma.created_total` and
+`.created_events` (each with `title`, `start_at`, `eligible_count`,
+`public_id`, `canonical_path`), `.already_tracked_total`, and
+`.no_metadata_total` for a zero-registration Luma event this export cannot
+even name. `--discover-new-events-only` deliberately stops at identity —
+mapping activation is a separate concern and runs later, when the main import
+below runs without the flag: it now also calls `activate_unambiguous_mappings()`
+automatically (reported under `mapping_auto_activation` in that run's report),
+which activates a `review_required` mapping only when exactly one canonical
+`Event` shares its provider event's date and normalized title — no fuzzy or
+ranked match. Everything else, including every mapping this sync step's new
+identities have not yet been reconciled into, stays `review_required` and
+renders no registration count, exactly as gated as it is today (§16/17 below).
+
+**Done** when `created_total` accounts for every genuinely new event an
+operator expected (cross-check against Luma directly if in doubt) and nothing
+unexpected shows up in `no_metadata_events`. Re-run is safe and idempotent —
+a second pass against the same export reports everything under
+`already_tracked_total` and creates nothing.
 
 Identity manifest first, then the two registration sources. Counts only — **no
 attendee row is ever written.**
