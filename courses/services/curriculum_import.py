@@ -15,6 +15,7 @@ from typing import Any
 from urllib.parse import urlsplit
 from uuid import UUID
 
+from community_base.coursework.models import ReviewCriteriaSet
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -315,6 +316,7 @@ class _CurriculumImporter:
             "shared_lessons": 0,
             "placements": 0,
             "archive_cohorts": 0,
+            "criteria_sets": 0,
         }
 
     def apply(self) -> tuple[Course, tuple[Cohort, ...], Mapping[str, int]]:
@@ -334,6 +336,7 @@ class _CurriculumImporter:
                 self.counts["cohorts"] += 1
                 if source.curriculum == CurriculumSource.CURRENT:
                     self._import_shared_placements(shared_curriculum, cohort, source)
+                    self._import_cohort_projects(shared_curriculum, cohort, source)
                 else:
                     self._import_archive_cohort(cohort, source)
             self._apply_homework_summaries(course)
@@ -944,6 +947,58 @@ class _CurriculumImporter:
             kept_placements.add(placement.pk)
             self.counts["placements"] += 1
         CohortSharedModule.objects.filter(cohort=cohort).exclude(pk__in=kept_placements).delete()
+
+    def _import_cohort_projects(
+        self,
+        shared_curriculum: SharedCurriculum,
+        cohort: Cohort,
+        source: CohortSource,
+    ) -> None:
+        """Upsert the cohort's criteria sets and project attempts; never delete.
+
+        A re-import refreshes what the source owns (title, description,
+        deadlines, peers, criteria set, module placement) and leaves the
+        project's state and every submission and review untouched.
+        """
+        criteria_sets: dict[str, ReviewCriteriaSet] = {}
+        for item in source.criteria_sets:
+            criteria_set = ReviewCriteriaSet.objects.update_or_create(
+                slug=item.slug,
+                defaults={
+                    "title": item.title,
+                    "description": item.description,
+                    "criteria": list(item.criteria),
+                    "status": ReviewCriteriaSet.STATUS_PUBLISHED,
+                },
+            )[0]
+            criteria_sets[item.slug] = criteria_set
+            self.counts["criteria_sets"] += 1
+        module_ids = {module.slug: module.content_id for module in self.command.source.modules}
+        for item in source.projects:
+            shared_module = None
+            if item.module is not None:
+                shared_module = SharedModule.objects.filter(
+                    curriculum=shared_curriculum,
+                    source_content_id=module_ids.get(item.module),
+                ).first()
+                if shared_module is None:
+                    raise CurriculumImportError(
+                        "shared_module_missing",
+                        source_path=source.source_path or ".",
+                    )
+            project = Project.objects.filter(course=cohort, slug=item.slug).first()
+            if project is None:
+                project = Project(course=cohort, slug=item.slug)
+            project.title = item.title
+            project.description = item.description_markdown
+            project.submission_due_date = item.submission_due
+            project.peer_review_due_date = item.review_due
+            project.number_of_peers_to_evaluate = item.peers
+            project.criteria_set = criteria_sets[item.criteria_set]
+            project.shared_module = shared_module
+            _validate_model(project)
+            project.save()
+            self.counts["projects"] += 1
 
     def _import_archive_cohort(self, cohort: Cohort, source: CohortSource) -> None:
         """An archive cohort never creates shared rows or placements.

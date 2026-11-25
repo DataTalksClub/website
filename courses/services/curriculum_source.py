@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 
 @dataclass(frozen=True, slots=True)
@@ -177,6 +177,39 @@ class HomeworkBindingSource:
 
 
 @dataclass(frozen=True, slots=True)
+class CriteriaSetSource:
+    """One reusable review criteria set kept next to a schema-2 cohort config.
+
+    ``criteria`` is already normalized by community-base ``parse_criteria_set``.
+    """
+
+    slug: str
+    title: str
+    description: str
+    criteria: tuple[dict[str, Any], ...]
+    source_path: str
+
+
+@dataclass(frozen=True, slots=True)
+class ProjectSource:
+    """One project attempt declared in a schema-2 cohort config.
+
+    ``module`` is a root shared module slug the attempt is placed in, or
+    ``None``; ``criteria_set`` names a criteria set by slug.
+    """
+
+    slug: str
+    title: str
+    module: str | None
+    description_markdown: str
+    description_source_path: str | None
+    submission_due: datetime
+    review_due: datetime
+    peers: int
+    criteria_set: str
+
+
+@dataclass(frozen=True, slots=True)
 class CohortSource:
     identifier: str
     format: Literal["legacy", "modules"]
@@ -198,6 +231,8 @@ class CohortSource:
     curriculum: Literal["current", "github_archive"] | None = None
     archive_notice_path: str | None = None
     homework_bindings: tuple[HomeworkBindingSource, ...] = ()
+    criteria_sets: tuple[CriteriaSetSource, ...] = ()
+    projects: tuple[ProjectSource, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -217,6 +252,7 @@ __all__ = (
     "CourseRepositorySource",
     "CourseProgressionStepSource",
     "CourseSource",
+    "CriteriaSetSource",
     "CurriculumFlowSource",
     "HomeworkBindingSource",
     "HomeworkFormSource",
@@ -229,5 +265,6 @@ __all__ = (
     "ModuleFlowSource",
     "ModuleSource",
     "ProjectFlowSource",
+    "ProjectSource",
     "UnitSource",
 )

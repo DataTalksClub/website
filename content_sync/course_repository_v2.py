@@ -16,14 +16,18 @@ import re
 from pathlib import PurePosixPath
 from typing import Any
 
+from community_base.coursework.project_criteria import CriteriaError, parse_criteria_set
+
 from content.course_catalog import parse_course_catalog
 from courses.services.curriculum_source import (
     CohortSource,
     CourseRepositorySource,
     CourseSource,
+    CriteriaSetSource,
     HomeworkBindingSource,
     HomeworkSource,
     ModuleSource,
+    ProjectSource,
     UnitSource,
 )
 
@@ -35,6 +39,7 @@ from .course_repository import (
     _content_id,
     _course_progression,
     _date,
+    _datetime,
     _decode_utf8,
     _fail,
     _homework_summaries,
@@ -511,6 +516,8 @@ class SharedCurriculumParserV2:
                     "curriculum",
                     "archive",
                     "homework",
+                    "review_criteria",
+                    "projects",
                 }
             ),
             required=frozenset(
@@ -586,6 +593,21 @@ class SharedCurriculumParserV2:
         )
         if curriculum == "current":
             self._reject_unreferenced_current_homework(identifier, bindings)
+        criteria_sets: tuple[CriteriaSetSource, ...] = ()
+        projects: tuple[ProjectSource, ...] = ()
+        if "review_criteria" in mapping or "projects" in mapping:
+            if curriculum != "current" or delivery != "live":
+                _fail("projects_require_current_live_cohort", path, "/projects")
+            criteria_sets = self._parse_criteria_sets(
+                path, mapping.get("review_criteria", []), directory=directory
+            )
+            projects = self._parse_projects(
+                path,
+                mapping.get("projects", []),
+                directory=directory,
+                module_by_slug=module_by_slug,
+                criteria_slugs={item.slug for item in criteria_sets},
+            )
 
         return CohortSource(
             identifier=identifier,
@@ -612,7 +634,143 @@ class SharedCurriculumParserV2:
             curriculum=curriculum,  # type: ignore[arg-type]
             archive_notice_path=archive_notice_path,
             homework_bindings=bindings,
+            criteria_sets=criteria_sets,
+            projects=projects,
         )
+
+    def _cohort_file(self, path: str, value: object, *, pointer: str, directory: str) -> str:
+        """A file path that must stay inside this cohort's directory and exist."""
+        source = _string(value, path=path, pointer=pointer, maximum=1024)
+        if (
+            source.startswith("/")
+            or ".." in PurePosixPath(source).parts
+            or not source.startswith(directory)
+        ):
+            _fail("cohort_file_outside_cohort", path, pointer)
+        if source not in self.snapshot:
+            _fail("source_path_missing", path, pointer)
+        return source
+
+    def _parse_criteria_sets(
+        self, path: str, raw: object, *, directory: str
+    ) -> tuple[CriteriaSetSource, ...]:
+        if not isinstance(raw, list):
+            _fail("review_criteria_list_required", path, "/review_criteria")
+        result: list[CriteriaSetSource] = []
+        seen: set[str] = set()
+        for index, item in enumerate(raw):
+            pointer = f"/review_criteria/{index}"
+            source = self._cohort_file(path, item, pointer=pointer, directory=directory)
+            if not source.endswith((".yaml", ".yml")):
+                _fail("review_criteria_yaml_required", path, pointer)
+            default_slug = PurePosixPath(source).stem
+            try:
+                parsed = parse_criteria_set(
+                    self._load_yaml(source), source, default_slug=default_slug
+                )
+            except CriteriaError:
+                _fail("review_criteria_invalid", source)
+            if parsed["slug"] in seen:
+                _fail("duplicate_review_criteria", path, pointer)
+            seen.add(parsed["slug"])
+            result.append(
+                CriteriaSetSource(
+                    slug=parsed["slug"],
+                    title=parsed["title"],
+                    description=parsed["description"],
+                    criteria=tuple(parsed["criteria"]),
+                    source_path=source,
+                )
+            )
+        return tuple(result)
+
+    def _parse_projects(
+        self,
+        path: str,
+        raw: object,
+        *,
+        directory: str,
+        module_by_slug: dict[str, ModuleSource],
+        criteria_slugs: set[str],
+    ) -> tuple[ProjectSource, ...]:
+        if not isinstance(raw, list):
+            _fail("projects_list_required", path, "/projects")
+        result: list[ProjectSource] = []
+        seen: set[str] = set()
+        for index, item in enumerate(raw):
+            pointer = f"/projects/{index}"
+            entry = _strict_mapping(
+                item,
+                path=path,
+                pointer=pointer,
+                allowed=frozenset(
+                    {
+                        "slug",
+                        "title",
+                        "module",
+                        "description",
+                        "submission_due",
+                        "review_due",
+                        "peers",
+                        "criteria_set",
+                    }
+                ),
+                required=frozenset(
+                    {"slug", "title", "submission_due", "review_due", "peers", "criteria_set"}
+                ),
+            )
+            slug = _slug(entry["slug"], path=path, pointer=f"{pointer}/slug")
+            if slug in seen:
+                _fail("duplicate_project_slug", path, f"{pointer}/slug")
+            seen.add(slug)
+            title = _string(entry["title"], path=path, pointer=f"{pointer}/title", maximum=200)
+            module = entry.get("module")
+            if module is not None:
+                module = _string(module, path=path, pointer=f"{pointer}/module", maximum=100)
+                if module not in module_by_slug:
+                    _fail("curriculum_source_mismatch", path, f"{pointer}/module")
+            description_path = None
+            description = ""
+            if entry.get("description") is not None:
+                description_path = self._cohort_file(
+                    path,
+                    entry["description"],
+                    pointer=f"{pointer}/description",
+                    directory=directory,
+                )
+                if not description_path.endswith(".md"):
+                    _fail("project_description_markdown_required", path, f"{pointer}/description")
+                description = _decode_utf8(
+                    self.snapshot[description_path], path=description_path, limits=self.limits
+                ).strip()
+            submission_due = _datetime(
+                entry["submission_due"], path=path, pointer=f"{pointer}/submission_due"
+            )
+            review_due = _datetime(entry["review_due"], path=path, pointer=f"{pointer}/review_due")
+            if review_due <= submission_due:
+                _fail("project_review_before_submission", path, f"{pointer}/review_due")
+            peers = entry["peers"]
+            if type(peers) is not int or not 1 <= peers <= 10:
+                _fail("project_peers_invalid", path, f"{pointer}/peers")
+            criteria_set = _slug(
+                entry["criteria_set"], path=path, pointer=f"{pointer}/criteria_set"
+            )
+            if criteria_set not in criteria_slugs:
+                _fail("project_criteria_set_missing", path, f"{pointer}/criteria_set")
+            result.append(
+                ProjectSource(
+                    slug=slug,
+                    title=title,
+                    module=module,
+                    description_markdown=description,
+                    description_source_path=description_path,
+                    submission_due=submission_due,
+                    review_due=review_due,
+                    peers=peers,
+                    criteria_set=criteria_set,
+                )
+            )
+        return tuple(result)
 
     def _parse_archive_block(self, path: str, mapping: dict[str, Any], directory: str) -> str:
         raw = mapping.get("archive")

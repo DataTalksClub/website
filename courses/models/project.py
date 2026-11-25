@@ -96,6 +96,14 @@ class Project(TimingOwner, models.Model):
         help_text="Standalone reusable review criteria set for this project.",
     )
     evaluation_criteria = models.JSONField(default=list, blank=True)
+    shared_module = models.ForeignKey(
+        "courses.SharedModule",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="projects",
+        help_text="The shared curriculum module this attempt is placed in, from cohort.yaml.",
+    )
 
     def clean(self):
         super().clean()
