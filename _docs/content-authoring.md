@@ -10,7 +10,7 @@ profiles (see the last row); its README and PR template say so. `_data/events.ya
 | Content | Author it here | How it reaches the site |
 | --- | --- | --- |
 | Events (webinars, workshops, podcast live sessions, Hireable With AI sessions), banners, recordings | Website database through the `dtc` CLI: `dtc events create / update / upload-banner / publish / complete` ([event CLI runbook](runbooks/event-cli.md)) | Live at once on https://prod.datatalks.club (no sync step) |
-| Podcast episodes and transcripts | PR to `DataTalksClub/content`: `podcasts/sNN/eMM.yaml` and `eMM-transcript.yaml`, image in `images/podcast/` | Content Sync workflow (every ten minutes, or `gh workflow run content-sync.yml -R DataTalksClub/website`) |
+| Podcast episodes and transcripts | PR to `DataTalksClub/content`: `podcasts/sNN/eMM.yaml` and `eMM-transcript.yaml`, image in `images/podcast/` | Content Sync workflow: after the content PR merges, run `gh workflow run content-sync.yml -R DataTalksClub/website` (the page is live about a minute later). The workflow also has a ten-minute cron, but GitHub throttles scheduled runs (measured 2026-11-25: one run every several hours), so do not wait for it |
 | Articles / blog | PR to `DataTalksClub/content`: `articles/YYYY/yy-mm-dd-slug.md`, images in `images/posts/` | Content Sync |
 | Books (Book of the Week) | PR to `DataTalksClub/content`: `books/YYYY/yy-mm-dd-slug.yaml`, images in `images/books/` | Content Sync |
 | Academy pages and the Hireable With AI landing/sessions page | PR to `DataTalksClub/content`: `academy/*.md` (session dates live in `academy/sessions.md` front matter) | Content Sync |
@@ -20,13 +20,13 @@ profiles (see the last row); its README and PR template say so. `_data/events.ya
 | Navigation | Website repository (`DataTalksClub/website`): reviewed template change | Normal website deploy |
 | Course content | The course repositories registered on the website (see [course content push and pull](runbooks/course-content-push-and-pull.md)) | Course repository sync |
 | Newsletter | Authored in the newsletter tool (Relay/Datamailer), not in any website repository | Not part of the website |
-| People (speaker/author profiles) | Interim: `_people/<short>.md` + `images/authors/<short>.jpg` in the old repository, plus `dtc events speakers create` for the event system | Content Sync of `dtc-main-site` (now on the same ten-minute schedule); moving this into `DataTalksClub/content` is tracked as a follow-up |
+| People (speaker/author profiles) | Interim: `_people/<short>.md` + `images/authors/<short>.jpg` in the old repository, plus `dtc events speakers create` for the event system | Content Sync of `dtc-main-site` (the same workflow syncs it; dispatch it after pushing); moving this into `DataTalksClub/content` is tracked as a follow-up |
 
 An event on the website always needs a type and at least one speaker before it can be published.
 Order for a new event: `dtc events create --no-publish`, `dtc events upload-banner`, `dtc events publish`
 (or create with the default publish when the banner is not needed yet).
 
-Every PR to `DataTalksClub/content` runs `uv run python scripts/validate_content.py`; merge when it is green.
+Every PR to `DataTalksClub/content` runs `uv run python scripts/validate_content.py` and the tests; merge when green, then dispatch Content Sync as above and open the public page on https://prod.datatalks.club to confirm. Removing a record is a PR that deletes the file; the next sync withdraws the page.
 
 `DataTalksClub/content` is the sole editorial source for DataTalks.Club articles, podcast episodes,
 podcast transcripts, books, and their adopted media. Published database overrides are not allowed.

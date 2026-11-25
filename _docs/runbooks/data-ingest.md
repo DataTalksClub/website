@@ -1598,7 +1598,7 @@ and do not confuse the plural course-repository `scripts/content.py checkouts` (
 which never covered this repository.
 
 **`DataTalksClub/content` is synchronised automatically by CI/CD.**
-`.github/workflows/content-sync.yml` runs every ten minutes, on manual dispatch (with an
+`.github/workflows/content-sync.yml` is scheduled every ten minutes, but GitHub throttles scheduled workflows (measured 2026-11-25: one run every several hours), so treat it as a safety net and dispatch it after a content merge; it also runs on manual dispatch (with an
 optional `force` input) and on a `repository_dispatch` of type `content-push`. Each run
 compares the content repository's HEAD with the production source's
 `last_synced_commit`; when they differ it asks production to sync and waits for the
