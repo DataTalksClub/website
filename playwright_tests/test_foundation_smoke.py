@@ -135,17 +135,21 @@ def test_public_home_and_hubs(
             _shot(page, f"{label.casefold()}-hub-{suffix}.png")
 
         if label == "Wiki":
-            # The three ways into the wiki stay one stacked list at every width.
-            # They are divided rows (a grid rather than a flex column), so the
-            # contract is the stacking itself: three rows, each below the last.
-            exploration = page.locator('nav[aria-label="Wiki exploration"] a')
-            expect(exploration).to_have_count(3)
+            # The hub is search-first: the search field leads, and the bands
+            # below it stack one under the next at every width.
+            search = page.get_by_label("Search the wiki")
+            expect(search).to_be_visible()
             offsets = [
-                exploration.nth(index).evaluate("node => node.getBoundingClientRect().top")
-                for index in range(3)
+                locator.evaluate("node => node.getBoundingClientRect().top")
+                for locator in (
+                    search,
+                    page.locator("#featured-heading"),
+                    page.locator("#how-heading"),
+                    page.locator("#az-heading"),
+                )
             ]
             assert offsets == sorted(offsets), offsets
-            assert len(set(offsets)) == 3, offsets
+            assert len(set(offsets)) == 4, offsets
 
 
 @pytest.mark.parametrize(
@@ -402,6 +406,11 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
         assert response.headers["location"] == expected_location
         navigation = page.goto(f"{origin}{source}?{query}")
         assert navigation is not None and navigation.status == 200
+        if expected_target == "/wiki":
+            # The Wiki hub has no query state, so it drops the alias's query in
+            # a second permanent hop to the clean hub.
+            expect(page).to_have_url(f"{origin}/wiki")
+            continue
         expected_url = (
             f"{origin}{expected_target}?{expected_query}"
             if expected_query
@@ -484,11 +493,20 @@ def test_oldest_latest_details_and_media_fallback(page: Page, live_server) -> No
 
 def test_wiki_search_graph_and_removed_mount(page: Page, live_server) -> None:
     origin = live_server.url
+    # Search for a title the catalogue really publishes, so the ranked results
+    # are about the data rather than about one hardcoded term.
+    term = next(
+        word.casefold()
+        for record in wiki_reader.wiki_pages()
+        for word in str(record["title"]).split()
+        if word.isalpha() and len(word) >= 4
+    )
     page.goto(f"{origin}/wiki")
-    page.get_by_label("Search the Wiki").fill("machine learning")
-    page.get_by_role("button", name="Search").click()
-    expect(page).to_have_url(f"{origin}/wiki?q=machine+learning")
-    expect(page.get_by_text("results for “machine learning”")).to_be_visible()
+    page.get_by_label("Search the wiki").fill(term)
+    page.get_by_role("button", name="Search", exact=True).click()
+    expect(page).to_have_url(f"{origin}/wiki/search?q={term}")
+    expect(page.locator("#results-heading")).to_contain_text(f"for “{term}”")
+    expect(page.locator("#results-heading")).not_to_contain_text("0 topics")
     page.locator("main article a").first.click()
     expect(page.locator("h1")).to_be_visible()
 
@@ -515,7 +533,7 @@ def test_mobile_keyboard_navigation_and_no_results(page: Page, live_server) -> N
     expect(menu).to_be_focused()
 
     page.goto(f"{origin}/wiki?q=no-such-public-topic")
-    expect(page.get_by_text("No matching Wiki pages were found.")).to_be_visible()
+    expect(page.get_by_text("No wiki topic matches that.")).to_be_visible()
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     _shot(page, "wiki-search-empty-mobile.png")
 
@@ -531,15 +549,16 @@ def test_wiki_catalogue_page_two_is_usable_without_javascript(
     )
     page = context.new_page()
     try:
+        # The retired catalogue's ?page=2 lands on the clean hub, where every
+        # topic is reachable without JavaScript: a plain search form and the
+        # folded A-Z list.
         response = page.goto(f"{live_server.url}/wiki?page=2")
         assert response is not None and response.status == 200
+        expect(page).to_have_url(f"{live_server.url}/wiki")
         expect(page.get_by_role("heading", name="Wiki", exact=True)).to_be_visible()
-        expect(page.get_by_role("navigation", name="Wiki exploration")).to_be_visible()
-        expect(page.get_by_role("link", name="Graph", exact=False).first).to_be_visible()
-        expect(page.locator('a[href="/wiki?q="]')).to_be_visible()
-        expect(page.get_by_role("navigation", name="Wiki catalogue pages")).to_be_visible()
-        expect(page.get_by_text("Showing 21–40.")).to_be_visible()
-        expect(page.get_by_label("Page 2, current page")).to_be_visible()
+        expect(page.get_by_label("Search the wiki")).to_be_visible()
+        expect(page.get_by_role("button", name="Search")).to_be_visible()
+        expect(page.locator("details.wiki-az > summary")).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     finally:
         context.close()
