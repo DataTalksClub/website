@@ -279,10 +279,13 @@ class ReadersUseTheDerivedStatusTests(TestCase):
         Event.objects.filter(pk=future.pk).update(status="completed")
         opened = self.client.post(
             f"/events/{future.public_id}/{future.slug}/register",
-            data={"email": "dev+future@dtcdev.click"},
+            data={"email": "dev+future@dtcdev.click", "newsletter_consent": "on"},
         )
         self.assertEqual(opened.status_code, 302)
-        self.assertIn("registered=ok", opened["Location"])
+        # An email registration waits for its confirmation link, so the page
+        # it returns to carries no "registered" outcome at all.
+        self.assertEqual(opened["Location"], f"/events/{future.public_id}/{future.slug}")
+        self.assertNotIn("registered=", opened["Location"])
 
     def test_the_public_listing_splits_on_the_schedule_not_the_stored_status(self) -> None:
         stale = self._stale_past_event()

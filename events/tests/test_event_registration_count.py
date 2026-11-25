@@ -174,7 +174,7 @@ class RegistrationCountTests(TestCase):
 
 
 class RegistrationCountPageTests(TestCase):
-    """The detail page prints the count, the hub never does, and it is never edge-cached."""
+    """The detail page and the hub row print the count, and it is never edge-cached."""
 
     def setUp(self) -> None:
         super().setUp()
@@ -205,9 +205,8 @@ class RegistrationCountPageTests(TestCase):
         _native(self.event, "site-only@example.test")
         _native(self.event, "pending@example.test", status="pending_verification")
 
-        # The listing never prints the count, so every row keeps one shape;
-        # the event's own page carries it.
-        self.assertIsNone(self._hub_count())
+        # The listing row and the event's own page print the same count.
+        self.assertEqual(self._hub_count(), "2")
         self.assertEqual(self._detail_count(), "2")
 
     def test_an_upcoming_detail_page_is_not_shared_even_at_zero(self) -> None:
