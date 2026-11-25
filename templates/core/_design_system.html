@@ -3157,6 +3157,80 @@ Rules for editing:
         width: 100%;
       }
 
+      /* A podcast episode as an event card (`public/_podcast_episode_card.html`):
+         the /podcast season timeline and the homepage's latest episode.  The
+         listen row and the topics are quiet text links above the title's
+         stretched link, so each opens its own destination. */
+      .event-item-time b {
+        color: var(--body-text);
+        font-weight: 700;
+      }
+
+      .podcast-episode-card .event-item-meta li {
+        align-items: flex-start;
+      }
+
+      .podcast-episode-card .event-item-meta li > svg {
+        margin-top: 0.2rem;
+      }
+
+      .podcast-listen {
+        align-items: center;
+        color: var(--muted);
+        display: flex;
+        flex-wrap: wrap;
+        font-weight: 600;
+        gap: var(--space-1) var(--space-2);
+      }
+
+      .podcast-listen,
+      .podcast-topics {
+        min-width: 0;
+      }
+
+      .podcast-topics {
+        display: inline;
+      }
+
+      .podcast-listen a {
+        align-items: center;
+        color: var(--body-text);
+        display: inline-flex;
+        gap: var(--space-2);
+        text-decoration: none;
+      }
+
+      .podcast-listen a,
+      .podcast-topics a {
+        position: relative;
+        z-index: 1;
+      }
+
+      .podcast-topics a {
+        color: var(--body-text);
+        text-decoration: none;
+      }
+
+      .podcast-listen a:hover,
+      .podcast-topics a:hover {
+        color: var(--indigo);
+        text-decoration: underline;
+      }
+
+      .podcast-listen .podcast-platform-icon {
+        --button-bg: var(--card);
+        height: 1rem;
+        width: 1rem;
+      }
+
+      .podcast-sep {
+        color: var(--line-soft);
+      }
+
+      .event-item-thumb.is-portrait {
+        background: var(--lavender);
+      }
+
       /* Narrow: the group label sits on one line above its cards, the line
          and the dots move to the left edge, the picture shrinks. */
       @media (max-width: 47.99rem) {
@@ -3204,6 +3278,11 @@ Rules for editing:
 
         .event-item :is(h3, h4) {
           font-size: 1.08rem;
+        }
+
+        /* "Listen on" drops; the platform names already say it. */
+        .podcast-listen-label {
+          display: none;
         }
       }
 

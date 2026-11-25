@@ -22,12 +22,11 @@ from content.docs_reader import DOCS_ROOT_PATH, docs_page
 from content.event_content import event_groups
 from content.person_chip import PersonChip, person_chip
 from content.podcast_content import ordered_podcasts
+from content.podcast_hub import hub_episode
 from content.tour_content import homepage_tour_page, tour_page
 from core.home_content import (
     course_catalog,
     featured_course,
-    published_display,
-    reading_minutes,
     spelled_count,
     wiki_graph,
     wiki_topics,
@@ -131,9 +130,7 @@ def home(request: HttpRequest):
             "course_family_word": spelled_count(len(catalog)),
             "member_stories": homepage_testimonials(),
             "article": article,
-            "article_published": published_display(article["published"]) if article else "",
-            "article_minutes": reading_minutes(article) if article else 0,
-            "podcast": podcast,
+            "podcast": hub_episode(podcast) if podcast else None,
             "wiki_topics": wiki_topics(),
             "wiki_graph": wiki_graph(),
             "counts": catalogue.collection_counts(),

@@ -69,52 +69,36 @@
         max-width: 38em;
       }
 
-      /* Quiet text links, the same weight as the card's "Listen on" row, in
-         place of three heavy buttons. */
-      .podcast-follow,
-      .podcast-listen {
+      /* Quiet text links, the same weight as the episode card's "Listen on"
+         row (`.podcast-listen` in the design system), in place of three heavy
+         buttons. */
+      .podcast-follow {
         align-items: center;
         color: var(--muted);
         display: flex;
         flex-wrap: wrap;
-        font-weight: 600;
-        gap: var(--space-1) var(--space-2);
-      }
-
-      .podcast-follow {
-        column-gap: var(--space-4);
         font-size: 0.95rem;
+        font-weight: 600;
+        gap: var(--space-1) var(--space-4);
         margin: var(--space-4) 0 0;
       }
 
-      .podcast-follow a,
-      .podcast-listen a {
+      .podcast-follow a {
         align-items: center;
         color: var(--body-text);
         display: inline-flex;
+        font-weight: 700;
         gap: var(--space-2);
         text-decoration: none;
       }
 
-      .podcast-follow a {
-        font-weight: 700;
-      }
-
-      .podcast-follow a:hover,
-      .podcast-listen a:hover,
-      .podcast-topics a:hover {
+      .podcast-follow a:hover {
         color: var(--indigo);
         text-decoration: underline;
       }
 
       .podcast-follow .podcast-platform-icon {
         --button-bg: var(--cream);
-      }
-
-      .podcast-listen .podcast-platform-icon {
-        --button-bg: var(--card);
-        height: 1rem;
-        width: 1rem;
       }
 
       /* Season navigation: the shared filter pills, one per season, with a
@@ -209,47 +193,6 @@
         top: var(--space-4);
       }
 
-      .event-item-time b {
-        color: var(--body-text);
-        font-weight: 700;
-      }
-
-      .podcast-list .event-item-meta li {
-        align-items: flex-start;
-      }
-
-      .podcast-list .event-item-meta li > svg {
-        margin-top: 0.2rem;
-      }
-
-      .podcast-listen,
-      .podcast-topics {
-        min-width: 0;
-      }
-
-      .podcast-topics {
-        display: inline;
-      }
-
-      .podcast-listen a,
-      .podcast-topics a {
-        position: relative;
-        z-index: 1;
-      }
-
-      .podcast-topics a {
-        color: var(--body-text);
-        text-decoration: none;
-      }
-
-      .podcast-sep {
-        color: var(--line-soft);
-      }
-
-      .event-item-thumb.is-portrait {
-        background: var(--lavender);
-      }
-
       .season-note {
         color: var(--body-text);
         font-size: 0.9rem;
@@ -271,11 +214,6 @@
 
         .podcast-list .event-day-date {
           position: static;
-        }
-
-        /* "Listen on" drops; the platform names already say it. */
-        .podcast-listen-label {
-          display: none;
         }
       }
     </style>
@@ -345,48 +283,11 @@
                     </p>
                     <span class="event-day-dot" aria-hidden="true"></span>
                     <div class="event-day-cards">
-                      <article class="event-item interactive-card interactive-lift" data-podcast-episode>
-                        <div class="event-item-body">
-                          <h3><a href="{{ episode.public_path }}">{{ episode.title }}</a></h3>
-                          {% if item.guests %}
-                            <p class="person-chips event-item-speakers">
-                              {% for guest in item.guests %}
-                                {% include "public/_person_chip.html" with person=guest.guest|person_chip chip_role=guest.role %}
-                              {% endfor %}
-                            </p>
-                          {% endif %}
-                          {% if item.listen_links or item.topics %}
-                            <ul class="event-item-meta">
-                              {% if item.listen_links %}
-                                <li>
-                                  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 10V8a5.5 5.5 0 0 1 11 0v2" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="9" width="3" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="9" width="3" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-                                  <span class="podcast-listen">
-                                    <span class="podcast-listen-label">Listen on</span>
-                                    {% for link in item.listen_links %}
-                                      {% if not forloop.first %}<span class="podcast-sep" aria-hidden="true">·</span>{% endif %}
-                                      <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
-                                        {% include "public/_podcast_platform_icon.html" with provider=link.provider dot=link.dot only %}
-                                        {{ link.label }}<span class="sr-only"> (opens in a new tab)</span>
-                                      </a>
-                                    {% endfor %}
-                                  </span>
-                                </li>
-                              {% endif %}
-                              {% if item.topics %}
-                                <li>
-                                  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h5.2l6 6-5.2 5.2-6-6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="5.3" cy="5.3" r="1" fill="currentColor"/></svg>
-                                  <span class="podcast-topics">
-                                    {% for topic in item.topics %}{% if not forloop.first %}<span class="podcast-sep" aria-hidden="true"> · </span>{% endif %}<a href="{{ topic.url }}">{{ topic.label }}</a>{% endfor %}
-                                  </span>
-                                </li>
-                              {% endif %}
-                            </ul>
-                          {% endif %}
-                        </div>
-                        {% if item.picture_url %}
-                          <img class="event-item-thumb{% if item.picture_is_portrait %} is-portrait{% endif %}" src="{{ item.picture_url }}" alt="" width="120" height="120" loading="{% if forloop.counter <= 3 %}eager{% else %}lazy{% endif %}" decoding="async">
-                        {% endif %}
-                      </article>
+                      {% if forloop.counter <= 3 %}
+                        {% include "public/_podcast_episode_card.html" with item=item on_rail=True thumb_loading="eager" only %}
+                      {% else %}
+                        {% include "public/_podcast_episode_card.html" with item=item on_rail=True only %}
+                      {% endif %}
                     </div>
                   </section>
                 {% endwith %}

@@ -207,3 +207,13 @@ def hub_season(season: PodcastSeason) -> HubSeason:
             for record in season.episodes
         ),
     )
+
+
+def hub_episode(record: dict[str, Any]) -> HubEpisode:
+    """Compose one episode's card exactly as the hub draws it (the homepage's latest)."""
+
+    return _hub_episode(
+        record,
+        episode_view(record, people_by_slug=catalogue.people_by_slug(), include_transcript=False),
+        _event_index(),
+    )

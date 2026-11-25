@@ -391,72 +391,26 @@
 
       /* The two halves mirror each other: each card stretches to the taller
          one, and both "more" links sit on one line under them (owner
-         feedback 2026-11-24: the pair looked lopsided). */
+         feedback 2026-11-24: the pair looked lopsided).  The cards themselves
+         are the specialized pages' own partials — the /podcast episode card
+         and the /blog archive row — so nothing here restyles them; the row
+         only gives up the padding and divider it has inside a list. */
       .latest-grid > div {
         display: flex;
         flex-direction: column;
       }
 
-      .latest-grid .latest-card {
+      .latest-grid > div > :is(.podcast-episode-card, .archive-row) {
         flex: 1;
       }
 
-      .latest-item {
-        align-items: flex-start;
-        display: flex;
-        gap: var(--space-4);
+      .latest-grid .archive-row {
+        align-items: stretch;
+        padding-block: 0;
       }
 
-      .latest-icon {
-        align-items: center;
-        background: var(--indigo-soft);
-        border: 2px solid var(--line);
-        border-radius: 0.6rem;
-        color: var(--green-deep);
-        display: flex;
-        flex: none;
-        font-size: 0.82rem;
-        font-weight: 700;
-        height: 3.25rem;
-        justify-content: center;
-        white-space: nowrap;
-        width: 3.25rem;
-      }
-
-      /* The episode opens with a play button, so it is a disc with a filled
-         glyph — the same drawn mark and the same glyph proportion the podcast
-         pages use for their play disc. */
-      .latest-icon-play {
-        border-radius: var(--drawn-circle);
-      }
-
-      .latest-icon-play svg {
-        fill: var(--ink);
-        height: 2rem;
-        width: 2rem;
-      }
-
-      .latest-icon-green {
-        background: var(--mint);
-      }
-
-      .latest-item h3 {
-        font-size: 1.1rem;
-      }
-
-      .latest-item h3 a {
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      .latest-item h3 a:hover {
-        text-decoration: none;
-      }
-
-      .latest-meta {
-        color: var(--muted);
-        font-size: 0.88rem;
-        margin-top: var(--space-1);
+      .latest-grid .archive-date {
+        align-self: start;
       }
 
       /* --- wiki graph --------------------------------------------------- */
@@ -1078,30 +1032,9 @@
               <div class="band-head">
                 <h3>Latest podcast episode</h3>
               </div>
-              <div class="card latest-card stretched-card-link podcast-card interactive-card interactive-lift">
-                <div class="latest-item">
-                  <span class="latest-icon latest-icon-play" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false">
-                      <path d="M9 6.5l9 5.5-9 5.5z"/>
-                    </svg>
-                  </span>
-                  <div>
-                    <h3>
-                      <a class="band-link" href="{{ podcast.public_path }}">{{ podcast.title }}</a>
-                    </h3>
-                    <p class="latest-meta">
-                      Season {{ podcast.season }} · Episode {{ podcast.episode }}
-                    </p>
-                    {% if podcast.guest_profiles %}
-                      <p class="person-chips card-credit">
-                        {% for guest in podcast.guest_profiles %}
-                          {% include "public/_person_chip.html" with person=guest|person_chip %}
-                        {% endfor %}
-                      </p>
-                    {% endif %}
-                  </div>
-                </div>
-              </div>
+              {% if podcast %}
+                {% include "public/_podcast_episode_card.html" with item=podcast only %}
+              {% endif %}
               <p class="band-more">
                 <a class="band-link" href="{% url 'podcast' %}">all episodes →</a>
               </p>
@@ -1110,19 +1043,9 @@
               <div class="band-head">
                 <h3>Latest article</h3>
               </div>
-              <div class="card latest-card stretched-card-link interactive-card interactive-lift">
-                <div class="latest-item">
-                  <span class="latest-icon latest-icon-green" aria-hidden="true">{{ article_minutes }}m</span>
-                  <div>
-                    <h3>
-                      <a class="band-link" href="{{ article.public_path }}">{{ article.title }}</a>
-                    </h3>
-                    <p class="latest-meta">
-                      {{ article_published }} · {{ article_minutes }} min read
-                    </p>
-                  </div>
-                </div>
-              </div>
+              {% if article %}
+                {% include "public/_archive_row.html" with row_title=article.title row_url=article.public_path row_date=article.published row_summary=article.description row_credits=article.author_profiles row_class="record-row" only %}
+              {% endif %}
               <p class="band-more">
                 <a class="band-link" href="{% url 'articles' %}">read the blog →</a>
               </p>
