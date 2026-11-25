@@ -1093,6 +1093,42 @@ link from a record's links. A material already on a row is removed by re-sending
 event's other materials: `dtc events update <id> --materials '<JSON array>'`
 (`dtc events get <id>` shows them).
 
+### 14.6 — Reviewed event backfill and duplicate merges (2026-11-25 catch-up)
+
+Production runs on its own database (it is not rebuilt), so event work done in the
+local dataset reaches it only through two reviewed, dry-run-first operator commands
+whose inputs are staged under `~/prod/dtc-data/` (outside this repository) and keyed
+to **production** identities (content UUIDs, guarded row ids):
+
+| | |
+| --- | --- |
+| **Merges** | `scripts/prod/import_event_duplicate_merges.py --pairs-file ~/prod/dtc-data/event-merges-2026-11-25.json` — the nine Luma-discovered duplicates (rows 422–438) folded into their reviewed twins. Each row id is checked against the pair's content UUID before anything is merged; a replay reports `already_merged` |
+| **Backfill** | `scripts/prod/import_event_backfill.py --manifest ~/prod/dtc-data/event-backfill-2026-11-25/manifest.json` — per event, one transaction: the picture (`upload_event_banner`, skipped when the stored bytes have the manifest's SHA-256), then the fields that differ (`update_event`, audited): descriptions, speakers, type, dates, recording URL, event sponsors; and, on every event, materials minus Luma / Eventbrite / `/academy/sessions/` links (`events.content_import.is_retired_registration_url`) |
+| **Staging** | `event-backfill-2026-11-25/` holds `manifest.json`, `pictures/<content-uuid>.png`, the one-off `build_manifest.py` that derived them from the local dataset and the production export, and a README |
+| **Idempotency** | Safe. Equal pictures and fields are left alone; a second `--apply` reports every event unchanged (rehearsed 2026-11-25 on a migrated copy of the pre-edit local dataset: 446 pictures, 243 material clean-ups, 55 descriptions, then 0 on replay) |
+| **Refusals** | Reported per event under `failed` with the event's `completeness_gaps`; the run continues. With the PostgreSQL completeness triggers enabled (`event_registrants` 0007) an event that would still lack a type, speaker or description cannot take its picture — on the 2026-11-25 production export that is 42 events without a description (and draft 470, which has no picture in the manifest) |
+
+Run the merges before the backfill (the backfill names the kept events), after the
+release that carries `event_registrants` 0004–0008 is live:
+
+```bash
+uv run --frozen python scripts/prod/import_event_duplicate_merges.py <target> \
+    --pairs-file ~/prod/dtc-data/event-merges-2026-11-25.json            # dry run
+uv run --frozen python scripts/prod/import_event_duplicate_merges.py <target> \
+    --pairs-file ~/prod/dtc-data/event-merges-2026-11-25.json --apply
+uv run --frozen python scripts/prod/import_event_backfill.py <target> \
+    --manifest ~/prod/dtc-data/event-backfill-2026-11-25/manifest.json \
+    --output .tmp/event-backfill-dry.json                                # dry run
+uv run --frozen python scripts/prod/import_event_backfill.py <target> \
+    --manifest ~/prod/dtc-data/event-backfill-2026-11-25/manifest.json --apply \
+    --output .tmp/event-backfill-apply.json
+```
+
+`<target>` is `--deployment-target website-production --allow-production-write
+website-production` with the five names exported (`production-data-migration.md`).
+The full 2026-11-25 catch-up order — release, merges, backfill, Academy sessions,
+registrants, podcast pictures, content syncs — is in §11, step 7.
+
 ### 15 — Event description bridge
 
 `~/prod/dtc-data/content-staging/event_description_bridge.json`, built by
@@ -1784,6 +1820,28 @@ What genuinely differs, and needs care rather than a separate pipeline:
 
    Local dataset, 2026-11-25: 26 events planned and written, 2,399 rows, 0 skipped,
    203 already completed, the same 6 awaiting identity.
+7. **2026-11-25 local-work catch-up, on production** (production is never rebuilt —
+   these commands carry the day's local data to it; dry run each first):
+   1. Release current `main` (schema `event_registrants` 0004–0008: banner chunks,
+      completeness triggers, `EventSponsor`). Every command below needs it.
+   2. `import_event_duplicate_merges.py --pairs-file
+      ~/prod/dtc-data/event-merges-2026-11-25.json` (§14.6).
+   3. `import_event_backfill.py --manifest
+      ~/prod/dtc-data/event-backfill-2026-11-25/manifest.json` (§14.6).
+   4. `import_academy_sessions.py` — the Hireable With AI series, Zoom links and
+      materials (events half needs no input; `--signups` once the Academy backend
+      export is staged) (§24).
+   5. `import_event_registrants.py --luma-source
+      ~/prod/dtc-data/luma-export-2026-11-25-staged/luma-aggregate-v1 --refresh` (the
+      2026-11-25 Luma pull, 19 events, 4 awaiting identity) and the Eventbrite command
+      above with `aggregate-v2.zip` — production holds no Eventbrite rows yet, so it
+      imports all 229 resolvable events, not only the 26 new ones.
+   6. `import_podcast_episode_pictures.py --reviewed-file
+      ~/prod/dtc-data/episode-pictures-2026-11-25` (§25), after the content sync.
+   7. Content: `gh workflow run content-sync.yml -R DataTalksClub/website` (syncs
+      `dtc-content` and `dtc-main-site`, e.g. the 800x800 founder portrait); `dtc-podwiki`
+      by hand (`sync_content --source dtc-podwiki`, §10.3). Verify each source's
+      `last_synced_commit` is its `origin/main`.
 
 ### The rebuild step table
 
