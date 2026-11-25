@@ -73,6 +73,10 @@ def _record(event: Event) -> dict[str, Any]:
         # type stated" rather than inventing one.
         "type": event_type or "",
         "tags": list(decode_display_tags(event.tags)),
+        # The quiet kind line on the page: the type, then any display tags.
+        "kind_label": " · ".join(
+            part for part in (event_type or "", *decode_display_tags(event.tags)) if part
+        ),
         "starts_at": event.start_datetime.isoformat(),
         "ends_at": event.end_datetime.isoformat() if event.end_datetime is not None else "",
         "season": season,

@@ -260,8 +260,8 @@
                 (owner feedback 2026-11-25).
               {% endcomment %}
               <p class="event-when">
-                {% if event.type or event.tags %}
-                  <span class="when-kind">{% if event.type %}{{ event.type }}{% endif %}{% for tag in event.tags %}{% if event.type or not forloop.first %} · {% endif %}{{ tag }}{% endfor %}</span>
+                {% if event.kind_label %}
+                  <span class="when-kind">{{ event.kind_label }}</span>
                   <span class="when-sep" aria-hidden="true">·</span>
                 {% endif %}
                 <time class="when" datetime="{{ event.starts_at }}">

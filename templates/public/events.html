@@ -264,8 +264,8 @@
                       event cards, where it leads the date line (owner feedback
                       2026-11-25).  Display tags join it as words.
                     {% endcomment %}
-                    {% if event.type or event.tags %}
-                      <span class="when-kind">{% if event.type %}{{ event.type }}{% endif %}{% for tag in event.tags %}{% if event.type or not forloop.first %} · {% endif %}{{ tag }}{% endfor %}</span>
+                    {% if event.kind_label %}
+                      <span class="when-kind">{{ event.kind_label }}</span>
                     {% endif %}
                   </div>
                   <article class="card event-card interactive-card interactive-lift">

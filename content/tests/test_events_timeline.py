@@ -643,9 +643,11 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
             self.assertNotRegex(body, r'class="status-pill status-pill-(open|wait|mint)"')
 
     def test_display_tags_render_on_events_index_and_detail(self) -> None:
+        base = next(iter((*event_groups().upcoming, *event_groups().recent)))
         tagged = {
-            **next(iter((*event_groups().upcoming, *event_groups().recent))),
+            **base,
             "tags": ["Академия"],
+            "kind_label": f"{base['type']} · Академия",
         }
 
         with patch.object(public_views, "event_groups", lambda: EventGroups((tagged,), ())):
