@@ -781,21 +781,22 @@
         font-size: 1.1rem;
       }
 
-      /* The grid's own gap sets the survey link off the tiles. */
-      .about-part .band-more {
-        margin-top: 0;
-      }
-
+      /* Wide, the founder's two quotes sit side by side under the figures, so
+         the band reads as two full-width rows instead of two uneven columns. */
       @media (min-width: 62rem) {
         .about-grid {
-          gap: var(--space-6) var(--space-6);
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+          gap: var(--space-6);
         }
 
-        /* Only one block published: it takes the whole row rather than a column. */
-        .about-grid > :only-child {
-          grid-column: 1 / -1;
+        .home-about .founder-story-quotes {
+          gap: var(--space-6);
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
+
+        .home-about .founder-story-quotes > div {
+          align-content: start;
+        }
+      }
       }
     </style>
   </head>
@@ -848,86 +849,28 @@
         </div>
       </section>
 
-      {% if member_stories %}
-        <section class="band band-cream" aria-labelledby="stories-heading">
-          <div class="shell">
-            <div class="band-head">
-              <div>
-                <h2 id="stories-heading">What people say</h2>
-              </div>
-              <div class="scroller-controls">
-                <button
-                  class="scroller-button interactive-lift"
-                  type="button"
-                  data-scroll="-1"
-                  data-scroll-target="stories-scroller"
-                  aria-label="Scroll member stories left"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path d="M15 5l-7 7 7 7"/>
-                  </svg>
-                </button>
-                <button
-                  class="scroller-button interactive-lift"
-                  type="button"
-                  data-scroll="1"
-                  data-scroll-target="stories-scroller"
-                  aria-label="Scroll member stories right"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path d="M9 5l7 7-7 7"/>
-                  </svg>
-                </button>
-              </div>
+      <section class="band band-cream" aria-labelledby="promises-heading">
+        <div class="shell">
+          <h2 id="promises-heading" class="sr-only">How you’ll learn</h2>
+          <div class="promise-grid">
+            <div class="promise">
+              <span class="promise-mark" aria-hidden="true"></span>
+              <h3>Learn by building</h3>
+              <p>Free courses with hands-on homework, peer review, and a leaderboard.</p>
             </div>
-            <div
-              class="stories-scroller"
-              id="stories-scroller"
-              role="group"
-              aria-label="Member stories"
-              tabindex="0"
-            >
-              {% for story in member_stories %}
-                <figure class="card">
-                  {% if story.role_before and story.role_after %}
-                    <div class="story-transition">
-                      <span class="chip chip-plain">{{ story.role_before }}</span>
-                      <span aria-hidden="true">→</span>
-                      <span class="chip chip-plain chip-green">{{ story.role_after }}</span>
-                    </div>
-                  {% endif %}
-                  <blockquote class="story-quote">“{{ story.quote }}”</blockquote>
-                  <figcaption class="story-person">
-                    <span class="story-identity">
-                      {% if story.portrait_url %}
-                        <img class="avatar" src="{{ story.portrait_url }}" alt="" loading="lazy">
-                      {% else %}
-                        <span class="avatar" aria-hidden="true"></span>
-                      {% endif %}
-                      <span>
-                        <strong>
-                          {% if story.source_url %}
-                            <a href="{{ story.source_url }}" target="_blank" rel="noopener noreferrer">
-                              {{ story.name }}
-                              <span class="sr-only"> (opens in a new tab)</span>
-                            </a>
-                          {% else %}
-                            {{ story.name }}
-                          {% endif %}
-                        </strong>
-                        <span class="story-context">{{ story.attribution }}</span>
-                      </span>
-                    </span>
-                    {% if story.elapsed %}
-                      <span class="story-elapsed">{{ story.elapsed }}</span>
-                    {% endif %}
-                  </figcaption>
-                </figure>
-              {% endfor %}
+            <div class="promise">
+              <span class="promise-mark" aria-hidden="true"></span>
+              <h3>Find your people</h3>
+              <p>Ask questions, share what you’re working on, and talk careers in Slack.</p>
+            </div>
+            <div class="promise">
+              <span class="promise-mark" aria-hidden="true"></span>
+              <h3>Learn from practitioners</h3>
+              <p>Join live talks and Q&amp;A sessions, or explore ideas through our podcast.</p>
             </div>
           </div>
-        </section>
-      {% endif %}
+        </div>
+      </section>
 
       <section class="band band-lavender" id="courses" aria-labelledby="courses-heading">
         <div class="shell">
@@ -1047,71 +990,6 @@
           {% endif %}
         </div>
       </section>
-
-      <section class="band band-cream" aria-labelledby="promises-heading">
-        <div class="shell">
-          <h2 id="promises-heading" class="sr-only">How you’ll learn</h2>
-          <div class="promise-grid">
-            <div class="promise">
-              <span class="promise-mark" aria-hidden="true"></span>
-              <h3>Learn by building</h3>
-              <p>Free courses with hands-on homework, peer review, and a leaderboard.</p>
-            </div>
-            <div class="promise">
-              <span class="promise-mark" aria-hidden="true"></span>
-              <h3>Find your people</h3>
-              <p>Ask questions, share what you’re working on, and talk careers in Slack.</p>
-            </div>
-            <div class="promise">
-              <span class="promise-mark" aria-hidden="true"></span>
-              <h3>Learn from practitioners</h3>
-              <p>Join live talks and Q&amp;A sessions, or explore ideas through our podcast.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {% if tour_content.stats or tour_content.founder_name %}
-        {% comment %}
-          What the community is, answered with the About page's own blocks: its
-          one-line introduction, the survey figures and the founder story.  All
-          three are the same published record that page renders, so the homepage
-          states nothing the About page does not, and with no record published
-          (or no database to read one) the whole band is absent.
-        {% endcomment %}
-        <section class="band band-lavender home-about" aria-labelledby="about-heading">
-          <div class="shell">
-            <div class="band-head">
-              <div>
-                <h2 id="about-heading">What is DataTalks.Club?</h2>
-                {% if tour_content.hero_intro %}
-                  <p>{{ tour_content.hero_intro }}</p>
-                {% endif %}
-              </div>
-            </div>
-            <div class="about-grid">
-              {% if tour_content.stats %}
-                <div class="about-part">
-                  <h3>Who's here</h3>
-                  {% include "core/_community_stats.html" with tour_content=tour_content only %}
-                  <p class="band-more">
-                    <a class="band-link" href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full survey →</a>
-                  </p>
-                </div>
-              {% endif %}
-              {% if tour_content.founder_name %}
-                <div class="about-part">
-                  <h3>How it started, and why it's free</h3>
-                  {% include "core/_founder_story.html" with tour_content=tour_content founder=founder only %}
-                </div>
-              {% endif %}
-            </div>
-            <p class="band-more">
-              <a class="band-link" href="{% url 'about' %}">about DataTalks.Club →</a>
-            </p>
-          </div>
-        </section>
-      {% endif %}
 
       <section class="band band-mint" aria-labelledby="events-heading">
         <div class="shell">
@@ -1235,6 +1113,127 @@
         </div>
       </section>
 
+      {% if tour_content.stats or tour_content.founder_name %}
+        {% comment %}
+          What the community is, answered with the About page's own blocks: its
+          one-line introduction, the survey figures and the founder story.  All
+          three are the same published record that page renders, so the homepage
+          states nothing the About page does not, and with no record published
+          (or no database to read one) the whole band is absent.
+        {% endcomment %}
+        <section class="band band-lavender home-about" aria-labelledby="about-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="about-heading">What is DataTalks.Club?</h2>
+                {% if tour_content.hero_intro %}
+                  <p>{{ tour_content.hero_intro }}</p>
+                {% endif %}
+              </div>
+            </div>
+            <div class="about-grid">
+              {% if tour_content.stats %}
+                <div class="about-part">
+                  <h3>Who's here</h3>
+                  {% include "core/_community_stats.html" with tour_content=tour_content tiles_variant="stat-tiles-row" only %}
+                </div>
+              {% endif %}
+              {% if tour_content.founder_name %}
+                <div class="about-part">
+                  <h3>How it started, and why it's free</h3>
+                  {% include "core/_founder_story.html" with tour_content=tour_content founder=founder only %}
+                </div>
+              {% endif %}
+            </div>
+            <p class="band-more">
+              <a class="band-link" href="{% url 'about' %}">about DataTalks.Club →</a>
+              <a class="band-link" href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full survey →</a>
+            </p>
+          </div>
+        </section>
+      {% endif %}
+
+      {% if member_stories %}
+        <section class="band band-cream" aria-labelledby="stories-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="stories-heading">What people say</h2>
+              </div>
+              <div class="scroller-controls">
+                <button
+                  class="scroller-button interactive-lift"
+                  type="button"
+                  data-scroll="-1"
+                  data-scroll-target="stories-scroller"
+                  aria-label="Scroll member stories left"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M15 5l-7 7 7 7"/>
+                  </svg>
+                </button>
+                <button
+                  class="scroller-button interactive-lift"
+                  type="button"
+                  data-scroll="1"
+                  data-scroll-target="stories-scroller"
+                  aria-label="Scroll member stories right"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M9 5l7 7-7 7"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div
+              class="stories-scroller"
+              id="stories-scroller"
+              role="group"
+              aria-label="Member stories"
+              tabindex="0"
+            >
+              {% for story in member_stories %}
+                <figure class="card">
+                  {% if story.role_before and story.role_after %}
+                    <div class="story-transition">
+                      <span class="chip chip-plain">{{ story.role_before }}</span>
+                      <span aria-hidden="true">→</span>
+                      <span class="chip chip-plain chip-green">{{ story.role_after }}</span>
+                    </div>
+                  {% endif %}
+                  <blockquote class="story-quote">“{{ story.quote }}”</blockquote>
+                  <figcaption class="story-person">
+                    <span class="story-identity">
+                      {% if story.portrait_url %}
+                        <img class="avatar" src="{{ story.portrait_url }}" alt="" loading="lazy">
+                      {% else %}
+                        <span class="avatar" aria-hidden="true"></span>
+                      {% endif %}
+                      <span>
+                        <strong>
+                          {% if story.source_url %}
+                            <a href="{{ story.source_url }}" target="_blank" rel="noopener noreferrer">
+                              {{ story.name }}
+                              <span class="sr-only"> (opens in a new tab)</span>
+                            </a>
+                          {% else %}
+                            {{ story.name }}
+                          {% endif %}
+                        </strong>
+                        <span class="story-context">{{ story.attribution }}</span>
+                      </span>
+                    </span>
+                    {% if story.elapsed %}
+                      <span class="story-elapsed">{{ story.elapsed }}</span>
+                    {% endif %}
+                  </figcaption>
+                </figure>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
+
       <section class="band band-lavender" aria-labelledby="wiki-heading">
         <div class="shell">
           <div class="band-head">
@@ -1340,8 +1339,6 @@
           </p>
         </div>
       </section>
-
-
 
       <section class="band band-cream" id="academy-comparison" aria-labelledby="academy-comparison-heading" data-academy-comparison>
         <div class="shell">
@@ -1455,6 +1452,18 @@
           </div>
         </div>
       </section>
+
+
+
+
+
+
+
+
+
+
+
+
 
       <section class="band band-ink" aria-labelledby="closing-heading">
         <div class="shell closing">
