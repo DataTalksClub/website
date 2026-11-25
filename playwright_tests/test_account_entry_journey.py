@@ -1,16 +1,16 @@
 """The course Apply -> account step under production's sign-in configuration.
 
-The owner-reported dead end: a course page's Apply led to "Create account",
-which led to "Sign-up is closed", whose "Sign in" led to "Sign-in is
-temporarily unavailable".  Production closes email signup on purpose, so the
-account step must offer the configured Google/GitHub/Slack sign-in inline
-(the first sign-in creates the account) and, with none configured, an honest
-notice with the contact address.  Providers are real ``SocialApp`` rows with
-test client ids; the provider sign-in is started but its redirect is never
-followed.
+Email + password accounts are open to everyone, so the registration gate offers
+"Create account" and "Sign in" (each keeping the way back to the campaign), the
+signup page offers the configured Google/GitHub/Slack sign-in above the email
+form, and with no provider configured the email form is the way in.  Providers
+are real ``SocialApp`` rows with test client ids; the provider sign-in is started
+but its redirect is never followed.
 """
 
 from __future__ import annotations
+
+import re
 
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -98,24 +98,33 @@ def test_apply_reaches_provider_buttons_that_start_sign_in(
     expect(
         panel.get_by_role("heading", name="Create your free account to register")
     ).to_be_visible()
-    expect(panel).to_contain_text("Create your account with Google, GitHub or Slack.")
+    # Email + password accounts are open to everyone: the gate offers the signup
+    # page and the sign-in page, each keeping the way back to the campaign.
+    expect(panel.get_by_role("link", name="Sign in")).to_have_attribute(
+        "href", f"/accounts/login/?next={campaign_path}"
+    )
+    expect(panel.get_by_role("button", name="Continue with GitHub")).to_have_count(0)
+    _assert_no_overflow(page)
+    _shot(page, "register-gate", viewport_name)
+
+    panel.get_by_role("link", name="Create account").click()
+    expect(page.get_by_role("heading", name="Create your account", exact=True)).to_be_visible()
+    auth = page.locator(".auth-panel")
     for provider, name in ALL_PROVIDERS:
-        button = panel.get_by_role("button", name=f"Continue with {name}")
+        button = auth.get_by_role("button", name=f"Continue with {name}")
         expect(button).to_be_visible()
         action = button.locator("xpath=ancestor::form").get_attribute("action")
         assert action is not None
         assert urlsplit(action).path == f"/accounts/{provider}/login/"
         assert parse_qs(urlsplit(action).query)["next"] == [campaign_path]
-    expect(panel.get_by_role("link", name="Create account")).to_have_count(0)
-    expect(panel.locator('a[href^="/accounts/signup/"]')).to_have_count(0)
     _assert_no_overflow(page)
-    _shot(page, "register-providers", viewport_name)
+    _shot(page, "signup-providers", viewport_name)
 
     # The button really starts the provider's sign-in.  The form is submitted
     # with the browser's own cookies and CSRF token, but redirects are not
     # followed, so the provider is never contacted: the redirect itself is
     # the evidence (a cross-origin navigation redirect is not routable).
-    form = panel.locator("form", has=page.get_by_role("button", name="Continue with GitHub"))
+    form = auth.locator("form", has=page.get_by_role("button", name="Continue with GitHub"))
     token = form.locator('input[name="csrfmiddlewaretoken"]').get_attribute("value")
     action = form.get_attribute("action")
     assert token and action
@@ -130,22 +139,9 @@ def test_apply_reaches_provider_buttons_that_start_sign_in(
     assert (location.hostname, location.path) == ("github.com", "/login/oauth/authorize")
     assert parse_qs(location.query)["client_id"] == ["test-github-client-id"]
 
-    # The masthead's "Create free account" leads to the providers too, never a dead
-    # "closed" page, and keeps the way back to the campaign.
-    page.get_by_role("link", name="Create free account").click()
-    expect(page.get_by_role("heading", name="Create your account", exact=True)).to_be_visible()
-    expect(page.get_by_text("New accounts are created by signing in with")).to_be_visible()
-    expect(page.get_by_role("heading", name="Choose how to sign in")).to_be_visible()
-    google = page.get_by_role("button", name="Continue with Google")
-    expect(google).to_be_visible()
-    google_action = google.locator("xpath=ancestor::form").get_attribute("action")
-    assert google_action is not None
-    assert parse_qs(urlsplit(google_action).query)["next"] == [campaign_path]
-    _assert_no_overflow(page)
-    _shot(page, "signup-providers", viewport_name)
-
     page.goto(f"{live_server.url}/accounts/login/?next={campaign_path}")
-    expect(page.get_by_text("Continuing with Google, GitHub or Slack creates")).to_be_visible()
+    expect(page.get_by_role("heading", name="Sign In", exact=True)).to_be_visible()
+    expect(page.locator(".auth-panel").get_by_role("button", name="Continue with Google")).to_be_visible()
     _shot(page, "login-providers", viewport_name)
 
 
@@ -162,21 +158,26 @@ def test_without_providers_every_step_is_honest_and_offers_contact(
     page.goto(f"{live_server.url}{campaign_path}")
     _dismiss_analytics(page)
     panel = page.locator(".registration-panel")
-    expect(panel.get_by_role("heading", name="Registration needs an account")).to_be_visible()
-    expect(panel.get_by_text("Signing in isn't available right now")).to_be_visible()
-    expect(panel.get_by_role("link", name="alexey@datatalks.club")).to_have_attribute(
-        "href", "mailto:alexey@datatalks.club"
-    )
-    expect(panel.locator('a[href^="/accounts/signup/"]')).to_have_count(0)
+    expect(
+        panel.get_by_role("heading", name="Create your free account to register")
+    ).to_be_visible()
+    expect(panel.get_by_role("link", name="Create account")).to_be_visible()
     _assert_no_overflow(page)
     _shot(page, "register-no-providers", viewport_name)
 
-    for path, name in (("/accounts/signup/", "signup"), ("/accounts/login/", "login")):
-        page.goto(f"{live_server.url}{path}")
-        expect(page.get_by_text("Signing in isn't available right now")).to_be_visible()
-        expect(page.get_by_text("temporarily unavailable")).to_have_count(0)
-        expect(
-            page.locator("main").get_by_role("link", name="alexey@datatalks.club")
-        ).to_be_visible()
-        _assert_no_overflow(page)
-        _shot(page, f"{name}-no-providers", viewport_name)
+    # With no social provider configured the email + password form is the way
+    # in: no provider button, no "unavailable" notice.
+    page.goto(f"{live_server.url}/accounts/signup/")
+    expect(page.get_by_role("heading", name="Create your account", exact=True)).to_be_visible()
+    expect(page.get_by_role("button", name="Create account")).to_be_visible()
+    expect(page.get_by_role("button", name=re.compile("^Continue with"))).to_have_count(0)
+    expect(page.get_by_text("Signing in isn't available right now")).to_have_count(0)
+    _assert_no_overflow(page)
+    _shot(page, "signup-no-providers", viewport_name)
+
+    page.goto(f"{live_server.url}/accounts/login/")
+    expect(page.get_by_role("heading", name="Sign In", exact=True)).to_be_visible()
+    expect(page.get_by_role("textbox", name="Email")).to_be_visible()
+    expect(page.get_by_text("Signing in isn't available right now")).to_have_count(0)
+    _assert_no_overflow(page)
+    _shot(page, "login-no-providers", viewport_name)
