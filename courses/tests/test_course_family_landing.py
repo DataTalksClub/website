@@ -86,30 +86,34 @@ class CourseFamilyLandingTests(TestCase):
 
         self.assertContains(response, self.family.prerequisites)
         self.assertContains(response, self.family.outcome)
-        # Owner order (2026-11): what it is, when and what it costs, what
-        # you learn and build, who it is for, the editions, what people
-        # built, the questions, and the closing action.
+        # 11-block public landing order (site feedback 3.2): hero, who it's
+        # for, what you'll build, how the course works (two cards), syllabus
+        # overview, final project & what people built, stories, FAQ, closing
+        # CTA.
+        self.assertLess(
+            body.index('id="audience-heading"'),
+            body.index('id="transformation-heading"'),
+        )
+        self.assertLess(
+            body.index('id="transformation-heading"'),
+            body.index('id="register-heading"'),
+        )
         self.assertLess(
             body.index('id="register-heading"'),
-            body.index('id="transformation-heading"'),
+            body.index('id="syllabus-heading"'),
         )
         self.assertLess(
-            body.index('id="transformation-heading"'),
-            body.index('id="audience-heading"'),
-        )
-        self.assertLess(
-            body.index('id="audience-heading"'),
-            body.index(self.family.prerequisites),
-        )
-        self.assertLess(
-            body.index('id="audience-heading"'),
+            body.index('id="syllabus-heading"'),
             body.index("Explore all learner projects"),
         )
+        self.assertContains(response, 'class="family-join has-two"')
+        self.assertContains(response, 'class="family-option-list"', count=2)
         self.assertContains(
             response,
             f"{reverse('all_projects')}?course={self.family.slug}",
         )
         self.assertContains(response, reverse("registration_campaign", args=[self.campaign.slug]))
+        self.assertNotContains(response, 'id="editions-heading"')
         self.assertNotContains(response, "What people build")
         self.assertNotContains(response, 'class="family-built-grid"')
 
@@ -306,15 +310,20 @@ class CourseFamilyLandingTests(TestCase):
             )
         ]
         self.assertIn("This course is educational", overview_section)
-        # In the body, the first chapter after the hero: what the course is
-        # comes before when it runs and what it teaches.
+        # In the 11-block landing order, About sits after the hero and the
+        # three-stage progression, before the two-card "How the course works"
+        # section.
         self.assertLess(
             body.index('class="family-hero-inner"'),
             body.index('id="about-heading"'),
         )
         self.assertLess(
-            body.index('id="about-heading"'),
             body.index('id="transformation-heading"'),
+            body.index('id="about-heading"'),
+        )
+        self.assertLess(
+            body.index('id="about-heading"'),
+            body.index('id="register-heading"'),
         )
 
     def test_whitespace_prerequisites_do_not_leave_an_empty_label(self):
@@ -434,7 +443,7 @@ class CourseFamilyLandingTests(TestCase):
         self.assertNotContains(response, "Register interest")
         self.assertNotContains(response, "Self-paced · start now")
 
-    def test_legacy_homework_syllabus_has_summaries_and_real_destinations(self):
+    def test_legacy_homework_syllabus_shows_overview_without_cohort_lms_links(self):
         family = Course.objects.create(
             slug="legacy-syllabus",
             title="Legacy Syllabus",
@@ -451,14 +460,38 @@ class CourseFamilyLandingTests(TestCase):
 
         response = self.client.get(reverse("course_family", args=[family.slug]))
 
+        self.assertContains(response, "Inspect the data")
         self.assertContains(response, homework.description)
-        self.assertContains(
+        # Public landing syllabus is an overview without cohort LMS links or deadlines.
+        self.assertNotContains(
             response,
             reverse(
                 "cohort_homework",
                 args=[family.slug, cohort.identifier, homework.slug],
             ),
         )
+
+    def test_signed_in_enrolled_learner_sees_continue_cta_and_cohort_editions(self):
+        user = User.objects.create_user(username="enrolled-landing-learner")
+        Enrollment.objects.create(student=user, course=self.cohort)
+        self.client.force_login(user)
+
+        response = self.client.get(self.url)
+
+        cohort_url = reverse("cohort", args=[self.family.slug, self.cohort.identifier])
+        self.assertContains(response, f"Continue in the {self.cohort.identifier} cohort")
+        self.assertContains(response, f'href="{cohort_url}"')
+        self.assertContains(response, 'id="editions-heading"')
+
+    def test_catalog_tools_render_in_tools_chapter_when_present(self):
+        self.family.catalog_tools = ["Docker", "dbt", "Spark"]
+        self.family.save(update_fields=["catalog_tools"])
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, 'id="tools-heading"')
+        for tool in ("Docker", "dbt", "Spark"):
+            self.assertContains(response, tool)
 
     def test_past_cohort_end_date_does_not_promise_a_new_certificate(self):
         self.cohort.end_date = timezone.localdate() - timedelta(days=1)
@@ -691,7 +724,10 @@ class CourseFamilySyllabusMergeTests(TestCase):
             section.index("Midterm project"),
             section.index("Homework 3"),
         )
-        self.assertIn(
+        # The syllabus overview keeps the chronological order without leaking
+        # cohort LMS links or attempt deadlines onto the public landing.
+        self.assertNotIn("submit by", section)
+        self.assertNotIn(
             reverse(
                 "cohort_project",
                 kwargs={
@@ -702,7 +738,7 @@ class CourseFamilySyllabusMergeTests(TestCase):
             ),
             section,
         )
-        self.assertIn(
+        self.assertNotIn(
             reverse(
                 "cohort_project",
                 kwargs={
@@ -975,10 +1011,10 @@ class CourseFamilyFaqPreviewTests(TestCase):
         self.assertContains(response, 'class="family-chapter family-faq"')
         self.assertNotContains(response, 'class="panel panel-lavender panel-outlined family-faq"')
         self.assertContains(response, 'id="faq-heading"')
-        # Cohort editions belong to the LMS layer and are hidden from anonymous
-        # visitors on the public landing page.
-        self.assertNotContains(response, 'id="editions-heading"')
-        # Last content section: after "See what people have built".
+        # Last public content section: after "See what people have built",
+        # before the closing CTA (cohort editions are shown only to signed-in
+        # users).
+        self.assertNotIn('id="editions-heading"', body)
         self.assertLess(
             body.index('id="built-heading"'),
             body.index('id="faq-heading"'),

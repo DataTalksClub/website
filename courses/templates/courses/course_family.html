@@ -160,21 +160,33 @@
         line-height: 1.65;
       }
 
-      /* --- join: the cohort slab beside the start-now card --------------- */
+      /* --- join: two option cards side by side (cohort vs self-paced) ---- */
 
       .family-join {
-        align-items: start;
+        align-items: stretch;
         display: grid;
         gap: var(--space-5);
       }
 
-      .family-register-card .chip {
+      .family-register-card .chip,
+      .family-materials-card .chip {
+        align-self: flex-start;
         justify-self: start;
       }
 
       .family-register-card h3 {
-        font-size: clamp(1.6rem, 3.2vw, 2.35rem);
-        line-height: 1.1;
+        font-size: clamp(1.45rem, 2.8vw, 1.95rem);
+        line-height: 1.15;
+      }
+
+      .family-option-list {
+        color: var(--body-text);
+        display: grid;
+        font-size: 0.95rem;
+        gap: var(--space-2);
+        line-height: 1.5;
+        margin: var(--space-1) 0 0;
+        padding-left: 1.2rem;
       }
 
       .family-spec-rows {
@@ -207,17 +219,21 @@
       }
 
       .family-materials-card {
+        display: flex;
+        flex-direction: column;
         gap: var(--space-3);
-        padding: var(--space-5);
+        padding: var(--space-6);
       }
 
       .family-materials-card h3 {
-        font-size: 1.15rem;
+        font-size: clamp(1.35rem, 2.4vw, 1.65rem);
+        line-height: 1.2;
       }
 
       .family-card-cta {
         align-self: flex-start;
         margin-top: auto;
+        padding-top: var(--space-2);
       }
 
       /* --- journey: the homepage's own stage cards ----------------------- */
@@ -475,6 +491,15 @@
         z-index: 3;
       }
 
+      .family-tools-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
       /* --- FAQ ------------------------------------------------------------- */
 
       .family-faq-list {
@@ -504,6 +529,13 @@
         justify-self: start;
       }
 
+      .family-close-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+      }
+
       /* --- wide ------------------------------------------------------------ */
 
       @media (min-width: 48rem) {
@@ -516,25 +548,21 @@
           max-width: 12rem;
         }
 
-        /* The start-on-your-own route reads as one row under the cohort
-           slab: its words, then its action on the right -- no card standing
-           half empty beside a taller one. */
-        .family-join.has-two .family-materials-card {
-          align-items: center;
-          display: grid;
-          gap: var(--space-2) var(--space-6);
-          grid-template-columns: minmax(0, 1fr) auto;
+        /* Two side-by-side option cards: join a live cohort vs learn
+           self-paced now, equal height with clear comparison lists. */
+        .family-join.has-two {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
-        .family-join.has-two .family-materials-card > :not(.family-card-cta) {
-          grid-column: 1;
+        .family-register-card .featured-main {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
         }
 
-        .family-join.has-two .family-materials-card > .family-card-cta {
-          align-self: center;
-          grid-column: 2;
-          grid-row: 1 / span 2;
-          margin: 0;
+        .family-register-card .family-card-actions {
+          margin-top: auto;
+          padding-top: var(--space-2);
         }
 
         .family-close-panel {
@@ -662,6 +690,16 @@
             {% endcomment %}
             <div class="family-hero-actions">
               {% include "courses/_family_primary_action.html" %}
+              {% if not enrolled_cohort and family_registration %}
+                {% if self_paced_cohort %}
+                  {% url 'cohort' course_family.slug self_paced_cohort.identifier as hero_self_paced_url %}
+                  {% include "core/_button.html" with href=hero_self_paced_url label="Start self-paced now" variant="secondary" %}
+                {% elif materials_on_platform %}
+                  {% include "core/_button.html" with href=materials_url label="Start module 1" variant="secondary" %}
+                {% elif materials_url %}
+                  {% include "core/_button.html" with href=materials_url label="Open on GitHub" variant="secondary" target="_blank" rel="noopener noreferrer" %}
+                {% endif %}
+              {% endif %}
             </div>
           </div>
           <div class="family-hero-art family-course-art">
@@ -690,107 +728,40 @@
 
 {% block page_content %}
       {% comment %}
-        The landing reads in one order for every family -- what it is, how to
-        join, what you learn and build, who it is for, the editions, what
-        people built, the questions, and the closing action.  Every section is
-        the same chapter at the content width: a dashed seam above it and a
-        real .band-head.  A section the data cannot fill is not drawn.
-      {% endcomment %}
-      {% if family_overview or family_outcome_stats %}
-        <section class="family-chapter family-about" aria-labelledby="about-heading">
-          <div class="band-head">
-            <div>
-              <h2 id="about-heading">About the course</h2>
-            </div>
-          </div>
-          <div class="family-about-grid">
-            {% if family_overview %}
-              <div class="family-overview prose">{{ family_overview|linebreaks }}</div>
-            {% endif %}
-            {% if family_outcome_stats %}
-              <div class="family-outcomes">
-                <h3 id="outcomes-heading" class="sr-only">This course family so far</h3>
-                <div class="stat-tiles stat-tiles-row">
-                  {% for stat in family_outcome_stats %}
-                    <div class="stat-tile">
-                      <strong>{{ stat.value }}</strong>
-                      <span>{{ stat.label }}</span>
-                    </div>
-                  {% endfor %}
-                </div>
-              </div>
-            {% endif %}
-          </div>
-        </section>
-      {% endif %}
+        Public course landing (site feedback 3.2, 11-block structure):
+          1. Hero (above) — title, outcome, key facts (free, dates, pace), primary + secondary action
+          2. Who it's for — starting point & prerequisites
+          3. What you'll build & about the course — 3-stage progression, overview & outcome stats
+          4. How the course works — two side-by-side option cards (live cohort vs self-paced now)
+          5. Syllabus (overview) — modules & projects without cohort deadlines or LMS clutter
+          6. Final project & what people built — summary, passed learner projects, certificate preview
+          (7. Tools & 8. Instructors are drawn only when database-backed fields exist)
+          9. Graduate stories — reviews from people who finished this course
+         10. FAQ — single-column accordion
+         11. Final CTA — repeats both options (join cohort / start self-paced now)
 
-      {% comment %}
-        Joining is its own chapter only when there is a cohort to join: the
-        cohort on the featured slab, the self-paced route beside it.  A family
-        with nothing but its materials has no second choice to offer, so the
-        hero's own action is the whole of it.
+        Cohort editions belong to the LMS layer and are shown only to signed-in
+        learners so guests meet a clean landing page without mixed LMS controls.
       {% endcomment %}
-      {% if family_registration %}
-        <section class="family-chapter family-register" aria-labelledby="register-heading">
+
+      {% if family_starting_point or family_prerequisites %}
+        <section class="family-chapter family-audience" aria-labelledby="audience-heading">
           <div class="band-head">
             <div>
-              <h2 id="register-heading">Join the course</h2>
+              <h2 id="audience-heading">Who it's for</h2>
             </div>
           </div>
-          <div class="family-join{% if self_paced_cohort or materials_url %} has-two{% endif %}">
-            <article class="featured family-register-card family-register-cohort{% if registration_wall_blocked %} has-approval-notice{% endif %}">
-              <div class="featured-main">
-                {% if registration_cohort %}
-                  <span class="chip chip-ink">Cohort {{ registration_cohort.identifier }}</span>
-                  {% if registration_cohort.start_date %}
-                    <h3>Starts {{ registration_cohort.start_date|date:"M j, Y" }}</h3>
-                  {% else %}
-                    <h3>Registration is open</h3>
-                  {% endif %}
-                  <p class="featured-subline">Follow this edition's schedule and assignments with the cohort.</p>
-                {% else %}
-                  <span class="chip chip-plain">Next cohort</span>
-                  <h3>Hear about the next cohort</h3>
-                  <p class="featured-subline">Leave your interest to hear when the next edition is announced.</p>
-                {% endif %}
-                {% if registration_specs %}
-                  <dl class="family-spec-rows">
-                    {% for spec in registration_specs %}
-                      <div class="family-spec-row">
-                        <dt class="mono-label">{{ spec.label }}</dt>
-                        <dd>{{ spec.value }}</dd>
-                      </div>
-                    {% endfor %}
-                  </dl>
-                {% endif %}
-                {% url 'registration_campaign' family_registration.campaign.slug as family_registration_url %}
-                <div class="featured-actions family-card-actions">
-                  {% if registration_wall_blocked %}
-                    {% include "courses/_registration_approval.html" with registration_campaign=family_registration.campaign %}
-                  {% elif registration_cohort %}
-                    {% include "core/_button.html" with href=family_registration_url label="Register for the "|add:registration_cohort.identifier|add:" cohort" variant="primary" %}
-                  {% else %}
-                    {% include "core/_button.html" with href=family_registration_url label="Register interest" variant="primary" %}
-                  {% endif %}
-                </div>
-              </div>
-            </article>
-            {% if self_paced_cohort or materials_url %}
-              <article class="card family-materials-card">
-                {% if self_paced_cohort %}
-                  <h3>Or take the self-paced route</h3>
-                  <p>Read and practice at your own pace. This route has no deadlines, grading, or certificate.</p>
-                  {% url 'cohort' course_family.slug self_paced_cohort.identifier as self_paced_url %}
-                  {% include "core/_button.html" with href=self_paced_url label="Start the self-paced course" variant="secondary" classes="family-card-cta" %}
-                {% elif materials_on_platform %}
-                  <h3>Or start on your own today</h3>
-                  <p>Every module and lesson is open on the platform.</p>
-                  {% include "core/_button.html" with href=materials_url label="Start module 1" variant="secondary" classes="family-card-cta" %}
-                {% else %}
-                  <h3>Or start on your own today</h3>
-                  <p>The materials are open in the course repository.</p>
-                  {% include "core/_button.html" with href=materials_url label="Open the course on GitHub" variant="secondary" classes="family-card-cta" target="_blank" rel="noopener noreferrer" %}
-                {% endif %}
+          <div class="card-grid{% if family_starting_point and family_prerequisites %} card-grid-2{% endif %}">
+            {% if family_starting_point %}
+              <article class="card family-starting-point">
+                <h3>Your starting point</h3>
+                <p>{{ family_starting_point }}</p>
+              </article>
+            {% endif %}
+            {% if family_prerequisites %}
+              <article class="card family-starting-point">
+                <h3>Good fit if</h3>
+                <p>{{ family_prerequisites }}</p>
               </article>
             {% endif %}
           </div>
@@ -819,19 +790,130 @@
         </section>
       {% endif %}
 
+      {% if family_overview or family_outcome_stats %}
+        <section class="family-chapter family-about" aria-labelledby="about-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="about-heading">About the course</h2>
+            </div>
+          </div>
+          <div class="family-about-grid">
+            {% if family_overview %}
+              <div class="family-overview prose">{{ family_overview|linebreaks }}</div>
+            {% endif %}
+            {% if family_outcome_stats %}
+              <div class="family-outcomes">
+                <h3 id="outcomes-heading" class="sr-only">This course family so far</h3>
+                <div class="stat-tiles stat-tiles-row">
+                  {% for stat in family_outcome_stats %}
+                    <div class="stat-tile">
+                      <strong>{{ stat.value }}</strong>
+                      <span>{{ stat.label }}</span>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if family_registration %}
+        <section class="family-chapter family-register" aria-labelledby="register-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="register-heading">How the course works</h2>
+              <p>Two free ways to take this course — join a live cohort or start on your own today.</p>
+            </div>
+          </div>
+          <div class="family-join{% if self_paced_cohort or materials_url %} has-two{% endif %}">
+            <article class="featured family-register-card family-register-cohort{% if registration_wall_blocked %} has-approval-notice{% endif %}">
+              <div class="featured-main">
+                {% if registration_cohort %}
+                  <span class="chip chip-ink">Cohort {{ registration_cohort.identifier }}</span>
+                  {% if registration_cohort.start_date %}
+                    <h3>Join the cohort · starts {{ registration_cohort.start_date|date:"M j, Y" }}</h3>
+                  {% else %}
+                    <h3>Join the live cohort</h3>
+                  {% endif %}
+                  <p class="featured-subline">Learn together on a weekly schedule with graded homework, peer review, and a certificate.</p>
+                {% else %}
+                  <span class="chip chip-plain">Next cohort</span>
+                  <h3>Hear about the next cohort</h3>
+                  <p class="featured-subline">Leave your interest and we will let you know when the next live cohort opens.</p>
+                {% endif %}
+                <ul class="family-option-list">
+                  <li>Weekly schedule, deadlines, and cohort leaderboard</li>
+                  <li>Graded homework and a peer-reviewed final project</li>
+                  <li>Certificate of completion when you pass the project</li>
+                  <li>Dedicated cohort Slack channel and community support</li>
+                </ul>
+                {% if registration_specs %}
+                  <dl class="family-spec-rows">
+                    {% for spec in registration_specs %}
+                      <div class="family-spec-row">
+                        <dt class="mono-label">{{ spec.label }}</dt>
+                        <dd>{{ spec.value }}</dd>
+                      </div>
+                    {% endfor %}
+                  </dl>
+                {% endif %}
+                {% url 'registration_campaign' family_registration.campaign.slug as family_registration_url %}
+                <div class="featured-actions family-card-actions">
+                  {% if registration_wall_blocked %}
+                    {% include "courses/_registration_approval.html" with registration_campaign=family_registration.campaign %}
+                  {% elif registration_cohort %}
+                    {% include "core/_button.html" with href=family_registration_url label="Register for the "|add:registration_cohort.identifier|add:" cohort" variant="primary" %}
+                  {% else %}
+                    {% include "core/_button.html" with href=family_registration_url label="Register interest" variant="primary" %}
+                  {% endif %}
+                </div>
+              </div>
+            </article>
+            {% if self_paced_cohort or materials_url %}
+              <article class="card family-materials-card">
+                <span class="chip chip-plain">Self-paced</span>
+                {% if self_paced_cohort %}
+                  <h3>Learn at your own pace now</h3>
+                  <p>Start immediately with all course materials open — no deadlines and no waiting for the next cohort.</p>
+                {% elif materials_on_platform %}
+                  <h3>Learn at your own pace now</h3>
+                  <p>Every module, video, and lesson is open on the platform right now — no account needed.</p>
+                {% else %}
+                  <h3>Learn at your own pace now</h3>
+                  <p>Every video, module, and homework is open in the course repository right now.</p>
+                {% endif %}
+                <ul class="family-option-list">
+                  <li>All videos and materials open now, completely free</li>
+                  <li>Study on your own schedule with no deadlines</li>
+                  <li>Build the same hands-on projects for your portfolio</li>
+                  <li>No grading, peer review, or certificate</li>
+                </ul>
+                {% if self_paced_cohort %}
+                  {% url 'cohort' course_family.slug self_paced_cohort.identifier as self_paced_url %}
+                  {% include "core/_button.html" with href=self_paced_url label="Start the self-paced course" variant="secondary" classes="family-card-cta" %}
+                {% elif materials_on_platform %}
+                  {% include "core/_button.html" with href=materials_url label="Start module 1" variant="secondary" classes="family-card-cta" %}
+                {% else %}
+                  {% include "core/_button.html" with href=materials_url label="Open the course on GitHub" variant="secondary" classes="family-card-cta" target="_blank" rel="noopener noreferrer" %}
+                {% endif %}
+              </article>
+            {% endif %}
+          </div>
+        </section>
+      {% endif %}
+
       {% comment %}
-        The syllabus, read from the family's shared curriculum -- or, for a
-        course whose repository never imported one, from the front cohort's
-        homework list.  The front edition's real projects sit in the same list
-        at their chronological slot, drawn by the same row: the attempts of one
-        project are one row (courses.course_page_content
-        .merge_syllabus_rows_with_projects) listing each attempt's deadlines.
+        Syllabus overview: clean module & project summary for the public
+        landing, without cohort deadlines, attempt dates, or LMS submission
+        links (those live on the cohort page).
       {% endcomment %}
       {% if family_syllabus_rows %}
         <section class="family-chapter family-syllabus" aria-labelledby="syllabus-heading">
           <div class="band-head family-syllabus-intro">
             <div>
               <h2 id="syllabus-heading">Syllabus</h2>
+              <p>An overview of what each module covers and what you will build.</p>
             </div>
           </div>
           <ol class="family-syllabus-list" role="list">
@@ -843,41 +925,9 @@
                   <span class="family-syllabus-index" aria-hidden="true">{{ row.index }}</span>
                 {% endif %}
                 <div class="family-syllabus-body">
-                  <h3>
-                    {% if row.url %}
-                      <a href="{{ row.url }}">{{ row.title }}</a>
-                    {% else %}
-                      {{ row.title }}
-                    {% endif %}
-                  </h3>
+                  <h3>{{ row.title }}</h3>
                   {% if row.summary %}
                     <p>{{ row.summary }}</p>
-                  {% endif %}
-                  {% if row.attempts %}
-                    <ul class="family-attempts" role="list">
-                      {% for attempt in row.attempts %}
-                        <li class="family-attempt">
-                          {% if row.attempts|length > 1 %}
-                            {% if attempt.url %}
-                              <a class="family-attempt-title" href="{{ attempt.url }}">{{ attempt.title }}</a>
-                            {% else %}
-                              <span class="family-attempt-title">{{ attempt.title }}</span>
-                            {% endif %}
-                          {% endif %}
-                          <span class="mono-note family-attempt-dates">
-                            {% if attempt.submission_due %}
-                              <span class="family-attempt-date">submit by {{ attempt.submission_due|date:"M j, Y" }}</span>
-                            {% endif %}
-                            {% if attempt.submission_due and attempt.peer_review_due %}
-                              ·
-                            {% endif %}
-                            {% if attempt.peer_review_due %}
-                              <span class="family-attempt-date">peer review by {{ attempt.peer_review_due|date:"M j, Y" }}</span>
-                            {% endif %}
-                          </span>
-                        </li>
-                      {% endfor %}
-                    </ul>
                   {% endif %}
                   {% if row.brief_url %}
                     <a class="band-link family-brief-link" href="{{ row.brief_url }}" target="_blank" rel="noopener noreferrer">
@@ -889,6 +939,59 @@
               </li>
             {% endfor %}
           </ol>
+        </section>
+      {% endif %}
+
+      {% if has_learner_projects or family_project_summary or family_project_brief and not syllabus_has_brief %}
+        <section class="family-chapter family-proof-section" aria-labelledby="built-heading">
+          <div class="band-head">
+            <div>
+              {% if has_learner_projects %}
+                <h2 id="built-heading">See what people have built</h2>
+              {% else %}
+                <h2 id="built-heading">Your final project</h2>
+              {% endif %}
+              {% if family_project_summary %}
+                <p>{{ family_project_summary }}</p>
+              {% endif %}
+              {% if family_submissions_fact %}
+                <p>{{ family_submissions_fact }} submitted by learners so far.</p>
+              {% endif %}
+            </div>
+          </div>
+          {% if family_project_brief and not syllabus_has_brief %}
+            <div class="family-proof">
+              {% include "core/_button.html" with href=family_project_brief.project.instructions_url label="Read the project brief" variant="secondary" target="_blank" rel="noopener noreferrer" %}
+            </div>
+          {% endif %}
+          {% if family_gallery_submissions %}
+            <div class="card-grid card-grid-2 family-proof-gallery">
+              {% for submission in family_gallery_submissions %}
+                <article class="card family-proof-card stretched-card-link interactive-card interactive-lift">
+                  <p class="mono-label mono-label-indigo">{{ submission.cohort.identifier }} cohort</p>
+                  <div class="family-proof-repository">
+                    {% if submission.repository_url %}
+                      <a
+                        href="{{ submission.repository_url }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >{{ submission.repository_label }}</a>
+                    {% else %}
+                      {{ submission.repository_label }}
+                    {% endif %}
+                  </div>
+                  <p class="family-proof-byline">
+                    by
+                    <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=course_family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">{{ submission.enrollment.display_name }}</a>
+                  </p>
+                </article>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if has_learner_projects %}
+            {% family_projects_url course_family as family_projects_url %}
+            <a class="band-link family-proof-more" href="{{ family_projects_url }}">Explore all learner projects →</a>
+          {% endif %}
         </section>
       {% endif %}
 
@@ -904,63 +1007,18 @@
         </section>
       {% endif %}
 
-      {% if family_starting_point or family_prerequisites %}
-        <section class="family-chapter family-audience" aria-labelledby="audience-heading">
+      {% if family_tools %}
+        <section class="family-chapter family-tools" aria-labelledby="tools-heading">
           <div class="band-head">
             <div>
-              <h2 id="audience-heading">Who it's for</h2>
+              <h2 id="tools-heading">Tools you will work with</h2>
             </div>
           </div>
-          <div class="card-grid{% if family_starting_point and family_prerequisites %} card-grid-2{% endif %}">
-            {% if family_starting_point %}
-              <article class="card family-starting-point">
-                <h3>Your starting point</h3>
-                <p>{{ family_starting_point }}</p>
-              </article>
-            {% endif %}
-            {% if family_prerequisites %}
-              <article class="card family-starting-point">
-                <h3>Good fit if</h3>
-                <p>{{ family_prerequisites }}</p>
-              </article>
-            {% endif %}
-          </div>
-        </section>
-      {% endif %}
-
-
-      {% comment %}
-        Cohort editions belong to the LMS layer and are shown only to signed-in
-        learners so anonymous visitors meet a focused registration landing
-        without mixed LMS links.
-      {% endcomment %}
-      {% if request.user.is_authenticated and current_edition_row or request.user.is_authenticated and previous_edition_rows %}
-        <section class="family-chapter family-editions" aria-labelledby="editions-heading">
-          <div class="band-head">
-            <div>
-              <h2 id="editions-heading">Cohort editions</h2>
-              <p>Each edition keeps its own schedule, homework, and learner projects.</p>
-            </div>
-          </div>
-          <div class="row-list family-editions-list">
-            {% if current_edition_row %}
-              <article class="list-row family-edition-row family-edition-current">
-                <h3>
-                  <a href="{% url 'cohort' course_family.slug current_edition_row.cohort.identifier %}">{{ current_edition_row.cohort.title }}</a>
-                </h3>
-                <div class="family-edition-meta">
-                  <span class="status-pill {{ current_edition_row.state_pill_class }}">{{ current_edition_row.state_words }}</span>
-                </div>
-              </article>
-            {% endif %}
-            {% for row in previous_edition_rows %}
-              <article class="list-row family-edition-row">
-                <h3>
-                  <a href="{% url 'cohort' course_family.slug row.cohort.identifier %}">{{ row.cohort.title }}</a>
-                </h3>
-              </article>
+          <ul class="family-tools-list" role="list">
+            {% for tool in family_tools %}
+              <li><span class="chip chip-plain">{{ tool }}</span></li>
             {% endfor %}
-          </div>
+          </ul>
         </section>
       {% endif %}
 
@@ -1043,74 +1101,6 @@
         </section>
       {% endif %}
 
-      {% comment %}
-        What learners built: the family's own project summary
-        (Course.project_summary, authored by the course repository) beside the
-        shared projects scene, then a handful of real passed submissions and
-        the routes to the full gallery and the brief.  Without a summary the
-        copy falls back to the family's real submission count; a family with
-        neither learner work nor a brief draws no section.
-      {% endcomment %}
-      {% if has_learner_projects or family_project_summary or family_project_brief and not syllabus_has_brief %}
-        <section class="family-chapter family-proof-section" aria-labelledby="built-heading">
-          {% comment %}
-            The same chapter frame as every other: a band head, then the
-            work.  The heading promises learner work only when there is some;
-            a family that has only its summary or brief so far introduces the
-            project itself.  The brief is offered here only when the syllabus
-            does not already link it from its project row.
-          {% endcomment %}
-          <div class="band-head">
-            <div>
-              {% if has_learner_projects %}
-                <h2 id="built-heading">See what people have built</h2>
-              {% else %}
-                <h2 id="built-heading">Your final project</h2>
-              {% endif %}
-              {% if family_project_summary %}
-                <p>{{ family_project_summary }}</p>
-              {% endif %}
-              {% if family_submissions_fact %}
-                <p>{{ family_submissions_fact }} submitted by learners so far.</p>
-              {% endif %}
-            </div>
-          </div>
-          {% if family_project_brief and not syllabus_has_brief %}
-            <div class="family-proof">
-              {% include "core/_button.html" with href=family_project_brief.project.instructions_url label="Read the project brief" variant="secondary" target="_blank" rel="noopener noreferrer" %}
-            </div>
-          {% endif %}
-          {% if family_gallery_submissions %}
-            <div class="card-grid card-grid-2 family-proof-gallery">
-              {% for submission in family_gallery_submissions %}
-                <article class="card family-proof-card stretched-card-link interactive-card interactive-lift">
-                  <p class="mono-label mono-label-indigo">{{ submission.cohort.identifier }} cohort</p>
-                  <div class="family-proof-repository">
-                    {% if submission.repository_url %}
-                      <a
-                        href="{{ submission.repository_url }}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >{{ submission.repository_label }}</a>
-                    {% else %}
-                      {{ submission.repository_label }}
-                    {% endif %}
-                  </div>
-                  <p class="family-proof-byline">
-                    by
-                    <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=course_family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">{{ submission.enrollment.display_name }}</a>
-                  </p>
-                </article>
-              {% endfor %}
-            </div>
-          {% endif %}
-          {% if has_learner_projects %}
-            {% family_projects_url course_family as family_projects_url %}
-            <a class="band-link family-proof-more" href="{{ family_projects_url }}">Explore all learner projects →</a>
-          {% endif %}
-        </section>
-      {% endif %}
-
       {% if family_faq_questions or family_quick_faq_items or course_family.faq_document_url %}
         <section class="family-chapter family-faq" aria-labelledby="faq-heading">
           <div class="band-head">
@@ -1129,11 +1119,6 @@
                   <div class="prose faq-answer">{{ question.rendered_answer|safe }}</div>
                 </details>
               {% endfor %}
-              {% comment %}
-                The /courses catalogue's four objection-answering items, reused
-                verbatim (courses/views/course_page_context.py, QUICK_FAQ_ITEMS);
-                family_quick_faq_items drops any the family's own preview asks.
-              {% endcomment %}
               {% for item in family_quick_faq_items %}
                 <details class="faq-fold" id="quick-faq-{{ forloop.counter }}">
                   <summary class="faq-fold-summary">
@@ -1159,27 +1144,49 @@
         </section>
       {% endif %}
 
-      {% comment %}
-        The page's last word: the same strongest action the hero offers, so a
-        reader who scrolled the whole landing does not have to scroll back.
-      {% endcomment %}
+      {% if is_authenticated and current_edition_row or is_authenticated and previous_edition_rows %}
+        <section class="family-chapter family-editions" aria-labelledby="editions-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="editions-heading">Cohort editions</h2>
+              <p>Each edition keeps its own schedule, homework, and learner projects.</p>
+            </div>
+          </div>
+          <div class="row-list family-editions-list">
+            {% if current_edition_row %}
+              <article class="list-row family-edition-row family-edition-current">
+                <h3>
+                  <a href="{% url 'cohort' course_family.slug current_edition_row.cohort.identifier %}">{{ current_edition_row.cohort.title }}</a>
+                </h3>
+                <div class="family-edition-meta">
+                  <span class="status-pill {{ current_edition_row.state_pill_class }}">{{ current_edition_row.state_words }}</span>
+                </div>
+              </article>
+            {% endif %}
+            {% for row in previous_edition_rows %}
+              <article class="list-row family-edition-row">
+                <h3>
+                  <a href="{% url 'cohort' course_family.slug row.cohort.identifier %}">{{ row.cohort.title }}</a>
+                </h3>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
 
-      {% comment %}
-        The page's last word: the same one action the hero offers, drawn by
-        the same include, so a reader who scrolled the whole landing does not
-        have to scroll back -- and the line above it says where it goes.
-      {% endcomment %}
-      {% if family_registration or self_paced_cohort or materials_url %}
+      {% if family_registration or self_paced_cohort or materials_url or enrolled_cohort %}
         <section class="family-chapter family-close" aria-labelledby="close-heading">
           <div class="panel panel-mint panel-outlined family-close-panel">
             <div>
               <h2 id="close-heading">Ready to start {{ course_family.title }}?</h2>
-              {% if registration_cohort.start_date %}
-                <p>Cohort {{ registration_cohort.identifier }} starts {{ registration_cohort.start_date|date:"M j, Y" }}.</p>
+              {% if enrolled_cohort %}
+                <p>Jump straight back into your {{ enrolled_cohort.identifier }} cohort workspace.</p>
+              {% elif registration_cohort.start_date %}
+                <p>Cohort {{ registration_cohort.identifier }} starts {{ registration_cohort.start_date|date:"M j, Y" }} — or start learning at your own pace right now.</p>
               {% elif registration_cohort %}
-                <p>Registration for cohort {{ registration_cohort.identifier }} is open.</p>
+                <p>Registration for cohort {{ registration_cohort.identifier }} is open — or start learning at your own pace right now.</p>
               {% elif family_registration %}
-                <p>Register your interest to hear when the next cohort opens.</p>
+                <p>Register your interest for the next cohort, or start learning at your own pace right now.</p>
               {% elif self_paced_cohort %}
                 <p>Start any time: the self-paced edition has no deadlines, grading, or certificate.</p>
               {% elif family_first_module %}
@@ -1188,7 +1195,19 @@
                 <p>Every module, video, and homework is in the course repository.</p>
               {% endif %}
             </div>
-            {% include "courses/_family_primary_action.html" %}
+            <div class="family-close-actions">
+              {% include "courses/_family_primary_action.html" %}
+              {% if not enrolled_cohort and family_registration %}
+                {% if self_paced_cohort %}
+                  {% url 'cohort' course_family.slug self_paced_cohort.identifier as close_self_paced_url %}
+                  {% include "core/_button.html" with href=close_self_paced_url label="Start self-paced now" variant="secondary" %}
+                {% elif materials_on_platform %}
+                  {% include "core/_button.html" with href=materials_url label="Start module 1" variant="secondary" %}
+                {% elif materials_url %}
+                  {% include "core/_button.html" with href=materials_url label="Open on GitHub" variant="secondary" target="_blank" rel="noopener noreferrer" %}
+                {% endif %}
+              {% endif %}
+            </div>
           </div>
         </section>
       {% endif %}

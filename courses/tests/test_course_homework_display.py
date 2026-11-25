@@ -16,6 +16,17 @@ class CourseHomeworkDisplayTest(CourseDetailViewTestBase):
             },
         )
 
+        guest_response = self.client.get(url)
+        self.assertEqual(guest_response.status_code, 200)
+        # Guests do not see personal submission/scoring states (site feedback 3.3).
+        self.assertNotContains(guest_response, "Already scored")
+        self.assertNotContains(guest_response, 'class="status-pill')
+        self.assertNotContains(
+            guest_response,
+            f'data-deadline="{self.homework1.due_date.isoformat()}"',
+        )
+
+        self.client.login(**credentials)
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)

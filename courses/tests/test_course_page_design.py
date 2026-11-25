@@ -141,19 +141,41 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
         project_count = len(response.context["projects"])
         self.assertContains(response, 'id="homework-heading"')
         self.assertContains(response, 'id="projects-heading"')
-        self.assertContains(response, 'class="row-list course-rows"', count=2)
+        self.assertContains(response, 'class="row-list course-rows course-rows--guest"', count=2)
         self.assertContains(response, 'class="list-row course-rows-head"', count=2)
         self.assertContains(
             response,
             'class="list-row"',
             count=homework_count + project_count,
         )
+        # Guests do not see personal status pills or "Not submitted" / "Already scored".
+        self.assertNotContains(response, 'class="status-pill')
+        self.assertNotContains(response, "Already scored")
+        self.assertNotContains(response, "Not submitted")
         # Nothing on the page has to be opened to read a deadline or a state.
         self.assertNotIn("<details", page)
+
+    def test_header_has_one_primary_action_and_cohort_tabs(self):
+        response = self.client.get(self.course_url())
+        body = response.content.decode()
+        actions_start = body.index('class="course-actions"')
+        actions_end = body.index("</div>", actions_start)
+        actions_block = body[actions_start:actions_end]
+
+        # At most one CTA button in the header actions; workspace links live in tabs.
+        self.assertLessEqual(actions_block.count('class="cta'), 1)
+        self.assertContains(response, 'class="cohort-tabs"')
+        self.assertContains(response, 'aria-current="page">Overview</a>')
+        self.assertContains(response, "Course leaderboard")
+        self.assertContains(response, "Course dashboard")
+        self.assertContains(response, "Project submissions")
 
     def test_a_course_row_carries_its_deadline_beside_its_title(self):
         homework = self.homeworks[-1]
 
+        # Signed-in learners see deadline + personal status pill; guests see
+        # deadline only without personal status pills.
+        self.client.login(**credentials)
         response = self.client.get(self.course_url())
         body = response.content.decode()
 
@@ -259,6 +281,11 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
     def test_a_module_keeps_its_deadline_status_and_the_page_it_links_to(self):
         homework = self.homeworks[0]
 
+        guest_response = self.client.get(self.course_url())
+        self.assertContains(guest_response, homework.title)
+        self.assertNotContains(guest_response, 'class="status-pill')
+
+        self.client.login(**credentials)
         response = self.client.get(self.course_url())
 
         self.assertContains(response, homework.title)
