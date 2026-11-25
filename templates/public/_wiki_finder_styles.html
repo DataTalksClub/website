@@ -1,0 +1,204 @@
+/* ------------------------------------------------------------------ *
+ * Wiki finder rules, shared by the wiki hub and its results page:
+ * the search box with its live results list, and the soft topic card
+ * (public/_wiki_topic_card.html).
+ * ------------------------------------------------------------------ */
+
+/* --- search -------------------------------------------------------- */
+
+.wiki-search {
+  max-width: 34rem;
+  position: relative;
+}
+
+/* The field and its button stay on one line at every width; the field
+   gives way, never the button. */
+.wiki-search-form {
+  flex-wrap: nowrap;
+  max-width: none;
+}
+
+.wiki-search-form .field-input {
+  flex: 1 1 auto;
+}
+
+.wiki-search-form .cta {
+  flex: none;
+}
+
+/* The live list hangs under the field, over whatever follows, in the
+   soft card's skin. */
+.wiki-search-results {
+  background: var(--card);
+  border: var(--border-soft);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-popover);
+  left: 0;
+  margin-top: var(--space-2);
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 20;
+}
+
+.wiki-search-results[hidden] {
+  display: none;
+}
+
+.wiki-search-option {
+  border-bottom: var(--rule);
+  color: var(--body-text);
+  display: grid;
+  gap: 0.15rem;
+  padding: var(--space-2) var(--space-4);
+  text-decoration: none;
+}
+
+.wiki-search-option:last-of-type {
+  border-bottom: 0;
+}
+
+.wiki-search-option strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.wiki-search-option-summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  font-size: 0.85rem;
+  overflow: hidden;
+}
+
+.wiki-search-option-meta {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.wiki-search-option.is-active,
+.wiki-search-option:hover {
+  background: var(--lavender);
+}
+
+.wiki-search-option.is-active strong {
+  color: var(--indigo);
+}
+
+.wiki-search-foot {
+  align-items: baseline;
+  background: var(--page);
+  border-top: var(--rule);
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  gap: var(--space-1) var(--space-4);
+  justify-content: space-between;
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+}
+
+.wiki-search-foot kbd {
+  font: inherit;
+  font-weight: 700;
+}
+
+/* --- soft topic card ---------------------------------------------- */
+
+/* The /events and /podcast soft card: a white surface on a hairline
+   border, which tints indigo under the pointer. */
+.wiki-card {
+  background: var(--card);
+  border: var(--border-soft);
+  border-radius: var(--radius-card);
+  display: grid;
+  gap: var(--space-2);
+  grid-template-rows: auto auto 1fr;
+  min-width: 0;
+  padding: var(--space-4) var(--space-5);
+  transition: border-color 0.12s ease, translate 0.14s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wiki-card:hover {
+    border-color: var(--indigo-soft);
+  }
+}
+
+.wiki-card:has(h3 a:focus-visible) {
+  outline: var(--outline-focus);
+  outline-offset: 2px;
+}
+
+.wiki-card h3 {
+  color: var(--ink);
+  font-size: 1.12rem;
+  line-height: 1.3;
+  text-wrap: pretty;
+}
+
+.wiki-card h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.wiki-card h3 a::after {
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
+.wiki-card h3 a:focus-visible {
+  outline: none;
+}
+
+.wiki-card-summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  color: var(--body-text);
+  font-size: 0.92rem;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* The meta line sits on the card's floor, clear of the → cue. */
+.wiki-card-meta {
+  align-self: end;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: var(--space-1) 0 0;
+  padding-right: var(--space-6);
+}
+
+/* A grid of cards: every card is a three-row subgrid, so a row of cards
+   shares its title, summary and meta tracks. */
+.wiki-card-grid {
+  display: grid;
+  gap: var(--space-grid);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.wiki-card-grid > .wiki-card {
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  row-gap: var(--space-2);
+}
+
+@media (min-width: 48rem) {
+  .wiki-card-grid {
+    grid-template-columns: repeat(var(--cards, 2), minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 48rem) and (max-width: 61.99rem) {
+  .wiki-card-grid {
+    --cards: 2;
+  }
+}

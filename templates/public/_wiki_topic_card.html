@@ -1,0 +1,19 @@
+{% comment %}
+  One wiki topic as a soft card: the title (the card's one link, stretched over
+  the whole card), two lines of summary, and one meta line.  The hub's Featured
+  and Start here bands and the search results page all draw this card, so the
+  three keep one shape.  Inside a `.wiki-card-grid` the card is a three-row
+  subgrid, so titles, summaries and meta lines line up across a row whatever
+  each one's length.
+
+  Usage:
+    {% include "public/_wiki_topic_card.html" with topic=topic %}
+    {% include "public/_wiki_topic_card.html" with topic=goal.topic heading=goal.goal meta=goal.meta %}
+{% endcomment %}
+<article class="wiki-card interactive-card interactive-lift">
+  <h3>
+    <a href="{{ topic.url }}">{{ heading|default:topic.title }}</a>
+  </h3>
+  <p class="wiki-card-summary">{{ topic.summary }}</p>
+  <p class="wiki-card-meta">{{ meta|default:topic.meta }}</p>
+</article>

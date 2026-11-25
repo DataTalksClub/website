@@ -1,9 +1,10 @@
-{% load breadcrumbs seo static %}
+{% load breadcrumbs static %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
     <script>
       document.documentElement.classList.remove("no-js");
       document.documentElement.classList.add("js");
@@ -11,19 +12,20 @@
     {% include "public/_wiki_head_meta.html" %}
     <style>
       /* ------------------------------------------------------------------ *
-       * Wiki search results, design system (issue #179).  The results are the
-       * system's divided rows; each one says whether it is a whole page or a
-       * section inside one, which is what the search index actually indexes.
+       * Wiki search results: the page the search box lands on without
+       * JavaScript, and the "All N results" link from the live list.  The
+       * topics are ranked by content/wiki_hub.search and drawn as the hub's
+       * soft topic cards, one column.
        * ------------------------------------------------------------------ */
 
       {% include "core/_design_system.html" %}
+
+      {% include "public/_wiki_finder_styles.html" %}
 
       /* ------------------------------------------------------------------ *
        * Wiki search rules.
        * ------------------------------------------------------------------ */
 
-      /* --page follows the cool ground, since that is what the tail below the
-         last band continues. */
       :root {
         --page: var(--lavender);
       }
@@ -33,11 +35,7 @@
         margin-top: calc(var(--space-3) * -1);
       }
 
-      .wiki-hero h1 {
-        max-width: 20ch;
-      }
-
-      .wiki-search {
+      .wiki-hero .wiki-search {
         margin-top: var(--space-5);
       }
 
@@ -47,41 +45,13 @@
         overflow-wrap: anywhere;
       }
 
-      /* One result: its kind, then the page or section it points at. */
-      .result-row {
-        --row-cols: 5.5rem minmax(0, 1fr);
-      }
-
-      .result-row h3 {
-        font-size: 1.05rem;
-      }
-
-      .result-row h3 a {
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      .result-row h3 a:hover {
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
-      }
-
-      .result-segment {
-        color: var(--muted);
-        font-size: 0.85rem;
-        margin-top: var(--space-1);
+      .wiki-results {
+        display: grid;
+        gap: var(--space-3);
       }
 
       .search-empty {
         max-width: 40rem;
-      }
-
-      /* Narrow: the kind sits above the result instead of taking a column of
-         its own beside a title with nowhere left to wrap. */
-      @media (max-width: 47.99rem) {
-        .result-kind {
-          justify-self: start;
-        }
       }
     </style>
   </head>
@@ -103,42 +73,39 @@
         {% url 'wiki-home' as wiki_home_url %}
         {% breadcrumbs "Wiki" wiki_home_url current="Search" nav_class="shell shell-reading" %}
         <div class="shell shell-reading">
-          <h1 class="page-title" id="search-heading">Search the Wiki</h1>
-          {% include "public/_wiki_search_form.html" with search_label="Search term" %}
+          <h1 class="page-title" id="search-heading">Search the wiki</h1>
+          {% include "public/_wiki_search_form.html" with topic_total=stats.topics query=query %}
         </div>
       </section>
 
-      {% if query %}
-        <section class="band band-lavender" aria-labelledby="results-heading">
-          <div class="shell shell-reading">
-            <div class="band-head">
-              <div>
-                <h2 id="results-heading" class="search-count">{{ results|length }} results for &ldquo;{{ query }}&rdquo;</h2>
-              </div>
+      <section class="band band-lavender" aria-labelledby="results-heading">
+        <div class="shell shell-reading">
+          <div class="band-head">
+            <div>
+              <h2 id="results-heading" class="search-count">
+                {{ results|length }} topic{{ results|length|pluralize }} for &ldquo;{{ query }}&rdquo;
+              </h2>
+              {% if results %}
+                <p>Best matches first: a match in the title, then the summary, a section heading, and the text.</p>
+              {% endif %}
             </div>
-            {% if results %}
-              <div class="row-list">
-                {% for result in results %}
-                  <article class="list-row result-row">
-                    <span class="status-pill result-kind">{{ result.document_type }}</span>
-                    <div>
-                      <h3>
-                        <a href="{{ result.url }}">{{ result.title }}</a>
-                      </h3>
-                      {% if result.segment_title %}
-                        <p class="result-segment">{{ result.segment_title }}</p>
-                      {% endif %}
-                    </div>
-                  </article>
-                {% endfor %}
-              </div>
-            {% else %}
-              <p class="search-empty">No matching Wiki pages were found. Try a broader term.</p>
-            {% endif %}
           </div>
-        </section>
-      {% endif %}
+          {% if results %}
+            <div class="wiki-results">
+              {% for topic in results %}
+                {% include "public/_wiki_topic_card.html" with topic=topic %}
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="search-empty">
+              No wiki topic matches that. Try a shorter or broader term, or
+              <a class="band-link" href="{{ wiki_home_url }}">browse the wiki by area</a>.
+            </p>
+          {% endif %}
+        </div>
+      </section>
     </main>
     {% include "core/_site_shell_foot.html" %}
+    <script src="{% static 'core/wiki_search.js' %}"></script>
   </body>
 </html>

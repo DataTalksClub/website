@@ -30,11 +30,11 @@ PRIVATE_DYNAMIC = "private_dynamic"
 OPERATIONAL = "operational"
 
 #: Classes whose clean responses may keep the cache directives their view set.
-#: Search surfaces are expressed through the query allowlist below (the wiki
-#: hub's ``q`` switch), because search rides a classified hub view rather than
-#: its own route.  ``PUBLIC_NOT_FOUND`` has no view members: a 404 response is
-#: classified by status so unknown paths and unknown detail slugs share the
-#: reviewed clean-404 class.
+#: Search surfaces are expressed through the query allowlist below: the wiki
+#: results page rides the classified ``wiki_search`` view, and ``q`` is in no
+#: grammar, so a search request is never shared.  ``PUBLIC_NOT_FOUND`` has no
+#: view members: a 404 response is classified by status so unknown paths and
+#: unknown detail slugs share the reviewed clean-404 class.
 SHAREABLE_CACHE_CLASSES = frozenset(
     {
         STABLE_RELEASE_ASSET,
@@ -58,9 +58,6 @@ QUERY_ALLOWLISTS: dict[str, frozenset[str]] = {
     # itself rejects every other combination.
     "content.public_views.events": frozenset({"filter"}),
     "content.public_views.events_past": frozenset({"page"}),
-    # `q` is deliberately unlisted: a search request is the spec's search
-    # surface and must never be shared, while `page` keeps the catalogue.
-    "content.public_views.wiki_hub": frozenset({"page"}),
 }
 
 #: Every resolved Django view, classified.  Views join the registry at review
@@ -116,6 +113,9 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "content.public_views.podcast_detail_by_id_without_slug": EDITORIAL_DETAIL,
     "content.public_views.podcast_transcript_text": EDITORIAL_DETAIL,
     "content.public_views.wiki_detail": EDITORIAL_DETAIL,
+    # Bare `/wiki/search` is the editorial Search topic; a `q` request is not
+    # in any query grammar, so the results page it renders is never shared.
+    "content.public_views.wiki_search": EDITORIAL_DETAIL,
     "content.public_views.wiki_graph": EDITORIAL_DETAIL,
     "content.public_views.wiki_special": EDITORIAL_DETAIL,
     "content.review_views.docs_home": EDITORIAL_DETAIL,
@@ -277,6 +277,8 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "community_base.studio.user_views.user_tag_remove": PRIVATE_DYNAMIC,
     "community_base.studio.views.dashboard": PRIVATE_DYNAMIC,
     "community_base.studio.views.global_search": PRIVATE_DYNAMIC,
+    # The wiki hub's live search: one JSON answer per typed term, never shared.
+    "content.public_views.wiki_search_live": PRIVATE_DYNAMIC,
     "community_base.mail.catalog_studio.template_detail": PRIVATE_DYNAMIC,
     "community_base.mail.catalog_studio.template_list": PRIVATE_DYNAMIC,
     "community_base.mail.studio.deliveries_list": PRIVATE_DYNAMIC,

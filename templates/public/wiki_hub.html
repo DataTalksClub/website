@@ -1,4 +1,4 @@
-{% load seo static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -9,103 +9,320 @@
       document.documentElement.classList.add("js");
     </script>
     {% include "public/_wiki_head_meta.html" %}
-    {% include "public/_page_relations.html" %}
     <style>
       /* ------------------------------------------------------------------ *
-       * Wiki hub, design system (issue #179).  There is no mockup for the wiki
-       * pages, so the page is composed from the system's own inventory: a
-       * hero with the search field, the three ways into the wiki as divided
-       * rows, and the A-Z catalogue as the same rows.  Like every page in
-       * the system it carries one inline stylesheet: the shared partial
-       * first, then only what this page adds.
+       * Wiki hub.  The page has one job: get a reader into a topic that fits
+       * them.  Search leads (a ranked live list as they type), the graph
+       * beside it lets them wander, then the bands offer the same topics by
+       * editors' pick, by area, and by goal, with the full A-Z folded at the
+       * end.  Bands alternate cream and lavender like the homepage, inside
+       * the homepage's width.
        * ------------------------------------------------------------------ */
 
       {% include "core/_design_system.html" %}
+
+      {% include "core/_wiki_graph_explorer_styles.html" %}
+
+      {% include "public/_wiki_finder_styles.html" %}
 
       /* ------------------------------------------------------------------ *
        * Wiki hub rules.
        * ------------------------------------------------------------------ */
 
-      /* --page follows the cool ground, since that is what the tail below the
-         last band continues. */
+      /* The last band (A-Z) is lavender, and the tail continues it. */
       :root {
         --page: var(--lavender);
       }
 
-      .wiki-hero h1 {
-        margin-top: var(--space-eyebrow);
-        max-width: 20ch;
+      /* --- hero ---------------------------------------------------------- */
+
+      .wiki-hero-grid {
+        align-items: center;
+        display: grid;
+        gap: var(--space-6);
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .wiki-hero-grid > * {
+        min-width: 0;
       }
 
       .wiki-lede {
-        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: var(--space-stack);
-        max-width: 40rem;
+        font-size: clamp(0.95rem, 1.5vw, 1.1rem);
+        margin-top: var(--space-4);
+        max-width: 34em;
       }
 
-      .wiki-search {
-        margin-top: var(--space-5);
+      .wiki-hero .wiki-search {
+        margin-top: var(--space-6);
       }
 
-      /* Each way into the wiki is one row, and the whole row is the target: the
-         name in its own column, what it does beside it. */
-      .explore-row {
-        --row-cols: 11rem minmax(0, 1fr);
-        text-decoration: none;
-      }
-
-      .explore-row strong {
-        color: var(--ink);
-        display: block;
+      /* Search is the page's main action, so its field and button stand a
+         size up from a form row's. */
+      .wiki-hero .wiki-search .field-input {
         font-size: 1.05rem;
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
+        min-height: 3.25rem;
+        padding-inline: var(--space-4);
       }
 
-      .explore-row span {
-        color: var(--body-text);
+      .wiki-hero .wiki-search .cta {
+        min-height: 3.25rem;
+        padding-inline: var(--space-5);
+      }
+
+      .wiki-proof {
+        color: var(--muted);
         font-size: 0.9rem;
+        margin-top: var(--space-4);
       }
 
-      /* One catalogue row: the topic and its summary, with the read action
-         held to the right until the row is too narrow to hold both. */
-      .topic-row {
-        --row-cols: minmax(0, 1fr) auto;
-      }
-
-      .topic-row h3 {
-        font-size: 1.05rem;
-      }
-
-      .topic-row h3 a {
+      .wiki-proof strong {
         color: var(--ink);
-        text-decoration: none;
       }
 
-      .topic-row h3 a:hover {
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
+      .wiki-hero .graph-frame {
+        align-self: center;
       }
 
-      .topic-summary {
-        font-size: 0.9rem;
-        margin-top: var(--space-1);
-      }
-
-      /* The catalogue with nothing in it: the three ways in above stay useful, so
-         this is one line inside the divided list rather than a whole empty band. */
-      .topic-empty {
-        padding-block: var(--space-4);
-      }
-
-      /* Narrow: the read action drops under the summary as a compact button
-         rather than squeezing beside a wrapped one — and stays a button rather
-         than stretching, because 282 full-width slabs is a wall, not a list. */
-      @media (max-width: 47.99rem) {
-        .topic-action {
-          justify-self: start;
-          margin-top: var(--space-2);
+      @media (min-width: 62rem) {
+        .wiki-hero-grid {
+          gap: var(--space-7);
+          grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
         }
+      }
+
+      /* --- featured ------------------------------------------------------ */
+
+      .wiki-featured {
+        display: grid;
+        gap: var(--space-grid);
+      }
+
+      .wiki-featured-roadmaps {
+        --cards: 2;
+      }
+
+      .wiki-featured-topics {
+        --cards: 4;
+      }
+
+      /* The two roadmaps are the band's lead: a larger title over the same
+         card. */
+      .wiki-featured-roadmaps .wiki-card h3 {
+        font-size: 1.3rem;
+      }
+
+      /* --- areas --------------------------------------------------------- */
+
+      .wiki-areas {
+        display: grid;
+        gap: var(--space-grid);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      /* An area is information with links in it, not one destination, so
+         it is a plain soft card: the heading and its count, then its most
+         cited topics as rows. */
+      .wiki-area {
+        background: var(--card);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
+        display: grid;
+        gap: var(--space-1);
+        grid-row: span 3;
+        grid-template-rows: subgrid;
+        min-width: 0;
+        padding: var(--space-4) var(--space-5);
+      }
+
+      .wiki-area h3 {
+        font-size: 1.12rem;
+        line-height: 1.3;
+      }
+
+      .wiki-area-count {
+        color: var(--muted);
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      .wiki-area ul {
+        align-self: start;
+        display: grid;
+        list-style: none;
+        margin: var(--space-2) 0 0;
+        padding: 0;
+      }
+
+      .wiki-area li {
+        border-top: var(--rule);
+      }
+
+      .wiki-area li a {
+        align-items: baseline;
+        color: var(--ink);
+        display: flex;
+        font-size: 0.9rem;
+        font-weight: 600;
+        gap: var(--space-3);
+        justify-content: space-between;
+        padding-block: var(--space-2);
+        text-decoration: none;
+      }
+
+      .wiki-area li a:hover span:first-child {
+        color: var(--indigo);
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .wiki-area li a span:last-child {
+        color: var(--muted);
+        flex: none;
+        font-size: 0.82rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      @media (min-width: 48rem) and (max-width: 61.99rem) {
+        .wiki-areas {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      /* A phone gets the featured topics, the areas and the goals each as
+         one swipeable row, the catalogue scroller's shape, so a band of
+         four or eight cards does not stack into a long column.  The cards
+         keep their three subgrid rows, so a row still lines up. */
+      @media (max-width: 47.99rem) {
+        .wiki-swipe {
+          grid-auto-columns: minmax(15rem, 80%);
+          grid-auto-flow: column;
+          grid-template-columns: none;
+          grid-template-rows: repeat(3, auto);
+          margin-inline: calc(var(--shell-gutter) * -1);
+          overflow-x: auto;
+          padding: var(--space-1) var(--shell-gutter) var(--space-2);
+          scroll-padding-inline: var(--shell-gutter);
+          scroll-snap-type: x mandatory;
+          scrollbar-width: none;
+        }
+
+        .wiki-swipe::-webkit-scrollbar {
+          display: none;
+        }
+
+        .wiki-swipe > * {
+          scroll-snap-align: start;
+        }
+      }
+
+      /* --- how it works -------------------------------------------------- */
+
+      .wiki-steps {
+        display: grid;
+        gap: var(--space-grid);
+      }
+
+      .wiki-step {
+        background: var(--card);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
+        display: grid;
+        gap: var(--space-2);
+        grid-row: span 3;
+        grid-template-rows: subgrid;
+        padding: var(--space-4) var(--space-5);
+      }
+
+      .wiki-step h3 {
+        font-size: 1.12rem;
+        line-height: 1.3;
+      }
+
+      .wiki-step p {
+        color: var(--body-text);
+        font-size: 0.92rem;
+      }
+
+      @media (min-width: 48rem) {
+        .wiki-steps {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      /* --- start here ---------------------------------------------------- */
+
+      .wiki-goals {
+        --cards: 4;
+      }
+
+      /* --- A-Z ----------------------------------------------------------- */
+
+      .wiki-az > summary {
+        align-items: center;
+        color: var(--indigo);
+        cursor: pointer;
+        display: inline-flex;
+        font-weight: 600;
+        gap: var(--space-3);
+        list-style: none;
+        min-height: 2.75rem;
+      }
+
+      .wiki-az > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .wiki-az > summary:focus-visible {
+        outline: var(--outline-focus);
+        outline-offset: 2px;
+      }
+
+      .wiki-az > summary .row-fold-marker {
+        margin-top: 0;
+      }
+
+      .wiki-az[open] .row-fold-marker {
+        transform: translateY(35%) rotate(-135deg);
+      }
+
+      .wiki-az-groups {
+        columns: 15rem auto;
+        column-gap: var(--space-6);
+        margin-top: var(--space-4);
+      }
+
+      .wiki-az-group {
+        break-inside: avoid;
+        margin-bottom: var(--space-4);
+      }
+
+      .wiki-az-group h3 {
+        border-bottom: var(--rule);
+        color: var(--ink);
+        font-size: 1rem;
+        margin-bottom: var(--space-1);
+        padding-bottom: var(--space-1);
+      }
+
+      .wiki-az-group ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .wiki-az-group a {
+        color: var(--body-text);
+        display: block;
+        font-size: 0.88rem;
+        padding-block: 0.15rem;
+        text-decoration: none;
+      }
+
+      .wiki-az-group a:hover {
+        color: var(--indigo);
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
       }
     </style>
   </head>
@@ -124,81 +341,196 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream wiki-hero" aria-labelledby="wiki-heading">
-        <div class="shell shell-reading">
-          <h1 class="page-title" id="wiki-heading">Wiki</h1>
-          <p class="wiki-lede">
-            {{ catalogue_total }} community-written topics wired to each other. Start anywhere and follow the links
-            into guides, comparisons, roadmaps, podcast episodes, people and books.
-          </p>
-          {% include "public/_wiki_search_form.html" with search_label="Search the Wiki" %}
+        <div class="shell wiki-hero-grid">
+          <div class="wiki-hero-copy">
+            <h1 class="page-title" id="wiki-heading">Wiki</h1>
+            <p class="wiki-lede">
+              Notes on data and AI topics, written from our podcast episodes, events and books,
+              with links to the sources.
+            </p>
+            {% include "public/_wiki_search_form.html" with topic_total=stats.topics %}
+            <p class="wiki-proof">
+              <strong>{{ stats.topics }}</strong> topics
+              · <strong>{{ stats.episodes }}</strong> podcast episodes
+              {% if stats.events %}
+                · <strong>{{ stats.events }}</strong> events
+              {% endif %}
+              {% if stats.books %}
+                · <strong>{{ stats.books }}</strong> books
+              {% endif %}
+            </p>
+          </div>
+          {% if wiki_graph %}
+            {% include "core/_wiki_graph_explorer.html" with compact=True %}
+          {% endif %}
         </div>
       </section>
 
-      <section class="band band-lavender" aria-labelledby="explore-heading">
-        <div class="shell shell-reading">
-          <div class="band-head">
-            <div>
-              <h2 id="explore-heading">Three ways in</h2>
-              <p>The graph, the search index, and the pages the wiki files by kind.</p>
+      {% if featured_roadmaps or featured_topics %}
+        <section class="band band-lavender" aria-labelledby="featured-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="featured-heading">Featured</h2>
+                <p>Two roadmaps to plan a path with, and the topics our guests come back to most.</p>
+              </div>
             </div>
-          </div>
-          <nav class="row-list" aria-label="Wiki exploration">
-            <a class="list-row explore-row interactive-card interactive-lift" href="{% url 'wiki-graph' %}">
-              <strong>Graph</strong>
-              <span>Explore topic, episode, people, and book connections.</span>
-            </a>
-            {% comment %}
-              Empty `?q=` is the existing search mode. `/wiki/search` is an editorial page.
-            {% endcomment %}
-            <a class="list-row explore-row interactive-card interactive-lift" href="{% url 'wiki-home' %}?q=">
-              <strong>Search</strong>
-              <span>Find wiki pages, guides, summaries, people, and books.</span>
-            </a>
-            <a class="list-row explore-row interactive-card interactive-lift" href="{% url 'wiki-special' %}">
-              <strong>Special pages</strong>
-              <span>Browse guides, comparisons, roadmaps, how-tos, and transitions.</span>
-            </a>
-          </nav>
-        </div>
-      </section>
-
-      <section class="band band-lavender" aria-labelledby="catalog-heading">
-        <div class="shell shell-reading">
-          <div class="band-head">
-            <div>
-              <h2 id="catalog-heading">Wiki pages</h2>
-              {% comment %}
-                The catalogue says how large it is and which part of it is on screen,
-                so a reader who arrives on page six knows where page six sits.  Both
-                numbers come from the shared paginator; neither is counted here.
-              {% endcomment %}
-              <p>
-                Browse full catalog ({{ catalogue_total }} topics A&ndash;Z).
-                {% if pagination.has_controls %}
-                  Showing {{ pagination.first_item_number }}&ndash;{{ pagination.last_item_number }}.
-                {% endif %}
-              </p>
-            </div>
-          </div>
-          <div class="row-list">
-            {% for record in records %}
-              <article class="list-row topic-row">
-                <div>
-                  <h3>
-                    <a href="{{ record.public_path }}">{{ record.title }}</a>
-                  </h3>
-                  <p class="topic-summary">{{ record.summary }}</p>
+            <div class="wiki-featured">
+              {% if featured_roadmaps %}
+                <div class="wiki-card-grid wiki-featured-roadmaps">
+                  {% for topic in featured_roadmaps %}
+                    {% include "public/_wiki_topic_card.html" with topic=topic %}
+                  {% endfor %}
                 </div>
-                {% include "core/_button.html" with href=record.public_path label="Read topic" variant="secondary" compact=True classes="topic-action" %}
-              </article>
-            {% empty %}
-              <p class="topic-empty">No Wiki pages are available yet.</p>
-            {% endfor %}
+              {% endif %}
+              {% if featured_topics %}
+                <div class="wiki-card-grid wiki-featured-topics wiki-swipe">
+                  {% for topic in featured_topics %}
+                    {% include "public/_wiki_topic_card.html" with topic=topic %}
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
           </div>
-          {% include "public/_pagination.html" %}
+        </section>
+      {% endif %}
+
+      {% if areas %}
+        <section class="band band-cream" aria-labelledby="areas-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="areas-heading">Browse by area</h2>
+                <p>Each area lists its most-cited topics, with the number of podcast episodes behind each one.</p>
+              </div>
+            </div>
+            <div class="wiki-areas wiki-swipe">
+              {% for area in areas %}
+                <article class="wiki-area">
+                  <h3>{{ area.title }}</h3>
+                  <p class="wiki-area-count">{{ area.count }} topic{{ area.count|pluralize }}</p>
+                  <ul>
+                    {% for topic in area.topics %}
+                      <li>
+                        <a href="{{ topic.url }}">
+                          <span>{{ topic.title }}</span>
+                          {% if topic.episodes %}
+                            <span aria-label="{{ topic.episodes_label }}">{{ topic.episodes }}</span>
+                          {% endif %}
+                        </a>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </article>
+              {% endfor %}
+              {% if kind_rows %}
+                <article class="wiki-area">
+                  <h3>Guides and roadmaps</h3>
+                  <p class="wiki-area-count">Pages filed by kind</p>
+                  <ul>
+                    {% for row in kind_rows %}
+                      <li>
+                        <a href="{% url 'wiki-special-category' category=row.category %}">
+                          <span>{{ row.label }}</span>
+                          <span aria-label="{{ row.count }} pages">{{ row.count }}</span>
+                        </a>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </article>
+              {% endif %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
+
+      <section class="band band-lavender" aria-labelledby="how-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="how-heading">How the wiki works</h2>
+            </div>
+          </div>
+          <div class="wiki-steps">
+            <article class="wiki-step">
+              <span class="step-number">1</span>
+              <h3>Written from the sources</h3>
+              <p>Each topic is written from our podcast episodes, events and books.</p>
+            </article>
+            <article class="wiki-step">
+              <span class="step-number step-number-2">2</span>
+              <h3>Claims link to the episode</h3>
+              <p>A paragraph cites the podcast episode it comes from, so you can hear the guest say it.</p>
+            </article>
+            <article class="wiki-step">
+              <span class="step-number step-number-3">3</span>
+              <h3>Topics link to each other</h3>
+              <p>
+                Every page lists related topics, people and books{% if busiest %}; {{ busiest.title }} alone links to
+                {{ busiest.links }} other pages{% endif %}.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {% if start_goals %}
+        <section class="band band-cream" aria-labelledby="goals-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="goals-heading">Start here</h2>
+                <p>Pick the goal closest to yours. Each one opens the roadmap or career-switch page for it.</p>
+              </div>
+            </div>
+            <div class="wiki-card-grid wiki-goals wiki-swipe">
+              {% for goal in start_goals %}
+                {% include "public/_wiki_topic_card.html" with topic=goal.topic heading=goal.goal meta=goal.meta %}
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
+
+      <section class="band band-lavender" aria-labelledby="az-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="az-heading">All topics, A–Z</h2>
+              <p>Every page in the wiki by title, {{ stats.topics }} in all.</p>
+            </div>
+          </div>
+          {% if letter_groups %}
+            <details class="wiki-az">
+              <summary>
+                <span class="row-fold-marker" aria-hidden="true"></span>
+                Show all {{ stats.topics }} topics
+              </summary>
+              <div class="wiki-az-groups">
+                {% for group in letter_groups %}
+                  <section class="wiki-az-group" aria-labelledby="az-{{ forloop.counter }}">
+                    <h3 id="az-{{ forloop.counter }}">{{ group.letter }}</h3>
+                    <ul>
+                      {% for topic in group.topics %}
+                        <li>
+                          <a href="{{ topic.url }}">{{ topic.title }}</a>
+                        </li>
+                      {% endfor %}
+                    </ul>
+                  </section>
+                {% endfor %}
+              </div>
+            </details>
+          {% else %}
+            <p>No wiki pages are available yet.</p>
+          {% endif %}
         </div>
       </section>
     </main>
     {% include "core/_site_shell_foot.html" %}
+    {% if wiki_graph %}
+      <script src="{% static 'core/home_graph.js' %}"></script>
+    {% endif %}
+    <script src="{% static 'core/wiki_search.js' %}"></script>
   </body>
 </html>

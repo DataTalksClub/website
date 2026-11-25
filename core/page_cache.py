@@ -130,6 +130,7 @@ CACHEABLE_VIEWS = frozenset(
         "content.public_views.podcast_detail_by_id_without_slug",
         "content.public_views.wiki_hub",
         "content.public_views.wiki_detail",
+        "content.public_views.wiki_search",
         "content.public_views.wiki_graph",
         "content.public_views.wiki_special",
         "content.review_views.docs_home",

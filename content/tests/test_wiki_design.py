@@ -15,14 +15,13 @@ from unittest.mock import patch
 
 from community_base.content_sync.models import ContentSource as EngineContentSource
 from django.core.exceptions import ImproperlyConfigured
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils.html import escape
 
-from content import catalogue, wiki_content, wiki_reader
+from content import catalogue, wiki_content, wiki_hub, wiki_reader
 from content.models import ContentSource
-from content.pagination import PUBLIC_PAGE_SIZE
-from content.public_views import WIKI_SPECIAL_CATEGORIES, _wiki_search_results
+from content.public_views import WIKI_SPECIAL_CATEGORIES
 from content.wiki_content import (
     GRAPH_GROUPS,
     GROUP_ENTRY_POINTS,
@@ -32,8 +31,6 @@ from content.wiki_content import (
     graph_totals,
     node_connections,
 )
-
-from .pagination_support import catalogue_page_bodies
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 RETIRED_ASSETS = (
@@ -58,8 +55,8 @@ def wiki_paths() -> dict[str, str]:
     page = wiki_reader.wiki_pages()[0]
     return {
         "hub": reverse("wiki-home"),
-        "results": f"{reverse('wiki-home')}?q=machine+learning",
-        "no results": f"{reverse('wiki-home')}?q=no-such-public-topic",
+        "results": f"{reverse('wiki-search')}?q=data+pipelines",
+        "no results": f"{reverse('wiki-search')}?q=no-such-public-topic",
         "graph": reverse("wiki-graph"),
         "special pages": reverse("wiki-special"),
         "special category": reverse("wiki-special-category", kwargs={"category": "guides"}),
@@ -123,191 +120,81 @@ class WikiDesignSystemTests(TestCase):
 
 
 class WikiHubTests(TestCase):
+    """The hub is a landing page: search first, then the ways into a topic."""
+
     def setUp(self) -> None:
-        self.body = self.client.get(reverse("wiki-home")).content.decode()
+        self.response = self.client.get(reverse("wiki-home"))
+        self.body = self.response.content.decode()
 
-    def test_the_hub_keeps_its_title_search_field_and_catalogue_count(self) -> None:
-        records = wiki_reader.wiki_pages()
+    def test_the_hub_leads_with_its_title_search_box_and_computed_proof_line(self) -> None:
+        stats = wiki_hub.stats()
 
-        self.assertIn("Wiki", self.body)
-        self.assertIn('<label class="sr-only" for="wiki-query">Search the Wiki</label>', self.body)
-        self.assertIn('name="q"', self.body)
-        self.assertIn(f"Browse full catalog ({len(records)} topics A&ndash;Z).", self.body)
-        # The catalogue pages (issue #175), so it also says which part of that whole
-        # inventory is on screen.
-        self.assertIn(f"Showing 1&ndash;{PUBLIC_PAGE_SIZE}.", self.body)
-
-    def test_the_hub_keeps_all_three_ways_into_the_wiki(self) -> None:
-        """The exploration links are the graph's and the special pages' only entry."""
-
-        self.assertIn('aria-label="Wiki exploration"', self.body)
+        self.assertEqual(self.response.status_code, 200)
+        self.assertIn('<h1 class="page-title" id="wiki-heading">Wiki</h1>', self.body)
         self.assertIn(
-            '<form class="search-row wiki-search" action="/wiki" method="get">',
+            '<form class="search-row wiki-search-form" action="/wiki/search" method="get" '
+            'role="search">',
             self.body,
         )
-        explore = self.body.split('aria-label="Wiki exploration"', 1)[1].split("</nav>", 1)[0]
-        for href, label in (
-            (reverse("wiki-graph"), "Graph"),
-            (f"{reverse('wiki-home')}?q=", "Search"),
-            (reverse("wiki-special"), "Special pages"),
-        ):
-            with self.subTest(href=href):
-                self.assertIn(f'href="{href}"', explore)
-                self.assertIn(f"<strong>{label}</strong>", explore)
-        # Search mode is the empty existing `?q=` query, never the editorial slug.
-        self.assertNotIn('href="/wiki/search"', explore)
-        self.assertNotIn("?q=data", explore)
+        self.assertIn('<label class="sr-only" for="wiki-query">Search the wiki</label>', self.body)
+        self.assertIn('data-live-url="/wiki/search.json"', self.body)
+        self.assertIn('aria-controls="wiki-search-results"', self.body)
+        self.assertIn(f"Search {stats.topics} topics", self.body)
+        self.assertEqual(stats.topics, len(wiki_reader.wiki_pages()))
+        self.assertIn(f"<strong>{stats.topics}</strong> topics", self.body)
+        self.assertIn(f"<strong>{stats.episodes}</strong> podcast episodes", self.body)
+        self.assertIn('src="/static/core/wiki_search.js"', self.body)
 
-    def test_the_catalogue_lists_every_topic_twice_over_as_title_and_read_action(self) -> None:
-        """Across its pages the catalogue still carries every topic, exactly once.
+    def test_the_hub_draws_the_homepage_graph_explorer_in_its_compact_form(self) -> None:
+        if self.response.context["wiki_graph"] is None:
+            self.skipTest("the fixture wiki does not publish the graph hub")
+        self.assertIn("home-graph-explorer home-graph-compact", self.body)
+        self.assertIn("data-home-graph-random", self.body)
+        self.assertIn(f'href="{reverse("wiki-graph")}">full graph →</a>', self.body)
+        # The compact card carries no legend, count line or connections row.
+        self.assertNotIn('class="graph-legend"', self.body)
+        self.assertNotIn("data-home-graph-all", self.body)
+        self.assertIn('src="/static/core/home_graph.js"', self.body)
 
-        The catalogue pages (issue #175), so this walks it the way a reader does and
-        then checks the whole thing: the pages must partition the projection in its
-        existing order, with no topic repeated between two pages and none lost.
-        """
+    def test_featured_areas_and_goals_link_only_to_published_pages(self) -> None:
+        published = {str(record["public_path"]) for record in wiki_reader.wiki_pages()}
+        context = self.response.context
+        cards = [*context["featured_roadmaps"], *context["featured_topics"]]
+        cards += [goal.topic for goal in context["start_goals"]]
+        cards += [topic for area in context["areas"] for topic in area.topics]
+        for topic in cards:
+            with self.subTest(topic=topic.slug):
+                self.assertIn(topic.url, published)
+                self.assertIn(f'href="{topic.url}"', self.body)
+        self.assertEqual(
+            sum(area.count for area in context["areas"]), len(wiki_reader.wiki_pages())
+        )
 
+    def test_the_a_to_z_lists_every_topic_once_inside_a_closed_fold(self) -> None:
         records = wiki_reader.wiki_pages()
-        self.assertEqual(
-            [(record["title"], record["slug"]) for record in records],
-            sorted(
-                ((record["title"], record["slug"]) for record in records),
-                key=lambda item: (item[0].casefold(), item[1]),
-            ),
-        )
-        pages = catalogue_page_bodies(self.client, reverse("wiki-home"))
-        body = "".join(pages)
-        expected_page_count = (len(records) + PUBLIC_PAGE_SIZE - 1) // PUBLIC_PAGE_SIZE
-        self.assertEqual(len(pages), expected_page_count)
-
-        collected: list[dict] = []
-        for page_number in range(1, expected_page_count + 1):
-            path = (
-                reverse("wiki-home")
-                if page_number == 1
-                else f"{reverse('wiki-home')}?page={page_number}"
-            )
-            response = self.client.get(path)
-            self.assertEqual(response.status_code, 200)
-            page_records = list(response.context["records"])
-            expected_size = (
-                PUBLIC_PAGE_SIZE
-                if page_number < expected_page_count
-                else len(records) - PUBLIC_PAGE_SIZE * (expected_page_count - 1)
-            )
-            self.assertEqual(len(page_records), expected_size)
-            collected.extend(page_records)
-
-        self.assertEqual(
-            [(record["title"], record["summary"], record["public_path"]) for record in collected],
-            [(record["title"], record["summary"], record["public_path"]) for record in records],
-        )
+        self.assertIn('<details class="wiki-az">', self.body)
+        fold = self.body.split('<details class="wiki-az">', 1)[1].split("</details>", 1)[0]
         for record in records:
             with self.subTest(slug=record["slug"]):
-                self.assertEqual(body.count(f'href="{record["public_path"]}"'), 2)
-                self.assertIn(escape(str(record["title"])), body)
-                self.assertIn(escape(str(record["summary"])), body)
-        self.assertEqual(body.count("Read topic"), len(records))
-        # The first page holds the first slice of the existing order, and the last
-        # page holds the last, so the pages are cut from the catalogue rather than
-        # re-sorted per page.
-        self.assertIn(f'href="{records[0]["public_path"]}"', pages[0])
-        self.assertIn(f'href="{records[-1]["public_path"]}"', pages[-1])
-        for page_body in pages[:-1]:
-            self.assertEqual(page_body.count("Read topic"), PUBLIC_PAGE_SIZE)
+                self.assertEqual(fold.count(f'href="{record["public_path"]}"'), 1)
+                self.assertIn(escape(str(record["title"])), fold)
 
-    def test_the_catalogue_rows_are_divided_rows_and_never_a_column_grid(self) -> None:
-        self.assertIn('<div class="row-list">', self.body)
-        self.assertNotRegex(self.body, r"(?:sm|md|lg):grid-cols-")
-
-
-class WikiCataloguePaginationTests(TestCase):
-    """The A–Z catalogue is paged; the other three ways in are not (issue #175)."""
-
-    def test_the_landing_page_offers_all_four_paths_on_every_catalogue_page(self) -> None:
-        for path in (reverse("wiki-home"), f"{reverse('wiki-home')}?page=2"):
-            with self.subTest(path=path):
-                body = self.client.get(path).content.decode()
-                explore = body.split('aria-label="Wiki exploration"', 1)[1].split("</nav>", 1)[0]
-                self.assertIn(
-                    '<h1 class="page-title" id="wiki-heading">Wiki</h1>',
-                    body,
-                )
-                self.assertIn('name="q"', body)
-                self.assertIn('aria-label="Wiki exploration"', body)
-                self.assertIn(f'href="{reverse("wiki-graph")}"', explore)
-                self.assertIn(f'href="{reverse("wiki-home")}?q="', explore)
-                self.assertIn(f'href="{reverse("wiki-special")}"', explore)
-                self.assertNotIn('href="/wiki/search"', explore)
-                self.assertIn('<h2 id="catalog-heading">Wiki pages</h2>', body)
-                self.assertIn('aria-label="Wiki catalogue pages"', body)
-
-    def test_page_one_is_the_clean_path_and_later_pages_name_themselves(self) -> None:
-        for spelling in (reverse("wiki-home"), f"{reverse('wiki-home')}?page=1"):
-            with self.subTest(spelling=spelling):
-                body = self.client.get(spelling).content.decode()
-                self.assertIn("<title>Wiki — DataTalks.Club</title>", body)
-                self.assertIn('<link rel="canonical" href="https://datatalks.club/wiki">', body)
-                self.assertIn(
-                    '<meta property="og:url" content="https://datatalks.club/wiki">', body
-                )
-                self.assertNotIn('?page=1"', body)
-
-        body = self.client.get(f"{reverse('wiki-home')}?page=3").content.decode()
-        self.assertIn("<title>Wiki — Page 3 — DataTalks.Club</title>", body)
-        self.assertIn('<link rel="canonical" href="https://datatalks.club/wiki?page=3">', body)
-        self.assertIn('<meta property="og:url" content="https://datatalks.club/wiki?page=3">', body)
-        self.assertIn('<link rel="prev" href="https://datatalks.club/wiki?page=2">', body)
-        self.assertIn('<link rel="next" href="https://datatalks.club/wiki?page=4">', body)
-        # A catalogue page is still a wiki surface, so it keeps the wiki social card.
-        self.assertIn(
-            '<meta property="og:image" content="https://datatalks.club/wiki/assets/og-default.png">',
-            body,
-        )
-
-    def test_a_search_never_reaches_the_paginator_and_is_never_paged(self) -> None:
-        for query in ("q=machine+learning", "q=", "q=data&page=2"):
+    def test_the_hub_has_no_query_state(self) -> None:
+        search = self.client.get("/wiki?q=machine+learning")
+        self.assertEqual(search.status_code, 302)
+        self.assertEqual(search.headers["Location"], "/wiki/search?q=machine+learning")
+        self.assertEqual(search.headers["Cache-Control"], "private, no-store, max-age=0")
+        for query in ("q=", "page=2", "page=1", "sort=title"):
             with self.subTest(query=query):
-                response = self.client.get(f"{reverse('wiki-home')}?{query}")
-                self.assertEqual(response.status_code, 200)
-                body = response.content.decode()
-                # `q` is the mode switch, so what every search response shares is
-                # the search surface itself.  An empty `q=` is still a search: it
-                # renders the form and no results band, because "0 results for
-                # nothing" is a sentence about a search the visitor did not make.
-                self.assertIn('id="search-heading"', body)
-                if query != "q=":
-                    self.assertIn("results for", body)
-                self.assertNotIn('<nav class="pagination"', body)
-                self.assertIn('<link rel="canonical" href="https://datatalks.club/wiki">', body)
+                response = self.client.get(f"/wiki?{query}")
+                self.assertEqual(response.status_code, 301)
+                self.assertEqual(response.headers["Location"], "/wiki")
 
-    def test_the_catalogue_selector_accepts_one_spelling_and_fails_closed(self) -> None:
-        for bad_query in (
-            "page=",
-            "page=0",
-            "page=+2",
-            "page=-2",
-            "page=01",
-            "page=%32",
-            "page=١",
-            "page=1000",
-            "page=2&page=3",
-        ):
-            with self.subTest(bad_query=bad_query):
-                response = self.client.get(f"{reverse('wiki-home')}?{bad_query}")
-                self.assertEqual(response.status_code, 400)
-                self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
-                self.assertNotContains(response, bad_query, status_code=400)
-
-        # A parameter the catalogue does not select on is ignored rather than
-        # refused, so a campaign-tagged link still reaches the page it names.
-        tagged = self.client.get(f"{reverse('wiki-home')}?page=2&sort=title")
-        self.assertEqual(tagged.status_code, 200)
-        self.assertNotContains(tagged, "sort=title")
-
-        beyond = self.client.get(f"{reverse('wiki-home')}?page=999")
-        self.assertEqual(beyond.status_code, 404)
-        self.assertEqual(beyond.headers["Cache-Control"], "no-store, max-age=0")
-        self.assertNotIn("Location", beyond.headers)
+        body = self.body
+        self.assertIn("<title>Wiki — DataTalks.Club</title>", body)
+        self.assertIn('<link rel="canonical" href="https://datatalks.club/wiki">', body)
+        self.assertNotIn('<nav class="pagination"', body)
+        self.assertNotIn("results for", body)
 
         rejected = self.client.post(reverse("wiki-home"))
         self.assertEqual(rejected.status_code, 405)
@@ -315,13 +202,7 @@ class WikiCataloguePaginationTests(TestCase):
         self.assertEqual(rejected.headers["Cache-Control"], "no-store, max-age=0")
 
     def test_head_matches_get_status_metadata_and_empty_bodies(self) -> None:
-        for path in (
-            reverse("wiki-home"),
-            f"{reverse('wiki-home')}?page=1",
-            f"{reverse('wiki-home')}?page=2",
-            f"{reverse('wiki-home')}?page=0",
-            f"{reverse('wiki-home')}?page=999",
-        ):
+        for path in (reverse("wiki-home"), "/wiki?page=2", "/wiki?q=data"):
             with self.subTest(path=path):
                 get_response = self.client.get(path)
                 head_response = self.client.head(path)
@@ -330,10 +211,6 @@ class WikiCataloguePaginationTests(TestCase):
                     head_response.headers.get("Cache-Control"),
                     get_response.headers.get("Cache-Control"),
                 )
-                self.assertEqual(
-                    head_response.headers.get("Allow"),
-                    get_response.headers.get("Allow"),
-                )
                 self.assertEqual(head_response.content, b"")
 
     def test_the_slash_alias_still_forwards_its_raw_query_in_one_hop(self) -> None:
@@ -341,7 +218,7 @@ class WikiCataloguePaginationTests(TestCase):
         self.assertEqual(response.status_code, 301)
         self.assertEqual(response.headers["Location"], "/wiki?page=2")
 
-    def test_an_empty_catalogue_says_so_and_leaves_the_other_paths_useful(self) -> None:
+    def test_an_empty_wiki_says_so(self) -> None:
         # The hub reads the database, so it is emptied the way an un-ingested
         # database is empty rather than by patching a value in.
         ContentSource.objects.filter(stable_id=catalogue.PUBLIC_CONTENT_STABLE_ID).update(
@@ -350,14 +227,9 @@ class WikiCataloguePaginationTests(TestCase):
         EngineContentSource.objects.filter(slug=catalogue.WIKI_SOURCE_SLUG).update(is_enabled=False)
 
         response = self.client.get(reverse("wiki-home"))
-        body = response.content.decode()
-        beyond = self.client.get(f"{reverse('wiki-home')}?page=2")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("No Wiki pages are available yet.", body)
-        self.assertNotIn('<nav class="pagination"', body)
-        self.assertIn('aria-label="Wiki exploration"', body)
-        self.assertEqual(beyond.status_code, 404)
+        self.assertIn("No wiki pages are available yet.", response.content.decode())
 
     def test_the_wiki_sitemap_lists_the_clean_hub_and_no_page_query(self) -> None:
         sitemap = self.client.get("/wiki/sitemap.xml").content.decode()
@@ -365,65 +237,43 @@ class WikiCataloguePaginationTests(TestCase):
         self.assertIn("<loc>https://datatalks.club/wiki</loc>", sitemap)
         self.assertNotIn("?page=", sitemap)
 
-    def test_the_hub_uses_the_shared_paginator_include_and_no_wiki_only_control(self) -> None:
-        source = (REPOSITORY_ROOT / "templates/public/wiki_hub.html").read_text(encoding="utf-8")
-        markup = re.sub(
-            r"{%\s*comment\s*%}.*?{%\s*endcomment\s*%}",
-            "",
-            source,
-            flags=re.DOTALL,
-        )
-
-        self.assertIn('include "public/_pagination.html"', markup)
-        self.assertNotIn("?page=", markup)
-        self.assertFalse((REPOSITORY_ROOT / "templates/public/_wiki_pagination.html").exists())
-
 
 class WikiSearchTests(TestCase):
-    def test_a_query_reports_its_own_count_and_lists_each_hit_with_its_kind(self) -> None:
-        response = self.client.get(reverse("wiki-home"), {"q": "machine learning"})
+    def test_a_query_lists_its_ranked_topics_as_cards_on_a_private_page(self) -> None:
+        response = self.client.get(reverse("wiki-search"), {"q": "data pipelines"})
         body = response.content.decode()
         results = response.context["results"]
 
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "public/wiki_search.html")
+        self.assertEqual(results, wiki_hub.search("data pipelines"))
         self.assertTrue(results)
-        self.assertIn(f"{len(results)} results for &ldquo;machine learning&rdquo;", body)
-        for result in results[:5]:
-            with self.subTest(url=result["url"]):
-                self.assertIn(f'<a href="{result["url"]}">', body)
-                self.assertIn(
-                    f'<span class="status-pill result-kind">{result["document_type"]}</span>',
-                    body,
-                )
-                if result["segment_title"]:
-                    self.assertIn(escape(str(result["segment_title"])), body)
-        special_segment = next(
-            result
-            for result in results
-            if result["segment_title"] and "&" in str(result["segment_title"])
-        )
-        self.assertNotEqual(
-            escape(str(special_segment["segment_title"])),
-            str(special_segment["segment_title"]),
-        )
-        self.assertIn(escape(str(special_segment["segment_title"])), body)
+        noun = "topic" if len(results) == 1 else "topics"
+        self.assertIn(f"{len(results)} {noun} for &ldquo;data pipelines&rdquo;", body)
+        for topic in results[:5]:
+            with self.subTest(url=topic.url):
+                self.assertIn(f'<a href="{topic.url}">', body)
+        self.assertEqual(response.headers["Cache-Control"], "private, no-store, max-age=0")
+        self.assertIn('<meta name="robots" content="noindex">', body)
 
     def test_a_query_with_no_hits_keeps_its_zero_count_and_its_empty_state(self) -> None:
-        body = self.client.get(reverse("wiki-home"), {"q": "no-such-public-topic"}).content.decode()
+        body = self.client.get(
+            reverse("wiki-search"), {"q": "no-such-public-topic"}
+        ).content.decode()
 
-        self.assertIn("0 results for &ldquo;no-such-public-topic&rdquo;", body)
-        self.assertIn("No matching Wiki pages were found. Try a broader term.", body)
+        self.assertIn("0 topics for &ldquo;no-such-public-topic&rdquo;", body)
+        self.assertIn("No wiki topic matches that.", body)
 
     def test_the_search_field_returns_the_term_already_searched_for(self) -> None:
-        body = self.client.get(reverse("wiki-home"), {"q": "machine learning"}).content.decode()
+        body = self.client.get(reverse("wiki-search"), {"q": "data pipelines"}).content.decode()
 
-        self.assertIn('<label class="sr-only" for="wiki-query">Search term</label>', body)
-        self.assertIn('value="machine learning"', body)
+        self.assertIn('value="data pipelines"', body)
 
-    def test_an_unqueried_hub_renders_the_catalogue_and_not_an_empty_result_list(self) -> None:
-        body = self.client.get(reverse("wiki-home")).content.decode()
+    def test_a_blank_term_goes_back_to_the_hub(self) -> None:
+        response = self.client.get("/wiki/search?q=++")
 
-        self.assertNotIn("results for", body)
-        self.assertNotIn("No matching Wiki pages were found.", body)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/wiki")
 
     def test_the_editorial_search_slug_stays_a_wiki_page(self) -> None:
         response = self.client.get("/wiki/search")
@@ -439,56 +289,93 @@ class WikiSearchTests(TestCase):
             "search as the product system readers use to find a topic",
             body,
         )
-        self.assertNotIn("results for", body)
-        self.assertNotIn('<nav class="pagination"', body)
+        self.assertNotIn("topics for", body)
 
-    def test_search_still_trims_bounds_and_matches_every_term(self) -> None:
-        trimmed = self.client.get(reverse("wiki-home"), {"q": "  volunteer nonprofit  "})
-        plain = self.client.get(reverse("wiki-home"), {"q": "volunteer nonprofit"})
-        volunteer = self.client.get(reverse("wiki-home"), {"q": "volunteer"})
+    def test_search_trims_and_bounds_the_term(self) -> None:
+        trimmed = self.client.get(reverse("wiki-search"), {"q": "  data   pipelines  "})
+        self.assertEqual(trimmed.context["query"], "data pipelines")
 
-        self.assertEqual(trimmed.context["query"], "volunteer nonprofit")
-        self.assertEqual(
-            [result["url"] for result in trimmed.context["results"]],
-            [result["url"] for result in plain.context["results"]],
-        )
-        self.assertTrue(plain.context["results"])
-        self.assertLess(len(plain.context["results"]), len(volunteer.context["results"]))
-        self.assertTrue(
-            {result["url"] for result in plain.context["results"]}.issubset(
-                {result["url"] for result in volunteer.context["results"]}
-            )
-        )
-        for result in plain.context["results"]:
-            haystack = " ".join(
-                str(result.get(field, ""))
-                for field in ("title", "page_title", "segment_title", "text", "related_terms")
-            ).casefold()
-            self.assertIn("volunteer", haystack)
-            self.assertIn("nonprofit", haystack)
-
-        long_query = "x" * 250
-        bounded = self.client.get(reverse("wiki-home"), {"q": long_query})
+        bounded = self.client.get(reverse("wiki-search"), {"q": "x" * 250})
         self.assertEqual(bounded.context["query"], "x" * 200)
-        self.assertEqual(len(bounded.context["query"]), 200)
 
-    def test_search_still_caps_results_at_one_hundred(self) -> None:
-        results = _wiki_search_results("data")
-        response = self.client.get(reverse("wiki-home"), {"q": "data"})
+    def test_the_live_endpoint_returns_the_top_ranked_topics_as_private_json(self) -> None:
+        response = self.client.get(reverse("wiki-search-live"), {"q": "data pipelines"})
+        payload = response.json()
+        ranked = wiki_hub.search("data pipelines")
 
-        self.assertEqual(len(results), 100)
-        self.assertEqual(len(response.context["results"]), 100)
-        self.assertIn("100 results for &ldquo;data&rdquo;", response.content.decode())
-        self.assertNotIn('<nav class="pagination"', response.content.decode())
+        self.assertEqual(response.headers["Cache-Control"], "private, no-store, max-age=0")
+        self.assertEqual(payload["total"], len(ranked))
+        self.assertEqual(
+            [result["url"] for result in payload["results"]],
+            [topic.url for topic in ranked[: wiki_hub.LIVE_RESULTS]],
+        )
+        self.assertEqual(payload["all_url"], "/wiki/search?q=data+pipelines")
+        empty = self.client.get(reverse("wiki-search-live"), {"q": " "}).json()
+        self.assertEqual((empty["total"], empty["results"]), (0, []))
 
-    def test_accepted_companion_search_parameters_do_not_page_or_leave_search(self) -> None:
-        response = self.client.get("/wiki?q=machine+learning&document_type=page")
-        body = response.content.decode()
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("results for", body)
-        self.assertNotIn('<nav class="pagination"', body)
-        self.assertIn('<link rel="canonical" href="https://datatalks.club/wiki">', body)
+def _synthetic_index(*pages: tuple[str, str, str, str, int]) -> Any:
+    """A hub index over hand-written pages: (slug, title, summary, body, episodes)."""
+
+    records = tuple(
+        {
+            "slug": slug,
+            "title": title,
+            "summary": summary,
+            "public_path": f"/wiki/{slug}",
+            "tags": [],
+            "relations": [],
+        }
+        for slug, title, summary, _body, _episodes in pages
+    )
+    nodes = [{"id": f"wiki:{slug}", "type": "wiki"} for slug, *_ in pages]
+    links = []
+    for slug, *_rest, episodes in pages:
+        for number in range(episodes):
+            nodes.append({"id": f"podcast:{slug}-{number}", "type": "podcast"})
+            links.append({"source": f"podcast:{slug}-{number}", "target": f"wiki:{slug}"})
+    corpus = {
+        "docs": [
+            {"graph_id": f"wiki:{slug}", "document_type": "page", "text": body}
+            for slug, _title, _summary, body, _episodes in pages
+        ]
+    }
+    return wiki_hub._build(records, {"nodes": nodes, "links": links}, corpus)
+
+
+class WikiSearchRankingTests(SimpleTestCase):
+    def ranked(self, query: str, *pages: tuple[str, str, str, str, int]) -> list[str]:
+        with patch("content.wiki_hub._index", return_value=_synthetic_index(*pages)):
+            return [topic.slug for topic in wiki_hub.search(query)]
+
+    def test_title_beats_summary_beats_body_and_every_word_must_match(self) -> None:
+        pages = (
+            ("body", "Pipelines", "Moving data.", "Teams schedule airflow jobs.", 50),
+            ("summary", "Orchestration", "Scheduling with Airflow and peers.", "", 40),
+            ("partial", "Airflowing Ideas", "", "", 0),
+            ("title", "Apache Airflow", "A scheduler.", "", 1),
+            ("none", "dbt", "Transformations.", "", 90),
+        )
+        self.assertEqual(self.ranked("airflow", *pages), ["title", "partial", "summary", "body"])
+        self.assertEqual(self.ranked("airflow scheduler", *pages), ["title"])
+
+    def test_a_query_spelling_a_titles_initials_ranks_it_first(self) -> None:
+        pages = (
+            ("rag-vs-ft", "RAG vs Fine-Tuning", "", "", 30),
+            ("rag", "Retrieval-Augmented Generation", "", "uses rag pipelines", 1),
+            ("gov", "Responsible AI and Governance", "", "", 50),
+        )
+        self.assertEqual(self.ranked("rag", *pages), ["rag", "rag-vs-ft"])
+
+    def test_a_partial_match_must_start_a_word_and_ties_go_to_more_episodes(self) -> None:
+        pages = (
+            ("storage", "Storage", "Where data lives.", "", 99),
+            ("few", "Career Growth", "", "", 2),
+            ("many", "Career Transitions", "", "", 60),
+        )
+        self.assertEqual(self.ranked("career", *pages), ["many", "few"])
+        self.assertEqual(self.ranked("rag", *pages), [])
+        self.assertEqual(self.ranked("care", *pages), ["many", "few"])
 
 
 class WikiGraphTests(TestCase):

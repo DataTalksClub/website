@@ -233,7 +233,7 @@ class DesignFiveAShellTests(TestCase):
             "podcast index": reverse("podcast"),
             "podcast episode": self.episode["public_path"],
             "wiki hub": reverse("wiki-home"),
-            "wiki search": f"{reverse('wiki-home')}?q=machine+learning",
+            "wiki search": f"{reverse('wiki-search')}?q=machine+learning",
             "wiki graph": reverse("wiki-graph"),
             "wiki special pages": reverse("wiki-special"),
             "wiki page": self.wiki_page["public_path"],

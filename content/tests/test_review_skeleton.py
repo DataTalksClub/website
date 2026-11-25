@@ -352,8 +352,9 @@ class PublishedCatalogueTests(TestCase):
 
     def test_wiki_machine_and_server_rendered_routes_use_only_wiki_mount(self) -> None:
         for path in (
-            "/wiki?q=machine+learning",
-            "/wiki?q=%3Cscript%3E",
+            "/wiki/search?q=machine+learning",
+            "/wiki/search?q=%3Cscript%3E",
+            "/wiki/search.json?q=machine+learning",
             "/wiki/graph",
             "/wiki/special-pages",
             "/wiki/special-pages/guides",
@@ -416,7 +417,7 @@ class PublishedCatalogueTests(TestCase):
             "/events",
             "/blog",
             "/wiki",
-            "/wiki?q=data",
+            "/wiki/search?q=data",
             "/courses",
         ]
         with CaptureQueriesContext(connection) as captured:

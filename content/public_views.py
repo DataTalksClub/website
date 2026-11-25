@@ -21,6 +21,7 @@ from django.http import (
     HttpResponseBadRequest,
     HttpResponseNotAllowed,
     HttpResponsePermanentRedirect,
+    HttpResponseRedirect,
     JsonResponse,
 )
 from django.http.response import HttpResponseBase
@@ -30,6 +31,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
 from core.breadcrumbs import Trail, trail
+from core.home_content import wiki_graph as home_wiki_graph
 from core.runtime_config import get_str_setting
 from core.sensitive_query import has_sensitive_query_key
 from core.sponsors import public_events_hub_sponsors
@@ -47,6 +49,7 @@ from events.lifecycle import accepts_registrations
 from events.queries import event_public_record, published_event_records
 
 from . import catalogue, wiki_content, wiki_reader
+from . import wiki_hub as wiki_hub_content
 from .article_content import article_view, render_body_markdown
 from .article_faq import ArticleFaq, article_faq
 from .docs_reader import docs_pages
@@ -1701,36 +1704,42 @@ def person_detail(request: HttpRequest, slug: str) -> HttpResponse:
 
 @csrf_exempt
 def wiki_hub(request: HttpRequest) -> HttpResponse:
-    """The Wiki landing page: four ways in, the last of which is a paged catalogue.
+    """The Wiki landing page: search first, then the ways into a topic.
 
-    `q` is the mode switch and is read first, so a search request never reaches the
-    paginator and search results are never paged (issue #175).  Without `q` the hub is
-    the A–Z catalogue in the published `(title.casefold(), slug)` order, cut into
-    pages by the shared paginator (issue #178).
+    The hub has no query state.  A search term sent here (an old `/wiki?q=`
+    link) goes to the results page, and any other query, such as the retired
+    catalogue's `?page=`, goes to the clean hub, since every topic is on it.
     """
 
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
-    if "q" in request.GET:
-        return wiki_search(request)
-    pagination = paginate_public_request(
-        request,
-        wiki_reader.wiki_pages(),
-        clean_base_path="/wiki",
-        catalogue_label="Wiki catalogue pages",
-    )
-    if isinstance(pagination, HttpResponse):
-        return pagination
+    query = request.GET.get("q", "").strip()[:200]
+    if query:
+        response = HttpResponseRedirect(f"/wiki/search?{urlencode({'q': query})}")
+        response["Cache-Control"] = "private, no-store, max-age=0"
+        return response
+    if request.GET:
+        return HttpResponsePermanentRedirect("/wiki")
+    stats = wiki_hub_content.stats()
     return _render(
         request,
         "public/wiki_hub.html",
-        path=pagination.canonical_path,
-        title=pagination_title("Wiki", pagination.page_number),
-        description="Find wiki pages, guides, summaries, people, and books.",
+        path="/wiki",
+        title="Wiki — DataTalks.Club",
+        description=(
+            "Notes on data and AI topics, written from DataTalks.Club podcast episodes, "
+            "events and books, with links to the sources."
+        ),
         context={
-            "records": pagination.items,
-            "catalogue_total": pagination.total_items,
-            **_pagination_context(pagination),
+            "stats": stats,
+            "wiki_graph": home_wiki_graph(),
+            "featured_roadmaps": wiki_hub_content.featured_roadmaps(),
+            "featured_topics": wiki_hub_content.featured_topics(),
+            "areas": wiki_hub_content.areas(),
+            "kind_rows": wiki_hub_content.kind_rows(),
+            "busiest": wiki_hub_content.busiest(),
+            "start_goals": wiki_hub_content.start_goals(),
+            "letter_groups": wiki_hub_content.letter_groups(),
         },
     )
 
@@ -1833,46 +1842,57 @@ def wiki_slash_alias(request: HttpRequest, slug: str) -> HttpResponse:
     return permanent_public_redirect(request, target=target)
 
 
-def _wiki_search_results(query: str) -> tuple[dict, ...]:
-    if not query:
-        return ()
-    terms = query.casefold().split()
-    results: list[dict] = []
-    seen: set[str] = set()
-    for document in catalogue.wiki_search().get("docs", []):
-        url = document.get("url", "")
-        haystack = " ".join(
-            str(document.get(field, ""))
-            for field in ("title", "page_title", "segment_title", "text", "related_terms")
-        ).casefold()
-        if (
-            url.startswith("/wiki/")
-            and url != "/wiki/search"
-            and url not in seen
-            and all(term in haystack for term in terms)
-        ):
-            seen.add(url)
-            results.append(document)
-            if len(results) == 100:
-                break
-    return tuple(results)
-
-
-@require_safe
+@csrf_exempt
 def wiki_search(request: HttpRequest) -> HttpResponse:
-    query = request.GET.get("q", "").strip()[:200]
+    """`/wiki/search?q=` is the ranked results page; bare `/wiki/search` is a topic.
+
+    The podwiki publishes an editorial page about search at this slug, and its
+    graph links topic nodes to `/wiki/search?q=<term>`, so the term is the
+    switch: without `q` the topic page renders, a blank term goes back to the
+    hub, and a term renders every matching topic, best first.  The live
+    dropdown on the hub reads the same ranking from `wiki_search_live`.
+    """
+
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    if "q" not in request.GET:
+        return wiki_detail(request, "search")
+    query = " ".join(request.GET.get("q", "").split())[:200]
+    if not query:
+        return _no_store(HttpResponseRedirect("/wiki"))
     response = _render(
         request,
         "public/wiki_search.html",
-        path="/wiki",
-        title="Search — DataTalks.Club Wiki",
-        description="Find wiki pages, guides, summaries, people, and books.",
-        context={"query": query, "results": _wiki_search_results(query)},
+        path="/wiki/search",
+        title=f"{query} — Search — DataTalks.Club Wiki",
+        description="Wiki topics matching your search.",
+        context={
+            "query": query,
+            "results": wiki_hub_content.search(query),
+            "stats": wiki_hub_content.stats(),
+        },
     )
-    # Search is the spec's explicitly private surface, whichever route shape
-    # served it (the wiki hub delegates here for `q`).  The middleware's route
-    # registry vetoes the same requests; this declaration keeps the search
-    # contract true at the view even if the registry entry ever moves.
+    # Search results are the spec's explicitly private surface.  The route
+    # registry vetoes sharing a `q` request too; this keeps the contract true
+    # at the view even if that entry ever moves.
+    response["Cache-Control"] = "private, no-store, max-age=0"
+    return response
+
+
+@require_safe
+def wiki_search_live(request: HttpRequest) -> JsonResponse:
+    """The hub's live search: the top ranked topics for `q`, as JSON."""
+
+    query = " ".join(request.GET.get("q", "").split())[:200]
+    results = wiki_hub_content.search(query) if query else ()
+    response = JsonResponse(
+        {
+            "query": query,
+            "total": len(results),
+            "results": [topic.as_json() for topic in results[: wiki_hub_content.LIVE_RESULTS]],
+            "all_url": f"/wiki/search?{urlencode({'q': query})}" if query else "",
+        }
+    )
     response["Cache-Control"] = "private, no-store, max-age=0"
     return response
 

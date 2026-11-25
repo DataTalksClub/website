@@ -26,7 +26,6 @@ MIGRATED_TEMPLATES = (
     "templates/public/_wiki_search_form.html",
     "templates/public/bad_request.html",
     "templates/public/book_detail.html",
-    "templates/public/wiki_hub.html",
     "templates/public/wiki_special.html",
 )
 

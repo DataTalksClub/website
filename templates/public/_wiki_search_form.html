@@ -1,22 +1,35 @@
 {% comment %}
-  The wiki's search form, shared by the hub and the results page so the two cannot
-  drift apart.  Both post the same GET query to the same wiki route; the caller
-  passes the visible-to-screen-readers label and, on the results page, the term
-  already searched for.
+  The wiki's search box, shared by the hub and the results page so the two
+  cannot drift apart.  Without JavaScript it is a plain GET form that lands on
+  the ranked results page (`/wiki/search?q=`).  core/static/core/wiki_search.js
+  turns it into a combobox: ranked results from `/wiki/search.json` drop down
+  as the reader types, ↑/↓ move through them, Enter opens the highlighted one
+  (the top result when none is), and Esc closes the list.  Its rules are in
+  public/_wiki_finder_styles.html.
 
   Usage:
-    {% include "public/_wiki_search_form.html" with search_label="Search the Wiki" %}
+    {% include "public/_wiki_search_form.html" with topic_total=stats.topics %}
+    {% include "public/_wiki_search_form.html" with topic_total=stats.topics query=query %}
 {% endcomment %}
-<form class="search-row wiki-search" action="{% url 'wiki-home' %}" method="get">
-  <label class="sr-only" for="wiki-query">{{ search_label }}</label>
-  <input
-    id="wiki-query"
-    class="field-input"
-    name="q"
-    type="search"
-    placeholder="{{ search_placeholder|default:'Search wiki topics' }}"
-    value="{{ query|default:'' }}"
-    required
-  >
-  {% include "core/_button.html" with tag="button" type="submit" label="Search" variant="primary" compact=True %}
-</form>
+<div class="wiki-search" data-wiki-search data-live-url="{% url 'wiki-search-live' %}">
+  <form class="search-row wiki-search-form" action="{% url 'wiki-search' %}" method="get" role="search">
+    <label class="sr-only" for="wiki-query">Search the wiki</label>
+    <input
+      id="wiki-query"
+      class="field-input"
+      name="q"
+      type="search"
+      autocomplete="off"
+      spellcheck="false"
+      placeholder="Search {{ topic_total }} topics, e.g. RAG, dbt, career switch"
+      value="{{ query|default:'' }}"
+      aria-autocomplete="list"
+      aria-controls="wiki-search-results"
+      aria-expanded="false"
+      required
+    >
+    {% include "core/_button.html" with tag="button" type="submit" label="Search" variant="primary" compact=True %}
+  </form>
+  <div class="wiki-search-results" id="wiki-search-results" role="listbox" aria-label="Matching topics" hidden></div>
+  <p class="sr-only" data-wiki-search-status aria-live="polite"></p>
+</div>

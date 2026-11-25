@@ -136,7 +136,7 @@ class AnonymousPageCacheTests(TestCase):
 
     def test_search_query_is_never_cached(self) -> None:
         for _ in range(2):
-            response = self.client.get("/wiki", {"q": "launch"})
+            response = self.client.get("/wiki/search", {"q": "launch"})
             self.assertEqual(response.status_code, 200)
             self.assertNotIn("X-Page-Cache", response.headers)
 

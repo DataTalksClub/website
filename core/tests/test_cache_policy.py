@@ -247,9 +247,11 @@ class ProductionSurfaceCacheTests(TestCase):
         assert_private_no_store(self, response)
 
     def test_wiki_search_is_private_whichever_route_serves_it(self) -> None:
-        response = Client().get("/wiki", {"q": "synthetic term"})
-        self.assertEqual(response.status_code, 200)
-        assert_private_no_store(self, response)
+        for path in ("/wiki", "/wiki/search", "/wiki/search.json"):
+            with self.subTest(path=path):
+                response = Client().get(path, {"q": "synthetic term"})
+                self.assertIn(response.status_code, {200, 302})
+                assert_private_no_store(self, response)
 
 
 class ResponseVetoMechanicsTests(SimpleTestCase):

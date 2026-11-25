@@ -205,6 +205,8 @@ urlpatterns = [
     path("wiki", public_views.wiki_hub, name="wiki-home"),
     path("wiki/", public_views.permanent_public_redirect, {"target": "/wiki"}),
     path("wiki/search-corpus.json", public_views.wiki_search_json, name="wiki-search-json"),
+    path("wiki/search", public_views.wiki_search, name="wiki-search"),
+    path("wiki/search.json", public_views.wiki_search_live, name="wiki-search-live"),
     path("wiki/graph", public_views.wiki_graph, name="wiki-graph"),
     path("wiki/graph/graph.json", public_views.wiki_graph_json, name="wiki-graph-json"),
     path("wiki/special-pages", public_views.wiki_special, name="wiki-special"),

@@ -55,8 +55,15 @@ BODIES_BELOW_THE_SEAM: dict[str, str] = {
 # account *management* page rather than an entrance, and it draws cream, cream,
 # lavender.  Moving its second band is its own change, not a drive-by inside a
 # sign-up redesign.
+# The wiki hub is a landing page like the homepage, and the owner asked for it
+# to alternate its bands the way the homepage does (2026-11-25), so it sits
+# with the homepage outside the governed set.
+WIKI_HUB = REPOSITORY_ROOT / "templates/public/wiki_hub.html"
+
 GOVERNED_TEMPLATES: tuple[Path, ...] = (
-    *sorted((REPOSITORY_ROOT / "templates/public").glob("*.html")),
+    *sorted(
+        path for path in (REPOSITORY_ROOT / "templates/public").glob("*.html") if path != WIKI_HUB
+    ),
     *sorted((REPOSITORY_ROOT / "templates/review").glob("*.html")),
     REPOSITORY_ROOT / "courses/templates/courses/course_list.html",
     REPOSITORY_ROOT / "courses/templates/courses/course.html",
@@ -77,6 +84,7 @@ GOVERNED_TEMPLATES: tuple[Path, ...] = (
 # system and are not governed here.
 UNGOVERNED = (
     REPOSITORY_ROOT / "templates/core/home.html",
+    WIKI_HUB,
     REPOSITORY_ROOT / "templates/studio/base.html",
 )
 
