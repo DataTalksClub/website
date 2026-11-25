@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from django.http import HttpResponse
 from django.test import RequestFactory, TestCase, override_settings
@@ -82,3 +82,25 @@ class ApexCutoverTests(TestCase):
         response = HttpResponse("", headers={"Cache-Control": "public, max-age=0"})
         response.set_cookie("sessionid", "opaque")
         self.assertFalse(_public_success(request, response))
+
+    @override_settings(ANONYMOUS_PAGE_CACHE_ENABLED=True)
+    def test_cached_public_page_is_indexable_on_apex_only(self):
+        """A page-cache hit skips URL resolution; the apex exception must still apply."""
+        from core import page_cache
+
+        self.assertEqual(self.get("/", "prod.datatalks.club").status_code, 200)
+        real = page_cache.cached_response
+        hits = []
+
+        def recording(key):
+            response = real(key)
+            hits.append(response is not None)
+            return response
+
+        with patch.object(page_cache, "cached_response", recording):
+            apex = self.get("/")
+            prod = self.get("/", "prod.datatalks.club")
+        self.assertEqual(hits, [True, True])
+        self.assertEqual(apex.status_code, 200)
+        self.assertNotIn("X-Robots-Tag", apex)
+        self.assertEqual(prod["X-Robots-Tag"], "noindex, nofollow")
