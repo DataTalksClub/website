@@ -25,7 +25,8 @@
       <div class="site-footer-aside">
         <nav class="site-footer-nav" aria-label="Footer">
           {% if site_footer_sponsors_url %}
-            <a class="site-footer-nav-link app-link" href="{{ site_footer_sponsors_url }}">Sponsor us</a>
+            {% comment %}The sponsorship article, as a literal path: this footer also renders under the compatibility urlconf.{% endcomment %}
+            <a class="site-footer-nav-link app-link" href="/blog/sponsor-datatalks-club.html">Sponsor us</a>
           {% endif %}
         </nav>
         <nav class="site-footer-social" aria-label="DataTalks.Club elsewhere">
