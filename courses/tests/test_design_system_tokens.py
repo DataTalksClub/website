@@ -33,6 +33,12 @@ DEADLINE_PAGES = (
 # itself.  The three --drawn-circle values are border-radii, not colours: the
 # lopsided circle from the 4a mockup is the same shape in both themes.
 THEME_NEUTRAL_TOKENS = {
+    # Article chart tones 2-5 are one set of mid-tone hues checked against the
+    # card in both themes; only tone 1 and the neutral are restated for dark.
+    "--chart-tone-2",
+    "--chart-tone-3",
+    "--chart-tone-4",
+    "--chart-tone-5",
     "--clay",
     "--content-width",
     "--drawn-circle",
