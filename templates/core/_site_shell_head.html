@@ -116,7 +116,7 @@
         {% for group in primary_navigation_groups %}
           <div class="nav-group" data-current="{{ group.current|yesno:'true,false' }}">
             <button
-              class="nav-link nav-group-toggle interactive-lift"
+              class="nav-link nav-group-toggle"
               type="button"
               aria-expanded="false"
               aria-controls="nav-group-{{ group.key }}"

@@ -29,7 +29,7 @@ CONTROL_CLASSES = {
 }
 # A button drawn as a text link among other text links (the footer's Analytics
 # preferences control) behaves exactly like those links: no lift.
-TEXT_LINK_BUTTON_CLASSES = {"site-footer-legal-control"}
+TEXT_LINK_BUTTON_CLASSES = {"site-footer-legal-control", "nav-group-toggle"}
 
 
 class InteractiveSurfaceContractTests(SimpleTestCase):
