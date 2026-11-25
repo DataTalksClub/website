@@ -57,7 +57,7 @@ class EventRegisterFormTests(TestCase):
         )
 
     def form(self, body: str) -> str:
-        match = re.search(r'<form method="post"[^>]*event-register-form.*?</form>', body, re.S)
+        match = re.search(r'<form\s[^>]*id="event-register-email-form".*?</form>', body, re.S)
         self.assertIsNotNone(match)
         assert match is not None
         return match.group(0)
@@ -66,7 +66,8 @@ class EventRegisterFormTests(TestCase):
         form = self.form(self.render())
 
         self.assertIn(f'action="{PUBLIC_PATH}/register"', form)
-        self.assertIn('class="cmp-form event-register-form"', form)
+        self.assertIn('class="cmp-form event-register-form event-register-email"', form)
+        self.assertIn("data-register-gate", form)
         self.assertIn('name="csrfmiddlewaretoken"', form)
         self.assertEqual(form.count('class="field"'), 2)
         self.assertIn('<label class="field-label" for="id_reg_email">Email</label>', form)
@@ -78,7 +79,7 @@ class EventRegisterFormTests(TestCase):
         self.assertIn('name="newsletter_consent"', form)
         self.assertIn('<label class="form-check-label" for="id_reg_newsletter_consent">', form)
         self.assertIn('class="cmp-form-actions"', form)
-        self.assertIn('class="cta cta-primary interactive-lift">Register</button>', form)
+        self.assertIn('class="cta cta-primary cta-compact interactive-lift">Register</button>', form)
         self.assertNotIn('name="company"', form)
         self.assertNotIn('name="sponsor_sharing_consent"', form)
         self.assertNotIn("aria-invalid", form)
@@ -117,7 +118,7 @@ class EventRegisterFormTests(TestCase):
             r"<strong>You're registered for this event.</strong>",
         )
         self.assertNotIn('class="a11y-error-summary"', body)
-        self.assertNotIn('class="cmp-form event-register-form"', body)
+        self.assertNotIn('id="event-register-email-form"', body)
 
     def test_closed_outcome_is_reported_without_a_form(self) -> None:
         for state in ("past", ""):
@@ -130,10 +131,10 @@ class EventRegisterFormTests(TestCase):
                     r'role="alert"\s+tabindex="-1"\s+data-focus-error-summary',
                 )
                 self.assertIn("Registration for this event is closed.", body)
-                self.assertNotIn('class="cmp-form event-register-form"', body)
+                self.assertNotIn('id="event-register-email-form"', body)
 
     def test_past_event_without_an_outcome_draws_no_registration_band(self) -> None:
         body = self.render(state="past")
 
         self.assertNotIn('class="band band-lavender event-register-band"', body)
-        self.assertNotIn('class="cmp-form event-register-form"', body)
+        self.assertNotIn('id="event-register-email-form"', body)
