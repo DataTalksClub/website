@@ -3,19 +3,20 @@
 {% comment %}
   The Academy home page (/academy/), built section by section on the Academy
   home blueprint (_docs/design/landing-pages.md) in the course family
-  landing's frame.  The cream header is the hero, the one block at the full
-  shell width (owner, 2026-11-24): the heading, a short lede, the waitlist
-  action and the instructor line beside the Academy's drawing, the course
-  family hero's shape, and the key facts as the spec strip at its foot (as
-  on the program pages).  Below the seam every chapter keeps the content
-  column and the same frame -- a dashed seam and a band head: the two
-  programs as cards (the comparison page linked under them),
-  funding with its guides, the free session series, the three newest
-  articles as a card grid, a few questions from the FAQ, the limited seats
-  with the four admission steps as cards, and the closing mint band
-  holding the one waitlist form the hero's action points to.  The anchors older links use (#hero, #signup-hero, #tracks, #facts,
-  #funding) stay on those blocks.  Every word is synced content (academy/index.md,
-  academy/shared.yaml and the pages it reads from in DataTalksClub/content).
+  landing's frame.  The cream header is the hero: the heading on two lines,
+  a short lede, the waitlist action and the instructor line with his proof
+  links beside the Academy's drawing, and the key facts as the spec strip at
+  its foot, all inside a laptop's first screen.  Below the seam the chapters
+  alternate their grounds the way the homepage does, each a band head over
+  the system's own blocks: the two programs as cards with funding as a
+  second head in the same band; the free sessions as three event cards;
+  the three newest articles as title cards; a few questions in the FAQ
+  panel; the limited seats with the four admission steps as cards; and the
+  closing mint band holding the one waitlist form the hero's action points
+  to.  The anchors older links use (#hero, #signup-hero, #tracks, #facts,
+  #funding) stay on those blocks.  Every word is synced content
+  (academy/index.md, academy/shared.yaml and the pages it reads from in
+  DataTalksClub/content).
 {% endcomment %}
 
 {% block document_title %}
@@ -47,7 +48,7 @@
         <div class="academy-actions">
           {% include "core/_button.html" with href="#signup-hero" label=shared.waitlist_button variant="primary" %}
         </div>
-        {% include "academy/_credibility.html" %}
+        {% include "academy/_credibility.html" with proof=True %}
       </div>
       <div class="academy-hero-art">
         {% include "academy/_hero_illustration.html" %}
@@ -71,9 +72,11 @@
     <div class="card-grid card-grid-2" data-tracks>
       {% for track in tracks %}
         <article class="card academy-track-card">
-          <h3>{{ track.name }}</h3>
-          <p class="academy-track-tagline">{{ track.headline }}</p>
-          <ul class="academy-card-list">
+          <div class="academy-track-head">
+            <h3>{{ track.name }}</h3>
+            <p class="academy-track-tagline">{{ track.headline }}</p>
+          </div>
+          <ul class="academy-checks">
             {% for outcome in track.highlights %}
               <li>{{ outcome }}</li>
             {% endfor %}
@@ -87,57 +90,54 @@
         <a class="band-link" href="{{ data.tracks.compare.href }}">{{ data.tracks.compare.label }} →</a>
       </p>
     {% endif %}
+    {% if data.funding %}
+      <div class="academy-funding-chapter" id="funding">
+        <div class="band-head band-head-secondary">
+          <div>
+            <h2 id="funding-heading">{{ data.funding.heading }}</h2>
+          </div>
+        </div>
+        <div class="prose">
+          {% for paragraph in data.funding.paragraphs %}
+            <p>{{ paragraph }}</p>
+          {% endfor %}
+        </div>
+        {% if data.funding.links or data.funding.link %}
+          <ul class="academy-inline-links academy-chapter-links">
+            {% for link in data.funding.links %}
+              <li>
+                <a class="band-link" href="{{ link.href }}">{{ link.label }} →</a>
+              </li>
+            {% endfor %}
+            {% if data.funding.link %}
+              <li>
+                <a class="band-link" href="{{ data.funding.link.href }}">{{ data.funding.link.label }} →</a>
+              </li>
+            {% endif %}
+          </ul>
+        {% endif %}
+      </div>
+    {% endif %}
   </section>
 
-  {% if data.funding %}
-    <section class="academy-section academy-band band-cream" id="funding" aria-labelledby="funding-heading">
-      <div class="band-head">
-        <div>
-          <h2 id="funding-heading">{{ data.funding.heading }}</h2>
-        </div>
-      </div>
-      <div class="prose">
-        {% for paragraph in data.funding.paragraphs %}
-          <p>{{ paragraph }}</p>
-        {% endfor %}
-      </div>
-      {% if data.funding.links or data.funding.link %}
-        <ul class="academy-inline-links academy-chapter-links">
-          {% for link in data.funding.links %}
-            <li>
-              <a class="band-link" href="{{ link.href }}">{{ link.label }} →</a>
-            </li>
-          {% endfor %}
-          {% if data.funding.link %}
-            <li>
-              <a class="band-link" href="{{ data.funding.link.href }}">{{ data.funding.link.label }} →</a>
-            </li>
-          {% endif %}
-        </ul>
-      {% endif %}
-    </section>
-  {% endif %}
-
   {% if data.sessions and home_sessions %}
-    <section class="academy-section academy-band band-lavender" id="sessions" aria-labelledby="sessions-heading">
+    <section class="academy-section academy-band band-cream" id="sessions" aria-labelledby="sessions-heading">
       <div class="band-head">
         <div>
           <h2 id="sessions-heading">{{ data.sessions.heading }}</h2>
           <p>{{ data.sessions.text }}</p>
         </div>
       </div>
-      <ol class="row-list academy-hero-sessions">
+      <ol class="card-grid card-grid-3 academy-session-cards">
         {% for session in home_sessions %}
-          <li class="list-row">
-            <span class="mono-note">{{ session.date_label }}</span>
-            <span class="academy-hero-session-title">
-              {{ session.title }}
-              {% if session.past and session.recap %}
-                <a class="band-link" href="{{ session.recap.href }}">{{ session.recap.label }}</a>
-              {% elif not session.past and session.event_path %}
-                <a class="band-link" href="{{ session.event_path }}">Register on the event page →</a>
-              {% endif %}
-            </span>
+          <li class="card academy-session-card">
+            <p class="mono-note">{{ session.date_label }}</p>
+            <h3>{{ session.title }}</h3>
+            {% if session.past and session.recap %}
+              <a class="band-link" href="{{ session.recap.href }}">{{ session.recap.label }} →</a>
+            {% elif not session.past and session.event_path %}
+              <a class="band-link" href="{{ session.event_path }}">Register on the event page →</a>
+            {% endif %}
           </li>
         {% endfor %}
       </ol>
@@ -148,7 +148,7 @@
   {% endif %}
 
   {% if data.articles and articles %}
-    <section class="academy-section academy-band band-cream" id="articles" aria-labelledby="articles-heading">
+    <section class="academy-section academy-band band-lavender" id="articles" aria-labelledby="articles-heading">
       <div class="band-head">
         <div>
           <h2 id="articles-heading">{{ data.articles.heading }}</h2>
@@ -166,7 +166,6 @@
             <h3 class="archive-title">
               <a href="{{ article.path }}">{{ article.heading }}</a>
             </h3>
-            <p class="academy-article-summary">{{ article.lead }}</p>
           </article>
         {% endfor %}
       </div>
@@ -179,7 +178,7 @@
   {% endif %}
 
   {% if data.faq and home_faq %}
-    <section class="academy-section academy-band band-lavender" id="questions" aria-labelledby="faq-heading">
+    <section class="academy-section academy-band band-cream" id="questions" aria-labelledby="faq-heading">
       <div class="band-head">
         <div>
           <h2 id="faq-heading">{{ data.faq.heading }}</h2>
@@ -193,7 +192,7 @@
     </section>
   {% endif %}
 
-  {% include "academy/_admission.html" with band="band-cream" %}
+  {% include "academy/_admission.html" with band="band-lavender" %}
 
   {% include "academy/_join.html" with choose_program=True band=True %}
 {% endblock %}

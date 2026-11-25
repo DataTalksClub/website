@@ -75,23 +75,24 @@
         }
       }
 
-      /* Two columns at the homepage hero's proportions (1.32fr : 1fr, the
-         same gap), so the drawing is as present as the homepage's scene
-         rather than a small picture in the corner. */
+      /* Two columns, the copy wide enough that the heading sets on two
+         lines rather than three, and the drawing beside it at the size of
+         the homepage's scene; the facts strip under both then still sits
+         inside the first screen of a laptop. */
       @media (min-width: 62rem) {
         .academy-hero-inner {
-          gap: var(--space-5) var(--space-7);
-          grid-template-columns: minmax(0, 1.32fr) minmax(0, 1fr);
+          gap: var(--space-5) var(--space-6);
+          grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
         }
 
         .academy-hero-art {
           justify-self: center;
-          max-width: 28rem;
+          max-width: 20rem;
         }
       }
 
       .academy-hero h1 {
-        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        font-size: clamp(2.1rem, 4.4vw, 3.1rem);
         letter-spacing: -0.03em;
         margin-top: 0.5rem;
         text-wrap: balance;
@@ -103,9 +104,9 @@
 
       .academy-lede {
         color: var(--body-text);
-        font-size: 1.15rem;
+        font-size: 1.1rem;
         line-height: 1.6;
-        margin-top: 1rem;
+        margin-top: var(--space-stack);
       }
 
       .academy-note {
@@ -154,8 +155,18 @@
         color: var(--body-text);
         display: flex;
         font-weight: 600;
-        gap: 0.75rem;
-        margin-top: 1.5rem;
+        gap: var(--space-3);
+        margin-top: var(--space-5);
+      }
+
+      .academy-person-links {
+        display: flex;
+        flex-wrap: wrap;
+        font-weight: 500;
+        gap: 0 var(--space-4);
+        list-style: none;
+        margin: var(--space-1) 0 0;
+        padding: 0;
       }
 
       .academy-person img {
@@ -198,11 +209,16 @@
         display: block;
       }
 
+      .academy-facts .spec {
+        align-content: start;
+      }
+
       .academy-facts dd {
         color: var(--ink);
-        font-size: 0.95rem;
+        font-size: 0.92rem;
         font-weight: 700;
         margin: 0;
+        text-wrap: balance;
       }
 
       /* Inside a chapter the band head already spaces the strip and the
@@ -363,23 +379,67 @@
         color: var(--indigo);
       }
 
-      /* The two programs, and who a program is for: cards in the system's
-         two-column grid. */
-      .academy-track-card,
-      .academy-fit-card {
-        gap: 0.85rem;
-        padding: 1.5rem;
+      /* A list of things you get or do, each line led by the homepage
+         comparison card's ink check (drawn with a mask, not borders). */
+      .academy-checks {
+        display: grid;
+        gap: var(--space-2);
+        list-style: none;
+        margin: 0;
+        padding: 0;
       }
 
-      .academy-track-card h3,
+      .academy-checks li {
+        color: var(--body-text);
+        padding-left: calc(1.2rem + var(--space-2));
+        position: relative;
+      }
+
+      .academy-checks li::before,
+      .academy-checks li::after {
+        content: "";
+        height: 1.2rem;
+        left: 0;
+        position: absolute;
+        top: 0.15rem;
+        width: 1.2rem;
+      }
+
+      .academy-checks li::before {
+        background: var(--ink);
+        border-radius: var(--radius-sm);
+      }
+
+      .academy-checks li::after {
+        background: var(--card);
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.2l3 3 6-6.4' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+      }
+
+      .academy-checks a {
+        color: var(--indigo);
+      }
+
+      /* The two programs, and who a program is for: cards in the system's
+         two-column grid, at the system's card padding. */
+      .academy-track-card,
+      .academy-fit-card {
+        gap: var(--space-4);
+      }
+
+      .academy-track-card h3 {
+        font-size: 1.35rem;
+        letter-spacing: -0.01em;
+      }
+
       .academy-fit-card h2,
       .academy-fit-card h3 {
         font-size: 1.15rem;
       }
 
       .academy-track-tagline {
-        color: var(--body-text);
-        font-weight: 700;
+        color: var(--ink);
+        font-weight: 600;
+        margin-top: var(--space-1);
       }
 
       /* The two cards mirror each other: the same three short lines, and the
@@ -389,8 +449,32 @@
         margin-top: auto;
       }
 
-      .academy-track-card .academy-card-list {
-        margin-bottom: 0.75rem;
+      .academy-track-card .academy-checks {
+        margin-bottom: var(--space-2);
+      }
+
+      /* --- the free sessions on the home page ------------------------------ *
+       * Three cards in the three-up grid, the /events card's shape: the date
+       * on the mono line, the title, and the session's one link at the foot. */
+      .academy-session-cards {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .academy-session-card {
+        gap: var(--space-3);
+      }
+
+      .academy-session-card h3 {
+        font-size: 1.05rem;
+        line-height: 1.35;
+      }
+
+      .academy-session-card .band-link {
+        margin-top: auto;
+        text-wrap: balance;
+        width: fit-content;
       }
 
       /* --- the forms ------------------------------------------------------- *
@@ -684,15 +768,32 @@
       }
 
       .academy-step {
-        gap: var(--space-3);
+        align-content: start;
+        gap: var(--space-2);
       }
 
-      .academy-step .stage-card-step {
-        margin-top: 0;
+      .academy-step .step-number {
+        margin-bottom: var(--space-1);
       }
 
       .academy-step h4 {
         font-size: 1.05rem;
+      }
+
+      /* One column on a phone: the disc beside the title and line, so four
+         short steps do not stack into a long column of tall cards. */
+      @media (max-width: 39.99rem) {
+        .academy-step {
+          align-items: start;
+          column-gap: var(--space-3);
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .academy-step .step-number {
+          grid-row: span 2;
+          margin-bottom: 0;
+        }
       }
 
       .academy-step p {
@@ -701,24 +802,17 @@
 
       /* --- the newest articles ---------------------------------------------- *
        * Three cards in the system's three-up grid, the homepage's events
-       * card in shape: the date line, the title (the whole card is the link)
-       * and three lines of the lead. */
+       * card in shape: the date line and the title (the whole card is the
+       * link).  The lead is left to the article: cut to three lines it broke
+       * off mid-word and made the cards tall. */
 
       .academy-article-card h3 {
-        font-size: 1.15rem;
+        font-size: 1.05rem;
+        line-height: 1.35;
       }
 
       .academy-article-card h3 a {
         color: var(--ink);
-      }
-
-      .academy-article-summary {
-        -webkit-box-orient: vertical;
-        color: var(--body-text);
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        line-clamp: 3;
-        overflow: hidden;
       }
 
       /* --- questions -------------------------------------------------------- */

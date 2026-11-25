@@ -2,10 +2,25 @@
   The hero's one credibility line: the instructor's portrait and the
   sentence that says who teaches and how many people he has taught.  Copy:
   shared.hero.instructor_line and shared.instructor.photo.
+
+  proof  also draw the instructor's proof links (DataTalks.Club, Maven) under
+         the sentence -- the Academy home, which has no instructor chapter of
+         its own to carry them (shared.instructor.proof)
 {% endcomment %}
 {% if shared.hero.instructor_line %}
-  <p class="academy-person">
+  <div class="academy-person">
     <img src="/{{ shared.instructor.photo }}" alt="" width="112" height="112" decoding="async">
-    <span>{{ shared.hero.instructor_line }}</span>
-  </p>
+    <div class="academy-person-copy">
+      <p>{{ shared.hero.instructor_line }}</p>
+      {% if proof and shared.instructor.proof %}
+        <ul class="academy-person-links">
+          {% for link in shared.instructor.proof %}
+            <li>
+              <a class="band-link" href="{{ link.href }}" target="_blank" rel="noopener">{{ link.label }} →</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  </div>
 {% endif %}
