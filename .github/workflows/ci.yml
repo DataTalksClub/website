@@ -75,10 +75,16 @@ env:
   # target's runner_image (GitHub's ImageOS for the label above); a workflow
   # contract test fails if it drifts.
   VERIFICATION_CONTAINER_RUNNER_IMAGE: ubuntu24-arm64
+  # The planner fingerprints its Python, and the hosted aarch64 container job's
+  # evidence must match it. The self-hosted runner's uv Python store is shared
+  # with other repositories, whose newer uv may have installed a later 3.13
+  # patch that this pinned uv would otherwise pick there; pin the patch that
+  # uv 0.10.11 downloads on the hosted runners so both sides resolve the same one.
+  UV_PYTHON: "3.13.12"
 
 jobs:
   resolve-release:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     outputs:
       release_sha: ${{ steps.release.outputs.release_sha }}
       version: ${{ steps.release.outputs.version }}
@@ -373,7 +379,7 @@ jobs:
   classification:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: resolve-release
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     # Selection, history restoration, planning, and artifact upload normally finish
     # in under a minute; keep the serialized release queue bounded if they wedge.
     timeout-minutes: 10
@@ -505,7 +511,7 @@ jobs:
   quality:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     env:
       # The quality contract runs django-check and the CI contract tests against a
       # checkout with no hydrated media tree.
@@ -607,7 +613,7 @@ jobs:
   django:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     # Recent complete and focused runs fit well inside this budget, including
     # database setup and terminal evidence recording.
     timeout-minutes: 30
@@ -786,7 +792,7 @@ jobs:
     # website.settings.test_postgres.
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release]
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     timeout-minutes: 15
     env:
       DJANGO_SETTINGS_MODULE: website.settings.test_postgres
@@ -835,7 +841,7 @@ jobs:
   playwright:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     # The full-profile suite outgrew its 48m51s measurement (issue #206): the
     # September 9 remediation wave added browser contracts (tour page, identity
     # reconciliation, management credentials) and both September 9 full runs
@@ -874,22 +880,20 @@ jobs:
         if: needs.classification.outputs.playwright_mode == 'rerun'
       - run: uv lock --check
         if: needs.classification.outputs.playwright_mode == 'rerun'
-      # Runner apt mirrors and DNS fail transiently (Temporary failure
-      # resolving azure.archive.ubuntu.com, apt exit 100). apt retries each
-      # fetch and the whole install is retried with backoff; only this setup
-      # step is retried, never the tests that follow.
+      # The self-hosted Contabo runner has Chromium's system libraries
+      # preinstalled (it has no sudo, so no --with-deps). The browser download
+      # still fails transiently, so the whole install is retried with backoff;
+      # only this setup step is retried, never the tests that follow.
       - name: Install Playwright Chromium with retries
         if: needs.classification.outputs.playwright_mode == 'rerun'
         timeout-minutes: 20
         run: |
-          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
-            | sudo tee /etc/apt/apt.conf.d/80-ci-retries >/dev/null
           for delay in 0 15 30 60 120; do
             if (( delay > 0 )); then
               echo "::warning::Playwright install failed; retrying in ${delay}s"
               sleep "$delay"
             fi
-            if uv run playwright install --with-deps chromium; then
+            if uv run playwright install chromium; then
               exit 0
             fi
           done
@@ -953,7 +957,7 @@ jobs:
   screenshots:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     # Same wedge guard as the playwright job: the capture runtime drives the same
     # browser stack and shares the serialized release concurrency group (issue #193).
     timeout-minutes: 30
@@ -994,23 +998,21 @@ jobs:
         run: |
           uv lock --check
           (cd ../ci-controller && uv lock --check)
-      # Runner apt mirrors and DNS fail transiently (Temporary failure
-      # resolving azure.archive.ubuntu.com, apt exit 100). apt retries each
-      # fetch and the whole install is retried with backoff; only this setup
-      # step is retried, never the tests that follow.
+      # The self-hosted Contabo runner has Chromium's system libraries
+      # preinstalled (it has no sudo, so no --with-deps). The browser download
+      # still fails transiently, so the whole install is retried with backoff;
+      # only this setup step is retried, never the tests that follow.
       - name: Install the pinned Chromium browser
         if: needs.classification.outputs.screenshots_mode == 'rerun'
         working-directory: .tmp/ci-controller
         timeout-minutes: 20
         run: |
-          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
-            | sudo tee /etc/apt/apt.conf.d/80-ci-retries >/dev/null
           for delay in 0 15 30 60 120; do
             if (( delay > 0 )); then
               echo "::warning::Playwright install failed; retrying in ${delay}s"
               sleep "$delay"
             fi
-            if uv run --frozen playwright install --with-deps chromium; then
+            if uv run --frozen playwright install chromium; then
               exit 0
             fi
           done
@@ -1367,7 +1369,7 @@ jobs:
     # Preserve the release-image prerequisite boundary checked by the frozen
     # deployment contract: needs: [resolve-release, quality, django, playwright, container, screenshots]
     needs: [resolve-release, classification, quality, django, playwright, container, screenshots]
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6

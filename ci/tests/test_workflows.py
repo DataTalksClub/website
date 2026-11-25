@@ -369,7 +369,7 @@ def test_normal_workflow_uses_versioned_plan_and_trusted_evidence_artifact() -> 
     assert (
         "--server-log ../ci-controller/.tmp/components-screenshots/server.log" in screenshot_script
     )
-    assert "playwright install --with-deps chromium" in screenshot_script
+    assert "playwright install chromium" in screenshot_script
     assert "--screenshot .tmp/components-screenshots/screenshots.json" in screenshot_script
     assert "--component screenshots" in screenshot_script
     assert ".components.screenshots.command" in screenshot_script
@@ -712,23 +712,52 @@ def test_ci_gate_reports_missing_verification_plan_without_traceback() -> None:
     assert script.index("::error::") < script.index("ci.verification report")
 
 
+SELF_HOSTED_RUNNER = ["self-hosted", "contabo"]
+
+
 def test_all_workflow_jobs_pin_reviewed_runner_labels() -> None:
-    """Every workflow job pins a reviewed runner label so CI does not drift into Ubuntu 26."""
+    """Every workflow job pins a reviewed runner label so CI does not drift into Ubuntu 26.
+
+    Linux jobs run on the repository's self-hosted Contabo runner. The aarch64
+    container jobs stay on GitHub's pinned arm label (the Contabo box is x86_64),
+    and the retired AWS jobs keep their hosted label.
+    """
     allowed_labels = {"ubuntu-24.04", "ubuntu-24.04-arm"}
-    workflow_files = (
-        "ci.yml",
-        "scheduled-full-regression.yml",
-        "deploy-dev.yml",
-        "deploy-prod.yml",
-        "release-advisory.yml",
-    )
-    for filename in workflow_files:
-        data = workflow(filename)
+    for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        data = workflow(path.name)
         for job_name, job in data.get("jobs", {}).items():
             runs_on = job.get("runs-on")
-            assert runs_on in allowed_labels, (
-                f"Job {job_name!r} in {filename} has unreviewed runs-on label {runs_on!r}"
+            assert runs_on == SELF_HOSTED_RUNNER or runs_on in allowed_labels, (
+                f"Job {job_name!r} in {path.name} has unreviewed runs-on label {runs_on!r}"
             )
+
+
+PLANNED_WORKFLOWS = ("ci.yml", "scheduled-full-regression.yml")
+
+
+def test_planned_workflows_pin_one_python_patch_across_runners() -> None:
+    """The planner (self-hosted) and the container job (hosted) resolve one Python.
+
+    Both fingerprint ``platform.python_version()``; the self-hosted runner's uv
+    store may hold a newer patch than the hosted runners download.
+    """
+    pins = {name: workflow(name)["env"].get("UV_PYTHON") for name in PLANNED_WORKFLOWS}
+    assert len(set(pins.values())) == 1, pins
+    assert re.fullmatch(r"3\.13\.\d+", pins["ci.yml"]), pins
+
+
+def test_pull_request_jobs_on_the_self_hosted_runner_refuse_fork_code() -> None:
+    fork_guard = (
+        "github.event_name != 'pull_request' || "
+        "github.event.pull_request.head.repo.full_name == github.repository"
+    )
+    for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        data = workflow(path.name)
+        if "pull_request" not in data["on"] and "pull_request_target" not in data["on"]:
+            continue
+        for job_name, job in data.get("jobs", {}).items():
+            if job.get("runs-on") == SELF_HOSTED_RUNNER:
+                assert fork_guard in str(job.get("if", "")), (path.name, job_name)
 
 
 def test_external_workflow_actions_pin_full_commit_shas() -> None:
@@ -827,9 +856,15 @@ def test_playwright_installs_retry_transient_apt_failures_without_retrying_tests
         for job_name, job in workflow(name)["jobs"].items():
             for step in job["steps"]:
                 script = step.get("run", "")
-                if "playwright install --with-deps chromium" not in script:
+                if not re.search(r"playwright install (--with-deps )?chromium", script):
                     continue
-                assert 'Acquire::Retries "5";' in script, (name, job_name)
+                if job["runs-on"] == SELF_HOSTED_RUNNER:
+                    # No sudo there: the browser's system libraries are
+                    # preinstalled on the runner, so nothing touches apt.
+                    assert "--with-deps" not in script, (name, job_name)
+                    assert "sudo" not in script, (name, job_name)
+                else:
+                    assert 'Acquire::Retries "5";' in script, (name, job_name)
                 assert "for delay in 0 15 30 60 120; do" in script, (name, job_name)
                 assert step["timeout-minutes"] == "20", (name, job_name)
                 assert "scripts/ci.py" not in script, (name, job_name)

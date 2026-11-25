@@ -14,8 +14,8 @@ concurrency:
 
 jobs:
   verification:
-    if: ${{ !github.event.pull_request.draft }}
-    runs-on: ubuntu-24.04
+    if: ${{ !github.event.pull_request.draft && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: [self-hosted, contabo]
     timeout-minutes: 240
     env:
       PUBLIC_MEDIA_STORE_BACKEND: memory

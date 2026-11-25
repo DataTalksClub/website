@@ -92,7 +92,14 @@ def test_coolify_staging_requires_full_ci_and_scopes_package_write() -> None:
     assert build["permissions"].get("packages") == "write"
     assert deploy["permissions"].get("packages") is None
     assert deploy["permissions"].get("actions") == "read"
-    gate = run_step(deploy, "Require the full CI verdict for this source SHA")
+    # The verdict wait runs on a hosted runner so it never holds the single
+    # self-hosted runner that the ci.yml jobs it waits for are queued on.
+    verify = jobs["verify-ci"]
+    assert set(deploy["needs"]) == {"build-and-push", "verify-ci"}
+    assert verify["runs-on"] == "ubuntu-24.04"
+    assert verify["permissions"].get("actions") == "read"
+    assert verify["permissions"].get("packages") is None
+    gate = run_step(verify, "Require the full CI verdict for this source SHA")
     assert gate["env"]["GH_TOKEN"] == "${{ github.token }}"
     assert "deploy.ci_verdict require" in gate["run"]
     assert "--workflow ci.yml" in gate["run"]

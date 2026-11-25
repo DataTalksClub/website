@@ -23,7 +23,7 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     permissions:
       contents: read
     env:
@@ -42,7 +42,7 @@ jobs:
 
   build-and-push:
     needs: test
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, contabo]
     permissions:
       contents: read
       packages: write
@@ -100,14 +100,17 @@ jobs:
       # read:packages PAT (see agent report; gap documented until Alexey adds it).
       # Do NOT auto-publish the package: keep the org package private.
 
-  deploy:
+  # Waiting for ci.yml's verdict stays on a GitHub-hosted runner: the repository
+  # has one self-hosted runner, and a job that polls there would hold it while
+  # the ci.yml jobs it waits for queue behind it. Those jobs now run one at a
+  # time on that runner, so the wait allows for the serialized pipeline.
+  verify-ci:
     needs: build-and-push
     runs-on: ubuntu-24.04
+    timeout-minutes: 130
     permissions:
       contents: read
       actions: read
-    # Staging Contabo Coolify only — production AWS workflows stay separate.
-    environment: coolify-staging
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
@@ -123,8 +126,19 @@ jobs:
             --workflow ci.yml \
             --repository "$GITHUB_REPOSITORY" \
             --sha "$GITHUB_SHA" \
-            --timeout-seconds 1800 \
+            --timeout-seconds 7200 \
             --interval-seconds 30
+
+  deploy:
+    needs: [build-and-push, verify-ci]
+    runs-on: [self-hosted, contabo]
+    permissions:
+      contents: read
+      actions: read
+    # Staging Contabo Coolify only — production AWS workflows stay separate.
+    environment: coolify-staging
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: Check the Coolify API token
         env:
           COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
@@ -152,12 +166,12 @@ jobs:
             --arg sha "$GITHUB_SHA" \
             --arg digest "$IMAGE_DIGEST" \
             '{data: [{key: "VERSION", value: $version}, {key: "SOURCE_SHA", value: $sha}, {key: "IMAGE_DIGEST", value: $digest}, {key: "DEPLOY_EXPECTED_DATABASE", value: "website_dev"}, {key: "DEPLOY_EXPECTED_ROLE", value: "website_dev"}]}' \
-            > /tmp/staging-env.json
+            > "$RUNNER_TEMP/staging-env.json"
           curl --fail --show-error --silent --request PATCH \
             --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
             --header "Content-Type: application/json" \
             --header "Accept: application/json" \
-            --data @/tmp/staging-env.json \
+            --data "@$RUNNER_TEMP/staging-env.json" \
             "${COOLIFY_URL%/}/api/v1/applications/${STAGING_UUID}/envs/bulk"
           echo
           echo "Staging identity set to ${GITHUB_SHA} (${IMAGE_TAG})"

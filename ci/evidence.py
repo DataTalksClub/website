@@ -169,11 +169,16 @@ def environment_fingerprint(
     """
 
     environ = os.environ if environ is None else environ
-    hosted_runner = "ImageOS" in environ or "RUNNER_OS" in environ
+    # A self-hosted Actions runner has no GitHub image (no ImageOS/ImageVersion);
+    # its registered runner name is its concrete, stable machine identity.
+    self_hosted_runner = environ.get("RUNNER_ENVIRONMENT") == "self-hosted"
+    hosted_runner = not self_hosted_runner and ("ImageOS" in environ or "RUNNER_OS" in environ)
     image_family = runner_image or environ.get("ImageOS", environ.get("RUNNER_OS", "local"))
     image_version = environ.get("ImageVersion")
     if hosted_runner and not image_version:
         raise EvidenceError("hosted runner fingerprint requires ImageVersion")
+    if self_hosted_runner and not image_version:
+        image_version = f"self-hosted-{environ.get('RUNNER_NAME') or 'runner'}"
     image_version = image_version or "local"
     runner_image = f"{image_family}@{image_version}"
     payload = {
