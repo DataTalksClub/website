@@ -254,6 +254,10 @@
         --row-cols: minmax(0, 1fr) 14rem auto;
       }
 
+      .course-rows--guest {
+        --row-cols: minmax(0, 1fr) 14rem;
+      }
+
       /* An edition row is a title and its identifier: the identifier sits at
          the row's right edge, not in the deadline column of a three-column
          row it does not have. */
@@ -605,7 +609,12 @@
                           </h3>
                           <div class="course-flow-terminal">
                             <p class="mono-label">Homework</p>
-                            <div class="row-list course-rows">
+                            <div
+                              class="row-list course-rows
+                                {% if not is_authenticated %}
+                                  course-rows--guest
+                                {% endif %}"
+                            >
                               {% with hw=flow_item.homework %}
                                 <div class="list-row">
                                   <div>
@@ -621,7 +630,9 @@
                                   <div class="course-row-when">
                                     {{ hw.due_date|user_datetime:request }}
                                     {% if hw.is_scored %}
-                                      <span class="course-row-note">Already scored</span>
+                                      {% if is_authenticated %}
+                                        <span class="course-row-note">Already scored</span>
+                                      {% endif %}
                                     {% else %}
                                       <span
                                         class="time-left"
@@ -630,9 +641,11 @@
                                       ></span>
                                     {% endif %}
                                   </div>
-                                  <div class="course-row-state">
-                                    <span class="status-pill {{ hw.badge_pill }}">{{ hw.badge_state_name }}</span>
-                                  </div>
+                                  {% if is_authenticated %}
+                                    <div class="course-row-state">
+                                      <span class="status-pill {{ hw.badge_pill }}">{{ hw.badge_state_name }}</span>
+                                    </div>
+                                  {% endif %}
                                 </div>
                               {% endwith %}
                             </div>
@@ -641,7 +654,12 @@
                       </li>
                     {% elif flow_item.kind == "project" %}
                       {% with project=flow_item.project %}
-                        <li class="list-row course-rows course-flow-project">
+                        <li
+                          class="list-row course-rows course-flow-project
+                            {% if not is_authenticated %}
+                              course-rows--guest
+                            {% endif %}"
+                        >
                           <div>
                             {% if project.state == 'CS' %}
                               <a
@@ -672,7 +690,9 @@
                               ></span>
                             {% elif project.state == 'CO' %}
                               {{ project.peer_review_due_date|user_datetime:request }}
-                              <span class="course-row-note">Completed</span>
+                              {% if is_authenticated %}
+                                <span class="course-row-note">Completed</span>
+                              {% endif %}
                             {% else %}
                               {{ project.submission_due_date|user_datetime:request }}
                               <span
@@ -682,9 +702,11 @@
                               ></span>
                             {% endif %}
                           </div>
-                          <div class="course-row-state">
-                            <span class="status-pill {{ project.badge_pill }}">{{ project.badge_state_name }}</span>
-                          </div>
+                          {% if is_authenticated %}
+                            <div class="course-row-state">
+                              <span class="status-pill {{ project.badge_pill }}">{{ project.badge_state_name }}</span>
+                            </div>
+                          {% endif %}
                         </li>
                       {% endwith %}
                     {% endif %}
@@ -712,11 +734,18 @@
                   <h2 id="homework-heading">Homework</h2>
                 </div>
               </div>
-              <div class="row-list course-rows">
+              <div
+                class="row-list course-rows
+                  {% if not is_authenticated %}
+                    course-rows--guest
+                  {% endif %}"
+              >
                 <div class="list-row course-rows-head">
                   <span class="mono-label">Homework</span>
                   <span class="mono-label">Deadline</span>
-                  <span class="mono-label course-row-state">Status</span>
+                  {% if is_authenticated %}
+                    <span class="mono-label course-row-state">Status</span>
+                  {% endif %}
                 </div>
                 {% for hw in homeworks %}
                   <div class="list-row">
@@ -733,7 +762,9 @@
                     <div class="course-row-when">
                       {{ hw.due_date|user_datetime:request }}
                       {% if hw.is_scored %}
-                        <span class="course-row-note">Already scored</span>
+                        {% if is_authenticated %}
+                          <span class="course-row-note">Already scored</span>
+                        {% endif %}
                       {% else %}
                         <span
                           class="time-left"
@@ -742,9 +773,11 @@
                         ></span>
                       {% endif %}
                     </div>
-                    <div class="course-row-state">
-                      <span class="status-pill {{ hw.badge_pill }}">{{ hw.badge_state_name }}</span>
-                    </div>
+                    {% if is_authenticated %}
+                      <div class="course-row-state">
+                        <span class="status-pill {{ hw.badge_pill }}">{{ hw.badge_state_name }}</span>
+                      </div>
+                    {% endif %}
                   </div>
                 {% endfor %}
               </div>
@@ -762,11 +795,18 @@
                   <h2 id="projects-heading">Projects</h2>
                 </div>
               </div>
-              <div class="row-list course-rows">
+              <div
+                class="row-list course-rows
+                  {% if not is_authenticated %}
+                    course-rows--guest
+                  {% endif %}"
+              >
                 <div class="list-row course-rows-head">
                   <span class="mono-label">Project</span>
                   <span class="mono-label">Deadline</span>
-                  <span class="mono-label course-row-state">Status</span>
+                  {% if is_authenticated %}
+                    <span class="mono-label course-row-state">Status</span>
+                  {% endif %}
                 </div>
                 {% for project in projects %}
                   <div class="list-row">
@@ -800,7 +840,9 @@
                         ></span>
                       {% elif project.state == 'CO' %}
                         {{ project.peer_review_due_date|user_datetime:request }}
-                        <span class="course-row-note">Completed</span>
+                        {% if is_authenticated %}
+                          <span class="course-row-note">Completed</span>
+                        {% endif %}
                       {% else %}
                         {{ project.submission_due_date|user_datetime:request }}
                         <span
@@ -810,9 +852,11 @@
                         ></span>
                       {% endif %}
                     </div>
-                    <div class="course-row-state">
-                      <span class="status-pill {{ project.badge_pill }}">{{ project.badge_state_name }}</span>
-                    </div>
+                    {% if is_authenticated %}
+                      <div class="course-row-state">
+                        <span class="status-pill {{ project.badge_pill }}">{{ project.badge_state_name }}</span>
+                      </div>
+                    {% endif %}
                   </div>
                 {% endfor %}
               </div>

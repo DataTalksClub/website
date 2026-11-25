@@ -7,7 +7,10 @@
   the data has: the self-paced edition, the first module on the platform, or
   the course repository for a family whose curriculum was never imported.
 {% endcomment %}
-{% if registration_wall_blocked %}
+{% if enrolled_cohort %}
+  {% url 'cohort' course_family.slug enrolled_cohort.identifier as family_action_url %}
+  {% include "core/_button.html" with href=family_action_url label="Continue in the "|add:enrolled_cohort.identifier|add:" cohort" variant="primary" %}
+{% elif registration_wall_blocked %}
   {% if registration_wall_status != "pending" and registration_wall_status != "rejected" %}
     {% url 'registration_campaign' family_registration.campaign.slug as family_action_url %}
     {% include "core/_button.html" with href=family_action_url label="Apply for this course" variant="primary" %}

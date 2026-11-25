@@ -245,8 +245,11 @@ class CoursePageCurriculumRenderingTests(TestCase):
                 },
             ),
         )
-        self.assertContains(response, "Open")
-        self.assertContains(response, "Not submitted")
+        # Anonymous guests see deadlines and links, never personal status pills
+        # such as "Not submitted" or "Already scored" (site feedback 3.3).
+        self.assertNotContains(response, "Not submitted")
+        self.assertNotContains(response, "Already scored")
+        self.assertNotContains(response, 'class="status-pill')
         self.assertContains(response, homework_a.due_date.strftime("%Y-%m-%d"))
         self.assertContains(response, project_x.submission_due_date.strftime("%Y-%m-%d"))
         self.assertContains(response, 'data-deadline=')
