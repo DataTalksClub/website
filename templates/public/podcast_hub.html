@@ -71,6 +71,22 @@
         margin-top: var(--space-4);
       }
 
+      /* The episode surface keeps the shared card's outer ink frame.  Its
+         season/episode line is metadata, not a status control: it stays plain
+         and blue inside the bordered card. */
+      .episode-row > .archive-card {
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+      }
+
+      .episode-row .play-disc {
+        margin-top: var(--space-3);
+      }
+
+      .episode-row .archive-body > .mono-label {
+        color: var(--indigo);
+      }
+
       /* An episode row is the archive row the blog and the books archive draw,
          with the play disc as its leading mark: `.archive-row` and `.episode-row`
          in the design system partial above, through `public/_archive_row.html`,

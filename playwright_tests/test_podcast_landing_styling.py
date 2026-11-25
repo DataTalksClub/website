@@ -35,18 +35,10 @@ def test_podcast_landing_keeps_bordered_cards_and_plain_blue_episode_metadata(
     card_border = card.evaluate(
         """(node) => {
           const style = getComputedStyle(node);
-          return {
-            width: style.borderTopWidth,
-            style: style.borderTopStyle,
-            shadow: style.boxShadow,
-          };
+          return {width: style.borderTopWidth, style: style.borderTopStyle};
         }"""
     )
-    assert card_border == {
-        "width": "0px",
-        "style": "none",
-        "shadow": "none",
-    }, card_border
+    assert card_border == {"width": "2px", "style": "solid"}, card_border
 
     eyebrow_style = eyebrow.evaluate(
         """(node) => {

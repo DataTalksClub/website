@@ -2991,22 +2991,10 @@ Rules for editing:
 
       .archive-card {
         align-items: flex-start;
-        border: 1px solid var(--line-soft);
-        box-shadow: none;
         flex-direction: row;
         gap: var(--space-4);
         min-width: 0;
         padding: var(--space-4) var(--space-4);
-      }
-
-      @media (hover: hover) and (pointer: fine) {
-        .archive-card.interactive-card:hover {
-          border-color: var(--line);
-        }
-      }
-
-      .archive-card.interactive-card:has(.archive-title a:focus-visible) {
-        border-color: var(--line);
       }
 
       .archive-body {
