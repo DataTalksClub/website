@@ -125,14 +125,53 @@ class Project(TimingOwner, models.Model):
         unique_together = ("course", "slug")
 
 
+def _stored_option(option) -> dict | None:
+    if not isinstance(option, dict):
+        return None
+    points = option.get("points")
+    if isinstance(points, bool) or not isinstance(points, int):
+        points = 0
+    return {"points": points, "text": str(option.get("text") or "")}
+
+
+def _stored_criterion(criterion) -> dict | None:
+    """Fill the keys a raw (admin/JSON-written) criterion may lack."""
+    if not isinstance(criterion, dict):
+        return None
+    criterion_id = str(criterion.get("id") or "")
+    kind = criterion.get("type")
+    options = criterion.get("options")
+    return {
+        **criterion,
+        "id": criterion_id,
+        "title": str(criterion.get("title") or criterion_id),
+        "description": str(criterion.get("description") or ""),
+        "type": kind if kind in ("scale", "checklist") else "scale",
+        "options": [
+            option
+            for option in map(_stored_option, options if isinstance(options, list) else [])
+            if option is not None
+        ],
+    }
+
+
+def normalize_stored_criteria(criteria) -> list[dict]:
+    """Make stored criteria safe to render: parse_criteria output passes through unchanged."""
+    return [
+        criterion
+        for criterion in map(_stored_criterion, criteria if isinstance(criteria, list) else [])
+        if criterion is not None
+    ]
+
+
 def project_yaml_criteria(project) -> list[dict]:
     """Return structured YAML criteria from the project's ReviewCriteriaSet or inline criteria."""
     if project is None:
         return []
     criteria_set = getattr(project, "criteria_set", None)
     if criteria_set is not None and getattr(criteria_set, "criteria", None):
-        return list(criteria_set.criteria)
-    return project_evaluation_criteria(project)
+        return normalize_stored_criteria(criteria_set.criteria)
+    return normalize_stored_criteria(project_evaluation_criteria(project))
 
 
 def require_project_yaml_criteria(project) -> list[dict]:

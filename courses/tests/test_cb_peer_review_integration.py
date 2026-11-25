@@ -272,6 +272,49 @@ class CommunityBasePeerReviewIntegrationTests(TestCase):
         self.assertContains(res_resp, "Problem description")
         self.assertContains(res_resp, "Great work!")
 
+    def test_eval_page_renders_raw_criteria_without_description(self):
+        """Admin/raw JSON criteria lacking optional keys must not 500 the review page."""
+        project = self._create_project(
+            state=ProjectState.PEER_REVIEWING.value,
+            criteria=[
+                {
+                    "id": "problem",
+                    "title": "Problem description",
+                    "options": [{"points": 0, "text": "Missing"}, {"points": 2, "text": "Clear"}],
+                }
+            ],
+        )
+        sub1 = ProjectSubmission.objects.create(
+            project=project,
+            student=self.student1,
+            enrollment=self.enrollment1,
+            github_link="https://github.com/student1/capstone",
+            commit_id="1234567",
+        )
+        sub2 = ProjectSubmission.objects.create(
+            project=project,
+            student=self.student2,
+            enrollment=self.enrollment2,
+            github_link="https://github.com/student2/capstone",
+            commit_id="abcdef1",
+        )
+        review = PeerReview.objects.create(submission_under_evaluation=sub1, reviewer=sub2)
+        self.client.force_login(self.student2)
+        response = self.client.get(
+            reverse(
+                "cohort_projects_eval_submit",
+                kwargs={
+                    "course_slug": self.course.slug,
+                    "cohort_identifier": self.cohort.identifier,
+                    "project_slug": project.slug,
+                    "review_id": review.id,
+                },
+            )
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="criterion-problem"', count=2)
+        self.assertEqual(project_yaml_criteria(project)[0]["description"], "")
+
     def test_set_project_state_and_close_peer_review_commands(self):
         project = self._create_project(state=ProjectState.COLLECTING_SUBMISSIONS.value)
         out = StringIO()
