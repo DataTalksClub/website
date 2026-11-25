@@ -197,6 +197,9 @@
   {% if project.instructions_url %}
     {% include "core/_button.html" with href=project.instructions_url label="Instructions" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
   {% endif %}
+  {% if project_criteria_url %}
+    <p><a class="band-link" href="{{ project_criteria_url }}">Evaluation criteria</a></p>
+  {% endif %}
 {% endblock %}
 
 {% block hero_specs %}

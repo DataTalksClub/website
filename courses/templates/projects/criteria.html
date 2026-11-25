@@ -1,0 +1,91 @@
+{% extends 'projects/_base.html' %}
+{% load breadcrumbs %}
+{% comment %}
+  The Evaluation criteria page: the rubric peers score a project attempt with,
+  rendered from the cohort's criteria set (community-base criteria_summary).
+  One action at most -- submitting the attempt that is still open -- because
+  the page exists so a learner knows how they will be scored before they submit.
+{% endcomment %}
+
+{% block document_title %}
+  Evaluation criteria — {{ course.title }} — DataTalks.Club
+{% endblock %}
+
+{% block extra_styles %}
+  .criteria-row {
+    --row-cols: minmax(0, 1fr) auto;
+  }
+
+  .criteria-row h3 {
+    font-size: 1.05rem;
+  }
+
+  .criteria-options {
+    display: grid;
+    gap: var(--space-2);
+    list-style: none;
+    margin: var(--space-2) 0 0;
+    padding: 0;
+  }
+
+  .criteria-option {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    justify-content: space-between;
+  }
+
+  .criteria-max {
+    color: var(--ink);
+    font-weight: 800;
+    white-space: nowrap;
+  }
+{% endblock %}
+
+{% block breadcrumb_trail %}
+  {% url 'cohort_project' course_slug=course.course.slug cohort_identifier=course.identifier project_slug=project.slug as project_url %}
+  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url project.title project_url current="Evaluation criteria" %}
+{% endblock %}
+
+{% block page_head %}
+  <div class="project-head">
+    <h1>Evaluation criteria</h1>
+    <p class="project-lede">
+      Your peers score each project attempt with these criteria, {{ project_criteria.totals_label }}.
+    </p>
+    {% if open_project %}
+      <div class="project-toolbar">
+        <a class="cta cta-compact cta-primary interactive-lift" href="{{ open_project_url }}">Submit {{ open_project.title }}</a>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block project_content %}
+  <section class="project-section" aria-labelledby="criteria-heading">
+    <div class="project-section-head">
+      <h2 id="criteria-heading">Criteria</h2>
+    </div>
+    <div class="row-list">
+      {% for criterion in project_criteria.criteria %}
+        <article class="list-row criteria-row" data-criterion="{{ criterion.id }}">
+          <div>
+            <h3>{{ forloop.counter }}. {{ criterion.title }}{% if criterion.type == 'checklist' %} <span class="mono-note">(bonus)</span>{% endif %}</h3>
+            {% if criterion.description %}<p class="field-hint">{{ criterion.description }}</p>{% endif %}
+            <p class="mono-note">{{ criterion.list_intro }}</p>
+            <ul class="criteria-options">
+              {% for option in criterion.options %}
+                <li class="criteria-option">
+                  <span>{{ option.text }}</span>
+                  <span class="mono-note">{{ option.points }} {{ option.points|pluralize:"point,points" }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+          <p class="criteria-max">max {{ criterion.max_points }}</p>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

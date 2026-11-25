@@ -8,7 +8,8 @@ from django.core.exceptions import ValidationError
 
 from course_management.observability import record_event
 from courses.models.cohort import Cohort
-from courses.models.project import Project
+from courses.models.project import Project, project_yaml_criteria
+from courses.services.attempt_flow import criteria_url
 from courses.registration_wall import require_registration_approval
 from courses.views.project_page_context import (
     project_accepting_submissions,
@@ -210,5 +211,7 @@ def project_view(request, course_slug, project_slug, cohort_identifier=None):
         )
 
     context = project_build_context(request, course, project)
+    if project_yaml_criteria(project):
+        context["project_criteria_url"] = criteria_url(project)
 
     return render(request, "projects/project.html", context)

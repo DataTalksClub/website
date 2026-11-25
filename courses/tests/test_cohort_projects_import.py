@@ -133,3 +133,32 @@ class CohortProjectsImportTests(TestCase):
         snapshot = project_snapshot("review_criteria:\n  - " + CRITERIA + "\nprojects: []\n")
         import_course_repository_curriculum(make_command(snapshot, commit_sha="f" * 40))
         self.assertTrue(Project.objects.filter(slug="project-attempt-1").exists())
+
+
+class CriteriaPageTests(TestCase):
+    def test_criteria_page_lists_the_rubric_and_points_to_the_open_attempt(self) -> None:
+        from django.urls import reverse
+
+        import_course_repository_curriculum(make_command(project_snapshot()))
+        project = Project.objects.get(slug="project-attempt-1")
+        kwargs = {
+            "course_slug": project.course.course.slug,
+            "cohort_identifier": project.course.identifier,
+            "project_slug": project.slug,
+        }
+        response = self.client.get(reverse("cohort_project_criteria", kwargs=kwargs))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, '<article class="list-row criteria-row" data-criterion="problem">'
+        )
+        self.assertContains(response, "up to 2 points")
+        self.assertContains(
+            response,
+            f'href="{reverse("cohort_project", kwargs=kwargs)}">Submit Project Attempt 1</a>',
+        )
+
+        page = self.client.get(reverse("cohort_project", kwargs=kwargs))
+        self.assertContains(
+            page,
+            f'href="{reverse("cohort_project_criteria", kwargs=kwargs)}">Evaluation criteria</a>',
+        )

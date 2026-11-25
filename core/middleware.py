@@ -62,6 +62,7 @@ PRIVATE_ROUTE_NAMES = frozenset(
         "cohort_leaderboard_score_breakdown",
         "cohort_project_submissions",
         "cohort_project_results",
+        "cohort_project_criteria",
         "cohort_projects_eval",
         "cohort_projects_eval_add",
         "cohort_projects_eval_delete",

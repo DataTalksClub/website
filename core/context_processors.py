@@ -37,6 +37,7 @@ PUBLIC_COURSE_COHORT_ROUTE_NAMES = frozenset(
         "cohort_project_list",
         "cohort_projects_eval",
         "cohort_project_results",
+        "cohort_project_criteria",
         "cohort_project_statistics",
         "cohort_project_submissions",
         "cohort_projects_eval_submit",

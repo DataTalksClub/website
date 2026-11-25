@@ -15,6 +15,7 @@ from .views import (
     homework_submissions,
     module,
     project,
+    project_criteria,
     project_eval,
     project_eval_actions,
     project_eval_submit,
@@ -128,6 +129,11 @@ urlpatterns = [
         "<slug:course_slug>/<slug:cohort_identifier>/project/<slug:project_slug>/eval",
         project_eval.projects_eval_view,
         name="cohort_projects_eval",
+    ),
+    path(
+        "<slug:course_slug>/<slug:cohort_identifier>/project/<slug:project_slug>/criteria",
+        project_criteria.project_criteria,
+        name="cohort_project_criteria",
     ),
     path(
         "<slug:course_slug>/<slug:cohort_identifier>/project/<slug:project_slug>/results",
