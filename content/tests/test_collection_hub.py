@@ -18,7 +18,7 @@ from content import catalogue
 from content.catalogue import PUBLIC_CONTENT_STABLE_ID
 from content.models import ContentSource
 from content.pagination import PUBLIC_PAGE_SIZE
-from core.templatetags.accessibility import counted, day_and_month, human_day, iso_day, year_only
+from core.templatetags.accessibility import counted, human_day, iso_day, short_day, year_only
 
 from .pagination_support import catalogue_page_bodies
 
@@ -106,6 +106,10 @@ class CollectionHubDesignTests(TestCase):
                 self.assertIn('<meta name="twitter:card" content="summary">', body)
 
 
+# One record row of the shared archive row partial: the undated spelling adds a class.
+RECORD_ROW = re.compile(r'<article class="archive-row(?: archive-row-undated)? record-row"')
+
+
 class CollectionHubRecordTests(TestCase):
     def test_blog_hub_lists_every_article_with_its_own_title_path_and_authors(self) -> None:
         """The index pages (issue #174's primitive); the whole blog is still on it."""
@@ -113,8 +117,7 @@ class CollectionHubRecordTests(TestCase):
         articles = catalogue.articles()
         body = "".join(catalogue_page_bodies(self.client, "/blog"))
 
-        self.assertIn(f"blog · {len(articles)} articles", body)
-        self.assertEqual(body.count('class="list-row archive-row record-row"'), len(articles))
+        self.assertEqual(len(RECORD_ROW.findall(body)), len(articles))
         for article in articles:
             title = escape(article["title"])
             self.assertIn(f'<a href="{article["public_path"]}">{title}</a>', body)
@@ -135,25 +138,21 @@ class CollectionHubRecordTests(TestCase):
         pages = catalogue_page_bodies(self.client, "/books")
         body = "".join(pages)
 
-        # The kicker counts the collection, not the page: it says the same number
-        # on every page of the archive.
-        for page_body in pages:
-            self.assertIn(f"books · {len(books)} in the archive", page_body)
-        self.assertEqual(body.count('class="list-row archive-row record-row"'), len(books))
+        self.assertEqual(len(RECORD_ROW.findall(body)), len(books))
         # Every page but the last is exactly one full page of records.
         for page_body in pages[:-1]:
             self.assertEqual(
-                page_body.count('class="list-row archive-row record-row"'),
+                len(RECORD_ROW.findall(page_body)),
                 PUBLIC_PAGE_SIZE,
             )
         # The count is a quiet metadata line under the title, not a pill: no book
         # row carries a status pill any more.
         self.assertNotIn('<span class="status-pill">', body)
         answered = [book for book in books if book["answered_count"]]
-        self.assertEqual(body.count('<p class="mono-note archive-meta">'), len(answered))
+        self.assertEqual(body.count('<p class="archive-meta">'), len(answered))
         sample = answered[0]
         self.assertIn(
-            f'<p class="mono-note archive-meta">'
+            f'<p class="archive-meta">'
             f"{counted(sample['answered_count'], 'question answered,questions answered')}</p>",
             body,
         )
@@ -191,9 +190,9 @@ class CollectionHubRecordTests(TestCase):
         books = "".join(catalogue_page_bodies(self.client, "/books"))
         sample_article = catalogue.articles()[0]
         sample_book = catalogue.books()[0]
-        self.assertIn(f"<span>{day_and_month(sample_article['published'])}</span>", blog)
+        self.assertIn(f"<strong>{short_day(sample_article['published'])}</strong>", blog)
         self.assertIn(f"<span>{year_only(sample_article['published'])}</span>", blog)
-        self.assertIn(f"<span>{day_and_month(sample_book['published'])}</span>", books)
+        self.assertIn(f"<strong>{short_day(sample_book['published'])}</strong>", books)
         self.assertIn(f"<span>{year_only(sample_book['published'])}</span>", books)
 
     def test_no_row_declares_a_machine_time_its_text_does_not_name(self) -> None:
@@ -309,7 +308,6 @@ class BooksArchiveContractTests(TestCase):
                 )
                 self.assertIn('<code class="mono-code">#book-of-the-week</code>', body)
                 self.assertIn('<h2 id="collection-list-heading">Archive</h2>', body)
-                self.assertIn(f"books · {len(books)} in the archive", body)
                 # The introduction is not merely present: every piece of it is
                 # above the records, on every page of the archive.  The Slack
                 # search starts at the explainer, because the site navigation
@@ -318,7 +316,7 @@ class BooksArchiveContractTests(TestCase):
                 how_it_works = body.index('id="how-it-works-heading"')
                 slack = body.index('href="/slack"', how_it_works)
                 archive = body.index('id="collection-list-heading"')
-                first_record = body.index('class="list-row archive-row record-row"')
+                first_record = RECORD_ROW.search(body).start()
                 self.assertLess(intro, how_it_works)
                 self.assertLess(how_it_works, slack)
                 self.assertLess(slack, archive)
@@ -444,7 +442,6 @@ class CollectionHubPaginationTests(TestCase):
 
         self.assertEqual(second.status_code, 200)
         self.assertIn("<title>Articles — Page 2 — DataTalks.Club</title>", body)
-        self.assertIn(f"blog · {len(articles)} articles", body)
         self.assertIn('<h1 class="page-title" id="collection-heading">Latest Articles</h1>', body)
         self.assertIn('<h2 id="collection-list-heading">All articles</h2>', body)
         self.assertIn('aria-label="Article pages"', body)

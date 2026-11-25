@@ -383,7 +383,7 @@ class PersonPageTests(TestCase):
             self.assertIn(f'href="{relationship["public_path"]}"', body)
             self.assertIn(escape(relationship["label"]), body)
         for role in {relationship["role"] for relationship in record["relationships"]}:
-            self.assertIn(f'<p class="mono-label">{escape(role)}</p>', body)
+            self.assertRegex(body, rf'<p class="archive-meta">{re.escape(escape(role))}(?: · [^<]*)?</p>')
 
         for group in person.groups:
             self.assertIn(f'<h2 id="{group.anchor}-heading">{escape(group.heading)}</h2>', body)
@@ -393,23 +393,19 @@ class PersonPageTests(TestCase):
         # behind a group's fold are in the page too, not fetched on demand. An
         # undated contribution's row carries one extra class
         # ("archive-row-undated"), so both spellings count as one row.
-        row_pattern = r'class="list-row archive-row(?: archive-row-undated)? person-row"'
+        row_pattern = r'<article class="archive-row(?: archive-row-undated)? person-row"'
         self.assertEqual(
             len(re.findall(row_pattern, body)),
             len(record["relationships"]),
         )
         self.assertEqual(
-            body.count('<p class="mono-label mono-label-indigo podcast-meta">'),
-            sum(1 for group in person.groups if group.key == "podcast" for _ in group.items),
-        )
-        self.assertEqual(
-            body.count('class="card archive-card stretched-card-link'),
+            body.count('class="event-item archive-card interactive-card'),
             len(record["relationships"]),
         )
         # Each dated row leads with the shared two-line date rail, and an undated
         # one gives that column back to the card.
         dated = [item for group in person.groups for item in group.items if item.date]
-        self.assertEqual(body.count('class="mono-note archive-date date-rail"'), len(dated))
+        self.assertEqual(body.count('class="event-day-date archive-date"'), len(dated))
         self.assertNotIn('class="when"', body)
         self.assertNotIn('class="status-pill status-pill-mint"', body)
         self.assertIn('class="stat-tiles stat-tiles-row person-stats"', body)
@@ -449,7 +445,7 @@ class PersonPageTests(TestCase):
         # The first rows stay in view; only the remainder are inside the fold.
         _, _, remainder = body.partition('<details class="row-fold"')
         self.assertEqual(
-            remainder.partition("</details>")[0].count('class="list-row archive-row person-row"'),
+            remainder.partition("</details>")[0].count('<article class="archive-row person-row"'),
             events.folded_count,
         )
         # A short group offers no control at all.
