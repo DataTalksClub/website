@@ -41,6 +41,13 @@ SQLite. No PostgreSQL-only application suite or engine branch is maintained. RDS
 validated only at the exact-image deployment migration, database-aware readiness, and deployed-smoke
 boundary below.
 
+One owner-mandated exception: the rule that no event may exist without a type, a speaker, a
+description and a picture spans three tables, so the deployed RDS engine also holds it with
+deferred constraint triggers (`event_registrants` migration 0005, a no-op on SQLite, installed
+disabled until production holds no incomplete event). `events/tests/test_event_completeness.py`
+runs their half in the dedicated confirm-regression job; its portable report, `dtc_events.W001`
+check and readiness report run on SQLite.
+
 ### Contract tests
 
 - current main/docs/FAQ/Podwiki URL/link/metadata manifest;

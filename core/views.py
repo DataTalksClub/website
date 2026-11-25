@@ -1,4 +1,5 @@
 import json
+import time
 from typing import Any
 
 from django.conf import settings
@@ -292,6 +293,38 @@ def _migration_status() -> tuple[str, str | None]:
     return "ok", None
 
 
+_EVENT_COMPLETENESS_TTL_SECONDS = 300
+_event_completeness_cache: tuple[float, dict[str, Any]] | None = None
+
+
+def _event_completeness() -> dict[str, Any]:
+    """Report events missing a type, speaker, description or picture.
+
+    Reported, not gating: production still holds such events awaiting a
+    backfill, and failing readiness on them would take the site down instead of
+    surfacing them.  The database triggers (``event_registrants`` 0005) are what
+    refuse new ones once enabled.  Cached for five minutes: probes are frequent.
+    """
+
+    global _event_completeness_cache
+    now = time.monotonic()
+    if _event_completeness_cache and now - _event_completeness_cache[0] < (
+        _EVENT_COMPLETENESS_TTL_SECONDS
+    ):
+        return _event_completeness_cache[1]
+    from events.publication import completeness_summary
+
+    try:
+        summary = completeness_summary(limit=20)
+    except Exception:
+        return {"status": "error", "message": "event completeness unavailable"}
+    report: dict[str, Any] = {"status": "ok" if not summary["incomplete"] else "violations"}
+    if summary["incomplete"]:
+        report.update(summary)
+    _event_completeness_cache = (now, report)
+    return report
+
+
 @require_GET
 def readiness(request: HttpRequest) -> JsonResponse:
     del request
@@ -314,6 +347,8 @@ def readiness(request: HttpRequest) -> JsonResponse:
         checks["migrations"]["message"] = migration_error
 
     ready = all(check["status"] == "ok" for check in checks.values())
+    if database_status == "ok" and migration_status == "ok":
+        checks["event_completeness"] = _event_completeness()
     payload: dict[str, Any] = settings.RUNTIME_IDENTITY.payload(
         status="ready" if ready else "not_ready"
     )

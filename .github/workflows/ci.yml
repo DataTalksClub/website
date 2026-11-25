@@ -827,7 +827,8 @@ jobs:
         run: |
           set -euo pipefail
           uv run --frozen python manage.py test \
-            courses.tests.test_registration_email_confirmation --noinput
+            courses.tests.test_registration_email_confirmation \
+            events.tests.test_event_completeness --noinput
       - name: Remove the throwaway PostgreSQL
         if: always()
         run: docker rm -f dtc-pg-confirm

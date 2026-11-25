@@ -107,3 +107,109 @@ def incomplete_published_events() -> list[dict[str, Any]]:
                 }
             )
     return incomplete
+
+
+# --------------------------------------------------------------------------
+# The full completeness rule: type, speakers, description and picture
+# --------------------------------------------------------------------------
+#
+# The owner's rule is wider than what the write paths above refuse today: an
+# event must also carry a non-empty description and a picture (the banner in
+# ``event_registrants.EventOperatorConfig.banner_image``).  Production still
+# holds events without a description or a picture, to be backfilled from Luma,
+# so the write paths do not refuse those two gaps yet.  What does exist now:
+#
+# * :func:`incomplete_events` reports every event, in any status, missing any
+#   of the four -- the ``dtc_events.W001`` system check and ``/health/ready`` read it;
+# * ``event_registrants`` migration 0005 installs PostgreSQL constraint
+#   triggers (``DEFERRABLE INITIALLY DEFERRED``) that reject committing an event
+#   missing any of the four.  They are installed *disabled*; enabling them is a
+#   follow-up schema migration once :func:`incomplete_events` is empty on
+#   production.  Keep :data:`COMPLETENESS_RULE_SQL` and the Python rule below in
+#   step: ``events/tests/test_event_completeness.py`` checks both.
+
+DESCRIPTION: str = "description"
+PICTURE: str = "picture"
+REQUIRED_PARTS: tuple[str, ...] = (TYPE, SPEAKERS, DESCRIPTION, PICTURE)
+
+
+def completeness_gaps(event: Any) -> tuple[str, ...]:
+    """Which of type, speakers, description and picture the event is missing."""
+
+    gaps = list(publication_gaps(event))
+    if not (event.description or "").strip():
+        gaps.append(DESCRIPTION)
+    if not _has_picture(event):
+        gaps.append(PICTURE)
+    return tuple(part for part in REQUIRED_PARTS if part in gaps)
+
+
+def _has_picture(event: Any) -> bool:
+    if event.pk is None:
+        return False
+    from event_registrants.models import EventOperatorConfig
+
+    return (
+        EventOperatorConfig.objects.filter(event_id=event.pk, banner_image__isnull=False)
+        .exclude(banner_image=b"")
+        .exists()
+    )
+
+
+def incomplete_events() -> list[dict[str, Any]]:
+    """Every event, in any status, missing a type, speaker, description or picture.
+
+    Identified by row id, public id, title and status only.
+    """
+
+    from community_base.events.models import Event
+
+    from event_registrants.models import EventOperatorConfig
+
+    with_picture = set(
+        EventOperatorConfig.objects.filter(banner_image__isnull=False)
+        .exclude(banner_image=b"")
+        .values_list("event_id", flat=True)
+    )
+    with_speakers = set(
+        Event.objects.filter(event_host_links__isnull=False).values_list("pk", flat=True)
+    )
+    incomplete: list[dict[str, Any]] = []
+    for row in Event.objects.order_by("start_datetime", "pk").values(
+        "pk", "public_id", "title", "status", "tags", "description"
+    ):
+        event_type, _season, _episode = decode_event_tags(row["tags"])
+        gaps = []
+        if not event_type:
+            gaps.append(TYPE)
+        if row["pk"] not in with_speakers:
+            gaps.append(SPEAKERS)
+        if not (row["description"] or "").strip():
+            gaps.append(DESCRIPTION)
+        if row["pk"] not in with_picture:
+            gaps.append(PICTURE)
+        if gaps:
+            incomplete.append(
+                {
+                    "id": row["pk"],
+                    "public_id": row["public_id"],
+                    "title": row["title"],
+                    "status": row["status"],
+                    "missing": gaps,
+                }
+            )
+    return incomplete
+
+
+def completeness_summary(limit: int = 50) -> dict[str, Any]:
+    """Counts per missing part plus the first ``limit`` offenders' public ids."""
+
+    rows = incomplete_events()
+    return {
+        "incomplete": len(rows),
+        "missing": {part: sum(part in row["missing"] for row in rows) for part in REQUIRED_PARTS},
+        "events": [
+            {"public_id": row["public_id"], "id": row["id"], "missing": row["missing"]}
+            for row in rows[:limit]
+        ],
+    }

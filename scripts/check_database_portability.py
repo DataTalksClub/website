@@ -124,6 +124,14 @@ BACKEND_PATTERN_EXCEPTIONS: dict[Path, frozenset[str]] = {
     # deployed engine, so the behavior is intentionally PostgreSQL-only
     # and only the vendor token is backend-specific.
     Path("core/management/commands/db_preflight.py"): frozenset({"connection.vendor"}),
+    # The owner's rule that no event may exist without a type, a speaker, a
+    # description and a picture spans three tables, so the database holds it
+    # with deferred constraint triggers (event_registrants migration 0005),
+    # which only PostgreSQL has; the migration is a no-op on SQLite and the
+    # portable report/check half of the test runs everywhere.  Only the trigger
+    # half is skipped off PostgreSQL, and the postgres-confirm-regression CI
+    # job runs it.
+    Path("events/tests/test_event_completeness.py"): frozenset({"connection.vendor"}),
 }
 DATABASE_REFERENCE = re.compile(
     r"\b(?:postgres(?:ql)?|psycopg|database_url)\b",
