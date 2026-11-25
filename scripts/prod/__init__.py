@@ -202,7 +202,11 @@ SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
 # and mints provider-discovered Event identities.  Both are domain logic real
 # entry points (`import_events.py`, `import_event_registrants.py`) compose --
 # neither opens a database connection or a provider export file of its own.
-LIBRARY_MODULES = frozenset({"identity_manifest", "registrant_import", "reviewed_release"})
+# `event_pictures` looks up the picture every created event must carry in the
+# directory those entry points are pointed at.
+LIBRARY_MODULES = frozenset(
+    {"event_pictures", "identity_manifest", "registrant_import", "reviewed_release"}
+)
 
 __all__ = [
     "BOOTSTRAPPING_ENTRY_POINTS",

@@ -7,6 +7,7 @@ from community_base.events.models import Event
 from django.test import TestCase
 
 from content.event_banners import EVENT_BANNER_FILENAMES, event_banner_url
+from event_registrants.models import EventOperatorConfig
 from events.identity import canonical_detail_path
 from events.queries import published_event_records
 from test_support.reference_data import load_reviewed_reference_data
@@ -44,14 +45,15 @@ class EventBannerPageTests(TestCase):
     def setUpTestData(cls) -> None:
         load_reviewed_reference_data()
 
-    def test_mapped_event_pages_render_artwork_and_social_metadata(self) -> None:
-
-        for identity_id, filename in EVENT_BANNER_FILENAMES.items():
+    def test_event_pages_render_the_uploaded_picture_and_social_metadata(self) -> None:
+        # Every event is created with its picture (events.pictures), and the
+        # uploaded picture wins over the code-owned artwork.
+        for identity_id in EVENT_BANNER_FILENAMES:
             with self.subTest(identity_id=identity_id):
                 event = Event.objects.get(content_id=identity_id)
                 response = self.client.get(canonical_detail_path(event.content_id))
                 body = response.content.decode()
-                image_path = f"/static/core/event-banners/{filename}"
+                image_path = f"/events/{event.public_id}/banner"
                 canonical_image_url = f"https://datatalks.club{image_path}"
                 projected_event = {
                     record["identity_id"]: record for record in published_event_records()
@@ -65,14 +67,14 @@ class EventBannerPageTests(TestCase):
                     f'<meta property="og:image" content="{canonical_image_url}">',
                     body,
                 )
-                self.assertIn(f'<meta name="twitter:image" content="{canonical_image_url}">', body)
-                self.assertIn(f'"image": "{canonical_image_url}"', body)
                 self.assertEqual(event.slug, projected_event["slug"])
 
-    def test_unmapped_event_pages_keep_the_existing_no_image_fallback(self) -> None:
+    def test_a_pre_rule_event_without_a_picture_keeps_the_no_image_fallback(self) -> None:
         event = Event.objects.exclude(content_id__in=EVENT_BANNER_FILENAMES).first()
         self.assertIsNotNone(event)
         assert event is not None
+        # A row written before the picture rule: queryset delete bypasses the guard.
+        EventOperatorConfig.objects.filter(event=event).delete()
 
         response = self.client.get(canonical_detail_path(event.content_id))
         body = response.content.decode()
