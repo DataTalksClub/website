@@ -7,7 +7,7 @@ import binascii
 import hashlib
 import uuid
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import mistune
@@ -28,7 +28,11 @@ from core.audit import AuditWriteContext, record_audit_event
 from core.cyrillic import CYRILLIC_PATTERN
 from core.models import AuditEvent
 from core.security import UnsafeInputError, validate_url
-from event_registrants.models import EventOperatorConfig, EventRegistrationMeta
+from event_registrants.models import (
+    EventBannerUploadChunk,
+    EventOperatorConfig,
+    EventRegistrationMeta,
+)
 
 from .identity import decode_event_tags, encode_event_tags, host_profile_url, package_kind_for_type
 from .lifecycle import (
@@ -784,6 +788,117 @@ def complete_event_action(
     return {"event": serialize_admin_event(event, include_registrations=True)}
 
 
+MAX_BANNER_CHUNKS = 2000
+BANNER_UPLOAD_TTL = timedelta(hours=1)
+
+
+def _save_event_banner_bytes(event: Event, raw_bytes: bytes, content_type: str) -> dict[str, Any]:
+    if not raw_bytes or len(raw_bytes) > MAX_BANNER_BYTES:
+        raise EventAdminError(f"Banner image must be between 1 byte and {MAX_BANNER_BYTES} bytes.")
+    config, _created = EventOperatorConfig.objects.get_or_create(event=event)
+    config.banner_image = raw_bytes
+    config.banner_content_type = content_type
+    config.banner_updated_at = timezone.now()
+    config.save(
+        update_fields=("banner_image", "banner_content_type", "banner_updated_at", "updated_at")
+    )
+    event.save(update_fields=("updated_at",))
+    return {"event": serialize_admin_event(event), "size_bytes": len(raw_bytes), "complete": True}
+
+
+def _upload_event_banner_chunk(
+    event: Event,
+    data: dict[str, Any],
+    *,
+    content_type: str,
+) -> dict[str, Any]:
+    raw_upload_id = data.get("upload_id")
+    try:
+        upload_id = uuid.UUID(str(raw_upload_id))
+    except (TypeError, ValueError) as exc:
+        raise EventAdminError("upload_id must be a valid UUID.") from exc
+
+    raw_index = data.get("chunk_index")
+    raw_count = data.get("chunk_count")
+    if (
+        isinstance(raw_index, bool)
+        or isinstance(raw_count, bool)
+        or not isinstance(raw_index, int)
+        or not isinstance(raw_count, int)
+    ):
+        raise EventAdminError("chunk_index and chunk_count must be integers.")
+    if raw_count < 1 or raw_count > MAX_BANNER_CHUNKS:
+        raise EventAdminError(f"chunk_count must be between 1 and {MAX_BANNER_CHUNKS}.")
+    if raw_index < 0 or raw_index >= raw_count:
+        raise EventAdminError("chunk_index must be between 0 and chunk_count - 1.")
+
+    if data.get("_is_continuation_chunk"):
+        if raw_index == 0:
+            raise EventAdminError(
+                "Continuation banner chunk header is not allowed on chunk_index 0."
+            )
+        if not EventBannerUploadChunk.objects.filter(
+            event=event, upload_id=upload_id, chunk_index=0
+        ).exists():
+            raise EventAdminError(
+                "Banner upload session was not initialized with chunk 0.",
+                status=400,
+                code="banner_upload_not_initialized",
+            )
+
+    encoded = data.get("chunk_base64")
+    if not isinstance(encoded, str) or not encoded.strip():
+        raise EventAdminError("chunk_base64 is required for chunked banner uploads.")
+    try:
+        chunk_bytes = base64.b64decode(encoded.strip(), validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise EventAdminError("Invalid base64 chunk payload.") from exc
+    if not chunk_bytes or len(chunk_bytes) > MAX_BANNER_BYTES:
+        raise EventAdminError(f"Banner chunk must be between 1 byte and {MAX_BANNER_BYTES} bytes.")
+
+    cutoff = timezone.now() - BANNER_UPLOAD_TTL
+    EventBannerUploadChunk.objects.filter(event=event, created_at__lt=cutoff).delete()
+
+    EventBannerUploadChunk.objects.update_or_create(
+        upload_id=upload_id,
+        chunk_index=raw_index,
+        defaults={
+            "event": event,
+            "chunk_count": raw_count,
+            "content_type": content_type,
+            "data": chunk_bytes,
+        },
+    )
+
+    chunks = list(
+        EventBannerUploadChunk.objects.filter(event=event, upload_id=upload_id).order_by(
+            "chunk_index"
+        )
+    )
+    total_bytes = sum(len(bytes(item.data)) for item in chunks)
+    if total_bytes > MAX_BANNER_BYTES:
+        EventBannerUploadChunk.objects.filter(event=event, upload_id=upload_id).delete()
+        raise EventAdminError(f"Banner image must be between 1 byte and {MAX_BANNER_BYTES} bytes.")
+
+    if len(chunks) < raw_count:
+        return {
+            "upload_id": str(upload_id),
+            "chunk_index": raw_index,
+            "received_chunks": len(chunks),
+            "chunk_count": raw_count,
+            "complete": False,
+        }
+
+    expected_indices = list(range(raw_count))
+    actual_indices = [item.chunk_index for item in chunks]
+    if actual_indices != expected_indices:
+        raise EventAdminError("Banner upload chunks are inconsistent; restart the upload.")
+
+    combined = b"".join(bytes(item.data) for item in chunks)
+    EventBannerUploadChunk.objects.filter(event=event, upload_id=upload_id).delete()
+    return _save_event_banner_bytes(event, combined, content_type)
+
+
 @transaction.atomic
 def upload_event_banner(
     payload: Mapping[str, Any],
@@ -803,6 +918,11 @@ def upload_event_banner(
         raise EventAdminError(
             f"Unsupported banner content_type '{content_type}'. Allowed: {allowed}."
         )
+    if data.get("upload_id") is not None:
+        return _upload_event_banner_chunk(event, data, content_type=content_type)
+    if data.get("_is_continuation_chunk"):
+        raise EventAdminError("upload_id is required when using chunked banner upload.")
+
     encoded = data.get("image_base64")
     if not isinstance(encoded, str) or not encoded.strip():
         raise EventAdminError("image_base64 is required.")
@@ -810,18 +930,7 @@ def upload_event_banner(
         raw_bytes = base64.b64decode(encoded.strip(), validate=True)
     except (binascii.Error, ValueError) as exc:
         raise EventAdminError("Invalid base64 image payload.") from exc
-    if not raw_bytes or len(raw_bytes) > MAX_BANNER_BYTES:
-        raise EventAdminError(f"Banner image must be between 1 byte and {MAX_BANNER_BYTES} bytes.")
-
-    config, _created = EventOperatorConfig.objects.get_or_create(event=event)
-    config.banner_image = raw_bytes
-    config.banner_content_type = content_type
-    config.banner_updated_at = timezone.now()
-    config.save(
-        update_fields=("banner_image", "banner_content_type", "banner_updated_at", "updated_at")
-    )
-    event.save(update_fields=("updated_at",))
-    return {"event": serialize_admin_event(event), "size_bytes": len(raw_bytes)}
+    return _save_event_banner_bytes(event, raw_bytes, content_type)
 
 
 def export_event_registrants(

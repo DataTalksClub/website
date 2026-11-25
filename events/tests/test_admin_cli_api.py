@@ -290,3 +290,178 @@ class EventAdminAPITests(TestCase):
         self.assertEqual(
             comp_resp.json()["event"]["recording_url"], "https://youtube.com/watch?v=abc"
         )
+
+    def test_chunked_banner_upload_exceeding_waf_and_rate_limits(self) -> None:
+        speaker = self.client.post(
+            "/api/v1/admin/events/speakers",
+            data=json.dumps({"short": "alexeygrigorev", "name": "Alexey Grigorev"}),
+            content_type="application/json",
+            headers=self.auth_headers,
+        )
+        self.assertEqual(speaker.status_code, 201, speaker.content)
+        start = (timezone.now() + timedelta(days=10)).replace(microsecond=0)
+        created = self.client.post(
+            "/api/v1/admin/events",
+            data=json.dumps(
+                {
+                    "title": "Chunked Banner Event",
+                    "type": "podcast",
+                    "speakers": ["alexeygrigorev"],
+                    "start_datetime": start.isoformat(),
+                    "publish": True,
+                }
+            ),
+            content_type="application/json",
+            headers=self.auth_headers,
+        )
+        self.assertEqual(created.status_code, 201, created.content)
+        event_uuid = created.json()["event"]["id"]
+        public_id = created.json()["event"]["public_id"]
+
+        # 140 KB payload in 35 x 4096B chunks (> WRITE_RATE_LIMIT=30 and > 64KB JSON cap).
+        payload_bytes = TINY_PNG + (b"\x01\x02\x03\x04" * 35_000)
+        chunk_size = 4096
+        chunks = [
+            payload_bytes[i : i + chunk_size] for i in range(0, len(payload_bytes), chunk_size)
+        ]
+        self.assertGreater(len(chunks), 30)
+
+        import uuid
+
+        upload_id = str(uuid.uuid4())
+        # Continuation chunk before chunk 0 must fail loudly.
+        uninit = self.client.post(
+            f"/api/v1/admin/events/{event_uuid}/banner",
+            data=json.dumps(
+                {
+                    "upload_id": upload_id,
+                    "chunk_index": 1,
+                    "chunk_count": len(chunks),
+                    "content_type": "image/png",
+                    "chunk_base64": base64.b64encode(chunks[1]).decode("ascii"),
+                }
+            ),
+            content_type="application/json",
+            headers={**self.auth_headers, "X-Banner-Upload-Chunk": "1"},
+        )
+        self.assertEqual(uninit.status_code, 400, uninit.content)
+        self.assertEqual(uninit.json()["error"]["code"], "banner_upload_not_initialized")
+
+        last_resp = None
+        for idx, chunk in enumerate(chunks):
+            headers = dict(self.auth_headers)
+            if idx > 0:
+                headers["X-Banner-Upload-Chunk"] = "1"
+            last_resp = self.client.post(
+                f"/api/v1/admin/events/{event_uuid}/banner",
+                data=json.dumps(
+                    {
+                        "upload_id": upload_id,
+                        "chunk_index": idx,
+                        "chunk_count": len(chunks),
+                        "content_type": "image/png",
+                        "chunk_base64": base64.b64encode(chunk).decode("ascii"),
+                    }
+                ),
+                content_type="application/json",
+                headers=headers,
+            )
+            self.assertEqual(last_resp.status_code, 200, last_resp.content)
+            if idx < len(chunks) - 1:
+                self.assertFalse(last_resp.json()["complete"])
+            else:
+                self.assertTrue(last_resp.json()["complete"])
+                self.assertEqual(last_resp.json()["size_bytes"], len(payload_bytes))
+
+        banner_resp = self.client.get(f"/events/{public_id}/banner")
+        self.assertEqual(banner_resp.status_code, 200)
+        self.assertEqual(banner_resp["Content-Type"], "image/png")
+        self.assertEqual(banner_resp.content, payload_bytes)
+
+        # Single-shot upload > 64 KB also succeeds when not blocked by edge WAF.
+        single_bytes = TINY_PNG + (b"\x09\x08\x07\x06" * 20_000)
+        single = self.client.post(
+            f"/api/v1/admin/events/{event_uuid}/banner",
+            data=json.dumps(
+                {
+                    "content_type": "image/png",
+                    "image_base64": base64.b64encode(single_bytes).decode("ascii"),
+                }
+            ),
+            content_type="application/json",
+            headers=self.auth_headers,
+        )
+        self.assertEqual(single.status_code, 200, single.content)
+        self.assertEqual(single.json()["size_bytes"], len(single_bytes))
+
+    def test_unhandled_errors_report_specific_cause_instead_of_generic_internal_error(self) -> None:
+        from django.db import IntegrityError, NotSupportedError
+
+        speaker = self.client.post(
+            "/api/v1/admin/events/speakers",
+            data=json.dumps({"short": "alexeygrigorev", "name": "Alexey Grigorev"}),
+            content_type="application/json",
+            headers=self.auth_headers,
+        )
+        self.assertEqual(speaker.status_code, 201, speaker.content)
+        start = (timezone.now() + timedelta(days=15)).replace(microsecond=0)
+        created = self.client.post(
+            "/api/v1/admin/events",
+            data=json.dumps(
+                {
+                    "title": "Error Reporting Event",
+                    "type": "podcast",
+                    "speakers": ["alexeygrigorev"],
+                    "start_datetime": start.isoformat(),
+                    "publish": False,
+                }
+            ),
+            content_type="application/json",
+            headers=self.auth_headers,
+        )
+        event_uuid = created.json()["event"]["id"]
+
+        with patch(
+            "events.admin_services.publish_event",
+            side_effect=NotSupportedError(
+                "FOR UPDATE cannot be applied to the nullable side of an outer join"
+            ),
+        ):
+            resp = self.client.post(
+                f"/api/v1/admin/events/{event_uuid}/publish",
+                data="{}",
+                content_type="application/json",
+                headers=self.auth_headers,
+            )
+        self.assertEqual(resp.status_code, 500)
+        err = resp.json()["error"]
+        self.assertEqual(err["code"], "database_not_supported")
+        self.assertIn("NotSupportedError", err["message"])
+        self.assertIn("events.manage.publish", err["message"])
+
+        with patch(
+            "events.admin_services.publish_event",
+            side_effect=IntegrityError("duplicate key"),
+        ):
+            resp2 = self.client.post(
+                f"/api/v1/admin/events/{event_uuid}/publish",
+                data="{}",
+                content_type="application/json",
+                headers=self.auth_headers,
+            )
+        self.assertEqual(resp2.status_code, 409)
+        self.assertEqual(resp2.json()["error"]["code"], "database_integrity_error")
+
+        with patch(
+            "events.admin_services.publish_event",
+            side_effect=RuntimeError("allocator boom"),
+        ):
+            resp3 = self.client.post(
+                f"/api/v1/admin/events/{event_uuid}/publish",
+                data="{}",
+                content_type="application/json",
+                headers=self.auth_headers,
+            )
+        self.assertEqual(resp3.status_code, 500)
+        self.assertIn("RuntimeError", resp3.json()["error"]["message"])
+        self.assertIn("allocator boom", resp3.json()["error"]["message"])
