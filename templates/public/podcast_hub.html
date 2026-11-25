@@ -135,8 +135,45 @@
       }
 
       .podcast-seasons .filter-pill {
-        min-width: 2.75rem;
+        min-width: 2.5rem;
         padding-inline: var(--space-3);
+      }
+
+      /* Older seasons fold into one pill; opened, they drop below as a
+         compact grid of the same pills. */
+      .podcast-seasons-older {
+        position: relative;
+      }
+
+      .podcast-seasons-older summary {
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .podcast-seasons-older summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .podcast-seasons-older summary::after {
+        content: "▾";
+        margin-left: var(--space-1);
+      }
+
+      .podcast-seasons-older[open] summary::after {
+        content: "▴";
+      }
+
+      .podcast-seasons-older-list {
+        background: var(--card);
+        border: 1px solid var(--line-soft);
+        border-radius: 0.75rem;
+        display: grid;
+        gap: var(--space-2);
+        grid-template-columns: repeat(6, auto);
+        margin-top: var(--space-2);
+        padding: var(--space-3);
+        position: absolute;
+        z-index: 20;
       }
 
       .podcast-seasons-bottom {
@@ -266,7 +303,7 @@
           {% endif %}
           {% if season_links %}
             <nav class="podcast-seasons podcast-seasons-top" aria-label="Podcast seasons">
-              <span class="podcast-seasons-label">Jump to season</span>
+              <span class="podcast-seasons-label">Season</span>
               {% include "public/_podcast_season_pills.html" %}
             </nav>
           {% endif %}
@@ -352,10 +389,6 @@
                   {% if older_season %}<a class="band-link" href="{{ older_path }}" rel="next">Older season →</a>{% endif %}
                 </p>
               {% endif %}
-              <div class="podcast-seasons">
-                <span class="podcast-seasons-label">All seasons</span>
-                {% include "public/_podcast_season_pills.html" %}
-              </div>
             </nav>
           {% endif %}
         </div>

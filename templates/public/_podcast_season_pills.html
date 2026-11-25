@@ -1,9 +1,33 @@
-{% comment %}One shared filter pill per season, newest first; the open season is the current one.{% endcomment %}
+{% comment %}
+  Season navigation, compact: the eight newest seasons as the shared filter
+  pills, the rest folded into one "Older" disclosure (a plain <details>, so it
+  works without JavaScript).  The open season is always marked current, and
+  when it is an older one the fold opens on it.
+{% endcomment %}
 {% for season_link in season_links %}
-  <a
-    class="filter-pill interactive-lift"
-    href="{{ season_link.path }}"
-    aria-label="Season {{ season_link.number }}"
-    {% if season and season_link.number == season.number %}aria-current="page"{% endif %}
-  >{{ season_link.number }}</a>
+  {% if forloop.counter <= 8 %}
+    <a
+      class="filter-pill interactive-lift"
+      href="{{ season_link.path }}"
+      aria-label="Season {{ season_link.number }}"
+      {% if season and season_link.number == season.number %}aria-current="page"{% endif %}
+    >{{ season_link.number }}</a>
+  {% endif %}
 {% endfor %}
+{% if season_links|length > 8 %}{% with older_from=season_links.8.number %}
+  <details class="podcast-seasons-older">
+    <summary class="filter-pill interactive-lift"{% if season and season.number <= older_from %} aria-current="page"{% endif %}>{% if season and season.number <= older_from %}Season {{ season.number }}{% else %}Older{% endif %}</summary>
+    <div class="podcast-seasons-older-list">
+      {% for season_link in season_links %}
+        {% if forloop.counter > 8 %}
+          <a
+            class="filter-pill interactive-lift"
+            href="{{ season_link.path }}"
+            aria-label="Season {{ season_link.number }}"
+            {% if season and season_link.number == season.number %}aria-current="page"{% endif %}
+          >{{ season_link.number }}</a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </details>{% endwith %}
+{% endif %}
