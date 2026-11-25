@@ -141,6 +141,12 @@ class NewEventContentImportTests(TestCase):
             {"label": "Register on Luma", "url": "https://luma.com/abc"},
             {"label": "Register", "url": "https://lu.ma/abc"},
             {"label": "View event on Eventbrite", "url": "https://www.eventbrite.co.uk/e/1"},
+            # The free Academy sessions' old signup form: they register here now.
+            {
+                "label": "Event link",
+                "url": "https://datatalks.club/academy/sessions/?utm_source=dtc_site#register",
+            },
+            {"label": "Academy recap", "url": "https://datatalks.club/academy/sessions/recap/"},
             {"label": "Watch on YouTube", "url": "https://www.youtube.com/watch?v=x"},
         ]
         staged = self._stage([_record(self.event, links=links)])
@@ -149,7 +155,10 @@ class NewEventContentImportTests(TestCase):
         self.event.refresh_from_db()
         self.assertEqual(
             self.event.materials,
-            [{"label": "Watch on YouTube", "url": "https://www.youtube.com/watch?v=x"}],
+            [
+                {"label": "Academy recap", "url": "https://datatalks.club/academy/sessions/recap/"},
+                {"label": "Watch on YouTube", "url": "https://www.youtube.com/watch?v=x"},
+            ],
         )
         # The dropped links are dropped on every replay too, so it stays a no-op.
         self.assertTrue(import_new_event_content(path=staged).replayed)

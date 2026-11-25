@@ -139,6 +139,12 @@ _TYPES = frozenset({"webinar", "workshop", "podcast", "conference"})
 #: page: people register for an event only on this site, so a source link to one
 #: is dropped here and never becomes a material on the event page.
 _LUMA_HOSTS = frozenset({"luma.com", "lu.ma"})
+#: The Academy's own session signup (``/academy/sessions/``, any query or
+#: fragment): the legacy site linked the free Academy sessions there because
+#: they had a separate form.  Those sessions register on their event page like
+#: every other event now, so the link is a retired registration page too.
+_ACADEMY_SESSIONS_HOSTS = frozenset({"datatalks.club"})
+_ACADEMY_SESSIONS_PATH = "/academy/sessions/"
 
 
 class EventContentImportError(ValueError):
@@ -281,16 +287,18 @@ def _link(value: Any) -> ReviewedLink:
 
 
 def _is_external_registration_link(link: ReviewedLink) -> bool:
-    host = urlsplit(link.url).netloc.lower().removeprefix("www.")
+    parts = urlsplit(link.url)
+    host = parts.netloc.lower().removeprefix("www.")
     return (
         host in _LUMA_HOSTS
         or host.endswith((".luma.com", ".lu.ma"))
         or host.startswith("eventbrite.")
+        or (host in _ACADEMY_SESSIONS_HOSTS and parts.path == _ACADEMY_SESSIONS_PATH)
     )
 
 
 def _links(items: list[Any]) -> tuple[ReviewedLink, ...]:
-    """Every valid link a record carries, minus third-party registration pages."""
+    """Every valid link a record carries, minus retired registration pages."""
 
     parsed = (_link(item) for item in items)
     return tuple(link for link in parsed if not _is_external_registration_link(link))
