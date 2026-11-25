@@ -1,0 +1,26 @@
+{% comment %}
+  DTC skin for the shared Learning in Public editor
+  (community_base/homework_steps/_public_links.html).  The data-* hooks are the
+  package's contract with `community_base/homework_public_links.js`, which
+  hides the fallback textarea and draws one labelled URL row per link; the
+  wording and the field/hint classes are DTC's, the same voice as the classic
+  form's `include/learning_in_public_links.html`.  The rows the script draws
+  are styled in `homework/steps.html`.
+{% endcomment %}
+{% with cap=stepper.assignment.context.learning_in_public_cap %}
+  <div class="field homework-public-links" data-learning-public-links data-max-links="{{ cap }}">
+    <div class="homework-public-links-heading">
+      <p class="field-hint" id="learning-in-public-hint" data-testid="learning-public-link-guidance">
+        Optional. Add up to {{ cap }} link{{ cap|pluralize }} to social media posts where you share your progress (LinkedIn, X, Bluesky and so on).
+        {% if course.social_media_hashtag %}Use the {{ course.social_media_hashtag }} tag.{% endif %}
+        Each link scores a point, capped at {{ cap }}.
+        <a class="band-link" href="/docs/courses/course-management-platform/learning-in-public/" target="_blank" rel="noopener noreferrer">Learning in public docs</a>
+      </p>
+      <output class="homework-public-links-count" data-public-link-count aria-live="polite"></output>
+    </div>
+    <label class="field-label" for="homework-public-links-fallback" data-public-links-fallback-label>Public links, one per line</label>
+    <textarea class="field-input form-control" id="homework-public-links-fallback" name="answer" data-public-links-value rows="3" aria-describedby="learning-in-public-hint">{{ stepper.answer }}</textarea>
+    <div class="homework-public-link-slots" data-public-link-slots data-testid="learning-public-link-slots"></div>
+    <div><button class="cta cta-secondary cta-compact homework-public-links-add" type="button" data-add-public-link hidden><span aria-hidden="true">+</span>&nbsp;<span data-add-public-link-label>Add another link</span></button></div>
+  </div>
+{% endwith %}

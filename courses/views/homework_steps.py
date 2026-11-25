@@ -32,6 +32,10 @@ from courses.views.homework_submission import HomeworkPostData, process_homework
 from courses.views.url_utils import canonical_cohort_url_kwargs
 
 
+LEARNING_IN_PUBLIC_KEY = "learning-in-public"
+LEARNING_IN_PUBLIC_LABEL = "Learning in Public"
+
+
 def assignment_key(homework):
     # A homework is owned by an exact cohort, even when slugs are reused.
     return f"dtc:cohort:{homework.course_id}:homework:{homework.pk}"
@@ -106,19 +110,37 @@ def _submitted_answer(question, answer):
     return selected[0] if selected else ""
 
 
-def _final_fields(homework, course, disable_learning_in_public):
+def learning_in_public_cap(homework, disable_learning_in_public):
+    """The step's link cap, or 0 when this learner has no Learning in Public step."""
+
+    if disable_learning_in_public or homework.learning_in_public_cap <= 0:
+        return 0
+    return homework.learning_in_public_cap
+
+
+def _learning_in_public_question():
+    # Links are one text answer, one link per line: the shared public-links
+    # editor writes that shape and the adapter maps it to the submission list.
+    return StepQuestion(
+        key=LEARNING_IN_PUBLIC_KEY,
+        prompt="Share links to public posts about your progress.",
+        type="long_text",
+        step_label=LEARNING_IN_PUBLIC_LABEL,
+    )
+
+
+def learning_in_public_links_from_answer(answer):
+    if not isinstance(answer, str):
+        return []
+    return [line.strip() for line in answer.splitlines() if line.strip()]
+
+
+def _final_fields(homework, course):
     fields = []
     if homework.homework_url_field:
         # DTC also accepts git:// homework links, so the legacy model remains
         # the URL validator at final submission rather than a browser URL input.
         fields.append(FinalField("homework_url", "Homework URL", required=True))
-    if homework.learning_in_public_cap > 0 and not disable_learning_in_public:
-        fields.extend(
-            FinalField(
-                f"learning_in_public_link_{index}", f"Learning in public link {index}", "url"
-            )
-            for index in range(1, homework.learning_in_public_cap + 1)
-        )
     if homework.time_spent_lectures_field:
         fields.append(FinalField("time_spent_lectures", "Lectures and reading (hours)"))
     if homework.time_spent_homework_field:
@@ -144,8 +166,6 @@ def _existing_final_fields(submission, fields):
         "problems_comments": submission.problems_comments or "",
         "faq_contribution_url": submission.faq_contribution_url or "",
     }
-    for index, link in enumerate(submission.learning_in_public_links or [], start=1):
-        values[f"learning_in_public_link_{index}"] = link
     return {field.key: values.get(field.key, "") for field in fields}
 
 
@@ -181,24 +201,33 @@ def build_assignment(*, request, course, homework, questions):
         if homework.instructions_markdown
         else ""
     )
-    fields = _final_fields(homework, course, context["disable_learning_in_public"])
+    fields = _final_fields(homework, course)
+    lip_cap = learning_in_public_cap(homework, context["disable_learning_in_public"])
+    context["learning_in_public_cap"] = lip_cap
     saved_answers = (
         Answer.objects.filter(submission=submission, question__homework=homework)
         if submission
         else ()
     )
     answer_by_question = {answer.question_id: answer for answer in saved_answers}
+    step_questions = tuple(_step_question(question) for question in questions)
+    existing_answers = {
+        question_key(question): _submitted_answer(question, answer_by_question.get(question.pk))
+        for question in questions
+    }
+    if lip_cap:
+        step_questions += (_learning_in_public_question(),)
+        existing_answers[LEARNING_IN_PUBLIC_KEY] = "\n".join(
+            (submission.learning_in_public_links or []) if submission else []
+        )
     return Assignment(
         key=assignment_key(homework),
         title=homework.title,
-        questions=tuple(_step_question(question) for question in questions),
+        questions=step_questions,
         introduction=homework.description,
         instructions=homework.instructions_markdown,
         final_fields=fields,
-        existing_answers={
-            question_key(question): _submitted_answer(question, answer_by_question.get(question.pk))
-            for question in questions
-        },
+        existing_answers=existing_answers,
         existing_final_fields=_existing_final_fields(submission, fields),
         context=context,
         has_submission=submission is not None,
@@ -252,15 +281,15 @@ class DtcHomeworkStepsAdapter:
             else:
                 post[f"answer_{question.pk}"] = value
         for key, value in final_fields.items():
-            if not key.startswith("learning_in_public_link_"):
-                post[key] = value
-        link_keys = sorted(
-            (key for key in final_fields if key.startswith("learning_in_public_link_")),
-            key=lambda key: int(key.rsplit("_", 1)[-1]),
-        )
-        if link_keys:
-            post.setlist("learning_in_public_links[]", [final_fields[key] for key in link_keys])
+            post[key] = value
+        context = assignment.context if isinstance(assignment.context, dict) else {}
+        if context.get("learning_in_public_cap"):
+            post.setlist(
+                "learning_in_public_links[]",
+                learning_in_public_links_from_answer(answers.get(LEARNING_IN_PUBLIC_KEY, "")),
+            )
         elif self.homework.learning_in_public_cap > 0:
+            # A learner without the step keeps the links already on record.
             submission = Submission.objects.filter(
                 homework=self.homework, student=request.user
             ).first()

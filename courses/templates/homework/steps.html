@@ -24,6 +24,24 @@
   .homework-review-answer { color: var(--body-text); display: block; margin-top: var(--space-1); }
   .homework-steps [data-save-status] { color: var(--muted); min-height: 1.2rem; }
   .homework-steps [role="alert"] { background: var(--sand); border: var(--border-soft); border-radius: var(--radius-media); padding: var(--space-3) var(--space-4); }
+  /* The shared Learning in Public editor: its script draws plain rows, so the
+     rows take the classic form's `.link-row` shape and the field/button
+     primitives' tokens here. */
+  .homework-public-links-heading { display: grid; gap: var(--space-2); }
+  .homework-public-links-count { color: var(--muted); font-family: var(--font-mono); font-size: 0.78rem; }
+  .homework-public-links-count:empty { display: none; }
+  .homework-public-link-slots { display: grid; gap: var(--space-3); }
+  .homework-public-link-row { align-items: end; display: flex; gap: var(--space-2); }
+  .homework-public-link-field { display: grid; flex: 1 1 auto; gap: var(--space-1); min-width: 0; }
+  .homework-public-link-label { color: var(--ink); font-size: 0.85rem; font-weight: 700; }
+  .homework-public-link-input { background: var(--card); border: var(--border-field); border-radius: var(--radius-control); color: var(--ink); font: inherit; min-height: 2.75rem; padding: var(--space-3); width: 100%; }
+  .homework-public-link-input:disabled { background: var(--sand); border-color: var(--line-soft); color: var(--muted); }
+  .homework-public-link-remove { appearance: none; background: transparent; border: var(--border-soft); border-radius: var(--radius-control); color: var(--indigo); cursor: pointer; flex: none; font: inherit; font-size: 0.92rem; font-weight: 700; min-height: 2.75rem; padding: var(--space-2) var(--space-4); }
+  .homework-public-link-remove:hover, .homework-public-link-remove:focus-visible { background: var(--lavender); border-color: var(--indigo); color: var(--ink); }
+  .homework-public-links-add { background: transparent; border-color: var(--line-soft); box-shadow: none; color: var(--indigo); }
+  .homework-public-links-add:hover, .homework-public-links-add:focus-visible { background: var(--lavender); border-color: var(--indigo); color: var(--ink); }
+  .homework-public-links-list { display: grid; gap: var(--space-2); list-style: none; margin: 0; padding: 0; }
+  .homework-public-links-list a { overflow-wrap: anywhere; }
   @media (max-width: 47.99rem) { .homework-step-actions { display: grid; } }
 {% endblock %}
 

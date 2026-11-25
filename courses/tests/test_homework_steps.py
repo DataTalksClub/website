@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from courses.models import Answer, Enrollment, HomeworkState, Submission
 from courses.tests.homework_view_base import HomeworkDetailViewTestBase, credentials
-from courses.views.homework_steps import assignment_key
+from courses.views.homework_steps import LEARNING_IN_PUBLIC_KEY, assignment_key
 
 
 class HomeworkStepsTests(HomeworkDetailViewTestBase):
@@ -316,8 +316,6 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
                 "revision": 1,
                 "intent": "submit",
                 "final_homework_url": "https://github.com/example/homework",
-                "final_learning_in_public_link_1": "https://example.org/progress",
-                "final_learning_in_public_link_2": "",
                 "final_time_spent_lectures": "2.5",
                 "final_time_spent_homework": "4.0",
                 "final_problems_comments": "Original feedback",
@@ -360,3 +358,111 @@ class HomeworkStepsTests(HomeworkDetailViewTestBase):
         self.assertEqual(
             Submission.objects.filter(student=self.user, homework=self.homework).count(), 1
         )
+
+
+class HomeworkLearningInPublicStepTests(HomeworkDetailViewTestBase):
+    def setUp(self):
+        super().setUp()
+        self.homework.homework_url_field = False
+        self.homework.learning_in_public_cap = 2
+        self.homework.time_spent_lectures_field = False
+        self.homework.time_spent_homework_field = False
+        self.homework.faq_contribution_field = False
+        self.homework.save()
+        self.client.login(**credentials)
+
+    def step_url(self, step):
+        return reverse(
+            "cohort_homework_step",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_identifier": self.course.identifier,
+                "homework_slug": self.homework.slug,
+                "homework_step": step,
+            },
+        )
+
+    def draft(self):
+        return HomeworkDraft.objects.get(
+            user=self.user, assignment_key=assignment_key(self.homework)
+        )
+
+    def test_learning_in_public_is_its_own_step_not_final_fields(self):
+        intro = self.client.get(self.homework_url())
+        self.assertContains(intro, f'href="{self.step_url(LEARNING_IN_PUBLIC_KEY)}"')
+        self.assertContains(intro, ">Learning in Public</a>")
+
+        step = self.client.get(self.step_url(LEARNING_IN_PUBLIC_KEY))
+        self.assertContains(step, "<h2>Learning in Public</h2>", html=True)
+        self.assertContains(step, 'data-learning-public-links data-max-links="2"')
+        self.assertContains(step, "community_base/homework_public_links.js")
+
+        review = self.client.get(self.step_url("review"))
+        self.assertNotContains(review, "final_learning_in_public_link")
+
+    def test_links_answer_maps_to_submission_links(self):
+        self.client.get(self.homework_url())
+        draft = self.draft()
+        saved = self.client.post(
+            self.step_url(LEARNING_IN_PUBLIC_KEY),
+            {
+                "assignment_key": assignment_key(self.homework),
+                "draft_token": str(draft.token),
+                "homework_step": LEARNING_IN_PUBLIC_KEY,
+                "revision": 0,
+                "answer": "https://example.org/one\n\n  https://example.org/two  ",
+                "intent": "save",
+            },
+        )
+        self.assertEqual(saved.status_code, 302)
+        response = self.client.post(
+            self.step_url("review"),
+            {
+                "assignment_key": assignment_key(self.homework),
+                "draft_token": str(draft.token),
+                "homework_step": "review",
+                "revision": 1,
+                "intent": "submit",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        submission = Submission.objects.get(student=self.user, homework=self.homework)
+        self.assertEqual(
+            submission.learning_in_public_links,
+            ["https://example.org/one", "https://example.org/two"],
+        )
+
+    def test_existing_links_seed_the_step(self):
+        self.create_submission_with_answers()
+        self.submission.learning_in_public_links = ["https://example.org/a"]
+        self.submission.save()
+        step = self.client.get(self.step_url(LEARNING_IN_PUBLIC_KEY))
+        self.assertContains(step, "https://example.org/a</textarea>")
+
+    def test_disabled_learning_in_public_has_no_step_and_keeps_links(self):
+        self.create_submission_with_answers()
+        self.submission.learning_in_public_links = ["https://example.org/kept"]
+        self.submission.save()
+        enrollment = self.submission.enrollment or Enrollment.objects.create(
+            student=self.user, course=self.course
+        )
+        enrollment.disable_learning_in_public = True
+        enrollment.save()
+        self.submission.enrollment = enrollment
+        self.submission.save()
+
+        intro = self.client.get(self.homework_url())
+        self.assertNotContains(intro, self.step_url(LEARNING_IN_PUBLIC_KEY))
+        response = self.client.post(
+            self.step_url("review"),
+            {
+                "assignment_key": assignment_key(self.homework),
+                "draft_token": str(self.draft().token),
+                "homework_step": "review",
+                "revision": 0,
+                "intent": "submit",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.submission.refresh_from_db()
+        self.assertEqual(self.submission.learning_in_public_links, ["https://example.org/kept"])

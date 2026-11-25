@@ -40,6 +40,8 @@
             {% for option, selected in stepper.options %}
               <label class="homework-step-option"><input type="{% if stepper.question.type == 'choice' %}radio{% else %}checkbox{% endif %}" name="answer" value="{{ option.key }}"{% if selected %} checked{% endif %}> <span>{{ option.label }}</span></label>
             {% endfor %}
+          {% elif stepper.step == 'learning-in-public' %}
+            {% include "homework_steps/_public_links.html" %}
           {% elif stepper.question.type == 'long_text' %}
             <label for="homework-answer">Your answer</label>
             <textarea class="field-input form-control" id="homework-answer" name="answer" maxlength="10000" rows="8">{{ stepper.answer }}</textarea>
@@ -61,7 +63,7 @@
       <h2>Review &amp; submit</h2>
       <ol class="homework-review-list">
         {% for row in stepper.review_display_rows %}
-          <li><a class="band-link" href="{{ row.url }}">{% if row.has_semantic_label %}{{ row.step_label }}{% else %}Question {{ row.question_number }}: {{ row.prompt }}{% endif %}</a><span class="homework-review-answer">{% if row.answer %}{{ row.answer }}{% else %}No answer saved{% endif %}</span></li>
+          <li><a class="band-link" href="{{ row.url }}">{% if row.has_semantic_label %}{{ row.step_label }}{% else %}Question {{ row.question_number }}: {{ row.prompt }}{% endif %}</a><span class="homework-review-answer">{% if row.answer %}{{ row.answer|linebreaksbr }}{% else %}No answer saved{% endif %}</span></li>
         {% endfor %}
       </ol>
       <form method="post" action="{{ stepper.action }}" class="homework-step-form" data-homework-autosave data-save-url="{{ stepper.save_url }}">
@@ -91,4 +93,5 @@
   {% endif %}
 </section>
 <script defer src="{% static 'homework_steps_validation.js' %}"></script>
+<script defer src="{% static 'community_base/homework_public_links.js' %}"></script>
 <script defer src="{% static 'community_base/homework_steps.js' %}"></script>
