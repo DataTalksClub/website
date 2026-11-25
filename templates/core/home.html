@@ -84,12 +84,12 @@
          the facts.  Either block alone takes the whole row. */
       .about-grid {
         display: grid;
-        gap: 1.5rem;
+        gap: var(--space-5);
       }
 
       .about-part {
         display: grid;
-        gap: 0.9rem;
+        gap: var(--space-3);
       }
 
       .about-part h3 {
@@ -103,7 +103,7 @@
 
       @media (min-width: 62rem) {
         .about-grid {
-          gap: 2rem 2.5rem;
+          gap: var(--space-6) var(--space-6);
           grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
         }
 
@@ -846,7 +846,6 @@
                   <p>{{ tour_content.hero_intro }}</p>
                 {% endif %}
               </div>
-              <a class="band-link" href="{% url 'about' %}">about DataTalks.Club →</a>
             </div>
             <div class="about-grid">
               {% if tour_content.stats %}
@@ -865,6 +864,9 @@
                 </div>
               {% endif %}
             </div>
+            <p class="band-more">
+              <a class="band-link" href="{% url 'about' %}">about DataTalks.Club →</a>
+            </p>
           </div>
         </section>
       {% endif %}
