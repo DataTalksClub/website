@@ -459,7 +459,7 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["Cache-Control"], "max-age=0, must-revalidate")
         for heading_id in (
-            "show-notes-heading",
+            "overview-heading",
             "timestamps-heading",
             "transcript-heading",
             "guest-bios-heading",
@@ -530,7 +530,7 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertNotIn('role="tablist"', body)
         self.assertNotIn('role="tab"', body)
         self.assertNotIn('role="tabpanel"', body)
-        for section_id in ("show-notes", "timestamps", "transcript"):
+        for section_id in ("overview", "timestamps", "transcript"):
             match = re.search(rf'<section id="{section_id}"[^>]*>', body)
             self.assertIsNotNone(match)
             assert match is not None
@@ -549,7 +549,7 @@ class PodcastEpisodeParityTests(TestCase):
             },
         )
 
-    def test_summary_is_the_first_tab_and_absorbs_the_show_note_links(self) -> None:
+    def test_overview_is_the_first_tab_and_leads_with_the_summary(self) -> None:
         record = {
             **self.representative(),
             "summary": "What they discussed.\n\nThe key takeaway,\nwrapped in the source.",
@@ -562,24 +562,43 @@ class PodcastEpisodeParityTests(TestCase):
         body = self.render_record(record)
 
         tabs = re.findall(r'<a class="episode-tab" href="#([a-z-]+)"', body)
-        self.assertEqual(tabs, ["summary", "timestamps", "transcript"])
-        summary_start = body.index('<section id="summary"')
-        summary_html = body[summary_start : body.index("</section>", summary_start)]
-        self.assertIn("<p>What they discussed.</p>", summary_html)
-        self.assertIn("<p>The key takeaway, wrapped in the source.</p>", summary_html)
-        # The links live inside Summary; no second prose panel beside it.
-        self.assertIn("https://example.invalid/synthetic-guest-two", summary_html)
+        self.assertEqual(tabs, ["overview", "timestamps", "transcript"])
+        overview_start = body.index('<section id="overview"')
+        overview_html = body[overview_start : body.index("</section>", overview_start)]
+        self.assertIn("<p>What they discussed.</p>", overview_html)
+        self.assertIn("<p>The key takeaway, wrapped in the source.</p>", overview_html)
+        # The show-note links and the guest bios live inside Overview.
+        self.assertIn("https://example.invalid/synthetic-guest-two", overview_html)
+        self.assertIn('id="guest-bios-heading"', overview_html)
         self.assertNotIn('id="show-notes"', body)
-        self.assertLess(summary_start, body.index('<section id="timestamps"'))
+        self.assertLess(overview_start, body.index('<section id="timestamps"'))
 
-    def test_without_a_summary_the_show_notes_tab_leads(self) -> None:
+    def test_without_a_summary_overview_still_leads_with_guests_and_links(self) -> None:
         record = {**self.representative(), "summary": ""}
         self.assertEqual(episode_view(record).summary_paragraphs, ())
         body = self.render_record(record)
 
         tabs = re.findall(r'<a class="episode-tab" href="#([a-z-]+)"', body)
-        self.assertEqual(tabs, ["show-notes", "timestamps", "transcript"])
-        self.assertNotIn('id="summary"', body)
+        self.assertEqual(tabs, ["overview", "timestamps", "transcript"])
+        overview_start = body.index('<section id="overview"')
+        overview_html = body[overview_start : body.index("</section>", overview_start)]
+        self.assertIn('id="guest-bios-heading"', overview_html)
+        self.assertNotIn('class="episode-summary"', overview_html)
+
+    def test_transcript_downloads_as_plain_text(self) -> None:
+        record = self.representative()
+        view = episode_view(record)
+        response = self.client.get(record["public_path"] + "/transcript.txt")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/plain; charset=utf-8")
+        self.assertIn("attachment;", response["Content-Disposition"])
+        self.assertIn('filename="dtc-podcast-', response["Content-Disposition"])
+        text = response.content.decode("utf-8")
+        self.assertTrue(text.startswith(view.title + "\n"))
+        spoken = next(entry for entry in view.transcript if entry.line)
+        self.assertIn(spoken.line, text)
+        page = self.client.get(record["public_path"]).content.decode()
+        self.assertIn(f'href="{record["public_path"]}/transcript.txt"', page)
 
     def test_timestamps_are_topic_markers_separate_from_transcript_body(self) -> None:
         record = self.representative()
@@ -597,7 +616,7 @@ class PodcastEpisodeParityTests(TestCase):
         timestamp_end = body.index("</section>", timestamp_start)
         timestamp_markup = body[timestamp_start:timestamp_end]
         self.assertEqual(
-            timestamp_markup.count('class="timestamp-row timestamp-index-row"'),
+            timestamp_markup.count('class="chapter-row"'),
             len(view.timestamp_entries),
         )
         self.assertNotIn(view.transcript[2].line, timestamp_markup)

@@ -75,6 +75,7 @@ from .podcast_content import (
     podcast_platform_links,
     podcast_seasons,
     related_episodes,
+    transcript_text,
 )
 from .podcast_hub import HUB_LISTEN_ORDER, hub_season, podcast_season_path
 from .podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_public_id
@@ -1525,6 +1526,30 @@ def podcast_detail_by_id(
     if request.path_info != episode["public_path"]:
         return permanent_public_redirect(request, target=episode["public_path"])
     return _render_podcast_detail(request, episode)
+
+
+@csrf_exempt
+def podcast_transcript_text(
+    request: HttpRequest,
+    episode_id: str,
+    slug: str,
+) -> HttpResponse:
+    """The episode transcript as a UTF-8 plain-text download, from the catalogue."""
+
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    episode = _podcast_by_public_id(episode_id)
+    download_path = f"{episode['public_path']}/transcript.txt"
+    if request.path_info != download_path:
+        return permanent_public_redirect(request, target=download_path)
+    view = episode_view(episode)
+    if not view.transcript:
+        raise Http404
+    filename = "dtc-podcast-" + episode["public_path"].removeprefix("/podcast/").replace("/", "-")
+    response = HttpResponse(transcript_text(view), content_type="text/plain; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}.txt"'
+    response["Cache-Control"] = "max-age=0, must-revalidate"
+    return response
 
 
 @csrf_exempt

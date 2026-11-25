@@ -206,10 +206,11 @@ def test_episode_play_control_is_a_labelled_keyboard_destination(
         image["alt"] or image["className"] in {"person-chip-portrait", "episode-video-poster"}
         for image in image_data
     ), image_data
-    # Transcript is not the default tab (Show Notes is); activate it to reach
-    # its heading, the same way a keyboard or pointer user would.
+    # Transcript is not the default tab (Overview is); activate it to reach
+    # its panel, the same way a keyboard or pointer user would.
     page.get_by_role("tab", name="Transcript").click()
-    expect(page.locator("#transcript-heading")).to_be_visible()
+    expect(page.locator("#transcript")).to_be_visible()
+    expect(page.locator("#transcript-heading")).to_have_count(1)
 
 
 def test_index_and_episode_stay_usable_at_320px_without_javascript(

@@ -114,6 +114,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "content.public_views.person_detail": EDITORIAL_DETAIL,
     "content.public_views.podcast_detail_by_id": EDITORIAL_DETAIL,
     "content.public_views.podcast_detail_by_id_without_slug": EDITORIAL_DETAIL,
+    "content.public_views.podcast_transcript_text": EDITORIAL_DETAIL,
     "content.public_views.wiki_detail": EDITORIAL_DETAIL,
     "content.public_views.wiki_graph": EDITORIAL_DETAIL,
     "content.public_views.wiki_special": EDITORIAL_DETAIL,

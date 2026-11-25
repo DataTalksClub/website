@@ -321,8 +321,7 @@
       }
 
       .listen-row .pill-button,
-      .episode-resource-list a,
-      .episode-timestamp {
+      .episode-resource-list a {
         overflow-wrap: anywhere;
       }
 
@@ -369,9 +368,18 @@
         margin: 0 0 var(--space-4);
       }
 
-      .episode-summary-links-heading {
+      .episode-summary p:last-child {
+        margin-bottom: 0;
+      }
+
+      .episode-overview-block + .episode-overview-block,
+      .episode-summary + .episode-overview-block {
+        margin-top: var(--space-6);
+      }
+
+      .episode-overview-heading {
         font-size: 1.05rem;
-        margin: var(--space-6) 0 0;
+        margin: 0;
       }
 
       .episode-resource-list {
@@ -400,11 +408,62 @@
         margin-top: var(--space-5);
       }
 
-      .episode-timestamp {
+      /* Chapter list: one ruled list, time and topic on one shared baseline
+         (both are flex items aligned by baseline, so the smaller mono time no
+         longer floats above the topic text), a fixed narrow time column so
+         every topic starts at the same x, and hairline separators. */
+      .chapter-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .chapter-row {
         align-items: baseline;
-        display: inline-flex;
+        border-bottom: 1px solid var(--line-soft);
+        display: flex;
         gap: var(--space-3);
-        min-height: 1.75rem;
+        line-height: 1.45;
+        padding-block: var(--space-2);
+      }
+
+      .chapter-row:last-child {
+        border-bottom: 0;
+      }
+
+      .chapter-time {
+        color: var(--muted);
+        flex: 0 0 3.75rem;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        font-variant-numeric: tabular-nums;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      a.chapter-time:hover,
+      a.chapter-time:focus-visible {
+        color: var(--indigo);
+        text-decoration: underline;
+      }
+
+      .chapter-label {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .transcript-tools {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: var(--space-4);
+      }
+
+      .transcript-body > .transcript-section:first-child {
+        margin-top: 0;
+      }
+
+      .episode-overview-block .episode-resource-list {
+        margin-top: var(--space-3);
       }
 
       /* Timestamps and transcript rows sit tighter than the shared list
@@ -426,18 +485,6 @@
 
       .transcript-time-link:hover,
       .transcript-time-link:focus-visible {
-        color: var(--indigo);
-        text-decoration: underline;
-      }
-
-      /* The chapter list's time links get the same quiet handle. */
-      a.episode-timestamp {
-        color: var(--muted);
-        text-decoration: none;
-      }
-
-      a.episode-timestamp:hover .transcript-time-link,
-      a.episode-timestamp:focus-visible .transcript-time-link {
         color: var(--indigo);
         text-decoration: underline;
       }
@@ -465,7 +512,7 @@
       .episode-bios {
         display: grid;
         gap: var(--space-5);
-        margin-top: var(--space-5);
+        margin-top: var(--space-4);
       }
 
       .guest-bio-card {
@@ -498,8 +545,9 @@
         min-width: 0;
       }
 
-      .guest-bio-copy h3 {
-        margin-top: 0;
+      .guest-bio-copy h4 {
+        font-size: 1rem;
+        margin: 0;
       }
 
       .guest-bio-links {
@@ -750,15 +798,14 @@
 
       <section class="band band-lavender" aria-label="Episode reading sections">
         <div class="shell episode-shell">
-          {% comment %}Summary leads when the episode has one, and the show-note
-          links move into it, so there is never a second prose tab beside it.
-          Without a summary the links keep their own Show Notes tab.{% endcomment %}
+          {% comment %}Every episode opens on Overview.  With an editorial summary
+          it leads with that prose; without one it carries what the page already
+          has that describes the episode beyond the hero standfirst: the guests'
+          bios and the links mentioned (the standfirst itself only when neither
+          exists, so the panel is never empty and never repeats the hero).  Each
+          panel's heading is screen-reader only: the tab label already says it.{% endcomment %}
           <nav class="episode-tabs" aria-label="Episode sections">
-            {% if episode.summary_paragraphs %}
-              <a class="episode-tab" href="#summary">Summary</a>
-            {% elif episode.links %}
-              <a class="episode-tab" href="#show-notes">Show Notes</a>
-            {% endif %}
+            <a class="episode-tab" href="#overview">Overview</a>
             {% if episode.timestamp_entries %}
               <a class="episode-tab" href="#timestamps">Timestamps</a>
             {% endif %}
@@ -767,74 +814,114 @@
             {% endif %}
           </nav>
 
-          {% if episode.summary_paragraphs %}
-            <section id="summary" class="episode-section" aria-labelledby="summary-heading">
-              <div class="band-head">
-                <div>
-                  <h2 id="summary-heading">Summary</h2>
-                  <p>What the conversation covered.</p>
-                </div>
-              </div>
+          <section id="overview" class="episode-section" aria-labelledby="overview-heading">
+            <h2 id="overview-heading" class="sr-only">Overview</h2>
+            {% if episode.summary_paragraphs %}
               <div class="episode-summary">
                 {% for paragraph in episode.summary_paragraphs %}
                   <p>{{ paragraph }}</p>
                 {% endfor %}
               </div>
-              {% if episode.links %}
-                <h3 class="episode-summary-links-heading">Links mentioned</h3>
-                {% include "public/_episode_resource_list.html" with resources=episode.links only %}
-              {% endif %}
-            </section>
-          {% elif episode.links %}
-          <section id="show-notes" class="episode-section" aria-labelledby="show-notes-heading">
-            <div class="band-head">
-              <div>
-                <h2 id="show-notes-heading">Show Notes</h2>
-                <p>Links and resources mentioned in this episode.</p>
+            {% elif not episode.guests and not episode.links %}
+              <div class="episode-summary">
+                <p>{{ episode.description }}</p>
               </div>
-            </div>
-            {% comment %}Empty show notes are hidden, not announced (site feedback 2026-11-19).{% endcomment %}
-              {% include "public/_episode_resource_list.html" with resources=episode.links only %}
+            {% endif %}
+            {% if episode.guests %}
+              <div class="episode-overview-block">
+                {% if episode.guests|length != 1 %}
+                  <h3 id="guest-bios-heading" class="episode-overview-heading">About the guests</h3>
+                {% else %}
+                  <h3 id="guest-bios-heading" class="episode-overview-heading">About the guest</h3>
+                {% endif %}
+                <div class="episode-bios">
+                  {% for guest in episode.guests %}
+                    <article class="guest-bio-card">
+                      {% if guest.media_available %}
+                        <img
+                          class="guest-bio-portrait"
+                          src="{{ guest.image_path }}"
+                          alt="Portrait of {{ guest.name }}"
+                          width="160"
+                          height="160"
+                          loading="lazy"
+                          decoding="async"
+                        >
+                      {% else %}
+                        <div
+                          class="guest-bio-placeholder"
+                          role="img"
+                          aria-label="No portrait available for {{ guest.name }}"
+                        >No portrait</div>
+                      {% endif %}
+                      <div class="guest-bio-copy">
+                        <h4>
+                          {% if guest.public_path %}
+                            <a class="band-link" href="{{ guest.public_path }}">{{ guest.name }}</a>
+                          {% else %}
+                            {{ guest.name }}
+                          {% endif %}
+                        </h4>
+                        {% if guest.summary %}
+                          <p>{{ guest.summary }}</p>
+                        {% endif %}
+                        {% if guest.profile_links %}
+                          <ul class="guest-bio-links" aria-label="{{ guest.name }} profile links">
+                            {% for link in guest.profile_links %}
+                              <li>
+                                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+                                  {{ link.label }}<span class="sr-only"> (opens in a new tab)</span>
+                                </a>
+                              </li>
+                            {% endfor %}
+                          </ul>
+                        {% endif %}
+                      </div>
+                    </article>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            {% if episode.links %}
+              <div class="episode-overview-block">
+                <h3 class="episode-overview-heading">Links mentioned</h3>
+                {% include "public/_episode_resource_list.html" with resources=episode.links only %}
+              </div>
+            {% endif %}
           </section>
-          {% endif %}
 
           {% if episode.timestamp_entries %}
             <section id="timestamps" class="episode-section" aria-labelledby="timestamps-heading">
-              <div class="band-head">
-                <div>
-                  <h2 id="timestamps-heading">Timestamps</h2>
-                  <p>Jump to a moment in the conversation.</p>
-                </div>
-              </div>
-              {% for entry in episode.timestamp_entries %}
-                <div class="timestamp-row timestamp-index-row">
-                  <span class="timestamp-mark">
+              <h2 id="timestamps-heading" class="sr-only">Timestamps</h2>
+              <ol class="chapter-list">
+                {% for entry in episode.timestamp_entries %}
+                  <li class="chapter-row">
                     {% if entry.fallback_url %}
                       <a
-                        class="episode-timestamp"
+                        class="chapter-time"
                         href="{{ entry.fallback_url }}"
                         data-seconds="{{ entry.seconds }}"
                         aria-label="Jump to {{ entry.time }}: {{ entry.label }}"
-                      >
-                        <span class="transcript-time-link">{{ entry.time }}</span>
-                      </a>
+                      >{{ entry.time }}</a>
                     {% else %}
-                      <span class="transcript-time-link">{{ entry.time }}</span>
+                      <span class="chapter-time">{{ entry.time }}</span>
                     {% endif %}
-                  </span>
-                  <p>{{ entry.label }}</p>
-                </div>
-              {% endfor %}
+                    <span class="chapter-label">{{ entry.label }}</span>
+                  </li>
+                {% endfor %}
+              </ol>
             </section>
           {% endif %}
 
           {% if episode.transcript %}
             <section id="transcript" class="episode-section" aria-labelledby="transcript-heading">
-              <div class="band-head">
-                <div>
-                  <h2 id="transcript-heading">Transcript</h2>
-                  <p>The conversation in full, as it was recorded.</p>
-                </div>
+              <div class="transcript-tools">
+                <h2 id="transcript-heading" class="sr-only">Transcript</h2>
+                <a
+                  class="cta cta-secondary cta-compact interactive-lift"
+                  href="{{ episode.public_path }}/transcript.txt"
+                  download
+                >Download transcript (.txt)</a>
               </div>
               <div class="transcript-body" data-transcript-body>
               {% for entry in episode.transcript %}
@@ -869,68 +956,6 @@
           {% endif %}
         </div>
       </section>
-
-      {% if episode.guests %}
-        <section class="band band-lavender" aria-labelledby="guest-bios-heading">
-          <div class="shell episode-shell">
-            <div class="band-head">
-              <div>
-                {% if episode.guests|length != 1 %}
-                  <h2 id="guest-bios-heading">About the guests</h2>
-                {% else %}
-                  <h2 id="guest-bios-heading">About the guest</h2>
-                {% endif %}
-              </div>
-            </div>
-            <div class="episode-bios">
-              {% for guest in episode.guests %}
-                <article class="guest-bio-card">
-                  {% if guest.media_available %}
-                    <img
-                      class="guest-bio-portrait"
-                      src="{{ guest.image_path }}"
-                      alt="Portrait of {{ guest.name }}"
-                      width="160"
-                      height="160"
-                      loading="lazy"
-                      decoding="async"
-                    >
-                  {% else %}
-                    <div
-                      class="guest-bio-placeholder"
-                      role="img"
-                      aria-label="No portrait available for {{ guest.name }}"
-                    >No portrait</div>
-                  {% endif %}
-                  <div class="guest-bio-copy">
-                    <h3>
-                      {% if guest.public_path %}
-                        <a class="band-link" href="{{ guest.public_path }}">{{ guest.name }}</a>
-                      {% else %}
-                        {{ guest.name }}
-                      {% endif %}
-                    </h3>
-                    {% if guest.summary %}
-                      <p>{{ guest.summary }}</p>
-                    {% endif %}
-                    {% if guest.profile_links %}
-                      <ul class="guest-bio-links" aria-label="{{ guest.name }} profile links">
-                        {% for link in guest.profile_links %}
-                          <li>
-                            <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
-                              {{ link.label }}<span class="sr-only"> (opens in a new tab)</span>
-                            </a>
-                          </li>
-                        {% endfor %}
-                      </ul>
-                    {% endif %}
-                  </div>
-                </article>
-              {% endfor %}
-            </div>
-          </div>
-        </section>
-      {% endif %}
 
       {% include "public/_podcast_related.html" %}
 
@@ -1054,12 +1079,13 @@
       })();
 
       /* Progressive enhancement of the reading sections: the server always
-         renders Show Notes, Timestamps and Transcript stacked and reachable
+         renders Overview, Timestamps and Transcript stacked and reachable
          through the anchor links above them, so a visitor without JavaScript
          loses nothing. When this runs, the same anchors and sections become a
          real WAI-ARIA tabs widget (https://www.w3.org/WAI/ARIA/apg/patterns/tabs/)
-         with one panel visible at a time, the first one (Summary when the
-         episode has it) selected. */
+         with one panel visible at a time: Overview by default, or the panel a
+         link's #hash names (a panel id or a line inside one, e.g. a
+         transcript entry). */
       (function () {
         var nav = document.querySelector('.episode-tabs');
         if (!nav) {
@@ -1122,7 +1148,19 @@
           panel.setAttribute('tabindex', '0');
         });
 
-        activate(0, false);
+        var initial = 0;
+        var target = window.location.hash ? document.getElementById(window.location.hash.slice(1)) : null;
+        if (target) {
+          panels.forEach(function (panel, index) {
+            if (panel.contains(target)) {
+              initial = index;
+            }
+          });
+        }
+        activate(initial, false);
+        if (target && initial !== 0) {
+          target.scrollIntoView();
+        }
       })();
     </script>
   </body>

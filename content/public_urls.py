@@ -42,6 +42,11 @@ urlpatterns = [
         name="public-podcast-by-id",
     ),
     re_path(
+        r"^podcast/(?P<episode_id>s[0-9]+e[0-9]+)/(?P<slug>[-a-zA-Z0-9_]+)/transcript\.txt$",
+        public_views.podcast_transcript_text,
+        name="public-podcast-transcript-text",
+    ),
+    re_path(
         r"^podcast/(?P<episode_id>s[0-9]+e[0-9]+)$",
         public_views.podcast_detail_by_id_without_slug,
         name="public-podcast-by-id-without-slug",

@@ -877,6 +877,27 @@ def episode_view(
     )
 
 
+def transcript_text(episode: Episode) -> str:
+    """The episode transcript as a plain-text download, one spoken line per line.
+
+    Each line reads ``[time] Speaker: text`` (time and speaker only when the
+    source has them); a source section header becomes its own paragraph.
+    """
+
+    lines = [episode.title, episode.season_episode, ""]
+    for entry in episode.transcript:
+        if entry.header:
+            if lines[-1]:
+                lines.append("")
+            lines.extend([entry.header, ""])
+            continue
+        prefix = f"[{entry.time}] " if entry.time else ""
+        speaker = f"{entry.who}: " if entry.who else ""
+        # A source line wrapped for review reads as one line in the file.
+        lines.append(f"{prefix}{speaker}{' '.join(entry.line.split())}")
+    return "\n".join(lines).strip() + "\n"
+
+
 def _summary_paragraphs(record: dict[str, Any]) -> tuple[str, ...]:
     """The episode summary as paragraphs, split on the source's blank lines.
 
