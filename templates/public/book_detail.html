@@ -82,7 +82,7 @@
          title still owns the opening screen. */
       .book-head {
         display: grid;
-        gap: 0.6rem 2rem;
+        gap: var(--space-2) var(--space-6);
         grid-template-columns: minmax(0, 1fr);
       }
 
@@ -124,7 +124,7 @@
       @media (min-width: 48rem) {
         .book-marks .mono-note + .mono-note::before {
           content: "·";
-          margin-right: 0.85rem;
+          margin-right: var(--space-3);
         }
       }
 
