@@ -75,7 +75,11 @@ def test_issue_237_interactions_reach_only_bounded_validation_and_toggle_views()
         "submissions": Submission.objects.count(),
     }
 
-    registration = anonymous.post(surfaces["native-registration"].path, {})
+    # Registration is account-owned: an anonymous POST is sent to sign in while
+    # the gate is on.  The synthetic review exercises the form's own validation,
+    # which is what the gate's revert lever exposes.
+    with override_settings(REGISTRATION_REQUIRES_ACCOUNT=False):
+        registration = anonymous.post(surfaces["native-registration"].path, {})
     assert registration.status_code == 200
     assert b"data-focus-error-summary" in registration.content
     assert b"This field is required" in registration.content
@@ -189,4 +193,6 @@ print('application-404')
         text=True,
     )
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == "application-404"
+    # The 404 page now reads the announcement and navigation, which log a
+    # warning on this never-migrated database; the verdict is the last line.
+    assert result.stdout.strip().splitlines()[-1] == "application-404"
