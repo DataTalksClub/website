@@ -5556,12 +5556,18 @@ Rules for editing:
         min-width: 100%;
       }
 
+      /* Row rules are solid hairlines in the frame's colour, so the table
+         reads as one frame rather than a solid box with dashed insides. */
       .prose th,
       .prose td {
-        border-bottom: 1.5px dashed var(--line-soft);
+        border-bottom: 1px solid var(--line-soft);
         padding: var(--space-3) var(--space-4);
         text-align: left;
         vertical-align: top;
+      }
+
+      .prose tbody tr:last-child > :is(th, td) {
+        border-bottom: 0;
       }
 
       .prose th {
@@ -5571,7 +5577,7 @@ Rules for editing:
 
       .prose thead th {
         background: var(--lavender);
-        border-bottom: 2px solid var(--line-soft);
+        border-bottom: 1px solid var(--line-soft);
         font-size: 0.82rem;
         font-weight: 700;
         letter-spacing: 0.01em;
