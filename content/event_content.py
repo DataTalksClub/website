@@ -89,6 +89,7 @@ def _grouped(now: datetime | None) -> EventGroups:
         local_start = event["starts_at_value"].astimezone(SITE_TIMEZONE)
         event["display_time"] = f"{local_start:%b} {local_start.day}, {local_start:%Y, %H:%M %Z}"
         event["display_date"] = f"{local_start:%b} {local_start.day}, {local_start:%Y}"
+        event["display_weekday"] = f"{local_start:%a}"
         event["display_clock"] = f"{local_start:%H:%M %Z}"
         event["type_icon"] = EVENT_TYPE_ICONS.get(
             event["type"].casefold(),

@@ -265,7 +265,7 @@
                   <span class="when-sep" aria-hidden="true">·</span>
                 {% endif %}
                 <time class="when" datetime="{{ event.starts_at }}">
-                  <strong>{{ event.display_date }}</strong>
+                  <strong>{{ event.display_weekday }}, {{ event.display_date }}</strong>
                   <span class="when-time">
                     {{ event.display_clock }}
                   </span>
