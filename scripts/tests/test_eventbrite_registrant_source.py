@@ -179,6 +179,70 @@ class DiscoverAndReadTests(SimpleTestCase):
                     archive_path, "123456.csv", external_event_identifier="123456"
                 )
 
+    def test_reads_the_current_attendee_report_format(self) -> None:
+        columns = (
+            "Order ID",
+            "Order date",
+            "Attendee first name",
+            "Attendee email",
+            "Event ID",
+            "Event timezone",
+            "Ticket quantity",
+            "Barcode number",
+            "Guest",
+        )
+
+        def report_row(barcode: str, email: str, event_id: str = "123456") -> list[str]:
+            return [
+                "9001",
+                "2023-05-01 10:30:00",
+                "Jane",
+                email,
+                event_id,
+                "Europe/Berlin",
+                "1",
+                barcode,
+                "No",
+            ]
+
+        def write(rows: list[list[str]]) -> Path:
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow(columns)
+            writer.writerows(rows)
+            path = directory / f"report-{len(list(directory.iterdir()))}.zip"
+            with zipfile.ZipFile(path, "w") as archive:
+                archive.writestr("123456.csv", buffer.getvalue())
+            return path
+
+        totals = ["Total", "", "", "", "", "", "3", "", ""]
+        with scratch_root() as root:
+            directory = Path(root)
+            archive = write(
+                [
+                    report_row("b1", "One@example.invalid"),
+                    report_row("b1", "One@example.invalid"),
+                    report_row("b2", ""),
+                    totals,
+                ]
+            )
+            rows = read_eventbrite_registrant_rows(
+                archive, "123456.csv", external_event_identifier="123456"
+            )
+            mismatched = write([report_row("b1", "one@example.invalid", event_id="999"), totals])
+            with self.assertRaises(RegistrantImportError) as refusal:
+                read_eventbrite_registrant_rows(
+                    mismatched, "123456.csv", external_event_identifier="123456"
+                )
+        # The totals line is not an attendee; a repeated barcode keeps the first.
+        self.assertEqual(len(rows), 2)
+        self.assertEqual({row.status for row in rows}, {"attending"})
+        self.assertEqual(rows[0].external_registrant_identifier, "b1")
+        self.assertEqual(rows[0].normalized_email, "one@example.invalid")
+        self.assertEqual(rows[0].registered_at_raw, "2023-05-01T10:30:00+02:00")
+        self.assertIsNone(rows[1].normalized_email)
+        self.assertEqual(str(refusal.exception), "event_id_mismatch")
+
     def test_malformed_archive_is_refused(self) -> None:
         with scratch_root() as root:
             path = Path(root) / "not-a-zip.zip"

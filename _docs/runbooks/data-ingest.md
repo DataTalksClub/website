@@ -1116,7 +1116,7 @@ operators select an explicit source and use the pull procedure below when it cha
 | --- | --- | --- |
 | **Events** | 166 | 209 |
 | **Rows** | 51,924 (51,873 approved + 51 declined) | 24,001 (all `attending`) |
-| **Schema** | `luma_v1` | three CSV schema versions, fingerprint-checked |
+| **Schema** | `luma_v1` | three legacy CSV schema versions, fingerprint-checked, plus the current attendee report (2026-11-25 pull) |
 | **Reader** | `scripts/prod/registration_sources/luma_registrants.py` | `scripts/prod/registration_sources/eventbrite_registrants.py` |
 | **Entry point** | `scripts/prod/import_event_registrants.py` | same |
 | **Historical capture** | `_docs/migration-data/event-registration-sources.json` | same |
@@ -1716,6 +1716,27 @@ What genuinely differs, and needs care rather than a separate pipeline:
    pull — see `_docs/runbooks/event-registration-pull.md` §4.5b) — and the Mailchimp
    importers, which reconcile against the events step 5 wrote. They have no Make
    target on purpose — see "Not in the bootstrap order, and why" below.
+   **2026-11-25 Eventbrite top-up.** A second Eventbrite pull
+   (`~/prod/dtc-data/eventbrite-export-2026-11-25/`, 26 events of May–Sep 2023 that
+   aggregate-v1 lacks) is staged as `~/prod/dtc-data/eventbrite-staged-2026-11-25/
+   aggregate-v2.zip` (aggregate-v1 plus the 26 CSVs) with the extended reviewed
+   identities `~/prod/dtc-data/eventbrite-event-identities-2026-11-25.json` (+28
+   resolved ids). Those CSVs are Eventbrite's current attendee report (`Order ID`,
+   `Barcode number`, no status column, a trailing totals line); the reader takes
+   either header per file (§16/17). Already-imported events are skipped as
+   completed, so the run only adds the new events. Dry run first, then the same
+   command without `--dry-run`:
+
+   ```bash
+   uv run --frozen python scripts/prod/import_event_registrants.py \
+       --database … --luma-source … \
+       --eventbrite-source ~/prod/dtc-data/eventbrite-staged-2026-11-25/aggregate-v2.zip \
+       --eventbrite-identities ~/prod/dtc-data/eventbrite-event-identities-2026-11-25.json \
+       --dry-run
+   ```
+
+   Local dataset, 2026-11-25: 26 events planned and written, 2,399 rows, 0 skipped,
+   203 already completed, the same 6 awaiting identity.
 
 ### The rebuild step table
 

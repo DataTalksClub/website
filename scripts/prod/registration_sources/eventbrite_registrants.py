@@ -14,14 +14,17 @@ import json
 import re
 import stat
 from dataclasses import dataclass
+from datetime import datetime
 from functools import partial
 from pathlib import Path
 from typing import NoReturn
 from zipfile import BadZipFile, ZipFile
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from community_base.events.models import Event
 
 from accounts.identity_values import normalize_account_email
 from event_registrants.models import EventRegistration
-from community_base.events.models import Event
 from scripts.prod.registrant_import import (
     PendingEventRegistrants,
     RegistrantImportError,
@@ -40,6 +43,20 @@ from .safety import (
 PROVIDER = EventRegistration.Provider.EVENTBRITE
 # Only the attendee columns needed by the current registration import.
 REQUIRED_COLUMNS = ("Order #", "Attendee #", "Attendee Status", "Email")
+# Eventbrite's current standard attendee report (exported 2026-11-25) has a
+# different header: no attendee number and no status column. ``Barcode number``
+# is the per-ticket identifier, and the report lists valid (attending) tickets
+# only, so every row is ``attending``. Its last row is a totals line with no
+# event id, barcode or email, which is not an attendee.
+ATTENDEE_REPORT_COLUMNS = (
+    "Order ID",
+    "Order date",
+    "Attendee email",
+    "Event ID",
+    "Event timezone",
+    "Barcode number",
+)
+ATTENDEE_REPORT_STATUS = "attending"
 _ENTRY = re.compile(r"^(?P<event_id>[0-9]{1,20})\.csv$")
 # Generous headroom over the real export's largest single event file (a few
 # thousand rows, measured) -- a bound, not a tuned expectation.
@@ -185,46 +202,112 @@ def discover_eventbrite_registrant_files(
 def read_eventbrite_registrant_rows(
     archive_path: Path, member_name: str, *, external_event_identifier: str
 ) -> tuple[RegistrantRow, ...]:
-    """Read one event's registrant rows. Duplicate ``Attendee #`` rows keep the first only.
+    """Read one event's registrant rows. Duplicate attendee ids keep the first only.
 
     Opens the archive itself, freshly, only when called -- the same laziness
     :func:`scripts.prod.registration_sources.luma_registrants
     .read_luma_registrant_rows` gives a plain directory, so a completed event's
-    member is never even opened.
+    member is never even opened. Reads either the legacy export header
+    (:data:`REQUIRED_COLUMNS`) or the current attendee report header
+    (:data:`ATTENDEE_REPORT_COLUMNS`), chosen per file.
     """
 
-    rows: list[RegistrantRow] = []
-    seen_attendee_ids: set[str] = set()
     try:
         with ZipFile(archive_path) as archive, archive.open(member_name) as raw:
             stream = io.TextIOWrapper(raw, encoding="utf-8-sig", newline="")
             reader = csv.DictReader(stream, strict=True)
-            headers = reader.fieldnames
-            if headers is None or any(column not in headers for column in REQUIRED_COLUMNS):
-                _refuse("unsupported_eventbrite_schema")
-            for index, row in enumerate(reader):
-                if index >= MAX_ROWS_PER_EVENT:
-                    _refuse("row_count_exceeded")
-                attendee_id = (row.get("Attendee #") or "").strip()
-                status = (row.get("Attendee Status") or "").strip()
-                if not attendee_id or not status:
-                    _refuse("malformed_csv")
-                if attendee_id in seen_attendee_ids:
-                    continue
-                seen_attendee_ids.add(attendee_id)
-                email = (row.get("Email") or "").strip()
-                rows.append(
-                    RegistrantRow(
-                        external_registrant_identifier=attendee_id,
-                        normalized_email=normalize_account_email(email),
-                        status=status.casefold(),
-                        registered_at_raw=(row.get("Order Date") or "").strip(),
-                    )
+            headers = reader.fieldnames or []
+            if all(column in headers for column in REQUIRED_COLUMNS):
+                return _read_legacy_rows(reader)
+            if all(column in headers for column in ATTENDEE_REPORT_COLUMNS):
+                return _read_attendee_report_rows(
+                    reader, external_event_identifier=external_event_identifier
                 )
+            _refuse("unsupported_eventbrite_schema")
     except RegistrantImportError:
         raise
     except (BadZipFile, OSError, UnicodeDecodeError, csv.Error) as error:
         raise RegistrantImportError("malformed_csv") from error
+
+
+def _read_legacy_rows(reader: csv.DictReader[str]) -> tuple[RegistrantRow, ...]:
+    rows: list[RegistrantRow] = []
+    seen_attendee_ids: set[str] = set()
+    for index, row in enumerate(reader):
+        if index >= MAX_ROWS_PER_EVENT:
+            _refuse("row_count_exceeded")
+        attendee_id = (row.get("Attendee #") or "").strip()
+        status = (row.get("Attendee Status") or "").strip()
+        if not attendee_id or not status:
+            _refuse("malformed_csv")
+        if attendee_id in seen_attendee_ids:
+            continue
+        seen_attendee_ids.add(attendee_id)
+        email = (row.get("Email") or "").strip()
+        rows.append(
+            RegistrantRow(
+                external_registrant_identifier=attendee_id,
+                normalized_email=normalize_account_email(email),
+                status=status.casefold(),
+                registered_at_raw=(row.get("Order Date") or "").strip(),
+            )
+        )
+    return tuple(rows)
+
+
+def _attendee_report_order_date(raw: str, timezone_name: str) -> str:
+    """The report's naive ``Order date`` in the event's own timezone, as ISO 8601."""
+
+    if not raw:
+        return ""
+    try:
+        naive = datetime.fromisoformat(raw)
+        zone = ZoneInfo(timezone_name)
+    except (ValueError, ZoneInfoNotFoundError):
+        return ""
+    if naive.tzinfo is not None:
+        return naive.isoformat()
+    return naive.replace(tzinfo=zone).isoformat()
+
+
+def _read_attendee_report_rows(
+    reader: csv.DictReader[str], *, external_event_identifier: str
+) -> tuple[RegistrantRow, ...]:
+    rows: list[RegistrantRow] = []
+    seen_barcodes: set[str] = set()
+    totals_seen = False
+    for index, row in enumerate(reader):
+        if index >= MAX_ROWS_PER_EVENT:
+            _refuse("row_count_exceeded")
+        event_id = (row.get("Event ID") or "").strip()
+        barcode = (row.get("Barcode number") or "").strip()
+        email = (row.get("Attendee email") or "").strip()
+        if not event_id and not barcode and not email:
+            # The report's trailing totals line -- exactly one, and last.
+            if totals_seen:
+                _refuse("malformed_csv")
+            totals_seen = True
+            continue
+        if totals_seen:
+            _refuse("malformed_csv")
+        if event_id != external_event_identifier:
+            _refuse("event_id_mismatch")
+        if not barcode:
+            _refuse("malformed_csv")
+        if barcode in seen_barcodes:
+            continue
+        seen_barcodes.add(barcode)
+        rows.append(
+            RegistrantRow(
+                external_registrant_identifier=barcode,
+                normalized_email=normalize_account_email(email),
+                status=ATTENDEE_REPORT_STATUS,
+                registered_at_raw=_attendee_report_order_date(
+                    (row.get("Order date") or "").strip(),
+                    (row.get("Event timezone") or "").strip(),
+                ),
+            )
+        )
     return tuple(rows)
 
 
