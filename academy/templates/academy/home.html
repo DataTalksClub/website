@@ -60,8 +60,12 @@
   </div>
 {% endblock %}
 
+{% block content_band_class %}
+  academy-bands
+{% endblock %}
+
 {% block page_content %}
-  <section class="academy-section" id="tracks" aria-labelledby="tracks-heading">
+  <section class="academy-section academy-band band-lavender" id="tracks" aria-labelledby="tracks-heading">
     <div class="band-head">
       <div>
         <h2 id="tracks-heading">{{ data.tracks.label }}</h2>
@@ -87,7 +91,7 @@
   </section>
 
   {% if data.funding %}
-    <section class="academy-section" id="funding" aria-labelledby="funding-heading">
+    <section class="academy-section academy-band band-cream" id="funding" aria-labelledby="funding-heading">
       <div class="band-head">
         <div>
           <h2 id="funding-heading">{{ data.funding.heading }}</h2>
@@ -116,7 +120,7 @@
   {% endif %}
 
   {% if data.sessions and home_sessions %}
-    <section class="academy-section" id="sessions" aria-labelledby="sessions-heading">
+    <section class="academy-section academy-band band-lavender" id="sessions" aria-labelledby="sessions-heading">
       <div class="band-head">
         <div>
           <h2 id="sessions-heading">{{ data.sessions.heading }}</h2>
@@ -141,7 +145,7 @@
   {% endif %}
 
   {% if data.articles and articles %}
-    <section class="academy-section" id="articles" aria-labelledby="articles-heading">
+    <section class="academy-section academy-band band-cream" id="articles" aria-labelledby="articles-heading">
       <div class="band-head">
         <div>
           <h2 id="articles-heading">{{ data.articles.heading }}</h2>
@@ -162,7 +166,7 @@
   {% endif %}
 
   {% if data.faq and home_faq %}
-    <section class="academy-section" id="questions" aria-labelledby="faq-heading">
+    <section class="academy-section academy-band band-lavender" id="questions" aria-labelledby="faq-heading">
       <div class="band-head">
         <div>
           <h2 id="faq-heading">{{ data.faq.heading }}</h2>
@@ -174,7 +178,7 @@
     </section>
   {% endif %}
 
-  {% include "academy/_join.html" with choose_program=True %}
+  {% include "academy/_join.html" with choose_program=True band=True %}
 {% endblock %}
 
 {% block page_scripts %}

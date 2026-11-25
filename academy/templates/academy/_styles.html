@@ -242,6 +242,50 @@
         margin-top: 0.35rem;
       }
 
+      /* --- the home page's bands ------------------------------------------ *
+       * The home page alternates its grounds the way the homepage does --
+       * lavender, cream, lavender ... and the closing mint -- with the band's
+       * dashed seam between two grounds.  The content band carries no padding
+       * of its own and clips the painted grounds at the viewport edges; each
+       * chapter is a band of the system's padding, its
+       * ground (the system's band-cream/-lavender/-mint colour) painted to
+       * the viewport edges while the words keep the content column. */
+      .academy-bands {
+        overflow-x: clip;
+        padding-block: 0;
+      }
+
+      .academy-section.academy-band {
+        --band-fill: var(--lavender);
+        border-top: 0;
+        box-shadow: 0 0 0 100vmax var(--band-fill);
+        clip-path: inset(0 -100vmax);
+        margin-top: 0;
+        padding-block: var(--space-band);
+        position: relative;
+      }
+
+      .academy-band.band-cream {
+        --band-fill: var(--cream);
+      }
+
+      .academy-band.band-mint {
+        --band-fill: var(--mint);
+      }
+
+      .academy-band + .academy-band::before {
+        border-top: 2px dashed var(--line-soft);
+        content: "";
+        inset: 0 -100vmax auto;
+        position: absolute;
+      }
+
+      /* In the mint band the closing copy and the form card sit straight on
+         the ground, as the homepage's newsletter band does. */
+      .academy-closing.academy-closing-open {
+        padding: 0;
+      }
+
       .academy-subhead {
         font-size: 1.1rem;
         margin: 2rem 0 1rem;
