@@ -1,9 +1,10 @@
 {% load academy_text %}
 {% comment %}
-  A list of questions drawn as the site's FAQ folds (the same control the
-  course pages and the FAQ hub use).  items: question/answer mappings.
+  A list of questions drawn as the site's FAQ folds in the soft FAQ panel
+  (the /slack landing's questions): one card, the folds divided by the
+  system's rule.  items: question/answer mappings.
 {% endcomment %}
-<div class="row-list" aria-label="{{ label|default:'' }}">
+<div class="panel panel-outlined faq-panel" aria-label="{{ label|default:'' }}">
   {% for item in items %}
     <details class="faq-fold" id="{{ prefix }}-{{ forloop.counter }}">
       <summary class="faq-fold-summary">
