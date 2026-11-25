@@ -6,12 +6,14 @@
   (_docs/design/landing-pages.md) in the course family landing's frame at the
   ordinary content width.  The cream header is the hero: the heading, a
   short lede, the waitlist action, the instructor line, and the key facts as
-  the spec strip at its foot.  Below the seam every chapter is the same
-  frame -- a dashed seam and a band head: who it is for, the overview, the
-  outcomes, the syllabus week by week, the final project and its weeks,
-  interview preparation as its own block, the instructor, the schedule, the
-  questions, and the closing mint panel -- the limited seats, how you get in
-  and the one waitlist form the hero's action points to.  The program's own copy is academy/<slug>.md; the copy both
+  the spec strip at its foot.  Below the seam the chapters alternate their
+  grounds the way the Academy home does (lavender, cream, ... and the
+  closing mint band), related chapters sharing a band under a second head:
+  who it is for; the overview and the outcomes; the syllabus week by week;
+  the final project and interview preparation; the instructor; the schedule
+  and further reading; the questions; the limited seats and how you get in;
+  and the closing band with the one waitlist form the hero's action points
+  to.  The program's own copy is academy/<slug>.md; the copy both
   programs share is academy/shared.yaml.
 {% endcomment %}
 
@@ -47,8 +49,12 @@
   {% include "academy/_facts.html" with facts=shared.facts funding=None %}
 {% endblock %}
 
+{% block content_band_class %}
+  academy-bands
+{% endblock %}
+
 {% block page_content %}
-  <section class="academy-section" aria-labelledby="fit-heading">
+  <section class="academy-section academy-band band-lavender" id="fit" aria-labelledby="fit-heading">
     {% if shared.fit.heading %}
       <div class="band-head">
         <div>
@@ -63,7 +69,7 @@
         {% else %}
           <h2 id="fit-heading">{{ shared.fit.for_title }}</h2>
         {% endif %}
-        <ul class="academy-card-list">
+        <ul class="academy-checks">
           {% for item in fit_for %}
             <li>{{ item }}</li>
           {% endfor %}
@@ -84,40 +90,46 @@
     </div>
   </section>
 
-  {% if data.overview %}
-    <section class="academy-section" id="overview" aria-labelledby="overview-heading">
-      <div class="band-head">
-        <div>
-          <h2 id="overview-heading">{{ data.overview.heading }}</h2>
+  <section class="academy-section academy-band band-cream" id="program" aria-labelledby="{{ data.overview|yesno:'overview-heading,outcomes-heading' }}">
+    {% if data.overview %}
+      <div class="academy-chapter" id="overview">
+        <div class="band-head">
+          <div>
+            <h2 id="overview-heading">{{ data.overview.heading }}</h2>
+          </div>
+        </div>
+        <div class="prose">
+          {% for paragraph in data.overview.paragraphs %}
+            <p>{{ paragraph }}</p>
+          {% endfor %}
         </div>
       </div>
-      <div class="prose">
-        {% for paragraph in data.overview.paragraphs %}
-          <p>{{ paragraph }}</p>
-        {% endfor %}
+    {% endif %}
+    <div class="academy-chapter" id="outcomes">
+      <div
+        class="band-head
+          {% if data.overview %}
+            band-head-secondary
+          {% endif %}"
+      >
+        <div>
+          <h2 id="outcomes-heading">{{ data.outcomes.heading }}</h2>
+          {% if data.outcomes.intro %}
+            <p>{{ data.outcomes.intro }}</p>
+          {% endif %}
+        </div>
       </div>
-    </section>
-  {% endif %}
-
-  <section class="academy-section" id="outcomes" aria-labelledby="outcomes-heading">
-    <div class="band-head">
-      <div>
-        <h2 id="outcomes-heading">{{ data.outcomes.heading }}</h2>
-        {% if data.outcomes.intro %}
-          <p>{{ data.outcomes.intro }}</p>
-        {% endif %}
+      <div class="card academy-outcomes-card">
+        <ul class="academy-checks academy-outcomes">
+          {% for outcome in data.outcomes.items %}
+            <li>{{ outcome }}</li>
+          {% endfor %}
+        </ul>
       </div>
-    </div>
-    <div class="card academy-outcomes-card">
-      <ul class="academy-card-list academy-outcomes">
-        {% for outcome in data.outcomes.items %}
-          <li>{{ outcome }}</li>
-        {% endfor %}
-      </ul>
     </div>
   </section>
 
-  <section class="academy-section" id="syllabus" aria-labelledby="syllabus-heading">
+  <section class="academy-section academy-band band-lavender" id="syllabus" aria-labelledby="syllabus-heading">
     <div class="band-head">
       <div>
         <h2 id="syllabus-heading">{{ shared.syllabus.heading }}</h2>
@@ -132,7 +144,7 @@
     {% endfor %}
   </section>
 
-  <section class="academy-section" id="project" aria-labelledby="project-heading">
+  <section class="academy-section academy-band band-cream" id="project" aria-labelledby="project-heading">
     <div class="band-head">
       <div>
         <h2 id="project-heading">{{ data.capstone.heading|default:shared.project_heading }}</h2>
@@ -142,21 +154,20 @@
     {% if capstone_weeks %}
       {% include "academy/_weeks.html" with weeks=capstone_weeks label=shared.syllabus.week_label %}
     {% endif %}
+    {% if shared.interviews %}
+      <div class="academy-chapter" id="interviews">
+        <div class="band-head band-head-secondary">
+          <div>
+            <h2 id="interviews-heading">{{ shared.interviews.heading }}</h2>
+            <p>{{ shared.interviews.intro }}</p>
+          </div>
+        </div>
+        {% include "academy/_weeks.html" with weeks=interview_weeks label=shared.syllabus.week_label %}
+      </div>
+    {% endif %}
   </section>
 
-  {% if shared.interviews %}
-    <section class="academy-section" id="interviews" aria-labelledby="interviews-heading">
-      <div class="band-head">
-        <div>
-          <h2 id="interviews-heading">{{ shared.interviews.heading }}</h2>
-          <p>{{ shared.interviews.intro }}</p>
-        </div>
-      </div>
-      {% include "academy/_weeks.html" with weeks=interview_weeks label=shared.syllabus.week_label %}
-    </section>
-  {% endif %}
-
-  <section class="academy-section" id="instructor" aria-labelledby="instructor-heading">
+  <section class="academy-section academy-band band-lavender" id="instructor" aria-labelledby="instructor-heading">
     <div class="band-head">
       <div>
         <h2 id="instructor-heading">{{ shared.instructor.heading }}</h2>
@@ -182,41 +193,50 @@
     </div>
   </section>
 
-  {% if shared.schedule %}
-    <section class="academy-section" id="schedule" aria-labelledby="schedule-heading">
-      <div class="band-head">
-        <div>
-          <h2 id="schedule-heading">{{ shared.schedule.heading }}</h2>
+  {% if shared.schedule or data.related %}
+    <section class="academy-section academy-band band-cream" id="details" aria-labelledby="{{ shared.schedule|yesno:'schedule-heading,related-heading' }}">
+      {% if shared.schedule %}
+        <div class="academy-chapter" id="schedule">
+          <div class="band-head">
+            <div>
+              <h2 id="schedule-heading">{{ shared.schedule.heading }}</h2>
+            </div>
+          </div>
+          <div class="prose">
+            {% for paragraph in shared.schedule.paragraphs %}
+              <p>{{ paragraph }}</p>
+            {% endfor %}
+          </div>
+          {% if shared.funding %}
+            {% include "academy/_funding.html" with funding=shared.funding %}
+          {% endif %}
         </div>
-      </div>
-      <div class="prose">
-        {% for paragraph in shared.schedule.paragraphs %}
-          <p>{{ paragraph }}</p>
-        {% endfor %}
-      </div>
-      {% if shared.funding %}
-        {% include "academy/_funding.html" with funding=shared.funding %}
+      {% endif %}
+      {% if data.related %}
+        <div class="academy-chapter" id="related">
+          <div
+            class="band-head
+              {% if shared.schedule %}
+                band-head-secondary
+              {% endif %}"
+          >
+            <div>
+              <h2 id="related-heading">{{ data.related.heading }}</h2>
+            </div>
+          </div>
+          <ul class="academy-related">
+            {% for link in data.related.links %}
+              <li>
+                <a class="band-link" href="{{ link.href }}">{{ link.label }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
       {% endif %}
     </section>
   {% endif %}
 
-  {% if data.related %}
-    <section class="academy-section" id="related" aria-labelledby="related-heading">
-      <div class="band-head">
-        <div>
-          <h2 id="related-heading">{{ data.related.heading }}</h2>
-        </div>
-      </div>
-      <ul class="academy-related">
-        {% for link in data.related.links %}
-          <li>
-            <a class="band-link" href="{{ link.href }}">{{ link.label }}</a>
-          </li>
-        {% endfor %}
-      </ul>
-    </section>
-  {% endif %}
-  <section class="academy-section" id="questions" aria-labelledby="faq-heading">
+  <section class="academy-section academy-band band-lavender" id="questions" aria-labelledby="faq-heading">
     <div class="band-head">
       <div>
         <h2 id="faq-heading">{{ shared.faq.heading }}</h2>
@@ -225,8 +245,8 @@
     {% include "academy/_faq.html" with items=faq prefix="faq" label="" %}
     {% include "academy/_contact.html" %}
   </section>
-  {% include "academy/_admission.html" %}
-  {% include "academy/_join.html" with choose_program=False %}
+  {% include "academy/_admission.html" with band="band-cream" %}
+  {% include "academy/_join.html" with choose_program=False band=True %}
 {% endblock %}
 
 {% block page_scripts %}

@@ -1,5 +1,6 @@
 {% comment %}
-  Weeks of a program as the system's list rows: each row one week, its label
+  Weeks of a program as the system's list rows in one soft card (the course
+  syllabus list's frame): each row one week, its label
   on the mono rail the way a course syllabus carries its index, and the
   week's module(s) beside it -- an action-oriented title and, in the ship
   line's green, the one thing it leaves you with.  The syllabus phases, the
@@ -7,6 +8,7 @@
   weeks: from academy.presentation.syllabus_phases; label: the word before
   each week number (shared.syllabus.week_label).
 {% endcomment %}
+<div class="card academy-weeks-card">
 <ol class="row-list academy-weeks">
   {% for week in weeks %}
     <li class="list-row">
@@ -38,3 +40,4 @@
     </li>
   {% endfor %}
 </ol>
+</div>

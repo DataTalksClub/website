@@ -634,7 +634,24 @@
 
       .academy-phase-title {
         font-size: 1.1rem;
-        margin-bottom: 0.35rem;
+      }
+
+      /* The weeks sit in one soft card, divided by the rule; the card's own
+         edge closes the list, so the first and last rows carry no rule. */
+      .academy-weeks-card {
+        padding-block: calc(var(--space-card) - var(--space-4));
+      }
+
+      .academy-weeks-card .academy-weeks {
+        border-top: 0;
+      }
+
+      .academy-weeks-card .academy-weeks > :last-child {
+        border-bottom: 0;
+      }
+
+      .academy-phase-title + .academy-weeks-card {
+        margin-top: var(--space-3);
       }
 
       .academy-weeks,
@@ -697,10 +714,7 @@
        * columns, instead of a long numbered column with the project card
        * floating beside it. */
 
-      .academy-outcomes-card {
-        margin-top: 1.25rem;
-        padding: 1.5rem;
-      }
+
 
       @media (min-width: 48rem) {
         .academy-outcomes {
