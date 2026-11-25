@@ -556,6 +556,18 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
                 "email": remembered.original_email,
                 "pending": remembered.status == EventRegistration.Status.PENDING_VERIFICATION,
             }
+            # Just confirmed through the emailed link: offer the one-click
+            # account, or, when the address already has one, the login.
+            if not email_registration["pending"]:
+                grant = _quick_account_grant(request, identity)
+                if grant is not None:
+                    email_registration["quick_account"] = (
+                        "exists"
+                        if _account_exists_for_email(str(grant.get("email") or ""))
+                        else "offer"
+                    )
+                elif request.session.get(QUICK_ACCOUNT_EXISTS_SESSION_KEY) == str(identity.pk):
+                    email_registration["quick_account"] = "exists"
     if event_state == "upcoming" and not viewer.is_authenticated:
         from django.urls import reverse
 
@@ -590,6 +602,8 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             "viewer_registered": viewer_registered,
             "inline_login_providers": inline_login_providers,
             "email_registration": email_registration,
+            "account_ready": viewer.is_authenticated
+            and request.session.get(QUICK_ACCOUNT_READY_SESSION_KEY) == str(identity.pk),
             "newsletter_invalid": request.GET.get("registered") == "newsletter_required",
             # The password form is the development owner's sign-in; members
             # sign in with a provider.  It is offered only where the login
@@ -946,7 +960,187 @@ def event_registration_verify(request: HttpRequest) -> HttpResponse:
                 update_fields=["status", "verified_at", "verification_expires_at", "updated_at"]
             )
     _remember_email_registration(request, registration)
+    if registration.status == EventRegistration.Status.CONFIRMED:
+        _grant_quick_account(request, registration)
     return redirect(canonical_detail_path(registration.event.content_id))
+
+
+#: How long after following the confirmation link this browser may create an
+#: account for the address in one click.
+QUICK_ACCOUNT_TTL = timedelta(minutes=30)
+QUICK_ACCOUNT_SESSION_KEY = "event_quick_account"
+#: The event whose card offers the login because the address has an account.
+QUICK_ACCOUNT_EXISTS_SESSION_KEY = "event_quick_account_exists"
+#: The event whose page shows "Your account is ready" after a one-click create.
+QUICK_ACCOUNT_READY_SESSION_KEY = "event_quick_account_ready"
+#: One-click creates (successful or not) one network address may attempt per hour.
+QUICK_ACCOUNT_MAX_ATTEMPTS = 10
+
+
+def _grant_quick_account(request: HttpRequest, registration) -> None:
+    """Following the emailed link proves this browser holds the address.
+
+    That proof, and only that, lets this session create an account for the
+    address in one click: the grant names the address, the event and the
+    time, expires after ``QUICK_ACCOUNT_TTL`` and is spent by the first try.
+    """
+
+    request.session[QUICK_ACCOUNT_SESSION_KEY] = {
+        "email": registration.normalized_email,
+        "event": str(registration.event_id),
+        "registration": str(registration.pk),
+        "at": timezone.now().isoformat(),
+    }
+
+
+def _quick_account_grant(request: HttpRequest, identity) -> dict | None:
+    from datetime import datetime
+
+    grant = request.session.get(QUICK_ACCOUNT_SESSION_KEY)
+    if not isinstance(grant, dict) or grant.get("event") != str(identity.pk):
+        return None
+    try:
+        granted_at = datetime.fromisoformat(str(grant.get("at")))
+    except ValueError:
+        return None
+    if timezone.now() - granted_at > QUICK_ACCOUNT_TTL:
+        return None
+    return grant
+
+
+def _account_exists_for_email(email: str) -> bool:
+    from allauth.account.models import EmailAddress
+    from django.contrib.auth import get_user_model
+    from django.db.models import Q
+
+    if EmailAddress.objects.filter(email__iexact=email).exists():
+        return True
+    return (
+        get_user_model()
+        .objects.filter(Q(email__iexact=email) | Q(identity__normalized_email=email))
+        .exists()
+    )
+
+
+def _quick_account_rate_limited(request: HttpRequest) -> bool:
+    from django.core.cache import cache
+
+    key = f"event-quick-account:{request.META.get('REMOTE_ADDR', 'unknown')}"
+    cache.add(key, 0, timeout=3600)
+    try:
+        attempts = cache.incr(key)
+    except ValueError:
+        attempts = 1
+    return attempts > QUICK_ACCOUNT_MAX_ATTEMPTS
+
+
+def _unique_username(email: str) -> str:
+    """``username`` is still a unique column; allauth does not fill it here."""
+
+    import re
+    import secrets
+
+    from django.contrib.auth import get_user_model
+
+    base = re.sub(r"[^a-z0-9._-]", "", email.split("@", 1)[0].lower())[:120] or "member"
+    candidate = base
+    while get_user_model().objects.filter(username__iexact=candidate).exists():
+        candidate = f"{base}-{secrets.token_hex(3)}"
+    return candidate
+
+
+def _create_verified_account(request: HttpRequest, registration):
+    """A site account for the address the confirmation link just proved.
+
+    No password: members sign in with Google, GitHub or Slack, and the
+    verified address row is what lets a provider's verified address find this
+    account (``accounts.auth.ConsolidatingSocialAccountAdapter``).
+    """
+
+    from allauth.account.models import EmailAddress
+    from community_base.events.models import EventRegistration
+    from django.contrib.auth import get_user_model
+
+    email = registration.normalized_email
+    name = (registration.display_name or "").strip()
+    first_name, _, last_name = name.partition(" ")
+    subscribed = bool(registration.newsletter_consent)
+    user = get_user_model()(
+        email=email,
+        username=_unique_username(email),
+        first_name=first_name[:150],
+        last_name=last_name.strip()[:150],
+        newsletter_subscribed=subscribed,
+        # The registration's newsletter answer is this person's own decision,
+        # so an audience import must not overwrite it.
+        newsletter_preference_changed_at=registration.newsletter_consented_at or timezone.now(),
+    )
+    user.set_unusable_password()
+    user.save()
+    EmailAddress.objects.create(user=user, email=email, verified=True, primary=True)
+    EventRegistration.objects.filter(normalized_email=email, user__isnull=True).update(user=user)
+    return user
+
+
+def event_quick_account(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
+    """Create an account in one click for the address this browser just confirmed.
+
+    The page posts here with ``fetch`` and swaps its registration card and
+    masthead in place; without JavaScript the form posts normally and lands
+    back on the event page.  Outcomes: ``created`` (signed in), ``exists``
+    (an account already holds the address: the visitor logs in with it; it is
+    never signed in for them), ``expired`` (no valid grant in this session).
+    """
+
+    from community_base.events.models import EventRegistration
+    from django.contrib.auth import login
+    from django.http import JsonResponse
+    from django.shortcuts import redirect
+
+    try:
+        identity = resolve_public_id(event_id)
+    except EventIdentityNotFound as exc:
+        raise Http404 from exc
+    canonical = canonical_detail_path(identity.content_id)
+    if request.method != "POST":
+        return redirect(canonical)
+    wants_json = "application/json" in request.headers.get("Accept", "")
+
+    def done(outcome: str, status: int = 200) -> HttpResponse:
+        if wants_json:
+            return _no_store(JsonResponse({"outcome": outcome}, status=status))
+        return redirect(canonical if outcome == "created" else f"{canonical}?account={outcome}")
+
+    if request.user.is_authenticated:
+        return done("created")
+    if _quick_account_rate_limited(request):
+        return done("rate_limited", status=429)
+    grant = _quick_account_grant(request, identity)
+    # Single use: whatever happens next, this grant cannot be tried again.
+    request.session.pop(QUICK_ACCOUNT_SESSION_KEY, None)
+    if grant is None:
+        return done("expired", status=400)
+    email = str(grant.get("email") or "")
+    with transaction.atomic():
+        registration = (
+            EventRegistration.objects.select_for_update()
+            .filter(
+                pk=grant.get("registration"),
+                event=identity,
+                normalized_email=email,
+                status=EventRegistration.Status.CONFIRMED,
+            )
+            .first()
+        )
+        if registration is None:
+            return done("expired", status=400)
+        if _account_exists_for_email(email):
+            request.session[QUICK_ACCOUNT_EXISTS_SESSION_KEY] = str(identity.pk)
+            return done("exists", status=409)
+        user = _create_verified_account(request, registration)
+    login(request, user, backend="accounts.backends.DurableAccountBackend")
+    request.session[QUICK_ACCOUNT_READY_SESSION_KEY] = str(identity.pk)
+    return done("created")
 
 
 # The two collections behind `public/collection_hub.html`.  Both are dated archives

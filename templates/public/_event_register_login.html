@@ -1,0 +1,57 @@
+{% comment %}
+  Inline login.  Members sign in with a social provider, which has to
+  show its own page, so each provider runs in a small pop-up window
+  and the card refreshes itself when the pop-up reports back
+  (`accounts.views.signed_in`).  A blocked pop-up falls back to the
+  same form in this window, returning here.  The password form is
+  the development owner's sign-in and exists only where the login
+  page offers it.
+{% endcomment %}
+<div id="event-register-login" class="event-register-login" role="group" aria-labelledby="event-register-login-title">
+  <p id="event-register-login-title" class="event-register-login-title">{{ title }}</p>
+  <p class="a11y-error event-register-login-error" role="alert" hidden></p>
+  {% if inline_login_providers %}
+    <div class="event-register-providers">
+      {% for provider in inline_login_providers %}
+        <form
+          class="event-register-provider-form"
+          method="post"
+          action="{{ provider.popup_url }}"
+          data-page-action="{{ provider.page_url }}"
+        >
+          {% csrf_token %}
+          <button class="cta cta-secondary cta-compact event-register-provider interactive-lift" type="submit">
+            {% include "account/_provider_mark.html" with provider_id=provider.id only %}
+            {{ provider.name }}
+          </button>
+        </form>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% if inline_password_login %}
+    {% if inline_login_providers %}
+      <p class="event-register-or">or</p>
+    {% endif %}
+    <form
+      class="cmp-form event-register-password"
+      method="post"
+      action="{% url 'login' %}?next={{ event.public_path|urlencode }}"
+    >
+      {% csrf_token %}
+      <div class="cmp-form-fields">
+        <div class="field">
+          <label class="field-label" for="id_login_email">Email</label>
+          <input class="field-input" id="id_login_email" type="email" name="email" required autocomplete="email">
+        </div>
+        <div class="field">
+          <label class="field-label" for="id_login_password">Password</label>
+          <input class="field-input" id="id_login_password" type="password" name="password" required autocomplete="current-password">
+        </div>
+      </div>
+      <button type="submit" class="cta cta-primary cta-compact event-register-submit interactive-lift">Log in</button>
+    </form>
+  {% endif %}
+  {% if not inline_login_providers and not inline_password_login %}
+    <a class="cta cta-primary cta-compact event-register-submit" href="{{ account_login_url }}">Go to the login page</a>
+  {% endif %}
+</div>

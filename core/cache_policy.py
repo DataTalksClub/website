@@ -343,6 +343,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "event_qna.views.qna_question": PRIVATE_DYNAMIC,
     "content.public_views.event_register": PRIVATE_DYNAMIC,
     "content.public_views.event_register_resend": PRIVATE_DYNAMIC,
+    "content.public_views.event_quick_account": PRIVATE_DYNAMIC,
     "content.public_views.event_registration_verify": PRIVATE_DYNAMIC,
     "event_qna.views.qna_questions": PRIVATE_DYNAMIC,
     "event_qna.views.qna_vote": PRIVATE_DYNAMIC,

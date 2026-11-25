@@ -153,6 +153,11 @@ urlpatterns = [
         name="public-event-registration-verify",
     ),
     re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)/register/account$",
+        public_views.event_quick_account,
+        name="public-event-quick-account",
+    ),
+    re_path(
         r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)/register/resend$",
         public_views.event_register_resend,
         name="public-event-register-resend",
