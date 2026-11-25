@@ -105,22 +105,24 @@
 
       /* --- hero collage ---------------------------------------------------- */
 
-      /* The four course drawings as one loose cluster: no frames or captions
-         (the drawings carry their own soft blobs), sized so the cluster is
-         about as tall as the text beside it and the hero has no dead band
-         above or below the heading. */
+      /* Keep the original four-card collage; cream lets each blurb meet its
+         surface without a contrasting white picture plate. */
       .hero-collage {
         align-self: center;
         display: grid;
-        gap: var(--space-2);
+        gap: var(--space-5) var(--space-5);
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        justify-self: center;
-        max-width: 26rem;
+        max-width: 31rem;
         width: 100%;
       }
 
       .hero-collage-card {
+        background: var(--cream);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
         min-width: 0;
+        padding: var(--space-3);
       }
 
       .hero-collage-card .doodle {
@@ -131,12 +133,13 @@
       }
 
       .hero-collage-caption {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
-        white-space: nowrap;
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.08em;
+        margin: var(--space-2) 0 0;
+        text-align: center;
+        text-transform: uppercase;
       }
 
       /* --- facts strip --------------------------------------------------
