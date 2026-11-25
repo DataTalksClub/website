@@ -569,6 +569,16 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
                     )
                 elif request.session.get(QUICK_ACCOUNT_EXISTS_SESSION_KEY) == str(identity.pk):
                     email_registration["quick_account"] = "exists"
+    # The Zoom join link is private: only a viewer whose seat is confirmed --
+    # signed in, or this browser's emailed registration once its link was
+    # followed -- gets it, and only while the event is still ahead.
+    zoom_join_url = ""
+    if (
+        event_state == "upcoming"
+        and event.get("online_on_zoom")
+        and (viewer_registered or (email_registration and not email_registration["pending"]))
+    ):
+        zoom_join_url = identity.zoom_join_url
     if event_state == "upcoming" and not viewer.is_authenticated:
         from django.urls import reverse
 
@@ -601,6 +611,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             "speaker_bios": any(speaker.get("bio_blocks") for speaker in event["speakers"]),
             "event_state": event_state,
             "viewer_registered": viewer_registered,
+            "zoom_join_url": zoom_join_url,
             "inline_login_providers": inline_login_providers,
             "email_registration": email_registration,
             "account_ready": viewer.is_authenticated

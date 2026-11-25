@@ -85,6 +85,10 @@ def _record(event: Event) -> dict[str, Any]:
         "description_html": event.description_html,
         "description_text": event.description,
         "registration_count": event.registration_count,
+        # Where it happens: a Zoom event with a meeting configured.  The join
+        # URL itself never enters this record -- the event page hands it only
+        # to a viewer holding a confirmed seat.
+        "online_on_zoom": event.platform == "zoom" and bool(event.zoom_join_url),
         "has_uploaded_banner": bool(config is not None and config.banner_image),
         "collect_company": bool(config is not None and config.collect_company),
         "sponsor_sharing_enabled": bool(config is not None and config.sponsor_sharing_enabled),

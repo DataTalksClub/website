@@ -720,6 +720,31 @@
                       </span>
                     </time>
                   </li>
+                  {% if event.online_on_zoom and event_state == "upcoming" %}
+                    {% comment %}
+                      Where it happens, for an event run on Zoom: the place is
+                      public, the meeting link is not.  The view hands
+                      `zoom_join_url` only to a viewer with a confirmed seat;
+                      everyone else reads that registering gets them in.
+                    {% endcomment %}
+                    <li class="event-fact event-location" data-testid="event-location">
+                      <span class="event-tile" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                          <path d="M4 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1.6l3.4-2.3A1 1 0 0 1 21 7.1v9.8a1 1 0 0 1-1.6.8L16 15.4V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Zm2 0v10h8V7Zm10 4.8 3 2v-3.6l-3 2Z" fill="currentColor"></path>
+                        </svg>
+                      </span>
+                      <span class="event-fact-text">
+                        <strong>Online on Zoom</strong>
+                        {% if zoom_join_url %}
+                          <a class="band-link" href="{{ zoom_join_url }}" target="_blank" rel="noopener noreferrer">
+                            Join the meeting<span class="sr-only"> (opens Zoom in a new tab)</span>
+                          </a>
+                        {% else %}
+                          <span class="event-fact-sub">Register to get the link</span>
+                        {% endif %}
+                      </span>
+                    </li>
+                  {% endif %}
                   {% for link in event.links %}
                     <li class="event-fact event-link">
                       <span class="event-tile" aria-hidden="true">
