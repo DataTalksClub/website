@@ -6219,6 +6219,11 @@
         "source_url": "https://example.invalid/synthetic"
       },
       "public_path": "/wiki/a-a-testing",
+      "related": [
+        "data-scientist-cv-and-portfolio",
+        "experiment-tracking",
+        "mlops"
+      ],
       "relations": [
         {
           "href": "/wiki/data-scientist-cv-and-portfolio",
@@ -6424,6 +6429,11 @@
         "source_url": "https://example.invalid/synthetic"
       },
       "public_path": "/wiki/mlops",
+      "related": [
+        "a-a-testing",
+        "mlops-roadmap",
+        "mlops-tools"
+      ],
       "relations": [
         {
           "href": "/wiki/feature-stores",

@@ -1,4 +1,4 @@
-{% load breadcrumbs seo static %}
+{% load breadcrumbs people seo static %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -59,8 +59,7 @@
         gap: var(--space-2);
       }
 
-      /* A relation the wiki can follow reads as a link; one it only names keeps
-         the quiet chip.  Both keep the source's own capitalisation. */
+      /* The curated related topics, each under its page's own title. */
       a.relation {
         border-color: var(--indigo);
         color: var(--indigo);
@@ -72,33 +71,130 @@
         text-underline-offset: 0.2em;
       }
 
-      .relation-plain {
-        color: var(--muted);
-      }
-
-      /* A long relation list opens folded to its first eight chips, with a
-         "Show all" chip at the end (owner feedback 2026-11-24: eighty chips
-         in the page header were overwhelming).  The fold is added by script,
-         so without JavaScript every relation is listed. */
-      .relations.is-folded .relation-list > :nth-child(n + 9):not(.relation-more) {
-        display: none;
-      }
-
-      .relation-more {
-        background: none;
-        border-style: dashed;
-        color: var(--ink);
-        cursor: pointer;
-        font: inherit;
-        font-weight: 600;
-      }
-
-      .relation-more[hidden] {
-        display: none;
-      }
-
       .wiki-prose {
         max-width: 48rem;
+      }
+
+      /* The curated related pages as a grid of soft topic cards: the
+         timeline's own card surface, title and the page's one-line lede. */
+      .wiki-related {
+        margin-top: var(--space-6);
+        scroll-margin-top: var(--space-5);
+      }
+
+      .wiki-related .wiki-section-title {
+        margin-bottom: var(--space-4);
+      }
+
+      .wiki-related-grid {
+        gap: var(--space-3);
+      }
+
+      .wiki-topic-card {
+        height: 100%;
+        padding: var(--space-4) var(--space-6) var(--space-4) var(--space-4);
+      }
+
+      .wiki-topic-card h3 {
+        font-size: 1.05rem;
+        margin: 0;
+      }
+
+      .wiki-topic-card p {
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        color: var(--body-text);
+        display: -webkit-box;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      @media (min-width: 40rem) {
+        .wiki-related-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 62rem) {
+        .wiki-related-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      /* The one quiet line under the summary that says how many episodes
+         talk about the topic and jumps to them at the foot of the article. */
+      .wiki-episodes-jump {
+        font-size: 0.95rem;
+        margin-top: var(--space-3);
+      }
+
+      .wiki-people {
+        margin-top: var(--space-4);
+      }
+
+      /* The episodes about the topic: the /podcast timeline, rail and all,
+         ordered by how strongly the knowledge graph ties each to the page.
+         The rail names the season too, since one topic spans many. */
+      .wiki-episodes {
+        --day-col: 8.5rem;
+        margin-top: var(--space-6);
+        scroll-margin-top: var(--space-5);
+      }
+
+      .wiki-episodes .event-timeline {
+        --day-col: inherit;
+      }
+
+      .wiki-section-title {
+        font-size: 1.35rem;
+      }
+
+      .wiki-episodes .wiki-section-title {
+        margin-bottom: var(--space-5);
+      }
+
+      /* Past the first ten, the rest of the list folds behind "Show all".  The
+         fold is added by script, so without JavaScript every episode shows. */
+      .wiki-episodes.is-folded .event-day:nth-child(n + {{ episodes_fold|add:1 }}) {
+        display: none;
+      }
+
+      .wiki-episodes-more {
+        background: none;
+        border: 0;
+        cursor: pointer;
+        font: inherit;
+        padding: 0;
+      }
+
+      .wiki-episodes-more[hidden] {
+        display: none;
+      }
+
+      .wiki-further {
+        margin-top: var(--space-6);
+        max-width: 48rem;
+      }
+
+      .wiki-further ul {
+        display: grid;
+        gap: var(--space-2);
+        list-style: none;
+        margin: var(--space-3) 0 0;
+        padding: 0;
+      }
+
+      .wiki-further-kind {
+        color: var(--muted);
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-right: var(--space-2);
+      }
+
+      .wiki-closing {
+        margin-top: var(--space-6);
       }
     </style>
   </head>
@@ -125,34 +221,26 @@
         <div class="shell wiki-shell">
           <h1 id="wiki-page-heading">{{ record.title }}</h1>
           <p class="wiki-summary">{{ record.summary }}</p>
-          {% if record.relations %}
-            <section class="relations" aria-label="Related concepts and sources" data-relations>
+          {% if topic_episodes %}
+            <p class="wiki-episodes-jump">
+              <a class="band-link" href="#episodes">{{ topic_episodes|length }} podcast episode{{ topic_episodes|length|pluralize }} about {{ record.title }} ↓</a>
+            </p>
+          {% endif %}
+          {% if topic_chips %}
+            <section class="relations" aria-label="Related topics">
               <div class="relation-list">
-                {% for relation in record.relations %}
-                  {% if relation.href %}
-                    <a
-                      class="chip chip-plain relation"
-                      href="{{ relation.href }}"
-                      data-relation-type="{{ relation.type }}"
-                    >
-                      <span class="sr-only">{{ relation.type }}: </span>{{ relation.label }}
-                    </a>
-                  {% else %}
-                    <span
-                      class="chip chip-plain relation-plain"
-                      data-relation-type="{{ relation.type }}"
-                    >
-                      <span class="sr-only">{{ relation.type }}: </span>{{ relation.label }}
-                    </span>
-                  {% endif %}
+                {% for topic in topic_chips %}
+                  <a class="chip chip-plain relation" href="{{ topic.url }}">{{ topic.title }}</a>
                 {% endfor %}
-                {% if record.relations|length > 8 %}
-                  <button class="chip chip-plain relation-more interactive-lift" type="button" data-relations-more hidden>
-                    Show all {{ record.relations|length }}
-                  </button>
-                {% endif %}
               </div>
             </section>
+          {% endif %}
+          {% if relation_groups.people %}
+            <p class="person-chips wiki-people" aria-label="People">
+              {% for person in relation_groups.people %}
+                {% include "public/_person_chip.html" with person=person|person_chip chip_loading="eager" %}
+              {% endfor %}
+            </p>
           {% endif %}
         </div>
       </section>
@@ -167,17 +255,84 @@
             <span id="{{ fragment }}"></span>
           {% endfor %}
           <div class="prose wiki-prose">
-            {% include "public/_prose_body.html" with blocks=record.blocks %}
+            {% include "public/_prose_body.html" with blocks=body_blocks %}
           </div>
+          {% if related_cards %}
+            <section class="wiki-related" id="related-pages" aria-labelledby="related-heading">
+              <h2 class="wiki-section-title" id="related-heading">Related topics</h2>
+              <div class="card-grid wiki-related-grid">
+                {% for topic in related_cards %}
+                  <article class="event-item interactive-card interactive-lift wiki-topic-card">
+                    <div class="event-item-body">
+                      <h3><a href="{{ topic.url }}">{{ topic.title }}</a></h3>
+                      {% if topic.summary %}<p>{{ topic.summary }}</p>{% endif %}
+                    </div>
+                  </article>
+                {% endfor %}
+              </div>
+            </section>
+          {% endif %}
+          {% if topic_episodes %}
+            <section class="wiki-episodes" id="episodes" aria-labelledby="episodes-heading" data-wiki-episodes>
+              <h2 class="wiki-section-title" id="episodes-heading">Podcast episodes about {{ record.title }}</h2>
+              <div class="event-timeline">
+                {% for item in topic_episodes %}
+                  {% with episode=item.episode %}
+                    <section class="event-day" aria-label="Season {{ episode.season }}, episode {{ episode.episode }}">
+                      <p class="event-day-date">
+                        <span>
+                          {% if item.date %}
+                            <strong><time datetime="{{ item.date|date:'Y-m-d' }}">{{ item.date|date:"M j, Y" }}</time></strong>
+                            <span>S{{ episode.season }} · Episode {{ episode.episode }}</span>
+                          {% else %}
+                            <strong>S{{ episode.season }} · Episode {{ episode.episode }}</strong>
+                          {% endif %}
+                        </span>
+                      </p>
+                      <span class="event-day-dot" aria-hidden="true"></span>
+                      <div class="event-day-cards">
+                        {% include "public/_podcast_episode_card.html" with item=item on_rail=True only %}
+                      </div>
+                    </section>
+                  {% endwith %}
+                {% endfor %}
+              </div>
+              {% if topic_episodes|length > episodes_fold %}
+                <p class="band-more">
+                  <button class="band-link wiki-episodes-more" type="button" data-wiki-episodes-more hidden>
+                    Show all {{ topic_episodes|length }} episodes
+                  </button>
+                </p>
+              {% endif %}
+            </section>
+          {% endif %}
+          {% if relation_groups.further %}
+            <section class="wiki-further" aria-labelledby="further-heading">
+              <h2 class="wiki-section-title" id="further-heading">Read more</h2>
+              <ul>
+                {% for item in relation_groups.further %}
+                  <li>
+                    <span class="wiki-further-kind">{{ item.kind|capfirst }}</span>
+                    {% if item.url %}<a class="band-link" href="{{ item.url }}">{{ item.label }}</a>{% else %}{{ item.label }}{% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </section>
+          {% endif %}
+          {% if closing_blocks %}
+            <div class="prose wiki-prose wiki-closing">
+              {% include "public/_prose_body.html" with blocks=closing_blocks %}
+            </div>
+          {% endif %}
         </div>
       </section>
     </main>
     {% include "core/_site_shell_foot.html" %}
     <script>
-      /* Fold a long relation list to its first eight chips. */
+      /* Fold a long episode list to its first ten. */
       (function () {
-        var box = document.querySelector('[data-relations]');
-        var more = box ? box.querySelector('[data-relations-more]') : null;
+        var box = document.querySelector('[data-wiki-episodes]');
+        var more = box ? box.querySelector('[data-wiki-episodes-more]') : null;
         if (!more) {
           return;
         }
@@ -185,7 +340,7 @@
         more.hidden = false;
         more.addEventListener('click', function () {
           box.classList.remove('is-folded');
-          more.remove();
+          more.parentNode.remove();
         });
       })();
     </script>

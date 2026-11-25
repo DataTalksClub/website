@@ -698,6 +698,102 @@ def episode_topics(slug: str, *, limit: int = RELATED_CONCEPT_CHIPS) -> tuple[Sh
     )
 
 
+def topic_episode_weights(wiki_path: str) -> dict[str, int]:
+    """Every published episode the graph files under one wiki page, and how strongly.
+
+    The weight is the sum of the graph's link weights between the episode and
+    the page -- the same concept index :func:`episode_topics` reads.  An
+    episode filed under the page as one of its own topics (``podcast-topic``,
+    weight 2) outweighs one the page merely cites (``wiki-chip``, weight 1);
+    one that is both scores 3.
+    """
+
+    nodes, concepts = _current_episode_concepts()
+    weights: dict[str, int] = {}
+    for slug, episode_weights in concepts.items():
+        total = sum(
+            weight
+            for concept_id, weight in episode_weights.items()
+            if nodes[concept_id]["url"] == wiki_path
+        )
+        if total:
+            weights[slug] = total
+    return weights
+
+
+@dataclass(frozen=True, slots=True)
+class WikiFurtherReading:
+    """A book or event a wiki page points to; an unlinked one keeps its name."""
+
+    kind: str
+    label: str
+    url: str
+
+
+@dataclass(frozen=True, slots=True)
+class WikiRelationGroups:
+    """The people, books and events a wiki page's body links to.
+
+    Wiki topics come from the page's curated ``related:`` list instead
+    (:func:`wiki_related_cards`), and episodes from the knowledge graph
+    (:func:`content.podcast_hub.topic_episodes`), which already covers every
+    episode the body cites.
+    """
+
+    people: tuple[dict[str, str], ...]
+    further: tuple[WikiFurtherReading, ...]
+
+
+def wiki_relation_groups(record: dict[str, Any]) -> WikiRelationGroups:
+    """Sort one wiki page's body links by what they point at, each target once."""
+
+    people_by_path = catalogue.people_by_path()
+    people: dict[str, dict[str, str]] = {}
+    further: dict[str, WikiFurtherReading] = {}
+    for relation in record.get("relations") or ():
+        kind = relation.get("type", "")
+        label = " ".join(str(relation.get("label", "")).split())
+        path = str(relation.get("href") or "").split("#", 1)[0]
+        if kind == "person" and path:
+            person = people_by_path.get(path) or {}
+            people.setdefault(
+                path, {"name": str(person.get("title") or label), "public_path": path}
+            )
+        elif kind in ("book", "event") and label:
+            key = path or f"{kind}:{label.casefold()}"
+            further.setdefault(key, WikiFurtherReading(kind=kind, label=label, url=path))
+    return WikiRelationGroups(people=tuple(people.values()), further=tuple(further.values()))
+
+
+@dataclass(frozen=True, slots=True)
+class WikiTopicCard:
+    """One wiki page a page's curated ``related:`` list names: its title and lede."""
+
+    title: str
+    summary: str
+    url: str
+
+
+def wiki_related_cards(
+    record: dict[str, Any], *, pages: tuple[dict[str, Any], ...]
+) -> tuple[WikiTopicCard, ...]:
+    """The pages ``record``'s curated ``related:`` front matter names, in its order.
+
+    The sync resolves each name to a slug (``content.sync_parsers.podwiki``);
+    the title and lede are read from the target page itself, so a card always
+    names the page as the page names itself.
+    """
+
+    by_slug = {page["slug"]: page for page in pages}
+    return tuple(
+        WikiTopicCard(
+            title=page["title"], summary=str(page.get("summary", "")), url=page["public_path"]
+        )
+        for slug in record.get("related") or ()
+        if (page := by_slug.get(slug)) is not None
+    )
+
+
 def related_episode_matches(
     episode: dict[str, Any],
     *,

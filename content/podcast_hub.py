@@ -33,6 +33,7 @@ from .podcast_content import (
     PlatformLink,
     PodcastSeason,
     episode_view,
+    ordered_podcasts,
 )
 from .wiki_content import SharedConcept
 
@@ -216,4 +217,30 @@ def hub_episode(record: dict[str, Any]) -> HubEpisode:
         record,
         episode_view(record, people_by_slug=catalogue.people_by_slug(), include_transcript=False),
         _event_index(),
+    )
+
+
+def topic_episodes(wiki_path: str) -> tuple[HubEpisode, ...]:
+    """Every episode about one wiki page, as hub cards, most relevant first.
+
+    Relevance is the episode's link weight to the page in the knowledge graph
+    (:func:`content.wiki_content.topic_episode_weights`); equal weights fall to
+    the newer episode in the podcast's own order.
+    """
+
+    weights = wiki_content.topic_episode_weights(wiki_path)
+    if not weights:
+        return ()
+    records = [record for record in ordered_podcasts() if record.get("slug") in weights]
+    newest_first = {record["slug"]: index for index, record in enumerate(records)}
+    records.sort(key=lambda record: (-weights[record["slug"]], newest_first[record["slug"]]))
+    events = _event_index()
+    people = catalogue.people_by_slug()
+    return tuple(
+        _hub_episode(
+            record,
+            episode_view(record, people_by_slug=people, include_transcript=False),
+            events,
+        )
+        for record in records
     )

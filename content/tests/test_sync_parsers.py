@@ -25,7 +25,7 @@ from community_base.knowledge_base.models import (
     KnowledgeBasePage,
 )
 from django.conf import settings as settings_module
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 
 from content.media_store import (
     LocalMediaStore,
@@ -2145,3 +2145,17 @@ class GitHubArchiveSyncTests(TestCase):
                 self.assertEqual(log.status, SyncStatus.FAILED)
                 self.assertIn(message, log.errors[0]["error"])
                 self.assertFalse(SyncedDocument.objects.filter(source=self.source).exists())
+
+
+class PodwikiRelatedSlugsTests(SimpleTestCase):
+    def test_related_names_resolve_to_known_slugs_once_in_order(self) -> None:
+        from content.sync_parsers.podwiki import _related_slugs
+
+        titles = {"llms": "llms", "retrieval-augmented generation": "rag", "ai": "ai"}
+        self.assertEqual(
+            _related_slugs(
+                ["Retrieval-Augmented Generation", "AI", "ai", "LLMs", "Nowhere", 7], "llms", titles
+            ),
+            ["rag", "ai"],
+        )
+        self.assertEqual(_related_slugs(None, "llms", titles), [])

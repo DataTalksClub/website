@@ -19,7 +19,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils.html import escape
 
-from content import catalogue, wiki_reader
+from content import catalogue, wiki_content, wiki_reader
 from content.models import ContentSource
 from content.pagination import PUBLIC_PAGE_SIZE
 from content.public_views import WIKI_SPECIAL_CATEGORIES, _wiki_search_results
@@ -691,7 +691,13 @@ class WikiPageTests(TestCase):
         self.record = _wiki_page("a-a-testing")
         self.body = self.client.get(str(self.record["public_path"])).content.decode()
 
-    def test_the_page_keeps_one_wiki_context_label_title_and_every_relation(self) -> None:
+    def _section(self, marker: str) -> str:
+        """The rendered markup from ``marker`` to the end of its section."""
+
+        start = self.body.index(marker)
+        return self.body[start : self.body.index("</section>", start)]
+
+    def test_the_page_keeps_one_wiki_context_label_title_and_its_related_topics(self) -> None:
         # The breadcrumb supplies the page's Wiki context; repeating it as an
         # eyebrow immediately above the title adds no information.
         self.assertNotIn('<p class="mono-label mono-label-indigo">Wiki</p>', self.body)
@@ -703,32 +709,37 @@ class WikiPageTests(TestCase):
             self.body,
         )
         self.assertIn(escape(str(self.record["summary"])), self.body)
-        self.assertIn('aria-label="Related concepts and sources"', self.body)
-        for relation in self.record["relations"]:
-            with self.subTest(relation=relation["label"]):
-                self.assertIn(f'data-relation-type="{escape(relation["type"])}"', self.body)
-                self.assertIn(
-                    f'<span class="sr-only">{escape(relation["type"])}: </span>'
-                    f"{escape(relation['label'])}",
-                    self.body,
-                )
-                if relation["href"]:
-                    self.assertIn(f'href="{relation["href"]}"', self.body)
+        cards = wiki_content.wiki_related_cards(self.record, pages=wiki_reader.wiki_pages())
+        self.assertTrue(cards, "the fixture page names related pages")
+        # Chips are the curated related topics only, each under its page's own
+        # title, never an episode or a person.
+        chips = self._section('aria-label="Related topics"')
+        self.assertEqual(chips.count('class="chip chip-plain relation"'), min(len(cards), 8))
+        for card in cards[:8]:
+            with self.subTest(topic=card.title):
+                self.assertIn(f'href="{card.url}">{escape(card.title)}</a>', chips)
+        self.assertNotIn('href="/podcast/', chips)
+        self.assertNotIn('href="/people/', chips)
+        block = self._section('id="related-pages"')
+        for card in cards:
+            with self.subTest(card=card.title):
+                self.assertIn(f'<h3><a href="{card.url}">{escape(card.title)}</a></h3>', block)
 
-    def test_a_relation_the_wiki_cannot_follow_stays_a_named_state(self) -> None:
-        """No page carries one today; the state must survive until one does."""
-
-        self.assertFalse(
-            [
-                record["slug"]
-                for record in wiki_reader.wiki_pages()
-                if any(not relation["href"] for relation in record["relations"])
-            ],
-            "a wiki page now carries an unlinked relation: assert its rendering here",
+    def test_each_linked_relation_lands_in_its_own_group(self) -> None:
+        episodes = (
+            self.body[self.body.index('id="episodes"') :] if 'id="episodes"' in self.body else ""
         )
-        source = (REPOSITORY_ROOT / "templates/public/wiki_detail.html").read_text(encoding="utf-8")
-        self.assertIn('class="chip chip-plain relation-plain"', source)
-        self.assertIn("{% if relation.href %}", source)
+        for relation in self.record["relations"]:
+            href = relation["href"].split("#", 1)[0]
+            with self.subTest(relation=relation["label"]):
+                if relation["type"] in {"citation", "podcast"}:
+                    self.assertIn(f'href="{href}"', episodes)
+                elif relation["type"] == "person":
+                    self.assertIn(f'href="{href}"', self._section('aria-label="People"'))
+                elif relation["type"] == "book":
+                    self.assertIn(f'href="{href}"', self._section('id="further-heading"'))
+        if episodes:
+            self.assertIn('href="#episodes"', self.body)
 
     def test_the_body_renders_every_block_and_keeps_its_anchor_identifiers(self) -> None:
         for block in self.record["blocks"]:
@@ -752,20 +763,17 @@ class WikiPageTests(TestCase):
 
         self.assertIn(f'<h1 id="wiki-page-heading">{escape(record["title"])}</h1>', body)
 
-    def test_an_ampersand_in_a_relation_label_is_escaped(self) -> None:
-        record = next(
-            page
-            for page in wiki_reader.wiki_pages()
-            if any("&" in relation["label"] for relation in page["relations"])
+    def test_an_ampersand_in_a_related_topic_title_is_escaped(self) -> None:
+        pages = wiki_reader.wiki_pages()
+        record, card = next(
+            (page, card)
+            for page in pages
+            for card in wiki_content.wiki_related_cards(page, pages=pages)
+            if "&" in card.title
         )
-        relation = next(item for item in record["relations"] if "&" in item["label"])
-        self.assertNotEqual(escape(relation["label"]), relation["label"])
         body = self.client.get(str(record["public_path"])).content.decode()
 
-        self.assertIn(
-            f'<span class="sr-only">{escape(relation["type"])}: </span>{escape(relation["label"])}',
-            body,
-        )
+        self.assertIn(f'href="{card.url}">{escape(card.title)}</a>', body)
 
     def test_an_anchor_the_source_never_defined_still_lands_on_the_page(self) -> None:
         page = next(

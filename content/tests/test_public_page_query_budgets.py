@@ -71,7 +71,9 @@ COLD_BUDGETS = {
     "podcast_episode": 24,
     "book": 22,
     "person": 22,
-    "wiki_page": 8,
+    # The page draws every episode about its topic as hub cards, so it reads
+    # the podcasts, people, events and graph the podcast pages read.
+    "wiki_page": 22,
     "event": 28,
 }
 

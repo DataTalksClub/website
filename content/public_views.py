@@ -77,7 +77,7 @@ from .podcast_content import (
     related_episodes,
     transcript_text,
 )
-from .podcast_hub import HUB_LISTEN_ORDER, hub_season, podcast_season_path
+from .podcast_hub import HUB_LISTEN_ORDER, hub_season, podcast_season_path, topic_episodes
 from .podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_public_id
 from .public_query import selector_query
 from .review_views import SLACK_PUBLIC_PATH
@@ -1697,12 +1697,44 @@ def wiki_hub(request: HttpRequest) -> HttpResponse:
     )
 
 
+#: How many related topics a wiki page names as chips under its summary.
+WIKI_TOPIC_CHIPS = 8
+#: How many episodes a wiki page lists before the rest fold behind "Show all".
+WIKI_EPISODES_FOLD = 10
+
+
 @require_safe
 def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
     page = wiki_reader.wiki_page(slug)
     if page is None:
         raise Http404
     wiki_trail = trail(("Wiki", "/wiki"), (page["title"], page["public_path"]))
+    # The page's own "Related Pages" list gives way to the designed block drawn
+    # from its curated ``related:`` list, so the body ends where that section
+    # starts; anything after it (a later section) still renders.
+    related_cards = wiki_content.wiki_related_cards(page, pages=wiki_reader.wiki_pages())
+    blocks = list(page["blocks"])
+    start = next(
+        (
+            index
+            for index, block in enumerate(blocks)
+            if block.get("kind") == "heading"
+            and str(block.get("text", "")).strip().casefold() == "related pages"
+        ),
+        None,
+    )
+    closing: list = []
+    if start is not None and related_cards:
+        end = next(
+            (
+                index
+                for index in range(start + 1, len(blocks))
+                if blocks[index].get("kind") == "heading"
+                and blocks[index].get("level", 2) <= blocks[start].get("level", 2)
+            ),
+            len(blocks),
+        )
+        blocks, closing = blocks[:start], blocks[end:]
     return _render(
         request,
         "public/wiki_detail.html",
@@ -1711,6 +1743,13 @@ def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
         description=page["summary"],
         context={
             "record": page,
+            "body_blocks": blocks,
+            "closing_blocks": closing,
+            "related_cards": related_cards,
+            "topic_chips": related_cards[:WIKI_TOPIC_CHIPS],
+            "relation_groups": wiki_content.wiki_relation_groups(page),
+            "topic_episodes": topic_episodes(page["public_path"]),
+            "episodes_fold": WIKI_EPISODES_FOLD,
             "breadcrumbs": wiki_trail,
             "og_type": "article",
             "structured_data": _json_ld(

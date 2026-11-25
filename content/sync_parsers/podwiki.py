@@ -443,6 +443,7 @@ class PodwikiParser:
             "blocks": blocks,
             "fragment_ids": all_fragments,
             "unresolved_fragment_ids": unresolved_fragments,
+            "related": _related_slugs(metadata.get("related"), slug, title_to_slug),
             "relations": builder._wiki_relations(
                 body,
                 title_to_slug,
@@ -513,3 +514,24 @@ class PodwikiParser:
 
 
 register_parser(CONTENT_KIND, PodwikiParser())
+
+
+def _related_slugs(value: object, own_slug: str, title_to_slug: dict[str, str]) -> list[str]:
+    """The wiki pages a page's curated ``related:`` front matter names, as slugs.
+
+    Each entry is a page title (or a slug); the list keeps its editorial order,
+    names each page once, and drops itself and any name no page carries.
+    """
+
+    if not isinstance(value, list):
+        return []
+    known = set(title_to_slug.values())
+    slugs: list[str] = []
+    for entry in value:
+        if not isinstance(entry, str):
+            continue
+        name = entry.strip()
+        slug = title_to_slug.get(name.casefold()) or builder._slugify(name)
+        if slug in known and slug != own_slug and slug not in slugs:
+            slugs.append(slug)
+    return slugs
