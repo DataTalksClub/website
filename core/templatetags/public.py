@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import re
+from collections.abc import Iterable
 
 from django import template
 from django.utils.html import conditional_escape
@@ -47,7 +48,7 @@ def public_text(value: object) -> str:
 
 
 @register.filter
-def prose_runs(blocks: object) -> list[dict]:
+def prose_runs(blocks: Iterable[dict] | None) -> list[dict]:
     """Group a body's consecutive list items into one list run.
 
     The projection keeps a flat block list; a page draws each run of source list

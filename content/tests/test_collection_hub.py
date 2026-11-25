@@ -316,7 +316,9 @@ class BooksArchiveContractTests(TestCase):
                 how_it_works = body.index('id="how-it-works-heading"')
                 slack = body.index('href="/slack"', how_it_works)
                 archive = body.index('id="collection-list-heading"')
-                first_record = RECORD_ROW.search(body).start()
+                first_row = RECORD_ROW.search(body)
+                assert first_row is not None
+                first_record = first_row.start()
                 self.assertLess(intro, how_it_works)
                 self.assertLess(how_it_works, slack)
                 self.assertLess(slack, archive)

@@ -159,8 +159,8 @@ class ArticlesParser:
             return None, None
         if not isinstance(value, str) or not _PREVIEW_PATH.fullmatch(value) or ".." in value:
             base.fail("article preview rejected", source_path)
-        social = PurePosixPath(value)
-        social = social.with_name(f"{social.stem}-og{social.suffix}").as_posix()
+        preview_path = PurePosixPath(value)
+        social = preview_path.with_name(f"{preview_path.stem}-og{preview_path.suffix}").as_posix()
         for path in (value, social):
             if not (checkout.root / path).is_file():
                 base.fail("article preview file missing", source_path)

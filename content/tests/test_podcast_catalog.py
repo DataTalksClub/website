@@ -1196,11 +1196,13 @@ class PodcastSeasonNavigationTests(TestCase):
                 # attribute also appears inside CSS selectors; only markup markers
                 # count.  The eight newest seasons are pills; an older one lives in
                 # the "Older" fold, whose summary is marked current as well.
-                seasons_nav = re.search(
+                nav_match = re.search(
                     r'<nav class="podcast-seasons podcast-seasons-top".*?</nav>',
                     response.content.decode(),
                     re.DOTALL,
-                )[0]
+                )
+                assert nav_match is not None
+                seasons_nav = nav_match[0]
                 in_pills = seasons.index(next(x for x in seasons if x.number == season)) < 8
                 self.assertEqual(
                     len(re.findall(r'\saria-current="page"', seasons_nav)),
