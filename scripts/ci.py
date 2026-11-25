@@ -157,6 +157,7 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "scripts/tests/test_ml_zoomcamp_2021_identity_merge.py",
     "scripts/tests/test_registrant_import.py",
     "scripts/tests/test_import_event_duplicate_merges.py",
+    "scripts/tests/test_import_event_backfill.py",
     "courses/tests/test_enrollment_error_accessibility.py",
     "studio_courses/tests/test_enrollment_sorting.py",
     "courses/tests/test_course_external_links.py",
@@ -324,6 +325,8 @@ PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod/import_course_catalog_facets.py",
     # Every event is created with its picture.
     "scripts/prod/event_pictures.py",
+    # Reviewed event backfill (pictures, fields, sponsors) from a staged manifest.
+    "scripts/prod/import_event_backfill.py",
 )
 TYPECHECK_PATHS: Final = (
     "slack_access",

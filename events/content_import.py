@@ -286,8 +286,16 @@ def _link(value: Any) -> ReviewedLink:
     return ReviewedLink(label=_text(value["label"], field="link_label", maximum=255), url=url)
 
 
-def _is_external_registration_link(link: ReviewedLink) -> bool:
-    parts = urlsplit(link.url)
+def is_retired_registration_url(url: str) -> bool:
+    """A Luma, Eventbrite or retired Academy-sessions signup page: never a material.
+
+    People register for an event only on this site, so a link to a third-party
+    (or retired) registration page is dropped wherever event materials are
+    written -- here, and by ``scripts/prod/import_event_backfill.py`` for rows
+    that already carry one.
+    """
+
+    parts = urlsplit(url)
     host = parts.netloc.lower().removeprefix("www.")
     return (
         host in _LUMA_HOSTS
@@ -295,6 +303,10 @@ def _is_external_registration_link(link: ReviewedLink) -> bool:
         or host.startswith("eventbrite.")
         or (host in _ACADEMY_SESSIONS_HOSTS and parts.path == _ACADEMY_SESSIONS_PATH)
     )
+
+
+def _is_external_registration_link(link: ReviewedLink) -> bool:
+    return is_retired_registration_url(link.url)
 
 
 def _links(items: list[Any]) -> tuple[ReviewedLink, ...]:

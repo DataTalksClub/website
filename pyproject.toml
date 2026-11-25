@@ -249,6 +249,8 @@ module = [
     "courses.catalog_facets",
     "courses.tests.test_course_catalog_feedback",
     "scripts.tests.test_import_event_duplicate_merges",
+    "scripts.prod.import_event_backfill",
+    "scripts.tests.test_import_event_backfill",
     "scripts.tests.test_scoring_import_submitted_at",
     "studio_courses.tests.test_enrollment_sorting",
     "courses.tests.test_course_external_links",

@@ -167,6 +167,11 @@ SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
         "named after reviewing a dry run, so it is a typed operator command and never "
         "part of a dataset rebuild."
     ),
+    "import_event_backfill": (
+        "Rewrites existing events (pictures, descriptions, speakers, dates, sponsors, "
+        "materials) from a reviewed manifest staged outside the repository, so it is "
+        "a dry-run-first operator command and never part of a dataset rebuild."
+    ),
     "import_mailchimp_course_tags": (
         "Needs Mailchimp provider credentials and reads subscriber-level personal "
         "data, and additionally depends on the course catalogue already existing "
