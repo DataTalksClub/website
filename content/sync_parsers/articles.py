@@ -24,6 +24,10 @@ REPOSITORY = "DataTalksClub/content"
 ARTICLES_ROOT = "articles"
 
 _DATE_PREFIX = re.compile(r"^(?:\d{2}|\d{4})-\d{2}-\d{2}-(.+)$")
+#: An article's generated preview (banner-generator ``dtc-article``): the square
+#: list thumbnail the frontmatter names, and beside it the social card, the same
+#: file with ``-og`` before the suffix.
+_PREVIEW_PATH = re.compile(r"^images/posts/[A-Za-z0-9._/-]+\.(?:png|jpg|jpeg)$")
 
 
 class ArticlesParser:
@@ -47,6 +51,9 @@ class ArticlesParser:
         image = record["image_source"]
         if image and not image.startswith(("http://", "https://")):
             media.upload(base.active_checkout(), image.lstrip("/"), source)
+        for preview in (record["preview_source"], record["preview_og_source"]):
+            if preview:
+                media.upload(base.active_checkout(), preview, source)
         document, action = base.upsert_document(
             source,
             content_kind=CONTENT_KIND,
@@ -81,6 +88,7 @@ class ArticlesParser:
         )
         blocks = builder._article_blocks(body, media_root=checkout.root, counters={})
         faq = self._faq_pairs(metadata.get("faq"), relative)
+        preview, preview_og = self._preview(metadata.get("preview"), checkout, relative)
         if faq is None and any(block.get("kind") == "faq" for block in blocks):
             base.fail("article FAQ marker without frontmatter FAQ", relative)
         record = {
@@ -108,6 +116,8 @@ class ArticlesParser:
             "image_source": builder._string(
                 metadata.get("image"), field="article image", maximum=500, optional=True
             ),
+            "preview_source": preview,
+            "preview_og_source": preview_og,
             "provenance": builder._provenance(
                 repository=REPOSITORY,
                 revision=checkout.commit_sha,
@@ -134,6 +144,27 @@ class ArticlesParser:
         except ArticleFaqFormatError:
             base.fail("article frontmatter FAQ rejected", source_path)
         return [dict(question) for question in questions]
+
+    @staticmethod
+    def _preview(value, checkout, source_path: str) -> tuple[str | None, str | None]:
+        """Validate the frontmatter ``preview:`` path and derive its social card.
+
+        ``preview`` names the square list thumbnail; the social card is the same
+        file with ``-og`` before the suffix, never written by hand.  Both files
+        must be in the checkout, so a published record never points at a missing
+        picture.
+        """
+
+        if value is None:
+            return None, None
+        if not isinstance(value, str) or not _PREVIEW_PATH.fullmatch(value) or ".." in value:
+            base.fail("article preview rejected", source_path)
+        social = PurePosixPath(value)
+        social = social.with_name(f"{social.stem}-og{social.suffix}").as_posix()
+        for path in (value, social):
+            if not (checkout.root / path).is_file():
+                base.fail("article preview file missing", source_path)
+        return value, social
 
     @staticmethod
     def _sponsor(value, source_path: str) -> dict[str, str] | None:

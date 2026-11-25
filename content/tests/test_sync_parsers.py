@@ -419,6 +419,40 @@ class ArticlesParserTests(_CheckoutCase):
         )
         self.assertIsNone(self._discover_one(_article_markdown())["sponsor"])
 
+    def test_frontmatter_preview_names_the_thumbnail_and_derives_the_social_card(self) -> None:
+        parser = get_parser("article")
+        markdown = _article_markdown().replace(
+            "---\n", "---\npreview: images/posts/hello-world/preview.png\n", 1
+        )
+        tree = {
+            "articles/2024-03-07-hello-world.md": markdown.encode(),
+            "images/posts/hello-world/preview.png": _png(b"square"),
+            "images/posts/hello-world/preview-og.png": _png(b"social"),
+        }
+        with self.checkout(tree) as checkout:
+            (item,) = parser.discover(checkout, _source("dtc-content"))
+        record = item.data["record"]
+        self.assertEqual(record["preview_source"], "images/posts/hello-world/preview.png")
+        self.assertEqual(record["preview_og_source"], "images/posts/hello-world/preview-og.png")
+        self.assertIsNone(self._discover_one(_article_markdown())["preview_source"])
+
+    def test_preview_outside_posts_or_without_its_social_card_is_refused(self) -> None:
+        parser = get_parser("article")
+        for preview, files in (
+            ("images/authors/x.png", ("images/authors/x.png", "images/authors/x-og.png")),
+            ("images/posts/hello-world/../x.png", ()),
+            ("images/posts/hello-world/preview.png", ("images/posts/hello-world/preview.png",)),
+        ):
+            markdown = _article_markdown().replace("---\n", f"---\npreview: {preview}\n", 1)
+            tree = {"articles/2024-03-07-hello-world.md": markdown.encode()}
+            tree.update({path: _png(b"x") for path in files})
+            with (
+                self.subTest(preview=preview),
+                self.checkout(tree) as checkout,
+                self.assertRaises(ContentParserError),
+            ):
+                parser.discover(checkout, _source("dtc-content"))
+
     def test_malformed_sponsor_is_refused(self) -> None:
         for sponsor in (
             "sponsor: Arize\n",

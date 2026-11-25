@@ -15,7 +15,7 @@ from typing import Any
 from django.test import TestCase
 
 from content.projection_helpers import ProjectionBuildError
-from content.public_records import person_record, person_relationships
+from content.public_records import article_record, person_record, person_relationships
 
 _EPISODE_YOUTUBE = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
@@ -235,3 +235,20 @@ class BookRowFactsTests(TestCase):
         ]
         self.assertEqual(answered_question_count(archive), 1)
         self.assertEqual(answered_question_count(None), 0)
+
+
+class ArticlePreviewTests(TestCase):
+    def test_preview_sources_become_public_paths(self) -> None:
+        record = article_record(
+            {"image_source": "images/posts/a/cover.png", "authors": [],
+             "preview_source": "images/posts/a/preview.png",
+             "preview_og_source": "images/posts/a/preview-og.png"},
+            {},
+        )
+        self.assertEqual(record["preview_path"], "/images/posts/a/preview.png")
+        self.assertEqual(record["preview_og_path"], "/images/posts/a/preview-og.png")
+        self.assertEqual(record["image_path"], "/images/posts/a/cover.png")
+
+    def test_an_article_without_a_preview_has_empty_paths(self) -> None:
+        record = article_record({"image_source": "images/posts/a/cover.png", "authors": []}, {})
+        self.assertEqual((record["preview_path"], record["preview_og_path"]), ("", ""))
