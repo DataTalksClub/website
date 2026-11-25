@@ -933,14 +933,15 @@ styled by the partial, and their **markup is shared too**:
 </body>
 ```
 
-**The footer** is one block at the masthead's shell width: an identity block on the
-left (brand, tagline, social icons) and the link groups compact on the right (muted
-sentence-case headings, links without an underline until hover); one quiet rule, then
-the base line with the legal row (Terms, Privacy, Analytics preferences, Impressum)
-and the version. Analytics preferences is a `<button>` drawn and behaving exactly like
-the legal links beside it — no `interactive-lift`. Below 48rem the identity stacks over
-a two-column grid of link groups. It carries no Academy links — the site-wide Academy
-stripe above it is the Academy route.
+**The footer** is one compact block at the masthead's shell width. It does not repeat
+the masthead's sections: one main row has the brand and tagline on the left and, on
+the right, only what the masthead lacks — Newsletter and Sponsors as two small links
+(no underline until hover) — beside the social icons; one quiet rule, then the base
+line with the legal row (Terms, Privacy, Analytics preferences, Impressum) and the
+version. Analytics preferences is a `<button>` drawn and behaving exactly like the
+legal links beside it — no `interactive-lift`. Below 48rem the brand stacks over a
+full-width row with the links on the left and the icons on the right. It carries no
+Academy links — the site-wide Academy stripe above it is the Academy route.
 
 **The analytics choice** is one `<dialog>` in two states. While nothing is chosen it is
 a non-modal consent banner fixed to the viewport foot, never part of the page flow;

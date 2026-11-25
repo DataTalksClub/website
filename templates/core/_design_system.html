@@ -2190,12 +2190,13 @@ Rules for editing:
         color: var(--muted);
       }
 
-      /* The footer is one block at the masthead's own shell width.  On wide
-         screens the identity (brand, tagline, social icons) sits on the left
-         and the link groups sit compactly on the right; one quiet rule
-         separates them from the base line, where the legal links and the
-         version share a row.  Narrow screens stack the identity over a
-         two-column grid of link groups. */
+      /* The footer is one compact block at the masthead's own shell width:
+         one main row with the brand and tagline on the left and, on the
+         right, the two links the masthead does not carry (Newsletter,
+         Sponsors) beside the social icons; one quiet rule separates it from
+         the base line, where the legal links and the version share a row.
+         Narrow screens put the brand over a full-width row of links (left)
+         and icons (right). */
       .site-footer {
         border-top: 2px dashed var(--line-soft);
       }
@@ -2203,18 +2204,20 @@ Rules for editing:
       .site-footer-inner {
         --footer-mark: 1.25rem;
         --footer-target: 2.75rem;
-        padding-block: var(--space-7) var(--space-5);
+        padding-block: var(--space-4) var(--space-2);
       }
 
       .site-footer-main {
-        display: grid;
-        gap: var(--space-6);
-        padding-bottom: var(--space-6);
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2) var(--space-5);
+        justify-content: space-between;
+        padding-bottom: var(--space-2);
       }
 
       .site-footer-identity {
         display: grid;
-        gap: var(--space-1);
         justify-items: start;
         min-width: 0;
       }
@@ -2234,33 +2237,28 @@ Rules for editing:
         margin: 0;
       }
 
-      /* Each icon keeps its 2.75rem target; the row's negative inline-start
-         margin pulls the first target out so the drawn mark, not its
-         invisible box, lines up with the brand above it. */
-      .site-footer-social {
+      .site-footer-aside {
+        align-items: center;
         display: flex;
         flex-wrap: wrap;
-        margin-block-start: var(--space-2);
-        margin-inline-start: calc((var(--footer-mark) - var(--footer-target)) / 2);
+        gap: 0 var(--space-5);
+        justify-content: space-between;
+        min-width: 0;
       }
 
       .site-footer-nav {
-        display: grid;
-        gap: var(--space-5) var(--space-5);
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 var(--space-4);
       }
 
-      .site-footer-heading {
-        color: var(--muted);
-        font-size: 0.85rem;
-        font-weight: 700;
-        margin: 0 0 var(--space-1);
-      }
-
-      .site-footer-list {
-        list-style: none;
-        margin: 0;
-        padding: 0;
+      /* Each icon keeps its 2.75rem target; the row's negative inline-end
+         margin pushes the last target out so the drawn mark, not its
+         invisible box, lines up with the version on the base line. */
+      .site-footer-social {
+        display: flex;
+        flex-wrap: wrap;
+        margin-inline-end: calc((var(--footer-mark) - var(--footer-target)) / 2);
       }
 
       .site-footer .site-footer-nav-link {
@@ -2280,22 +2278,9 @@ Rules for editing:
         text-underline-offset: 0.2em;
       }
 
-      @media (min-width: 48rem) {
-        /* The link groups share the row's width in equal columns, so the footer
-           reads as one band instead of a block on the left, a gap, and a
-           cluster on the right. */
-        .site-footer-main {
-          align-items: start;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-        }
-
-        .site-footer-nav {
-          column-gap: var(--space-5);
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-
-        .site-footer .site-footer-nav-link {
-          min-height: 2rem;
+      @media (max-width: 47.99rem) {
+        .site-footer-aside {
+          width: 100%;
         }
       }
 

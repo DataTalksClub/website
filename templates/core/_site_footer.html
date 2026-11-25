@@ -9,19 +9,28 @@
 <footer class="site-footer">
   <div class="shell site-footer-inner">
     {% comment %}
-      The footer is where people look for "everything else" (site feedback 2.2):
-      the masthead's sections again, grouped the same way and read from the same
-      database-owned menu, then the newsletter and sponsorship (Sponsors left the
-      masthead for this column).  The brand, tagline and social icons are one
-      identity block beside the link groups; legal links and the version share
-      the bottom line.  Academy is the one
-      section left out: the owner removed it from the footer, and the Academy
-      stripe above is its route here (core/tests/test_homepage.py).
+      A compact footer (owner, 2026-11): the masthead already carries every
+      section, so the footer does not repeat it.  It keeps only what the
+      masthead does not offer — the newsletter and sponsorship (Sponsors is not
+      in the masthead) — beside the social icons, on one row with the brand.
+      Legal links and the version share the bottom line.  No Academy link: the
+      Academy stripe above is its route here (core/tests/test_homepage.py).
     {% endcomment %}
     <div class="site-footer-main">
       <div class="site-footer-identity">
         <p class="site-footer-name">DataTalks.Club</p>
         <p class="site-footer-tagline">Free courses to learn data.</p>
+      </div>
+
+      <div class="site-footer-aside">
+        <nav class="site-footer-nav" aria-label="Footer">
+          {% if site_footer_newsletter_url %}
+            <a class="site-footer-nav-link app-link" href="{{ site_footer_newsletter_url }}">Newsletter</a>
+          {% endif %}
+          {% if site_footer_sponsors_url %}
+            <a class="site-footer-nav-link app-link" href="{{ site_footer_sponsors_url }}">Sponsors</a>
+          {% endif %}
+        </nav>
         <nav class="site-footer-social" aria-label="DataTalks.Club elsewhere">
           <a
             class="site-footer-link site-footer-icon app-link"
@@ -73,38 +82,6 @@
           </a>
         </nav>
       </div>
-
-      <nav class="site-footer-nav" aria-label="Footer">
-        {% for group in primary_navigation_groups %}
-          <div class="site-footer-column">
-            <p class="site-footer-heading">{{ group.label }}</p>
-            <ul class="site-footer-list">
-              {% for item in group.items %}
-                {% if item.current_key != "academy" %}
-                  <li>
-                    <a class="site-footer-nav-link app-link" href="{{ item.href }}">{{ item.label }}</a>
-                  </li>
-                {% endif %}
-              {% endfor %}
-            </ul>
-          </div>
-        {% endfor %}
-        <div class="site-footer-column">
-          <p class="site-footer-heading">Stay in touch</p>
-          <ul class="site-footer-list">
-            {% if site_footer_newsletter_url %}
-              <li>
-                <a class="site-footer-nav-link app-link" href="{{ site_footer_newsletter_url }}">Newsletter</a>
-              </li>
-            {% endif %}
-            {% if site_footer_sponsors_url %}
-              <li>
-                <a class="site-footer-nav-link app-link" href="{{ site_footer_sponsors_url }}">Sponsors</a>
-              </li>
-            {% endif %}
-          </ul>
-        </div>
-      </nav>
     </div>
 
     <div class="site-footer-base">

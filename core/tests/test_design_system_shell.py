@@ -296,17 +296,16 @@ class DesignFiveAShellTests(TestCase):
                 self.assertEqual(groups, list(EXPECTED_NAVIGATION_GROUPS))
                 self.assertNotIn(f'href="{reverse("sponsors")}"', block.group(1))
 
-    def test_every_design_system_page_footer_lists_the_sections(self) -> None:
+    def test_every_design_system_page_footer_keeps_only_what_the_masthead_lacks(self) -> None:
         for name, body in self.rendered_pages().items():
             with self.subTest(page=name):
                 footer = body.split('<footer class="site-footer">', 1)[1]
-                # Academy is reached from its stripe, not the footer (test_homepage).
-                for label, route in (*EXPECTED_NAVIGATION, ("Sponsors", "sponsors")):
-                    link = f'href="{reverse(route)}">{label}</a>'
-                    if route == "academy:home":
-                        self.assertNotIn(link, footer)
-                    else:
-                        self.assertIn(link, footer)
+                # The masthead carries every section; the footer does not repeat
+                # them.  It keeps Newsletter and Sponsors (not in the masthead).
+                for label, route in EXPECTED_NAVIGATION:
+                    self.assertNotIn(f'href="{reverse(route)}">{label}</a>', footer)
+                for label, route in (("Newsletter", "newsletter"), ("Sponsors", "sponsors")):
+                    self.assertIn(f'href="{reverse(route)}">{label}</a>', footer)
                 for href in (
                     reverse("newsletter"),
                     "https://www.youtube.com/@DataTalksClub",
