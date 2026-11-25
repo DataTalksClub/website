@@ -269,32 +269,7 @@
           {% if topic_episodes %}
             <section class="wiki-episodes" id="episodes" aria-labelledby="episodes-heading" data-wiki-episodes>
               <h2 class="wiki-section-title" id="episodes-heading">Podcast episodes about {{ record.title }}</h2>
-              <div class="event-timeline">
-                {% for item in topic_episodes %}
-                  {% with episode=item.episode %}
-                    <section class="event-day" aria-label="Season {{ episode.season }}, episode {{ episode.episode }}">
-                      <p class="event-day-date">
-                        <span>
-                          {% if item.date %}
-                            {% spaceless %}
-                            <strong>
-                              <time datetime="{{ item.date|date:'Y-m-d' }}">{{ item.date|date:"M j, Y" }}</time>
-                            </strong>
-                            {% endspaceless %}
-                            <span>S{{ episode.season }} · Episode {{ episode.episode }}</span>
-                          {% else %}
-                            <strong>S{{ episode.season }} · Episode {{ episode.episode }}</strong>
-                          {% endif %}
-                        </span>
-                      </p>
-                      <span class="event-day-dot" aria-hidden="true"></span>
-                      <div class="event-day-cards">
-                        {% include "public/_podcast_episode_card.html" with item=item on_rail=True only %}
-                      </div>
-                    </section>
-                  {% endwith %}
-                {% endfor %}
-              </div>
+              {% include "public/_podcast_episode_timeline.html" with items=topic_episodes only %}
               {% if topic_episodes|length > episodes_fold %}
                 <p class="band-more">
                   <button class="band-link wiki-episodes-more" type="button" data-wiki-episodes-more hidden>

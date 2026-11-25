@@ -1,0 +1,36 @@
+{% comment %}
+  Episodes as the /podcast timeline: the rail carries each episode's date and
+  "S22 · Episode 4", the shared episode card (`_podcast_episode_card.html`)
+  sits beside it.  A wiki page's "Podcast episodes about …" block and an
+  episode page's "Related episodes" both draw it, so the two cannot drift.
+
+  `items` is a sequence of `content.podcast_hub.HubEpisode`.  The rail names
+  the season too, since these lists span seasons; the including page sets
+  `--day-col` wide enough for it.
+{% endcomment %}
+<div class="event-timeline">
+  {% for item in items %}
+    {% with episode=item.episode %}
+      <section class="event-day" aria-label="Season {{ episode.season }}, episode {{ episode.episode }}">
+        <p class="event-day-date">
+          <span>
+            {% if item.date %}
+              {% spaceless %}
+              <strong>
+                <time datetime="{{ item.date|date:'Y-m-d' }}">{{ item.date|date:"M j, Y" }}</time>
+              </strong>
+              {% endspaceless %}
+              <span>S{{ episode.season }} · Episode {{ episode.episode }}</span>
+            {% else %}
+              <strong>S{{ episode.season }} · Episode {{ episode.episode }}</strong>
+            {% endif %}
+          </span>
+        </p>
+        <span class="event-day-dot" aria-hidden="true"></span>
+        <div class="event-day-cards">
+          {% include "public/_podcast_episode_card.html" with item=item on_rail=True only %}
+        </div>
+      </section>
+    {% endwith %}
+  {% endfor %}
+</div>
