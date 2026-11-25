@@ -11,7 +11,6 @@ but its redirect is never followed.
 from __future__ import annotations
 
 import re
-
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
@@ -141,7 +140,9 @@ def test_apply_reaches_provider_buttons_that_start_sign_in(
 
     page.goto(f"{live_server.url}/accounts/login/?next={campaign_path}")
     expect(page.get_by_role("heading", name="Sign In", exact=True)).to_be_visible()
-    expect(page.locator(".auth-panel").get_by_role("button", name="Continue with Google")).to_be_visible()
+    expect(
+        page.locator(".auth-panel").get_by_role("button", name="Continue with Google")
+    ).to_be_visible()
     _shot(page, "login-providers", viewport_name)
 
 

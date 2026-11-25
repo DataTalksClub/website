@@ -164,7 +164,8 @@ class ArchiveRowSlotTests(TestCase):
         self.assertIn("archive-row-undated", body)
         self.assertNotIn("archive-dot", body)
         self.assertIn(
-            '<p class="event-item-time"><time datetime="2025-08-11">Aug 11, 2025 · 12 min read</time></p>',
+            '<p class="event-item-time">'
+            '<time datetime="2025-08-11">Aug 11, 2025 · 12 min read</time></p>',
             body,
         )
         self.assertLess(body.index("event-item-time"), body.index("<h3"))

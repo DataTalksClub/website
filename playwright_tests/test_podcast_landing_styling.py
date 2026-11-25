@@ -50,9 +50,7 @@ def test_podcast_landing_keeps_bordered_cards_and_plain_blue_episode_metadata(
     # The follow line names the listener platforms as plain links with a mark each.
     follow = page.locator(".podcast-follow")
     expect(follow).to_contain_text("Follow the show on")
-    expect(follow.locator("a[data-podcast-platform]").first).to_have_attribute(
-        "target", "_blank"
-    )
+    expect(follow.locator("a[data-podcast-platform]").first).to_have_attribute("target", "_blank")
     expect(follow.locator("svg.podcast-platform-icon").first).to_have_attribute(
         "aria-hidden", "true"
     )

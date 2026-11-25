@@ -197,7 +197,9 @@ def _selector_for(text: str, position: int) -> str:
     opening = text.rfind("{", 0, position)
     if opening == -1:
         return "<no rule>"
-    start = max(text.rfind("}", 0, opening), text.rfind("{", 0, opening), text.rfind(";", 0, opening))
+    start = max(
+        text.rfind("}", 0, opening), text.rfind("{", 0, opening), text.rfind(";", 0, opening)
+    )
     return " ".join(text[start + 1 : opening].split())
 
 

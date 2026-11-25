@@ -475,7 +475,9 @@ class PublicPaginationRouteContractTests(TestCase):
                 self.assertEqual(response.status_code, 400)
                 self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
                 self.assertContains(response, "Bad request", status_code=400)
-                self.assertLess(len(response.content), 300_000)  # inlined design-system CSS is ~190 KB
+                self.assertLess(
+                    len(response.content), 300_000
+                )  # inlined design-system CSS is ~190 KB
                 self.assertNotContains(response, query, status_code=400)
                 self.assertNotContains(response, "synthetic-canary", status_code=400)
                 self.assertNotContains(response, 'rel="canonical"', status_code=400)

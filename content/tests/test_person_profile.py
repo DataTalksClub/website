@@ -383,7 +383,9 @@ class PersonPageTests(TestCase):
             self.assertIn(f'href="{relationship["public_path"]}"', body)
             self.assertIn(escape(relationship["label"]), body)
         for role in {relationship["role"] for relationship in record["relationships"]}:
-            self.assertRegex(body, rf'<p class="archive-meta">{re.escape(escape(role))}(?: · [^<]*)?</p>')
+            self.assertRegex(
+                body, rf'<p class="archive-meta">{re.escape(escape(role))}(?: · [^<]*)?</p>'
+            )
 
         for group in person.groups:
             self.assertIn(f'<h2 id="{group.anchor}-heading">{escape(group.heading)}</h2>', body)

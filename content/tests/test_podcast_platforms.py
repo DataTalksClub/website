@@ -55,7 +55,7 @@ class PodcastPlatformDataTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(
             response,
-            '<span>Follow the show on</span>',
+            "<span>Follow the show on</span>",
         )
         self.assertContains(response, '<p class="podcast-follow">', count=1)
         listener_links = [

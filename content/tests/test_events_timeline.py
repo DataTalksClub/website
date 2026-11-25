@@ -675,7 +675,8 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         index_body = index_response.content.decode("utf-8")
         self.assertRegex(
             re.sub(r"\s+", " ", index_body),
-            rf"<span>\s*{re.escape(tagged['type'].capitalize())} · Академия · Live online\s*</span>",
+            rf"<span>\s*{re.escape(tagged['type'].capitalize())}"
+            r" · Академия · Live online\s*</span>",
         )
         self.assertIn(f'<span class="when-kind">{tagged["type"]} · Академия</span>', detail_body)
 

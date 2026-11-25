@@ -79,7 +79,9 @@ class EventRegisterFormTests(TestCase):
         self.assertIn('name="newsletter_consent"', form)
         self.assertIn('<label class="form-check-label" for="id_reg_newsletter_consent">', form)
         self.assertIn('class="cmp-form-actions"', form)
-        self.assertIn('class="cta cta-primary cta-compact interactive-lift">Register</button>', form)
+        self.assertIn(
+            'class="cta cta-primary cta-compact interactive-lift">Register</button>', form
+        )
         self.assertNotIn('name="company"', form)
         self.assertNotIn('name="sponsor_sharing_consent"', form)
         self.assertNotIn("aria-invalid", form)

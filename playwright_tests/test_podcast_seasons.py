@@ -81,7 +81,9 @@ def _assert_no_horizontal_overflow(page: Page) -> None:
 def _assert_season_targets(page: Page) -> None:
     # The newest seasons are pills; older ones fold into a closed disclosure
     # whose links have no box until it opens, so only drawn targets are measured.
-    targets = page.get_by_role("navigation", name="Podcast seasons", exact=True).locator(".filter-pill")
+    targets = page.get_by_role("navigation", name="Podcast seasons", exact=True).locator(
+        ".filter-pill"
+    )
     sizes = targets.evaluate_all(
         """(nodes) => nodes.map((node) => {
           const rect = node.getBoundingClientRect();
@@ -111,9 +113,7 @@ def test_homepage_latest_episode_and_global_podcast_journey(page: Page, live_ser
 
     primary_navigation_link(page, "Podcast").click()
     expect(page).to_have_url(f"{origin}/podcast")
-    expect(
-        _season_heading(page, _season_numbers()[0])
-    ).to_be_visible()
+    expect(_season_heading(page, _season_numbers()[0])).to_be_visible()
     expect(page.locator("[data-podcast-episode]").first).to_contain_text(latest["title"])
 
 
@@ -213,7 +213,6 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
     )
 
     scenarios = _season_scenarios()
-    selected = [number for number, _path, _newer, _older in scenarios]
     latest_number = _season_numbers()[0]
     inventory = {season.number: season for season in podcast_seasons()}
     for season, path, newer, older in scenarios:
@@ -222,7 +221,9 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
         _settle_analytics_preferences(page)
         expect(page.locator("main h1")).to_have_count(1)
         expect(page.locator("main h2")).to_have_count(1)
-        expect(page.get_by_role("heading", level=1, name=PODCAST_HEADING, exact=True)).to_be_visible()
+        expect(
+            page.get_by_role("heading", level=1, name=PODCAST_HEADING, exact=True)
+        ).to_be_visible()
         expect(_season_heading(page, season)).to_be_visible()
         expect(page.locator("main h3")).to_have_count(len(inventory[season].episodes))
         expect(page.locator("[data-podcast-season]")).to_have_count(1)
@@ -397,10 +398,14 @@ def test_no_javascript_320px_reduced_motion_and_200_percent_reflow(
             response = page.goto(f"{live_server.url}{path}", wait_until="domcontentloaded")
             assert response is not None and response.status == 200
             expect(_season_heading(page, season)).to_be_visible()
-            expect(page.get_by_role("navigation", name="Podcast seasons", exact=True)).to_be_visible()
+            expect(
+                page.get_by_role("navigation", name="Podcast seasons", exact=True)
+            ).to_be_visible()
             _assert_no_horizontal_overflow(page)
             _assert_season_targets(page)
-            page.get_by_role("navigation", name="Podcast seasons", exact=True).scroll_into_view_if_needed()
+            page.get_by_role(
+                "navigation", name="Podcast seasons", exact=True
+            ).scroll_into_view_if_needed()
             _screenshot(
                 page,
                 f"podcast-season-{season}-320-no-js-reduced-motion.png",
@@ -423,12 +428,12 @@ def test_no_javascript_320px_reduced_motion_and_200_percent_reflow(
         assert response is not None and response.status == 200
         _settle_analytics_preferences(zoom_page)
         zoom_page.evaluate("document.documentElement.style.zoom = '2'")
-        expect(
-            _season_heading(zoom_page, zoom_season)
-        ).to_be_visible()
+        expect(_season_heading(zoom_page, zoom_season)).to_be_visible()
         _assert_no_horizontal_overflow(zoom_page)
         _assert_season_targets(zoom_page)
-        zoom_page.get_by_role("navigation", name="Podcast seasons", exact=True).scroll_into_view_if_needed()
+        zoom_page.get_by_role(
+            "navigation", name="Podcast seasons", exact=True
+        ).scroll_into_view_if_needed()
         _screenshot(
             zoom_page,
             f"podcast-season-{zoom_season}-200-percent-zoom.png",

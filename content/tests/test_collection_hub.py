@@ -436,7 +436,6 @@ class CollectionHubPaginationTests(TestCase):
         )
 
     def test_the_blog_index_pages_and_keeps_its_own_words(self) -> None:
-        articles = catalogue.articles()
         second = self.client.get("/blog?page=2")
         body = second.content.decode()
 

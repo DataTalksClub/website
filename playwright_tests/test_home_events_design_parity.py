@@ -235,9 +235,9 @@ def test_home_events_and_detail_match_cmp_composition(
             expect(page.get_by_role("link", name="Past events", exact=True)).to_have_attribute(
                 "href", "/events/past"
             )
-            expect(page.get_by_role("link", name="Google calendar (opens in a new tab) →")).to_have_attribute(
-                "target", "_blank"
-            )
+            expect(
+                page.get_by_role("link", name="Google calendar (opens in a new tab) →")
+            ).to_have_attribute("target", "_blank")
         else:
             # Event detail deliberately has no breadcrumb in the accepted design.
             # Keep its route back to the event collection covered through the
