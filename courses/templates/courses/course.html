@@ -99,7 +99,7 @@
       }
 
       /* One primary header button (registration when open, or materials once
-         enrolled), followed by a secondary horizontal tab strip for cohort
+         enrolled), followed by a wrapping row of compact link pills for cohort
          workspace navigation (materials, leaderboard, dashboard, submissions,
          profile, certificate). */
       .course-actions {
@@ -108,38 +108,43 @@
         gap: var(--space-2);
       }
 
+      /* The cohort workspace links are the site's filter-pill pattern, compact:
+         they wrap onto as many lines as the width needs, so every link stays
+         visible on a phone and the page never scrolls sideways.  The current
+         page is the filled pill, as in every other .filter-pills row. */
       .cohort-tabs {
-        border-bottom: 2px solid var(--line-soft);
         display: flex;
-        flex-wrap: nowrap;
-        gap: var(--space-1);
+        flex-wrap: wrap;
+        gap: var(--space-2);
         margin-top: var(--space-2);
-        overflow-x: auto;
-        scrollbar-width: thin;
       }
 
       .cohort-tab {
         align-items: center;
-        border-bottom: 3px solid transparent;
-        color: var(--muted);
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
         display: inline-flex;
-        font-size: 0.92rem;
+        font-size: 0.88rem;
         font-weight: 700;
-        margin-bottom: -2px;
-        min-height: 2.75rem;
-        padding: 0 var(--space-3);
+        justify-content: center;
+        max-width: 100%;
+        min-height: 2.5rem;
+        padding: var(--space-1) var(--space-3);
+        text-align: center;
         text-decoration: none;
-        white-space: nowrap;
       }
 
       .cohort-tab:hover,
       .cohort-tab:focus-visible {
-        color: var(--ink);
+        border-color: var(--ink);
       }
 
       .cohort-tab[aria-current="page"] {
-        border-bottom-color: var(--green-ship);
-        color: var(--ink);
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--cream);
       }
 
       .course-fineprint {
