@@ -163,8 +163,16 @@
           </p>
           <div class="events-controls">
             <nav class="filter-pills" aria-label="Event views">
-              <a class="filter-pill interactive-lift" href="{{ upcoming_path }}"{% if not is_past_events %} aria-current="page"{% endif %}>Upcoming events</a>
-              <a class="filter-pill interactive-lift" href="{{ past_path }}"{% if is_past_events %} aria-current="page"{% endif %}>Past events</a>
+              {% if not is_past_events %}
+                <a class="filter-pill interactive-lift" href="{{ upcoming_path }}" aria-current="page">Upcoming events</a>
+              {% else %}
+                <a class="filter-pill interactive-lift" href="{{ upcoming_path }}">Upcoming events</a>
+              {% endif %}
+              {% if is_past_events %}
+                <a class="filter-pill interactive-lift" href="{{ past_path }}" aria-current="page">Past events</a>
+              {% else %}
+                <a class="filter-pill interactive-lift" href="{{ past_path }}">Past events</a>
+              {% endif %}
             </nav>
             <a
               class="band-link events-calendar"
@@ -195,7 +203,13 @@
                       <span>{{ group.short_date }} · {{ group.weekday }}</span>
                     {% else %}
                       <strong>{{ group.short_date }}</strong>
-                      <span>{{ group.weekday }}{% if group.year %}, {{ group.year }}{% endif %}</span>
+                      <span>
+                        {% if group.year %}
+                          {{ group.weekday }}, {{ group.year }}
+                        {% else %}
+                          {{ group.weekday }}
+                        {% endif %}
+                      </span>
                     {% endif %}
                   </time>
                 </h3>
@@ -205,7 +219,11 @@
                     <article class="event-item interactive-card interactive-lift">
                       <div class="event-item-body">
                         <p class="event-item-time">{{ event.display_clock }}</p>
-                        <h4><a href="{{ event.public_path }}">{{ event.title }}</a></h4>
+                        {% spaceless %}
+                        <h4>
+                          <a href="{{ event.public_path }}">{{ event.title }}</a>
+                        </h4>
+                        {% endspaceless %}
                         {% if event.speakers %}
                           <p class="person-chips event-item-speakers">
                             {% for speaker in event.speakers %}
@@ -221,28 +239,72 @@
                         {% endcomment %}
                         <ul class="event-item-meta">
                           <li>
-                            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 5.3v5.4L11 8z" fill="currentColor"/></svg>
-                            <span>{% if event.kind_label %}{{ event.kind_label|capfirst }}{% else %}Event{% endif %}{% if is_past_events %}{% if event.has_youtube_link %} · Recording on YouTube{% endif %}{% else %} · Live online{% endif %}</span>
+                            {% spaceless %}
+                            <svg viewBox="0 0 16 16" aria-hidden="true">
+                              <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                              <path d="M6.5 5.3v5.4L11 8z" fill="currentColor"/>
+                            </svg>
+                            {% endspaceless %}
+                            <span>
+                              {% if event.kind_label %}
+                                {{ event.kind_label|capfirst }}
+                              {% else %}
+                                Event
+                              {% endif %}
+                              {% if is_past_events %}
+                                {% if event.has_youtube_link %}
+                                  · Recording on YouTube
+                                {% endif %}
+                              {% else %}
+                                · Live online
+                              {% endif %}
+                            </span>
                           </li>
                           {% if event.registration_count %}
                             <li>
-                              <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="6" cy="5.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1.8 13.2c.4-2.3 2.1-3.6 4.2-3.6s3.8 1.3 4.2 3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10.6 3.4a2.3 2.3 0 0 1 0 4.4M12.2 9.9c1 .5 1.7 1.6 2 3.1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                              {% spaceless %}
+                              <svg viewBox="0 0 16 16" aria-hidden="true">
+                                <circle cx="6" cy="5.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M1.8 13.2c.4-2.3 2.1-3.6 4.2-3.6s3.8 1.3 4.2 3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                <path d="M10.6 3.4a2.3 2.3 0 0 1 0 4.4M12.2 9.9c1 .5 1.7 1.6 2 3.1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                              </svg>
+                              {% endspaceless %}
                               <span>{{ event.registration_count }} registered</span>
                             </li>
                           {% endif %}
                           {% if event.sponsors %}
                             <li class="event-item-sponsors">
-                              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13.6S2 10.2 2 6.1A3 3 0 0 1 8 4.6a3 3 0 0 1 6 1.5c0 4.1-6 7.5-6 7.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                              {% spaceless %}
+                              <svg viewBox="0 0 16 16" aria-hidden="true">
+                                <path d="M8 13.6S2 10.2 2 6.1A3 3 0 0 1 8 4.6a3 3 0 0 1 6 1.5c0 4.1-6 7.5-6 7.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                              </svg>
+                              {% endspaceless %}
                               <span>Sponsored by</span>
                               {% for sponsor in event.sponsors %}
-                                {% if sponsor.logo_url %}<img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}" loading="lazy" decoding="async">{% else %}<span>{{ sponsor.name }}</span>{% endif %}
+                                {% if sponsor.logo_url %}
+                                  <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}" loading="lazy" decoding="async">
+                                {% else %}
+                                  <span>{{ sponsor.name }}</span>
+                                {% endif %}
                               {% endfor %}
                             </li>
                           {% endif %}
                         </ul>
                       </div>
                       {% if event.banner_url %}
-                        <img class="event-item-thumb" src="{{ event.banner_url }}" alt="" width="120" height="120" loading="{% if forloop.parentloop.first %}eager{% else %}lazy{% endif %}" decoding="async">
+                        <img
+                          class="event-item-thumb"
+                          src="{{ event.banner_url }}"
+                          alt=""
+                          width="120"
+                          height="120"
+                          {% if forloop.parentloop.first %}
+                            loading="eager"
+                          {% else %}
+                            loading="lazy"
+                          {% endif %}
+                          decoding="async"
+                        >
                       {% endif %}
                     </article>
                   {% endfor %}

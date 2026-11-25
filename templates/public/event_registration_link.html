@@ -7,7 +7,7 @@
 {% endcomment %}
 
 {% block document_title %}
-  <title>Confirmation link {% if expired %}expired{% else %}not valid{% endif %} — DataTalks.Club</title>
+  <title>Confirmation link {{ expired|yesno:"expired,not valid" }} — DataTalks.Club</title>
 {% endblock %}
 
 {% block document_meta %}
@@ -15,7 +15,7 @@
 {% endblock %}
 
 {% block title %}
-  {% if expired %}This confirmation link has expired{% else %}This confirmation link is not valid{% endif %}
+  {{ expired|yesno:"This confirmation link has expired,This confirmation link is not valid" }}
 {% endblock %}
 
 {% block lede %}

@@ -658,7 +658,16 @@
     <main id="main-content" tabindex="-1">
       <section class="band band-lavender event-page" aria-labelledby="event-heading">
         <div class="shell">
-          <article class="event-layout{% if not event.banner_url %}{% if event.speakers %} event-layout-no-media{% else %} event-layout-single{% endif %}{% endif %}">
+          <article
+            class="event-layout
+              {% if not event.banner_url %}
+                {% if event.speakers %}
+                  event-layout-no-media
+                {% else %}
+                  event-layout-single
+                {% endif %}
+              {% endif %}"
+          >
             {% if event.banner_url %}
               <figure class="event-media" data-testid="event-banner">
                 <img
@@ -702,7 +711,10 @@
                       <strong>{{ event.display_date_long }}</strong>
                       <span class="event-fact-sub">
                         {% if event.kind_label %}
-                          <span class="when-kind">{{ event.kind_label }}</span><span class="when-sep" aria-hidden="true">·</span>
+                          {% spaceless %}
+                          <span class="when-kind">{{ event.kind_label }}</span>
+                          <span class="when-sep" aria-hidden="true">·</span>
+                          {% endspaceless %}
                         {% endif %}
                         <span class="when-time-range">{{ event.display_clock_range }}</span>
                       </span>
@@ -780,7 +792,17 @@
               {% endcomment %}
               {% with registered=request.GET.registered %}
               {% if event_state == "upcoming" or registered == "closed" %}
-                <section class="event-register{% if not request.user.is_authenticated and registered == 'invalid_email' or not request.user.is_authenticated and registered == 'newsletter_required' %} is-email{% endif %}{% if email_registration.quick_account == 'exists' %} is-login{% endif %}" data-signed-in="{{ request.user.is_authenticated|yesno:'true,false' }}" aria-labelledby="event-register-heading">
+                <section
+                  class="event-register
+                    {% if not request.user.is_authenticated and registered == 'invalid_email' or not request.user.is_authenticated and registered == 'newsletter_required' %}
+                      is-email
+                    {% endif %}
+                    {% if email_registration.quick_account == 'exists' %}
+                      is-login
+                    {% endif %}"
+                  data-signed-in="{{ request.user.is_authenticated|yesno:'true,false' }}"
+                  aria-labelledby="event-register-heading"
+                >
                   <div class="event-register-head">
                     <h2 id="event-register-heading">Registration</h2>
                   </div>
@@ -799,7 +821,10 @@
                         </p>
                       </div>
                       {% if account_ready %}
-                        <p class="event-register-account-ready" tabindex="-1">Your account is ready — you're signed in as <strong>{{ request.user.email }}</strong>.</p>
+                        <p class="event-register-account-ready" tabindex="-1">
+                          Your account is ready — you're signed in as
+                          <strong>{{ request.user.email }}</strong>.
+                        </p>
                       {% endif %}
                       {% if not request.user.is_authenticated %}
                         {% comment %}
@@ -812,16 +837,31 @@
                         {% if email_registration.quick_account == "offer" %}
                           <form method="post" action="{{ event.public_path }}/register/account" class="cmp-form event-register-quick-account">
                             {% csrf_token %}
-                            <p class="event-register-quick-title"><strong>Want one-click registration next time?</strong></p>
+                            {% spaceless %}
+                            <p class="event-register-quick-title">
+                              <strong>Want one-click registration next time?</strong>
+                            </p>
+                            {% endspaceless %}
                             <button type="submit" class="cta cta-primary cta-compact event-register-submit interactive-lift">Create my free account</button>
-                            <p class="event-register-quick-as">as <strong>{{ email_registration.email }}</strong></p>
+                            <p class="event-register-quick-as">
+                              as
+                              <strong>{{ email_registration.email }}</strong>
+                            </p>
                             <p class="a11y-error event-register-quick-error" role="alert" hidden></p>
-                            <p class="event-register-offer">By creating an account, you agree to the <a href="{% url 'terms' %}">Terms of Service</a> and acknowledge the <a href="{% url 'privacy' %}">Privacy Policy</a>.</p>
+                            <p class="event-register-offer">
+                              By creating an account, you agree to the
+                              <a href="{% url 'terms' %}">Terms of Service</a>
+                              and acknowledge the
+                              <a href="{% url 'privacy' %}">Privacy Policy</a>.
+                            </p>
                           </form>
                         {% elif email_registration.quick_account == "exists" %}
                           {% include "public/_event_register_login.html" with title="You already have an account — log in" %}
                         {% else %}
-                          <p class="event-register-offer">Want one-click registration next time? <a href="{{ account_entry.create_url }}">Create a free DataTalks.Club account</a></p>
+                          <p class="event-register-offer">
+                            Want one-click registration next time?
+                            <a href="{{ account_entry.create_url }}">Create a free DataTalks.Club account</a>
+                          </p>
                         {% endif %}
                       {% endif %}
                     {% elif event_state == "upcoming" and email_registration.pending %}
@@ -837,14 +877,29 @@
                         tabindex="-1"
                         data-focus-error-summary
                       >
-                        <p class="event-register-pending-title"><strong>One last step — we sent you an email.</strong></p>
+                        {% spaceless %}
+                        <p class="event-register-pending-title">
+                          <strong>One last step — we sent you an email.</strong>
+                        </p>
+                        {% endspaceless %}
                         <p>Please confirm it to finish your registration.</p>
-                        <p class="event-register-pending-to">We sent it to <strong>{{ email_registration.email }}</strong></p>
+                        <p class="event-register-pending-to">
+                          We sent it to
+                          <strong>{{ email_registration.email }}</strong>
+                        </p>
                         <p class="event-register-pending-hint">Can't find it? Check your spam folder.</p>
                         {% if registered == "resent" %}
-                          <p class="event-register-pending-hint"><strong>We sent it again.</strong></p>
+                          {% spaceless %}
+                          <p class="event-register-pending-hint">
+                            <strong>We sent it again.</strong>
+                          </p>
+                          {% endspaceless %}
                         {% elif registered == "resend_limit" %}
-                          <p class="event-register-pending-hint"><strong>We can't send more emails for this registration. Check your spam folder, or register again later.</strong></p>
+                          {% spaceless %}
+                          <p class="event-register-pending-hint">
+                            <strong>We can't send more emails for this registration. Check your spam folder, or register again later.</strong>
+                          </p>
+                          {% endspaceless %}
                         {% endif %}
                         {% if registered != "resend_limit" %}
                           <form method="post" action="{{ event.public_path }}/register/resend" class="event-register-resend">
@@ -853,7 +908,10 @@
                           </form>
                         {% endif %}
                       </div>
-                      <p class="event-register-offer">Want one-click registration next time? <a href="{{ account_entry.create_url }}">Create a free DataTalks.Club account</a></p>
+                      <p class="event-register-offer">
+                        Want one-click registration next time?
+                        <a href="{{ account_entry.create_url }}">Create a free DataTalks.Club account</a>
+                      </p>
                     {% elif registered == "closed" %}
                       <div
                         class="callout callout-attention event-register-notice"
@@ -953,7 +1011,11 @@
                             type="button"
                             class="cta cta-secondary cta-compact event-register-submit event-register-email-toggle interactive-lift"
                             aria-controls="event-register-email-form"
-                            aria-expanded="{% if registered == 'invalid_email' %}true{% else %}false{% endif %}"
+                            {% if registered == 'invalid_email' %}
+                              aria-expanded="true"
+                            {% else %}
+                              aria-expanded="false"
+                            {% endif %}
                           >Register with email</button>
                         </div>
                         {% include "public/_event_register_login.html" with title="Log in to register" %}
@@ -1286,7 +1348,13 @@
             </div>
 
             {% if event.speakers %}
-              <aside class="event-hosts{% if speaker_bios %} event-hosts-with-bios{% endif %}" aria-labelledby="event-hosts-heading">
+              <aside
+                class="event-hosts
+                  {% if speaker_bios %}
+                    event-hosts-with-bios
+                  {% endif %}"
+                aria-labelledby="event-hosts-heading"
+              >
                 <h2 id="event-hosts-heading" class="event-side-heading">Speakers</h2>
                 <ul class="event-host-list">
                   {% for speaker in event.speakers %}
