@@ -13,7 +13,8 @@ holds; nothing is typed in by hand:
 * **topics** — the wiki pages the knowledge graph files the episode under,
   strongest first (:func:`content.wiki_content.episode_topics`).
 * **picture** — the matched event's banner (the one /events shows), else the
-  first guest's portrait.
+  episode's generated card picture (``content.podcast_pictures``).  A guest's raw
+  portrait is never the card's picture.
 """
 
 from __future__ import annotations
@@ -35,6 +36,7 @@ from .podcast_content import (
     episode_view,
     ordered_podcasts,
 )
+from .podcast_pictures import Variant, picture_path, slugs_with
 from .wiki_content import SharedConcept
 
 #: The order the hub names listening destinations in.
@@ -95,6 +97,8 @@ def _transcript_minutes(record: dict[str, Any]) -> int | None:
 class _EventIndex:
     by_number: dict[tuple[int, int], dict[str, Any]]
     by_title: dict[str, dict[str, Any]]
+    #: Episodes with a stored generated card picture.
+    card_slugs: frozenset[str] = frozenset()
 
     def match(self, record: dict[str, Any]) -> dict[str, Any] | None:
         return self.by_number.get((record["season"], record["episode"])) or self.by_title.get(
@@ -120,7 +124,7 @@ def _event_index() -> _EventIndex:
     # Two podcast events with one title cannot say which recorded the episode.
     for title in ambiguous:
         del by_title[title]
-    return _EventIndex(by_number=by_number, by_title=by_title)
+    return _EventIndex(by_number=by_number, by_title=by_title, card_slugs=slugs_with(Variant.CARD))
 
 
 @dataclass(frozen=True, slots=True)
@@ -138,7 +142,6 @@ class HubEpisode:
     listen_links: tuple[PlatformLink, ...]
     topics: tuple[SharedConcept, ...]
     picture_url: str
-    picture_is_portrait: bool
 
     @property
     def short_date(self) -> str:
@@ -175,7 +178,7 @@ def _hub_episode(record: dict[str, Any], episode: Episode, events: _EventIndex) 
         when = None
     by_provider = {link.provider: link for link in episode.platform_links}
     banner = event_banner_url(event) if event is not None else ""
-    portrait = next((guest.image_path for guest in episode.guests if guest.media_available), "")
+    card = picture_path(record["slug"], Variant.CARD) if record["slug"] in events.card_slugs else ""
     return HubEpisode(
         episode=episode,
         date=when,
@@ -185,8 +188,7 @@ def _hub_episode(record: dict[str, Any], episode: Episode, events: _EventIndex) 
         ),
         listen_links=tuple(by_provider[key] for key in HUB_LISTEN_ORDER if key in by_provider),
         topics=wiki_content.episode_topics(record["slug"], limit=CARD_TOPICS),
-        picture_url=banner or portrait,
-        picture_is_portrait=not banner and bool(portrait),
+        picture_url=banner or card,
     )
 
 

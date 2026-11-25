@@ -913,3 +913,42 @@ class EventMergedIdentity(models.Model):
 
     def __str__(self) -> str:
         return f"merged-event:{self.public_id}->{self.event_id}"
+
+
+class PodcastEpisodePicture(models.Model):
+    """One generated picture of a podcast episode, stored as bytes like an event banner.
+
+    Episodes are synced catalogue documents keyed by their source slug and carry no
+    picture of their own.  These rows hold the pictures drawn for them with the
+    banner generator's ``dtc-event-speaker`` template, pushed in by
+    ``scripts/prod/import_podcast_episode_pictures.py``:
+
+    * ``card`` (1000 x 1000): the episode card, for an episode whose recording has
+      no event banner (the event banner is the card's picture when it has one);
+    * ``poster`` (1280 x 720): the video poster on the episode page (a YouTube
+      thumbnail);
+    * ``social`` (1200 x 630): the episode page's ``og:image``.
+    """
+
+    class Variant(models.TextChoices):
+        CARD = "card", "Card (1000 x 1000)"
+        POSTER = "poster", "Video poster (1280 x 720)"
+        SOCIAL = "social", "Social preview (1200 x 630)"
+
+    episode_slug = models.CharField(max_length=255)
+    variant = models.CharField(max_length=16, choices=Variant.choices)
+    image = models.BinaryField()
+    content_type = models.CharField(max_length=64, default="image/png")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("episode_slug", "variant")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("episode_slug", "variant"),
+                name="content_podcast_episode_picture_unique",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.episode_slug}:{self.variant}"

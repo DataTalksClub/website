@@ -686,6 +686,23 @@ def event_banner(request: HttpRequest, event_id: str) -> HttpResponse:
     return response
 
 
+@_public_event_route
+def podcast_episode_picture(request: HttpRequest, slug: str, route: str) -> HttpResponse:
+    """Serve one generated episode picture (``content.podcast_pictures``)."""
+
+    from .models import PodcastEpisodePicture
+    from .podcast_pictures import VARIANT_BY_ROUTE
+
+    picture = PodcastEpisodePicture.objects.filter(
+        episode_slug=slug, variant=VARIANT_BY_ROUTE[route]
+    ).first()
+    if picture is None or not picture.image:
+        raise Http404
+    response = HttpResponse(bytes(picture.image), content_type=picture.content_type or "image/png")
+    response["Cache-Control"] = "public, max-age=300"
+    return response
+
+
 def event_register(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
     from community_base.events.models import EventRegistration
     from django.core.exceptions import ValidationError
@@ -1429,7 +1446,16 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
 
 
 def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
-    image_path = (
+    from .podcast_pictures import Variant, stored_path
+
+    # The generated 1200 x 630 social picture is the page's preview image; the
+    # episode's own artwork is only the fallback for an episode without one.
+    image_path = stored_path(episode["slug"], Variant.SOCIAL) or (
+        episode["image_path"]
+        if episode.get("media_available") and episode.get("image_path")
+        else ""
+    )
+    poster_path = stored_path(episode["slug"], Variant.POSTER) or (
         episode["image_path"]
         if episode.get("media_available") and episode.get("image_path")
         else ""
@@ -1488,6 +1514,7 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
                 resource_podcast_records=catalogue.podcasts(),
             ),
             "related": related,
+            "video_poster_path": poster_path,
             "season_path": podcast_season_path(episode["season"], latest=latest_season),
             "episode_graph": episode_graph,
             "og_type": "article",

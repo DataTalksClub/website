@@ -36,6 +36,13 @@ urlpatterns = [
         public_views.podcast_hub,
         name="podcast-season",
     ),
+    # Generated episode pictures (``content.podcast_pictures``), keyed by the
+    # episode's source slug; they precede the stable-id routes and the catch-all.
+    re_path(
+        r"^podcast/(?P<slug>[-a-zA-Z0-9_]+)/(?P<route>picture|poster|social)$",
+        public_views.podcast_episode_picture,
+        name="public-podcast-episode-picture",
+    ),
     re_path(
         r"^podcast/(?P<episode_id>s[0-9]+e[0-9]+)/(?P<slug>[-a-zA-Z0-9_]+)$",
         public_views.podcast_detail_by_id,

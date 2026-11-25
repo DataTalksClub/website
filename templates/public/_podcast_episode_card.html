@@ -84,11 +84,7 @@
       {% endif %}
     </div>
     {% if item.picture_url %}
-      {% if item.picture_is_portrait %}
-        <img class="event-item-thumb is-portrait" src="{{ item.picture_url }}" alt="" width="120" height="120" loading="{{ thumb_loading|default:'lazy' }}" decoding="async">
-      {% else %}
-        <img class="event-item-thumb" src="{{ item.picture_url }}" alt="" width="120" height="120" loading="{{ thumb_loading|default:'lazy' }}" decoding="async">
-      {% endif %}
+      <img class="event-item-thumb" src="{{ item.picture_url }}" alt="" width="120" height="120" loading="{{ thumb_loading|default:'lazy' }}" decoding="async">
     {% endif %}
   </article>
 {% endwith %}

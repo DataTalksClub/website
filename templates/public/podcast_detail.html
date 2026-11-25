@@ -655,10 +655,10 @@
                 href="{{ episode.video.watch_url }}"
                 data-video-facade
               >
-                {% if episode.media_available %}
+                {% if video_poster_path %}
                   <img
                     class="episode-video-poster"
-                    src="{{ episode.image_path }}"
+                    src="{{ video_poster_path }}"
                     alt=""
                     decoding="async"
                     fetchpriority="high"

@@ -286,14 +286,19 @@ class PodcastPageCompositionTests(TestCase):
         self.assertEqual(unplayable.watch_url, "")
         self.assertTrue(unplayable.media_available)
 
-        artwork = render_to_string("public/_episode_artwork.html", {"episode": unplayable})
+        # The view resolves the frame's image (generated poster, else the artwork).
+        artwork = render_to_string(
+            "public/_episode_artwork.html",
+            {"episode": unplayable, "video_poster_path": unplayable.image_path},
+        )
         self.assertIn(f'alt="Artwork for {conditional_escape(unplayable.title)}"', artwork)
         self.assertIn(f'src="{unplayable.image_path}"', artwork)
 
         record["media_available"] = False
         record["image_path"] = ""
         missing = render_to_string(
-            "public/_episode_artwork.html", {"episode": episode_view(record)}
+            "public/_episode_artwork.html",
+            {"episode": episode_view(record), "video_poster_path": ""},
         )
         self.assertIn("Artwork unavailable.", missing)
         self.assertNotIn("<img", missing)

@@ -1,12 +1,13 @@
 {% comment %}
-  What fills the episode page's player frame: the episode's own artwork, or a visible
-  note when the catalogue has no image for it.  Both the linked and the unlinked frame
+  What fills the episode page's player frame: the episode's generated video poster
+  (else its own artwork, both resolved by the view as ``video_poster_path``), or a
+  visible note when there is no image for it.  Both the linked and the unlinked frame
   include this, so artwork never depends on there being a recording to open.
 {% endcomment %}
-{% if episode.media_available %}
+{% if video_poster_path %}
   <img
     class="player-art"
-    src="{{ episode.image_path }}"
+    src="{{ video_poster_path }}"
     alt="Artwork for {{ episode.title }}"
     decoding="async"
   >

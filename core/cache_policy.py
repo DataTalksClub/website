@@ -136,6 +136,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "content.public_views.event_detail_without_slug": PUBLIC_HUB_FEED,
     "content.public_views.events": PUBLIC_HUB_FEED,
     "content.public_views.events_past": PUBLIC_HUB_FEED,
+    "content.public_views.podcast_episode_picture": PUBLIC_HUB_FEED,
     "content.public_views.podcast_hub": PUBLIC_HUB_FEED,
     "content.public_views.section_sitemap": PUBLIC_HUB_FEED,
     "content.public_views.wiki_feed": PUBLIC_HUB_FEED,
