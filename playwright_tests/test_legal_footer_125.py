@@ -76,10 +76,14 @@ SOCIAL_LINKS = (
 
 
 def _assert_footer_layout(page: Page) -> None:
-    """The social icons belong to the identity block; the base row holds legal + version."""
-    identity = page.locator(".site-footer-identity")
-    expect(identity.locator(".site-footer-name")).to_have_text("DataTalks.Club")
-    social = identity.get_by_role("navigation", name="DataTalks.Club elsewhere")
+    """The compact footer: brand identity beside the Sponsor-us link and social icons on
+    one row; the base row holds legal + version."""
+    main = page.locator(".site-footer-main")
+    expect(main.locator(".site-footer-identity .site-footer-name")).to_have_text("DataTalks.Club")
+    expect(
+        main.get_by_role("navigation", name="Footer").get_by_role("link", name="Sponsor us")
+    ).to_have_attribute("href", "/blog/sponsor-datatalks-club.html")
+    social = main.get_by_role("navigation", name="DataTalks.Club elsewhere")
     for network, href in SOCIAL_LINKS:
         link = social.get_by_role("link", name=f"DataTalks.Club on {network} (opens in a new tab)")
         expect(link).to_be_visible()
@@ -99,7 +103,7 @@ def _assert_footer_layout(page: Page) -> None:
     assert page.evaluate(
         """
         () => [...document.querySelectorAll(
-          '.site-footer-identity a, .site-footer-base a, .site-footer-base button'
+          '.site-footer-main a, .site-footer-base a, .site-footer-base button'
         )].every((element) => {
           const rect = element.getBoundingClientRect();
           return rect.left >= -1 && rect.right <= window.innerWidth + 1;

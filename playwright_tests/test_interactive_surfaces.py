@@ -137,9 +137,9 @@ def test_podcast_cards_and_controls_share_hover_and_keyboard_affordances(
     response = page.goto(f"{live_server.url}/podcast", wait_until="networkidle")
     assert response is not None and response.status == 200
 
-    card = page.locator("[data-podcast-episode] .archive-card").first
-    title = card.locator(".archive-title a")
-    platform = page.locator(".podcast-platforms .pill-button").first
+    card = page.locator("[data-podcast-episode]").first
+    title = card.locator("h3 a")
+    platform = page.locator(".podcast-seasons-top .filter-pill").first
     assert "interactive-card" in (card.get_attribute("class") or "")
     assert "interactive-lift" in (card.get_attribute("class") or "")
 
@@ -185,8 +185,8 @@ def test_event_card_uses_the_same_bottom_right_cue(
     response = page.goto(f"{live_server.url}/events", wait_until="networkidle")
     assert response is not None and response.status == 200
 
-    card = page.locator(".event-card").first
-    title = card.locator("h3 a")
+    card = page.locator(".event-item").first
+    title = card.locator("h4 a")
     card.hover()
     page.wait_for_timeout(180)
 
@@ -223,15 +223,9 @@ def test_homepage_cards_keep_the_viewport_aligned_and_use_the_static_cue(
         # Member stories stay a horizontal carousel with room for the lift.
         _assert_strip_has_room_for_the_lift(_strip(page, ".stories-scroller"), expected_axis)
 
-        grid_box = page.locator(".catalog-grid").bounding_box()
-        cards = page.locator(".course-card")
-        if width >= 992:
-            first_three = [cards.nth(index).bounding_box() for index in range(3)]
-            assert len({round(box["y"], 1) for box in first_three}) == 1
-            assert len({round(box["width"], 1) for box in first_three}) == 1
-            assert round(first_three[-1]["x"] + first_three[-1]["width"]) == round(
-                grid_box["x"] + grid_box["width"]
-            )
+        # The course catalogue is a horizontal carousel too (no grid): same room for
+        # the lift, same vertical axis as the featured panel.
+        _assert_strip_has_room_for_the_lift(_strip(page, ".catalog-scroller"), expected_axis)
 
         expected_lift = f"-{LIFT_PX}px -{LIFT_PX}px"
         card.hover()
@@ -257,8 +251,8 @@ def test_touch_and_reduced_motion_keep_layout_still_but_keyboard_cue_available(
     )
     reduced_page = reduced_context.new_page()
     reduced_page.goto(f"{live_server.url}/podcast", wait_until="networkidle")
-    card = reduced_page.locator("[data-podcast-episode] .archive-card").first
-    title = card.locator(".archive-title a")
+    card = reduced_page.locator("[data-podcast-episode]").first
+    title = card.locator("h3 a")
 
     card.hover()
     assert _state(card)["translate"] == "none"
@@ -277,7 +271,7 @@ def test_touch_and_reduced_motion_keep_layout_still_but_keyboard_cue_available(
     touch_page = touch_context.new_page()
     touch_page.goto(f"{live_server.url}/podcast", wait_until="networkidle")
     assert touch_page.evaluate("matchMedia('(hover: hover) and (pointer: fine)').matches") is False
-    touch_card = touch_page.locator("[data-podcast-episode] .archive-card").first
+    touch_card = touch_page.locator("[data-podcast-episode]").first
     assert _state(touch_card)["translate"] == "none"
     assert _state(touch_card)["cueOpacity"] == "0"
     touch_context.close()

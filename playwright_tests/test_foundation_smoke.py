@@ -24,9 +24,9 @@ FEATURED_SPEAKER_NAME = "Synthetic O'Speaker"
 FEATURED_SPEAKER_TITLE = "Synthetic Rich Profile"
 HOME_HEADING = "Learn the fundamentals. Build real projects. Share your work."
 CLIMB_HEADING = "From following tutorials to building your own projects."
-PODCAST_HEADING = "Conversations with people who ship data"
+PODCAST_HEADING = "Podcast"
 # "Events" is the navigation label and the page title; the index leads with this headline.
-EVENTS_HEADING = "Something happening every week"
+EVENTS_HEADING = "Events"
 
 
 def _flat_alias_episode() -> dict:
@@ -161,9 +161,9 @@ def test_docs_and_faq_root_trailing_slash_browser_contract(
     query = "utm_source=oncall%2Btest&x=a%2Fb&blank="
 
     for final_path, alias_path, heading, self_links in (
-        # The hub's own path appears twice when the primary navigation still links
-        # there (masthead and footer); FAQ deliberately left the primary navigation.
-        ("/docs/", "/docs", "DataTalks.Club Zoomcamps Notes and Resources", 2),
+        # The hub's own path appears once: the masthead link (the compact footer no
+        # longer repeats the sections); FAQ deliberately left the primary navigation.
+        ("/docs/", "/docs", "DataTalks.Club Zoomcamps Notes and Resources", 1),
         ("/faq/", "/faq", "Frequently Asked Questions", 0),
     ):
         alias = page.request.get(f"{origin}{alias_path}?{query}", max_redirects=0)
@@ -231,7 +231,7 @@ def test_internal_event_to_person_flow(
         "href",
         f"https://datatalks.club{featured_event_path}",
     )
-    expect(page.locator('section[aria-label="Event description"]')).to_have_count(1)
+    expect(page.locator("section.event-read")).to_have_count(1)
     # The description belongs to the event row, so read it from there instead of
     # restating the sentence one corpus happened to publish.
     expect(page.get_by_text(_featured_event()["description_text"], exact=False)).to_be_visible()
@@ -241,7 +241,7 @@ def test_internal_event_to_person_flow(
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     _event_description_shot(page, f"described-no-external-links-{suffix}.png")
 
-    page.get_by_role("link", name=FEATURED_SPEAKER_NAME, exact=True).click()
+    page.get_by_role("link", name=FEATURED_SPEAKER_NAME, exact=True).first.click()
     expect(page).to_have_url(f"{origin}{FEATURED_SPEAKER_PATH}")
     expect(page.get_by_role("heading", name=FEATURED_SPEAKER_TITLE, exact=True)).to_be_visible()
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
@@ -284,15 +284,12 @@ def test_podcast_latest_middle_and_oldest_seasons(
         assert response is not None and response.status == 200
         expect(page.get_by_role("heading", name=PODCAST_HEADING, exact=True)).to_be_visible()
         expect(page.locator("main h2")).to_have_count(1)
-        expect(page.get_by_role("heading", name=f"Season {season}", exact=True)).to_be_visible()
+        expect(page.get_by_role("heading", name=re.compile(rf"^Season {season}\b"))).to_be_visible()
         current_season = page.get_by_role("navigation", name="Podcast seasons").locator(
             '[aria-current="page"]'
         )
-        expect(current_season).to_have_text(f"Season {season}")
-        expect(current_season).to_have_attribute(
-            "aria-label",
-            f"Season {season}, current season",
-        )
+        expect(current_season).to_have_text(str(season))
+        expect(current_season).to_have_attribute("aria-label", f"Season {season}")
         expect(page.locator('link[rel="canonical"]')).to_have_attribute(
             "href",
             f"https://datatalks.club{path}",
@@ -550,4 +547,4 @@ def test_anonymous_staff_member_reaches_safe_sign_in_flow(page: Page, live_serve
     response = page.goto(f"{live_server.url}/studio/")
     assert response is not None and response.status == 200
     expect(page).to_have_url(f"{live_server.url}/accounts/login/?next=%2Fstudio%2F")
-    expect(page.get_by_role("heading", name="Sign In")).to_be_visible()
+    expect(page.get_by_role("heading", name="Sign In", exact=True)).to_be_visible()

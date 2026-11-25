@@ -1124,7 +1124,15 @@ def _expected_denial_message(message: str, denied_urls: set[str]) -> bool:
     return bool(denied_urls)
 
 
+# The reviewed reference articles name a social-card thumbnail whose bytes the browser
+# database never records (no media object is loaded), and the homepage's "Latest article"
+# row draws that thumbnail.  The 404 is the unrecorded-media contract, not a page fault.
+_REFERENCE_ARTICLE_THUMBNAIL = re.compile(r"^/images/posts/[a-z0-9-]+/og-image\.jpg$")
+
+
 def _expected_local_response(node_name: str, status: int, path: str) -> bool:
+    if status == 404 and _REFERENCE_ARTICLE_THUMBNAIL.fullmatch(path):
+        return True
     test_name = node_name.partition("[")[0]
     return any(
         expected_status == status and pattern.fullmatch(path)

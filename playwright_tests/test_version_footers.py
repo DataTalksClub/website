@@ -69,7 +69,7 @@ def test_all_three_shells_show_only_the_readable_version(
             re.compile(r"^https://github\.com/DataTalksClub/website(/commit/[0-9a-f]+)?$"),
         )
         expect(
-            page.locator(".site-footer-identity").get_by_role(
+            page.locator(".site-footer-main").get_by_role(
                 "link", name="DataTalks.Club on GitHub (opens in a new tab)"
             )
         ).to_have_attribute("href", "https://github.com/DataTalksClub")
@@ -81,7 +81,7 @@ def test_all_three_shells_show_only_the_readable_version(
         assert page.evaluate(
             """
             () => [...document.querySelectorAll(
-              '.site-footer-identity a, .site-footer-base a, .site-footer-base button'
+              '.site-footer-main a, .site-footer-base a, .site-footer-base button'
             )].every((element) => {
               const rect = element.getBoundingClientRect();
               return rect.left >= -1 && rect.right <= window.innerWidth + 1;
