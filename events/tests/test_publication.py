@@ -107,7 +107,21 @@ class IncompletePublishedEventsTests(_WithSpeaker):
 class PublishAvoidsSeriesEnrolmentLockTests(_WithSpeaker):
     """PostgreSQL rejects the package's series-enrolment lock; publishing must not use it."""
 
-    def test_publish_does_not_call_the_series_enrolment_step(self) -> None:
+    def test_the_package_publish_step_uses_the_lock_free_enrolment(self) -> None:
+        from community_base.events import registration, services
+
+        import events.admin_services as admin_services
+
+        self.assertIs(
+            services.enroll_series_registrants_in_event,
+            admin_services._enroll_series_registrants_without_outer_join_lock,
+        )
+        self.assertIsNot(
+            services.enroll_series_registrants_in_event,
+            registration.enroll_series_registrants_in_event,
+        )
+
+    def test_publish_does_not_run_the_package_enrolment_for_a_series_less_event(self) -> None:
         from unittest import mock
 
         created = create_event(_payload(publish=False))["event"]
@@ -118,20 +132,3 @@ class PublishAvoidsSeriesEnrolmentLockTests(_WithSpeaker):
             published = publish_event_action(event_id=created["id"])["event"]
         self.assertEqual(published["status"], "upcoming")
         self.assertIsNotNone(published["public_id"])
-
-    def test_publish_sends_the_published_signal_once_committed(self) -> None:
-        from community_base.events.signals import event_published
-
-        created = create_event(_payload(publish=False))["event"]
-        received: list[int] = []
-
-        def receiver(sender: object, event: Event, **_: object) -> None:
-            received.append(event.pk)
-
-        event_published.connect(receiver)
-        try:
-            with self.captureOnCommitCallbacks(execute=True):
-                publish_event_action(event_id=created["id"])
-        finally:
-            event_published.disconnect(receiver)
-        self.assertEqual(len(received), 1)

@@ -11,9 +11,10 @@ from datetime import datetime
 from typing import Any
 
 import mistune
+from community_base.events import registration as _package_registration
+from community_base.events import services as _package_services
 from community_base.events.models import Event, EventHost, EventRegistration, EventReminder, Host
-from community_base.events.services import allocate_public_id, cancel_event
-from community_base.events.signals import event_published
+from community_base.events.services import cancel_event, publish_event
 from community_base.kernel.services import ServiceContext
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
@@ -251,31 +252,36 @@ def _publish(event: Event) -> Event:
         require_publishable(event)
     except EventNotPublishable as exc:
         raise EventAdminError(exc.messages[0], code="event_not_publishable") from exc
-    return _publish_locked(event)
+    return publish_event(event)
 
 
-@transaction.atomic
-def _publish_locked(event: Event) -> Event:
-    """Publish a draft the way ``community_base.events.services.publish_event`` does.
+def _enroll_series_registrants_without_outer_join_lock(event: Event) -> Any:
+    """Series enrolment for a site that has no event series.
 
-    The package's ``publish_event`` ends with ``enroll_series_registrants_in_event``,
-    which runs ``select_for_update().select_related("event_series")``.  PostgreSQL
-    refuses ``FOR UPDATE`` over the nullable side of that outer join, so on
-    production every publish failed with ``internal_error`` (SQLite, which the
-    tests use, ignores ``FOR UPDATE``).  This site has no event series, so the
-    enrolment step has nothing to do and is left out; status, ``published_at``,
-    the public id and the ``event_published`` signal are unchanged.
+    ``community_base``'s ``publish_event`` ends with
+    ``enroll_series_registrants_in_event``, which runs
+    ``select_for_update().select_related("event_series")``.  PostgreSQL refuses
+    ``FOR UPDATE`` over the nullable side of that outer join, so on production
+    every publish failed with ``internal_error`` (SQLite, which the tests use,
+    ignores ``FOR UPDATE``).  Lock the event row alone and, when it belongs to no
+    series (every event on this site), return the package's own "nothing to do"
+    summary; only a series event falls through to the package implementation.
     """
 
-    event = Event.objects.select_for_update().get(pk=event.pk)
-    if event.status not in {"draft", "upcoming"}:
-        raise DjangoValidationError("Only draft or upcoming events can be published.")
-    event.status = "upcoming"
-    event.published_at = event.published_at or timezone.now()
-    event.save(update_fields=("status", "published_at", "updated_at"))
-    event.public_id = allocate_public_id(event)
-    transaction.on_commit(lambda: event_published.send(sender=Event, event=event))
-    return event
+    series_id = (
+        Event.objects.select_for_update()
+        .filter(pk=event.pk)
+        .values_list("event_series_id", flat=True)
+        .first()
+    )
+    if series_id is None:
+        return _package_registration.SeriesEnrollmentSummary(0, 0, 0, 0, 1)
+    return _package_registration.enroll_series_registrants_in_event(event)
+
+
+_package_services.enroll_series_registrants_in_event = (
+    _enroll_series_registrants_without_outer_join_lock
+)
 
 
 def _sync_event_speakers(event: Event, speaker_shorts: list[str]) -> None:
