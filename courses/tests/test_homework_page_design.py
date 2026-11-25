@@ -53,7 +53,7 @@ class HomeworkAccentBorderTests(SimpleTestCase):
 
         self.assertIsNotNone(callout_rule)
         assert callout_rule is not None
-        self.assertIn("border: 2px solid var(--line-soft)", callout_rule.group(1))
+        self.assertIn("border: var(--border-soft)", callout_rule.group(1))
         self.assertIn("background: var(--card)", callout_rule.group(1))
 
     def test_page_styles_declare_no_coloured_single_side_border(self) -> None:

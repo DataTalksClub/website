@@ -214,8 +214,8 @@ class DesignSystemTokenTests(SimpleTestCase):
         code_block = _rule_body(stylesheet, ".prose pre")
         for declaration in (
             "background: var(--card)",
-            "border: 2px solid var(--line-soft)",
-            "border-radius: 0.7rem",
+            "border: var(--border-soft)",
+            "border-radius: var(--radius-media)",
             "color: var(--ink)",
         ):
             with self.subTest(declaration=declaration):

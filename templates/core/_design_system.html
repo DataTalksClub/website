@@ -3173,7 +3173,7 @@ Rules for editing:
 
       .event-item-thumb {
         aspect-ratio: 1;
-        border-radius: 0.6rem;
+        border-radius: var(--radius-media);
         display: block;
         height: auto;
         object-fit: cover;
@@ -3895,9 +3895,8 @@ Rules for editing:
           var(--lavender) 0 10px,
           var(--lavender-deep) 10px 20px
         );
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        border: var(--border-soft);
+        border-radius: var(--radius-media);
         display: flex;
         justify-content: center;
       }
@@ -5181,8 +5180,8 @@ Rules for editing:
          does not draw: its own surface inside a soft 2px border. */
       .prose blockquote {
         background: var(--card);
-        border: 2px solid var(--line-soft);
-        border-radius: 0.7rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-media);
         color: var(--ink);
         font-style: italic;
         padding: var(--space-3) var(--space-4);
@@ -5209,8 +5208,8 @@ Rules for editing:
          corner stood apart from the tables and quotes around it). */
       .prose pre {
         background: var(--card);
-        border: 2px solid var(--line-soft);
-        border-radius: 0.7rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-media);
         color: var(--ink);
         font-family: var(--font-mono);
         font-size: 0.82rem;
@@ -5426,8 +5425,8 @@ Rules for editing:
          so a screenshot does not shout louder than the text around it
          (owner feedback 2026-11-24). */
       .prose img {
-        border: 2px solid var(--line-soft);
-        border-radius: 0.7rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-media);
         display: block;
         height: auto;
         width: 100%;
@@ -5479,8 +5478,8 @@ Rules for editing:
          table's own width widened the whole page. */
       .prose-chart-card {
         background: var(--card);
-        border: 2px solid var(--line-soft);
-        border-radius: 0.7rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-media);
         overflow: hidden;
         padding: var(--space-4) var(--space-4);
         position: relative;
@@ -5593,8 +5592,8 @@ Rules for editing:
          landed. */
       .prose-scroll {
         background: var(--card);
-        border: 2px solid var(--line-soft);
-        border-radius: 0.7rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-media);
         overflow-x: auto;
       }
 
