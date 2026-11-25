@@ -1,0 +1,109 @@
+{% comment %}
+  The wiki graph explorer: a ring of real wiki relations around a hub topic,
+  drawn server-side as the no-JS fallback, which core/static/core/home_graph.js
+  then turns into a walk (click a neighbour to re-centre on it).  The homepage
+  draws the full card (Back, Random topic, Open wiki page, the legend and the
+  count line); the wiki hub's hero passes `compact=True` for the card without
+  the chrome: a "Random topic" control and the "full graph" link in its top
+  corner, and the drawing.  Its rules are core/_wiki_graph_explorer_styles.html,
+  which every page drawing this partial includes in its stylesheet.
+
+  Context: `wiki_graph` (core.home_content.wiki_graph()), and on the full card
+  `counts.wiki`.  Pages load core/home_graph.js after it.
+
+  Usage:
+    {% include "core/_wiki_graph_explorer.html" %}
+    {% include "core/_wiki_graph_explorer.html" with compact=True %}
+{% endcomment %}
+<div
+  class="graph-frame home-graph-explorer{{ compact|yesno:' home-graph-compact,' }}"
+  data-home-graph
+  data-graph-url="{% url 'wiki-graph-json' %}"
+  data-start-id="wiki:{{ wiki_graph.hub.slug }}"
+>
+  {% if compact %}
+    <div class="home-graph-toolbar" aria-label="Graph controls">
+      <button class="home-graph-link" type="button" data-home-graph-random>Random topic</button>
+      <a class="band-link" href="{% url 'wiki-graph' %}">full graph →</a>
+    </div>
+    <p class="sr-only" data-home-graph-status aria-live="polite">
+      Exploring {{ wiki_graph.hub.title }}. Choose a neighbour to move there.
+    </p>
+  {% else %}
+    <div class="home-graph-toolbar" aria-label="Graph controls">
+      <button class="home-graph-tool interactive-lift" type="button" data-home-graph-back hidden>Back</button>
+      <button class="home-graph-tool interactive-lift" type="button" data-home-graph-random>Random topic</button>
+      <a class="home-graph-tool interactive-lift" data-home-graph-open href="{{ wiki_graph.hub.public_path }}">Open wiki page →</a>
+    </div>
+    <p class="home-graph-status" data-home-graph-status aria-live="polite">
+      Exploring {{ wiki_graph.hub.title }}. Click a neighbour to move there.
+    </p>
+  {% endif %}
+  <div data-home-graph-fallback>
+  {% for layout in wiki_graph.layouts %}
+    <svg
+      class="graph-svg graph-svg-{{ layout.kind }}"
+      viewBox="0 0 {{ layout.width }} {{ layout.height }}"
+      role="group"
+      aria-label="{{ wiki_graph.hub.title }} and {{ wiki_graph.spokes|length }} of its {{ wiki_graph.connections }} linked wiki topics"
+    >
+      <g aria-hidden="true">
+        {% for edge in layout.edges %}
+          <line class="graph-svg-edge" x1="{{ edge.x1 }}" y1="{{ edge.y1 }}" x2="{{ edge.x2 }}" y2="{{ edge.y2 }}"/>
+        {% endfor %}
+      </g>
+      {% for node in layout.nodes %}
+        <a class="graph-svg-node" href="{{ node.url }}">
+          <rect class="graph-svg-shape" x="{{ node.left }}" y="{{ node.top }}" width="{{ node.width }}" height="{{ node.height }}" rx="{{ node.radius }}"/>
+          {% spaceless %}
+            <text text-anchor="middle" font-size="{{ node.font_size }}">
+              {% for line in node.lines %}
+                <tspan x="{{ node.x }}" y="{{ line.y }}">{{ line.text }}</tspan>
+              {% endfor %}
+            </text>
+          {% endspaceless %}
+        </a>
+      {% endfor %}
+      <a class="graph-svg-node graph-svg-hub" href="{{ layout.hub.url }}">
+        <rect class="graph-svg-shape" x="{{ layout.hub.left }}" y="{{ layout.hub.top }}" width="{{ layout.hub.width }}" height="{{ layout.hub.height }}" rx="{{ layout.hub.radius }}"/>
+        {% spaceless %}
+          <text text-anchor="middle" font-size="{{ layout.hub.font_size }}">
+            {% for line in layout.hub.lines %}
+              <tspan x="{{ layout.hub.x }}" y="{{ line.y }}">{{ line.text }}</tspan>
+            {% endfor %}
+          </text>
+        {% endspaceless %}
+      </a>
+    </svg>
+  {% endfor %}
+  </div>
+  <div data-home-graph-live hidden></div>
+  {% if not compact %}
+    <p class="home-graph-all" data-home-graph-all>
+      <a class="band-link" href="{{ wiki_graph.hub.public_path }}">all {{ wiki_graph.connections }} connections →</a>
+    </p>
+    <p class="graph-legend">
+      <span class="legend-key">
+        <span>
+          <span class="legend-swatch legend-hub"></span>
+          topic hub
+        </span>
+        <span>
+          <span class="legend-swatch legend-page"></span>
+          connected page
+        </span>
+        <span>
+          <span class="legend-swatch-line"></span>
+          connection
+        </span>
+      </span>
+      <span>
+        <span data-home-graph-count>
+          {{ wiki_graph.spokes|length }} of {{ wiki_graph.connections }}
+          {{ wiki_graph.hub.title }} connections drawn
+        </span>
+        · {{ counts.wiki }} topics in the wiki
+      </span>
+    </p>
+  {% endif %}
+</div>

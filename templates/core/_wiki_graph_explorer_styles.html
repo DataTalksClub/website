@@ -1,0 +1,193 @@
+/* The wiki graph explorer's rules, shared by every page that draws
+   core/_wiki_graph_explorer.html (the homepage's wiki band and the wiki
+   hub's hero).
+
+   The drawing itself — `.graph-svg` and the legend's edge key — is a
+   shared primitive in the partial: /wiki/graph draws the same ring
+   around its own hub.  The homepage explorer recentres that ring on
+   a clicked neighbour instead of leaving the page. */
+
+.home-graph-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.home-graph-tool {
+  background: var(--card);
+  border: var(--border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: var(--space-1) var(--space-3);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.home-graph-tool:hover,
+a.home-graph-tool:hover {
+  background: var(--lavender);
+  text-decoration: none;
+}
+
+.home-graph-tool:active {
+  transform: translateY(1px);
+}
+
+/* Toggled per hub (e.g. "Open wiki page" when the current hub has no
+   page of its own): kept in the flex flow with `visibility` rather than
+   `hidden`/`display: none`, so the toolbar's row count — and therefore
+   the frame's height — never changes just because a different node was
+   clicked. */
+.home-graph-tool.is-hidden-reserved {
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.home-graph-status {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: 0 0 var(--space-3);
+}
+
+/* The current hub's full neighbour list lives on its own wiki page, so
+   the card links there instead of expanding in place: one line of fixed
+   height, whichever topic is being explored, so the card never grows
+   past the topic column beside it.  home_graph.js rewrites the count
+   and target on every re-centre; a hub with no page of its own keeps
+   the row (`visibility`, not `display`) so the frame does not shrink. */
+.home-graph-all {
+  font-size: 0.82rem;
+  margin: var(--space-3) 0 0;
+}
+
+.home-graph-all.is-hidden-reserved {
+  visibility: hidden;
+}
+
+.graph-svg-node.graph-svg-type-podcast:not(.graph-svg-hub) .graph-svg-shape {
+  fill: var(--graph-podcast);
+}
+
+.graph-svg-node.graph-svg-type-person:not(.graph-svg-hub) .graph-svg-shape {
+  fill: var(--bubble);
+}
+
+.graph-svg-node.graph-svg-type-book:not(.graph-svg-hub) .graph-svg-shape {
+  fill: var(--sand);
+}
+
+.graph-svg-node.graph-svg-type-guide:not(.graph-svg-hub) .graph-svg-shape,
+.graph-svg-node.graph-svg-type-how_to:not(.graph-svg-hub) .graph-svg-shape {
+  fill: var(--mint);
+}
+
+.graph-svg-node.graph-svg-type-comparison:not(.graph-svg-hub) .graph-svg-shape,
+.graph-svg-node.graph-svg-type-roadmap:not(.graph-svg-hub) .graph-svg-shape,
+.graph-svg-node.graph-svg-type-transition:not(.graph-svg-hub) .graph-svg-shape {
+  fill: var(--lavender-deep);
+}
+
+/* Re-centring the ring (a clicked neighbour, "Random topic", or Back)
+   swaps `[data-home-graph-live]`'s markup outright — the ring's fixed
+   slots come from core/graph_layout.py and never move — but the swap
+   itself crossfades instead of snapping: the outgoing ring fades with
+   the clicked node held in place (`.is-leaving` / `.is-chosen`), then
+   the incoming ring fades and scales in with a slight per-node stagger
+   (`.is-entering`, `--i`).  home_graph.js drives the class timing;
+   prefers-reduced-motion skips its delay, and the page's global motion
+   kill switch (`_design_system.html`) neutralises these transitions
+   outright for anyone who has asked for that. */
+
+[data-home-graph-live] .graph-svg-node {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition-delay: calc(var(--i, 0) * 25ms);
+}
+
+[data-home-graph-live] .graph-svg-hub {
+  transition-delay: 0s;
+  /* Only the JS-driven hub is a no-op to click (home_graph.js's
+     bindDrawing intercepts and ignores it) — the SSR fallback's hub
+     and /wiki/graph's hub are ordinary working links, so their cursor
+     stays the default pointer. */
+  cursor: default;
+}
+
+[data-home-graph-live] .graph-svg-edge {
+  transition: opacity 0.18s ease;
+  transition-delay: calc(var(--i, 0) * 25ms);
+}
+
+[data-home-graph-live].is-leaving .graph-svg-node:not(.graph-svg-hub),
+[data-home-graph-live].is-leaving .graph-svg-edge {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+[data-home-graph-live].is-leaving .graph-svg-node.is-chosen {
+  opacity: 1;
+}
+
+[data-home-graph-live].is-leaving .graph-svg-node.is-chosen .graph-svg-shape {
+  stroke: var(--indigo);
+  stroke-width: 3.5;
+}
+
+[data-home-graph-live].is-entering .graph-svg-node:not(.graph-svg-hub) {
+  opacity: 0;
+  transform: scale(0.94);
+}
+
+[data-home-graph-live].is-entering .graph-svg-hub {
+  transform: scale(0.97);
+}
+
+[data-home-graph-live].is-entering .graph-svg-edge {
+  opacity: 0;
+}
+
+/* The compact card (the wiki hub's hero): the two controls are text links
+   in the card's top-right corner, and nothing sits under the drawing. */
+.home-graph-compact .home-graph-toolbar {
+  justify-content: flex-end;
+  margin-bottom: var(--space-2);
+}
+
+.home-graph-link {
+  background: none;
+  border: 0;
+  color: var(--indigo);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.home-graph-compact .home-graph-toolbar :is(.home-graph-link, .band-link) {
+  font-size: 0.85rem;
+}
+
+
+/* Wide, the two controls float in the drawing's empty top-right corner
+   rather than taking a row of their own above it. */
+@media (min-width: 48rem) {
+  .home-graph-compact {
+    position: relative;
+  }
+
+  .home-graph-compact .home-graph-toolbar {
+    margin: 0;
+    position: absolute;
+    right: var(--space-4);
+    top: var(--space-3);
+    z-index: 1;
+  }
+}

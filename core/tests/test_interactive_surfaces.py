@@ -28,8 +28,9 @@ CONTROL_CLASSES = {
     "user-menu-toggle",
 }
 # A button drawn as a text link among other text links (the footer's Analytics
-# preferences control) behaves exactly like those links: no lift.
-TEXT_LINK_BUTTON_CLASSES = {"site-footer-legal-control", "nav-group-toggle"}
+# preferences control, the compact wiki graph's "Random topic") behaves exactly
+# like those links: no lift.
+TEXT_LINK_BUTTON_CLASSES = {"site-footer-legal-control", "nav-group-toggle", "home-graph-link"}
 
 
 class InteractiveSurfaceContractTests(SimpleTestCase):
@@ -135,7 +136,9 @@ class InteractiveSurfaceContractTests(SimpleTestCase):
                 "topic interactive-card interactive-lift",
                 "sponsor-card interactive-card interactive-lift",
             ),
-            "templates/public/wiki_hub.html": ("explore-row interactive-card interactive-lift",),
+            "templates/public/_wiki_topic_card.html": (
+                "wiki-card interactive-card interactive-lift",
+            ),
             "courses/templates/courses/course_list.html": (
                 "catalog-card interactive-card interactive-lift",
             ),
