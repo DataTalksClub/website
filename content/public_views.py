@@ -535,11 +535,9 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
         description=f"{event['type'].title()} on {event['display_time']}.",
         context={
             "event": event,
-            "event_hero_class": (
-                "event-hero-grid"
-                if event["banner_url"]
-                else "event-hero-grid event-hero-grid-plain"
-            ),
+            # The longer speakers section with biographies only exists when a
+            # speaker has one; otherwise the side column's list is the credit.
+            "speaker_bios": any(speaker.get("bio_blocks") for speaker in event["speakers"]),
             "event_state": event_state,
             "qna_url": qna_url,
             "og_type": "event",

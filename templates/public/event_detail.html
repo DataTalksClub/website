@@ -57,40 +57,42 @@
        * page arranges them.
        * ------------------------------------------------------------------ */
 
-      /* One column: the description is the body of this page, so the shell
-         is the ordinary content width every non-landing page shares and
-         the prose inside stays at the reading measure. */
-      .event-shell {
-        /* The reading column is already a comfortable measure, so the
-           standfirst and the body fill it rather than stopping 4rem short
-           of the title's edge (owner feedback 2026-11-23). */
-        --measure: 100%;
-        max-width: var(--reading-width);
-      }
-
-      .event-head {
+      /* The arrangement: a narrow side column with the event's square
+         picture and its speakers, and a wide main column with the title,
+         the dateline, the registration card and the description.  The main
+         column is the reading measure, so the whole layout stays well inside
+         the homepage's shell.  On a phone it stacks as picture, main column,
+         speakers: the grid areas follow the DOM order. */
+      .event-layout {
+        align-items: start;
         display: grid;
-        gap: var(--space-eyebrow);
-        justify-items: start;
+        gap: var(--space-5) var(--space-7);
+        grid-template-areas:
+          "media main"
+          "hosts main";
+        grid-template-columns: 17rem minmax(0, var(--reading-width));
+        grid-template-rows: auto 1fr;
+        justify-content: center;
       }
 
-      .event-hero-grid {
-        align-items: center;
-        display: grid;
-        gap: clamp(var(--space-5), 4vw, var(--space-7));
-        grid-template-columns: minmax(12rem, 18rem) minmax(0, 1fr);
+      /* No picture: the side column holds the speakers list from the top. */
+      .event-layout-no-media {
+        grid-template-areas: "hosts main";
+        grid-template-rows: auto;
       }
 
-      .event-hero-grid-plain {
-        display: block;
+      /* Neither a picture nor speakers: one reading column. */
+      .event-layout-single {
+        grid-template-areas: "main";
+        grid-template-columns: minmax(0, var(--reading-width));
       }
 
-      .event-banner {
+      .event-media {
+        grid-area: media;
         margin: 0;
-        max-width: 18rem;
       }
 
-      .event-banner img {
+      .event-media img {
         aspect-ratio: 1;
         background: var(--card);
         /* A soft frame, like the site's other image frames: no hard offset
@@ -99,61 +101,181 @@
         border-radius: 1.2rem;
         display: block;
         height: auto;
-        max-width: 100%;
         object-fit: cover;
         width: 100%;
       }
 
-      .event-head h1 {
-        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
-        letter-spacing: -0.025em;
-      }
-
-      /* The index's date rail, laid on one line: on a detail page the date is
-         a single dateline under the title rather than a column beside a row. */
-      .event-when,
-      .event-when .when {
-        align-items: baseline;
-        column-gap: var(--space-2);
-        display: flex;
-        flex-wrap: wrap;
-        padding-top: 0;
-        row-gap: var(--space-1);
-      }
-
-      .event-when .when-sep {
-        color: var(--muted);
-      }
-
-      .event-links {
-        display: flex;
-        flex-wrap: wrap;
+      .event-hosts {
+        align-content: start;
+        display: grid;
         gap: var(--space-2);
+        grid-area: hosts;
+        min-width: 0;
       }
 
-      /* --page follows the cool ground, since that is what the tail below the
-         last band continues. */
-      :root {
-        --page: var(--lavender);
+      .event-side-heading {
+        border-bottom: 1.5px solid var(--line-soft);
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-weight: 700;
+        letter-spacing: 0;
+        padding-bottom: var(--space-2);
       }
 
-      /* The description opens its own band, so the band's padding is the space
-         above it; the hero's bottom padding already sits on the other side of
-         the seam. */
-      .event-read {
-        padding-top: var(--space-5);
+      .event-host-list {
+        display: grid;
+        list-style: none;
+        margin: 0;
+        padding: 0;
       }
 
-      /* Speakers: the row list's own dashed bottom border divides one speaker
-         from the next — the same full-width separator every dated index on
-         the site draws between its rows — so nothing local is drawn inside
-         the cell.  The credit uses the shared lead-sized person chip, since
-         the speaker is the subject of this block rather than one of several
-         names in a line, and the biography sits flush under it at the same
-         left edge as the portrait, the name and the "Speakers" heading
-         itself.  A speaker with no picture keeps the system's stand-in disc,
-         and a profile with no prose gets the explicit empty state in the
-         shared speaker partial. */
+      .event-main {
+        display: grid;
+        gap: var(--space-6);
+        grid-area: main;
+        min-width: 0;
+      }
+
+      .event-head {
+        display: grid;
+        gap: var(--space-5);
+      }
+
+      .event-head h1 {
+        font-size: clamp(1.8rem, 3.6vw, 2.6rem);
+        letter-spacing: -0.025em;
+        line-height: 1.12;
+      }
+
+      /* The facts under the title, one row each: a small square tile on the
+         left (a calendar leaf for the date, an icon for a link), the fact in
+         two lines beside it. */
+      .event-facts {
+        display: grid;
+        gap: var(--space-4);
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .event-fact {
+        align-items: center;
+        display: grid;
+        gap: var(--space-3);
+        grid-template-columns: 3rem minmax(0, 1fr);
+      }
+
+      .event-tile {
+        align-items: center;
+        background: var(--card);
+        border: 1.5px solid var(--line-soft);
+        border-radius: 0.6rem;
+        color: var(--muted);
+        display: grid;
+        height: 3rem;
+        justify-items: center;
+        overflow: hidden;
+        width: 3rem;
+      }
+
+      .event-tile svg {
+        height: 1.25rem;
+        width: 1.25rem;
+      }
+
+      .event-tile-date {
+        grid-template-rows: 1.1rem 1fr;
+      }
+
+      .event-tile-month {
+        align-self: stretch;
+        border-bottom: 1.5px solid var(--line-soft);
+        display: grid;
+        font-family: var(--font-mono);
+        font-size: 0.64rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        place-items: center;
+        text-transform: uppercase;
+        width: 100%;
+      }
+
+      .event-tile-day {
+        color: var(--ink);
+        font-size: 1.15rem;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .event-fact-text {
+        display: grid;
+        gap: 0.1rem;
+        min-width: 0;
+      }
+
+      .event-fact-text strong {
+        color: var(--ink);
+        font-size: 1rem;
+        line-height: 1.25;
+      }
+
+      .event-fact-sub {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .event-fact-sub .when-sep {
+        color: var(--muted);
+        margin-inline: var(--space-2);
+      }
+
+      .event-fact a {
+        font-weight: 700;
+        justify-self: start;
+      }
+
+      /* Registration: the shared card, its own small heading, then the
+         outcome notice and the form (or the count once the event is over). */
+      .event-register {
+        gap: var(--space-4);
+      }
+
+      .event-register h2,
+      .event-section h2 {
+        font-size: 1.15rem;
+        letter-spacing: -0.01em;
+      }
+
+      .event-register .cmp-form {
+        max-width: none;
+      }
+
+      .event-register-count {
+        color: var(--muted);
+        font-size: 0.95rem;
+        margin: 0;
+      }
+
+      .event-section {
+        display: grid;
+        gap: var(--space-4);
+      }
+
+      .event-section-head {
+        border-bottom: 1.5px solid var(--line-soft);
+        padding-bottom: var(--space-2);
+      }
+
+      .event-description {
+        --measure: 100%;
+      }
+
+      .event-description > :first-child {
+        margin-top: 0;
+      }
+
+      /* Speakers with biographies, at the foot of the main column: the row
+         list's dashed border divides one speaker from the next. */
       .event-speaker {
         display: grid;
         gap: var(--space-3);
@@ -166,10 +288,6 @@
         display: flex;
       }
 
-      .event-speaker-bio {
-        max-width: 48rem;
-      }
-
       .event-speaker-bio > :first-child {
         margin-top: 0;
       }
@@ -178,37 +296,33 @@
         margin-bottom: 0;
       }
 
-      /* Registration: the outcome notice sits above the form at the form's
-         own measure, so the two read as one block on the band. */
-      .event-register {
-        display: grid;
-        gap: var(--space-5);
-        max-width: var(--form-measure);
+      /* --page follows the cool ground the page reads on. */
+      :root {
+        --page: var(--lavender);
       }
 
       @media (max-width: 47.99rem) {
-        /* Narrow: actions become full-width blocks instead of a squeezed row. */
-        .event-head {
-          gap: var(--space-eyebrow);
+        .event-layout,
+        .event-layout-no-media {
+          gap: var(--space-6);
+          grid-template-areas:
+            "media"
+            "main"
+            "hosts";
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-rows: auto;
         }
 
-        .event-hero-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .event-banner {
+        .event-media {
           justify-self: center;
           max-width: min(100%, 22rem);
-        }
-
-        .event-links {
-          align-items: stretch;
-          flex-direction: column;
           width: 100%;
         }
 
-        .event-read {
-          padding-top: var(--space-5);
+        /* When the biographies section already credits every speaker at the
+           foot of the main column, the short list would repeat it. */
+        .event-hosts-with-bios {
+          display: none;
         }
       }
     </style>
@@ -227,261 +341,282 @@
   >
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
-      <section class="band band-cream event-hero" aria-labelledby="event-heading">
-        <div class="shell event-shell">
-          <article>
-            <div class="{{ event_hero_class }}">
-              {% if event.banner_url %}
-                <figure class="event-banner" data-testid="event-banner">
-                  <img
-                    src="{{ event.banner_url }}"
-                    alt="{{ event.title }} event artwork"
-                    width="1000"
-                    height="1000"
-                    loading="eager"
-                    decoding="async"
-                    fetchpriority="high"
-                  >
-                </figure>
-              {% endif %}
+      <section class="band band-lavender event-page" aria-labelledby="event-heading">
+        <div class="shell">
+          <article class="event-layout{% if not event.banner_url %}{% if event.speakers %} event-layout-no-media{% else %} event-layout-single{% endif %}{% endif %}">
+            {% if event.banner_url %}
+              <figure class="event-media" data-testid="event-banner">
+                <img
+                  src="{{ event.banner_url }}"
+                  alt="{{ event.title }} event artwork"
+                  width="1000"
+                  height="1000"
+                  loading="eager"
+                  decoding="async"
+                  fetchpriority="high"
+                >
+              </figure>
+            {% endif %}
+
+            <div class="event-main">
               <header class="event-head">
-              <h1 id="event-heading">{{ event.title }}</h1>
-              {% comment %}
-                The whole dateline is one <time>, not just the date: the machine value
-                carries a clock, so the accessible text has to name the zone too, and
-                the zone is the %Z in display_clock (playwright_tests/
-                accessibility_support.py time_issues).  The index escapes this because
-                its machine value is a date-only group key.
-              {% endcomment %}
-              {% comment %}
-                The kind leads the dateline as a word, the way the homepage and
-                index cards set it, with no boxed pill above the title.  There is
-                no past/upcoming marker: the date already says which it is
-                (owner feedback 2026-11-25).
-              {% endcomment %}
-              <p class="event-when">
-                {% if event.kind_label %}
-                  <span class="when-kind">{{ event.kind_label }}</span>
-                  <span class="when-sep" aria-hidden="true">·</span>
-                {% endif %}
-                <time class="when" datetime="{{ event.starts_at }}">
-                  <strong>{{ event.display_weekday }}, {{ event.display_date }}</strong>
-                  <span class="when-time">
-                    {{ event.display_clock }}
-                  </span>
-                </time>
-              </p>
-              {% if event.registration_count %}
-                <p class="mono-note event-registered">
-                  {{ event.registration_count }} registered
-                </p>
-              {% endif %}
-              {% if event.links %}
-                <div class="event-links" role="group" aria-label="Event links">
+                <h1 id="event-heading">{{ event.title }}</h1>
+                {% comment %}
+                  The facts under the title, in the order a reader needs them:
+                  when, then where to watch.  The whole dateline is one <time>,
+                  not just the date: the machine value carries a clock, so the
+                  accessible text has to name the zone too, and the zone is the
+                  %Z in display_clock (playwright_tests/accessibility_support.py
+                  time_issues).  The kind leads the second line as a quiet word,
+                  with no boxed pill above the title and no past/upcoming
+                  marker: the date already says which it is (owner feedback
+                  2026-11-25).
+                {% endcomment %}
+                <ul class="event-facts">
+                  <li class="event-fact event-when">
+                    <span class="event-tile event-tile-date" aria-hidden="true">
+                      <span class="event-tile-month">{{ event.display_month }}</span>
+                      <span class="event-tile-day">{{ event.display_day }}</span>
+                    </span>
+                    <time class="event-fact-text" datetime="{{ event.starts_at }}">
+                      <strong>{{ event.display_date_long }}</strong>
+                      <span class="event-fact-sub">
+                        {% if event.kind_label %}
+                          <span class="when-kind">{{ event.kind_label }}</span><span class="when-sep" aria-hidden="true">·</span>
+                        {% endif %}
+                        <span class="when-time-range">{{ event.display_clock_range }}</span>
+                      </span>
+                    </time>
+                  </li>
                   {% for link in event.links %}
-                    <a
-                      class="cta cta-compact cta-secondary interactive-lift"
-                      href="{{ link.url }}"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {{ link.label }}
-                      <span class="sr-only"> (opens in a new tab)</span>
-                    </a>
-                  {% endfor %}
-                  {% if qna_url %}
-                    <a class="cta cta-compact cta-secondary interactive-lift" href="{{ qna_url }}">Event Q&amp;A</a>
-                  {% endif %}
-                </div>
-              {% elif qna_url %}
-                <div class="event-links" role="group" aria-label="Event links">
-                  <a class="cta cta-compact cta-secondary interactive-lift" href="{{ qna_url }}">Event Q&amp;A</a>
-                </div>
-              {% endif %}
-              </header>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      {% comment %}
-        The seam sits where the reading starts, as it does on an article: the
-        warm band carries the masthead, the kind, the title and the dateline,
-        and the description below it is content, so it sits on the cool ground
-        every other page reads on.
-      {% endcomment %}
-      {% if event.description_html %}
-        <section class="band band-lavender event-read" aria-label="Event description">
-          <div class="shell event-shell">
-            <div class="prose prose-reading event-description">
-              {{ event.description_html|safe }}
-            </div>
-          </div>
-        </section>
-      {% endif %}
-
-      {% comment %}
-        Registration is drawn from the shared form primitives (`.cmp-form`,
-        `.field`, `.field-label`, `.field-input`, `.form-check`, `.cta`) and the
-        shared state surfaces (`.callout`, `.a11y-error-summary`, `.a11y-error`),
-        so it reads as the same kind of form as account and course registration.
-        The POST handler reads raw request data and reports its outcome back
-        through `?registered=`, so there is no bound Django form to hand to
-        `accessible_widget`; the email input writes the same relationships that
-        tag writes (`aria-describedby`, `aria-invalid`, `aria-errormessage`
-        pointing at `<id>-error`).  A `closed` outcome lands here after the
-        event has left the upcoming list, so it is reported even when the form
-        itself is no longer offered.  An outcome notice arrives after a
-        redirect, so it is an alert and takes focus through the shared
-        focus-on-load hook (`data-focus-error-summary`, accessibility.js); a
-        successful registration replaces the form rather than sitting above an
-        empty copy of it.
-      {% endcomment %}
-      {% with registered=request.GET.registered %}
-      {% if event_state == "upcoming" or registered == "closed" %}
-        <section class="band band-lavender event-register-band" aria-labelledby="event-register-heading">
-          <div class="shell event-shell">
-            <div class="band-head">
-              <div>
-                <h2 id="event-register-heading">Register</h2>
-              </div>
-            </div>
-            <div class="event-register">
-              {% if registered == "ok" %}
-                <div
-                  class="callout callout-info event-register-notice"
-                  role="alert"
-                  tabindex="-1"
-                  data-focus-error-summary
-                >
-                  <p>
-                    <strong>You are registered for this event.</strong>
-                  </p>
-                </div>
-              {% elif registered == "closed" %}
-                <div
-                  class="callout callout-attention event-register-notice"
-                  role="alert"
-                  tabindex="-1"
-                  data-focus-error-summary
-                >
-                  <p>
-                    <strong>Registration for this event is closed.</strong>
-                  </p>
-                </div>
-              {% elif registered == "invalid_email" %}
-                <section
-                  class="a11y-error-summary"
-                  role="alert"
-                  aria-labelledby="event-register-error-title"
-                  tabindex="-1"
-                  data-focus-error-summary
-                >
-                  <h2 id="event-register-error-title">Check the highlighted fields</h2>
-                  <ul>
-                    <li>
-                      <a href="#id_reg_email">Email: Please enter a valid email address.</a>
+                    <li class="event-fact event-link">
+                      <span class="event-tile" aria-hidden="true">
+                        {% if "youtu" in link.url %}
+                          <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M21.55 7.2a2.8 2.8 0 0 0-1.95-1.98C17.88 4.75 12 4.75 12 4.75s-5.88 0-7.6.47A2.8 2.8 0 0 0 2.45 7.2 29.1 29.1 0 0 0 2 12a29.1 29.1 0 0 0 .45 4.8 2.8 2.8 0 0 0 1.95 1.98c1.72.47 7.6.47 7.6.47s5.88 0 7.6-.47a2.8 2.8 0 0 0 1.95-1.98A29.1 29.1 0 0 0 22 12a29.1 29.1 0 0 0-.45-4.8Z" fill="currentColor"></path>
+                            <path d="m10 15.15 5.2-3.15L10 8.85v6.3Z" fill="var(--card)"></path>
+                          </svg>
+                        {% else %}
+                          <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M14 3v2h3.6l-7.3 7.3 1.4 1.4L19 6.4V10h2V3zM5 5h5V3H3v18h18v-7h-2v5H5z" fill="currentColor"></path>
+                          </svg>
+                        {% endif %}
+                      </span>
+                      <span class="event-fact-text">
+                        {% if "youtu" in link.url %}
+                          <strong>YouTube</strong>
+                        {% endif %}
+                        <a class="band-link" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+                          {{ link.label }}<span class="sr-only"> (opens in a new tab)</span>
+                        </a>
+                      </span>
                     </li>
+                  {% endfor %}
+                  {% if event.registration_count and event_state != "upcoming" %}
+                    <li class="event-fact event-registered">
+                      <span class="event-tile" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                          <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-2a2 2 0 1 1 0-4 2 2 0 0 1 0 4Zm7.5 2a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm0-2a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3ZM2 20c0-3.3 3.1-6 7-6s7 2.7 7 6h-2c0-2.1-2.2-4-5-4s-5 1.9-5 4Zm15.2-5.9c2.7.4 4.8 2.6 4.8 5.9h-2c0-2.2-1.3-3.6-3.2-3.9Z" fill="currentColor"></path>
+                        </svg>
+                      </span>
+                      <span class="event-fact-text">
+                        <strong>{{ event.registration_count }} registered</strong>
+                      </span>
+                    </li>
+                  {% endif %}
+                  {% if qna_url %}
+                    <li class="event-fact event-qna">
+                      <span class="event-tile" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                          <path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-4.4 3.5A.4.4 0 0 1 4 20.2V17a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm1 2v9h1v2.2L8.3 15H19V6Z" fill="currentColor"></path>
+                        </svg>
+                      </span>
+                      <span class="event-fact-text">
+                        <strong>Questions</strong>
+                        <a class="band-link" href="{{ qna_url }}">Event Q&amp;A</a>
+                      </span>
+                    </li>
+                  {% endif %}
+                </ul>
+              </header>
+
+              {% comment %}
+                Registration is drawn from the shared form primitives (`.cmp-form`,
+                `.field`, `.field-label`, `.field-input`, `.form-check`, `.cta`) and the
+                shared state surfaces (`.callout`, `.a11y-error-summary`, `.a11y-error`),
+                so it reads as the same kind of form as account and course registration.
+                The POST handler reads raw request data and reports its outcome back
+                through `?registered=`, so there is no bound Django form to hand to
+                `accessible_widget`; the email input writes the same relationships that
+                tag writes (`aria-describedby`, `aria-invalid`, `aria-errormessage`
+                pointing at `<id>-error`).  A `closed` outcome lands here after the
+                event has left the upcoming list, so it is reported even when the form
+                itself is no longer offered.  An outcome notice arrives after a
+                redirect, so it is an alert and takes focus through the shared
+                focus-on-load hook (`data-focus-error-summary`, accessibility.js); a
+                successful registration replaces the form rather than sitting above an
+                empty copy of it.  A past event keeps the card for its count alone.
+              {% endcomment %}
+              {% with registered=request.GET.registered %}
+              {% if event_state == "upcoming" or registered == "closed" %}
+                <section class="card event-register" aria-labelledby="event-register-heading">
+                  <h2 id="event-register-heading">Registration</h2>
+                  {% if event.registration_count and event_state == "upcoming" %}
+                    <p class="event-register-count event-registered">{{ event.registration_count }} registered</p>
+                  {% endif %}
+                  {% if registered == "ok" %}
+                    <div
+                      class="callout callout-info event-register-notice"
+                      role="alert"
+                      tabindex="-1"
+                      data-focus-error-summary
+                    >
+                      <p>
+                        <strong>You are registered for this event.</strong>
+                      </p>
+                    </div>
+                  {% elif registered == "closed" %}
+                    <div
+                      class="callout callout-attention event-register-notice"
+                      role="alert"
+                      tabindex="-1"
+                      data-focus-error-summary
+                    >
+                      <p>
+                        <strong>Registration for this event is closed.</strong>
+                      </p>
+                    </div>
+                  {% elif registered == "invalid_email" %}
+                    <section
+                      class="a11y-error-summary"
+                      role="alert"
+                      aria-labelledby="event-register-error-title"
+                      tabindex="-1"
+                      data-focus-error-summary
+                    >
+                      <h2 id="event-register-error-title">Check the highlighted fields</h2>
+                      <ul>
+                        <li>
+                          <a href="#id_reg_email">Email: Please enter a valid email address.</a>
+                        </li>
+                      </ul>
+                    </section>
+                  {% endif %}
+                  {% if event_state == "upcoming" and registered != "ok" %}
+                    <form method="post" action="{{ event.public_path }}/register" class="cmp-form event-register-form">
+                      {% csrf_token %}
+                      <div class="cmp-form-fields">
+                        <div class="field">
+                          <label class="field-label" for="id_reg_email">Email</label>
+                          <input
+                            {% if registered == "invalid_email" %}
+                              class="field-input is-invalid"
+                              aria-describedby="id_reg_email-error"
+                              aria-invalid="true"
+                              aria-errormessage="id_reg_email-error"
+                            {% else %}
+                              class="field-input"
+                            {% endif %}
+                            id="id_reg_email"
+                            type="email"
+                            name="email"
+                            required
+                            autocomplete="email"
+                          >
+                          {% if registered == "invalid_email" %}
+                            <p id="id_reg_email-error" class="a11y-error">
+                              <span class="sr-only">Error:</span>
+                              Please enter a valid email address.
+                            </p>
+                          {% endif %}
+                        </div>
+                        <div class="field">
+                          <label class="field-label" for="id_reg_name">Name (optional)</label>
+                          <input class="field-input" id="id_reg_name" type="text" name="display_name" autocomplete="name">
+                        </div>
+                        {% if event.collect_company %}
+                          <div class="field">
+                            <label class="field-label" for="id_reg_company">Company</label>
+                            <input class="field-input" id="id_reg_company" type="text" name="company" autocomplete="organization">
+                          </div>
+                        {% endif %}
+                        <div class="form-check">
+                          <input
+                            class="form-check-input"
+                            id="id_reg_newsletter_consent"
+                            type="checkbox"
+                            name="newsletter_consent"
+                            value="true"
+                          >
+                          <label class="form-check-label" for="id_reg_newsletter_consent">
+                            Subscribe to the DataTalks.Club newsletter
+                          </label>
+                        </div>
+                        {% if event.sponsor_sharing_enabled %}
+                          <div class="form-check">
+                            <input
+                              class="form-check-input"
+                              id="id_reg_sponsor_sharing_consent"
+                              type="checkbox"
+                              name="sponsor_sharing_consent"
+                              value="true"
+                            >
+                            <label class="form-check-label" for="id_reg_sponsor_sharing_consent">
+                              Share my email with the event sponsor
+                              {% if event.sponsor_name %}
+                                ({{ event.sponsor_name }})
+                              {% endif %}
+                            </label>
+                          </div>
+                        {% endif %}
+                      </div>
+                      <div class="cmp-form-actions">
+                        <button type="submit" class="cta cta-primary interactive-lift">Register</button>
+                      </div>
+                    </form>
+                  {% endif %}
+                </section>
+              {% endif %}
+              {% endwith %}
+
+              {% if event.description_html %}
+                <section class="event-section event-read" aria-labelledby="event-about-heading">
+                  <h2 id="event-about-heading" class="event-section-head">About the event</h2>
+                  <div class="prose prose-reading event-description">
+                    {{ event.description_html|safe }}
+                  </div>
+                </section>
+              {% endif %}
+
+              {% if speaker_bios %}
+                <section class="event-section speaker-band" aria-labelledby="event-speakers-heading">
+                  <h2 id="event-speakers-heading" class="event-section-head">About the speakers</h2>
+                  <ul class="row-list speaker-rows">
+                    {% for speaker in event.speakers %}
+                      <li class="list-row speaker-row">
+                        {% include "public/_event_speaker.html" with speaker=speaker only %}
+                      </li>
+                    {% endfor %}
                   </ul>
                 </section>
               {% endif %}
-              {% if event_state == "upcoming" and registered != "ok" %}
-                <form method="post" action="{{ event.public_path }}/register" class="cmp-form event-register-form">
-                  {% csrf_token %}
-                  <div class="cmp-form-fields">
-                    <div class="field">
-                      <label class="field-label" for="id_reg_email">Email</label>
-                      <input
-                        {% if registered == "invalid_email" %}
-                          class="field-input is-invalid"
-                          aria-describedby="id_reg_email-error"
-                          aria-invalid="true"
-                          aria-errormessage="id_reg_email-error"
-                        {% else %}
-                          class="field-input"
-                        {% endif %}
-                        id="id_reg_email"
-                        type="email"
-                        name="email"
-                        required
-                        autocomplete="email"
-                      >
-                      {% if registered == "invalid_email" %}
-                        <p id="id_reg_email-error" class="a11y-error">
-                          <span class="sr-only">Error:</span>
-                          Please enter a valid email address.
-                        </p>
-                      {% endif %}
-                    </div>
-                    <div class="field">
-                      <label class="field-label" for="id_reg_name">Name (optional)</label>
-                      <input class="field-input" id="id_reg_name" type="text" name="display_name" autocomplete="name">
-                    </div>
-                    {% if event.collect_company %}
-                      <div class="field">
-                        <label class="field-label" for="id_reg_company">Company</label>
-                        <input class="field-input" id="id_reg_company" type="text" name="company" autocomplete="organization">
-                      </div>
-                    {% endif %}
-                    <div class="form-check">
-                      <input
-                        class="form-check-input"
-                        id="id_reg_newsletter_consent"
-                        type="checkbox"
-                        name="newsletter_consent"
-                        value="true"
-                      >
-                      <label class="form-check-label" for="id_reg_newsletter_consent">
-                        Subscribe to the DataTalks.Club newsletter
-                      </label>
-                    </div>
-                    {% if event.sponsor_sharing_enabled %}
-                      <div class="form-check">
-                        <input
-                          class="form-check-input"
-                          id="id_reg_sponsor_sharing_consent"
-                          type="checkbox"
-                          name="sponsor_sharing_consent"
-                          value="true"
-                        >
-                        <label class="form-check-label" for="id_reg_sponsor_sharing_consent">
-                          Share my email with the event sponsor
-                          {% if event.sponsor_name %}
-                            ({{ event.sponsor_name }})
-                          {% endif %}
-                        </label>
-                      </div>
-                    {% endif %}
-                  </div>
-                  <div class="cmp-form-actions">
-                    <button type="submit" class="cta cta-primary interactive-lift">Register</button>
-                  </div>
-                </form>
-              {% endif %}
             </div>
-          </div>
-        </section>
-      {% endif %}
-      {% endwith %}
 
-      {% if event.speakers %}
-        <section class="band band-lavender speaker-band" aria-labelledby="event-speakers-heading">
-          <div class="shell event-shell">
-            <div class="band-head">
-              <div>
-                <h2 id="event-speakers-heading">Speakers</h2>
-              </div>
-            </div>
-            <ul class="row-list speaker-rows">
-              {% for speaker in event.speakers %}
-                <li class="list-row speaker-row">
-                  {% include "public/_event_speaker.html" with speaker=speaker only %}
-                </li>
-              {% endfor %}
-            </ul>
-          </div>
-        </section>
-      {% endif %}
+            {% if event.speakers %}
+              <aside class="event-hosts{% if speaker_bios %} event-hosts-with-bios{% endif %}" aria-labelledby="event-hosts-heading">
+                <h2 id="event-hosts-heading" class="event-side-heading">Speakers</h2>
+                <ul class="event-host-list">
+                  {% for speaker in event.speakers %}
+                    <li class="event-host">
+                      {% include "public/_person_chip.html" with person=speaker|person_chip only %}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </aside>
+            {% endif %}
+          </article>
+        </div>
+      </section>
     </main>
     {% include "core/_site_shell_foot.html" %}
   </body>

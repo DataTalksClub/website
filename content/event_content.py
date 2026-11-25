@@ -91,6 +91,14 @@ def _grouped(now: datetime | None) -> EventGroups:
         event["display_date"] = f"{local_start:%b} {local_start.day}, {local_start:%Y}"
         event["display_weekday"] = f"{local_start:%a}"
         event["display_clock"] = f"{local_start:%H:%M %Z}"
+        # The detail page's calendar tile and its long dateline beside it.
+        event["display_month"] = f"{local_start:%b}"
+        event["display_day"] = str(local_start.day)
+        event["display_date_long"] = f"{local_start:%A, %B} {local_start.day}, {local_start:%Y}"
+        event["display_clock_range"] = event["display_clock"]
+        if raw.get("ends_at"):
+            local_end = datetime.fromisoformat(raw["ends_at"]).astimezone(SITE_TIMEZONE)
+            event["display_clock_range"] = f"{local_start:%H:%M} – {local_end:%H:%M %Z}"
         event["type_icon"] = EVENT_TYPE_ICONS.get(
             event["type"].casefold(),
             "fas fa-calendar-check",
