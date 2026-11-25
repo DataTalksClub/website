@@ -340,6 +340,8 @@ def _import_signups(
     from django.core.validators import validate_email
     from django.utils import timezone
 
+    from events.lifecycle import accepts_registrations
+
     user_model = get_user_model()
     now = timezone.now()
     for row in rows:
@@ -377,7 +379,7 @@ def _import_signups(
             if event is None:
                 report.selections_unresolved_session += 1
                 continue
-            if not event.is_upcoming:
+            if not accepts_registrations(event):
                 report.selections_past_session += 1
                 continue
             existing = EventRegistration.objects.filter(event=event, normalized_email=normalized)

@@ -21,6 +21,11 @@ from scripts.verify_course_platform_adoption import (
 
 
 def callback_name_of(match) -> str:
+    # A class-based view resolves to the ``view`` closure ``as_view()`` returns;
+    # name the class, as the generated route inventory does.
+    view_class = getattr(match.func, "view_class", None)
+    if view_class is not None:
+        return f"{view_class.__module__}.{view_class.__name__}"
     return f"{match.func.__module__}.{match.func.__name__}"
 
 
