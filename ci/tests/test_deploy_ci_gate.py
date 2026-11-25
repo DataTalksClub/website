@@ -27,6 +27,8 @@ from deploy.ci_verdict import (
     require,
 )
 
+NEWER_SHA = "b" * 40
+
 ROOT = Path(__file__).resolve().parents[2]
 REPOSITORY = "DataTalksClub/website"
 SHA = "a" * 40
@@ -91,14 +93,25 @@ def test_coolify_staging_requires_full_ci_and_scopes_package_write() -> None:
 
     assert build["permissions"].get("packages") == "write"
     assert deploy["permissions"].get("packages") is None
-    assert deploy["permissions"].get("actions") == "read"
-    gate = run_step(deploy, "Require the full CI verdict for this source SHA")
+    verdict = jobs["ci-verdict"]
+    assert verdict["permissions"].get("actions") == "read"
+    gate = run_step(verdict, "Require the full CI verdict for this source SHA")
     assert gate["env"]["GH_TOKEN"] == "${{ github.token }}"
     assert "deploy.ci_verdict require" in gate["run"]
     assert "--workflow ci.yml" in gate["run"]
     assert '--repository "$GITHUB_REPOSITORY"' in gate["run"]
     assert '--sha "$GITHUB_SHA"' in gate["run"]
     assert "--timeout-seconds" in gate["run"]
+    # Only a cancel that main has moved past is skipped, and only green deploys.
+    assert "--superseded-on main" in gate["run"]
+    assert '--verdict-output "$GITHUB_OUTPUT"' in gate["run"]
+    assert verdict["outputs"]["verdict"] == "${{ steps.verdict.outputs.verdict }}"
+    assert gate["id"] == "verdict"
+    assert set(deploy["needs"]) == {"build-and-push", "ci-verdict"}
+    assert deploy["if"] == "needs.ci-verdict.outputs.verdict == 'green'"
+    # A docs-only head must still get its own run, or a superseded code SHA
+    # before it would leave staging behind.
+    assert "*.md" not in coolify["on"]["push"].get("paths-ignore", [])
 
     deploy_run = runs(deploy)
     assert "COOLIFY_WEBSITE_SERVICE_UUID" not in deploy_run
@@ -328,6 +341,7 @@ def drive_require(
     *,
     timeout: int,
     interval: int,
+    extra: list[str] | None = None,
 ) -> tuple[int, list[float]]:
     clock = [0.0]
     sleeps: list[float] = []
@@ -352,6 +366,7 @@ def drive_require(
             str(timeout),
             "--interval-seconds",
             str(interval),
+            *(extra or []),
         ],
         api=api,
         monotonic=monotonic,
@@ -445,3 +460,154 @@ def test_a_malformed_sha_is_refused_before_any_api_call() -> None:
 
     assert exit_code == 1
     assert api.calls == []
+
+
+# ---------------------------------------------------------------------------
+# Superseded main SHAs (--superseded-on)
+# ---------------------------------------------------------------------------
+
+
+def branch_payload(sha: str) -> str:
+    return json.dumps({"name": "main", "commit": {"sha": sha}})
+
+
+def compare_payload(status: str, ahead_by: int) -> str:
+    return json.dumps({"status": status, "ahead_by": ahead_by, "behind_by": 0})
+
+
+def superseded_args(tmp_path: Path) -> tuple[list[str], Path]:
+    output = tmp_path / "github_output"
+    return ["--superseded-on", "main", "--verdict-output", str(output)], output
+
+
+def test_a_cancel_that_main_moved_past_is_superseded_not_red(tmp_path: Path) -> None:
+    extra, output = superseded_args(tmp_path)
+    api = FakeApi(
+        [
+            runs_payload(make_run(conclusion="cancelled")),
+            jobs_payload(),
+            branch_payload(NEWER_SHA),
+            compare_payload("ahead", 2),
+        ]
+    )
+
+    exit_code, sleeps = drive_require(api, timeout=600, interval=60, extra=extra)
+
+    assert exit_code == 0
+    assert sleeps == []
+    assert output.read_text() == "verdict=superseded\n"
+    assert api.calls[1] == f"repos/{REPOSITORY}/actions/runs/101/jobs?per_page=100"
+    assert api.calls[2] == f"repos/{REPOSITORY}/branches/main"
+    assert api.calls[3] == f"repos/{REPOSITORY}/compare/{SHA}...{NEWER_SHA}"
+
+
+def test_a_green_verdict_writes_green(tmp_path: Path) -> None:
+    extra, output = superseded_args(tmp_path)
+    api = FakeApi(
+        [
+            runs_payload(make_run(conclusion="success")),
+            jobs_payload({"name": GATE_JOB_NAME, "conclusion": "success"}),
+        ]
+    )
+
+    exit_code, _sleeps = drive_require(api, timeout=600, interval=60, extra=extra)
+
+    assert exit_code == 0
+    assert output.read_text() == "verdict=green\n"
+
+
+def test_a_cancel_without_a_successor_still_blocks(tmp_path: Path) -> None:
+    extra, output = superseded_args(tmp_path)
+    api = FakeApi(
+        [runs_payload(make_run(conclusion="cancelled")), jobs_payload(), branch_payload(SHA)]
+    )
+
+    exit_code, _sleeps = drive_require(api, timeout=600, interval=60, extra=extra)
+
+    assert exit_code == 1
+    assert not output.exists()
+    assert len(api.calls) == 3
+
+
+def test_a_cancel_off_the_branch_line_still_blocks(tmp_path: Path) -> None:
+    extra, output = superseded_args(tmp_path)
+    for status in ("diverged", "behind", "identical"):
+        api = FakeApi(
+            [
+                runs_payload(make_run(conclusion="cancelled")),
+                jobs_payload(),
+                branch_payload(NEWER_SHA),
+                compare_payload(status, 1 if status == "diverged" else 0),
+            ]
+        )
+
+        exit_code, _sleeps = drive_require(api, timeout=600, interval=60, extra=extra)
+
+        assert exit_code == 1, status
+    assert not output.exists()
+
+
+def test_a_real_failure_blocks_even_when_main_moved_on(tmp_path: Path) -> None:
+    extra, output = superseded_args(tmp_path)
+    for conclusion in ("failure", "timed_out", "action_required"):
+        api = FakeApi([runs_payload(make_run(conclusion=conclusion))])
+
+        exit_code, _sleeps = drive_require(api, timeout=600, interval=60, extra=extra)
+
+        assert exit_code == 1, conclusion
+        # The successor is never consulted for a real failure.
+        assert len(api.calls) == 1
+    assert not output.exists()
+
+
+def test_a_self_cancelled_real_failure_still_blocks_when_main_moved_on(
+    tmp_path: Path,
+) -> None:
+    # ci.yml cancels its own run after a quality failure: the run concludes
+    # "cancelled" but its ci-gate job concludes "failure" (run 45383730357).
+    extra, output = superseded_args(tmp_path)
+    api = FakeApi(
+        [
+            runs_payload(make_run(conclusion="cancelled")),
+            jobs_payload(
+                {"name": "classification", "conclusion": "success"},
+                {"name": "quality", "conclusion": "cancelled"},
+                {"name": GATE_JOB_NAME, "conclusion": "failure"},
+            ),
+        ]
+    )
+
+    exit_code, sleeps = drive_require(api, timeout=600, interval=60, extra=extra)
+
+    assert exit_code == 1
+    assert sleeps == []
+    assert not output.exists()
+    # The successor is never consulted once the run shows a real failure.
+    assert not any("/branches/" in call for call in api.calls)
+
+
+def test_a_cancel_blocks_without_the_superseded_opt_in() -> None:
+    api = FakeApi([runs_payload(make_run(conclusion="cancelled"))])
+
+    exit_code, _sleeps = drive_require(api, timeout=600, interval=60)
+
+    assert exit_code == 1
+    assert len(api.calls) == 1
+
+
+def test_an_unreadable_successor_fails_closed_at_the_deadline(tmp_path: Path) -> None:
+    extra, output = superseded_args(tmp_path)
+
+    class BrokenBranchApi(FakeApi):
+        def __call__(self, arguments: list[str]) -> str:
+            self.calls.append(arguments[0])
+            if "/branches/" in arguments[0]:
+                raise RuntimeError("gh api branches failed: 502")
+            return runs_payload(make_run(conclusion="cancelled"))
+
+    api = BrokenBranchApi([])
+
+    exit_code, _sleeps = drive_require(api, timeout=90, interval=30, extra=extra)
+
+    assert exit_code == 1
+    assert not output.exists()

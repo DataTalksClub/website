@@ -8,7 +8,17 @@ one exact source SHA, this module demands a completed run of the CI workflow in
 this repository whose ``ci-gate`` job concluded ``success``.
 
 Everything fails closed.  A missing, pending, canceled, or unsuccessful verdict
-exits nonzero, and a green run for any other SHA authorizes nothing.  The
+exits nonzero, and a green run for any other SHA authorizes nothing.
+
+One narrow exception exists for push-driven staging (``--superseded-on``): the
+CI workflow's concurrency group keeps a single pending run, so GitHub cancels
+the queued CI of a main commit as soon as a newer main commit is pushed.  When
+the CI run for the SHA concluded ``cancelled`` with no failed job *and* the
+branch head has moved strictly ahead of that SHA, the SHA is ``superseded``: its release is skipped
+(exit 0, ``verdict=superseded``) because the newer head carries the change and
+gets its own full verdict and deploy.  A cancel without a successor -- the SHA
+is still the head, or not an ancestor of it -- and every real failure still
+block.  The
 decision logic is code-owned here and exercised by
 ``ci/tests/test_deploy_ci_gate.py``; the workflow steps only wire arguments.
 Stdlib-only, so both deploy workflows can run it with the runner's ``python3``
@@ -31,6 +41,15 @@ GATE_JOB_NAME = "ci-gate"
 
 GREEN_CONCLUSION = "success"
 
+#: The only non-green conclusion a newer branch head can explain away.
+CANCELLED_CONCLUSION = "cancelled"
+
+#: Job conclusions that do not by themselves show a verification failure.
+#: ci.yml cancels its own run after a quality failure, which leaves the run
+#: ``cancelled`` but its ``ci-gate`` job ``failure``; a run cancelled while
+#: still queued has no jobs at all.
+NON_FAILING_JOB_CONCLUSIONS = frozenset({None, "success", "skipped", "cancelled", "neutral"})
+
 SHA_LENGTH = 40
 
 
@@ -38,7 +57,7 @@ SHA_LENGTH = 40
 class VerdictDecision:
     """One classification of what GitHub returned for a source SHA."""
 
-    state: str  # "green" | "blocked" | "pending" | "missing"
+    state: str  # "green" | "superseded" | "blocked" | "pending" | "missing"
     reason: str
     run_id: int | None = None
     conclusion: str | None = None
@@ -142,6 +161,63 @@ def green_requires_gate_job(
     )
 
 
+def cancel_hides_a_failure(
+    blocked: VerdictDecision,
+    jobs: list[dict[str, Any]],
+) -> VerdictDecision | None:
+    """Keep a cancelled run blocked when any of its jobs actually failed.
+
+    ``None`` means the cancel carries no failure evidence (e.g. the run was
+    cancelled while still queued) and may be judged for supersession.
+    """
+
+    failed = sorted(
+        f"{job.get('name')}={job.get('conclusion')}"
+        for job in jobs
+        if job.get("conclusion") not in NON_FAILING_JOB_CONCLUSIONS
+    )
+    if not failed:
+        return None
+    return dataclasses.replace(
+        blocked,
+        reason=f"{blocked.reason}; the cancelled run has failed jobs ({', '.join(failed)}), "
+        "so it is a real failure, not a superseded SHA",
+    )
+
+
+def superseded_by(
+    blocked: VerdictDecision,
+    *,
+    compare: dict[str, Any],
+    branch: str,
+    branch_head: str,
+    expected_sha: str,
+) -> VerdictDecision | None:
+    """Reclassify a cancelled verdict whose SHA a newer branch head replaced.
+
+    ``compare`` is GitHub's ``compare/<expected_sha>...<branch_head>`` payload.
+    Only a cancel qualifies, and only when the head is a different commit that
+    is strictly ahead of the SHA (``status == "ahead"``), i.e. it contains the
+    SHA.  ``None`` keeps the original block.
+    """
+
+    if blocked.conclusion != CANCELLED_CONCLUSION:
+        return None
+    if not _is_full_sha(branch_head) or branch_head == expected_sha:
+        return None
+    if compare.get("status") != "ahead" or int(compare.get("ahead_by") or 0) < 1:
+        return None
+    return VerdictDecision(
+        "superseded",
+        f"{blocked.reason}; {branch} has moved {compare.get('ahead_by')} "
+        f"commit(s) ahead to {branch_head}, whose own CI verdict gates its "
+        "release, so this superseded SHA is skipped",
+        run_id=blocked.run_id,
+        conclusion=blocked.conclusion,
+        run_url=blocked.run_url,
+    )
+
+
 def default_gh_api(arguments: list[str]) -> str:
     completed = subprocess.run(
         ["gh", "api", *arguments],
@@ -166,6 +242,11 @@ def require(
     sleep: Callable[[float], None] = time.sleep,
 ) -> int:
     """Poll for a green CI verdict on one SHA; exit 0 only when it exists.
+
+    With ``--superseded-on BRANCH`` a cancelled verdict for a SHA that BRANCH
+    has moved past also exits 0, as ``superseded``.  ``--verdict-output``
+    receives ``verdict=green`` or ``verdict=superseded`` so the caller can
+    release only on green.
 
     A completed run is authoritative the moment it appears, so a failure (or
     any non-success conclusion) refuses immediately instead of waiting for a
@@ -205,6 +286,19 @@ def require(
         type=int,
         default=60,
         help="Seconds between polls while verification is unfinished (default 60)",
+    )
+    parser.add_argument(
+        "--superseded-on",
+        metavar="BRANCH",
+        help=(
+            "Treat a cancelled verdict as superseded (exit 0) when BRANCH's head "
+            "is strictly ahead of --sha; any other non-success still blocks"
+        ),
+    )
+    parser.add_argument(
+        "--verdict-output",
+        metavar="PATH",
+        help="Append verdict=<green|superseded> here on success (e.g. $GITHUB_OUTPUT)",
     )
     arguments = parser.parse_args(argv)
 
@@ -260,6 +354,42 @@ def require(
                 )
                 if gate_failure is not None:
                     decision = gate_failure
+            elif (
+                decision.state == "blocked"
+                and arguments.superseded_on
+                and decision.conclusion == CANCELLED_CONCLUSION
+            ):
+                cancelled_jobs = api(
+                    [
+                        f"repos/{arguments.repository}/actions/runs/{decision.run_id}/jobs?per_page=100"
+                    ]
+                )
+                hidden_failure = cancel_hides_a_failure(
+                    decision, json.loads(cancelled_jobs).get("jobs", [])
+                )
+                if hidden_failure is not None:
+                    report(hidden_failure)
+                    return 1
+                branch_response = api(
+                    [f"repos/{arguments.repository}/branches/{arguments.superseded_on}"]
+                )
+                branch_head = str(
+                    (json.loads(branch_response).get("commit") or {}).get("sha") or ""
+                )
+                if _is_full_sha(branch_head) and branch_head != arguments.sha:
+                    compare_response = api(
+                        [f"repos/{arguments.repository}/compare/{arguments.sha}...{branch_head}"]
+                    )
+                    decision = (
+                        superseded_by(
+                            decision,
+                            compare=json.loads(compare_response),
+                            branch=arguments.superseded_on,
+                            branch_head=branch_head,
+                            expected_sha=arguments.sha,
+                        )
+                        or decision
+                    )
         except (RuntimeError, ValueError) as error:
             # A transient API failure must not look like evidence either way:
             # keep polling until the deadline, then fail closed with the last
@@ -273,7 +403,10 @@ def require(
             )
         report(decision)
 
-        if decision.state == "green":
+        if decision.state in ("green", "superseded"):
+            if arguments.verdict_output:
+                with open(arguments.verdict_output, "a", encoding="utf-8") as output:
+                    output.write(f"verdict={decision.state}\n")
             return 0
         if decision.state == "blocked":
             return 1
