@@ -705,7 +705,6 @@
                           </form>
                         {% endwith %}
                       {% else %}
-                        <p class="event-register-greeting">Welcome! To join the event, please register below.</p>
                         <div class="event-register-choices">
                           <a class="cta cta-primary cta-compact event-register-submit interactive-lift" href="{{ account_login_url }}">Log in to register</a>
                           <button
@@ -713,7 +712,7 @@
                             class="cta cta-secondary cta-compact event-register-submit event-register-email-toggle"
                             aria-controls="event-register-email-form"
                             aria-expanded="{% if registered == 'invalid_email' %}true{% else %}false{% endif %}"
-                          >Register with email only</button>
+                          >Register with email</button>
                         </div>
                         <p class="event-register-login-line">Have an account? <a href="{{ account_login_url }}">Log in to register</a></p>
                         <form
