@@ -9,6 +9,7 @@
   .homework-step-list a { display: inline-block; border: var(--border-soft); border-radius: var(--radius-control); color: var(--ink); padding: var(--space-2) var(--space-3); text-decoration: none; }
   .homework-step-list a:hover, .homework-step-list a:focus-visible { border-color: var(--line); }
   .homework-step-list a[aria-current="step"] { background: var(--lavender-deep); border-color: var(--line); font-weight: 700; }
+  @media (min-width: 52.01rem) { .homework-steps--with-rail .homework-step-nav { display: none; } }
   .homework-step-check { color: var(--green-deep); font-weight: 800; margin-inline-end: var(--space-1); }
   .homework-step-panel { display: grid; gap: var(--space-5); }
   .homework-step-panel h2 { font-size: clamp(1.4rem, 3vw, 1.87rem); }

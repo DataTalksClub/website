@@ -24,7 +24,7 @@
     under the homework row, so the chips step aside there; on a phone the rail
     stacks below the page and the chips are the in-place route.
   {% endcomment %}
-  <nav class="homework-step-nav" aria-label="Homework steps">
+  <nav class="homework-step-nav" aria-label="Homework progress">
     <ol class="homework-step-list">
       {% for item in stepper|homework_nav_steps %}
         <li><a href="{{ item.url }}"{% if item.current %} aria-current="step"{% endif %}{% if item.done %} data-step-done="true"{% endif %}>{% if item.done %}<span class="homework-step-check" aria-hidden="true">✓</span>{% endif %}{{ item.title }}{% if item.done %}<span class="sr-only">, answered</span>{% endif %}</a></li>
@@ -96,7 +96,7 @@
     </div>
   {% else %}
     <div class="homework-step-panel">
-      <h2>Review &amp; submit</h2>
+      <h2>{% if stepper.closed_review %}Review{% else %}Review &amp; submit{% endif %}</h2>
       {% if stepper.closed_review %}
         {% if stepper.accepted_snapshot_primary %}
           <section class="homework-review-section" aria-labelledby="accepted-submission-title" data-testid="homework-accepted-snapshot">

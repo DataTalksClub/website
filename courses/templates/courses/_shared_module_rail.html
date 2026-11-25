@@ -1,3 +1,4 @@
+{% load homework_steps_nav %}
 {% comment %}
 "In this module" navigation for the shared, cohort-free module and lesson
 pages.
@@ -47,15 +48,18 @@ module.
           </a>
           {% comment %}
             The signed-in learner's own status for this homework.  On the
-            homework page it is the page's own state (the stepper's, or the
-            classic form's); elsewhere the view passes terminal_homework_state.
+            homework page itself the page header already says it once, so the
+            row opens into the homework's steps there instead.
           {% endcomment %}
-          {% if current_homework.pk == terminal_homework.pk and stepper.homework_state %}
-            <p class="rail-unit-status">{% include "courses/_homework_state_pill.html" with homework_state=stepper.homework_state score=None %}</p>
-          {% elif current_homework.pk == terminal_homework.pk and homework_state %}
-            <p class="rail-unit-status">{% include "courses/_homework_state_pill.html" with homework_state=homework_state score=None %}</p>
-          {% elif terminal_homework_state %}
+          {% if terminal_homework_state and current_homework.pk != terminal_homework.pk %}
             <p class="rail-unit-status">{% include "courses/_homework_state_pill.html" with homework_state=terminal_homework_state score=None %}</p>
+          {% endif %}
+          {% comment %}
+            On the homework page itself the row opens into the homework's own
+            steps, answered ones checked and the current one marked.
+          {% endcomment %}
+          {% if current_homework.pk == terminal_homework.pk and stepper %}
+            {% include "courses/_rail_substeps.html" with items=stepper|homework_nav_steps label="Homework steps" done_suffix=", answered" testid="homework-rail-steps" %}
           {% endif %}
         </li>
       {% endif %}

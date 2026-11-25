@@ -1,0 +1,27 @@
+{% comment %}
+  A rail row's own steps, nested under the row they belong to: the homework's
+  Introduction / Question N / Learning in Public / Review & submit today, a
+  project attempt's steps next.  One shape for both so they read alike.
+
+  Context:
+    items        -- iterable of objects/dicts with `title`, `url`, `current`,
+                    `done` and optionally `key`.
+    label        -- the group's accessible name ("Homework steps").
+    done_suffix  -- screen-reader text after a done step's title
+                    (", answered" for homework, ", done" otherwise).
+    testid       -- optional data-testid for the list.
+
+  The current step carries aria-current="step" and the row tint the rail uses
+  for the current page; a done step swaps its dot for the same mint check mark
+  a read lesson wears.
+{% endcomment %}
+<ol class="rail-substeps" aria-label="{{ label }}"{% if testid %} data-testid="{{ testid }}"{% endif %}>
+  {% for item in items %}
+    <li class="rail-substep{% if item.current %} is-current{% endif %}{% if item.done %} is-done{% endif %}"{% if item.key %} data-step="{{ item.key }}"{% endif %}>
+      <a class="rail-substep-link" href="{{ item.url }}"{% if item.current %} aria-current="step"{% endif %}{% if item.done %} data-step-done="true"{% endif %}>
+        <span class="rail-substep-mark" aria-hidden="true">{% if item.done %}✓{% endif %}</span>
+        <span class="rail-substep-title">{{ item.title }}{% if item.done %}<span class="sr-only">{{ done_suffix|default:", done" }}</span>{% endif %}</span>
+      </a>
+    </li>
+  {% endfor %}
+</ol>

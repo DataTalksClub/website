@@ -270,6 +270,83 @@
         padding-inline-start: calc(1.75rem + var(--space-2) + var(--space-2));
       }
 
+      /* A row's own steps (`courses/_rail_substeps.html`): the homework's
+         Introduction / Question N / Review & submit on its page, a project
+         attempt's steps next.  Indented under the parent row's title, with a
+         smaller mark that turns into the read lesson's mint check once done
+         and the current row's tint for the step being shown. */
+      .rail-substeps {
+        display: grid;
+        gap: 0.1rem;
+        list-style: none;
+        margin: var(--space-1) 0 0;
+        padding: 0;
+        padding-inline-start: calc(1.75rem + var(--space-2));
+      }
+
+      .rail-substep-link {
+        align-items: center;
+        border-radius: var(--radius-control);
+        color: var(--body-text);
+        display: grid;
+        font-size: 0.85rem;
+        gap: var(--space-2);
+        grid-template-columns: 1.25rem minmax(0, 1fr);
+        line-height: 1.3;
+        min-height: 2rem;
+        overflow-wrap: anywhere;
+        padding: var(--space-1) var(--space-2);
+        text-decoration: none;
+      }
+
+      .rail-substep-link:hover .rail-substep-title {
+        color: var(--indigo);
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .rail-substep-mark {
+        align-items: center;
+        border: var(--border-soft);
+        border-radius: var(--drawn-circle);
+        display: inline-flex;
+        font-size: 0.7rem;
+        font-weight: 800;
+        height: 1.25rem;
+        justify-content: center;
+        width: 1.25rem;
+      }
+
+      .rail-substep:nth-child(3n + 2) .rail-substep-mark {
+        border-radius: var(--drawn-circle-b);
+      }
+
+      .rail-substep:nth-child(3n) .rail-substep-mark {
+        border-radius: var(--drawn-circle-c);
+      }
+
+      .rail-substep.is-done .rail-substep-mark {
+        background: var(--mint);
+        border-color: var(--green-deep);
+        color: var(--green-deep);
+      }
+
+      .rail-substep.is-current .rail-substep-link {
+        background: var(--lavender-deep);
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .rail-substep.is-current .rail-substep-link:hover .rail-substep-title {
+        color: var(--ink);
+      }
+
+      .rail-substep.is-current .rail-substep-mark {
+        background: var(--indigo);
+        border-color: var(--indigo);
+        color: var(--cream);
+      }
+
       .rail-signin {
         font-size: 0.85rem;
       }

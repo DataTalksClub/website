@@ -136,3 +136,38 @@ class RailHomeworkStateTests(SharedWorldTestCase):
 
         self.assertContains(response, 'class="rail-unit-status"')
         self.assertContains(response, state_label("submitted", "Submitted"))
+
+
+class RailHomeworkSubstepTests(RailHomeworkStateTests):
+    def homework_step_url(self, step):
+        return reverse(
+            "cohort_homework_step",
+            kwargs={
+                "course_slug": self.course.slug,
+                "cohort_identifier": self.cohort_2026.identifier,
+                "homework_slug": self.homework.slug,
+                "homework_step": step,
+            },
+        )
+
+    def test_homework_page_rail_lists_the_steps_with_current_and_done(self):
+        self.client.force_login(self.user)
+        self.client.get(self.homework_step_url("intro"))
+        HomeworkDraft.objects.filter(user=self.user).update(
+            answers={f"q-{self.question.pk}": "my answer"}
+        )
+
+        response = self.client.get(self.homework_step_url("review"))
+
+        html = response.content.decode()
+        self.assertIn('<ol class="rail-substeps" aria-label="Homework steps"', html)
+        self.assertIn('class="rail-substep is-done" data-step="q-', html)
+        self.assertIn('Question 1<span class="sr-only">, answered</span>', html)
+        self.assertIn('class="rail-substep is-current" data-step="review"', html)
+        # The header carries the status; the rail row does not repeat it.
+        self.assertNotIn('class="rail-unit-status"', html)
+
+    def test_lesson_rail_has_no_substeps(self):
+        self.client.force_login(self.user)
+        response = self.client.get(self.lesson_url() + "?cohort=2026")
+        self.assertNotContains(response, 'class="rail-substeps"')
