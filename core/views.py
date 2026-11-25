@@ -374,8 +374,10 @@ def newsletter(request: HttpRequest) -> HttpResponse:
         "canonical_url": "https://datatalks.club/newsletter",
         "seo_title": "Newsletter — DataTalks.Club",
         "seo_description": (
-            "Subscribe to our weekly newsletter for events, articles, and free courses."
+            "One email every Monday with DataTalks.Club events, free course launches, "
+            "new articles, and community news. Read by 130,000+ data and AI practitioners."
         ),
+        "tour_content": homepage_tour_page(),
     }
 
     if request.method in {"GET", "HEAD"}:

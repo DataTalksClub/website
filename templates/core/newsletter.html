@@ -1,29 +1,284 @@
-{% extends "public/text_page.html" %}
+{% extends "core/content_page.html" %}
 {% load static %}
+{% comment %}
+  The newsletter page: what a subscriber gets each week, who else reads it, and
+  the signup form twice (in the header and again at the end).  The form is the
+  shared partial; both copies post to this view through newsletter_signup.js.
 
-{% block kicker %}
-  Newsletter
+  The reader figures under "Who reads it" are the About page's own survey
+  record (``tour_content``, read from ``content.tour_content``), so this page
+  restates nothing the About page does not; with no published record the
+  tiles are simply absent.
+{% endcomment %}
+
+{% block document_title %}{{ seo_title }}{% endblock %}
+
+{% block metadata %}
+  {{ block.super }}
+  <meta name="description" content="{{ seo_description }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="DataTalks.Club">
+  <meta property="og:title" content="{{ seo_title }}">
+  <meta property="og:description" content="{{ seo_description }}">
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="@DataTalksClub">
 {% endblock %}
 
-{% block title %}
-  Weekly newsletter
+{% block page_styles %}
+  .newsletter-hero {
+    align-items: center;
+    display: grid;
+    gap: var(--space-6);
+  }
+  .newsletter-hero h1 {
+    max-width: 20ch;
+  }
+  .newsletter-lede {
+    font-size: clamp(1rem, 1.6vw, 1.15rem);
+    margin: var(--space-stack) 0 0;
+    max-width: 34rem;
+  }
+  .newsletter-hero .newsletter-card,
+  .newsletter-closing .newsletter-card {
+    margin-top: 0;
+  }
+  .newsletter-section + .newsletter-section {
+    border-top: 2px solid color-mix(in srgb, var(--line) 55%, transparent);
+    margin-top: var(--space-section);
+    padding-top: var(--space-section);
+  }
+  .newsletter-section-heading {
+    margin-bottom: var(--space-head);
+    max-width: 44rem;
+  }
+  .newsletter-section-heading h2 {
+    font-size: clamp(1.55rem, 4vw, 2.35rem);
+    margin: 0;
+  }
+  .newsletter-section-heading p {
+    color: var(--muted);
+    margin: var(--space-tight) 0 0;
+  }
+
+  /* What arrives each week, in the homepage's promise style: a drawn mark,
+     a short heading, one line under it. */
+  .newsletter-promises {
+    display: grid;
+    gap: var(--space-5) var(--space-6);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .newsletter-promises li {
+    column-gap: var(--space-3);
+    display: grid;
+    grid-template-columns: auto 1fr;
+  }
+  .newsletter-promises .promise-mark {
+    background: var(--indigo-soft);
+    border: 2px solid var(--line);
+    border-radius: var(--drawn-circle);
+    height: 1.5rem;
+    margin-top: var(--space-1);
+    width: 1.5rem;
+  }
+  .newsletter-promises li:nth-child(3n + 2) .promise-mark {
+    border-radius: var(--drawn-circle-b);
+  }
+  .newsletter-promises li:nth-child(3n) .promise-mark {
+    border-radius: var(--drawn-circle-c);
+  }
+  .newsletter-promises h3 {
+    font-size: 1.1rem;
+    margin: 0;
+  }
+  .newsletter-promises p {
+    margin: var(--space-1) 0 0;
+  }
+
+  /* Who reads it: the subscriber count as the lead figure, the survey tiles
+     beside it. */
+  .newsletter-readers {
+    display: grid;
+    gap: var(--space-5);
+  }
+  .newsletter-reach strong {
+    display: block;
+    font-size: clamp(2.4rem, 6vw, 3.4rem);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+  .newsletter-reach p {
+    margin: var(--space-tight) 0 0;
+    max-width: 30rem;
+  }
+  .newsletter-survey-note {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin: 0 0 var(--space-3);
+  }
+
+  .newsletter-faq .faq-answer p {
+    margin: 0;
+  }
+
+  .newsletter-closing {
+    align-items: center;
+    display: grid;
+    gap: var(--space-5);
+  }
+  .newsletter-closing h2 {
+    font-size: clamp(1.55rem, 4vw, 2.35rem);
+    margin: 0;
+  }
+  .newsletter-closing p {
+    color: var(--muted);
+    margin: var(--space-tight) 0 0;
+  }
+
+  @media (min-width: 48rem) {
+    .newsletter-hero,
+    .newsletter-closing {
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    }
+    .newsletter-promises {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 62rem) {
+    .newsletter-readers {
+      align-items: center;
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr);
+    }
+  }
 {% endblock %}
 
-{% block lede %}
-  Subscribe to our weekly newsletter.
-{% endblock %}
-
-{% block content %}
-  <p>
-    We'll keep you informed about our events, articles, courses, and everything else happening in the Club.
-  </p>
-  <div class="newsletter-card">
-    {% include "core/_newsletter_signup_form.html" with input_id="newsletter-page-email" %}
+{% block page_header %}
+  <div class="newsletter-hero">
+    <div>
+      <h1 class="page-title">One email a week with everything happening in the Club</h1>
+      <p class="newsletter-lede">
+        Every Monday: the week's live events, free course launches, new articles,
+        and community news. Free, and read by 130,000+ data and AI practitioners.
+      </p>
+    </div>
+    <div class="newsletter-card">
+      {% include "core/_newsletter_signup_form.html" with input_id="newsletter-page-email" %}
+    </div>
   </div>
 {% endblock %}
 
-{% block actions %}
-  <a class="cta cta-secondary interactive-lift" href="{% url 'slack' %}">Learn about our Slack</a>
+{% block page_content %}
+  <section class="newsletter-section" aria-labelledby="newsletter-weekly-heading">
+    <div class="newsletter-section-heading">
+      <h2 id="newsletter-weekly-heading">What you get each week</h2>
+      <p>A short Monday read so you don't miss what's on in the community.</p>
+    </div>
+    <ul class="newsletter-promises">
+      <li>
+        <span class="promise-mark" aria-hidden="true"></span>
+        <div>
+          <h3>Live events to join</h3>
+          <p>Podcast recordings, hands-on workshops, and talks you can attend for free and ask questions in.</p>
+        </div>
+      </li>
+      <li>
+        <span class="promise-mark" aria-hidden="true"></span>
+        <div>
+          <h3>Free course launches</h3>
+          <p>When a new Zoomcamp cohort opens and when it starts, plus optional live workshops and Q&amp;A sessions.</p>
+        </div>
+      </li>
+      <li>
+        <span class="promise-mark" aria-hidden="true"></span>
+        <div>
+          <h3>New articles</h3>
+          <p>Guides and posts from the DataTalks.Club blog, as they're published.</p>
+        </div>
+      </li>
+      <li>
+        <span class="promise-mark" aria-hidden="true"></span>
+        <div>
+          <h3>Community news</h3>
+          <p>Announcements and everything else happening in the Club, plus an invite to our Slack when you subscribe.</p>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <section class="newsletter-section" aria-labelledby="newsletter-readers-heading">
+    <div class="newsletter-section-heading">
+      <h2 id="newsletter-readers-heading">Who reads it</h2>
+      <p>Data engineers, ML and AI engineers, data scientists, and people learning to become one.</p>
+    </div>
+    <div class="newsletter-readers">
+      <div class="newsletter-reach">
+        <strong>130,000+</strong>
+        <p>subscribers get the newsletter every Monday.</p>
+      </div>
+      {% if tour_content.stats %}
+        <div>
+          <p class="newsletter-survey-note">From our community survey:</p>
+          {% include "core/_community_stats.html" with tour_content=tour_content tiles_variant="stat-tiles-row" only %}
+        </div>
+      {% endif %}
+    </div>
+    <p class="band-more">
+      <a class="band-link" href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full survey →</a>
+    </p>
+  </section>
+
+  <section class="newsletter-section" aria-labelledby="newsletter-faq-heading">
+    <div class="newsletter-section-heading">
+      <h2 id="newsletter-faq-heading">Questions</h2>
+    </div>
+    <div class="newsletter-faq faq-panel panel panel-outlined">
+      <details class="faq-fold" id="faq-how-often">
+        <summary class="faq-fold-summary">
+          <h3 class="faq-question-title">How often will I hear from you?</h3>
+          <span class="faq-fold-marker" aria-hidden="true"></span>
+        </summary>
+        <div class="prose faq-answer"><p>Once a week, on Monday.</p></div>
+      </details>
+      <details class="faq-fold" id="faq-free">
+        <summary class="faq-fold-summary">
+          <h3 class="faq-question-title">Is it free?</h3>
+          <span class="faq-fold-marker" aria-hidden="true"></span>
+        </summary>
+        <div class="prose faq-answer">
+          <p>Yes. <a href="{% url 'public-article' slug='sponsor-datatalks-club' %}">Sponsors</a> keep the newsletter free, and we never share subscriber email addresses with them.</p>
+        </div>
+      </details>
+      <details class="faq-fold" id="faq-unsubscribe">
+        <summary class="faq-fold-summary">
+          <h3 class="faq-question-title">Can I unsubscribe?</h3>
+          <span class="faq-fold-marker" aria-hidden="true"></span>
+        </summary>
+        <div class="prose faq-answer"><p>Any time, with the unsubscribe link in every email.</p></div>
+      </details>
+      <details class="faq-fold" id="faq-privacy">
+        <summary class="faq-fold-summary">
+          <h3 class="faq-question-title">What do you do with my email address?</h3>
+          <span class="faq-fold-marker" aria-hidden="true"></span>
+        </summary>
+        <div class="prose faq-answer">
+          <p>We use it to send you the newsletter. Our <a href="/privacy">privacy policy</a> has the details.</p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section class="newsletter-section newsletter-closing" aria-labelledby="newsletter-closing-heading">
+    <div>
+      <h2 id="newsletter-closing-heading">Get the next issue on Monday</h2>
+      <p>Join 130,000+ data and AI practitioners.</p>
+    </div>
+    <div class="newsletter-card">
+      {% include "core/_newsletter_signup_form.html" with input_id="newsletter-closing-email" newsletter_result=None submitted_email="" %}
+    </div>
+  </section>
 {% endblock %}
 
 {% block page_scripts %}
