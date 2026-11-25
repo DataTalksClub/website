@@ -75,6 +75,21 @@
         }
       }
 
+      /* Two columns at the homepage hero's proportions (1.32fr : 1fr, the
+         same gap), so the drawing is as present as the homepage's scene
+         rather than a small picture in the corner. */
+      @media (min-width: 62rem) {
+        .academy-hero-inner {
+          gap: var(--space-5) var(--space-7);
+          grid-template-columns: minmax(0, 1.32fr) minmax(0, 1fr);
+        }
+
+        .academy-hero-art {
+          justify-self: center;
+          max-width: 28rem;
+        }
+      }
+
       .academy-hero h1 {
         font-size: clamp(2.1rem, 4.9vw, 3.4rem);
         letter-spacing: -0.03em;
