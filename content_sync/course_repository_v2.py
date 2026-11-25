@@ -16,8 +16,6 @@ import re
 from pathlib import PurePosixPath
 from typing import Any
 
-from community_base.coursework.project_criteria import CriteriaError, parse_criteria_set
-
 from content.course_catalog import parse_course_catalog
 from courses.services.curriculum_source import (
     CohortSource,
@@ -654,6 +652,11 @@ class SharedCurriculumParserV2:
     def _parse_criteria_sets(
         self, path: str, raw: object, *, directory: str
     ) -> tuple[CriteriaSetSource, ...]:
+        # Imported here: only a schema-2 cohort that declares criteria sets
+        # needs it, and the v0.5.21 source-policy proof parses flat sources
+        # with a community-base that predates this module.
+        from community_base.coursework.project_criteria import CriteriaError, parse_criteria_set
+
         if not isinstance(raw, list):
             _fail("review_criteria_list_required", path, "/review_criteria")
         result: list[CriteriaSetSource] = []

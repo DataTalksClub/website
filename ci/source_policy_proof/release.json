@@ -7,9 +7,9 @@
         "version": "0.5.21"
     },
     "runtime": {
-        "commit": "7c05efcb50c117fd5af629b153f27bf71e63c152",
-        "tag": "v0.5.38",
-        "version": "0.5.38"
+        "commit": "d49027d2bef7105c3baaec6256973de004574933",
+        "tag": "v0.5.39",
+        "version": "0.5.39"
     },
     "schema_version": 1
 }
