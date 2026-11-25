@@ -21,11 +21,19 @@
       <h3 id="{{ block.id }}">{{ block.text }}</h3>
     {% endif %}
   {% elif block.kind == "list" %}
-    {% if block.ordered %}<ol>{% else %}<ul>{% endif %}
+    {% if block.ordered %}
+      <ol>
+    {% else %}
+      <ul>
+    {% endif %}
       {% for item in block.items %}
         <li>{{ item.markdown|default:item.text|public_text }}</li>
       {% endfor %}
-    {% if block.ordered %}</ol>{% else %}</ul>{% endif %}
+    {% if block.ordered %}
+      </ol>
+    {% else %}
+      </ul>
+    {% endif %}
   {% else %}
     <p class="prose-paragraph">{{ block.markdown|default:block.text|public_text }}</p>
   {% endif %}

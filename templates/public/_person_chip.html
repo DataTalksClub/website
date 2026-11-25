@@ -40,11 +40,16 @@
   {% else %}
     <span class="avatar avatar-striped person-chip-portrait" aria-hidden="true"></span>
   {% endif %}
-  {% if chip_role %}<span class="person-chip-text">{% endif %}
+  {% if chip_role %}
+    <span class="person-chip-text">
+  {% endif %}
   {% if person.public_path %}
     <a class="band-link person-chip-name" href="{{ person.public_path }}">{{ person.name }}</a>
   {% else %}
     <span class="person-chip-name">{{ person.name }}</span>
   {% endif %}
-  {% if chip_role %}<span class="person-chip-role">{{ chip_role }}</span></span>{% endif %}
+  {% if chip_role %}
+    <span class="person-chip-role">{{ chip_role }}</span>
+    </span>
+  {% endif %}
 </span>

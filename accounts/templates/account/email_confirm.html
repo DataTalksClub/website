@@ -21,7 +21,11 @@
   <div class="card entrance-panel">
     {% if confirmation %}
       {% if can_confirm %}
-        <p>Confirm that <strong>{{ confirmation.email_address.email }}</strong> is your email address.</p>
+        <p>
+          Confirm that
+          <strong>{{ confirmation.email_address.email }}</strong>
+          is your email address.
+        </p>
         <form class="entrance-form" method="post" action="{% url 'account_confirm_email' confirmation.key %}">
           {% csrf_token %}
           {{ redirect_field }}

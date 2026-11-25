@@ -47,12 +47,19 @@
             <b>{{ count }} speakers</b>
           {% else %}
             {% for speaker in shown %}
-              <b{% if speaker.name|length > 15 %} class="is-long"{% endif %}>{{ speaker.name }}</b>
+              <b
+                {% if speaker.name|length > 15 %}
+                  class="is-long"
+                {% endif %}
+              >{{ speaker.name }}</b>
             {% endfor %}
           {% endif %}
         </p>
         <p class="event-art-when">
-          <time datetime="{{ event.starts_at }}"><b>{{ event.display_art_date }}</b> <span>{{ event.display_clock }}</span></time>
+          <time datetime="{{ event.starts_at }}">
+            <b>{{ event.display_art_date }}</b>
+            <span>{{ event.display_clock }}</span>
+          </time>
         </p>
       {% endif %}
     </div>

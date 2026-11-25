@@ -7,12 +7,30 @@
 <span class="event-sponsors-label">Sponsored by</span>
 {% for sponsor in sponsors %}
   {% if sponsor.url %}
-    <a class="event-sponsor" href="{{ sponsor.url }}"{% if sponsor.external %} target="_blank" rel="sponsored noopener noreferrer"{% endif %}>
-      {% if sponsor.logo_url %}<img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}">{% else %}{{ sponsor.name }}{% endif %}{% if sponsor.external %}<span class="sr-only"> (opens in a new tab)</span>{% endif %}
+    <a
+      class="event-sponsor"
+      href="{{ sponsor.url }}"
+      {% if sponsor.external %}
+        target="_blank"
+        rel="sponsored noopener noreferrer"
+      {% endif %}
+    >
+      {% if sponsor.logo_url %}
+        <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}">
+      {% else %}
+        {{ sponsor.name }}
+      {% endif %}
+      {% if sponsor.external %}
+        <span class="sr-only"> (opens in a new tab)</span>
+      {% endif %}
     </a>
   {% else %}
     <span class="event-sponsor">
-      {% if sponsor.logo_url %}<img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}">{% else %}{{ sponsor.name }}{% endif %}
+      {% if sponsor.logo_url %}
+        <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}">
+      {% else %}
+        {{ sponsor.name }}
+      {% endif %}
     </span>
   {% endif %}
 {% endfor %}

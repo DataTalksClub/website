@@ -233,7 +233,11 @@
           <p>{{ benefit.body }}</p>
           <ul class="channel-list" aria-label="Channels">
             {% for channel in benefit.channels %}
-              <li class="chip chip-plain channel"><code class="mono-code">{{ channel }}</code></li>
+              {% spaceless %}
+              <li class="chip chip-plain channel">
+                <code class="mono-code">{{ channel }}</code>
+              </li>
+              {% endspaceless %}
             {% endfor %}
           </ul>
         </li>

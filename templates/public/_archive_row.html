@@ -67,7 +67,11 @@
   The events card's own shared rules live in `templates/core/_design_system.html`
   instead, so the homepage and the events index still draw one card.
 {% endcomment %}
-  <article class="archive-row{% if not row_date or row_dateline %} archive-row-undated{% endif %} {{ row_class }}" {{ row_hook }}>
+  {% if not row_date or row_dateline %}
+    <article class="archive-row archive-row-undated {{ row_class }}" {{ row_hook }}>
+  {% else %}
+    <article class="archive-row {{ row_class }}" {{ row_hook }}>
+  {% endif %}
     {% if row_date and not row_dateline %}
       <p class="event-day-date archive-date">
         <time datetime="{{ row_date|iso_day }}">
@@ -80,7 +84,15 @@
     <div class="event-item archive-card interactive-card interactive-lift">
       <div class="event-item-body archive-body">
         {% if row_dateline %}
-          <p class="event-item-time">{% if row_date %}<time datetime="{{ row_date|iso_day }}">{{ row_dateline }}</time>{% else %}{{ row_dateline }}{% endif %}</p>
+          {% if row_date %}
+            {% spaceless %}
+              <p class="event-item-time">
+                <time datetime="{{ row_date|iso_day }}">{{ row_dateline }}</time>
+              </p>
+            {% endspaceless %}
+          {% else %}
+            <p class="event-item-time">{{ row_dateline }}</p>
+          {% endif %}
         {% endif %}
         {% if row_pill %}
           <p class="archive-marks">
@@ -98,7 +110,13 @@
           <a href="{{ row_url }}">{{ row_title }}</a>
         </h3>
         {% if row_eyebrow or row_meta %}
-          <p class="archive-meta">{% if row_eyebrow %}{{ row_eyebrow }}{% endif %}{% if row_meta %}{% if row_eyebrow %} · {% endif %}{{ row_meta }}{% endif %}</p>
+          {% if row_eyebrow and row_meta %}
+            <p class="archive-meta">{{ row_eyebrow }} · {{ row_meta }}</p>
+          {% elif row_eyebrow %}
+            <p class="archive-meta">{{ row_eyebrow }}</p>
+          {% else %}
+            <p class="archive-meta">{{ row_meta }}</p>
+          {% endif %}
         {% endif %}
         {% if row_summary %}
           <p class="archive-summary">{{ row_summary }}</p>
@@ -121,7 +139,11 @@
         {% endif %}
       </div>
       {% if row_image %}
-        <img class="event-item-thumb archive-thumb{% if row_image_fit == "contain" %} is-portrait{% else %} is-wide{% endif %}" src="{{ row_image }}" alt="" width="120" height="80" loading="lazy" decoding="async">
+        {% if row_image_fit == "contain" %}
+          <img class="event-item-thumb archive-thumb is-portrait" src="{{ row_image }}" alt="" width="120" height="80" loading="lazy" decoding="async">
+        {% else %}
+          <img class="event-item-thumb archive-thumb is-wide" src="{{ row_image }}" alt="" width="120" height="80" loading="lazy" decoding="async">
+        {% endif %}
       {% endif %}
     </div>
   </article>

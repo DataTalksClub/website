@@ -1010,10 +1010,20 @@
               {% for event in upcoming_events %}
                 <article class="home-event interactive-card interactive-lift">
                   {% include "public/_event_art.html" with event=event %}
-                  <h3><a href="{{ event.public_path }}">{{ event.title }}</a></h3>
+                  {% spaceless %}
+                  <h3>
+                    <a href="{{ event.public_path }}">{{ event.title }}</a>
+                  </h3>
+                  {% endspaceless %}
                   <p class="home-event-count">
                     {% if event.registration_count %}
-                      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="6" cy="5.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1.8 13.2c.4-2.3 2.1-3.6 4.2-3.6s3.8 1.3 4.2 3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10.6 3.4a2.3 2.3 0 0 1 0 4.4M12.2 9.9c1 .5 1.7 1.6 2 3.1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                      {% spaceless %}
+                      <svg viewBox="0 0 16 16" aria-hidden="true">
+                        <circle cx="6" cy="5.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M1.8 13.2c.4-2.3 2.1-3.6 4.2-3.6s3.8 1.3 4.2 3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M10.6 3.4a2.3 2.3 0 0 1 0 4.4M12.2 9.9c1 .5 1.7 1.6 2 3.1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                      </svg>
+                      {% endspaceless %}
                       <span>{{ event.registration_count }} registered</span>
                     {% endif %}
                   </p>
