@@ -952,9 +952,8 @@ Rules for editing:
 
       .cb-card {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 1.25rem;
-        box-shadow: 6px 6px 0 var(--shadow);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         padding: var(--space-4) var(--space-4);
       }
 
@@ -989,8 +988,8 @@ Rules for editing:
 
       .cb-alert {
         background: var(--lavender);
-        border: 2px solid var(--line);
-        border-radius: 0.75rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-media);
         color: var(--ink);
         padding: var(--space-3) var(--space-4);
       }
@@ -1041,9 +1040,9 @@ Rules for editing:
 
       .site-navigation-links {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0 0.75rem 1.75rem var(--shadow-soft);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
+        box-shadow: var(--shadow-popover);
         display: none;
         gap: 0.1rem;
         min-width: 12rem;
@@ -1171,9 +1170,9 @@ Rules for editing:
 
       .mobile-nav-panel {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0 0.75rem 1.75rem var(--shadow-soft);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
+        box-shadow: var(--shadow-popover);
         display: grid;
         gap: 0.1rem;
         padding: var(--space-2);
@@ -1656,6 +1655,11 @@ Rules for editing:
         .interactive-card:hover::before {
           opacity: 1;
         }
+
+        /* A soft card answers the pointer with the same tint as .event-item. */
+        .interactive-card.interactive-lift:hover {
+          border-color: var(--indigo-soft);
+        }
       }
 
       .interactive-lift:focus-visible,
@@ -1684,9 +1688,8 @@ Rules for editing:
 
       .card {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         display: flex;
         flex-direction: column;
         font-size: 0.9rem;
@@ -2720,9 +2723,9 @@ Rules for editing:
          footer, it is the modal dialog, centred over a backdrop. */
       .analytics-preferences {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.45rem 0.45rem 0 var(--shadow-soft);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
+        box-shadow: var(--shadow-popover);
         color: var(--body-text);
         margin: 0;
         max-height: calc(100vh - 2rem);
@@ -2905,10 +2908,9 @@ Rules for editing:
       }
 
       .stat-tile {
-        background: var(--lavender);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        background: var(--card);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         padding: var(--space-4) var(--space-4);
       }
 
@@ -3038,8 +3040,8 @@ Rules for editing:
       .event-item {
         align-items: start;
         background: var(--card);
-        border: 1px solid var(--line-soft);
-        border-radius: 1rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         display: grid;
         gap: var(--space-4);
         grid-template-columns: minmax(0, 1fr) 7.5rem;
@@ -4124,9 +4126,8 @@ Rules for editing:
 
       .module {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.25rem 0.25rem 0 var(--shadow-soft);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         overflow: hidden;
       }
 
@@ -4449,8 +4450,8 @@ Rules for editing:
          message. */
       .a11y-error-summary {
         background: var(--sand);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         color: var(--ink);
         display: grid;
         gap: var(--space-2);
@@ -4500,9 +4501,8 @@ Rules for editing:
          panel; each page sets its own wide-screen columns. */
       .featured {
         background: var(--card);
-        border: 3px solid var(--ink);
-        border-radius: 1.5rem;
-        box-shadow: 0.45rem 0.45rem 0 var(--shadow-soft);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         display: grid;
         gap: var(--space-6);
         grid-template-columns: minmax(0, 1fr);
@@ -4551,7 +4551,7 @@ Rules for editing:
       .featured-build {
         align-content: start;
         background: var(--mint);
-        border-radius: 1.1rem;
+        border-radius: var(--radius-card);
         display: grid;
         gap: var(--space-3);
         padding: var(--space-5) var(--space-5);
@@ -4593,14 +4593,14 @@ Rules for editing:
 
       /* Tinted inset panels (what you'll build, next assignment, questions). */
       .panel {
-        border-radius: 1.1rem;
+        border-radius: var(--radius-card);
         display: grid;
         gap: var(--space-3);
         padding: var(--space-5) var(--space-5);
       }
 
       .panel-outlined {
-        border: 2px solid var(--line);
+        border: var(--border-soft);
       }
 
       .panel-mint {
@@ -4619,8 +4619,8 @@ Rules for editing:
          plate when the notice is the quietest thing on the page. */
       .callout {
         background: var(--card);
-        border: 2px solid var(--line-soft);
-        border-radius: 0.7rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-media);
         color: var(--body-text);
         display: grid;
         gap: var(--space-2);
@@ -4727,9 +4727,8 @@ Rules for editing:
       .graph-frame {
         align-self: start;
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         padding: var(--space-4);
       }
 
@@ -4945,8 +4944,8 @@ Rules for editing:
 
       .topic {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.7rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         display: block;
         padding: var(--space-2) var(--space-3);
         text-decoration: none;
@@ -5453,8 +5452,8 @@ Rules for editing:
          draw here (an episode graph too large to plot) keeps its place and names
          itself, the way a missing article cover does. */
       .prose-unavailable {
-        border: 2px dashed var(--line-soft);
-        border-radius: 0.9rem;
+        border: var(--border-quiet);
+        border-radius: var(--radius-media);
         padding: var(--space-4) var(--space-5);
         text-align: center;
       }
@@ -5832,9 +5831,9 @@ Rules for editing:
         .masthead .nav-group-links {
           animation: nav-group-panel-in 120ms ease-out;
           background: var(--card);
-          border: 1px solid var(--line-soft);
-          border-radius: 0.75rem;
-          box-shadow: 0 0.5rem 1.25rem var(--shadow-soft);
+          border: var(--border-soft);
+          border-radius: var(--radius-card);
+          box-shadow: var(--shadow-popover);
           display: none;
           gap: 2px;
           left: calc(-1 * var(--space-3) - 1px);
@@ -5959,9 +5958,8 @@ Rules for editing:
 
       .newsletter-card {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         margin-top: var(--space-5);
         padding: var(--space-5);
       }

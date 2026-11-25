@@ -110,9 +110,8 @@
          shows (a list of submissions, a form, a set of facts). */
       .project-section {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         display: grid;
         gap: var(--space-4);
         padding: var(--space-5);
@@ -163,8 +162,8 @@
       /* An empty list says so on the same dashed frame the list would have
          used, so the shape of the page does not change when data arrives. */
       .project-empty {
-        border: 2px dashed var(--line-soft);
-        border-radius: 0.9rem;
+        border: var(--border-quiet);
+        border-radius: var(--radius-media);
         color: var(--body-text);
         padding: var(--space-6) var(--space-4);
         text-align: center;
@@ -178,8 +177,8 @@
        * warning and error share the attention surface. */
       .notice {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         color: var(--body-text);
         display: grid;
         gap: var(--space-1);

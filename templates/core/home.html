@@ -291,8 +291,8 @@
 
       .home-event {
         background: var(--card);
-        border: 1px solid var(--line-soft);
-        border-radius: 1rem;
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         display: grid;
         grid-row: span 3;
         grid-template-rows: subgrid;
@@ -625,7 +625,7 @@
         /* The featured card is the only card with a wider gutter than the rest; on a
            narrow screen that reads as a mistake, so it takes the shared card inset. */
         .featured {
-          border-radius: 1.1rem;
+          border-radius: var(--radius-card);
           gap: var(--space-4);
           padding: var(--space-4);
         }
