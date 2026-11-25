@@ -15,7 +15,15 @@ import pytest
 from django.urls import reverse
 from playwright.sync_api import Page, expect
 
-from courses.models import Course, SharedCurriculum, SharedModule
+from courses.models import (
+    Course,
+    Enrollment,
+    ProjectSubmission,
+    RegistrationCampaign,
+    SharedCurriculum,
+    SharedModule,
+    User,
+)
 from test_support.course_catalog import make_cohort
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
@@ -43,7 +51,24 @@ def _long_family() -> Course:
         outcome="Build a long landing page with many keyboard stops.",
         prerequisites="You can use a keyboard.",
     )
-    make_cohort(family, 2026, project_count=2)
+    cohort = make_cohort(family, 2026, project_count=2)
+    RegistrationCampaign.objects.create(
+        slug="consent-focus-course",
+        title=family.title,
+        current_course=cohort,
+    )
+    project = cohort.project_set.first()
+    assert project is not None
+    for index in range(6):
+        learner = User.objects.create_user(username=f"consent-learner-{index}")
+        enrollment = Enrollment.objects.create(student=learner, course=cohort)
+        ProjectSubmission.objects.create(
+            project=project,
+            student=learner,
+            enrollment=enrollment,
+            github_link=f"https://github.com/example/consent-project-{index}",
+            passed=True,
+        )
     curriculum = SharedCurriculum.objects.create(course=family)
     for position in range(12):
         SharedModule.objects.create(

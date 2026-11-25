@@ -727,8 +727,25 @@ def course_family_page_context(family: Course, user) -> dict:
         family_faq_questions,
         family_has_a_real_cohort=front_cohort is not None,
     )
+    is_authenticated = bool(getattr(user, "is_authenticated", False))
+    enrolled_cohort = None
+    if is_authenticated:
+        enrollment = (
+            Enrollment.objects.filter(
+                student=user,
+                course__course=family,
+                course__visible=True,
+            )
+            .select_related("course")
+            .order_by("-course__year", "-course__id")
+            .first()
+        )
+        if enrollment is not None:
+            enrolled_cohort = enrollment.course
     return {
         "course_family": family,
+        "is_authenticated": is_authenticated,
+        "enrolled_cohort": enrolled_cohort,
         **registration_wall_context(registration_cohort, user),
         "cohorts": cohorts,
         "cohort_editions": editions,
@@ -761,6 +778,9 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_submissions_fact": submissions_fact,
         "family_project_brief": project_brief,
         "family_project_summary": family.project_summary.strip(),
+        "family_tools": tuple(
+            tool.strip() for tool in (family.catalog_tools or ()) if str(tool).strip()
+        ),
         "certificate_cohort": certificate_cohort,
         "syllabus_fact": syllabus_fact,
         "family_facts": family_hero_facts(
@@ -804,6 +824,11 @@ def family_hero_facts(
     """
 
     facts: list[CourseSpec] = []
+    live = registration_cohort is not None or (
+        current_edition_row is not None and current_edition_row.state_words == "in progress"
+    )
+    if live or has_self_paced_route or syllabus_fact:
+        facts.append(CourseSpec("Cost", "Free"))
     if registration_cohort is not None and registration_cohort.start_date:
         facts.append(
             CourseSpec(
@@ -811,9 +836,6 @@ def family_hero_facts(
                 registration_cohort.start_date.strftime("%b %-d, %Y"),
             )
         )
-    live = registration_cohort is not None or (
-        current_edition_row is not None and current_edition_row.state_words == "in progress"
-    )
     formats = [
         words
         for words, present in (("live cohort", live), ("self-paced", has_self_paced_route))

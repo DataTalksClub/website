@@ -124,27 +124,24 @@ def test_course_value_precedes_route_choice_and_anchors_work(
         # Each stage carries its numbered disc beside its heading, so the
         # three stages read as a sequence.
         expect(page.locator(".journey-grid .stage-card-step .step-number")).to_have_count(3)
-        # Four modules and the project, one row component; a summary that is
-        # only a link is not drawn as a summary.
+        # Four modules and the project, one row component; clean public
+        # overview without cohort LMS links or attempt deadlines; a summary
+        # that is only a link is not drawn as a summary.
         expect(page.locator(".family-syllabus-row h3")).to_have_count(5)
-        expect(page.locator(".family-syllabus-row h3 a")).to_have_count(5)
+        expect(page.locator(".family-syllabus-row h3 a")).to_have_count(0)
         expect(page.locator(".family-syllabus-row p")).to_have_count(3)
         expect(page.locator(".family-syllabus-project .family-syllabus-marker")).to_have_text(
             "Project"
         )
-        expect(page.locator(".family-syllabus-project .family-attempt-dates")).to_contain_text(
-            "submit by"
-        )
-        about = page.locator(".family-about").bounding_box()
-        routes = page.locator(".family-register").bounding_box()
+        expect(page.locator(".family-syllabus-project .family-attempt-dates")).to_have_count(0)
+        audience = page.locator(".family-audience").bounding_box()
         value = page.locator(".family-transformation").bounding_box()
-        assert about is not None and routes is not None and value is not None
-        # One chapter rhythm: the same seam and spacing between sections.
-        section_gap = routes["y"] - (about["y"] + about["height"])
-        assert 30 <= section_gap <= 110
-        assert routes["y"] + routes["height"] <= value["y"]
-        # When and how to join is met early, before the long journey.
-        assert routes["y"] < height * 1.5 if width == 1440 else routes["y"] < height * 3
+        routes = page.locator(".family-register").bounding_box()
+        assert audience is not None and value is not None and routes is not None
+        # 11-block landing rhythm: who it's for -> what you'll build ->
+        # how the course works (two side-by-side cards).
+        assert audience["y"] + audience["height"] <= value["y"]
+        assert value["y"] + value["height"] <= routes["y"]
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), page.evaluate(
             """() => [...document.querySelectorAll('main *')].filter(el => {
                 const r = el.getBoundingClientRect(); return r.right > innerWidth;
@@ -153,16 +150,15 @@ def test_course_value_precedes_route_choice_and_anchors_work(
         )
         targets = page.locator(
             ".family-hero-actions a, .family-register a, .family-syllabus-intro a, "
-            ".family-edition-card h3 a, .family-syllabus-row h3 a, "
             ".family-proof-repository a, .family-proof-byline a, .family-proof > a"
         )
         for index in range(targets.count()):
             box = targets.nth(index).bounding_box()
             assert box is not None and box["height"] >= 44
-        # One goal per page: the hero's single primary action is the open
-        # registration itself, the same one the register chapter offers.
+        # Hero carries one primary action (open registration) plus a secondary
+        # self-paced option; both are also repeated in the closing CTA.
         registration_url = reverse("registration_campaign", args=[campaign.slug])
-        action = page.locator(".family-hero-actions .cta")
+        action = page.locator(".family-hero-actions .cta-primary")
         expect(action).to_have_count(1)
         expect(action).to_have_attribute("href", registration_url)
         page.keyboard.press("Tab")
