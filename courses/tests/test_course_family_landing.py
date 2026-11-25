@@ -975,13 +975,10 @@ class CourseFamilyFaqPreviewTests(TestCase):
         self.assertContains(response, 'class="family-chapter family-faq"')
         self.assertNotContains(response, 'class="panel panel-lavender panel-outlined family-faq"')
         self.assertContains(response, 'id="faq-heading"')
-        # Last content section: after both the editions strip and "See what
-        # people have built", not sandwiched inside the editions section any
-        # more.
-        self.assertLess(
-            body.index('id="editions-heading"'),
-            body.index('id="faq-heading"'),
-        )
+        # Cohort editions belong to the LMS layer and are hidden from anonymous
+        # visitors on the public landing page.
+        self.assertNotContains(response, 'id="editions-heading"')
+        # Last content section: after "See what people have built".
         self.assertLess(
             body.index('id="built-heading"'),
             body.index('id="faq-heading"'),

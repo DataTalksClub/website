@@ -1333,10 +1333,10 @@ a cohort means replacing both staged files together and re-running.
 
 | | |
 | --- | --- |
-| **Upstream** | The community's own public sources for the /tour page: the 2025 community survey article, the founder's anniversary-interview quotes, and the standing channel descriptions (issue #418). Reviewed editorial, not a moving upstream |
+| **Upstream** | The community's own public sources for the About page (`/about`, published as the tour): the 2025 community survey article, the founder's anniversary-interview quotes, and the standing channel descriptions (issue #418). Reviewed editorial, not a moving upstream |
 | **Staging** | `~/prod/dtc-data/content-staging/tour_page.json` (`schema_version` 1, one `page` record: hero/week/community/founder copy, the four survey tiles, the eight channel blurbs, all https source URLs). Tour *member stories* do not ride in this file — they arrive through the testimonials staging file as `placement: "tour"` rows via `import_testimonials.py` |
 | **Script** | `scripts/prod/import_tour.py` |
-| **Writes** | Exactly one `content.models.ContentDocument` (`content_kind` `tour_page`, `stable_key` `tour`) under the `ContentSource` `dtc-tour-page`, through the shared reviewed-release machinery; `/tour` reads it at request time via `content.tour_content.tour_page()` |
+| **Writes** | Exactly one `content.models.ContentDocument` (`content_kind` `tour_page`, `stable_key` `tour`) under the `ContentSource` `dtc-tour-page`, through the shared reviewed-release machinery; `/about` reads it at request time via `content.tour_content.tour_page()`, and the homepage's About band reads the same record through `homepage_tour_page()` |
 | **Does not read or write** | Nothing learner-identifying and no testimonial rows. Quotation content about members lives in `courses.Testimonial`, imported by the testimonials importer |
 | **Idempotency** | Safe. Validation (shape, list sizes, https-only URLs — `javascript:` refuses as `reviewed_tour_invalid`) runs before any mutation; a re-run against an already-imported artifact reports `replayed` and writes nothing |
 | **Bootstrap** | **Yes.** It populates its own document on an empty database and depends on no other source |

@@ -76,9 +76,15 @@ def event_complete(request: Any, event_id: uuid.UUID) -> JsonResponse:
     return _invoke(request, "events.manage.complete", payload, event_id=event_id)
 
 
+BANNER_MAX_JSON_BYTES = 7 * 1024 * 1024
+
+
 @admin_capability("events.manage.banner")
 def event_banner(request: Any, event_id: uuid.UUID) -> JsonResponse:
-    return _invoke(request, "events.manage.banner", parse_json_object(request), event_id=event_id)
+    payload = parse_json_object(request, max_bytes=BANNER_MAX_JSON_BYTES)
+    if request.headers.get("X-Banner-Upload-Chunk") == "1":
+        payload = {**payload, "_is_continuation_chunk": True}
+    return _invoke(request, "events.manage.banner", payload, event_id=event_id)
 
 
 @admin_capability("events.manage.registrants.export")

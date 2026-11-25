@@ -2,7 +2,7 @@ import json
 from typing import Any
 
 from django.conf import settings
-from django.db import connection
+from django.db import DatabaseError, connection
 from django.db.migrations.executor import MigrationExecutor
 from django.http import (
     Http404,
@@ -21,7 +21,7 @@ from content.docs_reader import DOCS_ROOT_PATH, docs_page
 from content.event_content import event_groups
 from content.person_chip import PersonChip, person_chip
 from content.podcast_content import ordered_podcasts
-from content.tour_content import tour_page
+from content.tour_content import homepage_tour_page, tour_page
 from core.home_content import (
     course_catalog,
     event_time_display,
@@ -109,6 +109,10 @@ def home(request: HttpRequest):
     # page are gone, so there is one cohort page and the hero links to it.
     featured_entry = featured_course(catalog)
     featured_cohort_path = featured_entry.public_path if featured_entry is not None else ""
+    # The About band reuses the About page's own record and founder story
+    # (``/about``): one read of a published editorial record, and nothing at all
+    # when no record is published or the database is unreachable.
+    tour_content = homepage_tour_page()
     return render(
         request,
         "core/home.html",
@@ -135,6 +139,8 @@ def home(request: HttpRequest):
             "wiki_graph": wiki_graph(),
             "counts": catalogue.collection_counts(),
             "sponsors": public_home_sponsors(),
+            "tour_content": tour_content,
+            "founder": _homepage_founder_chip() if tour_content.get("founder_name") else None,
         },
     )
 
@@ -154,13 +160,16 @@ def sponsors(request: HttpRequest) -> HttpResponse:
 
 @require_safe
 def tour(request: HttpRequest) -> HttpResponse:
-    """A newcomer's walkthrough of DataTalks.Club, distinct from the homepage.
+    """The About page, distinct from the homepage.
 
     The homepage is the live front door -- the newest cohort, this week's
-    events, the latest article and podcast. The tour answers a different
-    question: "what actually is this, and is it for me?" The editorial copy
-    and the member stories are published database records (the tour page
-    record via ``content.tour_content``, stories through the narrow
+    events, the latest article and podcast. The About page answers a different
+    question: "what actually is this, and is it for me?" It was published as
+    the tour, which is the name the view, the template, the editorial record
+    and the old address (``/tour``, a permanent redirect here) still carry.
+
+    The editorial copy and the member stories are published database records (the
+    page record via ``content.tour_content``, stories through the narrow
     ``tour_testimonials`` query); with nothing published the page renders
     its catalogue-backed skeleton and no invented claims.  Every figure the
     template states about the catalogue is a catalogue count, never a
@@ -178,7 +187,7 @@ def tour(request: HttpRequest) -> HttpResponse:
         request,
         "core/tour.html",
         {
-            "canonical_url": "https://datatalks.club/tour",
+            "canonical_url": "https://datatalks.club/about",
             "hide_tour_cta": True,
             "catalog_courses": catalog,
             "course_family_count": len(catalog),
@@ -196,7 +205,7 @@ FOUNDER_SLUG = "alexeygrigorev"
 
 
 def _founder_chip() -> PersonChip | None:
-    """The founder as the people records credit him, for the tour's story card.
+    """The founder as the people records credit him, for the founder story card.
 
     The card is the homepage's member-story card, whose person row draws a
     real portrait from the people collection. A database without the
@@ -205,6 +214,19 @@ def _founder_chip() -> PersonChip | None:
 
     person = catalogue.people_by_slug().get(FOUNDER_SLUG)
     return person_chip(person) if person else None
+
+
+def _homepage_founder_chip() -> PersonChip | None:
+    """The same chip for the homepage's About band, or nothing without a database.
+
+    The people catalogue refuses to let an outage read as an empty catalogue,
+    so it raises; the homepage answers anyway and the band drops the portrait.
+    """
+
+    try:
+        return _founder_chip()
+    except DatabaseError:
+        return None
 
 
 def _development_seo_response(body: str, content_type: str) -> HttpResponse:

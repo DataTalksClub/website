@@ -463,6 +463,22 @@ to this document — do not fork it locally.
   (illustration first, the badge grouped with the heading). The older `on_rail` shape
   (badge astride the corner, a dashed rail behind the row, a `kicker` eyebrow) is no
   longer used by any page.
+- **Founder story** (`.founder-story`) — the member-story card carrying the
+  community's own beginning: two labelled excerpts ("How it started", "Why it's free")
+  that read in sequence rather than side by side, then the founder row. A real shared
+  include, `templates/core/_founder_story.html`, so the About page (`/about`) and the
+  homepage's About band cannot drift apart. Its companion,
+  `templates/core/_community_stats.html`, draws the community's survey figures as
+  `.stat-tiles`. Both hold no copy and no number of their own: they render one
+  published editorial record (`content.tour_content`), and draw nothing without one.
+
+  ```html
+  {% include "core/_community_stats.html" with tour_content=tour_content tiles_variant="stat-tiles-row" only %}
+  {% include "core/_founder_story.html" with tour_content=tour_content founder=founder only %}
+  ```
+
+  `tiles_variant` is optional: the About page passes `stat-tiles-row` (four figures in
+  one row); the homepage's narrower band leaves it out and keeps the 2×2 grid.
 - **`.chip`** — round uppercase mini-pill. Variants: `.chip-plain`, `.chip-green`,
   `.chip-live`, `.chip-ink`. **`a.chip-link`** is a chip that opens a page (a wiki
   concept): indigo border and text, underlined on hover.
@@ -557,10 +573,11 @@ restyle `.band-more`. Enforced by `core/tests/test_design_section_links.py`.
 - **`.stat-tiles` / `.stat-tile`** — lavender tiles with ink border and hard shadow,
   in a 2×2 grid: a number as `strong`, a label as `span`. **`.stat-tiles-row`** is the
   one-row modifier for a strip of 2-4 live facts (the course family landing's outcome
-  numbers, the courses index's own facts strip): shorter tiles, and the tile count
+  numbers, the courses index's own facts strip, the About page's survey figures):
+  shorter tiles, and the tile count
   itself decides the column count — a lone odd tile spans the full row below 40rem,
   and a fourth tile opens a 4-column row at 40rem instead of wrapping onto its own
-  row. The two pages share this one component rather than each inventing a grid.
+  row. These pages share this one component rather than each inventing a grid.
 - **Progress bar** — white track, 2px ink border, `--green-bright` fill. Always pair
   it with a `.mono-note` stating the numbers, and give it the full progressbar ARIA:
 
@@ -1121,6 +1138,10 @@ with a hero banner (which already sets the title) the `h1` is visually hidden.
 
 ## Building a new page — checklist
 
+0. Define the page's single primary goal and the roles it plays in
+   `_docs/design/page-goals.md` before writing markup: one primary CTA
+   (`.cta-primary`) per page serving that goal; everything else secondary or
+   moved elsewhere.
 1. Extend `templates/core/content_page.html` unless the page is the homepage or an
    auth entrance. If it is one of those, start from `templates/core/home.html`'s
    skeleton: doctype, the `no-js`/`js` class swap, meta/OG tags, one `<style>` whose

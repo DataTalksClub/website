@@ -1,20 +1,20 @@
 {% extends "core/content_page.html" %}
 
-{% block document_title %}Take the tour — DataTalks.Club{% endblock %}
+{% block document_title %}About DataTalks.Club{% endblock %}
 
 {% block metadata %}
   {{ block.super }}
-  <meta name="description" content="A newcomer's walkthrough of DataTalks.Club: what it actually is, how it started, who's here, and what the free courses, events, podcast, blog, books, wiki, YouTube channel and Slack look like.">
+  <meta name="description" content="What DataTalks.Club is and how it works: how it started, who's here, and what the free courses, events, podcast, blog, books, wiki, YouTube channel and Slack look like.">
 {% endblock %}
 
 {% block page_styles %}
   /* ==================================================================
-     /tour is the site's pitch page, so it borrows its skeleton from the
-     two pages that already pitch: the homepage (hero -> illustrated
-     cards -> stories -> closing ink band) and the course family landing
-     (hero with art -> stat tiles -> chapter rule -> wide illustrated
-     grid -> narrow subsections).  Everything below is layout for
-     existing components; no new surface, no new ground.
+     /about is the site's About page, so it borrows its skeleton from the
+     two pages that already introduce the community: the homepage (hero ->
+     illustrated cards -> stories -> closing ink band) and the course family
+     landing (hero with art -> stat tiles -> chapter rule -> wide illustrated
+     grid -> narrow subsections).  Everything below is layout for existing
+     components; no new surface, no new ground.
      ================================================================== */
 
   :root { --page: var(--lavender); }
@@ -58,17 +58,10 @@
   }
   .tour-hero-art .doodle { height: 100%; object-fit: contain; }
 
-  /* --- who's here: the family landing's opening tiles (.stat-tiles reused,
-         four across), under the section's own band-head like every other
-         section on the page */
-  .tour-stat-tiles .stat-tile { min-height: 0; padding-block: var(--space-3); }
-  .tour-stat-tiles strong {
-    font-size: clamp(1.35rem, 2vw, 1.75rem);
-    font-variant-numeric: tabular-nums;
-  }
-  @media (min-width: 40rem) {
-    .tour-stat-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  }
+  /* --- who's here: the shared one-row stat strip (core/_community_stats.html
+         on the design system's .stat-tiles-row), under the section's own
+         band-head like every other section on the page.  Nothing page-specific
+         is left to say about it here. */
 
   /* --- chapter rhythm: the family landing's rule, opening every section at
          the same full breakout width -- the page used to alternate a
@@ -146,15 +139,9 @@
     .tour-norms { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5) var(--space-6); }
   }
 
-  /* --- founder story: the member-story card at the chapter width, the two
-         labelled excerpts stacked.  2026-09: restacked to one column,
-         matching the design system -- "how it started" and "why it's free"
-         are two different quotes, not a repeating grid, so they read in
-         sequence rather than side by side. */
-  .tour-story { padding: var(--space-5) var(--space-6); }
-  .tour-story-quotes { display: grid; gap: var(--space-5); }
-  .tour-story .story-quote { font-size: 1.08rem; line-height: 1.6; }
-  .tour-story-quotes > div { display: grid; gap: var(--space-2); }
+  /* --- founder story: the shared founder-story card (core/_founder_story.html,
+         drawn once in the design system) at the chapter width.  Nothing
+         page-specific is left to say about it here. */
 
   /* --- closing: the site-wide tour stripe's own shape (.tour-cta on ink),
          drawn full-bleed and flush with the band's foot.  The page hides that
@@ -229,7 +216,7 @@
 {% block page_header %}
   <div class="tour-hero-inner">
     <div>
-      <h1>Take the tour</h1>
+      <h1>About DataTalks.Club</h1>
       {% comment %}
         The editorial lede is a database record (content.tour_content), and
         under it the page states its scope with catalogue counts only: every
@@ -261,10 +248,10 @@
 
 {% block page_content %}
   {% comment %}
-    Who's here, from the community's own survey, on the same lavender stat
-    tiles the course family landing opens its content with.  The figures and
-    their intro line are a database record, so the section only renders when
-    an editorial import has published one.
+    Who's here, from the community's own survey.  The figures and their intro
+    line are a database record, so the section only renders when an editorial
+    import has published one; the tiles themselves are the shared strip the
+    homepage's About band also draws.
   {% endcomment %}
   {% if tour_content.stats %}
     <section class="tour-chapter shell-breakout tour-stats" aria-labelledby="tour-stats-heading">
@@ -274,14 +261,7 @@
           <p>{{ tour_content.stats_intro }}</p>
         </div>
       </div>
-      <div class="stat-tiles tour-stat-tiles">
-        {% for stat in tour_content.stats %}
-          <div class="stat-tile">
-            <strong>{{ stat.value }}</strong>
-            <span>{{ stat.label }}</span>
-          </div>
-        {% endfor %}
-      </div>
+      {% include "core/_community_stats.html" with tour_content=tour_content tiles_variant="stat-tiles-row" only %}
       <p class="band-more">
         <a class="band-link" href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full survey →</a>
       </p>
@@ -480,7 +460,8 @@
   {% comment %}
     The founder story, as a database record: the causal setup in the editor's
     words, then the founder's own contiguous quotation, the neutral caption,
-    and the source link -- no stitched fragments, no invented portrait.
+    and the source link.  The card is the shared founder-story include, which
+    draws no stitched fragments and no invented portrait.
   {% endcomment %}
   {% if tour_content.founder_name %}
     <section class="tour-chapter shell-breakout" aria-labelledby="tour-story-heading">
@@ -490,40 +471,7 @@
           <p>{{ tour_content.founder_intro }}</p>
         </div>
       </div>
-      <figure class="card tour-story">
-        <div class="tour-story-quotes">
-          {% if tour_content.founder_context %}
-            <div>
-              <span class="mono-label">How it started</span>
-              <blockquote class="story-quote">{{ tour_content.founder_context }}</blockquote>
-            </div>
-          {% endif %}
-          {% if tour_content.founder_quote %}
-            <div>
-              <span class="mono-label">Why it's free</span>
-              <blockquote class="story-quote">“{{ tour_content.founder_quote }}”</blockquote>
-            </div>
-          {% endif %}
-        </div>
-        <figcaption class="story-person">
-          <span class="story-identity">
-            {% if founder and founder.media_available %}
-              <img class="avatar" src="{{ founder.image_path }}" alt="" loading="lazy">
-            {% else %}
-              <span class="avatar" aria-hidden="true"></span>
-            {% endif %}
-            <span>
-              <strong>
-                <a href="{{ tour_content.founder_source_url }}" target="_blank" rel="noopener noreferrer">
-                  {{ tour_content.founder_name }}
-                  <span class="sr-only"> (opens in a new tab)</span>
-                </a>
-              </strong>
-              <span class="story-context">{{ tour_content.founder_attribution }}</span>
-            </span>
-          </span>
-        </figcaption>
-      </figure>
+      {% include "core/_founder_story.html" with tour_content=tour_content founder=founder only %}
     </section>
   {% endif %}
 

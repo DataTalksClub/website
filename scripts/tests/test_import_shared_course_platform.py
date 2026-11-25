@@ -920,7 +920,7 @@ class TourTestimonialsStaySiteSideTests(ImportRunMixin, TestCase):
         self.assertEqual(
             site.Testimonial.objects.filter(placement=site.TestimonialPlacement.TOUR).count(), 3
         )
-        response = self.client.get(reverse("tour"))
+        response = self.client.get(reverse("about"))
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
         for index in range(3):

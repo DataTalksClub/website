@@ -85,7 +85,27 @@ class CourseFamilyNavigationTest(TestCase):
             },
         )
 
-    def test_family_lists_visible_editions_as_strip_cards(self):
+    def test_family_lists_visible_editions_only_for_signed_in_learners(self):
+        # Anonymous visitors on the public course landing do not see the
+        # LMS Cohort editions list; registration stays the primary focus.
+        guest_response = self.client.get(
+            reverse("course_family", kwargs={"course_slug": self.family.slug})
+        )
+        self.assertEqual(guest_response.status_code, 200)
+        self.assertTemplateUsed(guest_response, "courses/course_family.html")
+        self.assertNotContains(guest_response, 'class="row-list family-editions-list"')
+        self.assertNotContains(guest_response, self.hidden.title)
+        self.assertNotContains(guest_response, self.hidden_project.title)
+
+        # Signed-in learners still see the visible Cohort editions list.
+        from django.contrib.auth import get_user_model
+
+        user = get_user_model().objects.create_user(
+            username="edition-viewer",
+            email="edition-viewer@example.invalid",
+            password="test-password-123!",
+        )
+        self.client.force_login(user)
         response = self.client.get(
             reverse("course_family", kwargs={"course_slug": self.family.slug})
         )
@@ -98,8 +118,6 @@ class CourseFamilyNavigationTest(TestCase):
         )
         self.assertContains(response, self.course_url(self.current))
         self.assertContains(response, self.course_url(self.previous))
-        # Editions render as one list row each, pointing at the edition page;
-        # the learner work an edition holds lives on that page, not here.
         self.assertContains(response, 'class="row-list family-editions-list"')
         self.assertNotContains(response, "No projects are available for this edition yet")
         self.assertNotContains(response, self.hidden.title)

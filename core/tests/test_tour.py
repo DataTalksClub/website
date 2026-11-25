@@ -1,17 +1,24 @@
-"""Published tour copy and stories have no file or hardcoded-content fallback."""
+"""The About page: published copy and stories have no file or hardcoded-content fallback.
+
+The page was published as the tour, which is the name its view, template,
+editorial record and tests still carry.
+"""
 
 import json
+import re
 from itertools import product
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
 
+from django.db import OperationalError
 from django.template.loader import render_to_string
 from django.test import TestCase
 from django.urls import reverse
 
 from content.models import ContentDocument, ContentSource
-from content.tour_content import TOUR_SOURCE_ID, tour_page
+from content.tour_content import TOUR_SOURCE_ID, homepage_tour_page, tour_page
+from core import views as core_views
 from courses.models import Course, Testimonial
 from courses.services.testimonials import import_homepage_testimonials, tour_testimonials
 from scripts.prod.import_tour import run
@@ -63,7 +70,9 @@ def synthetic_page():
     }
 
 
-class TourPageTests(TestCase):
+class PublishedTourPage(TestCase):
+    """The About page's record and stories published, for every page that reads them."""
+
     def setUp(self):
         build_reviewed_catalog()
         scratch = Path(".tmp/test-tour")
@@ -87,8 +96,10 @@ class TourPageTests(TestCase):
                 published=True,
             )
 
+
+class TourPageTests(PublishedTourPage):
     def body(self):
-        response = self.client.get(reverse("tour"))
+        response = self.client.get(reverse("about"))
         self.assertEqual(response.status_code, 200)
         return response.content.decode()
 
@@ -100,7 +111,18 @@ class TourPageTests(TestCase):
         self.assertEqual(body.count('class="catalog-card-media"'), 3)
         self.assertEqual(body.count('href="https://example.com/member-'), 3)
         self.assertIn("A Long Public Member Byline", body)
-        self.assertIn('rel="canonical" href="https://datatalks.club/tour"', body)
+        self.assertIn('rel="canonical" href="https://datatalks.club/about"', body)
+
+    def test_the_page_introduces_itself_as_the_about_page(self):
+        body = self.body()
+        self.assertRegex(body, r"<title>About DataTalks\.Club</title>")
+        self.assertIn("<h1>About DataTalks.Club</h1>", body)
+        self.assertNotIn("Take the tour", body)
+
+    def test_survey_figures_and_founder_story_are_the_shared_includes(self):
+        body = self.body()
+        self.assertIn('class="stat-tiles stat-tiles-row community-stats"', body)
+        self.assertIn('class="card founder-story"', body)
 
     def test_copy_remains_after_staging_is_removed(self):
         self.path.unlink()
@@ -255,19 +277,133 @@ class TourPageTests(TestCase):
 
 
 class TourStripeTests(TestCase):
-    def test_tour_does_not_advertise_itself(self):
-        body = self.client.get(reverse("tour")).content.decode()
+    def test_the_about_page_does_not_advertise_itself(self):
+        body = self.client.get(reverse("about")).content.decode()
         self.assertNotIn("tour-cta-heading", body)
         self.assertIn("tour-community-heading", body)
 
-    def test_other_public_pages_keep_tour_destination(self):
+    def test_newcomer_pages_lead_to_the_about_page(self):
+        # The stripe is selective (#546): it renders on newcomer-facing pages only.
         for route in ("events", "faq-home", "slack"):
             with self.subTest(route=route):
                 body = self.client.get(reverse(route)).content.decode()
-                self.assertIn('href="/tour"', body)
                 self.assertIn("tour-cta-heading", body)
+                self.assertIn('href="/about">About DataTalks.Club</a>', body)
+                self.assertNotIn('href="/tour"', body)
 
-    def test_courses_shows_academy_stripe_without_tour_stripe(self):
+    def test_courses_shows_academy_stripe_without_about_stripe(self):
         body = self.client.get(reverse("course_list")).content.decode()
         self.assertIn("data-academy-cta", body)
         self.assertNotIn("tour-cta-heading", body)
+        self.assertNotIn('href="/about">About DataTalks.Club</a>', body)
+
+
+class AboutAddressTests(TestCase):
+    """/about is the page's address; the tour's two spellings still reach it."""
+
+    def test_about_is_served_at_its_own_address(self):
+        response = self.client.get("/about")
+        self.assertEqual(response.status_code, 200)
+        self.assertIs(response.resolver_match.func, core_views.tour)
+
+    def test_every_old_and_slash_spelling_redirects_once_to_about(self):
+        for source in ("/tour", "/tour/", "/about/"):
+            with self.subTest(source=source):
+                response = self.client.get(f"{source}?source=browser", follow=False)
+                self.assertEqual(response.status_code, 301)
+                self.assertEqual(response.headers["Location"], "/about?source=browser")
+
+    def test_the_old_addresses_are_no_longer_served_as_pages(self):
+        for source in ("/tour", "/tour/"):
+            with self.subTest(source=source):
+                response = self.client.get(source, follow=True)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.redirect_chain, [("/about", 301)])
+                self.assertIn(
+                    'rel="canonical" href="https://datatalks.club/about"', response.content.decode()
+                )
+
+
+class HomepageAboutBandTests(PublishedTourPage):
+    """The homepage answers "what is this community" with the About page's own blocks.
+
+    The band is a second reader of the same published record and holds no copy of
+    its own: nothing published means no band.  The homepage is also the page the
+    container liveness probe requests, so a record that cannot be read costs it
+    the band, never the page.
+    """
+
+    def body(self):
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        return response.content.decode()
+
+    def test_homepage_reuses_the_about_page_intro_figures_and_founder_story(self):
+        body = self.body()
+        self.assertIn('<h2 id="about-heading">What is DataTalks.Club?</h2>', body)
+        self.assertIn(self.page["hero_intro"], body)
+        # The About page's own markup, not a homepage redraw of it.
+        self.assertIn('class="stat-tiles community-stats"', body)
+        self.assertIn('class="card founder-story"', body)
+        for stat in self.page["stats"]:
+            self.assertIn(f"<strong>{stat['value']}</strong>", body)
+            self.assertIn(stat["label"], body)
+        self.assertIn(
+            f'<a class="band-link" href="{reverse("about")}">about DataTalks.Club →</a>', body
+        )
+        self.assertIn('href="/blog/datatalks-club-community-demographics.html"', body)
+
+    def test_without_a_published_record_the_homepage_has_no_band(self):
+        ContentSource.objects.filter(stable_id=TOUR_SOURCE_ID).update(enabled=False)
+        body = self.body()
+        self.assertNotIn("home-about", body)
+        self.assertNotIn("What is DataTalks.Club?", body)
+        self.assertNotIn(self.page["hero_intro"], body)
+        self.assertNotIn("Synthetic Founder", body)
+        self.assertNotIn('<figure class="card founder-story">', body)
+        self.assertNotIn('class="stat-tiles community-stats"', body)
+
+    def test_the_band_teases_the_about_page_and_does_not_replace_it(self):
+        body = self.body()
+        for key in ("courses_intro", "week_intro", "community_intro", "more_intro"):
+            self.assertNotIn(self.page[key], body)
+
+    def test_an_unreadable_record_costs_the_homepage_the_band_and_not_the_page(self):
+        # The homepage view holds no guard of its own: the reader it calls is
+        # what keeps an outage from reaching the page.
+        with (
+            mock.patch(
+                "content.tour_content.tour_page",
+                side_effect=OperationalError("database unavailable"),
+            ) as strict_read,
+            mock.patch.object(core_views, "_founder_chip") as founder_chip,
+        ):
+            response = self.client.get(reverse("home"), follow=False)
+        self.assertEqual(response.status_code, 200)
+        strict_read.assert_called_once_with()
+        founder_chip.assert_not_called()
+        body = response.content.decode()
+        self.assertIn("Learn the fundamentals. Build real projects. Share your work.", body)
+        self.assertNotIn("home-about", body)
+        self.assertNotIn(self.page["hero_intro"], body)
+
+    def test_the_homepage_read_answers_an_outage_with_no_record(self):
+        """``homepage_tour_page`` is ``tour_page`` plus the outage guard, nothing else."""
+
+        self.assertEqual(homepage_tour_page(), tour_page())
+        self.assertEqual(homepage_tour_page(), self.page)
+        with mock.patch(
+            "content.tour_content.tour_page", side_effect=OperationalError("database unavailable")
+        ):
+            self.assertEqual(homepage_tour_page(), {})
+
+    def test_an_unreadable_portrait_costs_the_band_only_its_portrait(self):
+        with mock.patch.object(
+            core_views, "_founder_chip", side_effect=OperationalError("database unavailable")
+        ):
+            body = self.body()
+        card = re.search(r'<figure class="card founder-story">.*?</figure>', body, re.DOTALL)
+        assert card is not None, "the founder story is still published"
+        self.assertIn(self.page["founder_quote"], card.group())
+        self.assertIn('<span class="avatar" aria-hidden="true"></span>', card.group())
+        self.assertNotIn("<img", card.group())

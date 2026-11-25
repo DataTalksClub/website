@@ -6,7 +6,7 @@ work inside one request (``core.request_cache``), but every anonymous request
 still pays the same stamp aggregates, small row reads and template render as
 the previous one: on the production link each of those database round trips
 costs several milliseconds, so a warm ``/blog`` still spends ~100 ms
-server-side and the heavier anonymous pages (``/``, ``/tour``, large podcast
+server-side and the heavier anonymous pages (``/``, ``/about``, large podcast
 episodes) stay over their budgets.
 
 This module is the cross-request layer the intake requires: the first

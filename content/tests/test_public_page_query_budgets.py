@@ -41,7 +41,7 @@ WARM_BUDGETS = {
     "/events/past": 16,
     "/wiki": 8,
     "/sponsors": 8,
-    "/tour": 20,
+    "/about": 20,
     "/courses": 8,
     "article": 12,
     "podcast_episode": 12,
@@ -65,7 +65,7 @@ COLD_BUDGETS = {
     "/events/past": 22,
     "/wiki": 8,
     "/sponsors": 8,
-    "/tour": 34,
+    "/about": 34,
     "/courses": 8,
     "article": 24,
     "podcast_episode": 24,
@@ -106,7 +106,7 @@ def _key_pages() -> list[tuple[str, str]]:
         ("/events/past", "/events/past"),
         ("/wiki", "/wiki"),
         ("/sponsors", "/sponsors"),
-        ("/tour", "/tour"),
+        ("/about", "/about"),
         ("/courses", "/courses"),
     ]
     articles = catalogue.articles()

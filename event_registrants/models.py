@@ -324,3 +324,38 @@ class EventRegistrationMeta(models.Model):
 
     def __str__(self) -> str:
         return f"event-registration-meta:{self.registration_id}"
+
+
+class EventBannerUploadChunk(models.Model):
+    """Temporary chunk storage for multi-request event banner uploads.
+
+    Allows ``dtc events upload-banner`` to upload 1000x1000 banners in small
+    chunks (<8 KB per request) across multi-worker Gunicorn processes behind
+    edge WAF body-size limits, then assemble into ``EventOperatorConfig.banner_image``.
+    """
+
+    upload_id = models.UUIDField(db_index=True)
+    event = models.ForeignKey(
+        "events.Event",
+        on_delete=models.CASCADE,
+        related_name="banner_upload_chunks",
+    )
+    chunk_index = models.PositiveIntegerField()
+    chunk_count = models.PositiveIntegerField()
+    content_type = models.CharField(max_length=64)
+    data = models.BinaryField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("upload_id", "chunk_index"),
+                name="event_banner_chunk_upload_index_unique",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=("event", "upload_id")),
+        ]
+
+    def __str__(self) -> str:
+        return f"banner-chunk:{self.upload_id}:{self.chunk_index}/{self.chunk_count}"
