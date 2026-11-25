@@ -37,9 +37,7 @@ What one run does, per raw content file whose Eventbrite id resolves:
      by default (``--staging-output`` to change it), keyed by the canonical
      source triple that
      :func:`events.eventbrite_content.apply_eventbrite_descriptions` resolves
-     against at import time. Like its sibling
-     ``~/prod/dtc-data/content-staging/luma_event_descriptions.json`` staging
-     artifact, this one is never inside the ``dtc-website`` checkout -- point
+     against at import time. It is never inside the ``dtc-website`` checkout -- point
      ``scripts/prod/import_events.py --eventbrite-descriptions`` at the same
      path to consume it.
 

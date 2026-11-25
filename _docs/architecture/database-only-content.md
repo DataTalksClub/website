@@ -132,7 +132,7 @@ collection JSON in that tree when it builds staged descriptions.
 `scripts/staging/` holds the unrelated, still-live code that builds an event
 description/bio staging artifact from a reviewed source
 (`event_description_bridge.py`, `event_speaker_bio_normalization.py`,
-`event_description_link_policy.py`, `luma_event_descriptions.py`) for
+`event_description_link_policy.py`) for
 `scripts/prod/import_events.py` -- a different domain from the editorial
 catalogue above, and not on a public request path either.
 
@@ -147,8 +147,9 @@ catalogue above, and not on a public request path either.
 - Once production is ingested (Stage 0 below), decide whether the
   now-external staging tree still needs to exist at all, or whether it can be
   deleted from `~/prod/dtc-data/content-staging/` the way earlier plans
-  expected it to be deleted from this repository. `luma_event_descriptions.json`
-  does not come out either way -- it is not one-time staging, see below.
+  expected it to be deleted from this repository. (`luma_event_descriptions.json`
+  and its builder were retired on 2026-11-25 with every Luma event import: events
+  are registered only on this site.)
 
 ## The staging tree is not a second source of truth
 
@@ -303,9 +304,9 @@ later decision.
 `temporary/content/public_projection/` and the reviewed JSON files beside it
 are gone from this repository (moved, `git rm`'d), including
 `luma_event_descriptions.json`'s new home
-(`~/prod/dtc-data/content-staging/luma_event_descriptions.json`) -- it is
-still not one-time staging, still grows with every Luma export processed, and
-now lives beside its siblings rather than apart from them.
+(`~/prod/dtc-data/content-staging/luma_event_descriptions.json`); that artifact
+and its builder were retired on 2026-11-25, when every Luma event import was
+removed.
 
 ### Stage 4 -- delete the staging tree, if and when it is safe to
 
@@ -315,7 +316,7 @@ this repository. Nothing here has changed the actual precondition: production
 still has to be ingested first (`temporary/content/`, now
 `~/prod/dtc-data/content-staging/`, is the reviewed content itself and is not
 re-derivable from a checkout anyone holds), and the two things that do not
-come out even then are `luma_event_descriptions.json` and the
+come out even then is the
 event-description bridge's read of the projection collection files -- see above.
 
 The names left over once a projection is not a file anywhere --

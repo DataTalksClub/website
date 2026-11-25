@@ -11,8 +11,7 @@ It is the single owner of every step of the bootstrap order in
 reconcile (``COURSE_CATALOGUE_ORDER``), the reviewed one-time imports, the editorial
 stage (``seed_content_sources`` plus one ``sync_content`` per declared editorial
 source, when ``--editorial-checkout-root`` is given), and last the event stage --
-``scripts/prod/import_events.py``'s own ``run()``, including its legacy
-``_data/events.yaml`` leg read from the synced ``dtc-main-site`` checkout.
+``scripts/prod/import_events.py``'s own ``run()``.
 
 Attendee-level registrant rows (Luma and Eventbrite exports: real people's
 emails) are **not** part of a routine rebuild (``_docs/runbooks/data-ingest.md``
@@ -49,7 +48,6 @@ if str(PROJECT_ROOT) not in sys.path:
 # a second, shorter copy of the same parsing, staging and activation code.
 from scripts.prod.import_events import (  # noqa: E402
     IDENTITY_MANIFEST_PATH,
-    LUMA_RELATIVE_SOURCE,
     EventImportError,
 )
 from scripts.prod.import_events import (  # noqa: E402
@@ -72,6 +70,7 @@ from scripts.prod.sync_course_repository_sources import (  # noqa: E402
 )
 
 ORCHESTRATOR_SCHEMA_VERSION = 2
+LUMA_RELATIVE_SOURCE = Path(".local/migration-data/events/luma-aggregate-v1")
 EVENTBRITE_RELATIVE_SOURCE = Path(".local/migration-data/events/eventbrite/aggregate-v1.zip")
 LUMA_IDENTITIES_PATH = Path.home() / "prod/dtc-data/luma-event-identities.json"
 EVENTBRITE_IDENTITIES_PATH = Path.home() / "prod/dtc-data/eventbrite-event-identities.json"
@@ -373,11 +372,10 @@ def run(
         raise LocalPreparationError("preparation_manifest_unavailable")
     if not course_checkout_root.is_dir():
         raise LocalPreparationError("course_checkout_root_unavailable")
-    # The Luma export is read for event discovery (identities, not attendees),
-    # so it is always required; the Eventbrite archive only feeds registrants.
-    if not luma_source.is_dir():
-        raise LocalPreparationError("registration_source_unavailable")
-    if with_registrants and (eventbrite_source is None or not eventbrite_source.is_file()):
+    # Both provider exports only feed the opt-in registrant leg.
+    if with_registrants and (
+        not luma_source.is_dir() or eventbrite_source is None or not eventbrite_source.is_file()
+    ):
         raise LocalPreparationError("registration_source_unavailable")
 
     database.parent.mkdir(parents=True, exist_ok=True)
@@ -478,18 +476,9 @@ def run(
         checkout_root=editorial_checkout_root,
         refresh_checkouts=refresh_checkouts,
     )
-    # Step 5: import current Event identities and content.  The legacy
-    # _data/events.yaml leg runs inside the pipeline, last, from the dtc-main-site
-    # checkout the editorial stage just synced: it is where production's upcoming
-    # events got their type, speakers and links, so a rebuild without it lacks them.
-    events_yaml, events_yaml_revision = _events_yaml_input(editorial_checkout_root, editorial)
+    # Step 5: import current Event identities and content.
     with _event_import_refusals():
-        event_pipeline = run_event_pipeline(
-            identity_manifest=identity_manifest,
-            luma_source=luma_source,
-            events_yaml=events_yaml,
-            events_yaml_revision=events_yaml_revision,
-        )
+        event_pipeline = run_event_pipeline(identity_manifest=identity_manifest)
     registrations: dict[str, Any]
     if with_registrants:
         assert eventbrite_source is not None
@@ -514,30 +503,6 @@ def run(
         event_pipeline=event_pipeline,
         registrations=registrations,
         project_repo_enrichment=project_repo_enrichment,
-    )
-
-
-#: Where the legacy site keeps its event list inside the ``dtc-main-site`` checkout.
-EVENTS_YAML_RELATIVE_PATH = Path("_data/events.yaml")
-EVENTS_YAML_EDITORIAL_SLUG = "dtc-main-site"
-
-
-def _events_yaml_input(
-    editorial_checkout_root: Path | None, editorial: dict[str, Any]
-) -> tuple[Path | None, str]:
-    """The synced ``dtc-main-site`` checkout's ``_data/events.yaml`` and its commit.
-
-    Only when the editorial stage actually ran: without a checkout root there is no
-    legacy file to read, and the event stage reports the leg as absent.
-    """
-
-    if editorial_checkout_root is None or "skipped" in editorial:
-        return None, "HEAD"
-    source = editorial.get("sources", {}).get(EVENTS_YAML_EDITORIAL_SLUG, {})
-    revision = source.get("commit") or "HEAD"
-    return (
-        editorial_checkout_root / EVENTS_YAML_EDITORIAL_SLUG / EVENTS_YAML_RELATIVE_PATH,
-        revision,
     )
 
 
@@ -626,11 +591,8 @@ def _orchestrator_report(
             "editorial": editorial or {"skipped": "checkout_root_not_supplied"},
         },
         "event_identities": event_pipeline["identities"],
-        "new_event_identities": event_pipeline["new_event_identities"],
         "event_content": event_pipeline["event_content"],
-        "new_event_content": event_pipeline["new_event_content"],
         "eventbrite_descriptions": event_pipeline["eventbrite_descriptions"],
-        "events_yaml": event_pipeline.get("events_yaml", {"present": False}),
         "event_registrations": registrations,
         "project_repo_enrichment": project_repo_enrichment,
     }
@@ -661,6 +623,7 @@ def _parser() -> argparse.ArgumentParser:
         "--luma-source",
         type=Path,
         default=main_root / LUMA_RELATIVE_SOURCE,
+        help="Luma attendee export; read only with --with-registrants.",
     )
     parser.add_argument(
         "--eventbrite-source",

@@ -124,8 +124,6 @@ class LocalPreparationOrderTests(TestCase):
         for leg in (
             "import_identities(",
             "import_content(",
-            "import_new_content(",
-            "discover_new_luma_event_identities(",
             "derive_registration_sources(",
             "stage_registration_aggregates(",
             "activate_unambiguous_mappings(",

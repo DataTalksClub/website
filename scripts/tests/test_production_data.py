@@ -265,9 +265,7 @@ def _stubbed_rehearsal(order: list[str]) -> Iterator[None]:
 
     pipeline: dict[str, dict[str, Any]] = {
         "identities": {},
-        "new_event_identities": {},
         "event_content": {},
-        "new_event_content": {},
         "eventbrite_descriptions": {},
     }
 
@@ -406,21 +404,14 @@ class RehearsalSequenceTests(SimpleTestCase):
             self._run([], with_registrants=True)
         self.assertEqual(str(raised.exception), "registration_source_unavailable")
 
-    def test_the_event_stage_reads_events_yaml_from_the_synced_main_site(self) -> None:
-        """Production's upcoming events got type and speakers from this file."""
+    def test_the_event_stage_reads_no_events_yaml_or_luma_export(self) -> None:
+        """Events are registered only on this site: no legacy list, no Luma discovery."""
 
         received: dict[str, Any] = {}
 
         def pipeline(**kwargs: Any) -> dict[str, Any]:
             received.update(kwargs)
-            return {
-                "identities": {},
-                "new_event_identities": {},
-                "event_content": {},
-                "new_event_content": {},
-                "eventbrite_descriptions": {},
-                "events_yaml": {"present": True, "created_total": 0},
-            }
+            return {"identities": {}, "event_content": {}, "eventbrite_descriptions": {}}
 
         fixture = self.fixture
         with (
@@ -437,41 +428,8 @@ class RehearsalSequenceTests(SimpleTestCase):
                 editorial_checkout_root=fixture.editorial_root,
                 fresh=True,
             )
-        self.assertEqual(
-            received["events_yaml"],
-            fixture.editorial_root / "dtc-main-site" / "_data" / "events.yaml",
-        )
-        self.assertEqual(report["events_yaml"], {"present": True, "created_total": 0})
-
-    def test_without_an_editorial_root_there_is_no_events_yaml_leg(self) -> None:
-        received: dict[str, Any] = {}
-
-        def pipeline(**kwargs: Any) -> dict[str, Any]:
-            received.update(kwargs)
-            return {
-                "identities": {},
-                "new_event_identities": {},
-                "event_content": {},
-                "new_event_content": {},
-                "eventbrite_descriptions": {},
-            }
-
-        fixture = self.fixture
-        with (
-            _stubbed_rehearsal([]),
-            mock.patch.object(prepare, "run_event_pipeline", pipeline),
-        ):
-            report = prepare.run(
-                database=fixture.database,
-                course_checkout_root=fixture.course_root,
-                identity_manifest=fixture.manifest,
-                luma_source=fixture.luma,
-                luma_identities=None,
-                fresh=True,
-            )
-        self.assertIn("events_yaml", received)
-        self.assertIsNone(received["events_yaml"])
-        self.assertEqual(report["events_yaml"], {"present": False})
+        self.assertEqual(received, {"identity_manifest": fixture.manifest})
+        self.assertNotIn("events_yaml", report)
 
     def test_a_missing_editorial_checkout_names_its_slug(self) -> None:
         (self.fixture.editorial_root / "dtc-faq").rmdir()

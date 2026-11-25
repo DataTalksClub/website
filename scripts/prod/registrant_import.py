@@ -205,8 +205,7 @@ def create_provider_event_identity(
     """Mint an Event identity for one provider event, using the shared allocator.
 
     A provider export names no type and no speakers, and no event may exist
-    without them, so the caller supplies both from a reviewed source
-    (``scripts/prod/import_events.EventMetadataIndex``).  It calls
+    without them, so the caller supplies both from a reviewed source.  It calls
     :func:`events.identity.create_event_identity` -- the only creation path --
     rather than re-deriving a public ID or canonical path here.
 
