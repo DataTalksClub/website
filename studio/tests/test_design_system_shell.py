@@ -37,6 +37,7 @@ from courses.models import (
 )
 from courses.models.cohort import Cohort
 from events.identity import create_event_identity
+from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
 SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 
@@ -82,6 +83,8 @@ class StudioDesignFiveAShellTests(TestCase):
             metadata={"summary": "Fixture for the Studio design system shell contract."},
         )
         cls.event = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Shell Contract Event",

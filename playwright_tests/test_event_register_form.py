@@ -16,6 +16,7 @@ from playwright.sync_api import Page, ViewportSize, expect
 
 from events.identity import canonical_detail_path, create_event_identity
 from playwright_tests.accessibility_support import assert_accessible_page
+from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
 
@@ -24,6 +25,8 @@ SCREENSHOTS = Path(".tmp/screenshots/event-register-form")
 
 def _event_path(*, title: str, days: int) -> str:
     event = create_event_identity(
+        picture=TEST_EVENT_PICTURE,
+        description=TEST_EVENT_DESCRIPTION,
         speakers=[("synthetic-speaker", "Synthetic Speaker")],
         title=title,
         starts_at=timezone.now() + timedelta(days=days),

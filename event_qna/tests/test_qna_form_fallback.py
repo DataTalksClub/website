@@ -17,11 +17,14 @@ from core.models import RevisionConflict
 from event_qna import services
 from event_qna.models import EventQnaSession
 from events.identity import create_event_identity
+from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
 
 class EventQnaFormFallbackTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Form fallback test event",

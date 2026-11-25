@@ -1,10 +1,12 @@
 """Every event must have a type, a speaker, a description and a picture.
 
-The write paths refuse a missing type or speaker today (``test_publication``);
-this module covers the full four-part rule where it is held beyond them: the
+The creation path refuses a missing type, speaker, description or picture
+(``test_publication``); this module covers the model-level picture rule and the
+full four-part rule where it is held beyond them: the
 report (:func:`events.publication.incomplete_events`), the ``dtc_events.W001``
 database system check, the ``/health/ready`` report, and -- on PostgreSQL only
--- the deferred constraint triggers of ``event_registrants`` migration 0005.
+-- the deferred constraint triggers of ``event_registrants`` migration 0005,
+enabled by 0007.
 
 Run the PostgreSQL half with ``DJANGO_SETTINGS_MODULE=website.settings.test_postgres``
 against a PostgreSQL server (see the ``postgres-confirm-regression`` CI job).
@@ -21,8 +23,10 @@ from django.db import IntegrityError, connection, transaction
 from django.test import TestCase
 
 from event_registrants.models import EventOperatorConfig
-from events.identity import create_event_identity
+from events.identity import EventIdentityError, create_event_identity
+from events.pictures import EventPictureRequired
 from events.publication import completeness_gaps, completeness_summary, incomplete_events
+from test_support.event_pictures import TEST_EVENT_PICTURE
 
 TRIGGERS = importlib.import_module("event_registrants.migrations.0005_event_completeness_triggers")
 
@@ -31,18 +35,29 @@ def _event(
     *,
     title: str = "Complete Event",
     description: str = "What the event is about.",
-    picture: bytes | None = b"\x89PNG-bytes",
+    picture: bytes | None = TEST_EVENT_PICTURE.data,
 ) -> Event:
+    """A complete event, then degraded by queryset writes into a pre-rule row.
+
+    The creation path refuses an event without a description or a picture, so
+    an incomplete row can only be one written before the rule; queryset
+    ``update``/``delete`` bypass the model-level guards to reproduce it.
+    """
+
     event = create_event_identity(
+        picture=TEST_EVENT_PICTURE,
         title=title,
         event_type="webinar",
         speakers=[("janedoe", "Jane Doe")],
-        fields={"description": description},
+        description="What the event is about.",
     )
-    if picture is not None:
-        EventOperatorConfig.objects.create(
-            event=event, banner_image=picture, banner_content_type="image/png"
-        )
+    if not description.strip():
+        Event.objects.filter(pk=event.pk).update(description=description)
+        event.refresh_from_db()
+    if picture is None:
+        EventOperatorConfig.objects.filter(event=event).delete()
+    elif picture != TEST_EVENT_PICTURE.data:
+        EventOperatorConfig.objects.filter(event=event).update(banner_image=picture)
     return event
 
 
@@ -118,6 +133,47 @@ class CompletenessReportTests(_WithoutSeedEvents):
         self.assertEqual(set(summary["events"][0]), {"public_id", "id", "missing"})
 
 
+class PictureRuleTests(_WithoutSeedEvents):
+    """The model-level picture rule, which holds on SQLite as well."""
+
+    def test_an_event_cannot_be_created_without_a_picture(self) -> None:
+        with self.assertRaises(EventIdentityError) as caught:
+            create_event_identity(
+                title="No Picture",
+                event_type="webinar",
+                speakers=[("janedoe", "Jane Doe")],
+                description="About it.",
+            )
+        self.assertEqual(str(caught.exception), "event_picture_required")
+        self.assertFalse(Event.objects.exists())
+
+    def test_an_event_is_created_with_its_picture(self) -> None:
+        event = _event()
+        self.assertEqual(bytes(event.operator_config.banner_image), TEST_EVENT_PICTURE.data)
+
+    def test_the_picture_cannot_be_cleared_or_deleted(self) -> None:
+        config = _event().operator_config
+        config.banner_image = b""
+        with self.assertRaises(EventPictureRequired):
+            config.save()
+        config.banner_image = None
+        with self.assertRaises(EventPictureRequired):
+            config.save(update_fields=["banner_image"])
+        with self.assertRaises(EventPictureRequired):
+            config.delete()
+
+    def test_an_existing_event_without_a_picture_cannot_be_saved(self) -> None:
+        event = _event(picture=None)
+        event.title = "Renamed"
+        with self.assertRaises(EventPictureRequired):
+            event.save()
+
+    def test_deleting_the_event_takes_its_picture_with_it(self) -> None:
+        event = _event()
+        event.delete()
+        self.assertFalse(EventOperatorConfig.objects.exists())
+
+
 @unittest.skipUnless(connection.vendor == "postgresql", "constraint triggers are PostgreSQL-only")
 class CompletenessTriggerTests(_WithoutSeedEvents):
     """The triggers, enabled for the test, refuse a commit that leaves an event incomplete."""
@@ -147,13 +203,13 @@ class CompletenessTriggerTests(_WithoutSeedEvents):
             "must have a type, a speaker, a description and a picture", str(caught.exception)
         )
 
-    def test_installed_disabled_until_the_backfill(self) -> None:
+    def test_enabled_by_migration_0007(self) -> None:
         self.assertEqual(
             self.migrated_state,
             [
-                ("dtc_event_complete", "D"),
-                ("dtc_event_complete_picture", "D"),
-                ("dtc_event_complete_speakers", "D"),
+                ("dtc_event_complete", "O"),
+                ("dtc_event_complete_picture", "O"),
+                ("dtc_event_complete_speakers", "O"),
             ],
         )
 

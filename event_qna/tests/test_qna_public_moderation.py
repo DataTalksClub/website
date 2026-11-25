@@ -18,6 +18,7 @@ from core.models import AuditEvent
 from event_qna import security, services
 from event_qna.models import EventQnaSession
 from events.identity import create_event_identity
+from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
 MODERATION_AUDIT = "events.qna.question_moderated"
 DENIAL_AUDIT = "events_qna_moderate.audit"
@@ -40,6 +41,8 @@ def _qna_urls(event: Any) -> dict[str, str]:
 class PublicModerationTestBase(TestCase):
     def make_event(self):
         event = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Public moderation test event",

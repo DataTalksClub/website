@@ -19,6 +19,7 @@ from accounts.studio_test_support import authenticated_studio_client, make_studi
 from event_qna import services
 from event_qna.models import EventQnaSession
 from events.identity import create_event_identity
+from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
 #: The exact participant-facing schema: contract, canonical paths, state,
 #: public settings, text limit, capability flags, banner.  Nothing else.
@@ -62,6 +63,8 @@ def _embedded_config(response) -> dict[str, Any]:
 class PublicConfigContractTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Public config test event",

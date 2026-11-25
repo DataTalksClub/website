@@ -38,6 +38,7 @@ from scripts.prod.registrant_import import (
     normalize_match_title,
     provider_source_identity,
 )
+from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
 PROVIDER = EventRegistration.Provider.LUMA
 
@@ -88,6 +89,8 @@ class RegistrantImportTestCase(TestCase):
 
     def _mint_event(self, *, event_id: str, title: str) -> Event:
         return create_provider_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider=PROVIDER,
@@ -687,6 +690,8 @@ class ProviderEventIdentityTests(TestCase):
 
     def test_creates_a_real_event_with_a_luma_source_identity(self) -> None:
         event = create_provider_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider="luma",
@@ -710,6 +715,8 @@ class ProviderEventIdentityTests(TestCase):
 
     def test_resolve_source_identity_finds_it_by_provider_and_external_id(self) -> None:
         created = create_provider_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider="luma",
@@ -728,6 +735,8 @@ class ProviderEventIdentityTests(TestCase):
 
     def test_luma_and_eventbrite_ids_never_collide(self) -> None:
         luma_event = create_provider_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider="luma",
@@ -735,6 +744,8 @@ class ProviderEventIdentityTests(TestCase):
             title="Luma Event",
         )
         eventbrite_event = create_provider_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider="eventbrite",
@@ -747,6 +758,8 @@ class ProviderEventIdentityTests(TestCase):
     def test_unsupported_provider_is_rejected(self) -> None:
         with self.assertRaisesMessage(EventIdentityError, "unsupported_provider"):
             create_provider_event_identity(
+                picture=TEST_EVENT_PICTURE,
+                description=TEST_EVENT_DESCRIPTION,
                 event_type="webinar",
                 speakers=[("synthetic-speaker", "Synthetic Speaker")],
                 provider="meetup",
@@ -764,6 +777,8 @@ class ExistingEventIndexTests(TestCase):
 
     def _canonical(self, *, title: str, source_key: str) -> Event:
         return create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title=title,
@@ -854,6 +869,8 @@ class ExistingEventIndexTests(TestCase):
         """
 
         create_provider_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider="luma",
@@ -878,6 +895,8 @@ class _FallbackFixtures(RegistrantImportTestCase):
 
     def _manifest_event(self, *, title: str, source_key: str, start: datetime) -> Event:
         return create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title=title,
@@ -1025,6 +1044,8 @@ class TitleAndStartFallbackTests(_FallbackFixtures):
         """Refresh replaces one event's provider rows wholesale; two writers would erase."""
 
         minted = create_provider_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider=PROVIDER,
@@ -1102,6 +1123,8 @@ class EventOccurrenceIndexTests(TestCase):
 
     def _event(self, *, title: str, source_key: str, start: datetime) -> Event:
         return create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title=title,

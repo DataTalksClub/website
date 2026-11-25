@@ -27,6 +27,7 @@ from management_auth.constants import DEFAULT_CREDENTIAL_LIFETIME, DIGEST_ALGORI
 from management_auth.models import APICredential, APIPrincipal
 from management_auth.services import create_principal
 from management_auth.tokens import encode_secret, generate_token
+from test_support.event_pictures import TEST_PICTURE_PAYLOAD
 
 User = get_user_model()
 
@@ -47,6 +48,7 @@ def _payload(**overrides: object) -> dict[str, object]:
         "zoom_join_url": "https://zoom.example/j/123?pwd=hidden",
         "tags": ["Academy"],
         "publish": False,
+        "picture": TEST_PICTURE_PAYLOAD,
     }
     payload.update(overrides)
     return payload

@@ -42,6 +42,7 @@ from events.merge import (
     merge_pair,
     merge_pairs,
 )
+from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
 LEGACY_REPOSITORY = "DataTalksClub/datatalksclub.github.io"
 LUMA_REPOSITORY = "dtc-historical-source/luma"
@@ -55,6 +56,8 @@ def _identity(label: str) -> EventRegistrantIdentity:
 class MergeFixture(TestCase):
     def setUp(self) -> None:
         self.keep = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="podcast",
             speakers=[("speakerone", "Speaker One")],
             title="Machine Learning Engineering in Finance",
@@ -68,6 +71,8 @@ class MergeFixture(TestCase):
         self.keep.save(update_fields=["description_html", "description", "updated_at"])
 
         self.duplicate = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Machine Learning Engineering in Finances",
@@ -101,7 +106,8 @@ class DryRunTests(MergeFixture):
         self.assertFalse(diff["title"]["same"])
         self.assertEqual(diff["start_datetime"]["keep"], "2024-01-15T16:00:00+00:00")
         self.assertEqual(diff["start_datetime"]["duplicate"], "2024-01-15T11:30:00+00:00")
-        self.assertEqual(diff["has_description"], {"keep": True, "duplicate": False, "same": False})
+        # Every event is created with a description now, so both have one.
+        self.assertEqual(diff["has_description"], {"keep": True, "duplicate": True, "same": True})
         self.assertEqual(diff["hosts"]["keep"], [{"host": "speakerone", "role": "speaker"}])
         self.assertEqual(diff["registrations"]["duplicate"]["total"], 3)
         self.assertEqual(report["plan"]["registrations_moved"], 3)
@@ -218,6 +224,8 @@ class ApplyTests(MergeFixture):
     def test_a_chain_of_merges_repoints_the_earlier_merge(self) -> None:
         merge_pair(self.pair, apply=True)
         survivor = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="The Real Survivor",
@@ -298,6 +306,8 @@ class RefusalTests(MergeFixture):
         # Created here rather than read from seeded reference data, which only
         # the SQLite harness loads.
         other = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="A Different Event",
@@ -313,6 +323,8 @@ class RefusalTests(MergeFixture):
 
     def test_an_error_mid_run_names_the_pairs_already_committed(self) -> None:
         second = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="A Second Event",
@@ -322,6 +334,8 @@ class RefusalTests(MergeFixture):
             source_key="2024-02-01-a-second-event",
         )
         second_duplicate = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="A Second Event",
@@ -412,6 +426,8 @@ class RetiredUrlTests(MergeFixture):
 
         with self.assertRaisesMessage(EventIdentityError, "event_public_id_retired"):
             create_event_identity(
+                picture=TEST_EVENT_PICTURE,
+                description=TEST_EVENT_DESCRIPTION,
                 event_type="webinar",
                 speakers=[("synthetic-speaker", "Synthetic Speaker")],
                 title="Someone Else",
@@ -447,6 +463,8 @@ class MergedSourceIdentityTests(MergeFixture):
 
         with self.assertRaisesMessage(EventIdentityError, "source_identity_merged"):
             create_provider_event_identity(
+                picture=TEST_EVENT_PICTURE,
+                description=TEST_EVENT_DESCRIPTION,
                 event_type="webinar",
                 speakers=[("synthetic-speaker", "Synthetic Speaker")],
                 provider="luma",
@@ -580,12 +598,17 @@ class LumaStartTimeBoundaryTests(TestCase):
             "  title: 'A Winter Podcast Nobody Else Has'\n"
             "  type: podcast\n"
             "  speakers: [synthetic-speaker]\n"
+            "  description: 'A winter podcast.'\n"
             "  link: https://luma.com/winter\n",
             encoding="utf-8",
         )
         self.addCleanup(events_yaml.unlink)
+        picture_dir = tempfile.TemporaryDirectory(dir=Path(settings.BASE_DIR) / ".tmp")
+        self.addCleanup(picture_dir.cleanup)
+        pictures = Path(picture_dir.name)
+        (pictures / "evt-WinterTime.png").write_bytes(TEST_EVENT_PICTURE.data)
         discover_new_luma_event_identities(
-            luma_source=self.root, apply=True, events_yaml=events_yaml
+            luma_source=self.root, apply=True, events_yaml=events_yaml, pictures=pictures
         )
 
         source = provider_source_identity(

@@ -201,8 +201,13 @@ def create_provider_event_identity(
     event_type: str,
     speakers: Any,
     start_at: str | None = None,
+    description: str = "",
+    picture: Any = None,
 ) -> Event:
     """Mint an Event identity for one provider event, using the shared allocator.
+
+    The event is created with its ``description`` and ``picture``
+    (:class:`events.pictures.EventPicture`); without either nothing is written.
 
     A provider export names no type and no speakers, and no event may exist
     without them, so the caller supplies both from a reviewed source
@@ -227,6 +232,8 @@ def create_provider_event_identity(
         source_repository=source.repository,
         source_revision=source.revision,
         source_key=source.source_key,
+        description=description,
+        picture=picture,
     )
 
 

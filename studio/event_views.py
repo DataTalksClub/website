@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import uuid
 from typing import Any
@@ -10,6 +11,7 @@ from community_base.kernel.services import ServiceContext
 from django.http import JsonResponse
 
 from events.admin_services import EventAdminError
+from events.pictures import EventPictureRequired
 from management_registry import CAPABILITY_REGISTRY
 from studio.auth import capability_required
 
@@ -38,6 +40,9 @@ def _run(
             result = capability.service(payload, context=context)
     except EventAdminError as exc:
         return JsonResponse({"error": {"code": exc.code, "message": str(exc)}}, status=exc.status)
+    except EventPictureRequired as exc:
+        message = "An event cannot be left without a picture; upload one first."
+        return JsonResponse({"error": {"code": exc.code, "message": message}}, status=409)
     return JsonResponse(result, status=status)
 
 
@@ -48,7 +53,31 @@ def event_list(request: Any) -> JsonResponse:
 
 @capability_required("events.manage.create")
 def event_create(request: Any) -> JsonResponse:
-    return _run(request, "events.manage.create", _payload(request), status=201)
+    """Create an event.  The picture is required.
+
+    A JSON body carries ``"picture": {"image_base64", "content_type"}``; a
+    multipart form carries the required ``picture`` file field (and
+    ``speakers`` as repeated fields or one comma-separated value).
+    """
+    payload = _payload(request)
+    if request.content_type != "application/json":
+        speakers = [
+            item.strip()
+            for value in request.POST.getlist("speakers")
+            for item in value.split(",")
+            if item.strip()
+        ]
+        if speakers:
+            payload["speakers"] = speakers
+        upload = request.FILES.get("picture")
+        if upload is not None:
+            payload["picture"] = {
+                "image_base64": base64.b64encode(upload.read()).decode("ascii"),
+                "content_type": upload.content_type or "",
+            }
+        else:
+            payload.pop("picture", None)
+    return _run(request, "events.manage.create", payload, status=201)
 
 
 @capability_required("events.manage.detail")

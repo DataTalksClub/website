@@ -23,6 +23,7 @@ from django.utils import timezone
 from event_qna import security, services
 from event_qna.models import EventQnaQuestion, EventQnaRateLimit, EventQnaSession
 from events.identity import create_event_identity
+from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
 IP_A = "203.0.113.10"
 IP_B = "203.0.113.20"
@@ -46,6 +47,8 @@ def _seed_ip_bucket(scope: str, ip: str, *, window_seconds: int, hits: int) -> N
 class RateIdentityTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Rate identity test event",
@@ -122,6 +125,8 @@ class RateIdentityTests(TestCase):
 
     def test_cohost_redemption_is_one_global_ip_budget_across_events(self) -> None:
         other = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Rate identity second event",

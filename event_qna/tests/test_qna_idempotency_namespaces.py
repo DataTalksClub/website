@@ -23,11 +23,14 @@ from event_qna.models import EventQnaSession
 from events.identity import create_event_identity
 from management_auth.models import APICredential, APIPrincipal
 from management_auth.services import create_principal, issue_credential_once
+from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
 
 class PrincipalNamespaceIsolationTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Idempotency namespace test event",

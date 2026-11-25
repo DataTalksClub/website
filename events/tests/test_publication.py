@@ -17,6 +17,11 @@ from events.admin_services import (
 )
 from events.identity import create_event_identity
 from events.publication import incomplete_published_events, publication_gaps
+from test_support.event_pictures import (
+    TEST_EVENT_DESCRIPTION,
+    TEST_EVENT_PICTURE,
+    TEST_PICTURE_PAYLOAD,
+)
 
 
 def _payload(**overrides: object) -> dict[str, object]:
@@ -27,6 +32,8 @@ def _payload(**overrides: object) -> dict[str, object]:
         "speakers": ["alexeygrigorev"],
         "start_datetime": start.isoformat(),
         "publish": True,
+        "description": "What the webinar is about.",
+        "picture": TEST_PICTURE_PAYLOAD,
     }
     payload.update(overrides)
     return payload
@@ -93,6 +100,8 @@ class AdminPublicationRuleTests(_WithSpeaker):
 class IncompletePublishedEventsTests(_WithSpeaker):
     def test_reports_published_events_missing_a_type_or_a_speaker_but_not_drafts(self) -> None:
         bare = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Bare Published Event",
@@ -102,6 +111,8 @@ class IncompletePublishedEventsTests(_WithSpeaker):
             source_key="bare-published",
         )
         create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Bare Draft Event",
@@ -168,6 +179,8 @@ class CreationServiceTests(TestCase):
             "source_repository": "synthetic/source",
             "source_revision": "r1",
             "source_key": "creation-rule",
+            "picture": TEST_EVENT_PICTURE,
+            "description": TEST_EVENT_DESCRIPTION,
         }
         values.update(overrides)
         return create_event_identity(**values)  # type: ignore[arg-type]
@@ -185,6 +198,8 @@ class CreationServiceTests(TestCase):
             ({"event_type": "  "}, "event_type_required"),
             ({"speakers": []}, "event_speakers_required"),
             ({"speakers": [("", "Nobody")]}, "event_speaker_key_blank"),
+            ({"picture": None}, "event_picture_required"),
+            ({"description": "  "}, "event_description_required"),
         ):
             with self.subTest(code=code), self.assertRaises(EventIdentityError) as caught:
                 self._create(**overrides)

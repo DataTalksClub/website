@@ -22,6 +22,7 @@ from event_qna import services
 from event_qna.errors import QnaError
 from event_qna.models import EventQnaRateLimit, EventQnaSession
 from events.identity import create_event_identity
+from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
 IP_A = "203.0.113.10"
 IP_B = "203.0.113.20"
@@ -41,6 +42,8 @@ def _seed_bucket(scope: str, *, window_seconds: int, started_at: datetime, hits:
 class RetentionContractTests(TestCase):
     def setUp(self) -> None:
         self.event = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Retention contract test event",

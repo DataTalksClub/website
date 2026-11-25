@@ -16,8 +16,9 @@ from datetime import UTC, datetime, timedelta
 from community_base.events.models import Event, EventHost, Host
 from django.test import TestCase
 
-from event_registrants.models import EventRegistrantIdentity, EventRegistration
+from event_registrants.models import EventOperatorConfig, EventRegistrantIdentity, EventRegistration
 from events.queries import event_public_record, published_event_record, published_event_records
+from test_support.event_pictures import TEST_EVENT_PICTURE
 
 STARTS_AT = datetime(2026, 6, 1, 17, 0, tzinfo=UTC)
 
@@ -34,7 +35,15 @@ def _event(*, public_id: int, slug: str, title: str, **overrides: object) -> Eve
         "tags": ["dtc-type:webinar"],
     }
     values.update(overrides)
-    return Event.objects.create(**values)
+    event = Event.objects.create(**values)
+    # Every event has a picture (events.pictures); this fixture bypasses the
+    # creation path, so it writes the picture row itself.
+    EventOperatorConfig.objects.create(
+        event=event,
+        banner_image=TEST_EVENT_PICTURE.data,
+        banner_content_type=TEST_EVENT_PICTURE.content_type,
+    )
+    return event
 
 
 def _describe(event: Event, **overrides: object) -> None:

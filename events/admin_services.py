@@ -35,6 +35,7 @@ from event_registrants.models import (
 )
 
 from .identity import (
+    EventIdentityError,
     create_event_identity,
     decode_event_tags,
     encode_event_tags,
@@ -51,15 +52,19 @@ from .lifecycle import (
     is_published,
     status_q,
 )
+from .pictures import (
+    ALLOWED_PICTURE_TYPES,
+    MAX_PICTURE_BYTES,
+    PICTURE_REQUIRED,
+    EventPicture,
+    EventPictureInvalid,
+    EventPictureRequired,
+)
 from .publication import EventNotPublishable, require_publishable
 
 DEFAULT_REMINDER_INTERVALS: tuple[str, ...] = ("24h", "20m")
-ALLOWED_BANNER_TYPES: dict[str, str] = {
-    "image/png": "png",
-    "image/jpeg": "jpg",
-    "image/webp": "webp",
-}
-MAX_BANNER_BYTES = 5 * 1024 * 1024
+ALLOWED_BANNER_TYPES: dict[str, str] = ALLOWED_PICTURE_TYPES
+MAX_BANNER_BYTES = MAX_PICTURE_BYTES
 
 _MARKDOWN = mistune.create_markdown(escape=False)
 
@@ -502,6 +507,11 @@ def create_event(
     payload: Mapping[str, Any], *, context: ServiceContext | None = None
 ) -> dict[str, Any]:
     data = dict(payload or {})
+    if "picture_chunk" in data:
+        # A chunk of the picture this create call will name by upload_id.
+        return stage_event_picture_chunk(
+            data["picture_chunk"], is_continuation=bool(data.get("_is_continuation_chunk"))
+        )
     title = str(data.get("title") or "").strip()
     if not title:
         raise EventAdminError("title is required.")
@@ -562,42 +572,53 @@ def create_event(
         )
     hosts = [_resolve_or_create_speaker(str(item)) for item in speaker_shorts if str(item).strip()]
     _reject_cyrillic({"tags": [str(tag).strip() for tag in display_tags if str(tag).strip()]})
-
-    event = create_event_identity(
-        title=title,
-        event_type=event_type,
-        speakers=hosts,
-        starts_at=start_dt,
-        ends_at=end_dt,
-        season=season,
-        episode=episode,
-        display_tags=display_tags,
-        status="draft",
-        fields={
-            "slug": slug,
-            "description": description,
-            "description_html": _render_markdown(description),
-            "kind": kind,
-            "platform": platform,
-            "timezone": tz_name,
-            "location": location,
-            "zoom_join_url": zoom_join_url,
-            "recording_url": recording_url,
-            "materials": materials,
-        },
-    )
+    if not description.strip():
+        raise EventAdminError(
+            "description is required: every event needs a description.",
+            code="event_description_required",
+        )
+    # ... and a picture, written in the same transaction as the event
+    # (events.pictures): inline base64, or an upload staged in chunks first.
+    picture = _picture_from_payload(data.get("picture"))
 
     reminders_enabled, reminder_intervals = _normalize_reminder_intervals(
         data.get("reminder_intervals")
     )
-    EventOperatorConfig.objects.create(
-        event=event,
-        reminders_enabled=reminders_enabled,
-        reminder_intervals=reminder_intervals,
-        sponsor_sharing_enabled=bool(data.get("sponsor_sharing_enabled", False)),
-        collect_company=bool(data.get("collect_company", False)),
-        sponsor_name=sponsor_name,
-    )
+    try:
+        event = create_event_identity(
+            title=title,
+            event_type=event_type,
+            speakers=hosts,
+            starts_at=start_dt,
+            ends_at=end_dt,
+            season=season,
+            episode=episode,
+            display_tags=display_tags,
+            status="draft",
+            description=description,
+            picture=picture,
+            operator_config={
+                "reminders_enabled": reminders_enabled,
+                "reminder_intervals": reminder_intervals,
+                "sponsor_sharing_enabled": bool(data.get("sponsor_sharing_enabled", False)),
+                "collect_company": bool(data.get("collect_company", False)),
+                "sponsor_name": sponsor_name,
+            },
+            fields={
+                "slug": slug,
+                "description_html": _render_markdown(description),
+                "kind": kind,
+                "platform": platform,
+                "timezone": tz_name,
+                "location": location,
+                "zoom_join_url": zoom_join_url,
+                "recording_url": recording_url,
+                "materials": materials,
+            },
+        )
+    except EventIdentityError as exc:
+        raise EventAdminError(str(exc), code=str(exc)) from exc
+    _consume_staged_picture(data.get("picture"))
 
     if publish_now:
         event = _publish(event)
@@ -618,6 +639,7 @@ def update_event(
     if target is None:
         raise EventAdminError("event_id is required.")
     event = _resolve_event(target)
+    _require_picture_config(event)
     before = _audit_snapshot(event)
 
     event_type, season, episode = decode_event_tags(event.tags)
@@ -707,7 +729,7 @@ def update_event(
     if "speakers" in data and data["speakers"] is not None:
         _sync_event_speakers(event, [str(item) for item in data["speakers"]])
 
-    config, _created = EventOperatorConfig.objects.get_or_create(event=event)
+    config = _require_picture_config(event)
     if "reminder_intervals" in data:
         enabled, intervals = _normalize_reminder_intervals(data["reminder_intervals"])
         config.reminders_enabled = enabled
@@ -811,26 +833,60 @@ MAX_BANNER_CHUNKS = 2000
 BANNER_UPLOAD_TTL = timedelta(hours=1)
 
 
+def _validated_picture(raw_bytes: bytes, content_type: str) -> EventPicture:
+    try:
+        return EventPicture.from_bytes(raw_bytes, content_type)
+    except EventPictureRequired as exc:
+        raise EventAdminError(
+            "A picture is required: an event cannot be left without one.",
+            code=PICTURE_REQUIRED,
+        ) from exc
+    except EventPictureInvalid as exc:
+        raise EventAdminError(str(exc), code=exc.code) from exc
+
+
 def _save_event_banner_bytes(event: Event, raw_bytes: bytes, content_type: str) -> dict[str, Any]:
-    if not raw_bytes or len(raw_bytes) > MAX_BANNER_BYTES:
-        raise EventAdminError(f"Banner image must be between 1 byte and {MAX_BANNER_BYTES} bytes.")
-    config, _created = EventOperatorConfig.objects.get_or_create(event=event)
-    config.banner_image = raw_bytes
-    config.banner_content_type = content_type
+    """Replace the event's picture.  It can be replaced, never cleared."""
+
+    picture = _validated_picture(raw_bytes, content_type)
+    config = _get_config(event)
+    if config is None:
+        # An event written before the picture rule: this upload gives it one.
+        config = EventOperatorConfig(event=event)
+    config.banner_image = picture.data
+    config.banner_content_type = picture.content_type
     config.banner_updated_at = timezone.now()
-    config.save(
-        update_fields=("banner_image", "banner_content_type", "banner_updated_at", "updated_at")
-    )
+    if config.pk is None:
+        config.save()
+    else:
+        config.save(
+            update_fields=("banner_image", "banner_content_type", "banner_updated_at", "updated_at")
+        )
     event.save(update_fields=("updated_at",))
+    raw_bytes = picture.data
     return {"event": serialize_admin_event(event), "size_bytes": len(raw_bytes), "complete": True}
 
 
-def _upload_event_banner_chunk(
-    event: Event,
-    data: dict[str, Any],
+def _chunks_for(event: Event | None, upload_id: uuid.UUID) -> Any:
+    """The chunks of one upload: bound to ``event``, or staged before creation."""
+
+    if event is None:
+        return EventBannerUploadChunk.objects.filter(event__isnull=True, upload_id=upload_id)
+    return EventBannerUploadChunk.objects.filter(event=event, upload_id=upload_id)
+
+
+def _receive_banner_chunk(
+    event: Event | None,
+    data: Mapping[str, Any],
     *,
     content_type: str,
-) -> dict[str, Any]:
+) -> tuple[uuid.UUID, int, list[EventBannerUploadChunk]]:
+    """Store one chunk; return the upload id, the chunk count and the chunks so far.
+
+    ``event`` is ``None`` for a picture staged before the event exists
+    (:func:`stage_event_picture_chunk`).
+    """
+
     raw_upload_id = data.get("upload_id")
     try:
         upload_id = uuid.UUID(str(raw_upload_id))
@@ -856,9 +912,7 @@ def _upload_event_banner_chunk(
             raise EventAdminError(
                 "Continuation banner chunk header is not allowed on chunk_index 0."
             )
-        if not EventBannerUploadChunk.objects.filter(
-            event=event, upload_id=upload_id, chunk_index=0
-        ).exists():
+        if not _chunks_for(event, upload_id).filter(chunk_index=0).exists():
             raise EventAdminError(
                 "Banner upload session was not initialized with chunk 0.",
                 status=400,
@@ -876,7 +930,14 @@ def _upload_event_banner_chunk(
         raise EventAdminError(f"Banner chunk must be between 1 byte and {MAX_BANNER_BYTES} bytes.")
 
     cutoff = timezone.now() - BANNER_UPLOAD_TTL
-    EventBannerUploadChunk.objects.filter(event=event, created_at__lt=cutoff).delete()
+    if event is None:
+        EventBannerUploadChunk.objects.filter(event__isnull=True, created_at__lt=cutoff).delete()
+    else:
+        EventBannerUploadChunk.objects.filter(event=event, created_at__lt=cutoff).delete()
+
+    existing = EventBannerUploadChunk.objects.filter(upload_id=upload_id).first()
+    if existing is not None and existing.event_id != (event.pk if event is not None else None):
+        raise EventAdminError("upload_id belongs to another upload; use a fresh one.")
 
     EventBannerUploadChunk.objects.update_or_create(
         upload_id=upload_id,
@@ -889,33 +950,135 @@ def _upload_event_banner_chunk(
         },
     )
 
-    chunks = list(
-        EventBannerUploadChunk.objects.filter(event=event, upload_id=upload_id).order_by(
-            "chunk_index"
-        )
-    )
+    chunks = list(_chunks_for(event, upload_id).order_by("chunk_index"))
     total_bytes = sum(len(bytes(item.data)) for item in chunks)
     if total_bytes > MAX_BANNER_BYTES:
-        EventBannerUploadChunk.objects.filter(event=event, upload_id=upload_id).delete()
+        _chunks_for(event, upload_id).delete()
         raise EventAdminError(f"Banner image must be between 1 byte and {MAX_BANNER_BYTES} bytes.")
+    return upload_id, raw_count, chunks
 
-    if len(chunks) < raw_count:
+
+def _assembled(chunks: list[EventBannerUploadChunk], chunk_count: int) -> bytes:
+    actual_indices = [item.chunk_index for item in chunks]
+    if actual_indices != list(range(chunk_count)):
+        raise EventAdminError("Banner upload chunks are inconsistent; restart the upload.")
+    return b"".join(bytes(item.data) for item in chunks)
+
+
+def _upload_event_banner_chunk(
+    event: Event,
+    data: dict[str, Any],
+    *,
+    content_type: str,
+) -> dict[str, Any]:
+    upload_id, chunk_count, chunks = _receive_banner_chunk(event, data, content_type=content_type)
+    if len(chunks) < chunk_count:
         return {
             "upload_id": str(upload_id),
-            "chunk_index": raw_index,
+            "chunk_index": data.get("chunk_index"),
             "received_chunks": len(chunks),
-            "chunk_count": raw_count,
+            "chunk_count": chunk_count,
             "complete": False,
         }
-
-    expected_indices = list(range(raw_count))
-    actual_indices = [item.chunk_index for item in chunks]
-    if actual_indices != expected_indices:
-        raise EventAdminError("Banner upload chunks are inconsistent; restart the upload.")
-
-    combined = b"".join(bytes(item.data) for item in chunks)
-    EventBannerUploadChunk.objects.filter(event=event, upload_id=upload_id).delete()
+    combined = _assembled(chunks, chunk_count)
+    _chunks_for(event, upload_id).delete()
     return _save_event_banner_bytes(event, combined, content_type)
+
+
+def _content_type_or_error(raw: Any) -> str:
+    content_type = str(raw or "image/png").strip().lower()
+    if content_type not in ALLOWED_BANNER_TYPES:
+        allowed = ", ".join(ALLOWED_BANNER_TYPES)
+        raise EventAdminError(
+            f"Unsupported banner content_type '{content_type}'. Allowed: {allowed}."
+        )
+    return content_type
+
+
+@transaction.atomic
+def stage_event_picture_chunk(
+    chunk: Mapping[str, Any], *, is_continuation: bool = False
+) -> dict[str, Any]:
+    """Stage one chunk of a picture for an event that is about to be created.
+
+    The edge WAF caps a JSON request body at 8 KB, so ``dtc events create``
+    sends the picture in chunks first and then the create call names the
+    staged ``upload_id`` (``"picture": {"upload_id": ...}``).  Staged chunks
+    belong to no event and expire after :data:`BANNER_UPLOAD_TTL`.
+    """
+
+    if not isinstance(chunk, Mapping):
+        raise EventAdminError("picture_chunk must be an object.")
+    data = dict(chunk)
+    if is_continuation:
+        data["_is_continuation_chunk"] = True
+    content_type = _content_type_or_error(data.get("content_type"))
+    upload_id, chunk_count, chunks = _receive_banner_chunk(None, data, content_type=content_type)
+    return {
+        "picture_upload": {
+            "upload_id": str(upload_id),
+            "received_chunks": len(chunks),
+            "chunk_count": chunk_count,
+            "complete": len(chunks) == chunk_count,
+        }
+    }
+
+
+def _picture_from_payload(raw: Any) -> EventPicture:
+    """The create call's picture: ``{"image_base64", "content_type"}`` or ``{"upload_id"}``."""
+
+    if not isinstance(raw, Mapping) or not raw:
+        raise EventAdminError(
+            "picture is required: every event needs a picture. Send "
+            '"picture": {"image_base64": ..., "content_type": ...} or the upload_id '
+            "of a picture staged in chunks.",
+            code=PICTURE_REQUIRED,
+        )
+    if raw.get("upload_id") is not None:
+        try:
+            upload_id = uuid.UUID(str(raw["upload_id"]))
+        except (TypeError, ValueError) as exc:
+            raise EventAdminError("picture.upload_id must be a valid UUID.") from exc
+        chunks = list(_chunks_for(None, upload_id).order_by("chunk_index"))
+        if not chunks:
+            raise EventAdminError(
+                "No staged picture has that upload_id (it may have expired); upload it again.",
+                code=PICTURE_REQUIRED,
+            )
+        combined = _assembled(chunks, chunks[0].chunk_count)
+        return _validated_picture(combined, chunks[0].content_type)
+    encoded = raw.get("image_base64")
+    if not isinstance(encoded, str) or not encoded.strip():
+        raise EventAdminError(
+            "picture.image_base64 or picture.upload_id is required.", code=PICTURE_REQUIRED
+        )
+    try:
+        raw_bytes = base64.b64decode(encoded.strip(), validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise EventAdminError("Invalid base64 picture payload.") from exc
+    content_type = str(raw.get("content_type") or "").strip().lower()
+    if content_type:
+        content_type = _content_type_or_error(content_type)
+    return _validated_picture(raw_bytes, content_type)
+
+
+def _consume_staged_picture(raw: Any) -> None:
+    if isinstance(raw, Mapping) and raw.get("upload_id") is not None:
+        _chunks_for(None, uuid.UUID(str(raw["upload_id"]))).delete()
+
+
+def _require_picture_config(event: Event) -> EventOperatorConfig:
+    """The event's picture row; an event without a picture cannot be edited until it has one."""
+
+    config = _get_config(event)
+    if config is None or not config.banner_image:
+        raise EventAdminError(
+            "This event has no picture. Upload one first "
+            "(dtc events upload-banner, or POST .../banner); no other edit is accepted until then.",
+            status=409,
+            code=PICTURE_REQUIRED,
+        )
+    return config
 
 
 @transaction.atomic
@@ -931,12 +1094,7 @@ def upload_event_banner(
     if target is None:
         raise EventAdminError("event_id is required.")
     event = _resolve_event(target)
-    content_type = str(data.get("content_type") or "image/png").strip().lower()
-    if content_type not in ALLOWED_BANNER_TYPES:
-        allowed = ", ".join(ALLOWED_BANNER_TYPES)
-        raise EventAdminError(
-            f"Unsupported banner content_type '{content_type}'. Allowed: {allowed}."
-        )
+    content_type = _content_type_or_error(data.get("content_type"))
     if data.get("upload_id") is not None:
         return _upload_event_banner_chunk(event, data, content_type=content_type)
     if data.get("_is_continuation_chunk"):
@@ -944,7 +1102,10 @@ def upload_event_banner(
 
     encoded = data.get("image_base64")
     if not isinstance(encoded, str) or not encoded.strip():
-        raise EventAdminError("image_base64 is required.")
+        raise EventAdminError(
+            "image_base64 is required: a picture can be replaced, never cleared.",
+            code=PICTURE_REQUIRED,
+        )
     try:
         raw_bytes = base64.b64decode(encoded.strip(), validate=True)
     except (binascii.Error, ValueError) as exc:
@@ -1115,7 +1276,7 @@ def manage_event_reminders(
     if target is None:
         raise EventAdminError("event_id is required.")
     event = _resolve_event(target)
-    config, _created = EventOperatorConfig.objects.get_or_create(event=event)
+    config = _require_picture_config(event)
     if "reminder_intervals" in data:
         enabled, intervals = _normalize_reminder_intervals(data["reminder_intervals"])
         config.reminders_enabled = enabled

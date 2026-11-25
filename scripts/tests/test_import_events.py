@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import csv
 import json
+from unittest.mock import patch
 import pkgutil
 import tempfile
 from pathlib import Path
@@ -19,6 +20,7 @@ from django.test import TestCase
 import scripts.prod
 from content.models import EventSource
 from test_support.reference_data import EVENT_CONTENT, EVENT_IDENTITY_MANIFEST
+from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
 PROD_ROOT = Path(scripts.prod.__file__).resolve().parent
 
@@ -231,6 +233,12 @@ class NewEventIdentityDiscoveryTests(TestCase):
         self.events_yaml = Path(self.temporary.name) / "events.yaml"
         self.events_yaml.write_text("[]\n", encoding="utf-8")
         self.yaml_entries: list[str] = []
+        # Every event is created with its picture, looked up by provider event id.
+        self.pictures = Path(self.temporary.name) / "event-pictures"
+        self.pictures.mkdir()
+        patcher = patch("scripts.prod.event_pictures.EVENT_PICTURES_ROOT", self.pictures)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
@@ -261,9 +269,11 @@ class NewEventIdentityDiscoveryTests(TestCase):
                 f"  title: {json.dumps(title)}\n"
                 f"  type: webinar\n"
                 f"  speakers: [synthetic-speaker]\n"
+                f"  description: {json.dumps(title + ' is about things.')}\n"
                 f"  link: {event_url}\n"
             )
             self.events_yaml.write_text("".join(self.yaml_entries), encoding="utf-8")
+            (self.pictures / f"{event_id}.png").write_bytes(TEST_EVENT_PICTURE.data)
 
     def test_creates_an_identity_for_a_genuinely_new_event(self) -> None:
         from community_base.events.models import Event
@@ -361,6 +371,8 @@ class NewEventIdentityDiscoveryTests(TestCase):
         from events.identity import create_event_identity
 
         return create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title=title,
@@ -668,6 +680,8 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
         from scripts.prod.registrant_import import create_provider_event_identity
 
         keep = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="An Event We Already Have",
@@ -676,6 +690,8 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
             source_key="2026-09-08-an-event-we-already-have",
         )
         duplicate = create_provider_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider="luma",
@@ -771,6 +787,8 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
         from scripts.prod.registrant_import import create_provider_event_identity
 
         created = create_provider_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider="luma",

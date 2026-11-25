@@ -21,10 +21,12 @@ from django.conf import settings
 from django.test import TestCase
 
 from content.models import EventSource
+from event_registrants.models import EventOperatorConfig
 from events.content_import import (
     EventContentImportError,
     import_new_event_content,
 )
+from test_support.event_pictures import TEST_EVENT_PICTURE
 
 PROVIDER_REPOSITORY = "dtc-historical-source/luma"
 PROVIDER_REVISION = "luma-aggregate-v1"
@@ -43,6 +45,12 @@ def _event(*, public_id: int, source_key: str, repository: str = PROVIDER_REPOSI
         source_commit=PROVIDER_REVISION,
     )
     event.save()
+    # This fixture bypasses the creation path, so it writes the picture row itself.
+    EventOperatorConfig.objects.create(
+        event=event,
+        banner_image=TEST_EVENT_PICTURE.data,
+        banner_content_type=TEST_EVENT_PICTURE.content_type,
+    )
     EventSource.objects.create(
         event=event,
         repository=repository,

@@ -16,6 +16,7 @@ from management_auth.constants import DEFAULT_CREDENTIAL_LIFETIME, DIGEST_ALGORI
 from management_auth.models import APICredential, APIPrincipal
 from management_auth.services import create_principal
 from management_auth.tokens import encode_secret, generate_token
+from test_support.event_pictures import TEST_PICTURE_PAYLOAD
 
 User = get_user_model()
 
@@ -97,6 +98,7 @@ class EventAdminAPITests(TestCase):
             "/api/v1/admin/events",
             data=json.dumps(
                 {
+                    "picture": TEST_PICTURE_PAYLOAD,
                     "title": "CLI Test Webinar",
                     "type": "webinar",
                     "description": "Testing the event CLI.",
@@ -236,7 +238,9 @@ class EventAdminAPITests(TestCase):
             "/api/v1/admin/events",
             data=json.dumps(
                 {
+                    "picture": TEST_PICTURE_PAYLOAD,
                     "title": "Draft Podcast",
+                    "description": "About it.",
                     "type": "podcast",
                     "season": 20,
                     "episode": 5,
@@ -304,7 +308,9 @@ class EventAdminAPITests(TestCase):
             "/api/v1/admin/events",
             data=json.dumps(
                 {
+                    "picture": TEST_PICTURE_PAYLOAD,
                     "title": "Chunked Banner Event",
+                    "description": "About it.",
                     "type": "podcast",
                     "speakers": ["alexeygrigorev"],
                     "start_datetime": start.isoformat(),
@@ -394,6 +400,81 @@ class EventAdminAPITests(TestCase):
         self.assertEqual(single.status_code, 200, single.content)
         self.assertEqual(single.json()["size_bytes"], len(single_bytes))
 
+    def test_create_requires_a_picture_and_accepts_one_staged_in_chunks(self) -> None:
+        import uuid
+
+        self.client.post(
+            "/api/v1/admin/events/speakers",
+            data=json.dumps({"short": "alexeygrigorev", "name": "Alexey Grigorev"}),
+            content_type="application/json",
+            headers=self.auth_headers,
+        )
+        start = (timezone.now() + timedelta(days=12)).replace(microsecond=0)
+        body = {
+            "title": "Picture Rule Event",
+            "type": "webinar",
+            "description": "About it.",
+            "speakers": ["alexeygrigorev"],
+            "start_datetime": start.isoformat(),
+            "publish": True,
+        }
+        refused = self.client.post(
+            "/api/v1/admin/events",
+            data=json.dumps(body),
+            content_type="application/json",
+            headers=self.auth_headers,
+        )
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertEqual(refused.json()["error"]["code"], "event_picture_required")
+
+        # 140 KB in 35 chunks: more than the write rate limit and the 64 KB JSON cap.
+        payload_bytes = TINY_PNG + (b"\x01\x02\x03\x04" * 35_000)
+        chunks = [payload_bytes[i : i + 4096] for i in range(0, len(payload_bytes), 4096)]
+        upload_id = str(uuid.uuid4())
+        for idx, chunk in enumerate(chunks):
+            headers = dict(self.auth_headers)
+            if idx > 0:
+                headers["X-Banner-Upload-Chunk"] = "1"
+            staged = self.client.post(
+                "/api/v1/admin/events",
+                data=json.dumps(
+                    {
+                        "picture_chunk": {
+                            "upload_id": upload_id,
+                            "chunk_index": idx,
+                            "chunk_count": len(chunks),
+                            "content_type": "image/png",
+                            "chunk_base64": base64.b64encode(chunk).decode("ascii"),
+                        }
+                    }
+                ),
+                content_type="application/json",
+                headers=headers,
+            )
+            self.assertEqual(staged.status_code, 200, staged.content)
+        self.assertTrue(staged.json()["picture_upload"]["complete"])
+
+        created = self.client.post(
+            "/api/v1/admin/events",
+            data=json.dumps({**body, "picture": {"upload_id": upload_id}}),
+            content_type="application/json",
+            headers=self.auth_headers,
+        )
+        self.assertEqual(created.status_code, 201, created.content)
+        public_id = created.json()["event"]["public_id"]
+        banner = self.client.get(f"/events/{public_id}/banner")
+        self.assertEqual(banner.content, payload_bytes)
+
+        # The staged chunks were consumed: the upload id cannot create a second event.
+        again = self.client.post(
+            "/api/v1/admin/events",
+            data=json.dumps({**body, "title": "Second", "picture": {"upload_id": upload_id}}),
+            content_type="application/json",
+            headers=self.auth_headers,
+        )
+        self.assertEqual(again.status_code, 400, again.content)
+        self.assertEqual(again.json()["error"]["code"], "event_picture_required")
+
     def test_unhandled_errors_report_specific_cause_instead_of_generic_internal_error(self) -> None:
         from django.db import IntegrityError, NotSupportedError
 
@@ -409,7 +490,9 @@ class EventAdminAPITests(TestCase):
             "/api/v1/admin/events",
             data=json.dumps(
                 {
+                    "picture": TEST_PICTURE_PAYLOAD,
                     "title": "Error Reporting Event",
+                    "description": "About it.",
                     "type": "podcast",
                     "speakers": ["alexeygrigorev"],
                     "start_datetime": start.isoformat(),

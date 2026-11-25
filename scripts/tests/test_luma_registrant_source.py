@@ -39,6 +39,7 @@ from scripts.prod.registration_sources.luma_registrants import (
     read_luma_registrant_rows,
 )
 from events.identity import create_event_identity
+from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
 _COLUMNS = (
     "guest_id",
@@ -263,6 +264,8 @@ class LumaRegistrantSourceTests(LumaRegistrantExportMixin, TestCase):
     def test_an_export_is_imported_and_consolidated_end_to_end(self) -> None:
         account = User.objects.create(username="existing-learner", email="learner@example.invalid")
         create_provider_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider=PROVIDER,
@@ -291,6 +294,8 @@ class LumaRegistrantSourceTests(LumaRegistrantExportMixin, TestCase):
         """The resume guarantee, observed from outside: no file, no reopen."""
 
         create_provider_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider=PROVIDER,
@@ -444,6 +449,8 @@ class LumaIdentityResolutionIntegrationTests(LumaRegistrantExportMixin, TestCase
         """
 
         create_provider_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             provider=PROVIDER,
@@ -510,6 +517,8 @@ class LumaTitleAndStartFallbackTests(LumaRegistrantExportMixin, TestCase):
     def test_an_unminted_event_attaches_to_the_manifest_event_it_is(self) -> None:
         # The legacy site's nominal 17:00 Berlin; Luma held it at 12:30 that day.
         event = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Synthetic Luma Fallback Event",

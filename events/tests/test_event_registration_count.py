@@ -23,7 +23,7 @@ from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 
-from event_registrants.models import EventRegistrantIdentity
+from event_registrants.models import EventOperatorConfig, EventRegistrantIdentity
 from event_registrants.models import EventRegistration as ProviderRegistration
 from events.queries import (
     _cached_published_records,
@@ -31,6 +31,7 @@ from events.queries import (
     published_event_record,
     published_event_records,
 )
+from test_support.event_pictures import TEST_EVENT_PICTURE
 
 #: The page tests freeze the event clock here so the events below are upcoming.
 STABLE_EVENT_NOW = datetime(2026, 8, 12, tzinfo=ZoneInfo("Europe/Berlin"))
@@ -50,7 +51,15 @@ def _event(index: int, **overrides: object) -> Event:
         "tags": ["dtc-type:webinar"],
     }
     values.update(overrides)
-    return Event.objects.create(**values)
+    event = Event.objects.create(**values)
+    # Every event has a picture (events.pictures); this fixture bypasses the
+    # creation path, so it writes the picture row itself.
+    EventOperatorConfig.objects.create(
+        event=event,
+        banner_image=TEST_EVENT_PICTURE.data,
+        banner_content_type=TEST_EVENT_PICTURE.content_type,
+    )
+    return event
 
 
 def _provider(event: Event, email: str, *, provider: str = "luma", status: str = "approved"):

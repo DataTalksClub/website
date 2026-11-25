@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, datetime
 from time import sleep
 from typing import Any
@@ -36,6 +36,7 @@ from django.utils import timezone
 from content.models import EventMergedIdentity, EventSource
 
 from .lifecycle import PUBLISHED_STATUS
+from .pictures import EventPicture
 from .slugs import event_title_slug
 
 MAX_PUBLIC_ID = 2_147_483_647
@@ -199,6 +200,9 @@ def _create_event_identity_atomic(
     public_id: int | None = None,
     fields: dict[str, Any] | None = None,
     provision_qna: bool = True,
+    description: str,
+    picture: EventPicture,
+    operator_config: Mapping[str, Any] | None = None,
 ) -> Event:
     start = starts_at if starts_at is not None else DEFAULT_STARTS_AT
     if ends_at is not None and ends_at < start:
@@ -240,11 +244,15 @@ def _create_event_identity_atomic(
             "source_commit": source_revision or "",
         }
         attributes.update(fields or {})
+        attributes["description"] = description
         event = Event(**attributes)
         # The row must exist before either allocator service will take it: both
-        # lock and reload by primary key.  Its speakers are written in this same
-        # transaction, so no committed state ever holds an event without one.
+        # lock and reload by primary key.  Its picture and speakers are written
+        # in this same transaction, so no committed state ever holds an event
+        # without them.  The picture goes first: every later save of the row
+        # requires it (``event_registrants.signals``).
         event.save()
+        _attach_picture(event, picture, operator_config)
         _attach_speakers(event, speakers)
         if public_id is None:
             allocated = allocate_public_id(event)
@@ -295,13 +303,22 @@ def create_event_identity(
     public_id: int | None = None,
     fields: dict[str, Any] | None = None,
     provision_qna: bool = True,
+    description: str | None = None,
+    picture: EventPicture | None = None,
+    operator_config: Mapping[str, Any] | None = None,
 ) -> Event:
     """Create one event -- the only way an ``Event`` row comes into existence.
 
-    Every event has a type and at least one speaker from the moment it exists:
-    ``event_type`` must be non-empty and ``speakers`` must name at least one
-    person, or nothing is written (``EventIdentityError``).  The row and its
-    ``EventHost`` links are written in one transaction.  A speaker is either a
+    Every event has a type, at least one speaker, a description and a picture
+    from the moment it exists: ``event_type`` must be non-empty, ``speakers``
+    must name at least one person, ``description`` (or ``fields["description"]``)
+    must be non-blank and ``picture`` must be an :class:`events.pictures.EventPicture`,
+    or nothing is written (``EventIdentityError`` with ``event_type_required``,
+    ``event_speakers_required``, ``event_description_required`` or
+    ``event_picture_required``).  The row, its picture
+    (``event_registrants.EventOperatorConfig``, with any other
+    ``operator_config`` columns) and its ``EventHost`` links are written in one
+    transaction.  A speaker is either a
     ``Host`` row or a ``(key, name)`` pair resolved to the host with that slug,
     minted on first use.  ``scripts/tests/test_event_creation_paths.py`` fails
     on any other code that constructs an ``Event``.
@@ -319,6 +336,12 @@ def create_event_identity(
     event_type = require_event_type(event_type)
     if not speakers:
         raise EventIdentityError("event_speakers_required")
+    if description is None:
+        description = str((fields or {}).get("description") or "")
+    if not description.strip():
+        raise EventIdentityError("event_description_required")
+    if not isinstance(picture, EventPicture) or not picture.data:
+        raise EventIdentityError("event_picture_required")
     if source_key is not None and (not source_repository or source_revision is None):
         raise EventIdentityError("source_identity_incomplete")
     for attempt in range(_PUBLIC_ID_ALLOCATION_ATTEMPTS):
@@ -342,12 +365,31 @@ def create_event_identity(
                 public_id=public_id,
                 fields=fields,
                 provision_qna=provision_qna,
+                description=description,
+                picture=picture,
+                operator_config=operator_config,
             )
         except OperationalError:
             if attempt == _PUBLIC_ID_ALLOCATION_ATTEMPTS - 1:
                 raise
             sleep(0.01 * (2**attempt))
     raise AssertionError("public ID allocation retry loop exhausted without returning")
+
+
+def _attach_picture(
+    event: Event, picture: EventPicture, operator_config: Mapping[str, Any] | None
+) -> None:
+    """Write the event's picture row, with any other operator columns, at creation."""
+
+    from event_registrants.models import EventOperatorConfig
+
+    EventOperatorConfig.objects.create(
+        event=event,
+        banner_image=picture.data,
+        banner_content_type=picture.content_type,
+        banner_updated_at=timezone.now(),
+        **dict(operator_config or {}),
+    )
 
 
 def require_event_type(event_type: str | None) -> str:

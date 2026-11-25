@@ -29,6 +29,7 @@ from events.identity import (
 )
 from events.queries import published_event_records
 from events.slugs import event_title_slug
+from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
 
 def give_content(event: Event, *, title_text: str = "A synthetic event.") -> None:
@@ -46,6 +47,8 @@ class EventIdentityTests(TestCase):
         # tied to how many events the fixture happens to carry.
         expected_first_public_id = EventPublicIdSequence.objects.get(pk=1).next_public_id
         first = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Identity fixture",
@@ -58,6 +61,8 @@ class EventIdentityTests(TestCase):
         self.assertEqual(first_public_id, expected_first_public_id)
         first.delete()
         second = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Second identity fixture",
@@ -78,6 +83,8 @@ class EventIdentityTests(TestCase):
 
     def test_title_change_updates_only_cosmetic_slug(self) -> None:
         event = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Identity fixture",
@@ -221,6 +228,8 @@ class EventIdentityRouteTests(TestCase):
 
     def test_long_event_slug_uses_short_canonical_and_stale_slug_redirects(self) -> None:
         event = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title=(

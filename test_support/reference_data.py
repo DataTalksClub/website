@@ -99,6 +99,7 @@ def load_event_identities() -> int:
 
     from events.identity import create_event_identity, ensure_public_id_sequence
     from scripts.prod.identity_manifest import load_identity_manifest
+    from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
     manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
     schedules = event_schedules()
@@ -120,6 +121,8 @@ def load_event_identities() -> int:
             event_id=item.id,
             public_id=item.public_id,
             provision_qna=False,
+            description=record.get("description_text") or TEST_EVENT_DESCRIPTION,
+            picture=TEST_EVENT_PICTURE,
         )
     ensure_public_id_sequence()
     return len(manifest.events)

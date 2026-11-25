@@ -216,7 +216,11 @@ def load_identity_manifest(path: Path) -> IdentityManifest:
 
 @transaction.atomic
 def import_identity_manifest(
-    *, path: Path, content_path: Path | None = None, dry_run: bool = False
+    *,
+    path: Path,
+    content_path: Path | None = None,
+    dry_run: bool = False,
+    pictures: Any = None,
 ) -> IdentityImportReport:
     """Validate and atomically apply the reviewed manifest; replay is an idempotent no-op.
 
@@ -226,7 +230,18 @@ def import_identity_manifest(
     describes it (``content_path``, the same file ``import_events.import_content``
     applies next).  A manifest entry the database lacks and the content does
     not describe with a type and a speaker refuses the whole import.
+
+    A new row is also created with its description (the content record's) and
+    its picture, looked up in ``pictures``
+    (:class:`scripts.prod.event_pictures.EventPictureDirectory`) by the
+    event's UUID or public id; a missing one refuses the whole import
+    (``event_description_required`` / ``event_picture_required``).
     """
+
+    from scripts.prod.event_pictures import EventPictureDirectory
+
+    picture_source = pictures if pictures is not None else EventPictureDirectory()
+    new_pictures: dict[uuid.UUID, Any] = {}
 
     manifest = load_identity_manifest(path)
     content: dict[uuid.UUID, Any] = {}
@@ -276,6 +291,12 @@ def import_identity_manifest(
             record = content.get(item.id)
             if record is None or not record.type or not record.speakers:
                 raise EventIdentityError("event_type_or_speakers_missing")
+            if not (record.description_text or "").strip():
+                raise EventIdentityError("event_description_required")
+            picture = picture_source.lookup(item.id, item.public_id)
+            if picture is None:
+                raise EventIdentityError("event_picture_required")
+            new_pictures[item.id] = picture
             created += 1
         elif (
             by_id.title != item.title
@@ -302,6 +323,9 @@ def import_identity_manifest(
                     source_checksum=item.source_checksum,
                     event_id=item.id,
                     public_id=item.public_id,
+                    description=record.description_text,
+                    picture=new_pictures[item.id],
+                    fields={"description_html": record.description_html},
                 )
             else:
                 assert by_id_source is not None

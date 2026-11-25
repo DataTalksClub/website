@@ -113,20 +113,23 @@ def incomplete_published_events() -> list[dict[str, Any]]:
 # The full completeness rule: type, speakers, description and picture
 # --------------------------------------------------------------------------
 #
-# The owner's rule is wider than what the write paths above refuse today: an
-# event must also carry a non-empty description and a picture (the banner in
-# ``event_registrants.EventOperatorConfig.banner_image``).  Production still
-# holds events without a description or a picture, to be backfilled from Luma,
-# so the write paths do not refuse those two gaps yet.  What does exist now:
+# The owner's rule is wider than type and speakers: an event must also carry a
+# non-empty description and a picture (the banner in
+# ``event_registrants.EventOperatorConfig.banner_image``).
 #
-# * :func:`incomplete_events` reports every event, in any status, missing any
-#   of the four -- the ``dtc_events.W001`` system check and ``/health/ready`` read it;
+# * ``create_event_identity`` refuses to create an event without a description
+#   or a picture and writes the picture in the same transaction (``events.pictures``);
+# * ``EventOperatorConfig`` refuses to clear or delete a picture, and an
+#   existing event without one cannot be saved (``event_registrants.signals``);
 # * ``event_registrants`` migration 0005 installs PostgreSQL constraint
 #   triggers (``DEFERRABLE INITIALLY DEFERRED``) that reject committing an event
-#   missing any of the four.  They are installed *disabled*; enabling them is a
-#   follow-up schema migration once :func:`incomplete_events` is empty on
-#   production.  Keep :data:`COMPLETENESS_RULE_SQL` and the Python rule below in
-#   step: ``events/tests/test_event_completeness.py`` checks both.
+#   missing any of the four, and 0007 enables them;
+# * :func:`incomplete_events` reports every event, in any status, still missing
+#   any of the four (rows written before the rule) -- the ``dtc_events.W001``
+#   system check and ``/health/ready`` read it.
+#
+# Keep the trigger SQL in migration 0005 and the Python rule below in step:
+# ``events/tests/test_event_completeness.py`` checks both.
 
 DESCRIPTION: str = "description"
 PICTURE: str = "picture"

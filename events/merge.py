@@ -309,14 +309,18 @@ def _plan(
 
     # Operator config (reminders, sponsor flags, uploaded banner).
     operator_config = "none"
+    # Every event now has a picture (events.pictures), so both normally hold a
+    # config: the kept event keeps its own, and only a kept event written
+    # before the picture rule takes the duplicate's picture.
     duplicate_config = EventOperatorConfig.objects.filter(event=duplicate).first()
+    keep_config = EventOperatorConfig.objects.filter(event=keep).first()
     if duplicate_config is not None:
-        if not EventOperatorConfig.objects.filter(event=keep).exists():
+        if keep_config is None:
             operator_config = "moved"
-        elif duplicate_config.banner_image:
-            raise EventMergeRefused("both_events_have_operator_config_and_duplicate_has_banner")
+        elif not keep_config.banner_image and duplicate_config.banner_image:
+            operator_config = "picture_moved"
         else:
-            operator_config = "dropped_duplicate_default"
+            operator_config = "dropped_duplicate"
 
     source = _source(duplicate)
     return {
@@ -393,6 +397,13 @@ def _apply(
     EventQnaSession.objects.filter(event=duplicate).delete()
     if plan["operator_config"] == "moved":
         EventOperatorConfig.objects.filter(event=duplicate).update(event=keep)
+    elif plan["operator_config"] == "picture_moved":
+        picture = EventOperatorConfig.objects.get(event=duplicate)
+        EventOperatorConfig.objects.filter(event=keep).update(
+            banner_image=picture.banner_image,
+            banner_content_type=picture.banner_content_type,
+            banner_updated_at=picture.banner_updated_at,
+        )
     EventMergedIdentity.objects.filter(event=duplicate).update(event=keep)
 
     # 4. The kept start time, only on explicit request.

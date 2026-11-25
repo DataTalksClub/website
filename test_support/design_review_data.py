@@ -66,6 +66,7 @@ def ensure_checked_event_identity_snapshot() -> Event:
         if event.public_id is not None
     }
     from events.identity import create_event_identity
+    from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 
     for item in manifest.events:
         current = existing.get(item.id)
@@ -96,6 +97,8 @@ def ensure_checked_event_identity_snapshot() -> Event:
             event_id=item.id,
             public_id=item.public_id,
             provision_qna=False,
+            description=record.get("description_text") or TEST_EVENT_DESCRIPTION,
+            picture=TEST_EVENT_PICTURE,
         )
     return Event.objects.get(public_id=QNA_REVIEW_EVENT_PUBLIC_ID)
 

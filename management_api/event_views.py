@@ -9,10 +9,13 @@ from community_base.kernel.services import ServiceContext
 from django.http import JsonResponse
 
 from events.admin_services import EventAdminError
+from events.pictures import EventPictureRequired
 from management_api.dispatch import admin_capability
 from management_api.errors import APIError
 from management_api.json_input import parse_json_object
 from management_registry import CAPABILITY_REGISTRY
+
+BANNER_MAX_JSON_BYTES = 7 * 1024 * 1024
 
 
 def _invoke(
@@ -36,6 +39,10 @@ def _invoke(
             result = capability.service(payload, context=context)
     except EventAdminError as exc:
         raise APIError(exc.status, exc.code, str(exc)) from exc
+    except EventPictureRequired as exc:
+        raise APIError(
+            409, exc.code, "An event cannot be left without a picture; upload one first."
+        ) from exc
     return JsonResponse(result, status=status)
 
 
@@ -46,7 +53,18 @@ def event_list(request: Any) -> JsonResponse:
 
 @admin_capability("events.manage.create")
 def event_create(request: Any) -> JsonResponse:
-    return _invoke(request, "events.manage.create", parse_json_object(request), status=201)
+    """Create an event with its picture, or stage one chunk of that picture.
+
+    ``{"picture_chunk": {...}}`` stages a chunk (200); the create call then
+    names the staged ``picture.upload_id`` (201).  The body limit is the
+    banner's, since ``picture.image_base64`` may carry the image inline.
+    """
+    payload = parse_json_object(request, max_bytes=BANNER_MAX_JSON_BYTES)
+    if "picture_chunk" in payload:
+        if request.headers.get("X-Banner-Upload-Chunk") == "1":
+            payload = {**payload, "_is_continuation_chunk": True}
+        return _invoke(request, "events.manage.create", payload, status=200)
+    return _invoke(request, "events.manage.create", payload, status=201)
 
 
 @admin_capability("events.manage.detail")
@@ -74,9 +92,6 @@ def event_cancel(request: Any, event_id: uuid.UUID) -> JsonResponse:
 def event_complete(request: Any, event_id: uuid.UUID) -> JsonResponse:
     payload = parse_json_object(request) if request.body else {}
     return _invoke(request, "events.manage.complete", payload, event_id=event_id)
-
-
-BANNER_MAX_JSON_BYTES = 7 * 1024 * 1024
 
 
 @admin_capability("events.manage.banner")

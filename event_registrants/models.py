@@ -9,6 +9,7 @@ identity row that label names both before and after the swap.
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from django.conf import settings
 from django.db import models
@@ -304,6 +305,30 @@ class EventOperatorConfig(models.Model):
     def __str__(self) -> str:
         return f"event-operator-config:{self.event_id}"
 
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """Refuse a row without picture bytes: a picture is replaced, never cleared.
+
+        The row is created together with the event
+        (:func:`events.identity.create_event_identity`), so a row without a
+        picture would be an event without one (``events.pictures``).
+        """
+
+        from events.pictures import EventPictureRequired, has_picture_bytes
+
+        update_fields = kwargs.get("update_fields")
+        if (update_fields is None or "banner_image" in update_fields) and not has_picture_bytes(
+            self.banner_image
+        ):
+            raise EventPictureRequired()
+        super().save(*args, **kwargs)
+
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
+        """Refuse: the row holds the event's picture.  Deleting the event cascades."""
+
+        from events.pictures import EventPictureRequired
+
+        raise EventPictureRequired()
+
 
 class EventRegistrationMeta(models.Model):
     """Site-side registration metadata (company and sponsor-sharing consent).
@@ -329,16 +354,20 @@ class EventRegistrationMeta(models.Model):
 class EventBannerUploadChunk(models.Model):
     """Temporary chunk storage for multi-request event banner uploads.
 
-    Allows ``dtc events upload-banner`` to upload 1000x1000 banners in small
-    chunks (<8 KB per request) across multi-worker Gunicorn processes behind
+    Allows ``dtc events upload-banner`` and ``dtc events create`` to send 1000x1000
+    banners in small chunks (<8 KB per request) across multi-worker Gunicorn processes behind
     edge WAF body-size limits, then assemble into ``EventOperatorConfig.banner_image``.
     """
 
     upload_id = models.UUIDField(db_index=True)
+    #: Null while the picture is staged for an event that is about to be
+    #: created (``events.admin_services.stage_event_picture_chunk``).
     event = models.ForeignKey(
         "events.Event",
         on_delete=models.CASCADE,
         related_name="banner_upload_chunks",
+        null=True,
+        blank=True,
     )
     chunk_index = models.PositiveIntegerField()
     chunk_count = models.PositiveIntegerField()

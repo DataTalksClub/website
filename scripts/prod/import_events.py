@@ -70,6 +70,7 @@ class IncompletePublishedEvents(EventImportError):
         self.events = events
 
 
+from scripts.prod.event_pictures import EVENT_PICTURES_ROOT  # noqa: E402
 from scripts.prod.target import main_checkout_root  # noqa: E402
 
 
@@ -85,7 +86,11 @@ def _main_checkout_root() -> Path:
 
 
 def import_identities(
-    *, manifest: Path | None = None, content: Path | None = None, apply: bool = True
+    *,
+    manifest: Path | None = None,
+    content: Path | None = None,
+    apply: bool = True,
+    pictures: Path | None = None,
 ) -> dict[str, Any]:
     """Import the reviewed identity manifest atomically.
 
@@ -95,6 +100,7 @@ def import_identities(
     """
 
     from events.identity import EventIdentityError
+    from scripts.prod.event_pictures import EventPictureDirectory
     from scripts.prod.identity_manifest import import_identity_manifest
 
     try:
@@ -102,6 +108,7 @@ def import_identities(
             path=manifest or IDENTITY_MANIFEST_PATH,
             content_path=content or EVENT_CONTENT_PATH,
             dry_run=not apply,
+            pictures=EventPictureDirectory(pictures),
         )
     except (EventIdentityError, OSError, ValueError) as error:
         raise EventImportError("identity_manifest_invalid") from error
@@ -263,10 +270,16 @@ def import_eventbrite_descriptions(
 
 @dataclass(frozen=True, slots=True)
 class EventMetadata:
-    """The type and speakers a reviewed source names for one event."""
+    """The type, speakers and description a reviewed source names for one event.
+
+    ``description`` is the entry's ``description`` key; a legacy
+    ``_data/events.yaml`` entry rarely has one, and an event without it stays
+    pending (no event exists without a description).
+    """
 
     event_type: str
     speakers: tuple[tuple[str, str], ...]
+    description: str = ""
 
 
 class EventMetadataIndex:
@@ -317,6 +330,7 @@ class EventMetadataIndex:
             described = EventMetadata(
                 event_type=event_type,
                 speakers=tuple((key, people_names.get(key) or key) for key in keys),
+                description=str(entry.get("description") or "").strip(),
             )
             url_key = _luma_url_key(entry.get("link"))
             if url_key is not None:
@@ -357,8 +371,16 @@ def discover_new_provider_events(
     discovered: tuple[Any, ...],
     apply: bool = True,
     metadata: EventMetadataIndex | None = None,
+    pictures: Any = None,
 ) -> dict[str, Any]:
     """Create identities for provider events this database has never tracked.
+
+    An event is also created with its description and picture
+    (:mod:`events.pictures`).  The picture is looked up in ``pictures``
+    (:class:`scripts.prod.event_pictures.EventPictureDirectory`) by the
+    provider's event id; a provider export carries no reviewed description, so
+    ``metadata`` must supply one too.  An event missing either is reported
+    under ``pending_events`` and nothing is created.
 
     No event may exist without a type and a speaker
     (:func:`events.identity.create_event_identity`), and a provider export names
@@ -413,6 +435,9 @@ def discover_new_provider_events(
         provider_source_identity,
     )
 
+    from scripts.prod.event_pictures import EventPictureDirectory
+
+    picture_source = pictures if pictures is not None else EventPictureDirectory()
     index = ExistingEventIndex()
     created: list[dict[str, Any]] = []
     no_metadata: list[dict[str, Any]] = []
@@ -503,6 +528,20 @@ def discover_new_provider_events(
         if match.other_dates_with_this_title:
             entry["existing_event_dates_with_this_title"] = list(match.other_dates_with_this_title)
         described = metadata.lookup(item) if metadata is not None else None
+        picture = picture_source.lookup(item.external_event_identifier)
+        if described is not None and (picture is None or not described.description.strip()):
+            pending.append(
+                {
+                    **entry,
+                    "external_event_identifier": item.external_event_identifier,
+                    "reason": (
+                        "New, but it has no picture in the event-pictures directory "
+                        "or no reviewed description, and no event may exist without "
+                        "them. Nothing was created."
+                    ),
+                }
+            )
+            continue
         if described is None:
             # The provider id is public (it is part of the event's public URL).
             pending.append(
@@ -527,6 +566,8 @@ def discover_new_provider_events(
                 start_at=item.start_at,
                 event_type=described.event_type,
                 speakers=described.speakers,
+                description=described.description,
+                picture=picture,
             )
         except EventIdentityError as error:
             raise EventImportError("provider_event_identity_invalid") from error
@@ -565,7 +606,11 @@ def discover_new_provider_events(
 
 
 def discover_new_luma_event_identities(
-    *, luma_source: Path, apply: bool = True, events_yaml: Path | None = None
+    *,
+    luma_source: Path,
+    apply: bool = True,
+    events_yaml: Path | None = None,
+    pictures: Path | None = None,
 ) -> dict[str, Any]:
     """Read a Luma export directory directly and create identities for new events.
 
@@ -585,8 +630,14 @@ def discover_new_luma_event_identities(
     except RegistrantImportError as error:
         raise EventImportError("luma_discovery_failed") from error
     metadata = EventMetadataIndex.from_events_yaml(events_yaml) if events_yaml else None
+    from scripts.prod.event_pictures import EventPictureDirectory
+
     return discover_new_provider_events(
-        provider="luma", discovered=discovered, apply=apply, metadata=metadata
+        provider="luma",
+        discovered=discovered,
+        apply=apply,
+        metadata=metadata,
+        pictures=EventPictureDirectory(pictures),
     )
 
 
@@ -814,6 +865,7 @@ def run(
     eventbrite_descriptions_source: Path | None = None,
     luma_source: Path,
     events_yaml: Path | None = None,
+    pictures: Path | None = None,
 ) -> dict[str, Any]:
     """Import current Event rows and content in one transaction.
 
@@ -838,6 +890,7 @@ def run(
             eventbrite_descriptions_source=eventbrite_descriptions_source,
             luma_source=luma_source,
             events_yaml=events_yaml,
+            pictures=pictures,
         )
         # A published event must carry a type and a speaker (events.publication).
         # Refusing here rolls the whole run back rather than landing a database
@@ -856,6 +909,7 @@ def _run_legs(
     eventbrite_descriptions_source: Path | None,
     luma_source: Path,
     events_yaml: Path | None = None,
+    pictures: Path | None = None,
 ) -> dict[str, Any]:
     """The event legs in their fixed order. Only :func:`run` may call this.
 
@@ -864,7 +918,7 @@ def _run_legs(
     """
 
     identities = import_identities(
-        manifest=identity_manifest, content=event_content_source, apply=True
+        manifest=identity_manifest, content=event_content_source, apply=True, pictures=pictures
     )
     content = import_content(source=event_content_source, apply=True)
     # Description *authoring* precedence, distinct from content bootstrap
@@ -878,7 +932,7 @@ def _run_legs(
     # mistake an automatic creation for the reviewed manifest changing.
     new_event_identities = {
         "luma": discover_new_luma_event_identities(
-            luma_source=luma_source, apply=True, events_yaml=events_yaml
+            luma_source=luma_source, apply=True, events_yaml=events_yaml, pictures=pictures
         ),
     }
     # Straight after the identities it depends on, and under its own key: the
@@ -925,6 +979,17 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--luma-source", type=Path, default=main_root / LUMA_RELATIVE_SOURCE)
+    parser.add_argument(
+        "--event-pictures",
+        type=Path,
+        default=EVENT_PICTURES_ROOT,
+        help=(
+            "Directory of event pictures, one <key>.png|.jpg|.webp per event (the "
+            "event UUID or public id for manifest events, the provider event id for "
+            "discovered ones). Every event is created with its picture; one without "
+            "is refused (manifest) or left pending (discovery)."
+        ),
+    )
     parser.add_argument(
         "--discover-new-events-only",
         action="store_true",
@@ -1014,6 +1079,7 @@ def main(argv: list[str] | None = None) -> int:
                     manifest=args.identity_manifest.resolve(),
                     content=args.event_content.resolve(),
                     apply=apply,
+                    pictures=args.event_pictures.resolve(),
                 ),
                 "new_event_identities": {
                     # The type and speakers a new event must be created with
@@ -1024,6 +1090,7 @@ def main(argv: list[str] | None = None) -> int:
                         events_yaml=(
                             args.event_metadata_yaml.resolve() if args.event_metadata_yaml else None
                         ),
+                        pictures=args.event_pictures.resolve(),
                     ),
                 },
                 # The identities this mode creates are exactly what the staged
@@ -1040,6 +1107,7 @@ def main(argv: list[str] | None = None) -> int:
                 new_event_content_source=args.new_event_content.resolve(),
                 eventbrite_descriptions_source=args.eventbrite_descriptions.resolve(),
                 luma_source=args.luma_source.resolve(),
+                pictures=args.event_pictures.resolve(),
             )
     except IncompletePublishedEvents as error:
         print(

@@ -9,7 +9,9 @@ live under ``scripts/tests`` with the rest of that ingest layer's coverage.
 from __future__ import annotations
 
 import json
+import tempfile
 from copy import deepcopy
+from pathlib import Path
 
 from community_base.events.models import Event, EventPublicIdSequence
 from django.test import TestCase
@@ -21,6 +23,7 @@ from scripts.prod.identity_manifest import (
     import_identity_manifest,
     parse_identity_manifest,
 )
+from test_support.event_pictures import TEST_EVENT_DESCRIPTION, TEST_EVENT_PICTURE
 from test_support.reference_data import EVENT_CONTENT, EVENT_IDENTITY_MANIFEST
 
 # The synthetic reference fixture's own event count (test_support/fixtures/
@@ -29,6 +32,27 @@ from test_support.reference_data import EVENT_CONTENT, EVENT_IDENTITY_MANIFEST
 # how many events the fixture happens to carry, only that the import and the
 # allocator agree with whatever that number is.
 EVENT_FIXTURE_TOTAL = json.loads(EVENT_IDENTITY_MANIFEST.read_text())["counts"]["events"]
+
+
+def _describe_every_record(path: Path) -> object:
+    """The reviewed content with a synthetic, reviewed description on every record."""
+
+    payload = json.loads(path.read_text())
+    records = payload if isinstance(payload, list) else payload["events"]
+    provenance = next(r["description_provenance"] for r in records if r["description_provenance"])
+    for record in records:
+        if not (record.get("description_text") or "").strip():
+            record["description_text"] = f"Synthetic description for {record['title']}."
+            record["description_html"] = f"<p>{record['description_text']}</p>"
+            record["description_provenance"] = provenance
+    return payload
+
+
+class _EveryEventPicture:
+    """A picture source holding the test picture for every event."""
+
+    def lookup(self, *keys: object) -> object:
+        return TEST_EVENT_PICTURE
 
 
 class EventIdentityManifestTests(TestCase):
@@ -94,13 +118,32 @@ class EventIdentityManifestTests(TestCase):
         Event.objects.all().delete()
         EventPublicIdSequence.objects.all().delete()
 
-        report = import_identity_manifest(path=EVENT_IDENTITY_MANIFEST, content_path=EVENT_CONTENT)
+        # Every event is created with a description and a picture; an undescribed
+        # record refuses the whole import, so describe every record first.
+        refused_before = Event.objects.count()
+        with self.assertRaises(EventIdentityError) as caught:
+            import_identity_manifest(
+                path=EVENT_IDENTITY_MANIFEST,
+                content_path=EVENT_CONTENT,
+                pictures=_EveryEventPicture(),
+            )
+        self.assertEqual(str(caught.exception), "event_description_required")
+        self.assertEqual(Event.objects.count(), refused_before)
+
+        with tempfile.TemporaryDirectory() as scratch:
+            described = Path(scratch) / "events.json"
+            described.write_text(json.dumps(_describe_every_record(EVENT_CONTENT)))
+            report = import_identity_manifest(
+                path=EVENT_IDENTITY_MANIFEST, content_path=described, pictures=_EveryEventPicture()
+            )
 
         self.assertEqual(report.events_created, EVENT_FIXTURE_TOTAL)
         self.assertEqual(
             EventPublicIdSequence.objects.get(pk=1).next_public_id, EVENT_FIXTURE_TOTAL + 1
         )
         allocated = create_event_identity(
+            picture=TEST_EVENT_PICTURE,
+            description=TEST_EVENT_DESCRIPTION,
             event_type="webinar",
             speakers=[("synthetic-speaker", "Synthetic Speaker")],
             title="Allocated after a bootstrap import",

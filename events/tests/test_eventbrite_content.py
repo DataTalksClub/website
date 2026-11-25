@@ -19,6 +19,7 @@ from community_base.events.models import Event
 from django.test import TestCase
 
 from content.models import EventSource
+from event_registrants.models import EventOperatorConfig
 from events.eventbrite_content import (
     DESCRIPTION_RECORD_SCHEMA_VERSION,
     EventbriteDescriptionError,
@@ -28,6 +29,7 @@ from events.eventbrite_content import (
     render_description_html,
     render_description_text,
 )
+from test_support.event_pictures import TEST_EVENT_PICTURE
 
 STARTS_AT = datetime(2021, 6, 1, 17, 0, tzinfo=UTC)
 
@@ -184,6 +186,12 @@ def _event(*, source_key: str, repository: str = "DataTalksClub/datatalksclub.gi
         source_commit="a" * 40,
     )
     event.save()
+    # This fixture bypasses the creation path, so it writes the picture row itself.
+    EventOperatorConfig.objects.create(
+        event=event,
+        banner_image=TEST_EVENT_PICTURE.data,
+        banner_content_type=TEST_EVENT_PICTURE.content_type,
+    )
     EventSource.objects.create(
         event=event,
         repository=repository,

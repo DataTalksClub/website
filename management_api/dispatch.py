@@ -96,8 +96,11 @@ def admin_capability(
                         "The request method is not allowed.",
                         headers={"Allow": ", ".join(sorted(allowed_methods))},
                     )
+                # Chunks after the first of one picture upload (a banner, or the
+                # picture staged for ``events.manage.create``) ride on the
+                # admission of chunk 0; the service refuses one without it.
                 is_banner_continuation = (
-                    capability.key == "events.manage.banner"
+                    capability.key in {"events.manage.banner", "events.manage.create"}
                     and request.headers.get("X-Banner-Upload-Chunk") == "1"
                 )
                 if not is_banner_continuation:
