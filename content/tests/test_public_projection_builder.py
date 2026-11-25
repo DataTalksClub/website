@@ -237,7 +237,11 @@ class PublicProjectionBuilderTests(TestCase):
                     {"kind": "list_item", "text": "One", "markdown": "[One](/wiki/one)"},
                     {"kind": "list_item", "text": "Two"},
                     {"kind": "list_item", "text": "First", "ordered": True},
-                    {"kind": "paragraph", "text": "after"},
+                    {
+                        "kind": "paragraph",
+                        "text": "after",
+                        "markdown": "after [this](#section)",
+                    },
                 ]
             },
         )
@@ -248,7 +252,10 @@ class PublicProjectionBuilderTests(TestCase):
             compact,
         )
         self.assertIn("<ol> <li>First</li> </ol>", compact)
-        self.assertIn('<p class="prose-paragraph">after</p>', compact)
+        self.assertIn(
+            '<p class="prose-paragraph">after <a class="app-link" href="#section">this</a></p>',
+            compact,
+        )
 
     def test_wiki_graph_localizes_host_variants_and_preserves_url_suffixes(self) -> None:
         payload = {

@@ -9,7 +9,7 @@ from django.utils.safestring import mark_safe
 
 register = template.Library()
 
-_MARKDOWN_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\s)]+|/(?!/)[^\s)]*)\)")
+_MARKDOWN_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\s)]+|/(?!/)[^\s)]*|#[A-Za-z0-9_-]+)\)")
 
 
 @register.filter
@@ -31,7 +31,7 @@ def public_text(value: object) -> str:
         output.append(conditional_escape(raw[position : match.start()]))
         label = conditional_escape(match.group(1))
         url = conditional_escape(match.group(2))
-        if match.group(2).startswith("/"):
+        if match.group(2).startswith(("/", "#")):
             output.append('<a class="app-link" href="' + url + '">' + label + "</a>")
         else:
             output.append(
