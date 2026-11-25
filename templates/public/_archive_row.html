@@ -33,7 +33,9 @@
     read", like the homepage's podcast card.  A row given one draws no rail.
   * `row_image`, `row_image_fit` — the record's picture, on the card's right
     like an episode's.  `row_image_fit="contain"` sets a portrait picture (a
-    book cover) whole on the soft ground instead of cropping it.
+    book cover) whole on the soft ground instead of cropping it;
+    `row_image_fit="square"` draws a square picture whole, like an event's
+    banner on /events (an article's generated preview).
   * `row_eyebrow` — what this row is to the reader of this page ("guest",
     "speaker", "author"), drawn in the mono line under the title.  Never above
     it: the site carries no eyebrows (design system, "No eyebrows").
@@ -139,7 +141,9 @@
         {% endif %}
       </div>
       {% if row_image %}
-        {% if row_image_fit == "contain" %}
+        {% if row_image_fit == "square" %}
+          <img class="event-item-thumb archive-thumb" src="{{ row_image }}" alt="" width="120" height="120" loading="lazy" decoding="async">
+        {% elif row_image_fit == "contain" %}
           <img class="event-item-thumb archive-thumb is-portrait" src="{{ row_image }}" alt="" width="120" height="80" loading="lazy" decoding="async">
         {% else %}
           <img class="event-item-thumb archive-thumb is-wide" src="{{ row_image }}" alt="" width="120" height="80" loading="lazy" decoding="async">

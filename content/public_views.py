@@ -1399,6 +1399,7 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
     # the page then draws no FAQ region.
     faq = article_faq(slug)
     article_trail = trail(("Blog", "/blog"), (article["title"], article["public_path"]))
+    social_image = article.get("preview_og_path") or article["image_path"]
     return _render(
         request,
         "public/article_detail.html",
@@ -1413,7 +1414,8 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
             # reading estimate the design writes, and the body as prose sections.
             "article": article_view(article, catalogue.people_by_slug(), faq),
             "og_type": "article",
-            "og_image_url": _canonical(article["image_path"]) if article["image_path"] else "",
+            # The generated social card when the article has one, else its own image.
+            "og_image_url": _canonical(social_image) if social_image else "",
             "published_time": article["published"],
             "structured_data": _json_ld(
                 {
@@ -1430,11 +1432,7 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
                         }
                         for author in article["author_profiles"]
                     ],
-                    **(
-                        {"image": _canonical(article["image_path"])}
-                        if article["image_path"]
-                        else {}
-                    ),
+                    **({"image": _canonical(social_image)} if social_image else {}),
                 },
                 article_trail,
                 # The legacy accordion published FAQPage data with every one of

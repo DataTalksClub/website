@@ -79,6 +79,15 @@ class ArchiveRowSlotTests(TestCase):
     def render(self, **slots: object) -> str:
         return render_to_string(ROW_TEMPLATE, slots)
 
+    def test_a_square_picture_is_drawn_whole_like_an_event_banner(self) -> None:
+        body = self.render(
+            row_title="t", row_url="/blog/t.html", row_image="/images/posts/t/preview.png",
+            row_image_fit="square",
+        )
+        self.assertIn('src="/images/posts/t/preview.png"', body)
+        self.assertIn('width="120" height="120"', body)
+        self.assertNotIn("is-wide", body)
+
     def test_a_full_row_draws_every_slot_in_the_order_the_design_gives_them(self) -> None:
         body = self.render(
             row_title="How to ship it",

@@ -920,7 +920,9 @@
               <div class="band-head">
                 <h3>Latest article</h3>
               </div>
-              {% if article %}
+              {% if article.preview_path %}
+                {% include "public/_archive_row.html" with row_title=article.title row_url=article.public_path row_date=article.published row_dateline=article_dateline row_summary=article.description row_credits=article.author_profiles row_image=article.preview_path row_image_fit="square" row_class="record-row" only %}
+              {% elif article %}
                 {% include "public/_archive_row.html" with row_title=article.title row_url=article.public_path row_date=article.published row_dateline=article_dateline row_summary=article.description row_credits=article.author_profiles row_image=article.image_path row_class="record-row" only %}
               {% endif %}
               <p class="band-more">
