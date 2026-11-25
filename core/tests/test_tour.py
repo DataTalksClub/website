@@ -342,8 +342,9 @@ class HomepageAboutBandTests(PublishedTourPage):
         body = self.body()
         self.assertIn('<h2 id="about-heading">What is DataTalks.Club?</h2>', body)
         self.assertIn(self.page["hero_intro"], body)
-        # The About page's own markup, not a homepage redraw of it.
-        self.assertIn('class="stat-tiles community-stats"', body)
+        # The About page's own markup (the one-row stat strip variant), not a
+        # homepage redraw of it.
+        self.assertIn('class="stat-tiles stat-tiles-row community-stats"', body)
         self.assertIn('class="card founder-story"', body)
         for stat in self.page["stats"]:
             self.assertIn(f"<strong>{stat['value']}</strong>", body)
@@ -356,12 +357,14 @@ class HomepageAboutBandTests(PublishedTourPage):
     def test_without_a_published_record_the_homepage_has_no_band(self):
         ContentSource.objects.filter(stable_id=TOUR_SOURCE_ID).update(enabled=False)
         body = self.body()
-        self.assertNotIn("home-about", body)
+        # The band's section markup, not the bare class: ``home-about`` also
+        # appears as a selector in the page's <style>.
+        self.assertNotIn('aria-labelledby="about-heading"', body)
         self.assertNotIn("What is DataTalks.Club?", body)
         self.assertNotIn(self.page["hero_intro"], body)
         self.assertNotIn("Synthetic Founder", body)
         self.assertNotIn('<figure class="card founder-story">', body)
-        self.assertNotIn('class="stat-tiles community-stats"', body)
+        self.assertNotIn("community-stats", body.split("</style>")[-1])
 
     def test_the_band_teases_the_about_page_and_does_not_replace_it(self):
         body = self.body()
@@ -384,7 +387,9 @@ class HomepageAboutBandTests(PublishedTourPage):
         founder_chip.assert_not_called()
         body = response.content.decode()
         self.assertIn("Learn the fundamentals. Build real projects. Share your work.", body)
-        self.assertNotIn("home-about", body)
+        # The band's section markup, not the bare class: ``home-about`` also
+        # appears as a selector in the page's <style>.
+        self.assertNotIn('aria-labelledby="about-heading"', body)
         self.assertNotIn(self.page["hero_intro"], body)
 
     def test_the_homepage_read_answers_an_outage_with_no_record(self):
