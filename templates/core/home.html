@@ -1341,48 +1341,9 @@
         </div>
       </section>
 
-      {% if sponsors %}
-        <section class="band band-cream" aria-labelledby="sponsors-heading">
-          <div class="shell">
-            <div class="band-head">
-              <div>
-                <h2 id="sponsors-heading">Our Sponsors</h2>
-                <p>Organizations that help us keep practical learning free and open.</p>
-              </div>
-            </div>
-            <div class="sponsor-grid">
-              {% for sponsor in sponsors %}
-                <a class="card sponsor-card interactive-card interactive-lift" href="{% url 'sponsors' %}#{{ sponsor.name|slugify }}">
-                  <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}">
-                </a>
-              {% endfor %}
-            </div>
-            <p class="band-more">
-              <a class="band-link" href="{% url 'sponsors' %}">meet our sponsors →</a>
-            </p>
-          </div>
-        </section>
-      {% endif %}
 
-      <section class="band band-mint" aria-labelledby="newsletter-heading">
-        <div class="shell newsletter-panel">
-          <div>
-            <h2 id="newsletter-heading">Get the weekly DataTalks.Club digest</h2>
-            <p>
-              Subscribe to our weekly newsletter. We'll keep you informed
-              about our events, articles, courses, and everything else happening in the Club.
-            </p>
-            <p class="band-more newsletter-more">
-              <a class="band-link" href="{% url 'newsletter' %}">or open the newsletter page →</a>
-            </p>
-          </div>
-          <div class="newsletter-card">
-            {% include "core/_newsletter_signup_form.html" with input_id="home-newsletter-email" %}
-          </div>
-        </div>
-      </section>
 
-      <section class="band band-lavender" id="academy-comparison" aria-labelledby="academy-comparison-heading" data-academy-comparison>
+      <section class="band band-cream" id="academy-comparison" aria-labelledby="academy-comparison-heading" data-academy-comparison>
         <div class="shell">
           <div class="band-head">
             <div>
@@ -1450,6 +1411,47 @@
                 <a class="cta cta-secondary interactive-lift" href="/academy/">Explore the Academy</a>
               </div>
             </article>
+          </div>
+        </div>
+      </section>
+
+      {% if sponsors %}
+        <section class="band band-lavender" aria-labelledby="sponsors-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="sponsors-heading">Our Sponsors</h2>
+                <p>Organizations that help us keep practical learning free and open.</p>
+              </div>
+            </div>
+            <div class="sponsor-grid">
+              {% for sponsor in sponsors %}
+                <a class="card sponsor-card interactive-card interactive-lift" href="{% url 'sponsors' %}#{{ sponsor.name|slugify }}">
+                  <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}">
+                </a>
+              {% endfor %}
+            </div>
+            <p class="band-more">
+              <a class="band-link" href="{% url 'sponsors' %}">meet our sponsors →</a>
+            </p>
+          </div>
+        </section>
+      {% endif %}
+
+      <section class="band band-mint" aria-labelledby="newsletter-heading">
+        <div class="shell newsletter-panel">
+          <div>
+            <h2 id="newsletter-heading">Get the weekly DataTalks.Club digest</h2>
+            <p>
+              Subscribe to our weekly newsletter. We'll keep you informed
+              about our events, articles, courses, and everything else happening in the Club.
+            </p>
+            <p class="band-more newsletter-more">
+              <a class="band-link" href="{% url 'newsletter' %}">or open the newsletter page →</a>
+            </p>
+          </div>
+          <div class="newsletter-card">
+            {% include "core/_newsletter_signup_form.html" with input_id="home-newsletter-email" %}
           </div>
         </div>
       </section>
