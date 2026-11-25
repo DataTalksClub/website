@@ -9,3 +9,6 @@ class EventRegistrantsConfig(AppConfig):
     def ready(self) -> None:
         import event_registrants.checks  # noqa: F401
         import event_registrants.signals  # noqa: F401
+        from event_registrants.registrant_mail import register_jobs
+
+        register_jobs()

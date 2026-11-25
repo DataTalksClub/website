@@ -38,6 +38,7 @@ from core.sponsors import public_events_hub_sponsors
 from course_management.observability import record_event
 from courses.models import Cohort, SharedLesson, SharedModule
 from event_qna.models import EventQnaSession
+from event_registrants.registrant_mail import send_registration_confirmed
 from events.identity import (
     EventIdentityNotFound,
     canonical_detail_path,
@@ -785,6 +786,9 @@ def event_register(request: HttpRequest, event_id: str, slug: str) -> HttpRespon
     now = timezone.now()
     expires_at = None if account is not None else now + EVENT_VERIFICATION_TTL
     with transaction.atomic():
+        confirmed_before = EventRegistration.objects.filter(
+            event=identity, normalized_email=normalized_email, status=Status.CONFIRMED
+        ).exists()
         registration, created = EventRegistration.objects.select_for_update().get_or_create(
             event=identity,
             normalized_email=normalized_email,
@@ -845,6 +849,8 @@ def event_register(request: HttpRequest, event_id: str, slug: str) -> HttpRespon
         )
         if account is None and registration.status == Status.PENDING_VERIFICATION:
             _send_event_registration_verification(registration, identity, canonical)
+        if confirmed_before is not True and registration.status == Status.CONFIRMED:
+            send_registration_confirmed(registration)
     if account is not None:
         return redirect(f"{canonical}?registered=ok")
     _remember_email_registration(request, registration)
@@ -997,6 +1003,7 @@ def event_registration_verify(request: HttpRequest) -> HttpResponse:
             registration.save(
                 update_fields=["status", "verified_at", "verification_expires_at", "updated_at"]
             )
+            send_registration_confirmed(registration)
     _remember_email_registration(request, registration)
     if registration.status == EventRegistration.Status.CONFIRMED:
         _grant_quick_account(request, registration)

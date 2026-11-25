@@ -55,6 +55,17 @@ outbox's lenient mode renders them as a list of their context values, links
 included, and marks them `template_not_found`. Real Relay would reject them
 with a `404`.
 
+### Before production
+
+Templates added here reach Relay only through `import_mail_templates`. The deploy's
+`web-migrate` step runs it, but a template a flow already sends must be published in
+Relay before that flow goes live, or Relay rejects the send with a `404`. Publish these
+in the production Relay catalog (run `manage.py import_mail_templates` against it, or let
+the first deploy that carries them do it, and check its output says `published:`):
+
+- `event-registration-confirmed`: "You're registered", with the Zoom join link (2026-11-25).
+- `event-reminder`: the 24h/20m event reminders, with the Zoom join link (2026-11-25).
+
 ## 4. Look at the mail
 
 - Inbox: http://127.0.0.1:8025, newest first. "Clear all" empties it.

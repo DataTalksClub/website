@@ -202,6 +202,27 @@ readable at the ~290px the event page shows it. Fields are documented in that re
 ## 5. Per-event reminder control
 
 - Default intervals: `24h,20m` before `start_datetime`.
+- How they are sent: the durable job `event_registrants.plan_reminders` runs every five
+  minutes (registered schedule `event_registrants.plan_reminders.every_5_minutes`, code in
+  `event_registrants/registrant_mail.py`). In production the deploy's `web-migrate` step runs
+  `manage.py sync_relay_schedules`, which creates that schedule in Relay; Relay calls
+  `/internal/jobs/run` on the cron, the call records a job, and the `worker` service
+  (`manage.py jobs_worker`, polling `jobs_run_due` every ten seconds) runs it. The job writes one
+  package `EventReminder` row per confirmed seat when an interval comes due (only the interval
+  nearest the start, and only if the seat was confirmed before that moment), claims the due rows
+  and queues one `event_registrants.send_reminder` job per row, which sends the `event-reminder`
+  template (title, time in the registrant's timezone, Zoom join link for a Zoom event, event
+  page, "Add to calendar"). A row exists once per seat, registration version and interval, so a
+  reminder is never sent twice. The package's own `events.plan_reminders.every_15_minutes`
+  schedule is removed from the registry, so the sync deletes it from Relay.
+- Imported seats (`acquisition_metadata.source` in `IMPORTED_SOURCES`, today the Academy
+  sessions move) get no reminder and no confirmation from the site.
+- Run the planner by hand (local, jobs run inline):
+  ```bash
+  uv run python manage.py shell -c "from event_registrants.registrant_mail import plan_reminders_job; plan_reminders_job(None, {})"
+  ```
+- A seat confirmed on the site (one-click signed-in registration or the emailed confirmation
+  link) also gets the `event-registration-confirmed` email once, with the same details.
 - Set on `create`/`update` with `--reminder-intervals 24h` (e.g. for Project of the Week daily reminder) or `--reminder-intervals none` to disable.
 - Inspect or update anytime:
   ```bash

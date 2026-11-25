@@ -48,7 +48,10 @@ mail/jobs may receive identifiers from domains, but domains do not import worker
   reader (`events.queries`), the derived upcoming/in-progress/past status every reader
   uses instead of the stored package status (`events.lifecycle`), the reviewed description/content imports
   (`events.content_import`, `events.eventbrite_content`), and the slug policy.
-  Registration, reminders, and package studio CRUD stay package-owned.
+  Registration state, the `EventReminder` rows, and package studio CRUD stay package-owned;
+  the mail to a confirmed seat ("you're registered" and the reminders, with the private Zoom
+  link) is site-owned in `event_registrants.registrant_mail`, which replaces the package's
+  reminder schedule because the package sends a purpose with no site template.
 - `community_base.mail` (package app, no site app since D1.2cb): logical `EmailDelivery`
   intents, Relay idempotency/correlation metadata, redacted transport projections, the callback
   ingress and studio routes, and the Relay recipient-link ingress described below. It owns no
