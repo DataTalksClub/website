@@ -742,8 +742,10 @@
         max-width: var(--measure);
       }
 
+      /* The heading's line box adds space above its capitals; pull it up so
+         the letters, not the line box, start level with the quote card. */
       .home-about .about-story .band-head h2 {
-        margin-top: 0;
+        margin-top: calc(var(--space-2) * -1);
       }
 
       .about-facts {
