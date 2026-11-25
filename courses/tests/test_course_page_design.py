@@ -141,7 +141,10 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
         project_count = len(response.context["projects"])
         self.assertContains(response, 'id="homework-heading"')
         self.assertContains(response, 'id="projects-heading"')
-        self.assertContains(response, 'class="row-list course-rows course-rows--guest"', count=2)
+        self.assertEqual(
+            len(re.findall(r'class="row-list course-rows\s+course-rows--guest\s*"', page)),
+            2,
+        )
         self.assertContains(response, 'class="list-row course-rows-head"', count=2)
         self.assertContains(
             response,

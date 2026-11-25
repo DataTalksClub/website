@@ -609,7 +609,12 @@
                           </h3>
                           <div class="course-flow-terminal">
                             <p class="mono-label">Homework</p>
-                            <div class="row-list course-rows{% if not is_authenticated %} course-rows--guest{% endif %}">
+                            <div
+                              class="row-list course-rows
+                                {% if not is_authenticated %}
+                                  course-rows--guest
+                                {% endif %}"
+                            >
                               {% with hw=flow_item.homework %}
                                 <div class="list-row">
                                   <div>
@@ -649,7 +654,12 @@
                       </li>
                     {% elif flow_item.kind == "project" %}
                       {% with project=flow_item.project %}
-                        <li class="list-row course-rows{% if not is_authenticated %} course-rows--guest{% endif %} course-flow-project">
+                        <li
+                          class="list-row course-rows course-flow-project
+                            {% if not is_authenticated %}
+                              course-rows--guest
+                            {% endif %}"
+                        >
                           <div>
                             {% if project.state == 'CS' %}
                               <a
@@ -724,7 +734,12 @@
                   <h2 id="homework-heading">Homework</h2>
                 </div>
               </div>
-              <div class="row-list course-rows{% if not is_authenticated %} course-rows--guest{% endif %}">
+              <div
+                class="row-list course-rows
+                  {% if not is_authenticated %}
+                    course-rows--guest
+                  {% endif %}"
+              >
                 <div class="list-row course-rows-head">
                   <span class="mono-label">Homework</span>
                   <span class="mono-label">Deadline</span>
@@ -780,7 +795,12 @@
                   <h2 id="projects-heading">Projects</h2>
                 </div>
               </div>
-              <div class="row-list course-rows{% if not is_authenticated %} course-rows--guest{% endif %}">
+              <div
+                class="row-list course-rows
+                  {% if not is_authenticated %}
+                    course-rows--guest
+                  {% endif %}"
+              >
                 <div class="list-row course-rows-head">
                   <span class="mono-label">Project</span>
                   <span class="mono-label">Deadline</span>
