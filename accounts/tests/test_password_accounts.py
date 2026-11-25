@@ -15,6 +15,7 @@ from __future__ import annotations
 from allauth.account.models import EmailAddress
 from community_base.mail.models import EmailDelivery
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 
 from accounts.auth import AccountAdapter
@@ -37,7 +38,20 @@ def _purposes(email: str) -> list[str]:
     )
 
 
-class PasswordSignupTests(TestCase):
+class _FreshCacheTestCase(TestCase):
+    """allauth's confirmation cooldown and rate limits live in the cache.
+
+    The tests share one address, so a delivery sent by an earlier test in the
+    same process would silently suppress the next one's mail; start each test
+    with a cold cache.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        cache.clear()
+
+
+class PasswordSignupTests(_FreshCacheTestCase):
     def test_fresh_signup_creates_an_unverified_account_and_mails_the_link(self) -> None:
         response = self.client.post("/accounts/signup/", _signup_payload(FRESH_EMAIL))
 
@@ -90,7 +104,7 @@ class PasswordSignupTests(TestCase):
         self.assertTrue(AccountAdapter().is_open_for_signup(None))
 
 
-class PasswordResetTests(TestCase):
+class PasswordResetTests(_FreshCacheTestCase):
     def test_reset_reaches_an_account_without_a_password(self) -> None:
         user = User.objects.create_user(username="social-only", email="Social.Only@Example.invalid")
         user.set_unusable_password()
