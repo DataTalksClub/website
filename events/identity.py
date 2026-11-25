@@ -256,6 +256,8 @@ def _create_event_identity_atomic(
             allocated = reserve_public_id(event, public_id)
         event.public_id = allocated
         if source_key is not None:
+            if source_repository is None or source_revision is None:
+                raise EventIdentityError("source_identity_incomplete")
             EventSource.objects.create(
                 event=event,
                 repository=source_repository,
