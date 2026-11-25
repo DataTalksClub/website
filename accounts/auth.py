@@ -8,13 +8,13 @@ from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.models import EmailAddress
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
-from allauth.socialaccount.models import SocialAccount
+from allauth.socialaccount.models import SocialAccount, SocialApp
 from django.conf import settings
 from django.contrib.auth import SESSION_KEY, get_user_model
 from django.contrib.sessions.models import Session
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -412,6 +412,14 @@ class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):
     all, i.e. a genuinely new member, which is the case this site wants to
     let through.
     """
+
+    def get_app(self, request, provider, client_id=None):
+        try:
+            return super().get_app(request, provider, client_id=client_id)
+        except SocialApp.DoesNotExist as exc:
+            # An installed provider is not necessarily enabled for this site.
+            # Direct login/callback links must fail as an unavailable route.
+            raise Http404("Sign-in provider is unavailable") from exc
 
     def is_open_for_signup(self, request, sociallogin):
         del request, sociallogin
