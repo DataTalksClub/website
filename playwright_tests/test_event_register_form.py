@@ -74,7 +74,7 @@ def test_event_register_form_states_use_the_shared_form_primitives(
     expect(form).to_be_visible()
     _settle(page, dark, f"empty-{suffix}-{theme}")
     # The shared `.field-input` treatment, not the browser default control.
-    assert email.evaluate("e => getComputedStyle(e).borderTopWidth") == "2px"
+    assert email.evaluate("e => getComputedStyle(e).borderTopWidth") == "1px"
     assert email.evaluate("e => e.getBoundingClientRect().height") >= 44
     assert email.evaluate("e => e.getBoundingClientRect().width") >= 300
     assert form.locator(".form-check-input").first.evaluate(

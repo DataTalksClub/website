@@ -177,7 +177,7 @@ class DesignSystemTokenTests(SimpleTestCase):
         # readable edge on either palette instead of a single hard-coded border.
         control = _rule_body(stylesheet, ".field-input")
         self.assertIn("background: var(--card)", control)
-        self.assertIn("border: 2px solid var(--line)", control)
+        self.assertIn("border: var(--border-field)", control)
         self.assertIn("color: var(--ink)", control)
         self.assertNotRegex(control, LITERAL_COLOR)
 

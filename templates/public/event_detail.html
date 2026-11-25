@@ -283,18 +283,12 @@
          are and one Register button; a signed-out visitor gets "Log in to
          register in one click" first and the one-off email form one click
          behind it (shown outright without JS).  One soft 1px edge and no
-         offset shadow.  Input edges hold 3:1 against the card (WCAG 1.4.11):
-         half ink on white in light, the --line ink in dark. */
+         offset shadow.  Inputs take the system's --border-field. */
       .event-register {
-        --event-field-edge: color-mix(in srgb, var(--line) 52%, var(--card));
         background: var(--card);
         border: var(--border-soft);
         border-radius: var(--radius-card);
         overflow: hidden;
-      }
-
-      body.dark-mode .event-register {
-        --event-field-edge: var(--line);
       }
 
       .event-register-head {
@@ -525,8 +519,8 @@
       }
 
       .event-register .field-input {
-        border: 1px solid var(--event-field-edge);
-        border-radius: 0.5rem;
+        border: var(--border-field);
+        border-radius: var(--radius-control);
         font-size: 0.95rem;
         min-height: 2.5rem;
         padding: var(--space-2) var(--space-3);
