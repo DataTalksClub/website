@@ -55,11 +55,11 @@
 
       main > .band {
         border-bottom: 0;
-        padding-block: 3rem;
+        padding-block: var(--space-7);
       }
 
       main > .band.hero {
-        padding-block: 2.5rem 3rem;
+        padding-block: var(--space-band) var(--space-7);
       }
 
       /* Related neighbours on the same ground read as one block: the latest
@@ -77,7 +77,7 @@
           var(--lavender) calc(100% - 4.5rem),
           var(--cream) 100%
         );
-        padding-block: 5rem;
+        padding-block: calc(var(--space-8) + var(--space-4));
       }
 
       main .band-head h2 {
@@ -91,7 +91,7 @@
       }
 
       main .band-head {
-        margin-bottom: 2rem;
+        margin-bottom: var(--space-6);
       }
 
       /* --- hero --------------------------------------------------------- */
@@ -139,8 +139,8 @@
          buttons. */
 
       .climb .stage-card {
-        gap: 0.75rem;
-        padding: 1.25rem 1.25rem 1.4rem;
+        gap: var(--space-3);
+        padding: var(--space-card);
       }
 
       .climb .stage-card h3 {
@@ -315,7 +315,7 @@
 
       .promise {
         display: grid;
-        gap: 0.25rem;
+        gap: var(--space-1);
         grid-template-columns: auto 1fr;
         column-gap: var(--space-2);
         font-size: 1rem;
@@ -696,7 +696,7 @@
          not a full-bleed dark stripe, so the page does not end on a hard cut. */
       main > .band-ink {
         background: var(--page);
-        padding-block: 1rem 3.5rem;
+        padding-block: var(--space-4) calc(var(--space-7) + var(--space-2));
       }
 
       .closing {
@@ -708,7 +708,7 @@
         gap: var(--space-5);
         justify-content: space-between;
         max-width: calc(var(--shell) - 2.5rem);
-        padding: clamp(1.5rem, 4vw, 3rem);
+        padding: clamp(var(--space-5), 4vw, var(--space-7));
         width: calc(100% - 2rem);
       }
 
@@ -812,11 +812,11 @@
 
       @media (min-width: 62rem) {
         main > .band {
-          padding-block: 4rem;
+          padding-block: var(--space-8);
         }
 
         main > .band.hero {
-          padding-block: 3.5rem 4rem;
+          padding-block: calc(var(--space-7) + var(--space-2)) var(--space-8);
         }
 
         main > .band.band-continued {
@@ -824,7 +824,7 @@
         }
 
         main > .band-soft {
-          padding-block: 6.5rem;
+          padding-block: calc(var(--space-8) + var(--space-6) + var(--space-2));
         }
 
         .hero-grid {
