@@ -347,9 +347,6 @@
                     <div class="event-day-cards">
                       <article class="event-item interactive-card interactive-lift" data-podcast-episode>
                         <div class="event-item-body">
-                          {% if item.minutes %}
-                            <p class="event-item-time">{{ item.minutes }} min</p>
-                          {% endif %}
                           <h3><a href="{{ episode.public_path }}">{{ episode.title }}</a></h3>
                           {% if item.guests %}
                             <p class="person-chips event-item-speakers">
