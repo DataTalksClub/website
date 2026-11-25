@@ -1953,8 +1953,9 @@ Rules for editing:
         flex-direction: column;
         gap: calc(var(--art-u) * 14);
         margin-top: auto;
-        overflow-wrap: anywhere;
+        overflow-wrap: normal;
         width: 100%;
+        word-break: normal;
       }
 
       .event-art-who b {
@@ -1969,6 +1970,16 @@ Rules for editing:
 
       .event-art-who-3 b {
         font-size: calc(var(--art-u) * 48);
+      }
+
+      /* A long name (more than 15 characters) steps down a size so its
+         longest word fits the column instead of breaking mid-word. */
+      .event-art-who b.is-long {
+        font-size: calc(var(--art-u) * 58);
+      }
+
+      .event-art-who-2 b.is-long {
+        font-size: calc(var(--art-u) * 46);
       }
 
       /* Four or more speakers: one "N speakers" line, as on the picture. */

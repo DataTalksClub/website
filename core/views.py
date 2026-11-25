@@ -97,7 +97,7 @@ def home(request: HttpRequest):
     podcast = next(iter(ordered_podcasts()), None)
     # The tiles draw the event picture's top in HTML (`public/_event_art.html`)
     # from fields every event record already carries.
-    upcoming = events.upcoming[:3]
+    upcoming = events.upcoming[:4]
     # The featured panel is the cohort an editor flagged ``featured``, or nothing at
     # all when none is flagged; the template renders no hero in that case.
     #
