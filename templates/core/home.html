@@ -43,57 +43,6 @@
        * above; everything below shapes this page's own sections.
        * ------------------------------------------------------------------ */
 
-      /* --- landing rhythm ------------------------------------------------
-         Site feedback 2026-11-19 (1.1, 1.3): the page used to change ground on
-         almost every band (cream, lavender, cream, lavender, cream, mint, ...),
-         each cut off by a dashed rule, so it read as a stack of separate plates.
-         Now one neutral ground carries the page and bands are told apart by
-         space, not colour.  The single tinted band is the course offer, and it
-         fades in and out of the cream instead of starting at a hard edge.
-         Green is kept for the primary buttons alone, so the accent always
-         means "click here"; decorative green and mint are gone from this page. */
-
-      main > .band {
-        border-bottom: 0;
-        padding-block: var(--space-7);
-      }
-
-      main > .band.hero {
-        padding-block: var(--space-band) var(--space-7);
-      }
-
-      /* Related neighbours on the same ground read as one block: the latest
-         episode and article continue the events band ("what is happening in
-         the community") instead of opening a section of their own. */
-      main > .band.band-continued {
-        padding-top: 0;
-      }
-
-      main > .band-soft {
-        background: linear-gradient(
-          to bottom,
-          var(--cream) 0,
-          var(--lavender) 4.5rem,
-          var(--lavender) calc(100% - 4.5rem),
-          var(--cream) 100%
-        );
-        padding-block: calc(var(--space-8) + var(--space-4));
-      }
-
-      main .band-head h2 {
-        font-size: clamp(1.75rem, 3.6vw, 2.5rem);
-        letter-spacing: -0.025em;
-      }
-
-      main .band-head p {
-        font-size: clamp(1rem, 1.4vw, 1.12rem);
-        max-width: 40rem;
-      }
-
-      main .band-head {
-        margin-bottom: var(--space-6);
-      }
-
       /* --- hero --------------------------------------------------------- */
 
       .hero-grid {
@@ -102,22 +51,16 @@
         gap: var(--space-6);
       }
 
-      .hero-kicker {
-        margin-bottom: var(--space-2);
-      }
-
       .hero h1 {
-        font-size: clamp(2.4rem, 5.6vw, 4rem);
-        letter-spacing: -0.035em;
-        line-height: 1.04;
-        max-width: 16ch;
+        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        letter-spacing: -0.03em;
+        max-width: 19ch;
       }
 
       .hero-lede {
-        font-size: clamp(1.1rem, 1.8vw, 1.3rem);
-        line-height: 1.5;
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
         margin-top: var(--space-stack);
-        max-width: 32rem;
+        max-width: 33rem;
       }
 
       .hero-actions {
@@ -133,69 +76,11 @@
         justify-items: center;
       }
 
-      /* --- about the community --------------------------------------------
-         The About page's own blocks, reused: its intro line, the shared
-         "Who's here" strip (core/_community_stats.html) and the shared founder
-         story (core/_founder_story.html).  Wide, the facts sit beside the story
-         so the quotes keep a readable measure; narrow, the story stacks under
-         the facts.  Either block alone takes the whole row. */
-      .about-grid {
-        display: grid;
-        gap: var(--space-5);
-      }
-
-      .about-part {
-        display: grid;
-        gap: var(--space-3);
-      }
-
-      .about-part h3 {
-        font-size: 1.1rem;
-      }
-
-      /* The grid's own gap sets the survey link off the tiles. */
-      .about-part .band-more {
-        margin-top: 0;
-      }
-
-      @media (min-width: 62rem) {
-        .about-grid {
-          gap: var(--space-6) var(--space-6);
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-        }
-
-        /* Only one block published: it takes the whole row rather than a column. */
-        .about-grid > :only-child {
-          grid-column: 1 / -1;
-        }
-      }
-
       /* --- the climb ------------------------------------------------------
          The climb card itself (.stage-card/.stage-card-step/...) is a
          shared component, drawn once in core/_stage_card.html so a course
          family page's journey stages render with the exact same card.
-         Here it reads as a landing step: the step's name as a large title
-         and one short line under it, not a paragraph of small grey text.
-         The last badge drops its green fill, which this page keeps for the
-         buttons. */
-
-      .climb .stage-card {
-        gap: var(--space-3);
-        padding: var(--space-card);
-      }
-
-      .climb .stage-card h3 {
-        font-size: clamp(1.2rem, 1.9vw, 1.4rem);
-      }
-
-      .climb .stage-card > p {
-        font-size: 1.02rem;
-      }
-
-      .climb .step-number-3 {
-        background: var(--lavender-deep);
-        color: var(--ink);
-      }
+         Nothing page-specific is left to say about it here. */
 
       /* --- member stories -------------------------------------------------
          The member-story card itself (.story-transition/.story-quote/
@@ -233,7 +118,7 @@
       }
 
       .course-cohort {
-        color: var(--ink);
+        color: var(--green-text);
         font-size: 0.82rem;
         font-weight: 700;
       }
@@ -249,12 +134,38 @@
 
       /* Keep the supporting catalogue visually separate from the featured
          course instead of letting two heavy card outlines touch. */
-      .catalog-grid {
+      .catalog-scroller {
         margin-top: var(--space-5);
       }
 
+      /* Both strips are scroll containers, and `overflow-x: auto` clips on both
+         axes -- a neighbouring `overflow-y: visible` computes to `auto` -- so a
+         card that moves left has nowhere to go.  The shared primitive already
+         buys that room: it pays an inline gutter and cancels it again with an
+         equal negative margin, so the cards still line up with the featured
+         panel and the arrows under them.
+
+         That gutter was inert.  `scroll-snap-align: start` measures against the
+         snapport, which is the scrollport reduced by `scroll-padding`, and
+         `scroll-padding` defaults to zero -- so the first card snapped its left
+         edge to the *padding* edge, spending the whole gutter and coming to rest
+         flat against the clipping boundary, six pixels left of the shell.  The
+         catalogue had answered that by zeroing the gutter, which recovered the
+         alignment but left `.interactive-lift`'s `translate: -2px -2px` on hover
+         and keyboard focus to be cropped off the first card.
+
+         Declaring the same length as `scroll-padding` puts the snapport on the
+         content box, so the resting card is aligned *and* inset, and the lift
+         has room at every width.  The length mirrors the shared scroller
+         padding in `core/_design_system.html`; the browser test asserts the two
+         stay equal rather than trusting the constant. */
+      .catalog-scroller,
       .stories-scroller {
         scroll-padding-inline: var(--space-2);
+      }
+
+      .catalog-scroller-controls {
+        margin-top: var(--space-3);
       }
 
       /* --- comparison (Free courses vs Academy) --------------------------- */
@@ -330,10 +241,10 @@
 
       .promise {
         display: grid;
-        gap: var(--space-1);
+        gap: 0.15rem;
         grid-template-columns: auto 1fr;
         column-gap: var(--space-2);
-        font-size: 1rem;
+        font-size: 0.85rem;
       }
 
       /* Drawn, not struck — the 4a mockup's lopsided radius, the same one the
@@ -359,7 +270,7 @@
       }
 
       .promise h3 {
-        font-size: 1.2rem;
+        font-size: 0.95rem;
       }
 
       /* --- events ------------------------------------------------------- */
@@ -368,7 +279,7 @@
          (owner feedback 2026-11-24: the pill beside the date, then beside the
          speaker, looked awkward). */
       .event-card .event-when {
-        color: var(--muted);
+        color: var(--indigo);
         display: flex;
         flex-wrap: wrap;
         font-size: 0.78rem;
@@ -476,14 +387,7 @@
       }
 
       .latest-icon-green {
-        background: var(--lavender);
-      }
-
-      /* A member's new role is information, not an action: it keeps the
-         plain chip rather than the green the buttons own. */
-      .story-transition .chip-green {
-        border-color: var(--line);
-        color: var(--ink);
+        background: var(--mint);
       }
 
       .latest-item h3 {
@@ -707,45 +611,30 @@
 
       /* --- closing band ------------------------------------------------- */
 
-      /* The closing offer is an ink panel sitting on the page's own ground,
-         not a full-bleed dark stripe, so the page does not end on a hard cut. */
-      main > .band-ink {
-        background: var(--page);
-        padding-block: var(--space-4) calc(var(--space-7) + var(--space-2));
-      }
-
       .closing {
         align-items: center;
-        background: var(--band-ink-bg);
-        border-radius: 1.5rem;
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-5);
         justify-content: space-between;
-        max-width: calc(var(--shell) - 2.5rem);
-        padding: clamp(var(--space-5), 4vw, var(--space-7));
-        width: calc(100% - 2rem);
       }
 
       .closing > div {
         flex: 1 1 26rem;
       }
 
-      .closing-actions {
-        display: flex;
+      .closing > .cta {
         flex: none;
-        flex-wrap: wrap;
-        gap: var(--space-3);
       }
 
       .closing h2 {
         color: #ffffff;
-        font-size: clamp(1.4rem, 2.8vw, 2rem);
+        font-size: clamp(1.15rem, 2.4vw, 1.55rem);
       }
 
       .closing p {
         color: #d7d9e6;
-        font-size: 1rem;
+        font-size: 0.88rem;
         margin-top: var(--space-2);
       }
 
@@ -757,12 +646,6 @@
       .closing .cta-primary {
         border-color: #ffffff;
         box-shadow: none;
-      }
-
-      .closing .cta-secondary {
-        background: rgba(255, 255, 255, 0.12);
-        border-color: rgba(255, 255, 255, 0.35);
-        color: #ffffff;
       }
 
       /* ------------------------------------------------------------------ *
@@ -832,29 +715,9 @@
         .promise-grid {
           grid-template-columns: repeat(3, minmax(0, 1fr));
         }
-
-        .catalog-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
       }
 
       @media (min-width: 62rem) {
-        main > .band {
-          padding-block: var(--space-8);
-        }
-
-        main > .band.hero {
-          padding-block: calc(var(--space-7) + var(--space-2)) var(--space-8);
-        }
-
-        main > .band.band-continued {
-          padding-top: 0;
-        }
-
-        main > .band-soft {
-          padding-block: calc(var(--space-8) + var(--space-6) + var(--space-2));
-        }
-
         .hero-grid {
           gap: var(--space-7);
           grid-template-columns: minmax(0, 1.32fr) minmax(0, 1fr);
@@ -884,9 +747,54 @@
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           gap: var(--space-6);
         }
+      }
 
-        .catalog-grid {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+      @media (min-width: 75rem) {
+        /* A desktop shell presents four complete catalogue choices. The fifth
+           starts beyond the viewport and remains reachable with the controls,
+           avoiding a card that looks accidentally amputated at the shell edge. */
+        .catalog-scroller {
+          grid-auto-columns: calc((100% - 3 * var(--space-grid)) / 4);
+        }
+      }
+
+      /* --- about the community --------------------------------------------
+         The About page's own blocks, reused: its intro line, the shared
+         "Who's here" strip (core/_community_stats.html) and the shared founder
+         story (core/_founder_story.html).  Wide, the facts sit beside the story
+         so the quotes keep a readable measure; narrow, the story stacks under
+         the facts.  Either block alone takes the whole row. */
+      .about-grid {
+        display: grid;
+        gap: var(--space-5);
+      }
+
+      /* Packed to the top: the taller story column must not stretch the
+         rows of the facts column apart. */
+      .about-part {
+        align-content: start;
+        display: grid;
+        gap: var(--space-3);
+      }
+
+      .about-part h3 {
+        font-size: 1.1rem;
+      }
+
+      /* The grid's own gap sets the survey link off the tiles. */
+      .about-part .band-more {
+        margin-top: 0;
+      }
+
+      @media (min-width: 62rem) {
+        .about-grid {
+          gap: var(--space-6) var(--space-6);
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+        }
+
+        /* Only one block published: it takes the whole row rather than a column. */
+        .about-grid > :only-child {
+          grid-column: 1 / -1;
         }
       }
     </style>
@@ -908,10 +816,9 @@
       <section class="band band-cream hero" aria-labelledby="hero-heading">
         <div class="shell hero-grid">
           <div>
-            <p class="mono-label mono-label-indigo hero-kicker">For data &amp; AI practitioners · 130,000+ community members</p>
             <h1 id="hero-heading">Learn the fundamentals. Build real projects. Share your work.</h1>
             <p class="hero-lede">
-              Free, hands-on courses in data and AI for learners and practitioners — with a clear path, practical work, and a 130,000+ person community to help you get unstuck.
+              Free, hands-on courses in data and AI, with a clear path, practical work, and a community to help you get unstuck.
             </p>
             <div class="hero-actions">
               <a class="cta cta-primary interactive-lift" href="{% url 'course_list' %}">Explore free courses</a>
@@ -925,7 +832,7 @@
         </div>
       </section>
 
-      <section class="band band-cream climb" aria-labelledby="climb-heading">
+      <section class="band band-lavender" aria-labelledby="climb-heading">
         <div class="shell">
           <div class="band-head">
             <div>
@@ -934,383 +841,9 @@
             </div>
           </div>
           <div class="card-grid card-grid-3">
-            {% include "core/_stage_card.html" with step_index=1 heading="Learn the fundamentals" description="Free courses in data and AI, step by step." illustration_template="core/_home_illustration.html" illustration_variant="fundamentals" %}
-            {% include "core/_stage_card.html" with step_index=2 heading="Learn with the community" description="Ask questions and get unstuck together." illustration_template="core/_home_illustration.html" illustration_variant="community" %}
-            {% include "core/_stage_card.html" with step_index=3 heading="Build your own project" description="Ship a project you can show." illustration_template="core/_home_illustration.html" illustration_variant="project" %}
-          </div>
-        </div>
-      </section>
-
-      <section class="band band-cream" aria-labelledby="promises-heading">
-        <div class="shell">
-          <div class="band-head">
-            <div>
-              <h2 id="promises-heading">What’s inside DataTalks.Club</h2>
-              <p>
-                We run free courses, live webinars and workshops, a weekly podcast, community
-                articles, and a Slack community of 130,000+ data and AI practitioners.
-              </p>
-            </div>
-          </div>
-          <div class="promise-grid">
-            <div class="promise">
-              <span class="promise-mark" aria-hidden="true"></span>
-              <h3>Learn by building</h3>
-              <p>Free courses with hands-on homework, peer review, and a leaderboard.</p>
-            </div>
-            <div class="promise">
-              <span class="promise-mark" aria-hidden="true"></span>
-              <h3>Find your people</h3>
-              <p>Ask questions, share what you’re working on, and talk careers in Slack.</p>
-            </div>
-            <div class="promise">
-              <span class="promise-mark" aria-hidden="true"></span>
-              <h3>Learn from practitioners</h3>
-              <p>Join live talks and Q&amp;A sessions, or explore ideas through our podcast.</p>
-            </div>
-          </div>
-          <p class="band-more">
-            <a class="band-link" href="{% url 'course_list' %}">free courses →</a>
-            <a class="band-link" href="{% url 'events' %}">events →</a>
-            <a class="band-link" href="{% url 'podcast' %}">podcast →</a>
-            <a class="band-link" href="{% url 'articles' %}">articles →</a>
-            <a class="band-link" href="{% url 'slack' %}">Slack →</a>
-          </p>
-        </div>
-      </section>
-
-      {% if tour_content.stats or tour_content.founder_name %}
-        {% comment %}
-          What the community is, answered with the About page's own blocks: its
-          one-line introduction, the survey figures and the founder story.  All
-          three are the same published record that page renders, so the homepage
-          states nothing the About page does not, and with no record published
-          (or no database to read one) the whole band is absent.
-        {% endcomment %}
-        <section class="band band-cream home-about" aria-labelledby="about-heading">
-          <div class="shell">
-            <div class="band-head">
-              <div>
-                <h2 id="about-heading">What is DataTalks.Club?</h2>
-                {% if tour_content.hero_intro %}
-                  <p>{{ tour_content.hero_intro }}</p>
-                {% endif %}
-              </div>
-            </div>
-            <div class="about-grid">
-              {% if tour_content.stats %}
-                <div class="about-part">
-                  <h3>Who's here</h3>
-                  {% include "core/_community_stats.html" with tour_content=tour_content only %}
-                  <p class="band-more">
-                    <a class="band-link" href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full survey →</a>
-                  </p>
-                </div>
-              {% endif %}
-              {% if tour_content.founder_name %}
-                <div class="about-part">
-                  <h3>How it started, and why it's free</h3>
-                  {% include "core/_founder_story.html" with tour_content=tour_content founder=founder only %}
-                </div>
-              {% endif %}
-            </div>
-            <p class="band-more">
-              <a class="band-link" href="{% url 'about' %}">about DataTalks.Club →</a>
-            </p>
-          </div>
-        </section>
-      {% endif %}
-
-      <section class="band band-lavender band-soft" id="courses" aria-labelledby="courses-heading">
-        <div class="shell">
-          <div class="band-head">
-            <div>
-              <h2 id="courses-heading">Free courses</h2>
-              <p>
-                Cohort-based and self-paced courses in Data Engineering, Machine Learning, MLOps,
-                LLM / AI, and more — 100% free, with hands-on homework, peer review, a capstone
-                project, and a certificate.
-              </p>
-            </div>
-          </div>
-          {% if featured_catalog_entry %}
-          {% if featured_build_items %}
-          <div class="featured" data-featured-course>
-          {% else %}
-          <div class="featured featured-solo" data-featured-course>
-          {% endif %}
-            <div class="featured-main">
-              <span class="chip chip-ink">New cohort</span>
-              <h3>{{ featured_catalog_entry.title }}</h3>
-              <p class="featured-subline">
-                Starts {{ featured_catalog_entry.start_display }}
-                {% if featured_cohort_format %}
-                · {{ featured_cohort_format }}
-                {% endif %}
-                · homework + peer review
-              </p>
-              {% if featured_cohort_summary %}
-                <p class="featured-desc">{{ featured_cohort_summary }}</p>
-              {% endif %}
-              {% comment %}
-                Every count is the curriculum and coursework the selected cohort actually
-                holds in the database, so a clause is dropped rather than shown as zero:
-                a cohort whose modules are not imported yet says nothing about modules,
-                and "0 projects" would read as a promise of none.  The module count lives
-                here, not in the editorial summary above: a hand-written count is what let
-                the panel keep advertising the previous edition's curriculum.
-              {% endcomment %}
-              <p class="featured-meta">
-                {% if featured_catalog_entry.module_count %}
-                  {{ featured_catalog_entry.module_count }}
-                  module{{ featured_catalog_entry.module_count|pluralize }} ·
-                {% endif %}
-                {% if featured_catalog_entry.homework_count %}
-                  {{ featured_catalog_entry.homework_count }} homework
-                  assignment{{ featured_catalog_entry.homework_count|pluralize }} ·
-                {% endif %}
-                {% if featured_catalog_entry.project_count %}
-                  {{ featured_catalog_entry.project_count }}
-                  project{{ featured_catalog_entry.project_count|pluralize }} ·
-                {% endif %}
-                certificate of completion
-              </p>
-              <div class="featured-actions">
-                <a class="cta cta-secondary interactive-lift" href="{{ featured_cohort_path }}">
-                  View the syllabus
-                </a>
-              </div>
-            </div>
-            {% if featured_build_items %}
-              <aside class="featured-build">
-                <h4>What you'll build</h4>
-                <ul>
-                  {% for item in featured_build_items %}
-                    <li>
-                      <span class="build-check" aria-hidden="true"></span>{{ item|capfirst }}
-                    </li>
-                  {% endfor %}
-                </ul>
-              </aside>
-            {% endif %}
-          </div>
-          {% endif %}
-          {% if catalog_courses %}
-          <div
-            class="card-grid catalog-grid"
-            id="catalog-grid"
-            aria-label="Course catalogue"
-          >
-            {% for course in catalog_courses %}
-              <article class="card course-card stretched-card-link interactive-card interactive-lift">
-                <h3>{{ course.title }}</h3>
-                <p class="course-cohort">{{ course.cohort_label }}</p>
-                <a class="band-link course-link" href="{{ course.public_path }}">View course</a>
-              </article>
-            {% endfor %}
-          </div>
-          {% elif not featured_catalog_entry %}
-            {% comment %}
-              The same empty state the courses index shows, so a database with no visible
-              cohort renders a designed page here instead of an empty band.
-            {% endcomment %}
-            <p class="band-note">No active courses right now.</p>
-          {% endif %}
-        </div>
-      </section>
-
-      <section class="band band-cream" aria-labelledby="events-heading">
-        <div class="shell">
-          <div class="band-head">
-            <div>
-              <h2 id="events-heading">Events</h2>
-            </div>
-          </div>
-          {% if upcoming_events %}
-            <div class="card-grid card-grid-3">
-              {% for event in upcoming_events %}
-                {% comment %}
-                  The same card the events feed draws: the kind pill with its
-                  explanation, the title, enough of the description to know
-                  whether it is for you, and the speakers as chips.  No "Event
-                  details" link — the card is the link.
-                {% endcomment %}
-                <article class="card event-card interactive-card interactive-lift">
-                  <p class="mono-note event-when">
-                    {% if event.type %}
-                      <span class="event-type">{{ event.type }}</span>
-                      <span aria-hidden="true">·</span>
-                    {% endif %}
-                    <time datetime="{{ event.starts_at }}">{{ event.home_time }}</time>
-                  </p>
-                  <h3>
-                    <a href="{{ event.public_path }}">{{ event.title }}</a>
-                  </h3>
-                  {% if event.description_text %}
-                    <p class="event-summary">{{ event.description_text|truncatewords:20 }}</p>
-                  {% endif %}
-                  {% if event.speakers %}
-                    <div class="event-foot">
-                      <p class="event-speakers person-chips card-credit">
-                        {% for speaker in event.speakers %}
-                          {% include "public/_person_chip.html" with person=speaker|person_chip %}
-                        {% endfor %}
-                      </p>
-                    </div>
-                  {% endif %}
-                </article>
-              {% endfor %}
-            </div>
-            {% comment %}
-              The way on to the full feed sits under the cards rather than beside
-              the heading: it is what you do after reading the three, not an
-              alternative to reading them.
-            {% endcomment %}
-            <p class="band-more">
-              <a class="band-link" href="{% url 'events' %}">see all events →</a>
-            </p>
-          {% else %}
-            <p>No upcoming events.</p>
-            {% for event in recent_events %}
-              <p>
-                <a class="band-link" href="{{ event.public_path }}">Watch a recent event: {{ event.title }}</a>
-              </p>
-            {% endfor %}
-          {% endif %}
-        </div>
-      </section>
-
-      <section class="band band-cream band-continued" aria-labelledby="latest-heading">
-        <div class="shell">
-          <h2 id="latest-heading" class="sr-only">Latest from the community</h2>
-          <div class="latest-grid">
-            <div>
-              <div class="band-head">
-                <h3>Latest podcast episode</h3>
-              </div>
-              <div class="card latest-card stretched-card-link podcast-card interactive-card interactive-lift">
-                <div class="latest-item">
-                  <span class="latest-icon latest-icon-play" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false">
-                      <path d="M9 6.5l9 5.5-9 5.5z"/>
-                    </svg>
-                  </span>
-                  <div>
-                    <h3>
-                      <a class="band-link" href="{{ podcast.public_path }}">{{ podcast.title }}</a>
-                    </h3>
-                    <p class="latest-meta">
-                      Season {{ podcast.season }} · Episode {{ podcast.episode }}
-                    </p>
-                    {% if podcast.guest_profiles %}
-                      <p class="person-chips card-credit">
-                        {% for guest in podcast.guest_profiles %}
-                          {% include "public/_person_chip.html" with person=guest|person_chip %}
-                        {% endfor %}
-                      </p>
-                    {% endif %}
-                  </div>
-                </div>
-              </div>
-              <p class="band-more">
-                <a class="band-link" href="{% url 'podcast' %}">all episodes →</a>
-              </p>
-            </div>
-            <div>
-              <div class="band-head">
-                <h3>Latest article</h3>
-              </div>
-              <div class="card latest-card stretched-card-link interactive-card interactive-lift">
-                <div class="latest-item">
-                  <span class="latest-icon latest-icon-green" aria-hidden="true">{{ article_minutes }}m</span>
-                  <div>
-                    <h3>
-                      <a class="band-link" href="{{ article.public_path }}">{{ article.title }}</a>
-                    </h3>
-                    <p class="latest-meta">
-                      {{ article_published }} · {{ article_minutes }} min read
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <p class="band-more">
-                <a class="band-link" href="{% url 'articles' %}">read the blog →</a>
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="band band-cream" id="academy-comparison" aria-labelledby="academy-comparison-heading" data-academy-comparison>
-        <div class="shell">
-          <div class="band-head">
-            <div>
-              <h2 id="academy-comparison-heading">Free courses vs Academy</h2>
-              <p>
-                Start with open, community-powered courses — or join a full-time live bootcamp
-                when you want dedicated daily instruction.
-              </p>
-            </div>
-          </div>
-          <div class="card-grid card-grid-2">
-            <article class="card comparison-card">
-              <p class="mono-label">Free · Community-powered</p>
-              <h3>Free courses</h3>
-              <p class="comparison-summary">
-                Open-access zoomcamps in data and AI for learning at your own pace or alongside an
-                annual cohort.
-              </p>
-              <ul class="comparison-points">
-                <li>
-                  <span class="build-check" aria-hidden="true"></span>
-                  <span>Free forever — videos, homework, and code stay open</span>
-                </li>
-                <li>
-                  <span class="build-check" aria-hidden="true"></span>
-                  <span>Self-paced anytime, or cohort-based with deadlines and peer review</span>
-                </li>
-                <li>
-                  <span class="build-check" aria-hidden="true"></span>
-                  <span>Ask questions and get unstuck with 130,000+ peers in Slack</span>
-                </li>
-                <li>
-                  <span class="build-check" aria-hidden="true"></span>
-                  <span>Certificate of completion for cohort projects</span>
-                </li>
-              </ul>
-              <div class="comparison-action">
-                <a class="cta cta-secondary interactive-lift" href="{% url 'course_list' %}">Explore free courses</a>
-              </div>
-            </article>
-            <article class="card comparison-card">
-              <p class="mono-label">Full-time · Live intensive</p>
-              <h3>DataTalks.Club Academy</h3>
-              <p class="comparison-summary">
-                A 3-month full-time live bootcamp for experienced developers who want structured
-                daily instruction and direct mentorship.
-              </p>
-              <ul class="comparison-points">
-                <li>
-                  <span class="build-check" aria-hidden="true"></span>
-                  <span>Live classes Mon–Fri, 09:00–16:30 Berlin time (in Berlin or online)</span>
-                </li>
-                <li>
-                  <span class="build-check" aria-hidden="true"></span>
-                  <span>Small cohort of 15 seats with direct guidance from Alexey Grigorev</span>
-                </li>
-                <li>
-                  <span class="build-check" aria-hidden="true"></span>
-                  <span>Focused tracks: Agentic Engineering and AI Engineering</span>
-                </li>
-                <li>
-                  <span class="build-check" aria-hidden="true"></span>
-                  <span>Designed for Bildungsgutschein funding (AZAV)</span>
-                </li>
-              </ul>
-              <div class="comparison-action">
-                <a class="cta cta-secondary interactive-lift" href="/academy/">Explore the Academy</a>
-              </div>
-            </article>
+            {% include "core/_stage_card.html" with step_index=1 heading="Where do I go from here?" description="I can follow a tutorial. Starting a project of my own still feels like a leap." illustration_template="core/_home_illustration.html" illustration_variant="stuck" %}
+            {% include "core/_stage_card.html" with step_index=2 heading="I’m building, with help along the way" description="I put each lesson into practice, with a community to help when I get stuck." illustration_template="core/_home_illustration.html" illustration_variant="learning" %}
+            {% include "core/_stage_card.html" with step_index=3 heading="I built this. What’s next?" description="I’ve built a working project I’m proud of. Now I’m ready for the next one." illustration_template="core/_home_illustration.html" illustration_variant="shipping" %}
           </div>
         </div>
       </section>
@@ -1396,15 +929,320 @@
         </section>
       {% endif %}
 
-      <section class="band band-cream" aria-labelledby="wiki-heading">
+      <section class="band band-lavender" id="courses" aria-labelledby="courses-heading">
         <div class="shell">
           <div class="band-head">
             <div>
-              <h2 id="wiki-heading">Wiki</h2>
+              <h2 id="courses-heading">Active courses</h2>
+            </div>
+          </div>
+          {% if featured_catalog_entry %}
+          {% if featured_build_items %}
+          <div class="featured" data-featured-course>
+          {% else %}
+          <div class="featured featured-solo" data-featured-course>
+          {% endif %}
+            <div class="featured-main">
+              <span class="chip chip-ink">New cohort</span>
+              <h3>{{ featured_catalog_entry.title }}</h3>
+              <p class="featured-subline">
+                Starts {{ featured_catalog_entry.start_display }}
+                {% if featured_cohort_format %}
+                · {{ featured_cohort_format }}
+                {% endif %}
+                · homework + peer review
+              </p>
+              {% if featured_cohort_summary %}
+                <p class="featured-desc">{{ featured_cohort_summary }}</p>
+              {% endif %}
+              {% comment %}
+                Every count is the curriculum and coursework the selected cohort actually
+                holds in the database, so a clause is dropped rather than shown as zero:
+                a cohort whose modules are not imported yet says nothing about modules,
+                and "0 projects" would read as a promise of none.  The module count lives
+                here, not in the editorial summary above: a hand-written count is what let
+                the panel keep advertising the previous edition's curriculum.
+              {% endcomment %}
+              <p class="featured-meta">
+                {% if featured_catalog_entry.module_count %}
+                  {{ featured_catalog_entry.module_count }}
+                  module{{ featured_catalog_entry.module_count|pluralize }} ·
+                {% endif %}
+                {% if featured_catalog_entry.homework_count %}
+                  {{ featured_catalog_entry.homework_count }} homework
+                  assignment{{ featured_catalog_entry.homework_count|pluralize }} ·
+                {% endif %}
+                {% if featured_catalog_entry.project_count %}
+                  {{ featured_catalog_entry.project_count }}
+                  project{{ featured_catalog_entry.project_count|pluralize }} ·
+                {% endif %}
+                certificate of completion
+              </p>
+              <div class="featured-actions">
+                <a class="cta cta-primary interactive-lift" href="{{ featured_cohort_path }}">
+                  View the syllabus
+                </a>
+              </div>
+            </div>
+            {% if featured_build_items %}
+              <aside class="featured-build">
+                <h4>What you'll build</h4>
+                <ul>
+                  {% for item in featured_build_items %}
+                    <li>
+                      <span class="build-check" aria-hidden="true"></span>{{ item|capfirst }}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </aside>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if catalog_courses %}
+          <div
+            class="catalog-scroller"
+            id="catalog-scroller"
+            role="group"
+            aria-label="Course catalogue"
+            tabindex="0"
+          >
+            {% for course in catalog_courses %}
+              <article class="card course-card stretched-card-link interactive-card interactive-lift">
+                <h3>{{ course.title }}</h3>
+                <p class="course-cohort">{{ course.cohort_label }}</p>
+                <a class="band-link course-link" href="{{ course.public_path }}">View course</a>
+              </article>
+            {% endfor %}
+          </div>
+          <div class="scroller-controls catalog-scroller-controls" aria-label="Course catalogue controls">
+            <button
+              class="scroller-button interactive-lift"
+              type="button"
+              data-scroll="-1"
+              data-scroll-target="catalog-scroller"
+              aria-label="Scroll catalogue left"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M15 5l-7 7 7 7"/>
+              </svg>
+            </button>
+            <button
+              class="scroller-button interactive-lift"
+              type="button"
+              data-scroll="1"
+              data-scroll-target="catalog-scroller"
+              aria-label="Scroll catalogue right"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </div>
+          {% elif not featured_catalog_entry %}
+            {% comment %}
+              The same empty state the courses index shows, so a database with no visible
+              cohort renders a designed page here instead of an empty band.
+            {% endcomment %}
+            <p class="band-note">No active courses right now.</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="band band-cream" aria-labelledby="promises-heading">
+        <div class="shell">
+          <h2 id="promises-heading" class="sr-only">How you’ll learn</h2>
+          <div class="promise-grid">
+            <div class="promise">
+              <span class="promise-mark" aria-hidden="true"></span>
+              <h3>Learn by building</h3>
+              <p>Free courses with hands-on homework, peer review, and a leaderboard.</p>
+            </div>
+            <div class="promise">
+              <span class="promise-mark" aria-hidden="true"></span>
+              <h3>Find your people</h3>
+              <p>Ask questions, share what you’re working on, and talk careers in Slack.</p>
+            </div>
+            <div class="promise">
+              <span class="promise-mark" aria-hidden="true"></span>
+              <h3>Learn from practitioners</h3>
+              <p>Join live talks and Q&amp;A sessions, or explore ideas through our podcast.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {% if tour_content.stats or tour_content.founder_name %}
+        {% comment %}
+          What the community is, answered with the About page's own blocks: its
+          one-line introduction, the survey figures and the founder story.  All
+          three are the same published record that page renders, so the homepage
+          states nothing the About page does not, and with no record published
+          (or no database to read one) the whole band is absent.
+        {% endcomment %}
+        <section class="band band-lavender home-about" aria-labelledby="about-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="about-heading">What is DataTalks.Club?</h2>
+                {% if tour_content.hero_intro %}
+                  <p>{{ tour_content.hero_intro }}</p>
+                {% endif %}
+              </div>
+            </div>
+            <div class="about-grid">
+              {% if tour_content.stats %}
+                <div class="about-part">
+                  <h3>Who's here</h3>
+                  {% include "core/_community_stats.html" with tour_content=tour_content only %}
+                  <p class="band-more">
+                    <a class="band-link" href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full survey →</a>
+                  </p>
+                </div>
+              {% endif %}
+              {% if tour_content.founder_name %}
+                <div class="about-part">
+                  <h3>How it started, and why it's free</h3>
+                  {% include "core/_founder_story.html" with tour_content=tour_content founder=founder only %}
+                </div>
+              {% endif %}
+            </div>
+            <p class="band-more">
+              <a class="band-link" href="{% url 'about' %}">about DataTalks.Club →</a>
+            </p>
+          </div>
+        </section>
+      {% endif %}
+
+      <section class="band band-mint" aria-labelledby="events-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="events-heading">Events</h2>
+            </div>
+          </div>
+          {% if upcoming_events %}
+            <div class="card-grid card-grid-3">
+              {% for event in upcoming_events %}
+                {% comment %}
+                  The same card the events feed draws: the kind pill with its
+                  explanation, the title, enough of the description to know
+                  whether it is for you, and the speakers as chips.  No "Event
+                  details" link — the card is the link.
+                {% endcomment %}
+                <article class="card event-card interactive-card interactive-lift">
+                  <p class="mono-note event-when">
+                    {% if event.type %}
+                      <span class="event-type">{{ event.type }}</span>
+                      <span aria-hidden="true">·</span>
+                    {% endif %}
+                    <time datetime="{{ event.starts_at }}">{{ event.home_time }}</time>
+                  </p>
+                  <h3>
+                    <a href="{{ event.public_path }}">{{ event.title }}</a>
+                  </h3>
+                  {% if event.description_text %}
+                    <p class="event-summary">{{ event.description_text|truncatewords:20 }}</p>
+                  {% endif %}
+                  {% if event.speakers %}
+                    <div class="event-foot">
+                      <p class="event-speakers person-chips card-credit">
+                        {% for speaker in event.speakers %}
+                          {% include "public/_person_chip.html" with person=speaker|person_chip %}
+                        {% endfor %}
+                      </p>
+                    </div>
+                  {% endif %}
+                </article>
+              {% endfor %}
+            </div>
+            {% comment %}
+              The way on to the full feed sits under the cards rather than beside
+              the heading: it is what you do after reading the three, not an
+              alternative to reading them.
+            {% endcomment %}
+            <p class="band-more">
+              <a class="band-link" href="{% url 'events' %}">see all events →</a>
+            </p>
+          {% else %}
+            <p>No upcoming events.</p>
+            {% for event in recent_events %}
               <p>
-                A community-curated wiki of data and AI concepts, tools, and practical guides —
-                {{ counts.wiki }} member-written topics wired to each other so you can see how ideas connect.
-                Click a node to explore its neighbours, or open a page when you’re ready to read.
+                <a class="band-link" href="{{ event.public_path }}">Watch a recent event: {{ event.title }}</a>
+              </p>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="band band-cream" aria-labelledby="latest-heading">
+        <div class="shell">
+          <h2 id="latest-heading" class="sr-only">Latest from the community</h2>
+          <div class="latest-grid">
+            <div>
+              <div class="band-head">
+                <h3>Latest podcast episode</h3>
+              </div>
+              <div class="card latest-card stretched-card-link podcast-card interactive-card interactive-lift">
+                <div class="latest-item">
+                  <span class="latest-icon latest-icon-play" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path d="M9 6.5l9 5.5-9 5.5z"/>
+                    </svg>
+                  </span>
+                  <div>
+                    <h3>
+                      <a class="band-link" href="{{ podcast.public_path }}">{{ podcast.title }}</a>
+                    </h3>
+                    <p class="latest-meta">
+                      Season {{ podcast.season }} · Episode {{ podcast.episode }}
+                    </p>
+                    {% if podcast.guest_profiles %}
+                      <p class="person-chips card-credit">
+                        {% for guest in podcast.guest_profiles %}
+                          {% include "public/_person_chip.html" with person=guest|person_chip %}
+                        {% endfor %}
+                      </p>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <p class="band-more">
+                <a class="band-link" href="{% url 'podcast' %}">all episodes →</a>
+              </p>
+            </div>
+            <div>
+              <div class="band-head">
+                <h3>Latest article</h3>
+              </div>
+              <div class="card latest-card stretched-card-link interactive-card interactive-lift">
+                <div class="latest-item">
+                  <span class="latest-icon latest-icon-green" aria-hidden="true">{{ article_minutes }}m</span>
+                  <div>
+                    <h3>
+                      <a class="band-link" href="{{ article.public_path }}">{{ article.title }}</a>
+                    </h3>
+                    <p class="latest-meta">
+                      {{ article_published }} · {{ article_minutes }} min read
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <p class="band-more">
+                <a class="band-link" href="{% url 'articles' %}">read the blog →</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="band band-lavender" aria-labelledby="wiki-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="wiki-heading">Community knowledge base</h2>
+              <p>
+                {{ counts.wiki }} member-written topics wired to each other — click a node to
+                explore its neighbours. Open a page only when you choose to.
               </p>
             </div>
           </div>
@@ -1526,7 +1364,7 @@
         </section>
       {% endif %}
 
-      <section class="band band-cream" aria-labelledby="newsletter-heading">
+      <section class="band band-mint" aria-labelledby="newsletter-heading">
         <div class="shell newsletter-panel">
           <div>
             <h2 id="newsletter-heading">Get the weekly DataTalks.Club digest</h2>
@@ -1540,6 +1378,78 @@
           </div>
           <div class="newsletter-card">
             {% include "core/_newsletter_signup_form.html" with input_id="home-newsletter-email" %}
+          </div>
+        </div>
+      </section>
+
+      <section class="band band-lavender" id="academy-comparison" aria-labelledby="academy-comparison-heading" data-academy-comparison>
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="academy-comparison-heading">Free courses vs Academy</h2>
+              <p>
+                Start with open, community-powered courses — or join a full-time live bootcamp
+                when you want dedicated daily instruction.
+              </p>
+            </div>
+          </div>
+          <div class="card-grid card-grid-2">
+            <article class="card comparison-card">
+              <h3>DataTalks.Club Zoomcamps</h3>
+              <p class="comparison-summary">
+                Open-access zoomcamps in data and AI for learning at your own pace or alongside an
+                annual cohort.
+              </p>
+              <ul class="comparison-points">
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Free forever — videos, homework, and code stay open</span>
+                </li>
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Self-paced anytime, or cohort-based with deadlines and peer review</span>
+                </li>
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Ask questions and get unstuck with 130,000+ peers in Slack</span>
+                </li>
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Certificate of completion for cohort projects</span>
+                </li>
+              </ul>
+              <div class="comparison-action">
+                <a class="cta cta-secondary interactive-lift" href="{% url 'course_list' %}">Explore free courses</a>
+              </div>
+            </article>
+            <article class="card comparison-card">
+              <h3>DataTalks.Club Academy</h3>
+              <p class="comparison-summary">
+                A 3-month full-time live bootcamp for experienced developers who want structured
+                daily instruction and direct mentorship.
+              </p>
+              <ul class="comparison-points">
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Live classes Mon–Fri, 09:00–16:30 Berlin time (in Berlin or online)</span>
+                </li>
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Small cohort of 15 seats with direct guidance from Alexey Grigorev</span>
+                </li>
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Focused tracks: Agentic Engineering and AI Engineering</span>
+                </li>
+                <li>
+                  <span class="build-check" aria-hidden="true"></span>
+                  <span>Bildungsgutschein (coming soon)</span>
+                </li>
+              </ul>
+              <div class="comparison-action">
+                <a class="cta cta-secondary interactive-lift" href="/academy/">Explore the Academy</a>
+              </div>
+            </article>
           </div>
         </div>
       </section>
@@ -1560,10 +1470,7 @@
               whenever you want it.
             </p>
           </div>
-          <div class="closing-actions">
-            <a class="cta cta-primary interactive-lift" href="{% url 'course_list' %}">Explore free courses</a>
-            <a class="cta cta-secondary interactive-lift" href="{{ account_entry.landing_create_url }}">Create free account</a>
-          </div>
+          <a class="cta cta-primary interactive-lift" href="{{ account_entry.landing_create_url }}">Create free account</a>
         </div>
       </section>
     </main>

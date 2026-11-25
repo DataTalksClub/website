@@ -197,7 +197,7 @@ class HomepageCourseRenderingTests(TestCase):
         body = response.content.decode()
 
         featured = body[body.index("data-featured-course") :]
-        featured = featured[: featured.index("catalog-grid")]
+        featured = featured[: featured.index("catalog-scroller")]
 
         self.assertIn("4 homework assignments", " ".join(featured.split()))
         self.assertNotIn("0 project", featured)
@@ -214,7 +214,7 @@ class HomepageCourseRenderingTests(TestCase):
 
         body = self.client.get(reverse("home")).content.decode()
         featured = body[body.index("data-featured-course") :]
-        featured = " ".join(featured[: featured.index("catalog-grid")].split())
+        featured = " ".join(featured[: featured.index("catalog-scroller")].split())
 
         self.assertIn("4 modules ·", featured)
         self.assertNotIn("Six modules", featured)
@@ -228,7 +228,7 @@ class HomepageCourseRenderingTests(TestCase):
 
         body = self.client.get(reverse("home")).content.decode()
         featured = body[body.index("data-featured-course") :]
-        featured = " ".join(featured[: featured.index("catalog-grid")].split())
+        featured = " ".join(featured[: featured.index("catalog-scroller")].split())
 
         self.assertNotIn("0 module", featured)
         self.assertNotIn("module", featured)
@@ -248,7 +248,7 @@ class HomepageCourseRenderingTests(TestCase):
 
         body = self.client.get(reverse("home")).content.decode()
         featured = body[body.index("data-featured-course") :]
-        featured = " ".join(featured[: featured.index("catalog-grid")].split())
+        featured = " ".join(featured[: featured.index("catalog-scroller")].split())
 
         self.assertIn("1 homework assignment ·", featured)
         self.assertIn("1 project ·", featured)

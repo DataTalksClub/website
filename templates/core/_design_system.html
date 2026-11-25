@@ -5196,11 +5196,13 @@ Rules for editing:
         color: var(--body-text);
       }
 
+      /* The buttons above carry a hard offset shadow, so the hint needs a
+         full step of air to clear it rather than touching the shadow. */
       .cta-hint {
         color: var(--muted);
         font-size: 0.85rem;
         line-height: 1.45;
-        margin: var(--space-2) 0 0;
+        margin: var(--space-4) 0 0;
       }
 
       .newsletter-status.is-success {

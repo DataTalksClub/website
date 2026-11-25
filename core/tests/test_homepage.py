@@ -60,7 +60,7 @@ class FeaturedBuildPanelTests(TestCase):
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
         panel = body[body.index("data-featured-course") :]
-        return panel[: panel.index("catalog-grid")]
+        return panel[: panel.index("catalog-scroller")]
 
     def test_the_panel_prints_the_featured_cohort_s_own_summary(self) -> None:
         response = self.client.get(reverse("home"))
@@ -141,16 +141,16 @@ class CatalogCardTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
-        grid = body[body.index('id="catalog-grid"') :]
-        grid = grid[: grid.index("</section>")]
+        scroller = body[body.index('id="catalog-scroller"') :]
+        scroller = scroller[: scroller.index("catalog-scroller-controls")]
 
-        self.assertNotIn("chip", grid)
+        self.assertNotIn("chip", scroller)
         self.assertNotIn("featured-badges", body)
         for family, title in COURSE_FAMILIES:
             if family == FEATURED_FAMILY:
                 continue
             with self.subTest(family=family):
-                self.assertIn(escape(title), grid)
+                self.assertIn(escape(title), scroller)
 
         # The featured cohort keeps its own chip; only the category pills went.
         self.assertIn('<span class="chip chip-ink">New cohort</span>', body)
@@ -174,11 +174,11 @@ class FeaturedFlagTests(TestCase):
         body = self._body()
 
         self.assertNotIn("data-featured-course", body)
-        grid = body[body.index('id="catalog-grid"') :]
-        grid = grid[: grid.index("</section>")]
+        scroller = body[body.index('id="catalog-scroller"') :]
+        scroller = scroller[: scroller.index("catalog-scroller-controls")]
         for _family, title in COURSE_FAMILIES:
             with self.subTest(title=title):
-                self.assertIn(escape(title), grid)
+                self.assertIn(escape(title), scroller)
 
     def test_the_flagged_cohort_is_featured_and_leaves_the_cards(self) -> None:
         Cohort.objects.update(featured=False)
@@ -187,11 +187,11 @@ class FeaturedFlagTests(TestCase):
         body = self._body()
 
         panel = body[body.index("data-featured-course") :]
-        panel, grid = panel.split('id="catalog-grid"', 1)
+        panel, scroller = panel.split('id="catalog-scroller"', 1)
         self.assertIn("Data Engineering Zoomcamp", panel)
-        cards = grid.split("</section>")[0]
+        cards = scroller.split("catalog-scroller-controls")[0]
         self.assertNotIn("Data Engineering Zoomcamp", cards)
-        self.assertIn("AI Dev Tools Zoomcamp", grid)
+        self.assertIn("AI Dev Tools Zoomcamp", scroller)
 
     def test_only_one_cohort_can_be_featured(self) -> None:
         from django.db import IntegrityError, transaction
@@ -265,23 +265,9 @@ class MainHomepageRoutingTests(TestCase):
         self.assertNotContains(response, "and join our Slack")
         self.assertNotContains(response, "data-academy-cta")
         self.assertContains(response, "From following tutorials to building your own projects.")
-        # Site feedback 2026-11-19 (1.3): each climb card names its step directly,
-        # with one short line under it.
-        self.assertContains(response, "Learn the fundamentals")
-        self.assertContains(response, "Learn with the community")
-        self.assertContains(response, "Build your own project")
-        self.assertNotContains(response, "Where do I go from here?")
-        for variant in ("fundamentals", "community", "project", "hero"):
-            self.assertContains(response, f"core/illustrations/home-simple-{variant}.webp")
-            self.assertContains(response, f"core/illustrations/home-simple-{variant}-dark.webp")
-        # Site feedback 2026-11-19 (1.1): one neutral ground, one tinted band for
-        # the course offer, and no mint anywhere in the homepage's own bands.
-        body = response.content.decode()
-        main = body.split('<main id="main-content"', 1)[1].split("</main>", 1)[0]
-        grounds = re.findall(r'<section class="band (band-[a-z]+)', main)
-        self.assertNotIn("band-mint", grounds)
-        self.assertEqual(grounds.count("band-lavender"), 1)
-        self.assertIn('class="band band-lavender band-soft" id="courses"', main)
+        self.assertContains(response, "Where do I go from here?")
+        self.assertContains(response, "I’m building, with help along the way")
+        self.assertContains(response, "I built this. What’s next?")
         self.assertContains(response, "Courses")
         self.assertContains(response, "AI Dev Tools Zoomcamp")
         self.assertContains(response, "Starts August 31")
@@ -389,7 +375,7 @@ class MainHomepageRoutingTests(TestCase):
             )
             self.assertContains(rendered, "No active courses right now.")
             self.assertNotContains(rendered, "data-featured-course")
-            self.assertContains(rendered, "Wiki")
+            self.assertContains(rendered, "Community knowledge base")
 
     def test_homepage_navigation_is_local_and_complete(self) -> None:
         response = self.client.get(reverse("home"))
@@ -773,37 +759,9 @@ class MemberStoriesCarouselTests(TestCase):
             body.count('data-scroll-target="stories-scroller"'),
             2,
         )
-        # The course catalogue renders as a grid rather than a horizontal scroller.
-        self.assertIn('id="catalog-grid"', body)
-        self.assertNotIn('id="catalog-scroller"', body)
-
-    def test_homepage_section_order_editorial_framing_and_single_primary_cta(self) -> None:
-        build_reviewed_catalog()
-        body = self.client.get(reverse("home")).content.decode()
-
-        self.assertIn("For data &amp; AI practitioners", body)
-        self.assertIn("130,000+", body)
-        self.assertIn("What’s inside DataTalks.Club", body)
-        self.assertIn("Free courses", body)
-        self.assertIn("A community-curated wiki of data and AI concepts", body)
-
-        order = [
-            body.index('id="hero-heading"'),
-            body.index('id="climb-heading"'),
-            body.index('id="promises-heading"'),
-            body.index('id="courses-heading"'),
-            body.index('id="events-heading"'),
-            body.index('id="academy-comparison-heading"'),
-            body.index('id="stories-heading"'),
-            body.index('id="wiki-heading"'),
-            body.index('id="closing-heading"'),
-        ]
-        self.assertEqual(order, sorted(order))
-
-        main = body.split('<main id="main-content"', 1)[1].split("</main>", 1)[0]
-        primary_ctas = re.findall(r'<a[^>]*class="[^"]*cta-primary[^"]*"[^>]*href="([^"]+)"', main)
-        self.assertEqual(len(primary_ctas), 2)
-        self.assertEqual(set(primary_ctas), {reverse("course_list")})
+        # The controls reuse the exact same button/arrow markup the catalogue
+        # scroller already uses, rather than a second bespoke control.
+        self.assertIn('data-scroll-target="catalog-scroller"', body)
 
     def test_a_story_without_a_photo_falls_back_to_the_decorative_avatar(self) -> None:
         Testimonial.objects.filter(placement=TestimonialPlacement.HOMEPAGE).delete()
