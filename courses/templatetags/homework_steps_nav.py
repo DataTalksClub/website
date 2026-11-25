@@ -43,3 +43,12 @@ def homework_nav_steps(stepper):
         }
         for index, (title, url, current) in enumerate(nav_steps)
     ]
+
+
+@register.filter
+def homework_state_pill(state):
+    """The DTC status-pill tone for a shared ``LearnerHomeworkState``."""
+
+    from courses.views.homework_states import homework_state_pill as pill
+
+    return pill(state)

@@ -78,19 +78,19 @@
       <strong>{{ homework.due_date|user_datetime:request }}</strong>
       <span class="time-left" data-deadline="{{ homework.due_date|date:"c" }}" data-prefix="false"></span>
     </div>
-    {% if is_authenticated and accepting_submissions and not homework.is_scored and not registration_wall_blocked %}
-      {% comment %}
-        The student's own save state, said once, above the fold -- a form
-        that can run past 3,000px used to say this only next to the button
-        at the very end of it (fixes issue #237 finding 1).
-      {% endcomment %}
-      <p class="fact-status">
-        {% if submission.pk %}
-          <span class="status-pill status-pill-mint"><span class="status-dot" aria-hidden="true"></span>saved &middot; {{ submission.submitted_at|user_date_short:request }}</span>
-        {% else %}
-          <span class="status-pill status-pill-wait">not saved yet</span>
-        {% endif %}
-      </p>
+    {% comment %}
+      The student's own state, said once, above the fold -- a form that can
+      run past 3,000px used to say this only next to the button at the very
+      end of it (fixes issue #237 finding 1).  The words are the shared
+      homework status (community_base.homework_steps.state): the stepper's
+      own state when the page is the stepper, the same calculation otherwise.
+    {% endcomment %}
+    {% if not registration_wall_blocked %}
+      {% if stepper.homework_state %}
+        {% include "homework/_fact_status.html" with learner_state=stepper.homework_state %}
+      {% elif homework_state %}
+        {% include "homework/_fact_status.html" with learner_state=homework_state %}
+      {% endif %}
     {% endif %}
     <p class="field-hint">
       {% if is_authenticated %}
@@ -496,7 +496,17 @@
      above the fold, instead of only at the foot of a form that can run past
      3,000px (finding 1). */
   .fact-status {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
     margin: 0;
+  }
+
+  .fact-status-when {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
   }
 
   /* A homework is the one content page whose body is a form that can run

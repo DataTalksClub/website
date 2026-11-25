@@ -24,6 +24,7 @@ from courses.views.homework_context import (
 from courses.views.homework_post_preview import (
     handle_homework_post,
 )
+from courses.views.homework_states import learner_homework_state
 from courses.views.homework_steps import (
     DtcHomeworkStepsAdapter,
     assignment_key,
@@ -56,6 +57,9 @@ def authenticated_homework_response(data: HomeworkRequestData):
     )
 
     if data.request.method != "POST":
+        authenticated_context.context["homework_state"] = learner_homework_state(
+            data.request.user, data.homework
+        )
         response = render(
             data.request,
             "homework/homework.html",

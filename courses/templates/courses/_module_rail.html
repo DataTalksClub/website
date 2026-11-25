@@ -103,6 +103,9 @@
       <span class="read-indicator rail-homework-mark" aria-hidden="true">HW</span>
       <span class="rail-unit-title">{{ module.terminal_homework.title|unit_display_title }}</span>
     </a>
+    {% if module_rail_homework_state %}
+      <p class="rail-unit-status">{% include "courses/_homework_state_pill.html" with homework_state=module_rail_homework_state score=None %}</p>
+    {% endif %}
   {% endif %}
 
   {% if not user.is_authenticated %}

@@ -33,9 +33,11 @@ class CourseHomeworkDisplayTest(CourseDetailViewTestBase):
         self.assertContains(response, "Already scored")
         # Design system (issue #179) replaced the copied badge with the design system's
         # status pill; the state is still carried by the word, not by colour alone.
+        # The word is the shared learner status (community_base homework_steps).
         self.assertContains(
             response,
-            'class="status-pill status-pill-mint">Scored',
+            '<span class="status-pill status-pill-mint"><span role="status" '
+            'aria-label="Homework status: Scored" data-homework-state="scored">Scored</span>',
         )
         self.assertNotContains(response, "app-badge")
         self.assertNotContains(response, "Scored:")

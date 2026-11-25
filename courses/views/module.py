@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 
 from courses.models import CurriculumFormat, Module, Unit, UnitReadState
 from courses.services.unit_read_state import set_unit_read_state
+from courses.views.homework_states import learner_homework_state
 from courses.views.url_utils import get_cohort_or_404
 
 
@@ -51,7 +52,13 @@ def module_rail_context(
         rail_unit.is_current = current_unit is not None and rail_unit.pk == current_unit.pk
         if rail_unit.is_current:
             current_unit_is_read = bool(rail_unit.is_read)
+    terminal_homework = module.terminal_homework
     return {
+        "module_rail_homework_state": (
+            learner_homework_state(request.user, terminal_homework)
+            if terminal_homework is not None and request.user.is_authenticated
+            else None
+        ),
         "module_rail_units": rail_units,
         "module_rail_read_count": sum(unit.is_read for unit in rail_units),
         # The unit page's read toggle needs the current lesson's state, and only

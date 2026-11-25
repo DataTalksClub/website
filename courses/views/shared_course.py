@@ -28,6 +28,7 @@ from courses.services.course_context import (
     remember_cohort,
     resolve_delivery_context,
 )
+from courses.views.homework_states import learner_homework_state
 
 
 def _course_or_404(course_slug: str) -> Course:
@@ -280,6 +281,11 @@ def shared_lesson_view(
             ),
             "module_url": _append_context(module_path, panel["context_q"]),
             "terminal_homework": placement.terminal_homework if placement else None,
+            "terminal_homework_state": (
+                learner_homework_state(request.user, placement.terminal_homework)
+                if placement and placement.terminal_homework and request.user.is_authenticated
+                else None
+            ),
             "canonical_url": f"https://datatalks.club{canonical_path}",
             **panel,
         },

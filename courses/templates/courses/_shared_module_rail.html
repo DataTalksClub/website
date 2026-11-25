@@ -45,6 +45,18 @@ module.
             <span class="read-indicator rail-homework-mark" aria-hidden="true">HW</span>
             <span class="rail-unit-title">{{ terminal_homework.title }}</span>
           </a>
+          {% comment %}
+            The signed-in learner's own status for this homework.  On the
+            homework page it is the page's own state (the stepper's, or the
+            classic form's); elsewhere the view passes terminal_homework_state.
+          {% endcomment %}
+          {% if current_homework.pk == terminal_homework.pk and stepper.homework_state %}
+            <p class="rail-unit-status">{% include "courses/_homework_state_pill.html" with homework_state=stepper.homework_state score=None %}</p>
+          {% elif current_homework.pk == terminal_homework.pk and homework_state %}
+            <p class="rail-unit-status">{% include "courses/_homework_state_pill.html" with homework_state=homework_state score=None %}</p>
+          {% elif terminal_homework_state %}
+            <p class="rail-unit-status">{% include "courses/_homework_state_pill.html" with homework_state=terminal_homework_state score=None %}</p>
+          {% endif %}
         </li>
       {% endif %}
     </ol>

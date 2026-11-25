@@ -1,0 +1,9 @@
+{% load custom_filters %}
+<p class="fact-status" data-testid="homework-page-state">
+  {% if homework.is_scored and submission.pk %}
+    {% include "courses/_homework_state_pill.html" with homework_state=learner_state score=submission.total_score %}
+  {% else %}
+    {% include "courses/_homework_state_pill.html" with homework_state=learner_state score=None %}
+  {% endif %}
+  {% if submission.submitted_at and not homework.is_scored %}<span class="fact-status-when">{{ submission.submitted_at|user_date_short:request }}</span>{% endif %}
+</p>

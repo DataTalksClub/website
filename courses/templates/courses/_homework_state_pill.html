@@ -1,0 +1,9 @@
+{% comment %}
+  One learner's homework status as a DTC status pill.  The words, the
+  accessible label and `data-homework-state` come from the shared
+  `homework_steps/_state_label.html` fragment; the pill tone is DTC's
+  coursework vocabulary (`courses.views.homework_states.HOMEWORK_STATE_PILLS`).
+  Context: homework_state (a `LearnerHomeworkState`), optional score.
+{% endcomment %}
+{% load homework_steps_nav %}
+<span class="status-pill {{ homework_state|homework_state_pill }}">{% include "homework_steps/_state_label.html" with homework_state=homework_state %}{% if score is not None and score != "" %} &middot; {{ score }}{% endif %}</span>

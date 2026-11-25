@@ -647,7 +647,15 @@
                                   </div>
                                   {% if is_authenticated %}
                                     <div class="course-row-state">
-                                      <span class="status-pill {{ hw.badge_pill }}">{{ hw.badge_state_name }}</span>
+                                      {% if hw.learner_state %}
+                                        {% include "courses/_homework_state_pill.html" with homework_state=hw.learner_state score=hw.score %}
+                                      {% else %}
+                                        {% if hw.learner_state %}
+                          {% include "courses/_homework_state_pill.html" with homework_state=hw.learner_state score=hw.score %}
+                        {% else %}
+                          <span class="status-pill {{ hw.badge_pill }}">{{ hw.badge_state_name }}</span>
+                        {% endif %}
+                                      {% endif %}
                                     </div>
                                   {% endif %}
                                 </div>
@@ -779,7 +787,11 @@
                     </div>
                     {% if is_authenticated %}
                       <div class="course-row-state">
-                        <span class="status-pill {{ hw.badge_pill }}">{{ hw.badge_state_name }}</span>
+                        {% if hw.learner_state %}
+                          {% include "courses/_homework_state_pill.html" with homework_state=hw.learner_state score=hw.score %}
+                        {% else %}
+                          <span class="status-pill {{ hw.badge_pill }}">{{ hw.badge_state_name }}</span>
+                        {% endif %}
                       </div>
                     {% endif %}
                   </div>

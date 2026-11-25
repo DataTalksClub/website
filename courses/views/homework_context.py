@@ -170,6 +170,7 @@ def homework_detail_build_context_not_authenticated(
         "homework": homework,
         "question_answers": question_answers,
         "is_authenticated": False,
+        "homework_state": None,
         "disabled": True,
         "accepting_submissions": accepting_submissions,
         "deadline_passed": homework_deadline_passed(homework),
@@ -234,6 +235,8 @@ def homework_detail_build_context_authenticated(data) -> dict:
         "question_answers": question_answers,
         "submission": data.submission,
         "is_authenticated": True,
+        # Filled by the classic GET view; the stepper carries its own.
+        "homework_state": None,
         "disable_learning_in_public": disable_learning_in_public,
     }
     context.update(state_context)

@@ -4,6 +4,7 @@ from django.utils import timezone
 from courses import coursework_badges
 from courses.models.cohort import Cohort
 from courses.models.homework import Homework, HomeworkState, Submission
+from courses.views.homework_states import learner_homework_states
 
 
 def get_homeworks_for_course(course: Cohort, user) -> list[Homework]:
@@ -24,10 +25,15 @@ def get_homeworks_for_course(course: Cohort, user) -> list[Homework]:
         .order_by("due_date")
     )
 
+    homeworks = list(homeworks)
+    states = learner_homework_states(user, course, homeworks)
     for homework in homeworks:
         update_homework_with_additional_info(homework)
+        # The shared learner status (Draft, Submitted, Scored, ...) for a
+        # signed-in reader; the row falls back to the badge without one.
+        homework.learner_state = states.get(homework.pk)
 
-    return list(homeworks)
+    return homeworks
 
 
 def update_homework_with_additional_info(homework: Homework) -> None:
