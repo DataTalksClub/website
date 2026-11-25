@@ -3,8 +3,8 @@
 {% block qna_title %}Q&amp;A · {{ event.title }}{% endblock %}
 {% block qna_main_attributes %}data-qna-mode="participant"{% endblock %}
 {% block qna_content %}
-      <p class="qna-kicker"><a href="/events/{{ event.public_id }}/{{ event.slug }}">{{ event.title }}</a></p>
       <h1>Event Q&amp;A</h1>
+      <p class="qna-event"><a href="/events/{{ event.public_id }}/{{ event.slug }}">{{ event.title }}</a></p>
       <p id="qna-banner" class="qna-banner" role="status">{{ session.state|capfirst }}</p>
       {# UX-07: connection trouble reports here; the banner stays lifecycle-only. #}
       <p id="qna-connection" class="qna-connection" role="status" hidden></p>

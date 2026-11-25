@@ -39,7 +39,7 @@
       /* ------------------------------------------------------------------ *
        * Book of the Week record, design system (issue #179).  The reader arrives
        * from the books archive (public/collection_hub.html), so this page is
-       * written as that hub's continuation: the same kicker, the same
+       * written as that hub's continuation: the same
        * question pill, the same dashed rows and the same mono dateline.  One
        * inline stylesheet: the shared design system partial, then this page.
        * ------------------------------------------------------------------ */
@@ -103,20 +103,15 @@
           grid-template-columns: minmax(0, 1fr) 9.5rem;
         }
 
-        .book-head > .mono-label {
-          grid-column: 1;
-          grid-row: 1;
-        }
-
         .book-cover {
           grid-column: 2;
-          grid-row: 1 / span 2;
+          grid-row: 1;
           width: 9.5rem;
         }
 
         .book-head-text {
           grid-column: 1;
-          grid-row: 2;
+          grid-row: 1;
         }
       }
 
@@ -270,7 +265,6 @@
           {% breadcrumbs breadcrumbs nav_class="shell book-shell" %}
           <div class="shell book-shell">
             <header class="book-head">
-              <p class="mono-label mono-label-indigo">book of the week</p>
               {% comment %}
                 The cover only, never the share image: the share image is the
                 "Book of the Week" flyer, which restated the title and byline

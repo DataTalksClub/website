@@ -16,8 +16,8 @@ a { color: var(--qna-accent); text-underline-offset: .18em; }
 .qna-skip-link:focus { top: 1rem; }
 .qna-shell { margin: 0 auto; max-width: 52rem; padding: clamp(1.5rem, 5vw, 3.5rem) 1rem 5rem; }
 .qna-shell > h1 { font-size: clamp(2rem, 7vw, 3.75rem); letter-spacing: -.035em; line-height: 1.04; margin-block: .4rem 1rem; }
-.qna-kicker { color: var(--qna-muted); font-size: .9rem; font-weight: 700; margin: 0; }
-.qna-kicker a { align-items: center; display: inline-flex; min-height: 2.75rem; }
+.qna-event { color: var(--qna-muted); font-size: .9rem; font-weight: 700; margin: 0; }
+.qna-event a { align-items: center; display: inline-flex; min-height: 2.75rem; }
 /* Notices take a surface and a full border, never a coloured left rail. */
 .qna-banner { background: var(--qna-surface); border: 2px solid var(--qna-border); border-radius: .55rem; color: var(--qna-muted); font-weight: 700; padding: .65rem .8rem; }
 /* UX-07: connection status lives under the banner and is quiet until a

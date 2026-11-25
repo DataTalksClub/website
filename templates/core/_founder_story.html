@@ -14,13 +14,11 @@
   <div class="founder-story-quotes">
     {% if tour_content.founder_context and not quote_only %}
       <div>
-        <span class="mono-label">How it started</span>
         <blockquote class="story-quote">{{ tour_content.founder_context }}</blockquote>
       </div>
     {% endif %}
     {% if tour_content.founder_quote %}
       <div>
-        {% if not quote_only %}<span class="mono-label">Why it's free</span>{% endif %}
         <blockquote class="story-quote">“{{ tour_content.founder_quote }}”</blockquote>
       </div>
     {% endif %}

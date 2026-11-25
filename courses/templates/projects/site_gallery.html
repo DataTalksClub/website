@@ -523,7 +523,6 @@
   {% endif %}
   <div class="gallery-heading">
     {% if project %}
-      <p class="mono-label mono-label-indigo">{{ course.title }}</p>
       <h1>Projects for {{ project.title }}</h1>
       <p class="gallery-intro">Review peer submissions, open repositories, and vote for up to {{ project_votes_per_project }} favorites.</p>
       {% if is_authenticated %}
@@ -537,7 +536,6 @@
         <a class="band-link" href="{{ project_submissions_url }}">All cohort projects →</a>
       </div>
     {% elif course %}
-      <p class="mono-label mono-label-indigo">{{ course_family.title }}</p>
       <h1>{{ course.identifier }} learner projects</h1>
       <p class="gallery-intro">Browse repositories submitted in this cohort, or adjust the filters to explore work from the wider community.</p>
     {% elif course_family %}

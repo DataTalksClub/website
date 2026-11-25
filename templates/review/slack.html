@@ -7,9 +7,6 @@
   little CSS the chip row needs.
 {% endcomment %}
 
-{% block kicker %}
-{% endblock %}
-
 {% block title_attributes %}
   class="page-title"
 {% endblock %}
@@ -78,11 +75,6 @@
 
       .text-page-head {
         --measure: 38rem;
-      }
-
-      /* This page carries no eyebrow over its title (owner, 2026-11-24). */
-      .text-page-head > .mono-label:first-child {
-        display: none;
       }
 
       .slack-options {

@@ -100,7 +100,6 @@
         {% url 'cohort_leaderboard_score_breakdown' course.course.slug course.identifier enrollment.id as record_url %}
         {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url "Leaderboard" leaderboard_url enrollment.display_name record_url current="Flag record" %}
         <div class="complaint-hero-inner">
-          <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="complaint-heading">Flag leaderboard record</h1>
           <p class="mono-note">{{ enrollment.display_name }} · {{ enrollment.total_score }} points</p>
           {% url 'cohort_leaderboard_score_breakdown' course.course.slug course.identifier enrollment.id as score_breakdown_url %}

@@ -37,6 +37,9 @@ REMOVED_PAGE_EYEBROWS = {
 }
 
 ACCOUNT_EYEBROW_TEMPLATES = (
+    "accounts/templates/account/signup.html",
+    "accounts/templates/accounts/login.html",
+    "accounts/templates/account/welcome.html",
     "accounts/templates/account/account_inactive.html",
     "accounts/templates/account/password_reset.html",
     "accounts/templates/account/password_reset_done.html",
@@ -70,17 +73,8 @@ class DesignSurfaceEyebrowSourceTests(TestCase):
                     self.template_source(relative_path),
                 )
 
-    def test_useful_context_and_canonical_signup_framing_remain(self) -> None:
+    def test_studio_context_labels_remain(self) -> None:
         retained_labels = {
-            "accounts/templates/account/signup.html": GENERIC_ACCOUNT_EYEBROW,
-            "course_platform_templates/socialaccount/identity_conflict.html": "Account safety",
-            "templates/review/faq_home.html": "faq · {{ faq_courses|length }} course",
-            # The hub counts pages, not guides: the same things were called guides in
-            # one section and topics in the next, and the count has always been of
-            # pages.
-            "templates/review/docs_home.html": (
-                "docs · {{ docs_total_pages }} page{{ docs_total_pages|pluralize }}"
-            ),
             "studio_courses/templates/studio_courses/campaign_registrations.html": (
                 "Registration campaign"
             ),

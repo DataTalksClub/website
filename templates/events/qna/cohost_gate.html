@@ -2,8 +2,8 @@
 {% block qna_title %}Co-host access · {{ event.title }}{% endblock %}
 {% block qna_body_class %}qna-cohost-page{% endblock %}
 {% block qna_content %}
-      <p class="qna-kicker"><a href="/events/{{ event.public_id }}/{{ event.slug }}/qna/">{{ event.title }}</a></p>
       <h1>Enter co-host passcode</h1>
+      <p class="qna-event"><a href="/events/{{ event.public_id }}/{{ event.slug }}/qna/">{{ event.title }}</a></p>
       <p>Ask the event operator for the separate passcode for this link.</p>
       <section class="qna-card" aria-label="Co-host verification">
         {% if error %}<p class="qna-error qna-error-callout" role="alert">{{ error }}</p>{% endif %}

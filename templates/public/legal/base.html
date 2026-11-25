@@ -2,7 +2,7 @@
 {% comment %}
   The three legal documents — /terms, /privacy, /impressum — are text pages
   (public/text_page.html), and this is the little they share beyond that shape:
-  the kicker above the heading, the date the text was last changed, and the
+  the date the text was last changed, and the
   robots directive.
 
   The robots directive stays a per-page value the view supplies (`legal_robots`),
@@ -20,10 +20,6 @@
 
 {% block robots %}
   <meta name="robots" content="{{ legal_robots }}">
-{% endblock %}
-
-{% block kicker %}
-  Legal
 {% endblock %}
 
 {% block meta %}

@@ -98,7 +98,7 @@ page-local colour holds 4.5:1 in both themes.
 | `--green` | `#2b7a35` | `#4cb85a` | primary action, hub accents |
 | `--green-bright` | `#3ea94b` | `#4cb85a` | live markers, progress fill |
 | `--green-deep` | `#41704e` | `#8fd39c` | quiet green notes |
-| `--indigo` | `#5a62c4` | `#a6adf0` | links, kickers, time marks |
+| `--indigo` | `#5a62c4` | `#a6adf0` | links, time marks |
 | `--indigo-soft` | `#c9cdf2` | `#3b4270` | soft indigo fills, avatars |
 | `--shadow` | `rgba(30,33,54,.9)` | `rgba(0,0,0,.7)` | hard CTA shadow |
 | `--shadow-soft` | `rgba(30,33,54,.16)` | `rgba(0,0,0,.45)` | hard card shadow |
@@ -159,7 +159,7 @@ The scale (16px root; computed size at 1440px in brackets):
 | Reading body | `1.05rem / 1.75` | `.prose-reading` — a page read end to end |
 | Prose lede | `clamp(1.05rem, 2vw, 1.2rem)` | `.prose-lede`, the standfirst |
 | Meta | `0.85–0.92rem` | sublines, notes, fineprint |
-| Chip / kicker | `0.72rem` | uppercase, letter-spaced |
+| Chip | `0.72rem` | uppercase, letter-spaced |
 | Status pill / mono label | `0.66rem` | mono, uppercase, `letter-spacing: 0.09–0.1em` |
 
 Headings are weight 800, `letter-spacing: -0.015em`, `line-height 1.12` (tighter at
@@ -196,7 +196,7 @@ component internals no role names (a pill's padding, a table cell, a form row).
 | --- | --- | --- | --- |
 | `--space-inline` | `--space-2` | icon ↔ label, a row of chips or pills | `.past-supporters`, chip rows |
 | `--space-tight` | `--space-2` | a heading ↔ its own subline; label ↔ value | `.band-head p`, `.band-head` row gap, `.card` gap (title ↔ text) |
-| `--space-eyebrow` | `--space-3` | a page header's eyebrow, kicker, status pill or breadcrumb trail ↔ its `h1` — one value on every page header | `.*-hero h1`, `.person-identity h1`, `.article-hero .breadcrumbs`, `.course-hero .breadcrumbs`, `.event-head` |
+| `--space-eyebrow` | `--space-3` | a page header's status pill or breadcrumb trail ↔ its `h1` — one value on every page header | `.*-hero h1`, `.person-identity h1`, `.article-hero .breadcrumbs`, `.course-hero .breadcrumbs`, `.event-head` |
 | `--space-stack` | `--space-4` | paragraph ↔ paragraph; `h1` ↔ hero lede; blocks inside a card | `.prose > * + *`, `.*-lede` |
 | `--space-head` | `--space-5` | a heading block ↔ the content it introduces (including an FAQ block under its heading); hero lede ↔ hero actions | `.band-head`, `.article-faq`, `.sponsor-section-heading`, `.module-section-heading`, `.admin-head`, `.*-hero-actions` |
 | `--space-grid` | `--space-5` | between cards in a grid, list or scroller of cards | `.card-grid`, `.catalog-scroller`, `.stories-scroller`, `.featured-supporters`, `.episode-navigation` |
@@ -408,8 +408,7 @@ to this document — do not fork it locally.
 
 - **`.shell`** — the centred content column; direct child of every band.
 - **`.band-head`** — a band's heading block: a `div` holding `h2` plus an optional
-  subline `p`, and optionally a `.kicker` on the right. Stacked on narrow screens; from
-  69rem the kicker sits on the heading's baseline row. It never holds a link — a
+  subline `p`, stacked. It never holds a link — a
   section's link is its `.band-more` (see **Section links**).
   `.band-head-secondary` adds `--space-section` above a second head inside one band;
   the head itself sits `--space-head` above its content.
@@ -423,14 +422,15 @@ to this document — do not fork it locally.
   </div>
   ```
 
-- **`.kicker`** — uppercase indigo eyebrow. The mono variant is
-  `.mono-label.mono-label-indigo`.
 - **`.band-link`** — underlined indigo action link.
-- **Eyebrow rule** — an eyebrow is optional context, never a second title. Do not use
-  one to repeat the page title, course/cohort name, year, or anything the breadcrumb
-  or heading already supplies. The homepage and the sign-in/sign-up entrances are the
-  only page-level exceptions; a `.mono-label` inside a card or spec row is metadata,
-  not a page eyebrow.
+- **No eyebrows: never place a small label above a heading.** No kicker, section
+  label, category word, count or context line (mono, uppercase, letter-spaced or
+  not) sits above an `h1`, `h2` or `h3` — on a page head, a band head, a card or a
+  list row, with no exceptions. A fact that matters (a count, a role, a cohort, a
+  season/episode) goes in the lede or in the quiet `.mono-note` line under the
+  title; a fact the breadcrumb or heading already carries is dropped. Still fine:
+  a date rail beside a row, an event's date line, a breadcrumb trail, a step
+  number, a label inside a spec row or table, and a stat label under its number.
 - **`.breadcrumbs`** — the trail on a detail page. Links take the `.band-link`
   treatment at the meta size, the current page is `--muted`, and the `/` separator is
   CSS-drawn with empty alternative text (`content: "/" / ""`) so it is never
@@ -475,8 +475,8 @@ to this document — do not fork it locally.
   inside, with `illustration_variant` / `illustration_loading` passed through to it.
   Both the homepage and the course family landing draw the plain grid-flow card
   (illustration first, the badge grouped with the heading). The older `on_rail` shape
-  (badge astride the corner, a dashed rail behind the row, a `kicker` eyebrow) is no
-  longer used by any page.
+  (badge astride the corner, a dashed rail behind the row) is no longer used by any
+  page.
 - **Founder story** (`.founder-story`) — the member-story card carrying the
   community's own beginning: two labelled excerpts ("How it started", "Why it's free")
   that read in sequence rather than side by side, then the founder row. A real shared
@@ -578,7 +578,8 @@ restyle `.band-more`. Enforced by `core/tests/test_design_section_links.py`.
   small green disc; `.status-dot-pulse` adds the pulse, which `prefers-reduced-motion`
   disables.
 
-- **`.mono-label`** — uppercase mono eyebrow; variants `.mono-label-green`,
+- **`.mono-label`** — uppercase mono label (spec rows, table heads, stat labels;
+  never above a heading — see **No eyebrows**); variants `.mono-label-green`,
   `.mono-label-indigo`.
 - **`.mono-note`** — small mono note (date ranges, submission counts).
 - **`.mono-code`** — an inline literal inside running copy: a Slack channel, a
@@ -657,8 +658,9 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
   `row_summary`, `row_tags`/`row_tags_label`, `row_credits`, `row_class`/`row_hook`.
   Always pass `only`.
 
-  Inside the card the order is fixed: leading mark, eyebrow, pills, `h3` title,
-  `row_meta` as a quiet `.mono-note` line (a count such as a book's "41 questions
+  Inside the card the order is fixed: leading mark, pills, `h3` title, then one
+  quiet `.mono-note` line joining `row_eyebrow` (the row's role, e.g. "guest"), a
+  podcast row's season/episode and `row_meta` (a count such as a book's "41 questions
   answered" — a fact, not a state, so never a pill), clamped summary, tags
   (`ul.archive-tags` of `a.chip-link`, saying why the row is on this page; they sit
   above the stretched card link), credited people last as

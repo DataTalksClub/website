@@ -2,7 +2,7 @@
 {% comment %}
   The shared text page (issue #179).
 
-  Several pages on this site are the same page: a kicker, a heading, an optional
+  Several pages on this site are the same page: a heading, an optional
   date, an optional standfirst, an optional notice, a body of prose, and an
   optional call to action.  The legal documents are that shape, /slack is that
   shape, and so is the page a lost visitor lands on.  They used to be three
@@ -13,7 +13,6 @@
 
     {% extends "public/text_page.html" %}
 
-    kicker    the small monospaced line above the heading (defaults to the site name)
     title     the page's one <h1>
     meta      a monospaced note under the heading, e.g. "Last updated: ..."
     lede      the standfirst under the heading
@@ -22,7 +21,7 @@
     actions   the calls to action below the body
 
   Every empty slot collapses: the opening block spaces itself with margins rather
-  than a grid gap, so an unused kicker, date or standfirst leaves no gap behind.
+  than a grid gap, so an unused date or standfirst leaves no gap behind.
 
   In the head, `document_title` carries the <title> element and `document_meta`
   the canonical, description and social card, so a page that is not a destination
@@ -187,11 +186,6 @@
         <section class="band band-cream" aria-labelledby="text-page-heading">
           <div class="shell text-page-shell">
             <header class="text-page-head">
-              <p class="mono-label mono-label-indigo">
-                {% block kicker %}
-                  DataTalks.Club
-                {% endblock %}
-              </p>
               <h1
                 id="text-page-heading"
                 {% block title_attributes %}

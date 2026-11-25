@@ -109,7 +109,6 @@ def articles(pages: Sequence[Record]) -> list[dict[str, Any]]:
     return [
         {
             "path": page["public_path"],
-            "eyebrow": page["data"]["eyebrow"],
             "heading": page["data"]["heading"],
             "lead": page["data"]["lead"],
             "published": date.fromisoformat(page["data"]["published"]),

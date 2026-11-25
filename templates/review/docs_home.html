@@ -40,9 +40,6 @@
   {% endcomment %}
   <div class="hero-split">
     <div class="docs-home-header">
-      <p class="mono-label mono-label-indigo">
-        docs · {{ docs_total_pages }} page{{ docs_total_pages|pluralize }}
-      </p>
       <h1 class="page-title" id="{{ docs_heading_id }}">{{ docs_heading_title }}</h1>
       <div class="prose docs-home-intro">
         {{ docs_html|safe }}
@@ -137,7 +134,6 @@
               <div class="docs-course-figure">
                 {% include "core/_course_illustration.html" with family_slug=guide.family_slug loading="lazy" only %}
               </div>
-              <span class="mono-label">{{ guide.page_count }} page{{ guide.page_count|pluralize }}</span>
               <h3>
                 <a class="course-link" href="{{ guide.public_path }}">{{ guide.title }}</a>
               </h3>
@@ -175,9 +171,6 @@
         <div class="card-grid card-grid-3 docs-cards">
           {% for section in guide.sections %}
             <article class="card interactive-card interactive-lift stretched-card-link docs-section-card">
-              {% if section.pages %}
-                <span class="mono-label">{{ section.page_count }} page{{ section.page_count|pluralize }}</span>
-              {% endif %}
               <h3>
                 <a class="course-link" href="{{ section.public_path }}">{{ section.title }}</a>
               </h3>

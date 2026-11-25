@@ -3,13 +3,10 @@
 
   `tone` is `info` or `attention`. Plain copy uses `message`; an inline link
   uses `before_link`, `link_url`, `link_label`, and `after_link`. Optional
-  title/eyebrow, score, and an action button cover learner states without
+  title, score, and an action button cover learner states without
   allowing callers to inject markup into the primitive.
 {% endcomment %}
 <div class="callout callout-{{ tone|default:'info' }}{% if classes %} {{ classes }}{% endif %}"{% if role %} role="{{ role }}"{% endif %}>
-  {% if eyebrow %}
-    <p class="mono-label">{{ eyebrow }}</p>
-  {% endif %}
   {% if title %}
     <strong>{{ title }}</strong>
   {% endif %}

@@ -34,13 +34,6 @@
 
 {% block page_header %}
   <div class="academy-hero-copy">
-    {% comment %}
-      An eyebrow repeating the Academy's name says nothing the masthead and
-      heading do not; it is dropped.
-    {% endcomment %}
-    {% if data.hero.eyebrow != shared.brand %}
-      <p class="kicker">{{ data.hero.eyebrow }}</p>
-    {% endif %}
     <h1 id="academy-heading">{{ data.hero.headline }}</h1>
     {% if data.english %}
       <p class="callout callout-info academy-english" lang="en">

@@ -23,11 +23,13 @@
     height.  A record with no date gives its rail back to the card rather than
     leaving a column of empty space (seventeen podcast episodes have none).
   * `row_mark` — `"play"` draws the podcast disc as the card's leading mark.
-  * `row_eyebrow` — one mono line above the title: what this row is to the
-    reader of this page ("guest", "speaker", "author").
+  * `row_eyebrow` — what this row is to the reader of this page ("guest",
+    "speaker", "author"), drawn in the mono line under the title.  Never above
+    it: the site carries no eyebrows (design system, "No eyebrows").
   * `row_pill`, `row_pill_variant`, `row_pill_extra` — the status pill and, when
     a list mixes past and future work, the second bare pill that says which.  A
-    podcast row uses `row_pill` as its blue season/episode eyebrow instead.
+    podcast row puts `row_pill` (its season/episode) in the mono line under the
+    title instead.
   * `row_meta` — one quiet `.mono-note` line under the title: a fact about the
     record a reader weighs before opening it ("41 questions answered").  Not a
     pill: a count is not a state, and a mono capsule above every title read as
@@ -79,13 +81,7 @@
         </span>
       {% endif %}
       <div class="archive-body">
-        {% if row_eyebrow %}
-          <p class="mono-label">{{ row_eyebrow }}</p>
-        {% endif %}
-        {% if row_pill %}
-          {% if row_mark == "play" %}
-            <p class="mono-label mono-label-indigo podcast-meta">{{ row_pill }}</p>
-          {% else %}
+        {% if row_pill and row_mark != "play" %}
             <p class="archive-marks">
               {% if row_pill_variant %}
                 <span class="status-pill {{ row_pill_variant }}">{{ row_pill }}</span>
@@ -96,13 +92,12 @@
                 <span class="status-pill">{{ row_pill_extra }}</span>
               {% endif %}
             </p>
-          {% endif %}
         {% endif %}
         <h3 class="archive-title">
           <a href="{{ row_url }}">{{ row_title }}</a>
         </h3>
-        {% if row_meta %}
-          <p class="mono-note archive-meta">{{ row_meta }}</p>
+        {% if row_eyebrow or row_meta or row_pill and row_mark == "play" %}
+          <p class="mono-note archive-meta">{% if row_eyebrow %}{{ row_eyebrow }}{% endif %}{% if row_pill and row_mark == "play" %}{% if row_eyebrow %} · {% endif %}{{ row_pill }}{% endif %}{% if row_meta %}{% if row_eyebrow or row_pill and row_mark == "play" %} · {% endif %}{{ row_meta }}{% endif %}</p>
         {% endif %}
         {% if row_summary %}
           <p class="archive-summary">{{ row_summary }}</p>

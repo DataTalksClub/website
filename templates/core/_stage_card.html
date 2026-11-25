@@ -21,10 +21,6 @@
                                "stuck" / "learning" / "shipping" / "hero").
     illustration_loading    -- passed through as `loading`, for an include
                                that reads it (core/_course_journey_start.html).
-    kicker                   -- small label paragraph rendered above the
-                               illustration. Rendered only when given; the
-                               plain grid-flow card (on_rail is unset) has no
-                               slot for one.
     on_rail                  -- boolean, default false. False draws the
                                homepage's climb card: illustration first, the
                                badge grouped with the heading, plain
@@ -43,9 +39,6 @@
       <span class="step-number step-number-3" aria-hidden="true">{{ step_index }}</span>
     {% else %}
       <span class="step-number" aria-hidden="true">{{ step_index }}</span>
-    {% endif %}
-    {% if kicker %}
-      <p class="stage-card-kicker">{{ kicker }}</p>
     {% endif %}
     <div class="stage-card-figure" aria-hidden="true">
       {% include illustration_template with variant=illustration_variant loading=illustration_loading %}

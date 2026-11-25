@@ -89,10 +89,8 @@
   /* --- course cards: the course catalogue's own .catalog-card component
          (design-system.md, shared by the partial), not a bespoke tour card.
          It carries the illustration slot and the title/outcome body; the
-         cohort tag and the homework/project line are this page's own two
-         extra facts, added inside .catalog-card-body with the same
-         .mono-label-indigo and .mono-note tokens the rest of the page
-         already uses. */
+         cohort and the homework/project count are this page's own extra
+         facts, one line under the title (never a label above it). */
   .tour-cards .catalog-card-body p { color: var(--muted); }
 
   /* --- cohort week and community facets: the same three-card shape, an
@@ -293,12 +291,11 @@
               {% include "core/_course_illustration.html" with family_slug=course.family loading="lazy" only %}
             </div>
             <div class="catalog-card-body">
-              <span class="mono-label mono-label-indigo">{{ course.cohort_label }}</span>
               <h3>
                 <a class="course-link" href="{{ course.public_path }}">{{ course.title }}</a>
               </h3>
               <p>
-                {% if course.homework_count %}{{ course.homework_count }} homework assignment{{ course.homework_count|pluralize }}{% endif %}{% if course.homework_count and course.project_count %} · {% endif %}{% if course.project_count %}{{ course.project_count }} project{{ course.project_count|pluralize }}{% endif %}
+                {{ course.cohort_label }}{% if course.homework_count or course.project_count %} · {% endif %}{% if course.homework_count %}{{ course.homework_count }} homework assignment{{ course.homework_count|pluralize }}{% endif %}{% if course.homework_count and course.project_count %} · {% endif %}{% if course.project_count %}{{ course.project_count }} project{{ course.project_count|pluralize }}{% endif %}
               </p>
             </div>
           </article>

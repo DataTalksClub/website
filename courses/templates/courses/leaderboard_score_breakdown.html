@@ -217,7 +217,6 @@
         {% url 'cohort_leaderboard' enrollment.course.course.slug enrollment.course.identifier as leaderboard_url %}
         {% breadcrumbs "Courses" course_list_url enrollment.course.course.title course_family_url enrollment.course.identifier cohort_url "Leaderboard" leaderboard_url current=enrollment.display_name %}
         <div class="record-hero-inner">
-          <p class="mono-label mono-label-indigo">{{ enrollment.course.title }}</p>
           <h1 id="record-heading">{{ enrollment.display_name }}</h1>
           {% if public_profile and public_profile.about_me %}
             <p class="record-about">

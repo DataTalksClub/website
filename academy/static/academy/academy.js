@@ -404,7 +404,6 @@
   var confirmCard = one('[data-academy-confirm]');
   if (confirmCard) {
     var copy = confirmCard.dataset;
-    var eyebrow = one('[data-confirm-eyebrow]');
     var titleNode = one('[data-confirm-title]');
     var message = one('[data-confirm-message]', confirmCard);
     var back = one('[data-confirm-back]', confirmCard);
@@ -421,12 +420,7 @@
       return root;
     };
 
-    var show = function (eyebrowText, title, text, isError, path) {
-      if (eyebrow) {
-        eyebrow.textContent = eyebrowText;
-        eyebrow.classList.toggle('academy-status-error', isError);
-        eyebrow.classList.toggle('mono-label-green', !isError);
-      }
+    var show = function (title, text, path) {
       if (titleNode) {
         titleNode.textContent = title;
         titleNode.focus();
@@ -438,9 +432,9 @@
     var token = new URLSearchParams(window.location.search).get('token') || '';
     var api = (copy.apiOrigin || '').replace(/\/+$/, '');
     if (!token) {
-      show(copy.errorEyebrow, copy.missingTitle, copy.missingMessage, true);
+      show(copy.missingTitle, copy.missingMessage);
     } else if (!api) {
-      show(copy.errorEyebrow, copy.unconfiguredTitle, copy.unconfiguredMessage, true);
+      show(copy.unconfiguredTitle, copy.unconfiguredMessage);
     } else {
       var controller = new AbortController();
       var timer = setTimeout(function () { controller.abort(); }, 15000);
@@ -458,19 +452,17 @@
         .then(function (result) {
           var data = result.data;
           if (result.ok && data && data.ok) {
-            show(copy.confirmedEyebrow, data.title || copy.confirmedTitle, data.message || copy.confirmedMessage, false, backPath(data));
+            show(data.title || copy.confirmedTitle, data.message || copy.confirmedMessage, backPath(data));
           } else {
             show(
-              copy.errorEyebrow,
               (data && data.title) || copy.invalidTitle,
               (data && data.message) || copy.invalidMessage,
-              true,
               backPath(data)
             );
           }
         })
         .catch(function () {
-          show(copy.errorEyebrow, copy.failedTitle, copy.failedMessage, true);
+          show(copy.failedTitle, copy.failedMessage);
         })
         .then(function () {
           clearTimeout(timer);

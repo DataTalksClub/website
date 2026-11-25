@@ -160,7 +160,7 @@
           {% include "core/_callout.html" with tone="info" title="This homework has been scored." message="Log in to see your own submission, score, and feedback." button_url=login_url button_label="Log in to view my results" button_variant="primary" %}
         {% endif %}
       {% elif submission.pk %}
-        {% include "core/_callout.html" with tone="info" eyebrow="Scored homework" title="Your submission has been graded." score_label="Score" score=submission.total_score %}
+        {% include "core/_callout.html" with tone="info" title="Your submission has been graded." score_label="Score" score=submission.total_score %}
       {% else %}
         {% include "core/_callout.html" with tone="attention" title="This homework was scored without a submission from you." %}
       {% endif %}

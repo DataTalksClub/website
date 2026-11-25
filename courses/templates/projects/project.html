@@ -173,8 +173,7 @@
   {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url current=project.title %}
 {% endblock %}
 
-{% block hero_eyebrow %}
-  <p class="mono-label mono-label-indigo">The brief</p>
+{% block hero_status %}
   {% if is_authenticated %}
     {% if has_submission %}
       <span class="status-pill status-pill-live">Submitted</span>

@@ -968,7 +968,6 @@
             <div class="card-grid card-grid-2 family-proof-gallery">
               {% for submission in family_gallery_submissions %}
                 <article class="card family-proof-card stretched-card-link interactive-card interactive-lift">
-                  <p class="mono-label mono-label-indigo">{{ submission.cohort.identifier }} cohort</p>
                   <div class="family-proof-repository">
                     {% if submission.repository_url %}
                       <a
@@ -983,6 +982,7 @@
                   <p class="family-proof-byline">
                     by
                     <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=course_family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">{{ submission.enrollment.display_name }}</a>
+                    · {{ submission.cohort.identifier }} cohort
                   </p>
                 </article>
               {% endfor %}

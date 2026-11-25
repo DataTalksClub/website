@@ -13,11 +13,8 @@
     <div class="card-grid card-grid-2">
       {% for card in discover_cards %}
         <article class="card discover-course-card">
-          <p class="mono-label">{{ card.cohort_label }}</p>
           <h3><a href="{{ card.url }}">{{ card.title }}</a></h3>
-          {% if card.start_display %}
-            <p class="mono-note">Starts {{ card.start_display }}</p>
-          {% endif %}
+          <p class="mono-note">{{ card.cohort_label }}{% if card.start_display %} · Starts {{ card.start_display }}{% endif %}</p>
           <a class="band-link" href="{{ card.url }}">View course</a>
         </article>
       {% endfor %}

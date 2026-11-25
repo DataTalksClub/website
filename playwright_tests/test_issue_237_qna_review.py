@@ -77,7 +77,7 @@ def test_qna_participant_cohost_and_error_shells(
         assert participant is not None and participant.status == 200
         expect(page.get_by_role("heading", name="Event Q&A")).to_be_visible()
         expect(page.locator(".qna-item")).to_have_count(3)
-        event_link = page.locator(".qna-kicker a")
+        event_link = page.locator(".qna-event a")
         event_link_box = event_link.bounding_box()
         assert event_link_box is not None and event_link_box["height"] >= 44
         detail = page.request.get(f"{live_server.url}{event_link.get_attribute('href')}")

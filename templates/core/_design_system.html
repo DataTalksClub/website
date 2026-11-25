@@ -1338,9 +1338,8 @@ Rules for editing:
         margin-top: var(--space-2);
       }
 
-      /* Stacked by default; a kicker only moves onto the heading's own row once
-         the row is wide enough to hold both without squeezing the heading.  A
-         section link never goes here: it is the section's `.band-more`. */
+      /* The heading and its subline, stacked.  A section link never goes
+         here: it is the section's `.band-more`. */
       .band-head {
         display: grid;
         gap: var(--space-tight) var(--space-5);
@@ -1360,13 +1359,6 @@ Rules for editing:
         font-size: 0.9rem;
         margin-top: var(--space-tight);
         max-width: 58rem;
-      }
-
-      .kicker {
-        color: var(--indigo);
-        font-size: 0.72rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
       }
 
       .band-link {
@@ -1716,14 +1708,6 @@ Rules for editing:
         box-shadow: none;
       }
 
-      .podcast-meta {
-        color: var(--indigo);
-        font-family: var(--font-mono);
-        font-size: 0.66rem;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-      }
-
       /* The event card, drawn by the events index and by the homepage's three-up
          band.  It is one component and it lived twice: both pages carried a
          near-identical block, agreeing only because someone edited both.
@@ -1926,8 +1910,8 @@ Rules for editing:
 
       /* --- founder story ---------------------------------------------------
          The member-story card carrying the community's own beginning: two
-         labelled excerpts -- how it started, why it is free -- then the founder
-         row.  Drawn once here (the markup is core/_founder_story.html) so the
+         excerpts -- how it started, why it is free -- then the founder row,
+         with no label over either (no eyebrows).  Drawn once here (the markup is core/_founder_story.html) so the
          About page and the homepage's About band show the same card.  The two
          excerpts are different quotes, not a repeating grid, so they read in
          sequence rather than side by side. */
@@ -2447,23 +2431,15 @@ Rules for editing:
         font-size: 1.15rem;
       }
 
-      .analytics-preferences-eyebrow {
-        color: var(--muted);
-        font-family: var(--font-mono);
-        font-size: 0.66rem;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-      }
-
       .analytics-preferences-status {
         color: var(--ink);
         font-weight: 700;
       }
 
-      /* The banner only appears while nothing is chosen, so the eyebrow and
-         the "not chosen" line are noise there; the reopened dialog keeps
-         both, where the current choice is the point. */
-      .analytics-preferences[open]:not(:modal) :is(.analytics-preferences-eyebrow, .analytics-preferences-status) {
+      /* The banner only appears while nothing is chosen, so the "not chosen"
+         line is noise there; the reopened dialog keeps it, where the current
+         choice is the point. */
+      .analytics-preferences[open]:not(:modal) .analytics-preferences-status {
         display: none;
       }
 
@@ -3057,18 +3033,14 @@ Rules for editing:
 
       /* An episode row: the archive row with the play disc as its leading mark,
          on /podcast and under an episode as its related episodes.  Its
-         season/episode line is metadata, not a status control, so it stays
-         plain and blue inside the card. */
+         season/episode line is metadata, so it sits in the mono line under
+         the title. */
       .episode-row > .archive-card {
         border-radius: 0.9rem;
       }
 
       .episode-row .play-disc {
         margin-top: var(--space-4);
-      }
-
-      .episode-row .archive-body > .mono-label {
-        color: var(--indigo);
       }
 
       /* A credit under a row's title is a footnote to it, not a second title. */
@@ -3268,8 +3240,8 @@ Rules for editing:
          it in `.stage-card-step`. `.stage-card-rail` is the family page's: the
          badge sits astride the card's top-left corner, on a rail the page
          draws behind the row (`.journey-grid::before`, which stays
-         page-specific along with the grid it runs through), an optional
-         kicker label sits above a fixed-height illustration box, and the
+         page-specific along with the grid it runs through), a
+         fixed-height illustration box follows, and the
          heading follows the artwork instead of sitting beside the badge. */
 
       .stage-card:not(.stage-card-rail) .doodle {
@@ -3311,15 +3283,6 @@ Rules for editing:
 
       .stage-card-rail .step-number-3 {
         background: var(--green);
-      }
-
-      .stage-card-kicker {
-        color: var(--indigo);
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
-        letter-spacing: 0.1em;
-        margin: 0;
-        text-transform: uppercase;
       }
 
       .stage-card-figure {

@@ -36,7 +36,7 @@
 {% block page_content %}
   <div class="row-list academy-articles">
     {% for article in articles %}
-      {% include "public/_archive_row.html" with row_title=article.heading row_url=article.path row_date=article.published row_eyebrow=article.eyebrow row_summary=article.lead only %}
+      {% include "public/_archive_row.html" with row_title=article.heading row_url=article.path row_date=article.published row_summary=article.lead only %}
     {% endfor %}
   </div>
 {% endblock %}

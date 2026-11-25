@@ -4,8 +4,8 @@
 {% block qna_body_class %}qna-present-page{% endblock %}
 {% block qna_main_attributes %}data-qna-mode="presentation"{% endblock %}
 {% block qna_content %}
-      <p class="qna-kicker">Live Q&amp;A · {{ event.title }}</p>
       <h1>Questions</h1>
+      <p class="qna-event">Live Q&amp;A · {{ event.title }}</p>
       <p id="qna-banner" class="qna-banner" role="status">{{ session.state|capfirst }}</p>
       <p id="qna-connection" class="qna-connection" role="status" hidden></p>
       <p id="qna-connection" class="qna-connection" role="status" hidden></p>

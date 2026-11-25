@@ -115,29 +115,6 @@
             {% endif %}
           >
             <div>
-              {% comment %}
-                The kicker counts the whole collection, not the page of it on screen:
-                the books archive is paged (issue #174), and a reader who reaches page
-                six is still looking at an archive of the same size.  The figure comes
-                from the view either way; nothing here is a number the page made up.
-              {% endcomment %}
-              {% if collection == "articles" %}
-                <p class="mono-label mono-label-indigo">
-                  blog · {{ collection_total }} articles
-                </p>
-              {% elif collection == "podcasts" %}
-                <p class="mono-label mono-label-indigo">
-                  podcast · {{ collection_total }} episodes
-                </p>
-              {% elif collection == "people" %}
-                <p class="mono-label mono-label-indigo">
-                  people · {{ collection_total }} profiles
-                </p>
-              {% else %}
-                <p class="mono-label mono-label-indigo">
-                  books · {{ collection_total }} in the archive
-                </p>
-              {% endif %}
               {% if collection == "articles" %}
                 <h1 class="page-title" id="collection-heading">Latest Articles</h1>
               {% elif collection == "podcasts" %}
@@ -156,7 +133,7 @@
                 <p class="collection-lede">{{ seo_description }}</p>
               {% elif collection == "podcasts" %}
                 <p class="collection-lede">
-                  Listen to conversations with data science experts, machine learning practitioners,
+                  Listen to {{ collection_total }} conversations with data science experts, machine learning practitioners,
                   and AI researchers. Subscribe to stay updated with the latest episodes.
                 </p>
                 <p class="collection-lede">
@@ -167,6 +144,7 @@
                 <p class="collection-lede">
                   Each week we have a book author coming to DataTalks.Club to answer your questions
                   about their book and, in general, about the topic of their book.
+                  {{ collection_total }} books so far.
                 </p>
               {% endif %}
             </div>
