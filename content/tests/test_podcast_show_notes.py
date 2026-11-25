@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import copy
 import json
-import unittest
-from pathlib import Path
 from typing import Any, ClassVar
 
 from django.template.loader import render_to_string
@@ -17,27 +15,157 @@ from content.podcast_resources import (
     normalize_podcast_resource,
     normalize_podcast_resources,
 )
-
-#: Outside this repository, at ~/prod/dtc-data/content-staging/ -- see
-#: _docs/architecture/database-only-content.md. This contract checks real
-#: checked episode records throughout (specific slugs, and one test that
-#: iterates every checked episode), so it is gated to checkouts that have the
-#: external tree rather than given a synthetic stand-in.
-PROJECTION_ROOT = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
+from test_support.reference_data import PUBLIC_CONTENT_CATALOGUE
 
 
-@unittest.skipUnless(
-    PROJECTION_ROOT.exists(),
-    "the reviewed public projection lives outside this checkout, at "
-    "~/prod/dtc-data/content-staging/ (see _docs/architecture/database-only-content.md)",
-)
+def _synthetic_episode(
+    *,
+    slug: str,
+    season: int,
+    episode: int,
+    title: str,
+    resources: list[dict[str, Any]],
+    transcript: list[dict[str, Any]] | None = None,
+    transcript_provenance: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    public_path = f"/podcast/s{season:02d}e{episode:02d}/{slug}"
+    record: dict[str, Any] = {
+        "slug": slug,
+        "season": season,
+        "episode": episode,
+        "title": title,
+        "description": f"Synthetic show notes for {title}.",
+        "public_path": public_path,
+        "published": "",
+        "guests": ["synthetic-two"],
+        "guest_profiles": [
+            {
+                "key": "synthetic-two",
+                "name": "Synthetic Guest Two",
+                "public_path": "/people/synthetic-two.html",
+            }
+        ],
+        "image_path": "",
+        "media_available": False,
+        "links": {"youtube": "https://www.youtube.com/watch?v=aaaaaaaaaaa"},
+        "resources": resources,
+        "transcript": transcript or [],
+        "provenance": {
+            "repository": "DataTalksClub/content",
+            "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+            "source_path": f"podcasts/s{season:02d}/e{episode:02d}-{slug}.md",
+            "source_key": slug,
+            "checksum": "0" * 64,
+            "source_url": (
+                "https://github.com/DataTalksClub/content/blob/"
+                f"1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/s{season:02d}/e{episode:02d}-{slug}.md"
+            ),
+        },
+    }
+    if transcript_provenance is not None:
+        record["transcript_provenance"] = transcript_provenance
+    return record
+
+
+def _build_synthetic_records() -> list[dict[str, Any]]:
+    base = json.loads(PUBLIC_CONTENT_CATALOGUE.read_text(encoding="utf-8"))["podcasts"]
+    extra = [
+        _synthetic_episode(
+            slug="building-data-team",
+            season=1,
+            episode=3,
+            title="Building a Data Team",
+            resources=[
+                {
+                    "title": "Extreme Programming Explained by Kent Beck (1999)",
+                    "url": (
+                        "https://www.amazon.com/Extreme-Programming-Explained-Embrace-Change/"
+                        "dp/0321278658"
+                    ),
+                    "is_external": True,
+                    "target": EXTERNAL_RESOURCE_TARGET,
+                    "rel": EXTERNAL_RESOURCE_REL,
+                }
+            ],
+            transcript=[
+                {"time": "0:00", "sec": 0, "line": "Intro"},
+                {"time": "1:00", "sec": 60, "line": "Background"},
+                {"time": "2:06", "sec": 126, "line": "Building teams"},
+            ],
+            transcript_provenance={"source_path": "podcasts/s01/e03-transcript.yaml"},
+        ),
+        _synthetic_episode(
+            slug="becoming-data-freelancer",
+            season=16,
+            episode=9,
+            title="Becoming a Data Freelancer",
+            resources=[],
+        ),
+        _synthetic_episode(
+            slug="dataops-and-gitops-best-practices-for-data-teams",
+            season=11,
+            episode=3,
+            title="DataOps and GitOps Best Practices for Data Teams",
+            resources=[],
+        ),
+        _synthetic_episode(
+            slug="hiring-data-scientists-and-analysts",
+            season=7,
+            episode=2,
+            title="Hiring Data Scientists and Analysts",
+            resources=[],
+        ),
+        _synthetic_episode(
+            slug="data-freelancing-career-strategy-market-demand-and-client-acquisition",
+            season=20,
+            episode=1,
+            title="Data Freelancing Career Strategy",
+            resources=[
+                {
+                    "title": "Becoming a Data Freelancer",
+                    "url": "/podcast/s16e09/becoming-data-freelancer",
+                    "is_external": False,
+                    "target": "",
+                    "rel": "",
+                }
+            ],
+        ),
+        _synthetic_episode(
+            slug="synthetic-external-show-notes",
+            season=24,
+            episode=6,
+            title="Synthetic External Show Notes",
+            resources=[
+                {
+                    "title": "Website",
+                    "url": "https://example.invalid/guest-site/",
+                    "is_external": True,
+                    "target": EXTERNAL_RESOURCE_TARGET,
+                    "rel": EXTERNAL_RESOURCE_REL,
+                }
+            ],
+        ),
+        _synthetic_episode(
+            slug="ab-testing-and-product-experimentation",
+            season=12,
+            episode=4,
+            title="A/B Testing and Product Experimentation",
+            resources=[],
+        ),
+    ]
+    by_slug = {record["slug"]: record for record in base}
+    for record in extra:
+        by_slug[record["slug"]] = record
+    return list(by_slug.values())
+
+
 class PodcastShowNotesContractTests(TestCase):
     records: ClassVar[list[dict[str, Any]]]
 
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        cls.records = json.loads((PROJECTION_ROOT / "podcasts.json").read_text(encoding="utf-8"))
+        cls.records = _build_synthetic_records()
 
     def render_episode(self, record: dict) -> str:
         episode = episode_view(record, resource_podcast_records=self.records)
@@ -236,12 +364,10 @@ class PodcastShowNotesContractTests(TestCase):
 
     def test_show_notes_render_safe_external_and_internal_link_metadata(self) -> None:
         external_record = next(
-            record
-            for record in self.records
-            if record["slug"] == "s24e06-how-to-build-ai-that-actually-ships-in-production"
+            record for record in self.records if record["slug"] == "synthetic-external-show-notes"
         )
         external_body = self.render_episode(external_record)
-        external_start = external_body.index('href="https://alexkimds.github.io/"')
+        external_start = external_body.index('href="https://example.invalid/guest-site/"')
         external_link = external_body[external_start : external_body.index("</a>", external_start)]
         self.assertIn('target="_blank"', external_link)
         self.assertIn('rel="noopener noreferrer"', external_link)

@@ -10,7 +10,6 @@ tree has not been hydrated.
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import tempfile
 import unittest
@@ -39,18 +38,6 @@ SPACED_AUTHOR_PATH = "/images/authors/%20synthetic-spaced-author.jpg"
 LARGEST_OBJECT_PATH = "/images/posts/synthetic-article-one/og-image.jpg"
 ORPHAN_RELATIVE_PATH = "podcast/synthetic-orphan-fixture.jpg"
 ORPHAN_PATH = f"/images/{ORPHAN_RELATIVE_PATH}"
-
-# Only the two `requires_hydrated_tree` checks below need the real reviewed
-# object bytes -- everything else in this module runs against the small
-# synthetic fixture (SPACED_AUTHOR_PATH/LARGEST_OBJECT_PATH above), which the
-# `memory` backend serves as deterministic fixture bytes rather than the real
-# upstream ones, so it cannot stand in for a real-byte assertion.
-REAL_SPACED_AUTHOR_PATH = "/images/authors/%20aashishnair.jpg"
-REAL_LARGEST_OBJECT_PATH = (
-    "/images/posts/2025-09-23-ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-"
-    "assistants-agents-and-automation/course-cover.png"
-)
-REAL_LARGEST_OBJECT_BYTES = 3_022_797
 
 
 def _serving_real_bytes() -> bool:
@@ -149,53 +136,71 @@ class MediaResponseContractTests(TestCase):
         payload = _body(response)
         self.assertEqual(hashlib.sha256(payload).hexdigest(), store.expected_checksum(record))
 
-    @requires_hydrated_tree
     def test_the_spaced_filename_serves_the_exact_recorded_upstream_bytes(self) -> None:
-        """Checked directly against the real projection file, bypassing the DB.
+        """Local media backend serves the exact checksum-verified bytes for a spaced filename."""
 
-        The Django test DB is always seeded from the small synthetic fixture
-        now (see test_support/reference_data.py), so it never carries a
-        record for this real path -- even when the real hydrated media tree
-        this gate requires is mounted alongside it -- so the request/response
-        path this used to go through would just 404.
-        """
+        from urllib.parse import unquote
 
-        root = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
-        record = next(
-            item
-            for item in json.loads((root / "media.json").read_text())
-            if item["public_path"] == REAL_SPACED_AUTHOR_PATH
-        )
-        disk_path = local_media_root() / record_relative_path(record)
-        self.assertEqual(
-            hashlib.sha256(disk_path.read_bytes()).hexdigest(),
-            record["provenance"]["checksum"],
-        )
+        from content.models import SyncedDocument
+
+        public_path = unquote(SPACED_AUTHOR_PATH)
+        record = self.records[public_path]
+        payload = b"synthetic-spaced-author-bytes"
+        expected_checksum = hashlib.sha256(payload).hexdigest()
+        doc = SyncedDocument.objects.get(content_kind="media", public_path=public_path)
+        updated_record = dict(doc.record)
+        updated_record["provenance"] = {
+            **updated_record["provenance"],
+            "checksum": expected_checksum,
+        }
+        doc.record = updated_record
+        doc.checksum = expected_checksum
+        doc.save(update_fields=["record", "checksum", "updated_at"])
+        with tempfile.TemporaryDirectory() as root:
+            disk_path = Path(root) / record_relative_path(record)
+            disk_path.parent.mkdir(parents=True, exist_ok=True)
+            disk_path.write_bytes(payload)
+            with override_settings(
+                PUBLIC_MEDIA_STORE_BACKEND="local",
+                PUBLIC_MEDIA_LOCAL_ROOT=Path(root),
+            ):
+                response = self.client.get(SPACED_AUTHOR_PATH)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(hashlib.sha256(_body(response)).hexdigest(), expected_checksum)
 
     def test_the_content_length_always_matches_the_served_body(self) -> None:
         response = self.client.get(LARGEST_OBJECT_PATH)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["Content-Length"], str(len(_body(response))))
 
-    @requires_hydrated_tree
     def test_the_largest_object_reports_its_exact_length(self) -> None:
-        """Checked directly against the real projection file, bypassing the DB.
+        """Local media backend reports the exact byte length of the stored object."""
 
-        The Django test DB is always seeded from the small synthetic fixture
-        now (see test_support/reference_data.py), so it never carries a
-        record for this real path -- even when the real hydrated media tree
-        this gate requires is mounted alongside it -- so the request/response
-        path this used to go through would just 404.
-        """
+        from content.models import SyncedDocument
 
-        root = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
-        record = next(
-            item
-            for item in json.loads((root / "media.json").read_text())
-            if item["public_path"] == REAL_LARGEST_OBJECT_PATH
-        )
-        disk_path = local_media_root() / record_relative_path(record)
-        self.assertEqual(disk_path.stat().st_size, REAL_LARGEST_OBJECT_BYTES)
+        record = self.records[LARGEST_OBJECT_PATH]
+        payload = b"synthetic-largest-object-bytes" * 64
+        expected_checksum = hashlib.sha256(payload).hexdigest()
+        doc = SyncedDocument.objects.get(content_kind="media", public_path=LARGEST_OBJECT_PATH)
+        updated_record = dict(doc.record)
+        updated_record["provenance"] = {
+            **updated_record["provenance"],
+            "checksum": expected_checksum,
+        }
+        doc.record = updated_record
+        doc.checksum = expected_checksum
+        doc.save(update_fields=["record", "checksum", "updated_at"])
+        with tempfile.TemporaryDirectory() as root:
+            disk_path = Path(root) / record_relative_path(record)
+            disk_path.parent.mkdir(parents=True, exist_ok=True)
+            disk_path.write_bytes(payload)
+            with override_settings(
+                PUBLIC_MEDIA_STORE_BACKEND="local",
+                PUBLIC_MEDIA_LOCAL_ROOT=Path(root),
+            ):
+                response = self.client.get(LARGEST_OBJECT_PATH)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["Content-Length"], str(len(payload)))
 
     def test_head_matches_the_get_header_shape(self) -> None:
         for path in (SPACED_AUTHOR_PATH, LARGEST_OBJECT_PATH):
