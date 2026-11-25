@@ -187,9 +187,10 @@
       }
 
       @media (hover: hover) and (pointer: fine) {
+        /* The shared card hover (.interactive-card + .interactive-lift: the lift
+           and the → cue) plus a softer border tint for this light card. */
         .event-item:hover {
           border-color: var(--indigo-soft);
-          translate: 0 -1px;
         }
       }
 
@@ -463,7 +464,7 @@
                 <span class="event-day-dot" aria-hidden="true"></span>
                 <div class="event-day-cards">
                   {% for event in group.events %}
-                    <article class="event-item">
+                    <article class="event-item interactive-card interactive-lift">
                       <div class="event-item-body">
                         <p class="event-item-time">{{ event.display_clock }}</p>
                         <h4><a href="{{ event.public_path }}">{{ event.title }}</a></h4>
