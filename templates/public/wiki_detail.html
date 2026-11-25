@@ -252,8 +252,14 @@
                 {% for topic in related_cards %}
                   <article class="event-item interactive-card interactive-lift wiki-topic-card">
                     <div class="event-item-body">
-                      <h3><a href="{{ topic.url }}">{{ topic.title }}</a></h3>
-                      {% if topic.summary %}<p>{{ topic.summary }}</p>{% endif %}
+                      {% spaceless %}
+                      <h3>
+                        <a href="{{ topic.url }}">{{ topic.title }}</a>
+                      </h3>
+                      {% endspaceless %}
+                      {% if topic.summary %}
+                        <p>{{ topic.summary }}</p>
+                      {% endif %}
                     </div>
                   </article>
                 {% endfor %}
@@ -270,7 +276,11 @@
                       <p class="event-day-date">
                         <span>
                           {% if item.date %}
-                            <strong><time datetime="{{ item.date|date:'Y-m-d' }}">{{ item.date|date:"M j, Y" }}</time></strong>
+                            {% spaceless %}
+                            <strong>
+                              <time datetime="{{ item.date|date:'Y-m-d' }}">{{ item.date|date:"M j, Y" }}</time>
+                            </strong>
+                            {% endspaceless %}
                             <span>S{{ episode.season }} · Episode {{ episode.episode }}</span>
                           {% else %}
                             <strong>S{{ episode.season }} · Episode {{ episode.episode }}</strong>
@@ -301,7 +311,11 @@
                 {% for item in relation_groups.further %}
                   <li>
                     <span class="wiki-further-kind">{{ item.kind|capfirst }}</span>
-                    {% if item.url %}<a class="band-link" href="{{ item.url }}">{{ item.label }}</a>{% else %}{{ item.label }}{% endif %}
+                    {% if item.url %}
+                      <a class="band-link" href="{{ item.url }}">{{ item.label }}</a>
+                    {% else %}
+                      {{ item.label }}
+                    {% endif %}
                   </li>
                 {% endfor %}
               </ul>
