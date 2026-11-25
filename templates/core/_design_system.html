@@ -1899,6 +1899,32 @@ Rules for editing:
         }
       }
 
+      /* --- founder story ---------------------------------------------------
+         The member-story card carrying the community's own beginning: two
+         labelled excerpts -- how it started, why it is free -- then the founder
+         row.  Drawn once here (the markup is core/_founder_story.html) so the
+         About page and the homepage's About band show the same card.  The two
+         excerpts are different quotes, not a repeating grid, so they read in
+         sequence rather than side by side. */
+      .founder-story {
+        padding: var(--space-5) var(--space-5);
+      }
+
+      .founder-story-quotes {
+        display: grid;
+        gap: var(--space-4);
+      }
+
+      .founder-story-quotes > div {
+        display: grid;
+        gap: var(--space-2);
+      }
+
+      .founder-story .story-quote {
+        font-size: 1.08rem;
+        line-height: 1.6;
+      }
+
       /* --- person chip -------------------------------------------------- */
 
       /* One person, drawn the same way everywhere they are credited: a small

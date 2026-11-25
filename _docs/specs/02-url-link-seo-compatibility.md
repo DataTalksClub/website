@@ -61,12 +61,15 @@ application renders.
   and special-pages listings, the course-family page, the bare cohort and shared-module page
   (`/courses/<family>/<cohort-or-module>/`), the shared-lesson page
   (`/courses/<family>/<module>/<lesson>/`), `/courses/projects/`, and the `/slack/`, `/sponsors/`,
-  and `/tour/` pages. `GET`/`HEAD` redirects permanently in one hop to the canonical with the raw
+  and `/about/` pages. `GET`/`HEAD` redirects permanently in one hop to the canonical with the raw
   query preserved, only after the route has resolved the record its canonical serves. Families
   not listed here, including cohort subpages such as `/courses/<family>/<cohort>/leaderboard/`,
   have no slash alias. An unknown record, a doubled slash, or any other spelling stays a `404`
   without a redirect; unsafe methods get `405` and a credential-shaped query key is refused rather
   than copied into a `Location`. No canonical changes.
+- The About page is `/about`. It was published as the tour, and both spellings of that
+  retired address (`/tour` and `/tour/`) redirect permanently in one hop to `/about` with the
+  raw query preserved, so a link in the wild, an email or a bookmark still reaches the page.
 
 ### Canonical public Event identity
 

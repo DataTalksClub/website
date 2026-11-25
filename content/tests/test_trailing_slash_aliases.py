@@ -105,5 +105,5 @@ class WikiSlashAliasTests(SlashAliasAssertions):
 
 class StaticPageSlashAliasTests(SlashAliasAssertions):
     def test_static_page_slash_spellings_redirect_once(self) -> None:
-        for canonical in ("/slack", "/sponsors", "/tour", "/courses/projects"):
+        for canonical in ("/slack", "/sponsors", "/about", "/courses/projects"):
             self.assert_one_hop(f"{canonical}/", canonical)
