@@ -1,4 +1,3 @@
-
 """Score, peer-review and submission notifications through the package mail.
 
 D1.2ca moved the last Datamailer-sent mail here. Each recipient gets one

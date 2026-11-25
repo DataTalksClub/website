@@ -120,9 +120,7 @@ def test_a_wide_body_of_work_is_grouped_into_scannable_rows(page: Page, live_ser
     _settle_analytics_preferences(page)
 
     # Every contribution is the site's shared archive row.
-    expect(page.locator(".archive-row.person-row")).to_have_count(
-        len(record["relationships"])
-    )
+    expect(page.locator(".archive-row.person-row")).to_have_count(len(record["relationships"]))
     expect(page.locator(".stat-tile")).to_have_count(len(person.groups))
     # Each group draws exactly its own rows, and a dated row carries the shared
     # archive row's date rail -- derived from the profile's own groups, so the
@@ -172,7 +170,9 @@ def test_a_long_group_folds_and_opens_without_javascript_of_its_own(
     expect(hidden).to_have_count(events.folded_count)
     expect(hidden.first).to_be_hidden()
     # The visible rows are the ones outside the fold.
-    expect(page.locator(".person-rows-events > .archive-row")).to_have_count(len(events.visible_items))
+    expect(page.locator(".person-rows-events > .archive-row")).to_have_count(
+        len(events.visible_items)
+    )
 
     # The control is the browser's own: it is reachable and operable by keyboard.
     box = control.bounding_box()
