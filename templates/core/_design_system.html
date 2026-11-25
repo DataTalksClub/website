@@ -3174,13 +3174,28 @@ Rules for editing:
         margin-top: 0.2rem;
       }
 
+      /* The platforms are told apart by their icons, so they need no dots
+         between them: a row that wraps then wraps as a clean group, each name
+         whole, never a "·" left hanging at a line end. */
       .podcast-listen {
         align-items: center;
         color: var(--muted);
         display: flex;
         flex-wrap: wrap;
         font-weight: 600;
-        gap: var(--space-1) var(--space-2);
+        gap: var(--space-1) var(--space-3);
+      }
+
+      .podcast-episode-card .event-item-body {
+        container-type: inline-size;
+      }
+
+      /* A narrow card (the homepage's half column, a phone) drops "Listen on";
+         the platform names already say it, and they keep to one line. */
+      @container (max-width: 26rem) {
+        .podcast-listen-label {
+          display: none;
+        }
       }
 
       .podcast-listen,
@@ -3198,6 +3213,7 @@ Rules for editing:
         display: inline-flex;
         gap: var(--space-2);
         text-decoration: none;
+        white-space: nowrap;
       }
 
       .podcast-listen a,

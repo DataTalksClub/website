@@ -41,7 +41,6 @@
               <span class="podcast-listen">
                 <span class="podcast-listen-label">Listen on</span>
                 {% for link in item.listen_links %}
-                  {% if not forloop.first %}<span class="podcast-sep" aria-hidden="true">·</span>{% endif %}
                   <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
                     {% include "public/_podcast_platform_icon.html" with provider=link.provider dot=link.dot only %}
                     {{ link.label }}<span class="sr-only"> (opens in a new tab)</span>
