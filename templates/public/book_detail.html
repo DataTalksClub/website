@@ -154,7 +154,13 @@
         max-width: 44rem;
       }
 
-      /* Where to get the book: one compact action per link the record lists. */
+      /* The page's one primary action (page-goals: book detail), under the
+         title block's facts and again after the conversation. */
+      .book-actions {
+        margin-top: var(--space-head);
+      }
+
+      /* The book's other addresses: one compact secondary action each. */
       .book-links {
         display: flex;
         flex-wrap: wrap;
@@ -162,64 +168,137 @@
         margin-top: var(--space-5);
       }
 
-      /* One thread per question, in the dashed row list the archive already
-         reads in.  A thread is a stack, not a column pair, because both the
-         question and its answers are paragraphs. */
-      .book-threads .list-row {
-        --row-cols: minmax(0, 1fr);
-        padding-block: var(--space-5);
-        row-gap: var(--space-3);
+      /* ------------------------------------------------------------------ *
+       * The week's Q&A, read as an interview.  One thread per question on the
+       * dashed row list; inside it the reader's question leads, in ink, and the
+       * replies sit beneath it in the soft in-content frame.  The author's
+       * reply carries the author's person chip (portrait, linked name, "Author
+       * of the book"), so an answer is attributed before it is read; a reader's
+       * follow-up keeps a plain name.  The column is the article reading
+       * width (--reading-width less the gutters: 656px of text).
+       * ------------------------------------------------------------------ */
+
+      .book-threads {
+        counter-reset: book-question;
+        list-style: none;
+        padding: 0;
       }
 
-      /* A grid item is as wide as its longest word unless it is told otherwise,
-         and one Slack answer is a bare repository URL: without this the thread
-         pushes the whole page sideways on a phone. */
-      .book-threads .list-row > * {
+      .book-thread {
+        display: grid;
+        gap: var(--space-4);
+        min-width: 0;
+        padding-block: var(--space-6);
+        scroll-margin-top: 5rem;
+      }
+
+      .book-thread:first-child {
+        padding-top: 0;
+      }
+
+      /* The closing seam below the list is the last thread's edge. */
+      .book-threads > .book-thread:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+
+      /* A grid item is as wide as its longest word unless told otherwise, and
+         one Slack answer is a bare repository URL: without this a thread pushes
+         the page sideways on a phone. */
+      .book-thread > *,
+      .book-reply > * {
         min-width: 0;
       }
 
-      .book-speaker {
+      .book-ask {
+        display: grid;
+        gap: var(--space-2);
+      }
+
+      .book-asker {
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-weight: 600;
+      }
+
+      .book-asker strong {
         color: var(--ink);
-        font-size: 0.98rem;
         font-weight: 800;
       }
 
-      /* Imported text: a bare URL in a Slack answer breaks inside the column
-         rather than widening it. */
-      .book-text {
-        color: var(--body-text);
-        line-height: 1.7;
-        margin-top: var(--space-2);
+      /* The question is what the reader came for: ink, a step up from body
+         copy, and set apart from the answer by weight rather than a box. */
+      .book-question {
+        color: var(--ink);
+        font-size: 1.08rem;
+        font-weight: 600;
+        line-height: 1.6;
         overflow-wrap: anywhere;
       }
 
-      /* The answers are a group held under the question they answer, not a
-         second heading level.  They take the system's card treatment — their
-         own surface inside a soft 2px border — rather than the coloured left
-         rule the design system no longer draws anywhere. */
+      /* Imported text: each source line is its own paragraph, a stack apart,
+         and a bare URL breaks inside the column rather than widening it. */
+      .book-question p + p,
+      .book-text p + p {
+        margin-top: var(--space-3);
+      }
+
+      .book-text {
+        color: var(--body-text);
+        line-height: 1.7;
+        overflow-wrap: anywhere;
+      }
+
       .book-replies {
         background: var(--card);
         border: var(--border-soft);
         border-radius: var(--radius-media);
         display: grid;
-        gap: var(--space-3);
         min-width: 0;
-        padding: var(--space-4) var(--space-4);
+        padding: 0 var(--space-5);
       }
 
-      /* An answer is quieter than the question it answers, but it is still a
-         name: --body-text rather than --muted, which even on the card these
-         replies now sit on stays the readable weight for a speaker line. */
-      .book-reply .book-speaker {
-        color: var(--body-text);
-        font-size: 0.92rem;
+      .book-reply {
+        display: grid;
+        gap: var(--space-3);
+        padding-block: var(--space-5);
+      }
+
+      .book-reply + .book-reply {
+        border-top: var(--rule);
+      }
+
+      .book-speaker {
+        color: var(--ink);
+        font-size: 0.95rem;
+        font-weight: 800;
+      }
+
+      /* A reader's follow-up inside the author's thread is quieter than the
+         answers around it. */
+      .book-reply-reader .book-text {
+        color: var(--muted);
+      }
+
+      /* The closing repeat of the primary action, after the last answer. */
+      .book-closing {
+        border-top: var(--seam);
+        margin-top: var(--space-section);
+        padding-top: var(--space-section);
+      }
+
+      .book-closing .book-actions {
+        margin-top: 0;
+      }
+
+      .book-closing h2 {
+        font-size: 1.35rem;
       }
 
       /* ------------------------------------------------------------------ *
        * Narrow layout.  The trail keeps its own line above a tighter head,
-       * the artwork gives the opening screen to the title, each action
-       * becomes a full-width target, and the answers keep a shallower inset
-       * so a threaded reply still has room to read in.
+       * each action becomes a full-width target, and the answers keep a
+       * shallower inset so a reply still has room to read in.
        * ------------------------------------------------------------------ */
 
       @media (max-width: 47.99rem) {
@@ -227,16 +306,17 @@
           margin-top: calc(var(--space-2) * -1);
         }
 
-        .book-read {
-          padding-top: var(--space-5);
-        }
-
-        .book-links {
+        .book-links,
+        .book-actions {
           display: grid;
         }
 
         .book-replies {
-          padding: var(--space-3);
+          padding: 0 var(--space-4);
+        }
+
+        .book-thread {
+          padding-block: var(--space-5);
         }
       }
     </style>
@@ -307,6 +387,16 @@
                     </p>
                   {% endif %}
                 </div>
+                {% comment %}
+                  The page's one primary action (_docs/design/page-goals.md, book
+                  detail): the book's own page, the first address the record lists.
+                  The other addresses follow the summary as secondary actions.
+                {% endcomment %}
+                {% if record.links %}
+                  <div class="book-actions">
+                    {% include "core/_button.html" with href=record.links.0.url label="Get the book" variant="primary" rel="noopener noreferrer" %}
+                  </div>
+                {% endif %}
               </div>
             </header>
           </div>
@@ -338,9 +428,9 @@
                 <p class="prose-paragraph">{{ record.summary }}</p>
               {% endif %}
             </div>
-            {% if record.links %}
+            {% if record.links|length > 1 %}
               <div class="book-links">
-                {% for link in record.links %}
+                {% for link in record.links|slice:"1:" %}
                   {% include "core/_button.html" with href=link.url label=link.label variant="secondary" compact=True rel="noopener noreferrer" %}
                 {% endfor %}
               </div>
@@ -349,43 +439,87 @@
         </section>
       </article>
 
-      {% if record.archive %}
+      {% if threads %}
         <section class="band band-lavender" aria-labelledby="book-questions-heading">
           <div class="shell book-shell">
             <div class="band-head">
               <div>
                 <h2 id="book-questions-heading">Questions and answers</h2>
                 <p>
-                  The week's conversation, as it ran in
+                  {{ threads|counted:"question" }} from the community, answered by the
+                  author{{ record.author_profiles|pluralize }} in
                   <code class="mono-code">#book-of-the-week</code>
                   on Slack.
                 </p>
               </div>
             </div>
-            <div class="row-list book-threads">
-              {% for thread in record.archive %}
-                <article class="list-row book-thread" data-book-question>
-                  <div class="book-question">
-                    <p class="book-speaker">{{ thread.name }}</p>
-                    {% if thread.text %}
-                      <p class="book-text">{{ thread.text|public_text }}</p>
+            {% comment %}
+              One thread per question (content.book_content).  The asker and the
+              question lead; the replies follow in the soft frame, the author's
+              under the author's person chip and every other reply under a plain
+              name.  Each thread is addressable (#question-N) so an answer can be
+              linked to.
+            {% endcomment %}
+            <ol class="row-list book-threads">
+              {% for thread in threads %}
+                <li class="book-thread" id="{{ thread.anchor }}" data-book-question>
+                  <div class="book-ask">
+                    {% if thread.asker_author %}
+                      <p class="book-speaker">
+                        {% include "public/_person_chip.html" with person=thread.asker_author|person_chip chip_role="Author of the book" %}
+                      </p>
+                    {% else %}
+                      <p class="book-asker">
+                        <strong>{{ thread.asker }}</strong>
+                        asked
+                      </p>
+                    {% endif %}
+                    {% if thread.question %}
+                      <div class="book-question">
+                        {% for paragraph in thread.question %}
+                          <p>{{ paragraph|public_text|slack_emphasis }}</p>
+                        {% endfor %}
+                      </div>
                     {% endif %}
                   </div>
                   {% if thread.replies %}
                     <div class="book-replies">
                       {% for reply in thread.replies %}
-                        <div class="book-reply" data-book-answer>
-                          <p class="book-speaker">{{ reply.name }}</p>
-                          {% if reply.text %}
-                            <p class="book-text">{{ reply.text|public_text }}</p>
+                        <div class="book-reply {{ reply.author|yesno:'book-reply-author,book-reply-reader' }}" data-book-answer>
+                          {% if reply.author %}
+                            <p class="book-speaker">
+                              {% include "public/_person_chip.html" with person=reply.author|person_chip chip_role="Author of the book" %}
+                            </p>
+                          {% else %}
+                            <p class="book-speaker">{{ reply.name }}</p>
+                          {% endif %}
+                          {% if reply.paragraphs %}
+                            <div class="book-text">
+                              {% for paragraph in reply.paragraphs %}
+                                <p>{{ paragraph|public_text|slack_emphasis }}</p>
+                              {% endfor %}
+                            </div>
                           {% endif %}
                         </div>
                       {% endfor %}
                     </div>
                   {% endif %}
-                </article>
+                </li>
               {% endfor %}
-            </div>
+            </ol>
+            {% if record.links %}
+              <div class="book-closing">
+                <div class="band-head">
+                  <div>
+                    <h2>Want the whole story?</h2>
+                    <p>The answers above are the short version of {{ record.title }}.</p>
+                  </div>
+                </div>
+                <div class="book-actions">
+                  {% include "core/_button.html" with href=record.links.0.url label="Get the book" variant="primary" rel="noopener noreferrer" %}
+                </div>
+              </div>
+            {% endif %}
           </div>
         </section>
       {% endif %}

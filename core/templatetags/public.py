@@ -47,6 +47,24 @@ def public_text(value: object) -> str:
     return mark_safe("<br>".join("".join(output).splitlines()))
 
 
+# Slack's own emphasis mark: ``_word_`` or ``_a few words_``, opened after a space or
+# punctuation (never inside a word, an address or an ``a_b_c`` identifier) and closed
+# before one.  Runs on already-escaped markup, where an underscore is still literal.
+_SLACK_EMPHASIS = re.compile(r"(?<![\w/=&?.:-])_([^_\s<>][^_<>]*?)_(?![\w/=&?-])")
+
+
+@register.filter
+def slack_emphasis(value: object) -> str:
+    """Draw Slack ``_emphasis_`` in escaped book-discussion text as ``<em>``.
+
+    Apply after ``public_text``: the input is that filter's escaped output, so the
+    only markup the regex can meet is the links it wrote, whose addresses the
+    lookarounds keep out of reach.
+    """
+
+    return mark_safe(_SLACK_EMPHASIS.sub(r"<em>\1</em>", str(value)))
+
+
 @register.filter
 def prose_runs(blocks: Iterable[dict] | None) -> list[dict]:
     """Group a body's consecutive list items into one list run.

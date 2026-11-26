@@ -261,6 +261,14 @@ arm of DataTalks.Club. Its layout blueprint is in `_docs/design/landing-pages.md
 - **Blog / Articles (`/blog`, `/blog/<slug>`):** Primary goal = deliver
   practical technical reading; secondary closing pointer to related courses or
   newsletter.
+- **Book of the Week detail (`/books/<slug>.html`, `templates/public/book_detail.html`):**
+  Primary goal = **get the book**, with the author's answers to the community's
+  questions as the proof. Primary CTA: `Get the book` (`.cta-primary`, the
+  record's first link) in the head and again after the Q&A. The book's other
+  links are compact `.cta-secondary` under the summary. Roles: (1) the book —
+  cover, title, author chips, date and answered count; (2) the summary; (3) the
+  Q&A read as an interview — asker and question, then the author's answer under
+  the author's person chip, at the reading width.
 - **Wiki (`/wiki/...`, canonical name "Wiki"):** Primary goal = let visitors
   explore concepts, episodes, and practitioners in the knowledge graph.
 - **Slack (`/slack`) and Newsletter (`/newsletter`):** Single-purpose

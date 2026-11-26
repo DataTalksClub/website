@@ -54,6 +54,7 @@ from . import catalogue, wiki_content, wiki_reader
 from . import wiki_hub as wiki_hub_content
 from .article_content import article_view, render_body_markdown
 from .article_faq import ArticleFaq, article_faq
+from .book_content import book_threads
 from .docs_reader import docs_pages
 from .event_banners import event_banner_url
 from .event_content import EventGroups, event_date_groups, event_groups
@@ -1676,6 +1677,7 @@ def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
             "breadcrumbs": book_trail,
             "summary_html": summary_html,
             "summary_is_block": summary_is_block,
+            "threads": book_threads(book["archive"], book["author_profiles"]),
             "og_type": "book",
             "og_image_url": _canonical(book["image_path"]) if book["image_path"] else "",
             "structured_data": _json_ld(
