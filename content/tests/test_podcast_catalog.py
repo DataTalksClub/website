@@ -1495,7 +1495,10 @@ class PodcastSeasonNavigationTests(TestCase):
         response = self.client.get(episode["public_path"])
         body = response.content.decode()
 
-        self.assertContains(response, 'class="status-pill status-pill-mint"')
+        # Season and episode are the quiet fact line under the title, not a
+        # boxed pill above it (no eyebrows).
+        self.assertNotContains(response, 'class="status-pill status-pill-mint"')
+        self.assertContains(response, '<p class="mono-note episode-facts">')
         self.assertContains(response, f"Season {episode['season']} · Episode {episode['episode']}")
         self.assertContains(response, 'class="player-frame episode-player episode-video"')
         self.assertContains(response, f'data-video-id="{episode["video"]["id"]}"')

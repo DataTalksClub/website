@@ -1476,6 +1476,16 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         if episode.get("media_available") and episode.get("image_path")
         else ""
     )
+    # The picture that sits beside the title in the hero, the way an event page
+    # pairs its picture with its title: the generated 1000 x 1000 card, else
+    # the episode's own (landscape) artwork, else none -- the hero is then one
+    # column of words.
+    hero_card_path = stored_path(episode["slug"], Variant.CARD)
+    hero_picture_path = hero_card_path or (
+        episode["image_path"]
+        if episode.get("media_available") and episode.get("image_path")
+        else ""
+    )
     try:
         related_matches = wiki_content.related_episode_matches(episode)
     except ImproperlyConfigured:
@@ -1538,6 +1548,8 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
             "guest_cards": guest_cards(episode_page.guests),
             "related": related,
             "video_poster_path": poster_path,
+            "hero_picture_path": hero_picture_path,
+            "hero_picture_square": bool(hero_card_path),
             "related_cards": related_cards,
             "connections": connections,
             "season_path": podcast_season_path(episode["season"], latest=latest_season),

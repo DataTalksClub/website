@@ -75,17 +75,77 @@
         margin-top: calc(var(--space-3) * -1);
       }
 
-      .episode-hero h1 {
-        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
-        letter-spacing: -0.025em;
+      /* The head: the episode's square picture beside its title, as the event
+         page pairs them.  The pair holds the reading column the tabs below
+         hold, so the title, the standfirst and the tabs share one left edge.
+         On a phone the picture shrinks rather than stacking, so the title
+         stays in the opening screen. */
+      .episode-head {
+        align-items: center;
+        display: grid;
+        gap: var(--space-5);
+        grid-template-columns: 11rem minmax(0, 1fr);
         margin-top: var(--space-eyebrow);
       }
 
-      /* The reading band carries the episode from its frame to its dateline, so
-         it needs the room the hero's bottom padding would otherwise have
-         left. */
-      .episode-read {
-        padding-top: var(--space-5);
+      .episode-head-single {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      /* An episode without a generated square card shows its own landscape
+         artwork, a little wider so it reads at the same weight. */
+      .episode-head-wide {
+        grid-template-columns: 15rem minmax(0, 1fr);
+      }
+
+      .episode-head-wide .episode-head-picture {
+        aspect-ratio: 16 / 9;
+      }
+
+      .episode-head-picture {
+        aspect-ratio: 1;
+        background: var(--card);
+        border: var(--border-soft);
+        border-radius: var(--radius-media);
+        display: block;
+        height: auto;
+        object-fit: cover;
+        width: 100%;
+      }
+
+      .episode-head-copy {
+        display: grid;
+        gap: var(--space-3);
+        justify-items: start;
+        min-width: 0;
+      }
+
+      .episode-hero h1 {
+        font-size: clamp(1.6rem, 3.2vw, 2.3rem);
+        letter-spacing: -0.025em;
+        line-height: 1.12;
+      }
+
+      /* Season, episode and date: the quiet fact line under the title, the
+         way the event page writes its date line. */
+      .episode-facts {
+        color: var(--muted);
+      }
+
+      @media (max-width: 39.99rem) {
+        .episode-head {
+          align-items: start;
+          gap: var(--space-4);
+          grid-template-columns: 6rem minmax(0, 1fr);
+        }
+
+        .episode-head-wide {
+          grid-template-columns: 8rem minmax(0, 1fr);
+        }
+
+        .episode-head-single {
+          grid-template-columns: minmax(0, 1fr);
+        }
       }
 
       /* The player frame is a real destination here: the episode artwork fills
@@ -298,7 +358,6 @@
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-2) var(--space-3);
-        margin-top: var(--space-5);
       }
 
       .episode-description {
@@ -309,7 +368,13 @@
         margin-top: var(--space-5);
       }
 
-      .episode-listen h2 {
+      /* The platforms belong to the title block: a quiet label over one row
+         of the shared pill buttons, under the standfirst. */
+      .episode-listen-heading {
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-weight: 700;
+        letter-spacing: 0;
         margin: 0 0 var(--space-2);
       }
 
@@ -731,10 +796,6 @@
       }
 
       @media (max-width: 47.99rem) {
-        .episode-read {
-          padding-top: var(--space-5);
-        }
-
         /* Narrow: the speaker sits above their line instead of stealing half the
            row, and the artwork keeps its shape. */
         .timestamp-row {
@@ -781,22 +842,75 @@
       <section class="band band-cream episode-hero" aria-labelledby="episode-heading">
         <div class="shell episode-shell">
           {% comment %}
-            The way back: "Podcast / Season 25".  The trail is the one the page
-            publishes as BreadcrumbList JSON-LD, drawn without its last level
-            because the h1 below already names the episode.
+            The way back: "Podcast / Season 25 / <episode>", the same trail the
+            page publishes as BreadcrumbList JSON-LD, drawn like the blog's.
           {% endcomment %}
-          {% breadcrumbs breadcrumbs.ancestors.0 breadcrumbs.ancestors.1 %}
-          <p>
-            <span class="status-pill status-pill-mint">{{ episode.season_episode }}</span>
-          </p>
-          <h1 id="episode-heading">{{ episode.title }}</h1>
-          {% for guest in episode.guests %}
-            <div class="guest-row person-chip-lead">
-              {% include "public/_person_chip.html" with person=guest|person_chip chip_loading="eager" only %}
-              <p class="mono-label">guest</p>
+          {% breadcrumbs breadcrumbs %}
+          {% comment %}
+            The head pairs the episode's square picture with its title, the way
+            the event page does (owner feedback 2026-11-26): picture, then the
+            title, the season/episode/date fact line and the guest beside it.
+            The season and episode are a quiet line under the title, never a
+            boxed pill above it (no eyebrows).
+          {% endcomment %}
+          <div
+            class="episode-head
+              {% if not hero_picture_path %}
+                episode-head-single
+              {% elif not hero_picture_square %}
+                episode-head-wide
+              {% endif %}"
+          >
+            {% if hero_picture_square %}
+              <img
+                class="episode-head-picture"
+                src="{{ hero_picture_path }}"
+                alt=""
+                width="1000"
+                height="1000"
+                decoding="async"
+                fetchpriority="high"
+              >
+            {% elif hero_picture_path %}
+              <img
+                class="episode-head-picture"
+                src="{{ hero_picture_path }}"
+                alt=""
+                width="1280"
+                height="720"
+                decoding="async"
+                fetchpriority="high"
+              >
+            {% endif %}
+            <div class="episode-head-copy">
+              <h1 id="episode-heading">{{ episode.title }}</h1>
+              <p class="mono-note episode-facts">
+                {{ episode.season_episode }}
+                {% if episode.published %}
+                  <span aria-hidden="true">·</span>
+                  <time datetime="{{ episode.published }}">{{ episode.published_display }}</time>
+                {% endif %}
+              </p>
+              {% for guest in episode.guests %}
+                <div class="guest-row person-chip-lead">
+                  {% include "public/_person_chip.html" with person=guest|person_chip chip_loading="eager" only %}
+                </div>
+              {% endfor %}
             </div>
-          {% endfor %}
+          </div>
           <p class="episode-description">{{ episode.description }}</p>
+          {% if episode.listener_platform_links %}
+            <div class="episode-listen">
+              <h2 id="platform-links-heading" class="episode-listen-heading">
+                Listen to or watch on your favorite platform
+              </h2>
+              <div class="listen-row" role="group" aria-labelledby="platform-links-heading">
+                {% for link in episode.listener_platform_links %}
+                  {% include "public/_podcast_platform_button.html" with link=link only %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
         </div>
       </section>
 
@@ -841,7 +955,7 @@
                   <p>
                     <strong>{{ episode.video.media_label }} unavailable.</strong>
                   </p>
-                  <p>Use one of the listening links below to hear this episode.</p>
+                  <p>Use one of the listening links above to hear this episode.</p>
                   {% if episode.watch_url %}
                     <a
                       class="band-link"
@@ -876,7 +990,7 @@
                   <p>
                     <strong>{{ episode.player.media_label }} unavailable.</strong>
                   </p>
-                  <p>Use one of the listening links below to hear this episode.</p>
+                  <p>Use one of the listening links above to hear this episode.</p>
                   {% if episode.watch_url %}
                     <a
                       class="band-link"
@@ -898,7 +1012,7 @@
                 <p>
                   <strong>Video unavailable.</strong>
                 </p>
-                <p>Use one of the listening links below to hear this episode.</p>
+                <p>Use one of the listening links above to hear this episode.</p>
                 {% if episode.watch_url %}
                   <a
                     class="band-link"
@@ -933,27 +1047,10 @@
                   <p>
                     <strong>{{ episode.spotify.media_label }} unavailable.</strong>
                   </p>
-                  <p>Use one of the listening links below to hear this episode.</p>
+                  <p>Use one of the listening links above to hear this episode.</p>
                 </div>
               </div>
             </div>
-          {% endif %}
-          {% if episode.listener_platform_links %}
-            <div class="episode-listen">
-              <h2 id="platform-links-heading" class="mono-label">
-                Listen to or watch on your favorite platform
-              </h2>
-              <div class="listen-row" role="group" aria-labelledby="platform-links-heading">
-                {% for link in episode.listener_platform_links %}
-                  {% include "public/_podcast_platform_button.html" with link=link only %}
-                {% endfor %}
-              </div>
-            </div>
-          {% endif %}
-          {% if episode.published %}
-            <p class="mono-note episode-published">
-              <time datetime="{{ episode.published }}">{{ episode.published_display }}</time>
-            </p>
           {% endif %}
         </div>
       </section>
