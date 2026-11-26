@@ -18,11 +18,14 @@ from courses.models import (
     Cohort,
     CohortSharedModule,
     Course,
+    Enrollment,
     Homework,
     SharedCurriculum,
     SharedCurriculumAsset,
     SharedLesson,
     SharedModule,
+    Submission,
+    User,
 )
 from courses.services.curriculum_import import (
     CurriculumImportCommand,
@@ -111,6 +114,52 @@ class SharedCurriculumImportTests(TestCase):
                 "I ship an LLM application",
             ],
         )
+
+    def _without_homework(self) -> dict[str, bytes]:
+        """The fixture's 2026 cohort teaching module 1 with no homework bound."""
+
+        snapshot = fixture_snapshot()
+        snapshot["cohorts/2026/cohort.yaml"] = snapshot["cohorts/2026/cohort.yaml"].replace(
+            b"    source: cohorts/2026/homework/01-agentic-rag/homework.yaml\n", b""
+        )
+        for path in [path for path in snapshot if path.startswith("cohorts/2026/homework/")]:
+            del snapshot[path]
+        return snapshot
+
+    def test_a_module_taught_without_homework_is_placed_with_none(self) -> None:
+        """LLM Zoomcamp 2026 ran modules 6 and 7 with no homework."""
+
+        import_course_repository_curriculum(make_command(self._without_homework()))
+
+        live = CohortSharedModule.objects.get(cohort__identifier="2026")
+        self.assertIsNone(live.terminal_homework)
+        self.assertFalse(Homework.objects.filter(course=live.cohort).exists())
+
+    def test_unbinding_a_homework_deletes_it_and_keeps_the_module(self) -> None:
+        self.import_fixture()
+
+        import_course_repository_curriculum(
+            make_command(self._without_homework(), commit_sha="d" * 40)
+        )
+
+        live = CohortSharedModule.objects.get(cohort__identifier="2026")
+        self.assertIsNone(live.terminal_homework)
+        self.assertFalse(Homework.objects.filter(course=live.cohort, slug="hw1").exists())
+
+    def test_unbinding_a_submitted_homework_is_refused(self) -> None:
+        self.import_fixture()
+        homework = Homework.objects.get(course__identifier="2026", slug="hw1")
+        learner = User.objects.create_user(username="learner")
+        enrollment = Enrollment.objects.create(student=learner, course=homework.course)
+        Submission.objects.create(homework=homework, student=learner, enrollment=enrollment)
+
+        with self.assertRaises(CurriculumImportError) as raised:
+            import_course_repository_curriculum(
+                make_command(self._without_homework(), commit_sha="d" * 40)
+            )
+
+        self.assertEqual(raised.exception.code, "protected_homework_removal")
+        self.assertTrue(Homework.objects.filter(pk=homework.pk).exists())
 
     def test_reimport_updates_repository_authored_prerequisites(self) -> None:
         self.import_fixture()

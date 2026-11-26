@@ -250,10 +250,11 @@ class HomeworkBindingSource:
 
     ``module`` is the root shared module slug, or ``None`` for an archive
     homework that keeps operating without a shared-module placement.
+    ``source`` is ``None`` for a module the cohort teaches without homework.
     """
 
     module: str | None
-    source: str
+    source: str | None
 
 
 @dataclass(frozen=True, slots=True)

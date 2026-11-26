@@ -558,6 +558,90 @@ class CurriculumImportServiceTests(TestCase):
         self.assertTrue(ProjectCriteriaAssignment.objects.filter(pk=assignment.pk).exists())
         self.assertTrue(ReviewCriteria.objects.filter(pk=criterion.pk).exists())
 
+    def _submit(self, cohort, homework, question, *, username="learner"):
+        user = User.objects.create_user(username=username)
+        enrollment = Enrollment.objects.create(student=user, course=cohort)
+        submission = Submission.objects.create(
+            homework=homework, student=user, enrollment=enrollment
+        )
+        return Answer.objects.create(submission=submission, question=question, answer_text="x")
+
+    def test_adopts_the_cmp_question_learners_answered_instead_of_duplicating_it(self):
+        """The CMP import may have created the row learners answered.
+
+        Creating the repository question beside it left the answers on a question the
+        repository does not know and showed the question twice; an exact definition
+        match is the same question, so it takes the repository identity instead.
+        """
+
+        _result, _course, cohort, _project = self.import_fixture_with_project()
+        homework = Homework.objects.get(course=cohort, slug="hw1")
+        Question.objects.get(homework=homework, source_question_id="reflection").delete()
+        cmp_row = Question.objects.create(
+            homework=homework,
+            text="What did you learn from this module?",
+            question_type=QuestionTypes.FREE_FORM_LONG.value,
+            answer_type=AnswerTypes.ANY.value,
+            possible_answers="",
+            scores_for_correct_answer=0,
+        )
+        answer = self._submit(cohort, homework, cmp_row)
+
+        import_course_repository_curriculum(
+            import_command(fixture_source(commit_sha=SECOND_COMMIT), commit_sha=SECOND_COMMIT)
+        )
+
+        cmp_row.refresh_from_db()
+        answer.refresh_from_db()
+        self.assertEqual(cmp_row.source_question_id, "reflection")
+        self.assertEqual(str(cmp_row.source_content_id), "62222222-2222-4222-8222-222222222222")
+        self.assertEqual(answer.question_id, cmp_row.pk)
+        self.assertEqual(
+            Question.objects.filter(
+                homework=homework, text="What did you learn from this module?"
+            ).count(),
+            1,
+        )
+
+    def test_a_cmp_question_with_another_definition_is_not_adopted(self):
+        _result, _course, cohort, _project = self.import_fixture_with_project()
+        homework = Homework.objects.get(course=cohort, slug="hw1")
+        Question.objects.get(homework=homework, source_question_id="reflection").delete()
+        cmp_row = Question.objects.create(
+            homework=homework,
+            text="What did you learn from this module?",
+            question_type=QuestionTypes.FREE_FORM.value,
+            answer_type=AnswerTypes.ANY.value,
+            scores_for_correct_answer=0,
+        )
+        self._submit(cohort, homework, cmp_row)
+
+        import_course_repository_curriculum(
+            import_command(fixture_source(commit_sha=SECOND_COMMIT), commit_sha=SECOND_COMMIT)
+        )
+
+        cmp_row.refresh_from_db()
+        self.assertIsNone(cmp_row.source_content_id)
+        self.assertTrue(
+            Question.objects.filter(homework=homework, source_question_id="reflection").exists()
+        )
+
+    def test_an_empty_option_list_matches_no_options_on_a_submitted_homework(self):
+        """CMP writes "no options" as an empty string; the repository writes NULL."""
+
+        _result, _course, cohort, _project = self.import_fixture_with_project()
+        homework = Homework.objects.get(course=cohort, slug="hw1")
+        question = Question.objects.get(homework=homework, source_question_id="reflection")
+        Question.objects.filter(pk=question.pk).update(possible_answers="")
+        self._submit(cohort, homework, question)
+
+        import_course_repository_curriculum(
+            import_command(fixture_source(commit_sha=SECOND_COMMIT), commit_sha=SECOND_COMMIT)
+        )
+
+        question.refresh_from_db()
+        self.assertIsNone(question.possible_answers)
+
     def test_history_breaking_question_change_rolls_back_all_source_updates(self):
         _result, course, cohort, _project = self.import_fixture_with_project()
         homework = Homework.objects.get(course=cohort, slug="hw1")

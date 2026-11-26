@@ -1053,6 +1053,7 @@ class _CurriculumImporter:
             shared_module__source_content_id__in=incoming_module_ids
         ).delete()
         kept_placements: set[int] = set()
+        bound_homework_ids: set[str] = set()
         for position, binding in enumerate(source.homework_bindings):
             if binding.module is None:
                 raise CurriculumImportError(
@@ -1065,13 +1066,16 @@ class _CurriculumImporter:
                     "curriculum_source_mismatch",
                     source_path=source.source_path or ".",
                 )
-            homework_source = homework_by_path.get(binding.source)
-            if homework_source is None:
-                raise CurriculumImportError(
-                    "homework_source_contract_invalid",
-                    source_path=source.source_path or ".",
-                )
-            homework = self._upsert_homework(cohort, homework_source)
+            homework: Homework | None = None
+            if binding.source is not None:
+                homework_source = homework_by_path.get(binding.source)
+                if homework_source is None:
+                    raise CurriculumImportError(
+                        "homework_source_contract_invalid",
+                        source_path=source.source_path or ".",
+                    )
+                homework = self._upsert_homework(cohort, homework_source)
+                bound_homework_ids.add(homework_source.content_id)
             shared_module = SharedModule.objects.filter(
                 curriculum=shared_curriculum,
                 source_content_id=module_source.content_id,
@@ -1093,6 +1097,19 @@ class _CurriculumImporter:
             kept_placements.add(placement.pk)
             self.counts["placements"] += 1
         CohortSharedModule.objects.filter(cohort=cohort).exclude(pk__in=kept_placements).delete()
+        # A homework the cohort no longer binds goes with its binding, unless learners
+        # submitted it.  Rows without repository identity (CMP's, an operator's) are
+        # not this import's to delete.
+        stale = Homework.objects.filter(course=cohort, source_content_id__isnull=False).exclude(
+            source_content_id__in=bound_homework_ids
+        )
+        if self.command.preserve_existing_records:
+            return
+        if Submission.objects.filter(homework__in=stale).exists():
+            raise CurriculumImportError(
+                "protected_homework_removal", source_path=source.source_path or "."
+            )
+        stale.delete()
 
     def _import_cohort_projects(
         self,
@@ -1353,13 +1370,6 @@ class _CurriculumImporter:
         stable_match = Question.objects.filter(
             homework=homework, source_question_id=source.id
         ).first()
-        if question is None:
-            if stable_match is not None:
-                raise CurriculumImportError("question_identity_collision", source_path=source_path)
-            question = Question(homework=homework)
-        elif stable_match is not None and stable_match.pk != question.pk:
-            raise CurriculumImportError("question_identity_collision", source_path=source_path)
-
         possible_answers = "\n".join(option.label for option in source.options) or None
         option_ids = [option.id for option in source.options] or None
         envelope = dict(source.answer) if source.answer is not None else None
@@ -1373,18 +1383,39 @@ class _CurriculumImporter:
             envelope,
             source.points,
         )
+        adopted = False
+        if question is None:
+            if stable_match is not None:
+                raise CurriculumImportError("question_identity_collision", source_path=source_path)
+            question = self._adoptable_question(homework, definition)
+            adopted = question is not None
+            if question is None:
+                question = Question(homework=homework)
+        elif stable_match is not None and stable_match.pk != question.pk:
+            raise CurriculumImportError("question_identity_collision", source_path=source_path)
+
         if question.pk and Submission.objects.filter(homework=homework).exists():
             existing_definition = (
                 question.source_question_id,
                 question.text,
                 question.question_type,
                 question.answer_type,
-                question.possible_answers,
+                question.possible_answers or None,
                 question.source_option_ids,
                 question.answer_envelope,
                 question.scores_for_correct_answer,
             )
-            if existing_definition != definition:
+            # An adopted row never had repository identity, so only what learners
+            # answered has to agree; the identity columns are what adoption adds.
+            compared = (
+                (
+                    existing_definition[1:5] + existing_definition[6:],
+                    definition[1:5] + definition[6:],
+                )
+                if adopted
+                else (existing_definition, definition)
+            )
+            if compared[0] != compared[1]:
                 raise CurriculumImportError("protected_question_change", source_path=source_path)
 
         (
@@ -1403,6 +1434,41 @@ class _CurriculumImporter:
         _validate_model(question)
         question.save()
         return question
+
+    @staticmethod
+    def _adoptable_question(homework: Homework, definition: tuple[Any, ...]) -> Question | None:
+        """Return the one provenance-less question this source question already is.
+
+        The CMP content import writes a homework's questions before or after a
+        repository pull, matched by text, and learner answers attach to whichever row
+        held the text when the history import ran.  When that is a CMP-created row the
+        repository's question would otherwise be created beside it, so the learners'
+        answers sit on a question the repository does not know and the homework shows
+        the same question twice.  A row with no repository identity whose text, type,
+        answer type, options, answer and points all equal the source definition is that
+        question: it is given the repository's identity instead.  Anything less than an
+        exact, unique match creates a new row as before.
+        """
+
+        _, prompt, question_type, answer_type, possible_answers, _, envelope, points = definition
+        candidates = [
+            candidate
+            for candidate in Question.objects.filter(
+                homework=homework,
+                source_content_id__isnull=True,
+                source_question_id__isnull=True,
+                text=prompt,
+            )
+            if (
+                candidate.question_type,
+                candidate.answer_type,
+                candidate.possible_answers or None,
+                candidate.answer_envelope,
+                candidate.scores_for_correct_answer,
+            )
+            == (question_type, answer_type, possible_answers, envelope, points)
+        ]
+        return candidates[0] if len(candidates) == 1 else None
 
     def _upsert_module(
         self,

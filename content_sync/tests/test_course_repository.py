@@ -608,3 +608,43 @@ def test_a_malformed_catalog_block_fails_the_ingest_with_the_shared_code() -> No
         parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
 
     assert diagnostic_code(raised) == "course_edition_slug_rejected"
+
+
+def _survey_choice_snapshot(answer_type: bytes, *, keep_answer: bool = False) -> dict[str, bytes]:
+    """The fixture's graded choice question, redeclared with an ``answer_type``."""
+
+    snapshot = fixture_snapshot()
+    path = "cohorts/2026/01-agentic-rag/homework.yaml"
+    text = snapshot[path]
+    start = text.index(b"    answer:\n")
+    end = text.index(b"  - content_id: 62222222")
+    answer_block = text[start:end] if keep_answer else b""
+    declared = b"    answer_type: " + answer_type + b"\n"
+    snapshot[path] = text[:start] + declared + answer_block + text[end:]
+    return snapshot
+
+
+def test_accepts_an_ungraded_survey_choice_question() -> None:
+    """A choice question CMP ran ungraded ("Which GPU did you run on?") has no answer."""
+
+    source = parse_course_repository(_survey_choice_snapshot(b"any"), commit_sha=COMMIT_SHA)
+
+    question = source.homeworks[0].questions[0]
+    assert question.type == "multiple_choice"
+    assert question.answer_type == "any"
+    assert question.answer is None
+    assert [option.label for option in question.options] == ["24", "72"]
+
+
+def test_rejects_a_graded_answer_type_on_a_choice_question() -> None:
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(_survey_choice_snapshot(b"integer", keep_answer=True))
+
+    assert diagnostic_code(raised) == "invalid_answer_type"
+
+
+def test_rejects_an_answer_on_an_ungraded_survey_choice_question() -> None:
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(_survey_choice_snapshot(b"any", keep_answer=True))
+
+    assert diagnostic_code(raised) == "answer_not_allowed"

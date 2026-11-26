@@ -1261,8 +1261,19 @@ class _Parser:
             options: list[HomeworkOptionSource] = []
             answer_type: str | None = None
             if question_type in {"multiple_choice", "checkboxes"}:
+                # A choice question is graded against its encrypted answer.  The one
+                # exception is an ungraded survey choice ("Which GPU did you run
+                # on?"), declared ``answer_type: any`` like a free-form question: any
+                # option is accepted, so there is no answer to carry.
                 if "answer_type" in question:
-                    _fail("unknown_key", path, f"{pointer}/answer_type")
+                    answer_type = _string(
+                        question.get("answer_type"),
+                        path=path,
+                        pointer=f"{pointer}/answer_type",
+                        maximum=32,
+                    )
+                    if answer_type != "any":
+                        _fail("invalid_answer_type", path, f"{pointer}/answer_type")
                 option_ids: set[str] = set()
                 for option_index, raw_option in enumerate(
                     _sequence(

@@ -895,9 +895,21 @@ class SharedCurriculumParserV2:
         seen_modules: set[str] = set()
         for index, item in enumerate(mapping):
             pointer = f"/homework/{index}"
-            if not isinstance(item, dict) or set(item) != {"module", "source"}:
+            if not isinstance(item, dict) or set(item) not in ({"module", "source"}, {"module"}):
                 _fail("homework_mapping_invalid", path, pointer)
             module = item["module"]
+            if "source" not in item:
+                # A module this cohort teaches without homework (LLM Zoomcamp 2026 ran
+                # modules 6 and 7 with none): the module is placed, nothing is bound.
+                if archive or not isinstance(module, str):
+                    _fail("homework_mapping_invalid", path, pointer)
+                if module not in module_by_slug:
+                    _fail("curriculum_source_mismatch", path, f"{pointer}/module")
+                if module in seen_modules:
+                    _fail("duplicate_homework_module", path, pointer)
+                seen_modules.add(module)
+                bindings.append(HomeworkBindingSource(module=module, source=None))
+                continue
             source = _string(item["source"], path=path, pointer=f"{pointer}/source", maximum=1024)
             if archive:
                 if module is not None:
