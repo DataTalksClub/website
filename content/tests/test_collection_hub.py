@@ -467,8 +467,8 @@ class BooksExplainerTests(TestCase):
             self.assertIn(step, body)
         # The sequence stays an ordered list, and keeps that role after the design
         # system removes the markers.
-        self.assertIn('<ol class="row-list how-it-works" role="list">', body)
-        self.assertEqual(body.count('<span class="step-number" aria-hidden="true">'), 5)
+        self.assertIn('<ol class="steps steps-count-5" role="list">', body)
+        self.assertEqual(body.count('<span class="steps-badge" aria-hidden="true">'), 5)
 
     def test_the_blog_hub_does_not_carry_the_books_explainer(self) -> None:
         body = self.client.get("/blog").content.decode()

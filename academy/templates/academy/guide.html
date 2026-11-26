@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load breadcrumbs static %}
+{% load breadcrumbs static steps %}
 {% comment %}
   The German Bildungsgutschein guide (/academy/bildungsgutschein/, lang="de"),
   composed like the program pages.  The cream header is the title block: the
@@ -116,14 +116,13 @@
       </div>
       <div class="card academy-steps-card">
         <h3>{{ data.guide.steps_title }}</h3>
-        <ol class="academy-numbered">
+        {% steps %}
           {% for step in data.guide.steps %}
-            <li>
-              <span class="module-number" aria-hidden="true">{{ forloop.counter }}</span>
-              <span>{{ step }}</span>
-            </li>
+            {% step %}
+              {{ step }}
+            {% endstep %}
           {% endfor %}
-        </ol>
+        {% endsteps %}
       </div>
     </div>
   </section>

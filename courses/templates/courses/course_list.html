@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo static custom_filters %}
+{% load seo static custom_filters steps %}
 
 {% block document_title %}
   Courses — DataTalks.Club
@@ -398,8 +398,8 @@
       }
 
       /* --- how a zoomcamp works ----------------------------------------------------
-         The mockup draws the four steps as one row of numbered columns, each
-         opened by a heavy ink rule and a green mono index.  The band itself
+         The four steps are the shared numbered-steps list (core/_steps.html);
+         this page adds only the band.  The band itself
          returns to cream, the same alternation the mockup draws between the
          lavender catalogue and the lavender FAQ. */
 
@@ -416,66 +416,10 @@
         padding-block: var(--space-band);
       }
 
-      .zoomcamp-steps.shell-breakout .band-head,
-      .zoomcamp-steps .step-grid {
+      /* The band head and the steps both keep the shell's column. */
+      .zoomcamp-steps.shell-breakout > * {
         margin-inline: auto;
         max-width: var(--shell-content);
-      }
-
-      .step-grid {
-        display: grid;
-        gap: var(--space-5) var(--space-6);
-        grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-      }
-
-      /* Four steps must compose as a complete set.  Auto-fit can squeeze
-         three 13rem columns into a tablet shell and strand step 04 on a row
-         by itself; between phone and desktop, make the intended 2 × 2 rhythm
-         explicit. */
-      @media (min-width: 36rem) and (max-width: 61.99rem) {
-        .step-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-
-      /* `.step-grid`'s own row stretches every `.step` to match the tallest
-         column (grid's default `align-items: stretch`), and a grid
-         container's default `align-content` computes to `stretch` too -- so
-         without this, each `.step`'s three auto rows (number, title, body)
-         were spread out to fill that borrowed height rather than packing at
-         the top, and the amount of slack differed per column with how much
-         body copy it held.  That is why the divider read level but the
-         numbers and titles beneath it visibly drifted.  Packing the rows at
-         the start makes every column's own content the only thing that
-         sets its position, so the number and title line up across all four
-         regardless of a neighbour's height. */
-      .step {
-        align-content: start;
-        border-top: 3px solid var(--line);
-        display: grid;
-        gap: var(--space-2);
-        padding-top: var(--space-4);
-      }
-
-      .step-no {
-        color: var(--green-text);
-        font-family: var(--font-mono);
-        font-size: 0.8rem;
-        font-weight: 700;
-      }
-
-      /* Reserves two lines at the title's own line-height, so a title that
-         wraps (like "Watch and build weekly") does not push its own body
-         paragraph lower than a column whose title stayed on one line -- the
-         body row still starts level across all four columns. */
-      .step h3 {
-        font-size: 1.15rem;
-        min-height: calc(1.15rem * 1.12 * 2);
-      }
-
-      .step p {
-        color: var(--body-text);
-        font-size: 0.92rem;
       }
 
       /* The FAQ is the mockup's second lavender band: a full-bleed surface
@@ -663,28 +607,20 @@
             <h2 id="how-it-works-heading">How our zoomcamp works</h2>
           </div>
         </div>
-        <div class="step-grid">
-          <div class="step">
-            <span class="step-no" aria-hidden="true">01</span>
-            <h3>Register, free</h3>
-            <p>One form gets you the schedule, the Slack channel and homework reminders.</p>
-          </div>
-          <div class="step">
-            <span class="step-no" aria-hidden="true">02</span>
-            <h3>Watch and build weekly</h3>
-            <p>Pre-recorded modules plus live office hours, at whatever pace you can keep.</p>
-          </div>
-          <div class="step">
-            <span class="step-no" aria-hidden="true">03</span>
-            <h3>Submit homework</h3>
-            <p>Auto-graded answers, a public leaderboard, and deadlines that keep you honest.</p>
-          </div>
-          <div class="step">
-            <span class="step-no" aria-hidden="true">04</span>
-            <h3>Ship a project</h3>
-            <p>A peer-reviewed capstone and a certificate of completion for your portfolio.</p>
-          </div>
-        </div>
+        {% steps %}
+          {% step title="Register, free" %}
+            One form gets you the schedule, the Slack channel and homework reminders.
+          {% endstep %}
+          {% step title="Watch and build weekly" %}
+            Pre-recorded modules plus live office hours, at whatever pace you can keep.
+          {% endstep %}
+          {% step title="Submit homework" %}
+            Auto-graded answers, a public leaderboard, and deadlines that keep you honest.
+          {% endstep %}
+          {% step title="Ship a project" %}
+            A peer-reviewed capstone and a certificate of completion for your portfolio.
+          {% endstep %}
+        {% endsteps %}
       </section>
       {% if all_projects_url %}
         <section class="courses-projects shell-breakout" aria-labelledby="courses-projects-heading">

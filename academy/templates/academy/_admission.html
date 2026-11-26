@@ -1,9 +1,9 @@
+{% load steps %}
 {% comment %}
   Limited seats and how you get in, the chapter before the closing
   waitlist on the home and program pages: the seat limit as the band head,
-  then the four admission steps as numbered cards in one row, each the
-  homepage climb's drawn step disc over the step's title and line, so a
-  two-word title never wraps beside the disc.  Copy: shared.admission.
+  then the four admission steps as the shared numbered-steps list
+  (core/_steps.html).  Copy: shared.admission.
 
   band  the home page's alternating ground (a band-* class name)
 {% endcomment %}
@@ -22,19 +22,11 @@
     </div>
   </div>
   <h3 class="academy-steps-heading">{{ shared.admission.steps_heading }}</h3>
-  <ol class="card-grid academy-steps">
+  {% steps heading_level=4 %}
     {% for step in shared.admission.steps %}
-      <li class="card academy-step">
-        {% if forloop.counter == 2 %}
-          <span class="step-number step-number-2" aria-hidden="true">{{ forloop.counter }}</span>
-        {% elif forloop.counter == 3 %}
-          <span class="step-number step-number-3" aria-hidden="true">{{ forloop.counter }}</span>
-        {% else %}
-          <span class="step-number" aria-hidden="true">{{ forloop.counter }}</span>
-        {% endif %}
-        <h4>{{ step.title }}</h4>
-        <p>{{ step.text }}</p>
-      </li>
+      {% step title=step.title %}
+        {{ step.text }}
+      {% endstep %}
     {% endfor %}
-  </ol>
+  {% endsteps %}
 </section>

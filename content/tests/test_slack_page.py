@@ -131,7 +131,8 @@ class SlackPageTests(TestCase):
     def test_the_three_joining_steps_and_the_faq_render(self) -> None:
         for step in self.page["steps"]:
             self.assertIn(escape(step["title"]), self.body)
-        self.assertEqual(self.body.count('class="card slack-step"'), 3)
+        self.assertIn('<ol class="steps steps-count-3" role="list">', self.body)
+        self.assertEqual(self.body.count('<li class="steps-item">'), 3)
         # FAQ answers are Markdown, rendered to sanitized links.
         self.assertIn(escape(self.page["faq"][0]["question"]), self.body)
         self.assertIn('<a href="https://example.invalid/troubleshooting">help form</a>', self.body)

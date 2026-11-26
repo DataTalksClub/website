@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load accessibility breadcrumbs seo static %}
+{% load accessibility breadcrumbs seo static steps %}
 
 {% block document_title %}
   {{ campaign.title }} Registration - DataTalks.Club
@@ -174,37 +174,6 @@
         color: var(--body-text);
         font-size: 0.88rem;
         margin: 0;
-      }
-
-      .registration-features {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-      }
-
-      .registration-feature-row {
-        --row-cols: 3.5rem minmax(0, 1fr);
-        align-items: start;
-        grid-template-columns: 3rem minmax(0, 1fr);
-      }
-
-      .registration-feature-index {
-        border-right: var(--rule);
-        color: var(--green-ship);
-        font-family: var(--font-mono);
-        font-size: 0.85rem;
-        font-weight: 700;
-        padding-top: 0.15rem;
-      }
-
-      .registration-feature-row h3 {
-        font-size: 1.05rem;
-      }
-
-      .registration-feature-row p {
-        color: var(--body-text);
-        font-size: 0.95rem;
-        margin-top: var(--space-1);
       }
 
       /* Artwork inside the copy (a roadmap, a project diagram) carries its own
@@ -805,19 +774,13 @@
               {% endfor %}
             </dl>
           {% elif section.kind == "features" %}
-            <ol class="row-list registration-features" role="list">
+            {% steps %}
               {% for row in section.rows %}
-                <li class="list-row registration-feature-row">
-                  <span class="registration-feature-index" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
-                  <div>
-                    <h3>{{ row.label }}</h3>
-                    {% if row.value %}
-                      <p>{{ row.value }}</p>
-                    {% endif %}
-                  </div>
-                </li>
+                {% step title=row.label %}
+                  {{ row.value }}
+                {% endstep %}
               {% endfor %}
-            </ol>
+            {% endsteps %}
           {% else %}
             <div class="prose registration-prose">{{ section.html }}</div>
           {% endif %}

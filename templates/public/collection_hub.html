@@ -1,4 +1,4 @@
-{% load seo static accessibility %}
+{% load seo static accessibility steps %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -33,7 +33,7 @@
       {% include "core/_design_system.html" %}
       /* ------------------------------------------------------------------ *
        * Collection-hub rules.  Everything visual is a shared primitive
-       * (.row-list/.list-row, .step-number, .status-pill, .mono-label,
+       * (.row-list/.list-row, the numbered steps, .status-pill, .mono-label,
        * .mono-note, .mono-code); what follows is only this page's layout.
        * ------------------------------------------------------------------ */
 
@@ -58,12 +58,6 @@
         margin-top: var(--space-3);
       }
 
-      /* "How it works": the numbered disc keeps its own column beside the step. */
-      .how-it-works .list-row {
-        --row-cols: auto minmax(0, 1fr);
-        column-gap: var(--space-4);
-      }
-
       /* A record's row is the shared archive row — `.archive-row` in the design
          system partial above, drawn by `public/_archive_row.html` — so an
          article, a book and a podcast episode are one shape.  The mockups never
@@ -76,16 +70,6 @@
 
       .collection-empty {
         padding-block: var(--space-4);
-      }
-
-      /* Narrow: the step keeps its disc beside it rather than stacking a lone
-         number on its own line. */
-      @media (max-width: 47.99rem) {
-        .how-it-works .list-row {
-          align-items: start;
-          column-gap: var(--space-3);
-          grid-template-columns: auto minmax(0, 1fr);
-        }
       }
     </style>
   </head>
@@ -165,39 +149,25 @@
                 <h2 id="how-it-works-heading">How it works</h2>
               </div>
             </div>
-            {% comment %}
-              A sequence, so it stays an ordered list; role="list" keeps those
-              semantics after the design system removes the markers, and the
-              drawn disc is decoration on top of them.
-            {% endcomment %}
-            <ol class="row-list how-it-works" role="list">
-              <li class="list-row">
-                <span class="step-number" aria-hidden="true">01</span>
-                <p>
-                  <a class="band-link" href="{% url 'slack' %}">Register on DataTalks.Club</a>
-                </p>
-              </li>
-              <li class="list-row">
-                <span class="step-number" aria-hidden="true">02</span>
-                <p>
-                  Join the
-                  <code class="mono-code">#book-of-the-week</code>
-                  channel in our Slack
-                </p>
-              </li>
-              <li class="list-row">
-                <span class="step-number" aria-hidden="true">03</span>
-                <p>Ask as many questions as you'd like</p>
-              </li>
-              <li class="list-row">
-                <span class="step-number" aria-hidden="true">04</span>
-                <p>The book authors answer questions from Monday till Thursday</p>
-              </li>
-              <li class="list-row">
-                <span class="step-number" aria-hidden="true">05</span>
-                <p>On Friday, the authors decide who wins free copies of their book</p>
-              </li>
-            </ol>
+            {% steps %}
+              {% step %}
+                <a class="band-link" href="{% url 'slack' %}">Register on DataTalks.Club</a>
+              {% endstep %}
+              {% step %}
+                Join the
+                <code class="mono-code">#book-of-the-week</code>
+                channel in our Slack
+              {% endstep %}
+              {% step %}
+                Ask as many questions as you'd like
+              {% endstep %}
+              {% step %}
+                The book authors answer questions from Monday till Thursday
+              {% endstep %}
+              {% step %}
+                On Friday, the authors decide who wins free copies of their book
+              {% endstep %}
+            {% endsteps %}
           </div>
         </section>
       {% endif %}

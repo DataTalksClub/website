@@ -1,4 +1,4 @@
-{% load static %}
+{% load static steps %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -200,40 +200,6 @@
 
         .wiki-swipe > * {
           scroll-snap-align: start;
-        }
-      }
-
-      /* --- how it works -------------------------------------------------- */
-
-      .wiki-steps {
-        display: grid;
-        gap: var(--space-grid);
-      }
-
-      .wiki-step {
-        background: var(--card);
-        border: var(--border-soft);
-        border-radius: var(--radius-card);
-        display: grid;
-        gap: var(--space-2);
-        grid-row: span 3;
-        grid-template-rows: subgrid;
-        padding: var(--space-4) var(--space-5);
-      }
-
-      .wiki-step h3 {
-        font-size: 1.12rem;
-        line-height: 1.3;
-      }
-
-      .wiki-step p {
-        color: var(--body-text);
-        font-size: 0.92rem;
-      }
-
-      @media (min-width: 36rem) {
-        .wiki-steps {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
       }
 
@@ -441,26 +407,18 @@
               <h2 id="how-heading">How the wiki works</h2>
             </div>
           </div>
-          <div class="wiki-steps">
-            <article class="wiki-step">
-              <span class="step-number">1</span>
-              <h3>Written from the sources</h3>
-              <p>Each topic is written from our podcast episodes, events and books.</p>
-            </article>
-            <article class="wiki-step">
-              <span class="step-number step-number-2">2</span>
-              <h3>Claims link to the episode</h3>
-              <p>A paragraph cites the podcast episode it comes from, so you can hear the guest say it.</p>
-            </article>
-            <article class="wiki-step">
-              <span class="step-number step-number-3">3</span>
-              <h3>Topics link to each other</h3>
-              <p>
-                Every page lists related topics, people and books{% if busiest %}; {{ busiest.title }} alone links to
-                {{ busiest.links }} other pages{% endif %}.
-              </p>
-            </article>
-          </div>
+          {% steps %}
+            {% step title="Written from the sources" %}
+              Each topic is written from our podcast episodes, events and books.
+            {% endstep %}
+            {% step title="Claims link to the episode" %}
+              A paragraph cites the podcast episode it comes from, so you can hear the guest say it.
+            {% endstep %}
+            {% step title="Topics link to each other" %}
+              Every page lists related topics, people and books{% if busiest %}; {{ busiest.title }} alone links to
+              {{ busiest.links }} other pages{% endif %}.
+            {% endstep %}
+          {% endsteps %}
         </div>
       </section>
 

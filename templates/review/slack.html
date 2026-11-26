@@ -1,4 +1,5 @@
 {% extends "core/content_page.html" %}
+{% load steps %}
 {% comment %}
   The Slack landing page.  One goal -- join the Slack -- and one action, drawn
   identically at the hero, after "Who's there" and in the closing panel
@@ -141,24 +142,6 @@
     min-height: 2.75rem;
   }
 
-  /* --- how joining works: three numbered cards on the shared badge. */
-  .slack-steps {
-    display: grid;
-    gap: var(--space-grid);
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .slack-step {
-    align-content: start;
-    display: grid;
-    gap: var(--space-3);
-    padding: var(--space-5);
-  }
-  .slack-step-head { align-items: center; display: flex; gap: var(--space-3); }
-  .slack-step h3 { font-size: 1.1rem; }
-  .slack-step p { color: var(--body-text); font-size: 0.95rem; margin: 0; }
-
   /* --- closing: the course landing's mint panel with the same action. */
   .slack-close-panel {
     align-items: center;
@@ -173,7 +156,6 @@
     .slack-benefits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (min-width: 48rem) {
-    .slack-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .slack-close-panel { grid-template-columns: minmax(0, 1fr) auto; }
   }
 
@@ -266,23 +248,13 @@
         <h2 id="slack-steps-heading">How joining works</h2>
       </div>
     </div>
-    <ol class="slack-steps">
+    {% steps %}
       {% for step in slack.steps %}
-        <li class="card slack-step">
-          <div class="slack-step-head">
-            {% if forloop.counter == 2 %}
-              <span class="step-number step-number-2" aria-hidden="true">2</span>
-            {% elif forloop.counter == 3 %}
-              <span class="step-number step-number-3" aria-hidden="true">3</span>
-            {% else %}
-              <span class="step-number" aria-hidden="true">1</span>
-            {% endif %}
-            <h3>{{ step.title }}</h3>
-          </div>
-          <p>{{ step.body }}</p>
-        </li>
+        {% step title=step.title %}
+          {{ step.body }}
+        {% endstep %}
       {% endfor %}
-    </ol>
+    {% endsteps %}
   </section>
 
   <section class="slack-chapter" aria-labelledby="slack-faq-heading">
