@@ -192,16 +192,18 @@ class DescriptionRuleTests(_WithoutSeedEvents):
     def test_the_admin_update_refuses_to_leave_an_event_without_one(self) -> None:
         event = _event(description="")
         with self.assertRaises(EventAdminError) as caught:
-            update_event({"zoom_join_url": "https://example.invalid/zoom"}, event_id=event.pk)
+            update_event(
+                {"zoom_join_url": "https://example.invalid/zoom"}, event_id=event.content_id
+            )
         self.assertEqual(caught.exception.code, "event_description_required")
         with self.assertRaises(EventAdminError):
-            update_event({"description": ""}, event_id=_event(title="Other").pk)
+            update_event({"description": ""}, event_id=_event(title="Other").content_id)
 
     def test_the_admin_update_completes_it_in_the_same_write(self) -> None:
         event = _event(description="")
         update_event(
             {"zoom_join_url": "https://example.invalid/zoom", "description": "About it."},
-            event_id=event.pk,
+            event_id=event.content_id,
         )
         event.refresh_from_db()
         self.assertEqual(event.description, "About it.")
