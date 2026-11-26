@@ -68,7 +68,7 @@
         display: grid;
         gap: var(--space-5) var(--space-7);
         grid-template-areas:
-          "trail trail"
+          ". trail"
           "media main"
           "hosts main";
         grid-template-columns: 17rem minmax(0, var(--reading-width));
@@ -79,7 +79,7 @@
       /* No picture: the side column holds the speakers list from the top. */
       .event-layout-no-media {
         grid-template-areas:
-          "trail trail"
+          ". trail"
           "hosts main";
         grid-template-rows: auto auto;
       }
@@ -92,10 +92,8 @@
         grid-template-columns: minmax(0, var(--reading-width));
       }
 
-      /* The way back to /events.  It is the layout's first row, spanning both
-         columns, so it starts on the picture's left edge -- the edge the two
-         columns below share -- rather than at the shell's edge, which the
-         centred grid sits well inside.  The grid's row gap is the column gap;
+      /* The way back to /events sits directly above the title, in the main
+         column, so the picture's top lines up with the title's top.  The grid's row gap is the column gap;
          a trail sits --space-eyebrow above what it heads, so it takes the
          difference back. */
       .event-layout > .breadcrumbs {
