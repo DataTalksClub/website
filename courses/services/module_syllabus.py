@@ -65,7 +65,7 @@ def _first(obj, *names, default=None):
 
 
 def _minutes(lesson) -> int | None:
-    seconds = _first(lesson, "duration_seconds")
+    seconds = _first(lesson, "video_duration_seconds", "duration_seconds")
     if seconds:
         return max(1, round(int(seconds) / 60))
     minutes = _first(lesson, "duration_minutes")
@@ -106,17 +106,22 @@ def module_syllabus(module, lessons, *, lesson_url, read_ids=frozenset()) -> Mod
     by_slug = {row.lesson.slug: row for row in rows}
     parts: list[SyllabusPart] = []
     placed: set[str] = set()
-    for part in _first(module, "parts", default=[]) or []:
+    for part in _first(module, "overview_parts", "parts", default=[]) or []:
         if not isinstance(part, dict):
             continue
-        slugs = [slug for slug in part.get("lessons") or [] if slug in by_slug]
+        # The import stores each part's lessons as {"slug", "title", "description"}.
+        slugs: list[str] = []
+        for item in part.get("lessons") or []:
+            slug = item.get("slug") if isinstance(item, dict) else item
+            if isinstance(slug, str) and slug in by_slug:
+                slugs.append(slug)
         if not slugs:
             continue
         placed.update(slugs)
         parts.append(
             SyllabusPart(
-                title=part.get("title") or "",
-                summary=part.get("summary") or part.get("description") or "",
+                title=part.get("title") or part.get("heading") or "",
+                summary=part.get("summary") or part.get("intro_markdown") or "",
                 lessons=[by_slug[slug] for slug in slugs],
             )
         )
@@ -129,7 +134,7 @@ def module_syllabus(module, lessons, *, lesson_url, read_ids=frozenset()) -> Mod
         intro=_first(module, "intro", "build_summary", "description", default=""),
         outcomes=[str(item) for item in (_first(module, "outcomes", default=[]) or [])],
         parts=parts,
-        recordings=_links(_first(module, "recordings")),
+        recordings=_links(_first(module, "workshop_recordings", "recordings")),
         further=_links(_first(module, "further_reading", "optional_links")),
         notes=_links(_first(module, "community_notes", "notes")),
         code_url=_first(module, "code_url", default=""),
