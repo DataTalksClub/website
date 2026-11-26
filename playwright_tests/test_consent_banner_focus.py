@@ -114,8 +114,9 @@ def test_tabbing_a_long_page_never_lands_behind_the_consent_banner(
         if state["overlaps"]:
             covered.append(state["label"])
 
-    # The walk really did run past one screen into the footer.
-    assert stops > 20
+    # The walk really did run past one screen into the footer.  The FAQ list
+    # stays open (core/_faq.html), so its questions are not tab stops.
+    assert stops > 15
     assert page.evaluate("window.scrollY") > viewport["height"]
     assert covered == []
 
