@@ -286,10 +286,11 @@ class DesignSystemOwnershipTests(TestCase):
         # The archive-row surfaces credit their people through the shared row
         # (`public/_archive_row.html`), which draws the one chip partial itself;
         # the rest name the chip directly.  Either way there is one chip.
-        through_the_row = (
-            "templates/core/home.html",
-            "templates/public/collection_hub.html",
-        )
+        through_the_row = ("templates/core/home.html",)
+        # /blog and /books draw each record through the article and book rows
+        # (`public/_article_row.html`, `public/_book_row.html`), which credit
+        # the authors through the shared row.
+        through_the_record_rows = "templates/public/collection_hub.html"
         # The podcast hub draws each episode through its card, which draws the
         # guests' chips itself.
         through_the_card = "templates/public/podcast_hub.html"
@@ -316,12 +317,19 @@ class DesignSystemOwnershipTests(TestCase):
                     # The /events cards are the shared event timeline partial.
                     self.assertIn('{% include "public/_event_timeline.html"', source)
                     continue
+                if template == through_the_record_rows:
+                    self.assertIn('{% include "public/_article_row.html"', source)
+                    self.assertIn('{% include "public/_book_row.html"', source)
+                    continue
                 if template == through_the_speaker:
                     self.assertIn('{% include "public/_event_speaker.html"', source)
                     continue
                 self.assertIn('{% include "public/_person_chip.html"', source)
                 self.assertIn("|person_chip", source)
 
+        for record_row in ("_article_row.html", "_book_row.html"):
+            source = (root / "templates/public" / record_row).read_text(encoding="utf-8")
+            self.assertIn("row_credits=record.author_profiles", source)
         row = (root / "templates/public/_archive_row.html").read_text(encoding="utf-8")
         self.assertIn('{% include "public/_person_chip.html"', row)
         self.assertIn("|person_chip", row)

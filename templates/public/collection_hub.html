@@ -235,23 +235,9 @@
               {% if collection == "people" %}
                 {% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_eyebrow=record.roles|join:" · " row_summary=record.summary row_class="record-row" only %}
               {% elif collection == "books" %}
-                {% comment %}
-                  A book row is a blog row: title, a quiet line saying how much of
-                  the week's conversation the page keeps, the book's own one-line
-                  lead, and its authors.  Its `description` is SEO copy that
-                  restates the title and byline ("Book of the Week. X by Y"), so
-                  the row never draws it.
-                {% endcomment %}
-                {% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_date=record.published row_meta=record.answered_count|counted:"question answered,questions answered" row_summary=record.lead row_credits=record.author_profiles row_image=record.cover_path row_image_fit="contain" row_class="record-row" only %}
-              {% elif record.preview_path %}
-                {% comment %}
-                  An article with a generated preview (banner-generator
-                  `dtc-article`) shows it whole as a square, like an event's
-                  banner on /events; without one, its own image as before.
-                {% endcomment %}
-                {% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_date=record.published row_summary=record.description row_credits=record.author_profiles row_image=record.preview_path row_image_fit="square" row_class="record-row" only %}
+                {% include "public/_book_row.html" with record=record only %}
               {% else %}
-                {% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_date=record.published row_summary=record.description row_credits=record.author_profiles row_image=record.image_path row_class="record-row" only %}
+                {% include "public/_article_row.html" with record=record only %}
               {% endif %}
             {% empty %}
               <p class="collection-empty">

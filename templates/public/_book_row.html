@@ -1,0 +1,13 @@
+{% load accessibility %}
+{% comment %}
+  One book as an archive row: title, a quiet line saying how much of the week's
+  conversation the page keeps, the book's own one-line lead, its authors and
+  its cover.  /books and a person's profile both draw it.  Its `description` is
+  SEO copy that restates the title and byline ("Book of the Week. X by Y"), so
+  the row never draws it.
+
+  `record` is a catalogue book record (`content.public_records.book_record`).
+
+      {% include "public/_book_row.html" with record=record only %}
+{% endcomment %}
+{% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_date=record.published row_meta=record.answered_count|counted:"question answered,questions answered" row_summary=record.lead row_credits=record.author_profiles row_image=record.cover_path row_image_fit="contain" row_class="record-row" only %}
