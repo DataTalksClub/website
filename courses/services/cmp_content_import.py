@@ -235,6 +235,7 @@ class CohortReport:
     rebound_modules: tuple[tuple[str, str, str], ...] = ()
     unpaired_cmp_homework: tuple[str, ...] = ()
     unpaired_repository_homework: tuple[str, ...] = ()
+    unpaired_repository_projects: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -288,6 +289,9 @@ class CmpContentImportResult:
             ),
             "unpaired_repository_homework": sorted(
                 slug for row in self.imported for slug in row.unpaired_repository_homework
+            ),
+            "unpaired_repository_projects": sorted(
+                slug for row in self.imported for slug in row.unpaired_repository_projects
             ),
             "rebindings": [
                 {"cohort": row.cohort_slug, "module": module, "was": old, "now": new}
@@ -880,9 +884,18 @@ def _import_cohort(
             _apply(project, _values(source, _PROJECT_FIELDS))
         _import_explicit_start(project, source, "project")
         projects_written += 1
-    projects_removed = (
-        Project.objects.filter(course=cohort).exclude(slug__in=project_slugs).delete()[0]
-    )
+    leftover_projects = Project.objects.filter(course=cohort).exclude(slug__in=project_slugs)
+    if is_modules:
+        # The homework rule above, for the same reason: a repository-authored project
+        # carries the repository's criteria set and module placement, and CMP lacking
+        # its slug does not assert it does not exist.  Report, never delete.
+        projects_removed = 0
+        unpaired_repository_projects = tuple(
+            sorted(leftover_projects.values_list("slug", flat=True))
+        )
+    else:
+        projects_removed = leftover_projects.delete()[0]
+        unpaired_repository_projects = ()
 
     criteria_written, criteria_retained = _reconcile_criteria(connection, course_id, cohort)
 
@@ -899,6 +912,7 @@ def _import_cohort(
         rebound_modules=tuple(rebound),
         unpaired_cmp_homework=tuple(sorted(unpaired_cmp)),
         unpaired_repository_homework=unpaired_repository,
+        unpaired_repository_projects=unpaired_repository_projects,
     )
 
 

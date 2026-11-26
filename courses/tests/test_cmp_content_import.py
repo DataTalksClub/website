@@ -430,6 +430,35 @@ class CmpContentImportTests(TestCase):
         self.assertTrue(Homework.objects.filter(course=cohort, slug="homework-99").exists())
         self.assertEqual(result.summary()["unpaired_repository_homework"], ["homework-99"])
 
+    def test_never_deletes_repository_projects_cmp_does_not_have(self) -> None:
+        """A repository project keeps its criteria set and module placement.
+
+        CMP exporting a project under another slug does not make the repository's
+        row seed copy on a modules or shared cohort, so it is kept and reported.
+        """
+
+        cohort, _ = self._modules_cohort({"hw1": "Homework 1: Real"})
+        now = datetime.now(UTC)
+        Project.objects.create(
+            course=cohort,
+            slug="project-attempt-1",
+            title="Capstone Project, Attempt 1",
+            description="From the course repository",
+            submission_due_date=now + timedelta(days=30),
+            peer_review_due_date=now + timedelta(days=37),
+        )
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+
+        result = import_cmp_course_content(self.source)
+
+        self.assertEqual(
+            sorted(Project.objects.filter(course=cohort).values_list("slug", flat=True)),
+            ["project-attempt-1", "project1"],
+        )
+        summary = result.summary()
+        self.assertEqual(summary["projects_removed"], 0)
+        self.assertEqual(summary["unpaired_repository_projects"], ["project-attempt-1"])
+
     def _shared_cohort(
         self, repository_slug: str, repository_title: str
     ) -> tuple[Cohort, CohortSharedModule]:
