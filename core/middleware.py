@@ -77,7 +77,11 @@ ROBOTS_HEADER_VALUE = "noindex, nofollow"
 SECURITY_HEADERS = {
     "Content-Security-Policy": (
         "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
-        f"form-action 'self'; script-src 'self' 'unsafe-inline' {UMAMI_ORIGIN}; "
+        # Social sign-in posts to the site, which redirects to the provider;
+        # browsers apply form-action to that redirect, so the providers'
+        # authorize hosts must be allowed or the buttons silently do nothing.
+        "form-action 'self' https://accounts.google.com https://github.com https://slack.com; "
+        f"script-src 'self' 'unsafe-inline' {UMAMI_ORIGIN}; "
         "style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; "
         f"connect-src 'self' {UMAMI_ORIGIN}; "
         "media-src 'self'; frame-src https://www.youtube.com https://www.youtube-nocookie.com "
