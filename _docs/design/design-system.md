@@ -512,22 +512,22 @@ to this document — do not fork it locally.
   number, a label inside a spec row or table, and a stat label under its number.
 - **`.breadcrumbs`** — the trail on every page below a hub, and its one way back to
   the list it came from. The blog article's trail is the reference every page
-  matches: underlined `--muted` links at `0.78rem` that turn indigo on hover, the
-  current page as the last crumb in `--muted` plain text, a line of text and never
-  a button. The `/` separator is CSS-drawn with empty alternative text
+  matches: underlined `--muted` links at `0.78rem` that turn indigo on hover, one
+  line of text that ends in an ellipsis rather than wrapping, and never a button. The `/` separator is CSS-drawn with empty alternative text
   (`content: "/" / ""`) so it is never announced. Links keep a `2rem` minimum
   target height. The trail starts on the left edge of the
   column the page's content sits in — on a two-column detail page (an event) that
   is the left edge of the whole layout, not the shell's edge. Markup contract: a `nav`
   with an accessible name holding an `ol`, one `li` per level, every ancestor a link,
-  and the current page on `li[aria-current="page"]` as plain text — never a link.
+  and — where a page's own crumb is drawn at all — the current page on
+  `li[aria-current="page"]` as plain text, never a link.
 
   Build the trail with the shared `{% breadcrumbs %}` tag rather than hand-writing
   list items; an empty level is skipped.
 
-  Use it on every page below an index: articles ("Blog / …"), books, wiki topics,
-  events ("Events / …"), podcast episodes ("Podcast / Season 25 / …"), people
-  ("People / …"), course and academy pages. No page draws an ad-hoc "← all …" link
+  Use it on every page below an index: articles ("Blog"), books ("Books"), wiki
+  topics ("Wiki"), events ("Events"), podcast episodes ("Podcast / Season 25"),
+  people ("People"), course and academy pages. No page draws an ad-hoc "← all …" link
   instead. **Index pages and the homepage do not carry one** —
   the masthead already marks them with `aria-current="page"`. A page offers one way
   back, not two: a page with a back-link does not also carry a trail, and a page
@@ -535,11 +535,24 @@ to this document — do not fork it locally.
 
   The rule, everywhere:
 
-  - **The full path, ending with the page.** A deeper page names every level
-    from its hub down, and the page itself is always the last crumb — even when
-    the `h1` below says the same thing: "Courses / LLM Zoomcamp / 2026 / Module 2
-    / Lesson 3", "Academy / Articles / …", "Studio / Courses / ML Zoomcamp /
-    Enrollments".
+  - **The full path, stopping at the parent.** A deeper page names every level
+    from its hub down to its parent, and the `h1` directly below says the page's
+    own name — a last crumb repeating the heading is the same words twice. A
+    lesson reads "Courses / LLM Zoomcamp / 2026 / Module 2" over the lesson's
+    `h1`; a cohort reads "Courses / AI Dev Tools Zoomcamp" over the cohort's;
+    Studio enrollments read "Studio / Courses / ML Zoomcamp". The trail never
+    ends with a dangling "/": the separator only follows a crumb with another
+    after it.
+  - **The JSON-LD keeps the page.** The published `BreadcrumbList` still ends
+    with the page itself, because search engines read it as the path to that
+    page. The visible trail and the JSON-LD differ by that last level by design;
+    both come from the same `core.breadcrumbs.Trail`.
+  - **Exception: a last crumb the `h1` does not say.** When the page's own
+    crumb adds something the heading lacks — "Courses / AI Dev Tools Zoomcamp /
+    Registration" over a heading that names the course, "Wiki / Graph" over a
+    heading that says "Wiki" — the call asks for it with `current="…"` (or
+    `show_current=True` on a `Trail`). Each such call is listed, with its
+    reason, in `core/tests/test_breadcrumb_rule.py`.
   - **One placement.** The trail is the first row of the page header, on the left
     edge of the column the `h1` sits in, pulled `--space-3` into the band's top
     padding with `--space-eyebrow` down to the heading — the
@@ -559,7 +572,9 @@ to this document — do not fork it locally.
     message, not places under a hub, so they carry none.
 
   `core/tests/test_breadcrumb_rule.py` lists which templates must call the tag and
-  which must not, and fails on an ad-hoc up-link anywhere under `templates/`.
+  which must not, fails on an ad-hoc up-link anywhere under `templates/`, and
+  fails on any call that draws the page's own crumb without being a listed
+  exception.
 
 ### Cards and chips
 
