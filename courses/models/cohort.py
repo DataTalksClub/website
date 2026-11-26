@@ -68,8 +68,17 @@ class Course(SourceProvenanceModel):
         default="",
         help_text=(
             "Short factual note on cost and weekly time commitment, shown near "
-            "the family hero. Sourced from the course's own FAQ answers and "
-            "edited directly -- not synced from the course repository."
+            "the family hero. Owned by course.yaml weekly_commitment when the "
+            "repository publishes it; preserved when an import omits it."
+        ),
+    )
+    instructors = models.JSONField(
+        blank=True,
+        default=list,
+        db_default=[],
+        help_text=(
+            'The course\'s instructors in display order, [{"name", "url"}], '
+            "from course.yaml instructors; preserved when an import omits it."
         ),
     )
     progression = models.JSONField(

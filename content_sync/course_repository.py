@@ -618,7 +618,7 @@ def _parse_lesson_frontmatter(
         _load_yaml_mapping(frontmatter_text, path=source_path, limits=limits),
         path=source_path,
         pointer="/frontmatter",
-        allowed=frozenset({"video_url", "code"}),
+        allowed=frozenset({"video_url", "code", "video_duration_seconds"}),
         required=frozenset(),
         ignore_unknown=True,
     )
@@ -656,9 +656,21 @@ def _parse_lesson_frontmatter(
                 )
             )
 
+    video_duration_seconds: int | None = None
+    if "video_duration_seconds" in mapping:
+        value = mapping["video_duration_seconds"]
+        # Bounded: a positive whole number of seconds, at most a day.
+        if type(value) is not int or not 0 < value <= 86_400:
+            _fail("lesson_video_duration_invalid", source_path, "/video_duration_seconds")
+        if video_url is None:
+            _fail("lesson_video_duration_without_video", source_path, "/video_duration_seconds")
+        video_duration_seconds = value
+
     body = "".join(lines[closing_index + 1 :]).lstrip("\n")
     return _strip_github_nav_block(body), LessonMetadata(
-        video_url=video_url, code=tuple(code_sources)
+        video_url=video_url,
+        code=tuple(code_sources),
+        video_duration_seconds=video_duration_seconds,
     )
 
 

@@ -25,6 +25,14 @@ class HomeworkSummarySource:
 
 
 @dataclass(frozen=True, slots=True)
+class InstructorSource:
+    """One course instructor named by the course repository."""
+
+    name: str
+    url: str
+
+
+@dataclass(frozen=True, slots=True)
 class CourseSource:
     content_id: str
     slug: str
@@ -61,6 +69,12 @@ class CourseSource:
     # projects section. ``None`` keeps existing curated database copy when
     # the optional key is absent.
     project_summary: str | None = None
+    # The course's instructors in display order, as the repository lists
+    # them. ``None`` keeps the stored value when the optional key is absent.
+    instructors: tuple[InstructorSource, ...] | None = None
+    # Cost and weekly time, one short factual sentence, from course.yaml.
+    # ``None`` keeps the stored value when the optional key is absent.
+    weekly_commitment: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +91,9 @@ class LessonMetadata:
 
     video_url: str | None = None
     code: tuple[LessonCodeSource, ...] = ()
+    # Length of the ``video_url`` video in seconds, fetched from YouTube by
+    # zoomcamp-ops ``scripts/lesson-metadata/fill_video_durations.py``.
+    video_duration_seconds: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,6 +104,66 @@ class UnitSource:
     source_path: str
     markdown: str
     metadata: LessonMetadata = LessonMetadata()
+
+
+@dataclass(frozen=True, slots=True)
+class OverviewLessonSource:
+    """One lesson as the README index lists it."""
+
+    slug: str
+    title: str
+    description: str
+
+
+@dataclass(frozen=True, slots=True)
+class OverviewPartSource:
+    """One group of lessons; ``heading`` is empty for an unheaded list."""
+
+    heading: str
+    intro_markdown: str
+    lessons: tuple[OverviewLessonSource, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class OverviewLinkSource:
+    """One link from a recordings or notes section.
+
+    ``label`` is the item text around the link (``Part 1 – RAG``), ``title``
+    the link text and ``url`` the target as written.
+    """
+
+    label: str
+    title: str
+    url: str
+
+
+@dataclass(frozen=True, slots=True)
+class OverviewSectionSource:
+    """Any other README section, kept as Markdown under its heading."""
+
+    heading: str
+    markdown: str
+
+
+@dataclass(frozen=True, slots=True)
+class ModuleOverviewSource:
+    intro_markdown: str
+    parts: tuple[OverviewPartSource, ...]
+    recordings: tuple[OverviewLinkSource, ...]
+    notes: tuple[OverviewLinkSource, ...]
+    sections: tuple[OverviewSectionSource, ...]
+    # The ``Code:`` link target exactly as written (relative or absolute).
+    code_target: str | None
+
+    def lesson_descriptions(self) -> dict[str, str]:
+        """Return ``{lesson slug: description}`` for every described lesson."""
+
+        descriptions: dict[str, str] = {}
+        for part in self.parts:
+            for lesson in part.lessons:
+                if lesson.description and lesson.slug not in descriptions:
+                    descriptions[lesson.slug] = lesson.description
+        return descriptions
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,6 +180,9 @@ class ModuleSource:
     # Optional module README index, imported as an overview/intro only.  It is
     # never a lesson and never a fallback for a missing lesson.
     overview_markdown: str | None = None
+    # The same README parsed into fields at import time (schema 2 only);
+    # ``None`` when the module has no README.
+    overview: ModuleOverviewSource | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -196,6 +276,10 @@ class ProjectSource:
 
     ``module`` is a root shared module slug the attempt is placed in, or
     ``None``; ``criteria_set`` names a criteria set by slug.
+
+    ``placement_only`` marks an entry that only places an attempt the course
+    management platform already owns (title, deadlines, peers and criteria
+    come from the CMP export); the import then sets just its module.
     """
 
     slug: str
@@ -203,10 +287,11 @@ class ProjectSource:
     module: str | None
     description_markdown: str
     description_source_path: str | None
-    submission_due: datetime
-    review_due: datetime
-    peers: int
-    criteria_set: str
+    submission_due: datetime | None
+    review_due: datetime | None
+    peers: int | None
+    criteria_set: str | None
+    placement_only: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -260,10 +345,16 @@ __all__ = (
     "HomeworkQuestionSource",
     "HomeworkSource",
     "HomeworkSummarySource",
+    "InstructorSource",
     "LessonCodeSource",
     "LessonMetadata",
     "ModuleFlowSource",
+    "ModuleOverviewSource",
     "ModuleSource",
+    "OverviewLessonSource",
+    "OverviewLinkSource",
+    "OverviewPartSource",
+    "OverviewSectionSource",
     "ProjectFlowSource",
     "ProjectSource",
     "UnitSource",

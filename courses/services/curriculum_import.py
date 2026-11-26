@@ -137,6 +137,32 @@ def _asset_content_type(filename: str) -> str:
     return _ASSET_CONTENT_TYPES.get(suffix, "application/octet-stream")
 
 
+_README_LINK = re.compile(r"(!?)\[([^\]]*)\]\(([^)\s]+)((?:\s+\"[^\"]*\")?)\)")
+_GITHUB_BLOB = re.compile(r"^https://github\.com/([^/]+/[^/]+)/blob/(.+)$")
+
+
+def _absolute_readme_links(markdown: str, *, resolve) -> str:
+    """Rewrite every Markdown link/image target through ``resolve``.
+
+    Images that resolve to a GitHub file page become raw file URLs so they
+    still display.  Targets ``resolve`` leaves unchanged stay as written.
+    """
+
+    if not markdown:
+        return markdown
+
+    def replace(match: re.Match[str]) -> str:
+        bang, text, target, title = match.groups()
+        url = resolve(target)
+        if bang:
+            blob = _GITHUB_BLOB.match(url)
+            if blob:
+                url = f"https://raw.githubusercontent.com/{blob.group(1)}/{blob.group(2)}"
+        return f"{bang}[{text}]({url}{title})"
+
+    return _README_LINK.sub(replace, markdown)
+
+
 def _rewrite_image_references(markdown: str, asset_paths: Mapping[str, str]) -> str:
     """Point relative image references at their managed public paths."""
 
@@ -317,6 +343,8 @@ class _CurriculumImporter:
             "placements": 0,
             "archive_cohorts": 0,
             "criteria_sets": 0,
+            "project_placements": 0,
+            "project_placements_pending": 0,
         }
 
     def apply(self) -> tuple[Course, tuple[Cohort, ...], Mapping[str, int]]:
@@ -456,6 +484,13 @@ class _CurriculumImporter:
             course.starting_point = source.starting_point
         if source.project_summary is not None:
             course.project_summary = source.project_summary
+        if source.instructors is not None:
+            course.instructors = [
+                {"name": instructor.name, "url": instructor.url}
+                for instructor in source.instructors
+            ]
+        if source.weekly_commitment is not None:
+            course.weekly_commitment = source.weekly_commitment
         if source.progression is not None:
             course.progression = [
                 {"heading": step.heading, "description": step.description}
@@ -728,6 +763,7 @@ class _CurriculumImporter:
                 "overview_rendered_html": (
                     render_markdown(source.overview_markdown) if source.overview_markdown else ""
                 ),
+                **self._module_overview_fields(source),
                 "published": True,
                 "retired_at": None,
                 **self._provenance(source, source.source_path, source.content_id),
@@ -737,6 +773,106 @@ class _CurriculumImporter:
             self.counts["shared_modules"] += 1
         return shared_module
 
+    def _module_overview_fields(self, source: ModuleSource) -> dict[str, Any]:
+        """The README parsed into the module page's fields, links resolved.
+
+        A relative link in a module README is relative to the module
+        directory on GitHub.  Lesson links stay as written (the renderer maps
+        ``NN-slug.md`` to its lesson route); every other relative link
+        becomes an absolute GitHub URL on the synced branch, so nothing on the
+        page points at a path that only exists in the repository.
+        """
+
+        module_dir = str(PurePosixPath(source.source_path).parent)
+        overview = source.overview
+        if overview is None:
+            return {
+                "overview_intro_markdown": "",
+                "overview_parts": [],
+                "overview_sections": [],
+                "workshop_recordings": [],
+                "community_notes": [],
+                "code_url": self._module_code_url(module_dir, None),
+            }
+        lesson_files = {PurePosixPath(unit.source_path).name for unit in source.units}
+
+        def markdown(text: str) -> str:
+            return _absolute_readme_links(
+                text,
+                resolve=lambda target: self._readme_target_url(module_dir, target, lesson_files),
+            )
+
+        def link(item) -> dict[str, str]:
+            url = self._readme_target_url(module_dir, item.url, lesson_files)
+            return {"label": item.label, "title": item.title, "url": url}
+
+        return {
+            "overview_intro_markdown": markdown(overview.intro_markdown),
+            "overview_parts": [
+                {
+                    "heading": part.heading,
+                    "intro_markdown": markdown(part.intro_markdown),
+                    "lessons": [
+                        {
+                            "slug": lesson.slug,
+                            "title": lesson.title,
+                            "description": lesson.description,
+                        }
+                        for lesson in part.lessons
+                    ],
+                }
+                for part in overview.parts
+            ],
+            "overview_sections": [
+                {"heading": section.heading, "markdown": markdown(section.markdown)}
+                for section in overview.sections
+            ],
+            "workshop_recordings": [link(item) for item in overview.recordings],
+            "community_notes": [link(item) for item in overview.notes],
+            "code_url": self._module_code_url(module_dir, overview.code_target),
+        }
+
+    def _readme_target_url(self, module_dir: str, target: str, lesson_files: set[str]) -> str:
+        """Resolve one README link target; unknown shapes stay as written."""
+
+        if self._EXTERNAL_REFERENCE.match(target):
+            return target
+        path, _, fragment = target.partition("#")
+        if path in lesson_files or path.removeprefix("./") in lesson_files:
+            return target
+        resolved = posixpath.normpath(posixpath.join(module_dir, path)) if path else module_dir
+        if resolved == ".." or resolved.startswith("../"):
+            # The README points outside the repository; leave it to the author.
+            return target
+        snapshot = self.command.snapshot or {}
+        is_file = resolved in snapshot
+        is_directory = resolved == "." or any(key.startswith(f"{resolved}/") for key in snapshot)
+        if not (is_file or is_directory):
+            return target
+        repository_url = self.command.source.course.repository_url.rstrip("/")
+        view = "blob" if is_file else "tree"
+        branch = self.command.repository_branch
+        suffix = "" if resolved == "." else f"/{resolved}"
+        url = f"{repository_url}/{view}/{branch}{suffix}"
+        return f"{url}#{fragment}" if fragment else url
+
+    def _module_code_url(self, module_dir: str, code_target: str | None) -> str:
+        """The module's code link: the README ``Code:`` line, else ``code/``.
+
+        Derived deterministically at import, never guessed by a template: an
+        explicit ``Code:`` link wins; otherwise a ``code/`` directory inside
+        the module is the module's code.  No link when neither exists.
+        """
+
+        if code_target:
+            url = self._readme_target_url(module_dir, code_target, set())
+            if url.startswith("https://"):
+                return url
+        code_dir = f"{module_dir}/code/"
+        if any(key.startswith(code_dir) for key in (self.command.snapshot or {})):
+            return self._readme_target_url(module_dir, "code/", set())
+        return ""
+
     def _upsert_shared_lessons(self, shared_module: SharedModule, source: ModuleSource) -> None:
         incoming_ids = {unit.content_id for unit in source.units}
         existing = SharedLesson.objects.filter(module=shared_module)
@@ -744,8 +880,14 @@ class _CurriculumImporter:
             (existing.aggregate(maximum=Max("position"))["maximum"] or 0) + existing.count() + 1_000
         )
         existing.update(position=F("position") + offset)
+        descriptions = source.overview.lesson_descriptions() if source.overview else {}
         for position, unit_source in enumerate(source.units):
-            self._upsert_shared_lesson(shared_module, unit_source, position)
+            self._upsert_shared_lesson(
+                shared_module,
+                unit_source,
+                position,
+                summary=descriptions.get(unit_source.slug, ""),
+            )
             self.counts["shared_lessons"] += 1
         stale_lessons = SharedLesson.objects.filter(module=shared_module).exclude(
             source_content_id__in=incoming_ids
@@ -857,6 +999,8 @@ class _CurriculumImporter:
         shared_module: SharedModule,
         unit_source: UnitSource,
         position: int,
+        *,
+        summary: str = "",
     ) -> SharedLesson:
         source_id = unit_source.content_id
         module_dir = str(PurePosixPath(unit_source.source_path).parent)
@@ -868,7 +1012,9 @@ class _CurriculumImporter:
                 "title": unit_source.title,
                 "position": position,
                 "content_markdown": unit_source.markdown,
+                "summary": summary[:500],
                 "video_url": unit_source.metadata.video_url or "",
+                "video_duration_seconds": unit_source.metadata.video_duration_seconds,
                 "code_sources": [
                     {"label": code.label, "source_path": code.source_path}
                     for code in unit_source.metadata.code
@@ -987,6 +1133,16 @@ class _CurriculumImporter:
                         source_path=source.source_path or ".",
                     )
             project = Project.objects.filter(course=cohort, slug=item.slug).first()
+            if item.placement_only:
+                # The attempt belongs to the CMP export; a fresh database that
+                # has not imported it yet simply has nothing to place.
+                if project is None:
+                    self.counts["project_placements_pending"] += 1
+                    continue
+                project.shared_module = shared_module
+                project.save(update_fields=["shared_module"])
+                self.counts["project_placements"] += 1
+                continue
             if project is None:
                 project = Project(course=cohort, slug=item.slug)
             project.title = item.title

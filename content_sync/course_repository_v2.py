@@ -24,6 +24,7 @@ from courses.services.curriculum_source import (
     CriteriaSetSource,
     HomeworkBindingSource,
     HomeworkSource,
+    InstructorSource,
     ModuleSource,
     ProjectSource,
     UnitSource,
@@ -52,6 +53,7 @@ from .course_repository import (
     _string,
     _validated_snapshot,
 )
+from .module_overview import parse_module_overview
 
 SCHEMA_VERSION = 2
 PARSER_VERSION = "course-repository-v2"
@@ -165,6 +167,8 @@ class SharedCurriculumParserV2:
                     "urls",
                     "hashtag",
                     "published",
+                    "instructors",
+                    "weekly_commitment",
                 }
             ),
             required=frozenset(
@@ -278,7 +282,49 @@ class SharedCurriculumParserV2:
             published=_boolean(mapping["published"], path=path, pointer="/published"),
             source_path=path,
             current_cohort=current_cohort,
+            instructors=(
+                self._parse_instructors(path, mapping["instructors"])
+                if "instructors" in mapping
+                else None
+            ),
+            weekly_commitment=(
+                _string(
+                    mapping["weekly_commitment"],
+                    path=path,
+                    pointer="/weekly_commitment",
+                    maximum=500,
+                )
+                if "weekly_commitment" in mapping
+                else None
+            ),
         )
+
+    def _parse_instructors(self, path: str, raw: Any) -> tuple[InstructorSource, ...]:
+        items = _sequence(raw, path=path, pointer="/instructors", minimum=1)
+        if len(items) > 10:
+            _fail("instructors_too_many", path, "/instructors")
+        instructors: list[InstructorSource] = []
+        names: set[str] = set()
+        for index, item in enumerate(items):
+            pointer = f"/instructors/{index}"
+            entry = _strict_mapping(
+                item,
+                path=path,
+                pointer=pointer,
+                allowed=frozenset({"name", "url"}),
+                required=frozenset({"name"}),
+            )
+            name = _string(entry["name"], path=path, pointer=f"{pointer}/name", maximum=200)
+            if name.casefold() in names:
+                _fail("duplicate_instructor", path, pointer)
+            names.add(name.casefold())
+            url = (
+                _https_url(entry["url"], path=path, pointer=f"{pointer}/url")
+                if "url" in entry
+                else ""
+            )
+            instructors.append(InstructorSource(name=name, url=url))
+        return tuple(instructors)
 
     def _parse_cohorts_index(self, path: str, raw: Any, *, current_cohort: str) -> dict[str, str]:
         """Parse and structurally validate course.yaml's ``cohorts`` index.
@@ -449,6 +495,12 @@ class SharedCurriculumParserV2:
                     metadata=metadata,
                 )
             )
+        overview = None
+        if overview_markdown is not None:
+            overview = parse_module_overview(
+                overview_markdown,
+                lesson_slugs={PurePosixPath(unit.source_path).name: unit.slug for unit in units},
+            )
         return ModuleSource(
             content_id=content_id,
             slug=module_slug,
@@ -462,6 +514,7 @@ class SharedCurriculumParserV2:
             units=tuple(units),
             scope="shared",
             overview_markdown=overview_markdown,
+            overview=overview,
         )
 
     def _parse_bound_homework(
@@ -702,6 +755,41 @@ class SharedCurriculumParserV2:
         seen: set[str] = set()
         for index, item in enumerate(raw):
             pointer = f"/projects/{index}"
+            if isinstance(item, dict) and set(item) <= {"slug", "module"}:
+                # A placement-only entry: the attempt itself (title, deadlines,
+                # peers, criteria) is owned by the course management platform
+                # export; the repository only says which module it belongs to.
+                entry = _strict_mapping(
+                    item,
+                    path=path,
+                    pointer=pointer,
+                    allowed=frozenset({"slug", "module"}),
+                    required=frozenset({"slug", "module"}),
+                )
+                slug = _slug(entry["slug"], path=path, pointer=f"{pointer}/slug")
+                if slug in seen:
+                    _fail("duplicate_project_slug", path, f"{pointer}/slug")
+                seen.add(slug)
+                placement_module = _string(
+                    entry["module"], path=path, pointer=f"{pointer}/module", maximum=100
+                )
+                if placement_module not in module_by_slug:
+                    _fail("curriculum_source_mismatch", path, f"{pointer}/module")
+                result.append(
+                    ProjectSource(
+                        slug=slug,
+                        title="",
+                        module=placement_module,
+                        description_markdown="",
+                        description_source_path=None,
+                        submission_due=None,
+                        review_due=None,
+                        peers=None,
+                        criteria_set=None,
+                        placement_only=True,
+                    )
+                )
+                continue
             entry = _strict_mapping(
                 item,
                 path=path,

@@ -173,6 +173,30 @@ never deletes a project or touches its state, submissions or reviews. Parser:
 `content_sync/course_repository_v2.py`; import: `_import_cohort_projects` in
 `courses/services/curriculum_import.py`.
 
+A `projects:` entry with only `slug` and `module` is a *placement*: the attempt was
+created by the CMP content import, which keeps owning its title, deadlines, peers and
+criteria, and the repository only places it in a shared module (`Project.shared_module`).
+A placement for an attempt the database does not have yet is counted as
+`project_placements_pending` and skipped, so order the CMP import first on a fresh
+database and re-pull the repository afterwards.
+
+### 3.1a Course-page fields
+
+The same ingest fills the course and module page fields the repository owns:
+
+- `course.yaml` `instructors` (name, optional url) and `weekly_commitment` go to
+  `Course.instructors` and `Course.weekly_commitment`; an absent key keeps the stored
+  value.
+- Lesson frontmatter `video_duration_seconds` goes to `SharedLesson.video_duration_seconds`.
+  It is written by zoomcamp-ops `scripts/lesson-metadata/fill_video_durations.py`.
+- Each root module `README.md` is parsed at import (`content_sync/module_overview.py`)
+  into `SharedModule.overview_intro_markdown`, `overview_parts` (lesson groups with each
+  lesson's description), `overview_sections`, `workshop_recordings`, `community_notes`
+  and `code_url` (the README `Code:` link, else the module's `code/` directory, as a
+  GitHub URL on the synced branch). A lesson's README description is its
+  `SharedLesson.summary`. Relative links other than lesson links are stored as absolute
+  GitHub URLs; lesson links stay `NN-slug.md` for the renderer to map to routes.
+
 ### 3.2 Converting a running legacy cohort: MediaGen 2026 production cutover
 
 `production-ai-agents-generative-media-2026` (legacy until 2026-11-25) moves to the

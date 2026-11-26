@@ -64,6 +64,45 @@ class SharedModule(SourceProvenanceModel):
     # field.  It is never a lesson and never a fallback for a missing lesson.
     overview_markdown = models.TextField(blank=True, default="")
     overview_rendered_html = models.TextField(blank=True, default="")
+    # The same README parsed into fields at import time
+    # (content_sync/module_overview.py), so the module page never parses
+    # Markdown structure at request time.  Relative links other than lesson
+    # links are already absolute GitHub URLs; lesson links stay ``NN-slug.md``.
+    overview_intro_markdown = models.TextField(blank=True, default="", db_default="")
+    overview_parts = models.JSONField(
+        blank=True,
+        default=list,
+        db_default=[],
+        help_text=(
+            'Lesson groups from the README: [{"heading", "intro_markdown", '
+            '"lessons": [{"slug", "title", "description"}]}].'
+        ),
+    )
+    overview_sections = models.JSONField(
+        blank=True,
+        default=list,
+        db_default=[],
+        help_text='Other README sections: [{"heading", "markdown"}].',
+    )
+    workshop_recordings = models.JSONField(
+        blank=True,
+        default=list,
+        db_default=[],
+        help_text='Full uncut recordings: [{"label", "title", "url"}].',
+    )
+    community_notes = models.JSONField(
+        blank=True,
+        default=list,
+        db_default=[],
+        help_text='Learner notes links: [{"label", "title", "url"}].',
+    )
+    code_url = models.URLField(
+        max_length=500,
+        blank=True,
+        default="",
+        db_default="",
+        help_text="The module's code on GitHub, derived at import.",
+    )
     summary = models.CharField(max_length=500, blank=True, default="")
     published = models.BooleanField(default=True)
     retired_at = models.DateTimeField(
@@ -147,6 +186,11 @@ class SharedLesson(SourceProvenanceModel):
     content_markdown = models.TextField(blank=True)
     rendered_html = models.TextField(blank=True)
     video_url = models.URLField(blank=True)
+    video_duration_seconds = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Length of the lesson video, from the lesson frontmatter.",
+    )
     code_sources = models.JSONField(
         default=list,
         blank=True,
