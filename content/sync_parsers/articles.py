@@ -39,7 +39,7 @@ _BODY_IMAGE = re.compile(
 
 
 def _picture(checkout, relative: str) -> dict:
-    picture = {"source": relative}
+    picture: dict[str, object] = {"source": relative}
     dimensions = builder._image_dimensions(checkout.root / relative)
     if dimensions is not None:
         picture["width"], picture["height"] = dimensions
