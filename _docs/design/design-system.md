@@ -757,8 +757,13 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
   Drawn by `/blog`, `/books`, `/podcast`, an episode page's related episodes (the
   episodes sharing wiki concepts with it, the shared concepts as tags; there is no
   previous/next pair — episodes are not a sequence, and the season link in that
-  band's head is the way to browse in order) and every contribution band of a
-  person's profile. **Not** by the events index, whose rail carries three facts including a
+  band's head is the way to browse in order) and the articles and books bands of a
+  person's profile, through `public/_article_row.html` and `public/_book_row.html`
+  (the /blog and /books rows, so a profile draws the same card). A profile's episodes
+  are the podcast timeline (`public/_podcast_episode_timeline.html`, as on a wiki
+  page and an episode page) and its events the events timeline
+  (`public/_event_timeline.html`, the /events card); its bands take the
+  `--content-width` card-list column. **Not** by the events index, whose rail carries three facts including a
   start clock — that is `.when` below, and its card is the shared `.event-card`.
 
 - **Date rail (events index)** — set the way `.date-rail` is set: position and type,
@@ -788,7 +793,8 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
   </details>
   ```
 
-  It sits inside the `.row-list`, so folded rows keep the dashed division. `<details>`
+  It sits inside the `.row-list`, so folded rows keep the dashed division (a profile
+  band folds whole cards after its list: episodes, event days or rows). `<details>`
   does the work: keyboard behaviour and announced expanded state come free and it
   opens with JavaScript off. A bare "Show more" makes the reader click to find out how
   much they are in for.

@@ -1,0 +1,23 @@
+{% comment %}
+  Some cards of one band on a person's profile, in the site's shared card for
+  that kind of work (see `content.person_content.ContributionGroup.cards`).  Its
+  own partial only because the profile draws a band's cards in two places, the
+  ones in view and the ones behind the "show more" fold.
+
+      {% include "public/_person_group_cards.html" with group=group cards=group.visible_cards only %}
+{% endcomment %}
+{% if group.key == "podcast" %}
+  {% include "public/_podcast_episode_timeline.html" with items=cards only %}
+{% elif group.key == "events" %}
+  {% include "public/_event_timeline.html" with groups=cards only %}
+{% else %}
+  <div class="row-list">
+    {% for record in cards %}
+      {% if group.key == "books" %}
+        {% include "public/_book_row.html" with record=record only %}
+      {% else %}
+        {% include "public/_article_row.html" with record=record only %}
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}

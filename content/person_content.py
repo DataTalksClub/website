@@ -34,6 +34,9 @@ from django.utils import timezone
 from events.queries import published_event_records_by_path
 
 from . import catalogue
+from .event_content import EventDateGroup, event_timeline_groups
+from .podcast_content import ordered_podcasts
+from .podcast_hub import hub_episodes
 
 # Events are shown in the same timezone the events hub and the event pages use.
 SITE_TIMEZONE = ZoneInfo("Europe/Berlin")
@@ -104,12 +107,26 @@ class Contribution:
 
 @dataclass(frozen=True, slots=True)
 class ContributionGroup:
-    """One kind of work, with the rows the page draws for it."""
+    """One kind of work: its rows, and the cards the page draws for them.
+
+    ``items`` is one :class:`Contribution` per linked piece of work and carries
+    the count and the role.  ``cards`` is what the band draws, in the site's own
+    shared shape for that kind of work, so a piece of work looks the same here
+    as on the page it came from:
+
+    * podcast — ``content.podcast_hub.HubEpisode`` for
+      ``public/_podcast_episode_timeline.html`` (the wiki and episode pages);
+    * events — ``content.event_content.EventDateGroup`` for
+      ``public/_event_timeline.html`` (the /events timeline), one per day;
+    * blog and books — the catalogue record for ``public/_article_row.html``
+      and ``public/_book_row.html`` (the /blog and /books rows).
+    """
 
     key: str
     heading: str
     noun: str
     items: tuple[Contribution, ...]
+    cards: tuple[Any, ...] = ()
 
     @property
     def count(self) -> int:
@@ -129,27 +146,34 @@ class ContributionGroup:
         return self.noun if total == 1 else f"{self.noun}s"
 
     @property
-    def folded_count(self) -> int:
-        """How many rows this group keeps behind its "show more" control.
+    def _fold_at(self) -> int:
+        """The first folded card, or the number of cards when nothing folds.
 
         A group that is not long enough to be a wall folds nothing: see
         ``ROWS_BEFORE_FOLD`` and ``SMALLEST_FOLD``.
         """
 
-        hidden = self.count - ROWS_BEFORE_FOLD
-        return hidden if hidden >= SMALLEST_FOLD else 0
+        if len(self.cards) - ROWS_BEFORE_FOLD >= SMALLEST_FOLD:
+            return ROWS_BEFORE_FOLD
+        return len(self.cards)
 
     @property
-    def visible_items(self) -> tuple[Contribution, ...]:
-        """The rows the page shows without asking the reader for anything."""
+    def visible_cards(self) -> tuple[Any, ...]:
+        """The cards the page shows without asking the reader for anything."""
 
-        return self.items[:ROWS_BEFORE_FOLD] if self.folded_count else self.items
+        return self.cards[: self._fold_at]
 
     @property
-    def folded_items(self) -> tuple[Contribution, ...]:
-        """The rest of the rows, in the same order, behind the fold."""
+    def folded_cards(self) -> tuple[Any, ...]:
+        """The rest of the cards, in the same order, behind the fold."""
 
-        return self.items[ROWS_BEFORE_FOLD:] if self.folded_count else ()
+        return self.cards[self._fold_at :]
+
+    @property
+    def folded_count(self) -> int:
+        """How many pieces of work the fold holds (an event day may hold two)."""
+
+        return sum(_card_size(card) for card in self.folded_cards)
 
     @property
     def fold_label(self) -> str:
@@ -168,28 +192,9 @@ class ContributionGroup:
             return ""
         return f"Show fewer {self._noun_for(self.count)}"
 
-    @property
-    def count_label(self) -> str:
-        """Count a group the way the page writes it: 1 event, or 50 events."""
 
-        return f"{self.count} {self.noun_label}"
-
-    @property
-    def role_phrase(self) -> str:
-        """Name the roles this group's rows actually carry, in the order they appear.
-
-        Today every group is single-role (a guest on episodes, a speaker at events,
-        an author of articles and books), but the profile states a role per link, so
-        a group that mixes them names both instead of picking one.
-        """
-
-        roles: list[str] = []
-        for item in self.items:
-            if item.role not in roles:
-                roles.append(item.role)
-        if len(roles) < 2:
-            return roles[0] if roles else ""
-        return f"{', '.join(roles[:-1])} and {roles[-1]}"
+def _card_size(card: Any) -> int:
+    return len(card.events) if isinstance(card, EventDateGroup) else 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -440,9 +445,28 @@ def _groups(record: dict[str, Any], *, now: datetime) -> tuple[ContributionGroup
                 heading=heading,
                 noun=noun,
                 items=tuple(items),
+                cards=_cards(key, items, indexes.get(key, {})),
             )
         )
     return tuple(groups)
+
+
+def _cards(
+    key: str, items: list[Contribution], index: dict[str, dict[str, Any]]
+) -> tuple[Any, ...]:
+    """The shared cards a group's band draws (see :class:`ContributionGroup`)."""
+
+    paths = [item.public_path for item in items]
+    if key == "events":
+        return event_timeline_groups(paths)
+    if key == "podcast":
+        # The podcast's own order, newest first: an episode with no published
+        # date still sits where its season and number put it.
+        wanted = set(paths)
+        return hub_episodes(
+            [record for record in ordered_podcasts() if record.get("public_path") in wanted]
+        )
+    return tuple(index[path] for path in paths)
 
 
 def person_view(record: dict[str, Any], *, now: datetime | None = None) -> Person:

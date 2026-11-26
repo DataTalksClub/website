@@ -30,7 +30,7 @@ BODIES_BELOW_THE_SEAM: dict[str, str] = {
     "templates/public/book_detail.html": '<div class="prose book-summary">',
     "templates/public/collection_hub.html": '<div class="row-list collection-rows"',
     "templates/public/event_detail.html": '<div class="prose prose-reading event-description">',
-    "templates/public/events.html": '<div class="event-timeline"',
+    "templates/public/events.html": '{% include "public/_event_timeline.html"',
     "templates/public/person_detail.html": '<div class="prose person-bio">',
     "templates/public/podcast_detail.html": 'class="player-frame episode-player episode-video"',
     "templates/public/podcast_hub.html": '<div class="event-timeline" data-podcast-season=',

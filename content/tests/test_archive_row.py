@@ -26,9 +26,11 @@ DESIGN_SYSTEM = REPOSITORY_ROOT / "templates/core/_design_system.html"
 # do not (see the partial's own comment for why).
 SURFACES = (
     REPOSITORY_ROOT / "templates/public/collection_hub.html",
+    REPOSITORY_ROOT / "templates/public/_article_row.html",
+    REPOSITORY_ROOT / "templates/public/_book_row.html",
     REPOSITORY_ROOT / "templates/public/podcast_hub.html",
     REPOSITORY_ROOT / "templates/public/_podcast_related.html",
-    REPOSITORY_ROOT / "templates/public/_contribution_row.html",
+    REPOSITORY_ROOT / "templates/public/_person_group_cards.html",
 )
 EVENT_SURFACES = (
     REPOSITORY_ROOT / "templates/public/events.html",

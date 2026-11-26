@@ -57,6 +57,10 @@ def _settle_analytics_preferences(page: Page) -> None:
         expect(preferences).to_be_hidden()
 
 
+# The synthetic article's picture, which the empty test media store cannot serve.
+MISSING_PICTURE = "/images/posts/ai-dev-tools-zoomcamp/og-image.jpg"
+
+
 def _assert_no_horizontal_overflow(page: Page) -> None:
     overflow = page.evaluate(
         """() => ({
@@ -86,7 +90,13 @@ def test_rich_and_sparse_profiles_render_the_design_system_in_both_themes(
     console_errors: list[str] = []
     page.on(
         "console",
-        lambda message: console_errors.append(message.text) if message.type == "error" else None,
+        lambda message: (
+            console_errors.append(message.text)
+            # The rich profile's article row draws the article's picture, as
+            # /blog does, and the test media store holds no objects.
+            if message.type == "error" and not message.location["url"].endswith(MISSING_PICTURE)
+            else None
+        ),
     )
 
     for slug, label in ((RICH_SLUG, "rich"), (SPARSE_SLUG, "sparse")):
@@ -119,31 +129,25 @@ def test_a_wide_body_of_work_is_grouped_into_scannable_rows(page: Page, live_ser
     page.goto(f"{live_server.url}{record['public_path']}", wait_until="networkidle")
     _settle_analytics_preferences(page)
 
-    # Every contribution is the site's shared archive row.
-    expect(page.locator(".archive-row.person-row")).to_have_count(len(record["relationships"]))
+    # Every contribution is the site's shared card for its kind of work: the
+    # podcast timeline, the /events card, the /blog and /books row.
+    expect(page.locator("article.event-item, article.archive-row")).to_have_count(
+        sum(group.count for group in person.groups)
+    )
     expect(page.locator(".stat-tile")).to_have_count(len(person.groups))
-    # Each group draws exactly its own rows, and a dated row carries the shared
-    # archive row's date rail -- derived from the profile's own groups, so the
-    # contract stays the same whichever reference profile the database holds.
-    for key in ("podcast", "events"):
-        expect(page.locator(f".person-rows-{key} .archive-row")).to_have_count(
-            _group_size(person, key)
-        )
-        dated = sum(
-            1
-            for group in person.groups
-            if group.key == key
-            for item in (*group.visible_items, *group.folded_items)
-            if item.date
-        )
-        expect(page.locator(f".person-rows-{key} .archive-date")).to_have_count(dated)
+    expect(page.locator(".person-rows-podcast .podcast-episode-card")).to_have_count(
+        _group_size(person, "podcast")
+    )
+    expect(page.locator(".person-rows-events article.event-item")).to_have_count(
+        _group_size(person, "events")
+    )
     for group in person.groups:
         heading = page.locator(f"#{group.anchor}-heading")
         expect(heading).to_be_visible()
         expect(heading).to_have_text(group.heading)
 
-    first_row_link = page.locator(".archive-title a").first
-    expect(first_row_link).to_have_attribute("href", person.groups[0].items[0].public_path)
+    first_card_link = page.locator(".person-contributions article h3 a").first
+    expect(first_card_link).to_have_attribute("href", person.groups[0].cards[0].episode.public_path)
 
     portrait = page.get_by_role("img", name=f"Portrait of {record['title']}")
     expect(portrait).to_be_visible()
@@ -166,12 +170,12 @@ def test_a_long_group_folds_and_opens_without_javascript_of_its_own(
     expect(control).to_be_visible()
     expect(control).to_contain_text(events.fold_label)
 
-    hidden = fold.locator(".archive-row")
+    hidden = fold.locator("article.event-item")
     expect(hidden).to_have_count(events.folded_count)
     expect(hidden.first).to_be_hidden()
     # The visible rows are the ones outside the fold.
-    expect(page.locator(".person-rows-events > .archive-row")).to_have_count(
-        len(events.visible_items)
+    expect(page.locator(".person-rows-events > .event-timeline article.event-item")).to_have_count(
+        sum(len(day.events) for day in events.visible_cards)
     )
 
     # The control is the browser's own: it is reachable and operable by keyboard.

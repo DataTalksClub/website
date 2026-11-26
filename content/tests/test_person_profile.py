@@ -38,6 +38,16 @@ def profile(slug: str) -> dict[str, Any]:
     return catalogue.people_by_slug()[slug]
 
 
+def record_paths(record: dict[str, Any], prefix: str) -> list[str]:
+    """The profile's links into one collection."""
+
+    return [
+        relationship["public_path"]
+        for relationship in record["relationships"]
+        if relationship["public_path"].startswith(prefix)
+    ]
+
+
 def _at(records: tuple[dict[str, Any], ...], public_path: str) -> dict[str, Any]:
     """The catalogue record a profile row links to, which must be published."""
 
@@ -184,19 +194,24 @@ class PersonCompositionTests(TestCase):
         groups = {group.key: group for group in person_view(profile(RICH_SLUG)).groups}
 
         events = groups["events"]
-        self.assertEqual(len(events.visible_items), ROWS_BEFORE_FOLD)
-        self.assertEqual(events.folded_count, events.count - ROWS_BEFORE_FOLD)
+        # An event card is one day of the /events timeline, so the fold counts
+        # days in view and events behind it.
+        self.assertEqual(len(events.visible_cards), ROWS_BEFORE_FOLD)
+        self.assertEqual(
+            events.folded_count,
+            events.count - sum(len(day.events) for day in events.visible_cards),
+        )
         self.assertEqual(events.fold_close_label, "Show fewer events")
         # The fold reorders nothing: it is the same list, cut in two.
-        self.assertEqual((*events.visible_items, *events.folded_items), events.items)
+        self.assertEqual((*events.visible_cards, *events.folded_cards), events.cards)
 
         # Five episodes and seven articles are lists a reader can simply read.
         for key in ("podcast", "blog", "books"):
             with self.subTest(group=key):
                 group = groups[key]
                 self.assertEqual(group.folded_count, 0)
-                self.assertEqual(group.folded_items, ())
-                self.assertEqual(group.visible_items, group.items)
+                self.assertEqual(group.folded_cards, ())
+                self.assertEqual(group.visible_cards, group.cards)
                 self.assertEqual(group.fold_label, "")
 
     def test_a_group_folds_only_once_it_would_hide_more_than_a_couple_of_rows(self) -> None:
@@ -219,6 +234,7 @@ class PersonCompositionTests(TestCase):
                     )
                     for index in range(total)
                 ),
+                cards=tuple({"public_path": f"/events/{index}/event"} for index in range(total)),
             )
 
         for total in range(ROWS_BEFORE_FOLD + SMALLEST_FOLD):
@@ -229,18 +245,26 @@ class PersonCompositionTests(TestCase):
         self.assertEqual(folded.fold_label, f"Show {SMALLEST_FOLD} more events")
         self.assertEqual(group_of(ROWS_BEFORE_FOLD + 1).fold_label, "")
 
-    def test_counts_and_role_phrases_agree_with_the_rows(self) -> None:
-        person = person_view(profile(RICH_SLUG))
-        groups = {group.key: group for group in person.groups}
+    def test_each_group_draws_the_shared_card_for_its_kind_of_work(self) -> None:
+        """Episodes as hub cards, events as /events days, articles and books as
+        their catalogue records, each card once and in the group's own order."""
+
+        groups = {group.key: group for group in person_view(profile(RICH_SLUG)).groups}
+        podcast, events = groups["podcast"], groups["events"]
+        self.assertEqual(len(podcast.cards), podcast.count)
         self.assertEqual(
-            (groups["podcast"].count_label, groups["podcast"].role_phrase),
-            (f"{groups['podcast'].count} episodes", "guest"),
+            {card.episode.public_path for card in podcast.cards},
+            {item.public_path for item in podcast.items},
         )
-        self.assertEqual(
-            (groups["events"].count_label, groups["events"].role_phrase),
-            (f"{groups['events'].count} events", "speaker"),
-        )
-        self.assertEqual(groups["books"].role_phrase, "author")
+        self.assertEqual(sum(len(day.events) for day in events.cards), events.count)
+        days = [day.date for day in events.cards]
+        self.assertEqual(days, sorted(days, reverse=True))
+        for key in ("blog", "books"):
+            with self.subTest(group=key):
+                self.assertEqual(
+                    [record["public_path"] for record in groups[key].cards],
+                    [item.public_path for item in groups[key].items],
+                )
 
     def test_a_profile_may_carry_any_subset_of_its_own_facts(self) -> None:
         sparse = person_view(profile(SPARSE_SLUG))
@@ -382,32 +406,27 @@ class PersonPageTests(TestCase):
         for relationship in record["relationships"]:
             self.assertIn(f'href="{relationship["public_path"]}"', body)
             self.assertIn(escape(relationship["label"]), body)
-        for role in {relationship["role"] for relationship in record["relationships"]}:
-            self.assertRegex(
-                body, rf'<p class="archive-meta">{re.escape(escape(role))}(?: · [^<]*)?</p>'
-            )
 
         for group in person.groups:
             self.assertIn(f'<h2 id="{group.anchor}-heading">{escape(group.heading)}</h2>', body)
             self.assertIn(f"person-rows-{group.key}", body)
-        # Every contribution is the site's shared archive row — the same row the
-        # blog, the books archive and the podcast index draw — and the rows
-        # behind a group's fold are in the page too, not fetched on demand. An
-        # undated contribution's row carries one extra class
-        # ("archive-row-undated"), so both spellings count as one row.
-        row_pattern = r'<article class="archive-row(?: archive-row-undated)? person-row"'
+        # Every contribution is the site's shared card for its kind of work —
+        # the podcast timeline the wiki and episode pages draw, the /events
+        # card, the /blog and /books row — and the cards behind a group's fold
+        # are in the page too, not fetched on demand.
         self.assertEqual(
-            len(re.findall(row_pattern, body)),
-            len(record["relationships"]),
+            body.count('<article class="event-item') + body.count('<article class="archive-row'),
+            sum(group.count for group in person.groups),
         )
         self.assertEqual(
-            body.count('class="event-item archive-card interactive-card'),
-            len(record["relationships"]),
+            body.count('<article class="event-item podcast-episode-card'),
+            len(record_paths(record, "/podcast/")),
         )
-        # Each dated row leads with the shared two-line date rail, and an undated
-        # one gives that column back to the card.
-        dated = [item for group in person.groups for item in group.items if item.date]
-        self.assertEqual(body.count('class="event-day-date archive-date"'), len(dated))
+        self.assertEqual(
+            body.count('<article class="archive-row'),
+            len(record_paths(record, "/blog/")) + len(record_paths(record, "/books/")),
+        )
+        self.assertNotIn("as guest.", body)
         self.assertNotIn('class="when"', body)
         self.assertNotIn('class="status-pill status-pill-mint"', body)
         self.assertIn('class="stat-tiles stat-tiles-row person-stats"', body)
@@ -453,7 +472,7 @@ class PersonPageTests(TestCase):
         # The first rows stay in view; only the remainder are inside the fold.
         _, _, remainder = body.partition('<details class="row-fold"')
         self.assertEqual(
-            remainder.partition("</details>")[0].count('<article class="archive-row person-row"'),
+            remainder.partition("</details>")[0].count('<article class="event-item'),
             events.folded_count,
         )
         # A short group offers no control at all.

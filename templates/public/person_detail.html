@@ -39,8 +39,8 @@
       /* ------------------------------------------------------------------ *
        * Person profile, design system (issue #179).  There is no mockup for this
        * page, so it is composed from the system's own primitives: the hero
-       * identity, stat tiles for what the person has done, and one dashed
-       * .row-list per kind of work.  One inline stylesheet: the shared design
+       * identity, stat tiles for what the person has done, and one band per
+       * kind of work drawn with that work's shared card.  One inline stylesheet: the shared design
        * system partial, then this page.
        * ------------------------------------------------------------------ */
 
@@ -141,21 +141,28 @@
         max-width: 48rem;
       }
 
-      /* One row per contribution, and it is the archive row every dated index on
-         the site draws — `.archive-row` in the design system partial above,
-         through `public/_archive_row.html`.  This page had four row shapes of
-         its own, one per kind of work, and none of them was the shape the same
-         episode or article had on the page it came from.  Now a piece of work
-         looks the same wherever the reader meets it, and the page adds no row
-         rule of its own. */
+      /* The contribution bands are card lists, so they take the shared
+         card-list column (`.content-shell`), centred on the same axis as the
+         reading column above, so an episode card's platforms and topics fit
+         on one line.  Every card in them is a shared one (see the comment over
+         the bands); the page adds no card rule of its own.  The podcast rail
+         names the season too ("S23 · Episode 5"), so it is set as wide as the
+         wiki's. */
+      .person-rows-podcast {
+        --day-col: 8.5rem;
+      }
+
+      .person-rows-podcast .event-timeline {
+        --day-col: inherit;
+      }
 
       .person-empty {
         max-width: 44rem;
       }
 
       /* ------------------------------------------------------------------ *
-       * Narrow layout.  The hero centres the portrait over the name; the rows
-       * carry their own narrow behaviour from the shared archive row.
+       * Narrow layout.  The hero centres the portrait over the name; the cards
+       * carry their own narrow behaviour from their shared partials.
        * ------------------------------------------------------------------ */
 
       @media (max-width: 47.99rem) {
@@ -271,44 +278,42 @@
       {% endif %}
 
       {% comment %}
-        One band per kind of work, every row of it the site's shared archive row,
-        and all of them on the content ground so the profile reads as one page
-        rather than four.  A profile with no linked work says so instead of
-        showing an empty heading.
+        One band per kind of work, each drawn with the card that kind of work
+        has everywhere else on the site, so a piece of work looks the same here
+        as on the page it came from: episodes as the podcast timeline the wiki
+        and the episode pages draw (date and "S23 · Episode 5" on the rail, the
+        episode card with its picture, platforms and topics), events as the
+        /events timeline, articles and books as the /blog and /books rows.  The
+        cards take the card-list column (`.content-shell`), on the same
+        axis as the reading column above.  A profile with no linked work says
+        so instead of showing an empty heading.
 
-        A long group keeps its first rows in view and puts the rest behind one
-        control that says how many it is holding: the widest profile lists fifty
-        events, and fifty rows is a wall rather than a list.  The control is a
-        <details>, so it needs no script, the browser gives it its keyboard
-        behaviour and its announced expanded state, and the rows it holds are in
-        the document already rather than fetched when it opens.
+        A long group keeps its first cards in view and puts the rest behind one
+        control that says how many it is holding: the widest profile lists
+        sixty events, and sixty cards is a wall rather than a list.  The control
+        is a <details>, so it needs no script, the browser gives it its keyboard
+        behaviour and its announced expanded state, and the cards it holds are
+        in the document already rather than fetched when it opens.
       {% endcomment %}
       {% for group in person.groups %}
         <section class="band band-lavender person-contributions" aria-labelledby="{{ group.anchor }}-heading">
-          <div class="shell person-shell">
+          <div class="shell content-shell person-rows-{{ group.key }}">
             <div class="band-head">
               <div>
                 <h2 id="{{ group.anchor }}-heading">{{ group.heading }}</h2>
-                <p>{{ group.count_label }} as {{ group.role_phrase }}.</p>
               </div>
             </div>
-            <div class="row-list person-rows person-rows-{{ group.key }}">
-              {% for item in group.visible_items %}
-                {% include "public/_contribution_row.html" with item=item only %}
-              {% endfor %}
-              {% if group.folded_items %}
-                <details class="row-fold" id="{{ group.anchor }}-more">
-                  <summary class="row-fold-summary">
-                    <span class="row-fold-open">{{ group.fold_label }}</span>
-                    <span class="row-fold-close">{{ group.fold_close_label }}</span>
-                    <span class="row-fold-marker" aria-hidden="true"></span>
-                  </summary>
-                  {% for item in group.folded_items %}
-                    {% include "public/_contribution_row.html" with item=item only %}
-                  {% endfor %}
-                </details>
-              {% endif %}
-            </div>
+            {% include "public/_person_group_cards.html" with group=group cards=group.visible_cards only %}
+            {% if group.folded_cards %}
+              <details class="row-fold" id="{{ group.anchor }}-more">
+                <summary class="row-fold-summary">
+                  <span class="row-fold-open">{{ group.fold_label }}</span>
+                  <span class="row-fold-close">{{ group.fold_close_label }}</span>
+                  <span class="row-fold-marker" aria-hidden="true"></span>
+                </summary>
+                {% include "public/_person_group_cards.html" with group=group cards=group.folded_cards only %}
+              </details>
+            {% endif %}
           </div>
         </section>
       {% empty %}
