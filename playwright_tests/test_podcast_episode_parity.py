@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from playwright.sync_api import Browser, Page, expect
+from playwright.sync_api import Browser, Frame, Page, expect
 
 from content import catalogue
 
@@ -78,9 +78,15 @@ window.addEventListener('message', function (event) {
 </script></body></html>"""
 
 
-def _embed_seeks(page: Page) -> list[float]:
-    frame = next(frame for frame in page.frames if "youtube-nocookie" in frame.url)
-    return frame.evaluate("state.seeks")
+def _embed_frame(page: Page) -> Frame:
+    return next(frame for frame in page.frames if "youtube-nocookie" in frame.url)
+
+
+def _wait_for_embed_seek(page: Page, seconds: int) -> None:
+    """The seek command is a postMessage into the frame, delivered after the
+    page has already marked the chapter; wait for the frame to record it."""
+
+    _embed_frame(page).wait_for_function("(s) => state.seeks.includes(s)", arg=seconds)
 
 
 def _settle_analytics_preferences(page: Page) -> None:
@@ -179,7 +185,7 @@ def test_a_chapter_plays_in_place_and_the_docked_player_follows(
         " return row && Number(row.dataset.chapterStart) === s; }",
         arg=seconds,
     )
-    assert seconds in _embed_seeks(page)
+    _wait_for_embed_seek(page, seconds)
     expect(player).to_have_attribute("src", cued)
 
     # Scrolled away from the video, the docked player appears with the
