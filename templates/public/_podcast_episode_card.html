@@ -8,9 +8,10 @@
 
   * `on_rail` — the card sits on the /podcast timeline, whose heading names the
     season and whose rail already carries the episode's date and number, so
-    the card opens with its title.  Off the rail (the homepage) those facts
-    have nowhere else to go, so the card opens with the line the rail would
-    have carried: "Season 25 · Episode 9 · Oct 13".  Neither draws the length.
+    the card draws only its title.  Off the rail (the homepage) those facts
+    have nowhere else to go, so the title is followed by the line the rail
+    would have carried: "Season 25 · Episode 9 · Oct 13".  Title first, meta
+    second, like every card on the site.  Neither draws the length.
   * `thumb_loading` — "eager" for a card above the fold, otherwise lazy.
 
   The card's rules live in `templates/core/_design_system.html` (`.event-item`
@@ -20,6 +21,11 @@
 {% with episode=item.episode %}
   <article class="event-item podcast-episode-card interactive-card interactive-lift" data-podcast-episode>
     <div class="event-item-body">
+      {% spaceless %}
+      <h3>
+        <a href="{{ episode.public_path }}">{{ episode.title }}</a>
+      </h3>
+      {% endspaceless %}
       {% if not on_rail %}
         <p class="event-item-time">
           Season {{ episode.season }} · <b>Episode {{ episode.episode }}</b>
@@ -28,11 +34,6 @@
           {% endif %}
         </p>
       {% endif %}
-      {% spaceless %}
-      <h3>
-        <a href="{{ episode.public_path }}">{{ episode.title }}</a>
-      </h3>
-      {% endspaceless %}
       {% if item.guests %}
         <p class="person-chips event-item-speakers">
           {% for guest in item.guests %}

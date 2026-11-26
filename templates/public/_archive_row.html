@@ -29,8 +29,9 @@
     height.  A record with no date gives its rail back to the card rather than
     leaving a column of empty space (seventeen podcast episodes have none).
   * `row_dateline` — a card drawn off any rail (the homepage's latest article)
-    opens with the line the rail would have carried: "Jul 28, 2026 · 12 min
-    read", like the homepage's podcast card.  A row given one draws no rail.
+    carries the line the rail would have carried, under its title: "Jul 28,
+    2026 · 12 min read", like the homepage's podcast card.  A row given one
+    draws no rail.
   * `row_image`, `row_image_fit` — the record's picture, on the card's right
     like an episode's.  `row_image_fit="contain"` sets a portrait picture (a
     book cover) whole on the soft ground instead of cropping it;
@@ -85,17 +86,6 @@
     {% endif %}
     <div class="event-item archive-card interactive-card interactive-lift">
       <div class="event-item-body archive-body">
-        {% if row_dateline %}
-          {% if row_date %}
-            {% spaceless %}
-              <p class="event-item-time">
-                <time datetime="{{ row_date|iso_day }}">{{ row_dateline }}</time>
-              </p>
-            {% endspaceless %}
-          {% else %}
-            <p class="event-item-time">{{ row_dateline }}</p>
-          {% endif %}
-        {% endif %}
         {% if row_pill %}
           <p class="archive-marks">
             {% if row_pill_variant %}
@@ -111,6 +101,17 @@
         <h3 class="archive-title">
           <a href="{{ row_url }}">{{ row_title }}</a>
         </h3>
+        {% if row_dateline %}
+          {% if row_date %}
+            {% spaceless %}
+              <p class="event-item-time">
+                <time datetime="{{ row_date|iso_day }}">{{ row_dateline }}</time>
+              </p>
+            {% endspaceless %}
+          {% else %}
+            <p class="event-item-time">{{ row_dateline }}</p>
+          {% endif %}
+        {% endif %}
         {% if row_eyebrow or row_meta %}
           {% if row_eyebrow and row_meta %}
             <p class="archive-meta">{{ row_eyebrow }} · {{ row_meta }}</p>

@@ -151,9 +151,9 @@ class ArchiveRowSlotTests(TestCase):
         self.assertNotIn("By ", body)
         self.assertNotIn("With ", body)
 
-    def test_an_off_rail_row_opens_with_its_dateline_and_draws_its_picture(self) -> None:
+    def test_an_off_rail_row_puts_its_dateline_under_the_title(self) -> None:
         # The homepage's latest article and an episode's related episodes are
-        # drawn off the rail: the card opens with the line the rail would carry.
+        # drawn off the rail: the line the rail would carry follows the title.
         body = self.render(
             row_title="How to ship it",
             row_url="/blog/how-to-ship-it.html",
@@ -170,7 +170,7 @@ class ArchiveRowSlotTests(TestCase):
             '<time datetime="2025-08-11">Aug 11, 2025 · 12 min read</time></p>',
             body,
         )
-        self.assertLess(body.index("event-item-time"), body.index("<h3"))
+        self.assertGreater(body.index("event-item-time"), body.index("<h3"))
         self.assertIn(
             'class="event-item-thumb archive-thumb is-wide" src="/images/posts/ship/cover.png"',
             body,
