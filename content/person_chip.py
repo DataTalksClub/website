@@ -39,6 +39,9 @@ class PersonChip:
     public_path: str
     image_path: str
     media_available: bool
+    #: The short role the person's profile bio opens with ("Founder of
+    #: DataTalks.Club"), or ``""``.  A surface opts in to drawing it.
+    role: str = ""
 
     @property
     def initials(self) -> str:
@@ -89,11 +92,16 @@ def person_chip(
     key = _field(credit, "key", "slug")
     person = people_by_slug.get(key) or people_by_path.get(public_path) or {}
     image_path = str(person.get("image_path") or "")
+    # Imported here: the podcast hub composes chips, so a module-level import
+    # would be circular.  The role is the same one a podcast guest card shows.
+    from .podcast_hub import guest_role
+
     return PersonChip(
         name=name,
         public_path=public_path,
         image_path=image_path,
         media_available=bool(person.get("media_available")) and bool(image_path),
+        role=guest_role(str(person.get("summary") or "")),
     )
 
 

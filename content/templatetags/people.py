@@ -30,3 +30,24 @@ def person_chip(credit: Any) -> PersonChip:
     """Return one credited person with the portrait the people records hold."""
 
     return resolve_person_chip(credit)
+
+
+@register.filter(name="story_chip")
+def story_chip(story: Any) -> PersonChip:
+    """Return a member story's teller as a chip, so a quote card names its person
+    the way every other card on the page does.
+
+    A member is not in the people records: the name links to the public post the
+    quote was taken from (``source_url``, an external page, so the include passes
+    ``chip_external=True``) and the portrait is the story's own.  A story with no
+    portrait draws the chip's initials disc, and one whose portrait fails to load
+    is swapped for the same disc by ``core/media_fallback.js``.
+    """
+
+    portrait = str(getattr(story, "portrait_url", "") or "")
+    return PersonChip(
+        name=str(story.name),
+        public_path=str(getattr(story, "source_url", "") or ""),
+        image_path=portrait,
+        media_available=bool(portrait),
+    )

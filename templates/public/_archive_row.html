@@ -54,7 +54,9 @@
     list for a screen reader.
   * `row_credits` — the people who made it, resolved through `person_chip`, at
     the foot of the card and with no "By": a face beside a name under a title is
-    already read as the person who made it.
+    already read as the person who made it.  `row_credit_roles` adds each
+    person's role line under their name (the homepage's latest article, so its
+    author reads like the podcast card's guest).
   * `row_class`, `row_hook` — a class and one bare `data-` attribute for the
     surface's own hooks.
 
@@ -136,7 +138,13 @@
         {% if row_credits %}
           <p class="person-chips event-item-speakers card-credit">
             {% for credit in row_credits %}
-              {% include "public/_person_chip.html" with person=credit|person_chip %}
+              {% if row_credit_roles %}
+                {% with chip=credit|person_chip %}
+                  {% include "public/_person_chip.html" with person=chip chip_role=chip.role %}
+                {% endwith %}
+              {% else %}
+                {% include "public/_person_chip.html" with person=credit|person_chip %}
+              {% endif %}
             {% endfor %}
           </p>
         {% endif %}

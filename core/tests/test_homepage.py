@@ -757,7 +757,7 @@ class MemberStoriesCarouselTests(TestCase):
         # scroller already uses, rather than a second bespoke control.
         self.assertIn('data-scroll-target="catalog-scroller"', body)
 
-    def test_a_story_without_a_photo_falls_back_to_the_decorative_avatar(self) -> None:
+    def test_a_story_without_a_photo_falls_back_to_the_initials_disc(self) -> None:
         Testimonial.objects.filter(placement=TestimonialPlacement.HOMEPAGE).delete()
         Testimonial.objects.create(
             placement=TestimonialPlacement.HOMEPAGE,
@@ -782,15 +782,20 @@ class MemberStoriesCarouselTests(TestCase):
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
 
-        with_photo = body[body.index("Has Photo") - 600 : body.index("Has Photo")]
-        without_photo = body[body.index("No Photo Yet") - 600 : body.index("No Photo Yet")]
+        with_photo = body[body.index("Has Photo") - 900 : body.index("Has Photo")]
+        without_photo = body[body.index("No Photo Yet") - 900 : body.index("No Photo Yet")]
+        without_photo = without_photo[without_photo.rindex("<figure") :]
 
+        # The teller is drawn by the shared person chip, like every person on
+        # the page; a missing photo is the chip's initials disc, and a photo that
+        # fails to load is swapped for that disc by core/media_fallback.js.
+        self.assertIn('src="/static/core/testimonials/tim-claytor.jpg"', with_photo)
+        self.assertIn('data-initials="HP"', with_photo)
+        self.assertNotIn("<img", without_photo)
         self.assertIn(
-            '<img class="avatar" src="/static/core/testimonials/tim-claytor.jpg"',
-            with_photo,
+            '<span class="person-chip-portrait person-chip-initials" aria-hidden="true">NY</span>',
+            without_photo,
         )
-        self.assertNotIn('<img class="avatar"', without_photo)
-        self.assertIn('<span class="avatar" aria-hidden="true"></span>', without_photo)
 
     def test_one_unresolvable_portrait_costs_one_photo_not_the_whole_page(self) -> None:
         """A row must never be able to 500 the homepage.
@@ -798,7 +803,7 @@ class MemberStoriesCarouselTests(TestCase):
         Manifest static storage raises on an unknown reference instead of
         serving a 404, and the portrait is read inside the story loop, so an
         unguarded lookup would abandon the render for every reader.  The bad row
-        keeps its card and falls back to the avatar mark; the good row is
+        keeps its card and falls back to the initials disc; the good row is
         untouched.
         """
 
@@ -840,11 +845,12 @@ class MemberStoriesCarouselTests(TestCase):
 
         self.assertIn("Good Portrait", body)
         self.assertIn("Stale Portrait", body)
-        self.assertIn('<img class="avatar" src="/static/core/testimonials/tim-claytor.jpg"', body)
+        self.assertIn('src="/static/core/testimonials/tim-claytor.jpg"', body)
         self.assertNotIn("removed-after-the-manifest-was-built", body)
-        stale_card = body[body.index("Stale Portrait") - 600 : body.index("Stale Portrait")]
-        self.assertNotIn('<img class="avatar"', stale_card)
-        self.assertIn('<span class="avatar" aria-hidden="true"></span>', stale_card)
+        stale_card = body[body.index("Stale Portrait") - 900 : body.index("Stale Portrait")]
+        stale_card = stale_card[stale_card.rindex("<figure") :]
+        self.assertNotIn("<img", stale_card)
+        self.assertIn('person-chip-initials" aria-hidden="true">SP</span>', stale_card)
 
     def test_the_band_disappears_whole_when_no_testimonial_is_published(self) -> None:
         """No empty band, no orphan heading, no dangling scroller."""

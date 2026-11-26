@@ -631,6 +631,13 @@ to this document — do not fork it locally.
   a title, not a portrait shot. The one exception is `.person-chip-lead` (`3rem`), for
   a block whose subject *is* that person.
 
+  On the homepage every person is this chip with the same link behaviour: the podcast
+  guest, the article author (`row_credit_roles` adds the role from their profile), the
+  founder quote (its role line links the episode page, `chip_role_url`) and each member
+  story (`story|story_chip`, the name linking the member's public post with
+  `chip_external`). Inside a card or a quote's `.story-person` row the name is body ink,
+  indigo and underlined on hover.
+
   On a card, pair `.person-chips` with `.card-credit` so the credit is the card's last
   line and pins to the floor of a fixed-height column.
 

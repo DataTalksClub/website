@@ -955,9 +955,9 @@
                 <h3>Latest article</h3>
               </div>
               {% if article.preview_path %}
-                {% include "public/_archive_row.html" with row_title=article.title row_url=article.public_path row_date=article.published row_dateline=article_dateline row_summary=article.description row_credits=article.author_profiles row_image=article.preview_path row_image_fit="square" row_class="record-row" only %}
+                {% include "public/_archive_row.html" with row_title=article.title row_url=article.public_path row_date=article.published row_dateline=article_dateline row_summary=article.description row_credits=article.author_profiles row_credit_roles=True row_image=article.preview_path row_image_fit="square" row_class="record-row" only %}
               {% elif article %}
-                {% include "public/_archive_row.html" with row_title=article.title row_url=article.public_path row_date=article.published row_dateline=article_dateline row_summary=article.description row_credits=article.author_profiles row_image=article.image_path row_class="record-row" only %}
+                {% include "public/_archive_row.html" with row_title=article.title row_url=article.public_path row_date=article.published row_dateline=article_dateline row_summary=article.description row_credits=article.author_profiles row_credit_roles=True row_image=article.image_path row_class="record-row" only %}
               {% endif %}
               <p class="band-more">
                 <a class="band-link" href="{% url 'articles' %}">read the blog →</a>
@@ -1056,26 +1056,7 @@
                   {% endif %}
                   <blockquote class="story-quote">“{{ story.quote }}”</blockquote>
                   <figcaption class="story-person">
-                    <span class="story-identity">
-                      {% if story.portrait_url %}
-                        <img class="avatar" src="{{ story.portrait_url }}" alt="" loading="lazy">
-                      {% else %}
-                        <span class="avatar" aria-hidden="true"></span>
-                      {% endif %}
-                      <span>
-                        <strong>
-                          {% if story.source_url %}
-                            <a href="{{ story.source_url }}" target="_blank" rel="noopener noreferrer">
-                              {{ story.name }}
-                              <span class="sr-only"> (opens in a new tab)</span>
-                            </a>
-                          {% else %}
-                            {{ story.name }}
-                          {% endif %}
-                        </strong>
-                        <span class="story-context">{{ story.attribution }}</span>
-                      </span>
-                    </span>
+                    {% include "public/_person_chip.html" with person=story|story_chip chip_role=story.attribution chip_external=True only %}
                     {% if story.elapsed %}
                       <span class="story-elapsed">{{ story.elapsed }}</span>
                     {% endif %}
