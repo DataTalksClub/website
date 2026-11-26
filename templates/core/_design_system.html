@@ -4305,6 +4305,159 @@ Rules for editing:
         }
       }
 
+      /* ==== BEGIN numbered steps (core/_steps.html) ==========================
+         The site's one numbered sequence: every "how it works", process and
+         numbered-step block is this list (design-system.md, "Numbered
+         steps").  A small round badge, the step title on the badge's line,
+         the body directly under the title.  A thin connector in the soft
+         rule colour (--line-soft, the colour of --rule) runs from
+         badge to badge: down between them while the steps stack, across
+         between them once the frame is wide enough for a row.  No heavy ink
+         rule (that weight belongs to calls to action), no mono index, no
+         eyebrow.  The frame is the container, so a steps list in a reading
+         column stacks while the same list in a full shell lays out as a row.
+         Pages never restyle these classes; the contract test
+         core/tests/test_design_steps.py fails on a page-local copy. */
+      .steps-frame {
+        container: steps / inline-size;
+      }
+
+      .steps {
+        --steps-badge: 1.75rem;
+        --steps-gap: var(--space-5);
+        display: grid;
+        gap: var(--steps-gap);
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* Rows pack at the top: a row of steps stretches every item to the
+         tallest, and that slack must not open a gap under a short title. */
+      .steps-item {
+        align-content: start;
+        column-gap: var(--space-3);
+        display: grid;
+        grid-template-columns: var(--steps-badge) minmax(0, 1fr);
+        position: relative;
+        row-gap: var(--space-1);
+      }
+
+      .steps-badge {
+        align-items: center;
+        background: var(--indigo-soft);
+        border-radius: var(--radius-pill);
+        color: var(--ink);
+        display: inline-flex;
+        font-size: 0.85rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        grid-column: 1;
+        grid-row: 1;
+        height: var(--steps-badge);
+        justify-content: center;
+        width: var(--steps-badge);
+      }
+
+      /* The title's first line is centred on the badge, so a title that
+         wraps keeps its first line level with the digit. */
+      .steps-title {
+        font-size: 1.1rem;
+        grid-column: 2;
+        line-height: 1.3;
+        margin: 0;
+        padding-top: calc((var(--steps-badge) - 1lh) / 2);
+        text-wrap: balance;
+      }
+
+      .steps-body {
+        color: var(--body-text);
+        font-size: 0.95rem;
+        grid-column: 2;
+        line-height: 1.55;
+        margin: 0;
+      }
+
+      /* A step without a title: its body takes the badge's line. */
+      .steps-badge + .steps-body {
+        padding-top: calc((var(--steps-badge) - 1lh) / 2);
+      }
+
+      /* Stacked: the connector runs down the badge column to the next badge. */
+      .steps-item:not(:last-child)::after {
+        background: var(--line-soft);
+        bottom: calc(var(--space-1) - var(--steps-gap));
+        content: "";
+        left: calc(var(--steps-badge) / 2);
+        position: absolute;
+        top: calc(var(--steps-badge) + var(--space-1));
+        width: 1px;
+      }
+
+      /* A row: two to four steps abreast once the frame has room.  Four steps
+         take a 2 x 2 grid first, and the full row from 60rem; five or more
+         always stack.  The connector leaves the badge column and runs along
+         the badge's centre line from the end of the title into the column
+         gap, stopping just short of the next badge. */
+      @container steps (min-width: 44rem) {
+        .steps:is(.steps-count-2, .steps-count-3, .steps-count-4) {
+          --steps-gap: var(--space-6);
+          grid-template-columns: repeat(var(--steps-cols), minmax(0, 1fr));
+        }
+
+        .steps-count-2 {
+          --steps-cols: 2;
+        }
+
+        .steps-count-3 {
+          --steps-cols: 3;
+        }
+
+        .steps-count-4 {
+          --steps-cols: 2;
+        }
+
+        .steps:is(.steps-count-2, .steps-count-3, .steps-count-4) > .steps-item {
+          grid-template-columns: var(--steps-badge) minmax(0, max-content) minmax(var(--space-4), 1fr);
+        }
+
+        .steps:is(.steps-count-2, .steps-count-3, .steps-count-4) .steps-body {
+          grid-column: 2 / -1;
+        }
+
+        .steps:is(.steps-count-2, .steps-count-3, .steps-count-4) .steps-badge + .steps-body {
+          grid-row: 2;
+          padding-top: 0;
+        }
+
+        .steps:is(.steps-count-2, .steps-count-3, .steps-count-4) > .steps-item:not(:last-child)::after {
+          align-self: start;
+          grid-column: 3;
+          grid-row: 1;
+          height: 1px;
+          margin-inline-end: calc(var(--space-2) - var(--steps-gap));
+          margin-top: calc(var(--steps-badge) / 2);
+          position: static;
+          width: auto;
+        }
+
+        /* In the 2 x 2 grid the second step ends its row. */
+        .steps-count-4 > .steps-item:nth-child(2)::after {
+          display: none;
+        }
+      }
+
+      @container steps (min-width: 60rem) {
+        .steps-count-4 {
+          --steps-cols: 4;
+        }
+
+        .steps-count-4 > .steps-item:nth-child(2)::after {
+          display: block;
+        }
+      }
+      /* ==== END numbered steps ============================================= */
+
       /* Module accordion: one syllabus module per details.module element.
          The numbered disc sits on the brand bubble; an open module tints its
          summary lavender and keeps the ink border. */

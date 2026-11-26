@@ -1,0 +1,27 @@
+{% comment %}
+  The site's one numbered-steps list (design-system.md, "Numbered steps").
+
+  steps          a list of {title, body}; title is optional, body may be empty
+  heading_level  the step title's heading level, 2-6 (default 3)
+
+  Pages call it through {% steps %}/{% step %} (core/templatetags/steps.py)
+  so their copy stays where it lives, or include it directly with a list
+  whose items already carry title and body.  A real <ol>: the order is the
+  content, and role="list" keeps that after the markers are removed.  The
+  badge digit is decoration on top of the list's own numbering.
+{% endcomment %}
+<div class="steps-frame">
+  <ol class="steps steps-count-{{ steps|length }}" role="list">
+    {% for step in steps %}
+      <li class="steps-item">
+        <span class="steps-badge" aria-hidden="true">{{ forloop.counter }}</span>
+        {% if step.title %}
+          <h{{ heading_level|default:3 }} class="steps-title">{{ step.title }}</h{{ heading_level|default:3 }}>
+        {% endif %}
+        {% if step.body %}
+          <p class="steps-body">{{ step.body }}</p>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+</div>

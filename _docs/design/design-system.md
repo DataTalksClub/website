@@ -916,6 +916,71 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
   `.row-list` tables instead of folding them behind a click (the Academy syllabus is
   read week by week as list rows).
 
+<!-- BEGIN numbered steps -->
+## Numbered steps
+
+Every "how it works", process and numbered-step block on the site is one
+component: the `<ol>` that `templates/core/_steps.html` draws, styled once in the
+"numbered steps" section of `templates/core/_design_system.html`. It replaced
+seven hand-made versions (heavy ink rules over a green mono "01", drawn discs on
+cards, "01" rows behind a rule, numbered lines in a card).
+
+**Shape.** Each step is a small round badge (a `1.75rem` `--radius-pill` disc,
+`--indigo-soft` fill, ink digit, tabular numerals, plain "1" never "01"), the step
+title on the badge's line, and the body directly under the title. A one-pixel
+connector in the soft rule colour (`--line-soft`, the colour `--rule` draws) runs from badge to badge: down the badge column while the steps
+stack, and along the badge's centre line, from the end of the title to just short
+of the next badge, once they sit in a row. There is no heavy ink rule (that weight
+belongs to calls to action), no mono caps index and no eyebrow.
+
+**Layout.** `.steps-frame` is a size container, so the layout follows the column the
+list sits in, not the viewport: two or three steps go abreast once the frame is
+`44rem` wide; four take a 2 x 2 grid from `44rem` and one row from `60rem`; five or
+more always stack. A list in a reading column or a side card therefore stacks while
+the same list in a full shell is a row, and every phone stacks.
+
+**Calling it.** Copy stays where it already lives (a template, a content record, the
+database); only the markup is shared. Pages use the block tag from
+`core/templatetags/steps.py`:
+
+```django
+{% load steps %}
+{% steps %}
+  {% step title="Register, free" %}
+    One form gets you the schedule, the Slack channel and homework reminders.
+  {% endstep %}
+{% endsteps %}
+
+{% steps heading_level=4 %}
+  {% for item in shared.admission.steps %}
+    {% step title=item.title %}{{ item.text }}{% endstep %}
+  {% endfor %}
+{% endsteps %}
+```
+
+`heading_level` (default 3) sets the title's heading level under the section's own
+heading. `title` is optional: an untitled step is a numbered line whose body takes
+the badge's line (the books "How it works", the Academy funding checklist). The body
+is ordinary autoescaped template output, so an inline link or `<code>` is fine. A
+caller whose list already carries `title` and `body` may `{% include
+"core/_steps.html" with steps=… heading_level=… %}` directly.
+
+**Where it is used.** Courses index "How our zoomcamp works", books "How it works",
+wiki "How the wiki works", Slack "How joining works", the Academy admission steps
+("How You Get In") and the funding guide's checklist, and a registration campaign's
+"Program" list.
+
+**Not this component.** The illustrated stage card (homepage climb, course family
+journey; `.stage-card` with its drawn `.step-number` disc) is a journey told in
+pictures, not a process list. Syllabus and lesson lists, rails, homework question
+navigators and the leaderboard podium are numbered for reference, not sequence.
+
+**Enforcement.** `core/tests/test_design_steps.py` fails when a template writes the
+component's markup itself, styles its classes outside the design system, brings back
+a retired implementation or a zero-padded "01" index, or draws a hand-numbered badge
+outside the reviewed non-step lists.
+<!-- END numbered steps -->
+
 ## Forms
 
 ```html
