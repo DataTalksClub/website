@@ -144,6 +144,11 @@ _PROVIDER_EMBED_ROUTES = (
 PUBLIC_EVENT_TEST_NOW = datetime(2026, 8, 12, tzinfo=ZoneInfo("Europe/Berlin"))
 _LIVE_SERVER_READY_TIMEOUT_SECONDS = 10.0
 _LIVE_SERVER_SHUTDOWN_TIMEOUT_SECONDS = 10.0
+# A failed browser step can leave the page unable to run script (a navigation
+# that never commits, a stalled renderer).  The failure screenshot's redaction
+# uses page.evaluate, which has no timeout, so teardown first proves the page
+# answers within this bound and skips the screenshot when it does not.
+_FAILURE_CAPTURE_PROBE_MS = 5_000
 
 
 class _PageLifecycle(Protocol):
@@ -1001,14 +1006,19 @@ def context(
             cancellation_tracker.begin_context_close()
         except BaseException as error:
             cleanup_errors.append(f"browser lifecycle finalization failed ({type(error).__name__})")
+        pages: list = []
         try:
             report = getattr(request.node, "rep_call", None)
             if report is not None and report.failed:
                 pages = context.pages
                 if pages:
+                    pages[0].wait_for_function("() => true", timeout=_FAILURE_CAPTURE_PROBE_MS)
                     pages[0].screenshot(path=screenshot_path, full_page=True)
         except BaseException as error:
-            cleanup_errors.append(f"browser failure capture failed ({type(error).__name__})")
+            cleanup_errors.append(
+                f"browser failure capture failed ({type(error).__name__}; "
+                f"page url {urlsplit(pages[0].url).path if pages else 'none'})"
+            )
         try:
             context.tracing.stop(path=trace_path)
         except BaseException as error:
