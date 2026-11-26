@@ -186,3 +186,40 @@ class FaqBlockRenderTests(SimpleTestCase):
         self.assertEqual(faq_columns([short] * 4), 2)
         self.assertEqual(faq_columns([short] * 3 + [long_answer]), 1)
         self.assertEqual(faq_columns([]), 1)
+
+
+class FaqBlockTagTests(SimpleTestCase):
+    """Copy written in a template goes through `{% faq %}`, not into Python."""
+
+    def test_block_tag_collects_items_and_renders_the_partial(self) -> None:
+        html = Template(
+            "{% load faq %}"
+            '{% faq items=items closing="More?" closing_url="/slack" closing_label="Join" %}'
+            '{% faqitem question="Is it free?" unless_asked="free" %}Yes, always.{% endfaqitem %}'
+            '{% faqitem question="Can I join?" %}<p>Any <a href="/x">time</a>.</p>{% endfaqitem %}'
+            "{% endfaq %}"
+        ).render(Context({"items": [{"question": "Q from data?", "answer": "A."}]}))
+        self.assertIn('<h3 class="faq-list-question">Q from data?</h3>', html)
+        self.assertIn('<h3 class="faq-list-question">Is it free?</h3>', html)
+        self.assertIn("<p>Yes, always.</p>", html)
+        self.assertIn('<h3 class="faq-list-question">Can I join?</h3>', html)
+        self.assertIn('<p>Any <a href="/x">time</a>.</p>', html)
+        self.assertIn('<a class="band-link" href="/slack">Join</a>', html)
+        self.assertEqual(html.count('"@type": "FAQPage"'), 1)
+
+    def test_unless_asked_drops_a_repeated_subject(self) -> None:
+        html = Template(
+            "{% load faq %}{% faq items=items %}"
+            '{% faqitem question="Is it really free?" unless_asked="free" %}Yes.{% endfaqitem %}'
+            "{% endfaq %}"
+        ).render(Context({"items": [{"question": "Is the course free?", "answer": "Yes."}]}))
+        self.assertNotIn("Is it really free?", html)
+        self.assertIn("Is the course free?", html)
+
+    def test_a_faqitem_outside_the_block_is_an_error(self) -> None:
+        from django.template import TemplateSyntaxError
+
+        with self.assertRaises(TemplateSyntaxError):
+            Template('{% load faq %}{% faqitem question="Q?" %}A{% endfaqitem %}').render(
+                Context({})
+            )

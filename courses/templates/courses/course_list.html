@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo static custom_filters steps %}
+{% load faq seo static custom_filters steps %}
 
 {% block document_title %}
   Courses — DataTalks.Club
@@ -610,7 +610,18 @@
         </div>
         {% url 'slack' as slack_url %}
         <div class="courses-faq-body">
-          {% include "core/_faq.html" with items=catalogue_faq_items closing="Have more questions?" closing_url=slack_url closing_label="Join Slack and ask away" %}
+          {% faq closing="Have more questions?" closing_url=slack_url closing_label="Join Slack and ask away" %}
+            {% include "courses/_common_faq_items.html" %}
+            {% faqitem question="What should I know beforehand?" %}
+              Comfort with Python and the command line goes a long way. Each course
+              page lists its exact prerequisites.
+            {% endfaqitem %}
+            {% faqitem question="Which course should I start with?" %}
+              Switching into data? Start with Data Engineering Zoomcamp or Machine
+              Learning Zoomcamp. Already shipping models? Try MLOps Zoomcamp or LLM
+              Zoomcamp.
+            {% endfaqitem %}
+          {% endfaq %}
         </div>
       </section>
 {% endblock %}

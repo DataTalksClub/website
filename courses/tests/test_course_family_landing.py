@@ -1043,5 +1043,14 @@ class CourseFamilyFaqPreviewTests(TestCase):
         document = faq_course("machine-learning-zoomcamp")
         assert document is not None
         previewed = {question["question"] for question in faq_questions(document)[:5]}
-        quick_questions = {item.question for item in response.context["family_quick_faq_items"]}
+        common = (
+            "Is it really free?",
+            "Can I join after a cohort starts?",
+            "How much time do I need?",
+            "Do I get a certificate?",
+        )
+        quick_questions = {question for question in common if question in body}
         self.assertEqual(previewed & quick_questions, set())
+        # Each question is drawn once: a common item is dropped, not repeated.
+        for question in quick_questions:
+            self.assertEqual(body.count(f">{question}</h3>"), 1)

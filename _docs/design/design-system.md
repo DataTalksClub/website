@@ -908,8 +908,10 @@ away from its question when its neighbour runs longer.
 two columns from 48rem. The partial decides (`faq_columns` in
 `core/templatetags/faq.py`); a page never sets the column count.
 
-**Data.** Data stays where it lives (a synced row, the course FAQ document, an
-Academy record); the view hands the partial a list of items:
+**Data.** Data stays where it lives: a synced row, the course FAQ document or an
+Academy record reaches the partial as a list of items; copy written in a template
+stays in the template and goes through the `{% faq %}` block tag (below). Never
+move FAQ copy into Python to feed the partial. An item is:
 
 | Key | Required | Meaning |
 | --- | --- | --- |
@@ -922,8 +924,22 @@ Items may be mappings or objects with those attributes.
 
 ```django
 {% include "core/_faq.html" with items=newsletter.faq %}
-{% include "core/_faq.html" with items=catalogue_faq_items closing="Have more questions?" closing_url=slack_url closing_label="Join Slack and ask away" %}
+
+{% load faq %}
+{% faq items=family_faq_questions closing="Have more questions?" closing_url=slack_url closing_label="Join Slack" %}
+  {% faqitem question="Is it really free?" unless_asked="free" %}
+    Yes. Every video, homework and solution stays public.
+  {% endfaqitem %}
+{% endfaq %}
 ```
+
+The block tag collects its `{% faqitem %}` children (after any `items=` it is
+given) and renders the same partial, JSON-LD included; it takes the partial's
+options below. A `faqitem` body is ordinary template output, wrapped in a paragraph
+unless it starts with markup; `unless_asked="word,other"` drops the item when a
+question already collected contains one of the words, so a page never asks the same
+thing twice. The catalogue's common questions live once in
+`courses/_common_faq_items.html`, shared by `/courses` and the course landings.
 
 | Option | Meaning |
 | --- | --- |

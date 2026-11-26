@@ -20,12 +20,12 @@ from courses.services.registration_counts import (
     public_course_registration_count,
 )
 from courses.views.course_homepage import add_course_homepage_info
-from courses.views.course_page_context import CATALOGUE_FAQ_ITEMS, family_format_label
 from courses.views.course_list_user_state import (
     attach_registration_campaigns,
     mark_enrolled_courses,
     mark_registered_courses,
 )
+from courses.views.course_page_context import family_format_label
 from courses.views.site_project_gallery import optional_all_projects_url
 
 
@@ -596,7 +596,6 @@ def course_list_context(request):
         "show_open_registration": True,
         "show_finished": True,
         "wrapped_year": wrapped_entry_year(),
-        "catalogue_faq_items": CATALOGUE_FAQ_ITEMS,
     }
     return context
 

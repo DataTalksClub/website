@@ -418,105 +418,6 @@ def faq_question_without_section_label(question: str, section: str) -> str:
     return remainder[:1].upper() + remainder[1:]
 
 
-@dataclass(frozen=True)
-class QuickFaqItem:
-    """One of the catalogue's objection-answering FAQ entries, reused verbatim."""
-
-    keywords: tuple[str, ...]
-    question: str
-    answer: str
-
-
-#: The four objection-answering questions the ``/courses`` catalogue already
-#: answers well (``CATALOGUE_FAQ_ITEMS`` below, drawn by ``core/_faq.html``):
-#: is it free, how much time it takes, whether a late start is fine, and the
-#: certificate rule.  A course family's own real FAQ document
-#: preview (``family_faq_preview``, above) shows the document's first five
-#: questions in source order, which for every real course today are general
-#: orientation questions, not these -- so a visitor who never expands "See the
-#: full course FAQ" never sees them.  Reusing this exact, already-published
-#: copy here closes that gap without inventing new marketing text.
-QUICK_FAQ_ITEMS: tuple[QuickFaqItem, ...] = (
-    QuickFaqItem(
-        keywords=("free",),
-        question="Is it really free?",
-        answer=(
-            "Yes. Every video, homework and solution stays public — there is "
-            "nothing to pay and nothing to upsell."
-        ),
-    ),
-    QuickFaqItem(
-        keywords=("join", "late start", "already started"),
-        question="Can I join after a cohort starts?",
-        answer=(
-            "Yes, while it is still running. Catch up on the recordings and "
-            "submit whatever homework is still open."
-        ),
-    ),
-    QuickFaqItem(
-        keywords=("how much time", "hour", "time do i need"),
-        question="How much time do I need?",
-        answer=(
-            "Enough for the weekly videos plus hands-on practice. Most people "
-            "do it alongside a full-time job — each course's own syllabus lays "
-            "out its pace."
-        ),
-    ),
-    QuickFaqItem(
-        keywords=("certificate",),
-        question="Do I get a certificate?",
-        answer="To get a certificate you need to pass a project.",
-    ),
-)
-
-
-#: The ``/courses`` catalogue's "Frequent questions": the four items above in
-#: the catalogue's order, plus the two that only make sense across all courses.
-CATALOGUE_FAQ_ITEMS: tuple[QuickFaqItem, ...] = (
-    *QUICK_FAQ_ITEMS[:3],
-    QuickFaqItem(
-        keywords=(),
-        question="What should I know beforehand?",
-        answer=(
-            "Comfort with Python and the command line goes a long way. Each "
-            "course page lists its exact prerequisites."
-        ),
-    ),
-    QUICK_FAQ_ITEMS[3],
-    QuickFaqItem(
-        keywords=(),
-        question="Which course should I start with?",
-        answer=(
-            "Switching into data? Start with Data Engineering Zoomcamp or "
-            "Machine Learning Zoomcamp. Already shipping models? Try MLOps "
-            "Zoomcamp or LLM Zoomcamp."
-        ),
-    ),
-)
-
-
-def family_quick_faq_items(
-    family_faq_questions: tuple,
-    *,
-    family_has_a_real_cohort: bool,
-) -> tuple[QuickFaqItem, ...]:
-    """The catalogue's objection-answering items this family doesn't already show.
-
-    Reused only for a family that actually runs a course (``family_has_a_real_cohort``)
-    -- a family with no cohort at all has nothing these generic, always-true zoomcamp
-    facts would be answering.  An item is dropped when the family's own inline FAQ
-    preview already asks something close enough (its question text contains one of the
-    item's keywords), so the same question is never shown twice on one page.
-    """
-
-    if not family_has_a_real_cohort:
-        return ()
-    covered = " ".join(question["question"].casefold() for question in family_faq_questions)
-    return tuple(
-        item for item in QUICK_FAQ_ITEMS if not any(keyword in covered for keyword in item.keywords)
-    )
-
-
 def course_family_page_context(family: Course, user) -> dict:
     """Build the family landing context without changing cohort view logic."""
 
@@ -762,10 +663,6 @@ def course_family_page_context(family: Course, user) -> dict:
         and not front_cohort.requires_registration_approval
         else None
     )
-    quick_faq_items = family_quick_faq_items(
-        family_faq_questions,
-        family_has_a_real_cohort=front_cohort is not None,
-    )
     is_authenticated = bool(getattr(user, "is_authenticated", False))
     enrolled_cohort = None
     if is_authenticated:
@@ -800,10 +697,10 @@ def course_family_page_context(family: Course, user) -> dict:
         "materials_on_platform": materials_on_platform,
         "family_faq_questions": family_faq_questions,
         "family_faq_url": family_faq_url,
-        "family_quick_faq_items": quick_faq_items,
-        # What the FAQ block draws: the course's own questions, then the
-        # catalogue's quick answers it does not already cover.
-        "family_faq_items": (*family_faq_questions, *quick_faq_items),
+        # A family that runs a course also answers the catalogue's common
+        # questions (courses/_common_faq_items.html) its own FAQ preview does
+        # not already ask; a stub family with nothing running does not.
+        "family_has_a_real_cohort": front_cohort is not None,
         "self_paced_cohort": self_paced_cohort,
         "enroll_cohort": enroll_cohort,
         "family_lede": family_lede(family),

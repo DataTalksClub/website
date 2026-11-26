@@ -12,6 +12,23 @@ Two decisions are made here rather than by each page:
 * ``faq_structured_data`` -- the ``FAQPage`` JSON-LD, written from the same
   items the block draws, so the visible questions and the structured data can
   never disagree.
+
+Copy that lives in a template stays there: the ``{% faq %}`` block tag
+collects its ``{% faqitem %}`` children and renders the same partial::
+
+    {% load faq %}
+    {% faq items=family_faq_questions closing_url=slack_url closing_label="Join Slack" %}
+      {% faqitem question="Is it really free?" unless_asked="free" %}
+        Yes. Every video stays public.
+      {% endfaqitem %}
+    {% endfaq %}
+
+``items`` (optional) are drawn first; the other keywords are the partial's
+options.  A ``{% faqitem %}`` body is ordinary template output (autoescaped,
+links allowed), wrapped in a paragraph unless it already starts with markup.
+``unless_asked`` is a comma-separated list of words: the item is dropped when
+a question already collected contains one, so a page never asks the same
+thing twice.
 """
 
 from __future__ import annotations
@@ -23,6 +40,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from django import template
+from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.utils.safestring import SafeString, mark_safe
 
@@ -112,3 +130,80 @@ def faq_structured_data(context: template.Context, items: Iterable[Any] | None) 
     # to the site's template checks), and whitespace between braces is free.
     text = _CLOSING_BRACES.sub("} ", text)
     return mark_safe(f'<script type="application/ld+json">{text}</script>')  # noqa: S308 - escaped JSON
+
+
+_COLLECTOR = "_faq_collector"
+_BLOCK_OPTIONS = frozenset(
+    {"items", "closing", "closing_url", "closing_label", "permalinks", "structured_data"}
+)
+
+
+class FaqNode(template.Node):
+    def __init__(self, nodelist: template.NodeList, options: dict[str, Any]):
+        self.nodelist = nodelist
+        self.options = options
+
+    def render(self, context: template.Context) -> str:
+        options = {name: value.resolve(context) for name, value in self.options.items()}
+        collected: list[Any] = list(options.pop("items", None) or ())
+        with context.push({_COLLECTOR: collected}):
+            self.nodelist.render(context)
+        request = context.get("request")
+        return render_to_string("core/_faq.html", {**options, "items": collected}, request=request)
+
+
+class FaqItemNode(template.Node):
+    def __init__(self, nodelist: template.NodeList, options: dict[str, Any]):
+        self.nodelist = nodelist
+        self.options = options
+
+    def render(self, context: template.Context) -> str:
+        collected = context.get(_COLLECTOR)
+        if collected is None:
+            raise template.TemplateSyntaxError("{% faqitem %} must sit inside {% faq %}.")
+        options = {name: value.resolve(context) for name, value in self.options.items()}
+        question = str(options.get("question") or "")
+        asked = " ".join(str(_field(item, "question") or "").casefold() for item in collected)
+        words = [
+            word.strip().casefold() for word in str(options.get("unless_asked") or "").split(",")
+        ]
+        if any(word and word in asked for word in words):
+            return ""
+        body = self.nodelist.render(context).strip()
+        if body and not body.startswith("<"):
+            body = f"<p>{body}</p>"
+        item = {"question": question, "answer_html": mark_safe(body)}  # noqa: S308 - autoescaped output
+        if options.get("id"):
+            item["id"] = str(options["id"])
+        collected.append(item)
+        return ""
+
+
+def _options(parser, token, tag: str, allowed: frozenset[str]) -> dict[str, Any]:
+    options = {}
+    for bit in token.split_contents()[1:]:
+        name, sep, value = bit.partition("=")
+        if not sep or name not in allowed:
+            raise template.TemplateSyntaxError(
+                f"{{% {tag} %}} takes only {', '.join(sorted(allowed))} as name=value."
+            )
+        options[name] = parser.compile_filter(value)
+    return options
+
+
+@register.tag(name="faq")
+def do_faq(parser, token):
+    options = _options(parser, token, "faq", _BLOCK_OPTIONS)
+    nodelist = parser.parse(("endfaq",))
+    parser.delete_first_token()
+    return FaqNode(nodelist, options)
+
+
+@register.tag(name="faqitem")
+def do_faqitem(parser, token):
+    options = _options(parser, token, "faqitem", frozenset({"question", "unless_asked", "id"}))
+    if "question" not in options:
+        raise template.TemplateSyntaxError("{% faqitem %} needs question=...")
+    nodelist = parser.parse(("endfaqitem",))
+    parser.delete_first_token()
+    return FaqItemNode(nodelist, options)

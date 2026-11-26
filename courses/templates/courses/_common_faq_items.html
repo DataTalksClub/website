@@ -1,0 +1,22 @@
+{% load faq %}
+{% comment %}
+  The catalogue's common questions, written once: the /courses FAQ and every
+  course landing that runs a course draw them (inside a {% faq %} block, see
+  core/templatetags/faq.py).  On a landing, `unless_asked` drops an item whose
+  subject the course's own FAQ preview already asks.
+{% endcomment %}
+{% faqitem question="Is it really free?" unless_asked="free" %}
+  Yes. Every video, homework and solution stays public — there is nothing
+  to pay and nothing to upsell.
+{% endfaqitem %}
+{% faqitem question="Can I join after a cohort starts?" unless_asked="join,late start,already started" %}
+  Yes, while it is still running. Catch up on the recordings and submit
+  whatever homework is still open.
+{% endfaqitem %}
+{% faqitem question="How much time do I need?" unless_asked="how much time,hour,time do i need" %}
+  Enough for the weekly videos plus hands-on practice. Most people do it
+  alongside a full-time job — each course's own syllabus lays out its pace.
+{% endfaqitem %}
+{% faqitem question="Do I get a certificate?" unless_asked="certificate" %}
+  To get a certificate you need to pass a project.
+{% endfaqitem %}

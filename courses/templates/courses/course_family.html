@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load breadcrumbs seo project_gallery %}
+{% load breadcrumbs faq seo project_gallery %}
 
 {% block document_title %}
   {{ course_family.title }}: cohorts, syllabus and registration — DataTalks.Club
@@ -1104,15 +1104,19 @@
         </section>
       {% endif %}
 
-      {% if family_faq_items or course_family.faq_document_url %}
+      {% if family_faq_questions or family_has_a_real_cohort or course_family.faq_document_url %}
         <section class="family-chapter family-faq" aria-labelledby="faq-heading">
           <div class="band-head">
             <div>
               <h2 id="faq-heading">Questions before you start?</h2>
             </div>
           </div>
-          {% if family_faq_items %}
-            {% include "core/_faq.html" with items=family_faq_items closing_url=family_faq_url closing_label="See the full course FAQ →" %}
+          {% if family_faq_questions or family_has_a_real_cohort %}
+            {% faq items=family_faq_questions closing_url=family_faq_url closing_label="See the full course FAQ →" %}
+              {% if family_has_a_real_cohort %}
+                {% include "courses/_common_faq_items.html" %}
+              {% endif %}
+            {% endfaq %}
           {% elif course_family.faq_document_url %}
             <p class="family-empty">This course keeps its own frequently asked questions.</p>
             <a
