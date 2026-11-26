@@ -1332,7 +1332,7 @@ a cohort means replacing both staged files together and re-running.
 | | |
 | --- | --- |
 | **Upstream** | The community's own public sources for the About page (`/about`, published as the tour): the 2025 community survey article, the founder's anniversary-interview quotes, and the standing channel descriptions (issue #418). Reviewed editorial, not a moving upstream |
-| **Staging** | `~/prod/dtc-data/content-staging/tour_page.json` (`schema_version` 1, one `page` record: hero/week/community/founder copy, the four survey tiles, the eight channel blurbs, https source URLs; `founder_source_url` is the quote's episode page on this site, e.g. `/podcast/s19e03/…`, and the optional `founder_question` is the interviewer's question the quote answers, drawn above it). Tour *member stories* do not ride in this file — they arrive through the testimonials staging file as `placement: "tour"` rows via `import_testimonials.py` |
+| **Staging** | `~/prod/dtc-data/content-staging/tour_page.json` (`schema_version` 1, one `page` record: hero/week/community/founder copy, the four survey tiles, the eight channel blurbs, https source URLs; `founder_source_url` is the quote's episode page on this site, e.g. `/podcast/s19/e03-datatalksclub-scaling-and-free-courses` — the episode URL scheme `/podcast/sNN/eMM-<slug>`, never the retired `/podcast/sNNeMM/<slug>`, and the optional `founder_question` is the interviewer's question the quote answers, drawn above it). Tour *member stories* do not ride in this file — they arrive through the testimonials staging file as `placement: "tour"` rows via `import_testimonials.py` |
 | **Script** | `scripts/prod/import_tour.py` |
 | **Writes** | Exactly one `content.models.ContentDocument` (`content_kind` `tour_page`, `stable_key` `tour`) under the `ContentSource` `dtc-tour-page`, through the shared reviewed-release machinery; `/about` reads it at request time via `content.tour_content.tour_page()`, and the homepage's About band reads the same record through `homepage_tour_page()` |
 | **Does not read or write** | Nothing learner-identifying and no testimonial rows. Quotation content about members lives in `courses.Testimonial`, imported by the testimonials importer |
@@ -1389,6 +1389,39 @@ uv run --frozen python scripts/prod/import_podcast_episode_pictures.py \
     --database .tmp/local.sqlite3 \
     --reviewed-file ~/prod/dtc-data/episode-pictures-2026-11-25
 ```
+
+### 26 — Podcast episode URLs moved to `/podcast/sNN/eMM-<slug>` (2026-11-26)
+
+Episode pages moved from `/podcast/sNNeMM/<slug>` to `/podcast/sNN/eMM-<slug>` (two-digit
+zero padding; season pages are `/podcast/sNN/`). The old form is a 404 with **no
+redirects**, by the owner's choice, so every stored link had to move with it:
+
+- `DataTalksClub/content` commit `88e6c36` ("Links: podcast episodes at
+  /podcast/sNN/eMM-<slug>") rewrote the 20 old-form links in 10 articles and 3 episode
+  `resources` — 14 `/podcast/sNNeMM/<slug>` and 6 legacy `/podcast/<slug>.html` — each
+  mapped from the episode's own `podcasts/sNN/eMM.yaml`. `legacy_path` fields and
+  `images/podcast/sNNeMM-…jpg` image paths are not page links and were left alone.
+- `~/prod/dtc-data/content-staging/tour_page.json`: `founder_source_url` →
+  `/podcast/s19/e03-datatalksclub-scaling-and-free-courses` (backup
+  `tour_page.before-podurls-2026-11-26.json` next to it).
+- `podwiki` needs no source edit: wiki citations are `[[cite:<slug>]]`, resolved to the
+  episode's synced public path at sync time, so a re-sync after the content sync is
+  enough.
+
+Production, after the release carrying the new URL scheme is on every container, in
+this order (the forced content sync rewrites every podcast row's public path, and the
+podwiki sync then re-resolves its citations against those paths):
+
+```bash
+uv run --no-sync ssh contabo-a 'sudo docker exec <production-web> python manage.py sync_content --source dtc-content --force'
+uv run --no-sync ssh contabo-a 'sudo docker exec <production-web> python manage.py sync_content --source dtc-podwiki --force'
+uv run --frozen python scripts/prod/import_tour.py <target>
+```
+
+`<target>` is `--deployment-target website-production --allow-production-write
+website-production`, as for the other step-6 importers. `--force` is required because the
+content and podwiki commits may already be synced. Then check that `/about`, `/podcast`,
+the season pages, `/wiki` and the blog link only to `/podcast/sNN/…` URLs that return 200.
 
 ---
 
