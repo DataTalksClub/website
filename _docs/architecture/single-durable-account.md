@@ -31,6 +31,7 @@ are:
 | Profile | names, certificate name, country, region, registration role, public URLs, About me | Preserve unchanged values. Every differing value requires an explicit `source` or `survivor` decision. |
 | Preference | dark mode and preferred timezone | Preserve the survivor unless a reviewer explicitly selects the source value. |
 | Mail category consent | the three opt-out fields on the account (D1.2ca moved them off the retired Datamailer store) | Never merge. Preserve the survivor's fields; the source account's fields are left untouched for the later privacy process. |
+| Newsletter consent | `newsletter_subscribed` and `newsletter_preference_changed_at` | Never merge across accounts. Each address gets the verdict of [`email-audience-merge.md`](email-audience-merge.md), which combines CMP, Mailchimp, Relay and the website's consent; absorbed and quarantined accounts are never written. |
 | Course consent | registration newsletter choice and enrollment display/privacy flags | Preserve each owned row unchanged. Same-scope collisions fail closed instead of combining choices. |
 
 The dependent relationship inventory enumerates the installed direct and
