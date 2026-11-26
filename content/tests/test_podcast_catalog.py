@@ -686,9 +686,7 @@ class PodcastEpisodeParityTests(TestCase):
         # The heading names a lone guest and their chip in the head links the
         # profile, so the card names them again only when there are several.
         if len(record["guest_profiles"]) > 1:
-            self.assertIn(
-                f'<a href="{guest.public_path}">{escape(guest.name)}</a>', overview_html
-            )
+            self.assertIn(f'<a href="{guest.public_path}">{escape(guest.name)}</a>', overview_html)
         else:
             self.assertNotIn("guest-card-name", overview_html)
         # The role line is the one the podcast hub's person chips carry, read
