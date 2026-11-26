@@ -187,10 +187,10 @@
       <section class="band band-cream person-hero" aria-labelledby="person-heading">
         <div class="shell person-shell">
           {% comment %}
-            The way back to /people, from the trail the page publishes as
-            BreadcrumbList JSON-LD; the h1 below names the person.
+            The way back: "People / <name>", the same trail the page publishes
+            as BreadcrumbList JSON-LD, drawn like the blog's.
           {% endcomment %}
-          {% breadcrumbs breadcrumbs.ancestors.0 %}
+          {% breadcrumbs breadcrumbs %}
           <div class="person-identity">
             {% comment %}
               Every profile in the catalogue carries a portrait today, but a portrait

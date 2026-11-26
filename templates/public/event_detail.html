@@ -691,7 +691,7 @@
               {% endif %}"
           >
             {% url 'events' as events_url %}
-            {% breadcrumbs "Events" events_url %}
+            {% breadcrumbs "Events" events_url current=event.title %}
             {% if event.banner_url %}
               <figure class="event-media" data-testid="event-banner">
                 <img

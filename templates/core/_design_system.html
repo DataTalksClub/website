@@ -1501,14 +1501,13 @@ Rules for editing:
          BreadcrumbList JSON-LD lists the page itself and the visible trail must
          match what is published.
 
-         A trail is chrome, not content, but it is also the page's one way back
-         to its list, so it has to be easy to find and read: the meta size
-         (0.92rem) in body ink at semibold, never the 0.78rem muted hairline it
-         once was (owner feedback 2026-11-26: "tiny and faint").  It stays a
-         line of text, not a button: no surface, no border.  Every level keeps
-         an underline — a link still says it is one, and colour alone would
-         not — and indigo answers the pointer.  The current page, where it is
-         drawn, steps down to --muted so the links lead.
+         A trail is chrome, not content, so it is drawn at the secondary size
+         and in the muted ink `.mono-note` already uses rather than at body size
+         in saturated indigo.  This is the blog article's and wiki topic's trail,
+         which the owner settled as the reference every page matches
+         (2026-11-26).  Every level keeps an underline — a link still says it is
+         one, and colour alone would not — and colour is what answers the
+         pointer, so the trail is quiet until it is aimed at.
 
          The separator follows its crumb rather than leading the next one.  A
          trail that wraps then breaks after the "/", where a reader expects the
@@ -1517,15 +1516,15 @@ Rules for editing:
          it is never announced; engines without the alt-text syntax fall back to
          the bare glyph.
 
-         2.25rem is the target height here rather than the 2.75rem a control
+         2rem is the target height here rather than the 2.75rem a control
          carries.  A crumb is a dense inline trail read on the way past, and
-         36px clears the 24px WCAG 2.2 AA target-size floor with room to spare
-         without the row growing taller than the line it sits on needs. */
+         32px clears the 24px WCAG 2.2 AA target-size floor with room to spare
+         while halving the height of the row. */
       .breadcrumbs ol {
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        font-size: 0.92rem;
+        font-size: 0.78rem;
       }
 
       .breadcrumbs li {
@@ -1536,10 +1535,10 @@ Rules for editing:
 
       .breadcrumbs a {
         align-items: center;
-        color: var(--body-text);
+        color: var(--muted);
         display: inline-flex;
-        font-weight: 600;
-        min-height: 2.25rem;
+        font-weight: 500;
+        min-height: 2rem;
         text-decoration: underline;
         text-decoration-thickness: 1px;
         text-underline-offset: 0.2em;

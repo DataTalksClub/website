@@ -494,12 +494,13 @@ to this document — do not fork it locally.
   title; a fact the breadcrumb or heading already carries is dropped. Still fine:
   a date rail beside a row, an event's date line, a breadcrumb trail, a step
   number, a label inside a spec row or table, and a stat label under its number.
-- **`.breadcrumbs`** — the trail on a detail page, and its one way back to the list
-  it came from. Links are underlined `--body-text` at the meta size (`0.92rem`,
-  semibold) and turn indigo on hover; the current page, where drawn, is `--muted`.
-  It is a line of text, never a button. The `/` separator is CSS-drawn with empty
-  alternative text (`content: "/" / ""`) so it is never announced. Links keep a
-  `2.25rem` minimum target height. The trail starts on the left edge of the
+- **`.breadcrumbs`** — the trail on every page below a hub, and its one way back to
+  the list it came from. The blog article's trail is the reference every page
+  matches: underlined `--muted` links at `0.78rem` that turn indigo on hover, the
+  current page as the last crumb in `--muted` plain text, a line of text and never
+  a button. The `/` separator is CSS-drawn with empty alternative text
+  (`content: "/" / ""`) so it is never announced. Links keep a `2rem` minimum
+  target height. The trail starts on the left edge of the
   column the page's content sits in — on a two-column detail page (an event) that
   is the left edge of the whole layout, not the shell's edge. Markup contract: a `nav`
   with an accessible name holding an `ol`, one `li` per level, every ancestor a link,
@@ -508,9 +509,10 @@ to this document — do not fork it locally.
   Build the trail with the shared `{% breadcrumbs %}` tag rather than hand-writing
   list items; an empty level is skipped.
 
-  Use it on every page below an index: articles ("Blog"), books, wiki topics,
-  events ("Events"), podcast episodes ("Podcast / Season 25"), people ("People"),
-  course and academy pages. No page draws an ad-hoc "← all …" link instead. **Index pages and the homepage do not carry one** —
+  Use it on every page below an index: articles ("Blog / …"), books, wiki topics,
+  events ("Events / …"), podcast episodes ("Podcast / Season 25 / …"), people
+  ("People / …"), course and academy pages. No page draws an ad-hoc "← all …" link
+  instead. **Index pages and the homepage do not carry one** —
   the masthead already marks them with `aria-current="page"`. A page offers one way
   back, not two: a page with a back-link does not also carry a trail, and a page
   whose parent index does not exist carries neither.
