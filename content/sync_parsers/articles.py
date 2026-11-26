@@ -24,10 +24,26 @@ REPOSITORY = "DataTalksClub/content"
 ARTICLES_ROOT = "articles"
 
 _DATE_PREFIX = re.compile(r"^(?:\d{2}|\d{4})-\d{2}-\d{2}-(.+)$")
-#: An article's generated preview (banner-generator ``dtc-article``): the square
-#: list thumbnail the frontmatter names, and beside it the social card, the same
-#: file with ``-og`` before the suffix.
+#: An article's picture is chosen like a Substack post's: the frontmatter
+#: ``cover:`` when the author picked one, otherwise the first image the body
+#: publishes.  Only an article with neither names a generated ``preview:`` (the
+#: banner-generator ``dtc-article`` card): the square list thumbnail, and beside
+#: it the social card, the same file with ``-og`` before the suffix.
 _PREVIEW_PATH = re.compile(r"^images/posts/[A-Za-z0-9._/-]+\.(?:png|jpg|jpeg)$")
+_COVER_PATH = re.compile(r"^images/posts/[A-Za-z0-9._/-]+\.(?:png|jpg|jpeg|gif|webp)$")
+#: A body image, Markdown ``![alt](src)`` or HTML ``<img src>``, in document order.
+_BODY_IMAGE = re.compile(
+    r"!\[[^\]]*\]\(\s*<?(?P<markdown>[^)\s>]+)|<img\b[^>]*?\bsrc\s*=\s*[\"'](?P<html>[^\"']+)",
+    re.IGNORECASE,
+)
+
+
+def _picture(checkout, relative: str) -> dict:
+    picture = {"source": relative}
+    dimensions = builder._image_dimensions(checkout.root / relative)
+    if dimensions is not None:
+        picture["width"], picture["height"] = dimensions
+    return picture
 
 
 class ArticlesParser:
@@ -51,9 +67,13 @@ class ArticlesParser:
         image = record["image_source"]
         if image and not image.startswith(("http://", "https://")):
             media.upload(base.active_checkout(), image.lstrip("/"), source)
-        for preview in (record["preview_source"], record["preview_og_source"]):
-            if preview:
-                media.upload(base.active_checkout(), preview, source)
+        for picture in (
+            record["card_source"],
+            record["preview_source"],
+            record["preview_og_source"],
+        ):
+            if picture:
+                media.upload(base.active_checkout(), picture, source)
         document, action = base.upsert_document(
             source,
             content_kind=CONTENT_KIND,
@@ -88,7 +108,12 @@ class ArticlesParser:
         )
         blocks = builder._article_blocks(body, media_root=checkout.root, counters={})
         faq = self._faq_pairs(metadata.get("faq"), relative)
+        card = self._card(metadata.get("cover"), body, checkout, relative)
         preview, preview_og = self._preview(metadata.get("preview"), checkout, relative)
+        if card and preview:
+            # A generated card stands in only where the article has no picture of its
+            # own; next to one it would be derived data written by hand.
+            base.fail("article preview beside a cover or body image", relative)
         if faq is None and any(block.get("kind") == "faq" for block in blocks):
             base.fail("article FAQ marker without frontmatter FAQ", relative)
         record = {
@@ -116,6 +141,9 @@ class ArticlesParser:
             "image_source": builder._string(
                 metadata.get("image"), field="article image", maximum=500, optional=True
             ),
+            "card_source": card["source"] if card else None,
+            "card_width": card.get("width") if card else None,
+            "card_height": card.get("height") if card else None,
             "preview_source": preview,
             "preview_og_source": preview_og,
             "provenance": builder._provenance(
@@ -144,6 +172,33 @@ class ArticlesParser:
         except ArticleFaqFormatError:
             base.fail("article frontmatter FAQ rejected", source_path)
         return [dict(question) for question in questions]
+
+    @staticmethod
+    def _card(value, body: str, checkout, source_path: str) -> dict | None:
+        """The article's picture: the frontmatter ``cover:``, else the first body image.
+
+        ``cover`` is optional and must name a file in the checkout.  Without it the
+        first image the body publishes is the picture; a remote image is not
+        published, so it is never the picture.  ``None`` when there is neither.
+        The pixel size travels with it so a list can set a wide or tall picture
+        whole instead of cropping it.
+        """
+
+        if value is not None:
+            if not isinstance(value, str) or not _COVER_PATH.fullmatch(value) or ".." in value:
+                base.fail("article cover rejected", source_path)
+            if not (checkout.root / value).is_file():
+                base.fail("article cover file missing", source_path)
+            return _picture(checkout, value)
+        for match in _BODY_IMAGE.finditer(body):
+            reference = (match.group("markdown") or match.group("html")).strip()
+            if not reference.startswith("/") or reference.startswith("//"):
+                continue
+            relative = reference.lstrip("/")
+            if ".." in relative or not (checkout.root / relative).is_file():
+                continue
+            return _picture(checkout, relative)
+        return None
 
     @staticmethod
     def _preview(value, checkout, source_path: str) -> tuple[str | None, str | None]:

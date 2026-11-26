@@ -453,6 +453,84 @@ class ArticlesParserTests(_CheckoutCase):
             ):
                 parser.discover(checkout, _source("dtc-content"))
 
+    def _discover_tree(self, markdown: str, files: dict[str, bytes]) -> dict:
+        parser = get_parser("article")
+        tree = {"articles/2024-03-07-hello-world.md": markdown.encode(), **files}
+        with self.checkout(tree) as checkout:
+            (item,) = parser.discover(checkout, _source("dtc-content"))
+        return item.data["record"]
+
+    def test_the_first_body_image_is_the_articles_picture(self) -> None:
+        markdown = (
+            _article_markdown()
+            + "\n![a remote one](https://example.test/remote.png)\n"
+            + "\n![first](/images/posts/hello-world/first.png)\n"
+            + "\n![second](/images/posts/hello-world/second.png)\n"
+        )
+        record = self._discover_tree(
+            markdown,
+            {
+                "images/posts/hello-world/first.png": _png(b"first"),
+                "images/posts/hello-world/second.png": _png(b"second"),
+            },
+        )
+        # A remote image is never published, so it is never the picture.
+        self.assertEqual(record["card_source"], "images/posts/hello-world/first.png")
+        self.assertIsNone(record["preview_source"])
+        self.assertIsNone(self._discover_one(_article_markdown())["card_source"])
+
+    def test_frontmatter_cover_overrides_the_first_body_image(self) -> None:
+        markdown = (
+            _article_markdown().replace(
+                "---\n", "---\ncover: images/posts/hello-world/cover-art.png\n", 1
+            )
+            + "\n![first](/images/posts/hello-world/first.png)\n"
+        )
+        record = self._discover_tree(
+            markdown,
+            {
+                "images/posts/hello-world/first.png": _png(b"first"),
+                "images/posts/hello-world/cover-art.png": _png(b"cover"),
+            },
+        )
+        self.assertEqual(record["card_source"], "images/posts/hello-world/cover-art.png")
+
+    def test_cover_outside_posts_or_missing_is_refused(self) -> None:
+        parser = get_parser("article")
+        for cover, files in (
+            ("images/authors/x.png", ("images/authors/x.png",)),
+            ("images/posts/hello-world/../x.png", ()),
+            ("images/posts/hello-world/missing.png", ()),
+            ("https://example.test/x.png", ()),
+        ):
+            markdown = _article_markdown().replace("---\n", f"---\ncover: {cover}\n", 1)
+            tree = {"articles/2024-03-07-hello-world.md": markdown.encode()}
+            tree.update({path: _png(b"x") for path in files})
+            with (
+                self.subTest(cover=cover),
+                self.checkout(tree) as checkout,
+                self.assertRaises(ContentParserError),
+            ):
+                parser.discover(checkout, _source("dtc-content"))
+
+    def test_a_generated_preview_beside_an_image_is_refused(self) -> None:
+        # The generated card stands in only where the article has no picture.
+        parser = get_parser("article")
+        markdown = (
+            _article_markdown().replace(
+                "---\n", "---\npreview: images/posts/hello-world/preview.png\n", 1
+            )
+            + "\n![first](/images/posts/hello-world/first.png)\n"
+        )
+        tree = {
+            "articles/2024-03-07-hello-world.md": markdown.encode(),
+            "images/posts/hello-world/first.png": _png(b"first"),
+            "images/posts/hello-world/preview.png": _png(b"square"),
+            "images/posts/hello-world/preview-og.png": _png(b"social"),
+        }
+        with self.checkout(tree) as checkout, self.assertRaises(ContentParserError):
+            parser.discover(checkout, _source("dtc-content"))
+
     def test_malformed_sponsor_is_refused(self) -> None:
         for sponsor in (
             "sponsor: Arize\n",

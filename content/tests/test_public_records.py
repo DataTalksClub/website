@@ -255,3 +255,42 @@ class ArticlePreviewTests(TestCase):
     def test_an_article_without_a_preview_has_empty_paths(self) -> None:
         record = article_record({"image_source": "images/posts/a/cover.png", "authors": []}, {})
         self.assertEqual((record["preview_path"], record["preview_og_path"]), ("", ""))
+
+    def test_a_generated_preview_is_the_square_thumbnail_and_its_social_card(self) -> None:
+        record = article_record(
+            {
+                "image_source": "images/posts/a/cover.png",
+                "authors": [],
+                "preview_source": "images/posts/a/preview.png",
+                "preview_og_source": "images/posts/a/preview-og.png",
+            },
+            {},
+        )
+        self.assertEqual(
+            (record["thumbnail_path"], record["thumbnail_fit"]),
+            ("/images/posts/a/preview.png", "square"),
+        )
+        self.assertEqual(record["social_image_path"], "/images/posts/a/preview-og.png")
+
+    def test_the_articles_picture_is_the_thumbnail_whole_unless_square(self) -> None:
+        for (width, height), fit in (
+            ((1600, 900), "contain"),
+            ((1000, 1000), "square"),
+            ((None, None), "contain"),
+        ):
+            record = article_record(
+                {
+                    "image_source": "images/posts/a/cover.png",
+                    "authors": [],
+                    "card_source": "images/posts/a/first.png",
+                    "card_width": width,
+                    "card_height": height,
+                },
+                {},
+            )
+            with self.subTest(size=(width, height)):
+                self.assertEqual(
+                    (record["thumbnail_path"], record["thumbnail_fit"]),
+                    ("/images/posts/a/first.png", fit),
+                )
+                self.assertEqual(record["social_image_path"], "/images/posts/a/first.png")

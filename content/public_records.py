@@ -49,20 +49,33 @@ def _profile_credit(key: str, people_by_slug: Mapping[str, Mapping[str, Any]]) -
 def article_record(
     record: Mapping[str, Any], people_by_slug: Mapping[str, Mapping[str, Any]]
 ) -> dict:
-    """The published article record: public image and preview addresses, author byline.
+    """The published article record: public image and picture addresses, author byline.
 
-    The preview is the generated card (``dtc-article``): ``preview_path`` the square
-    list thumbnail, ``preview_og_path`` the 1200x630 social card.  Empty when the
-    article has none, and the page then uses its own image as before.
+    An article's picture (``card_path``) is its ``cover:`` or else its first body
+    image, chosen by the parser.  An article with neither has a generated card
+    (``dtc-article``): ``preview_path`` the square list thumbnail and
+    ``preview_og_path`` the 1200x630 social card.  The list draws ``thumbnail_path``,
+    whichever of the two exists, square when the file is square and otherwise
+    whole on the soft ground (``thumbnail_fit``), so a wide screenshot is never
+    cropped; ``social_image_path`` is what a link preview shows.
     """
 
     derived = dict(record)
     image_path = image_public_path(record)
     derived["image_path"] = image_path
     derived["media_available"] = bool(image_path)
-    for field in ("preview", "preview_og"):
+    for field in ("card", "preview", "preview_og"):
         source = record.get(f"{field}_source")
         derived[f"{field}_path"] = "/" + source if isinstance(source, str) and source else ""
+    if derived["preview_path"]:
+        derived["thumbnail_path"], derived["thumbnail_fit"] = derived["preview_path"], "square"
+    elif derived["card_path"]:
+        square = record.get("card_width") and record.get("card_width") == record.get("card_height")
+        derived["thumbnail_path"] = derived["card_path"]
+        derived["thumbnail_fit"] = "square" if square else "contain"
+    else:
+        derived["thumbnail_path"], derived["thumbnail_fit"] = image_path, ""
+    derived["social_image_path"] = derived["preview_og_path"] or derived["card_path"] or image_path
     derived["author_profiles"] = [
         _profile_credit(author, people_by_slug) for author in record.get("authors", ())
     ]

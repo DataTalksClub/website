@@ -1395,7 +1395,7 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
     # the page then draws no FAQ region.
     faq = article_faq(slug)
     article_trail = trail(("Blog", "/blog"), (article["title"], article["public_path"]))
-    social_image = article.get("preview_og_path") or article["image_path"]
+    social_image = article["social_image_path"]
     return _render(
         request,
         "public/article_detail.html",
