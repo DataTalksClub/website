@@ -1554,13 +1554,14 @@ Rules for editing:
       .breadcrumbs ol {
         align-items: center;
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         font-size: 0.78rem;
       }
 
       .breadcrumbs li {
         align-items: center;
         display: inline-flex;
+        flex: none;
         min-width: 0;
       }
 
@@ -1588,9 +1589,16 @@ Rules for editing:
         margin-inline: var(--space-2);
       }
 
+      /* The trail is one line: the current page shrinks and ends in an
+         ellipsis rather than wrapping under its parents. */
       .breadcrumbs [aria-current="page"] {
         color: var(--muted);
+        display: block;
+        flex: 1 1 auto;
         font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       /* --- calls to action ---------------------------------------------- */

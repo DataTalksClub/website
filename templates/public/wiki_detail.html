@@ -175,6 +175,43 @@
       .wiki-closing {
         margin-top: var(--space-6);
       }
+
+      /* Sources: a numbered reference list under the article, set apart from
+         the last paragraph, with wrapped titles hanging under their number. */
+      .wiki-sources {
+        border-top: var(--rule);
+        margin-top: var(--space-6);
+        padding-top: var(--space-5);
+      }
+
+      .wiki-sources .wiki-section-title {
+        margin: 0 0 var(--space-3);
+      }
+
+      .wiki-sources ol {
+        display: grid;
+        font-size: 0.95rem;
+        gap: var(--space-2);
+        list-style: decimal;
+        margin: 0;
+        padding-left: var(--space-6);
+      }
+
+      .wiki-sources li {
+        line-height: 1.5;
+        padding-left: var(--space-1);
+      }
+
+      .wiki-sources li::marker {
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .wiki-source-back {
+        color: var(--muted);
+        margin-right: var(--space-1);
+        text-decoration: none;
+      }
     </style>
   </head>
   {% url 'update_timezone_preference' as timezone_update_url %}
