@@ -133,6 +133,11 @@
   .tour-norm-head { align-items: center; display: flex; gap: var(--space-3); }
   .tour-norm p { color: var(--body-text); margin: 0; }
   .tour-norm strong { color: var(--ink); }
+  /* Tablet tier: two a row, a lone third taking the whole last row. */
+  @media (min-width: 36rem) and (max-width: 61.99rem) {
+    .tour-norms { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tour-norms > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  }
   @media (min-width: 62rem) {
     .tour-norms { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5) var(--space-6); }
   }
@@ -181,8 +186,12 @@
   @media (max-width: 47.99rem) {
     .tour-hero-inner { grid-template-columns: minmax(0, 1fr); }
     .tour-hero-art { justify-self: center; max-width: 12rem; }
-    .tour-hero-actions .cta { justify-content: center; width: 100%; }
     .tour-chapter { margin-top: var(--space-section); padding-top: var(--space-section); }
+  }
+
+  /* --- phone (below 36rem): full-width actions, list-shaped cards ---- */
+  @media (max-width: 35.99rem) {
+    .tour-hero-actions .cta { justify-content: center; width: 100%; }
 
     /* The "more" cards give up their surface and read as the homepage's
        dashed list: drawing on the left, words on the right.  The course

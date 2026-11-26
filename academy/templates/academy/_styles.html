@@ -1108,6 +1108,15 @@
 
       /* --- narrow: reshape, not reflow ------------------------------------- */
 
+      /* Only a phone stretches the actions full width. */
+      @media (max-width: 35.99rem) {
+        .academy-closing .cta,
+        .academy-actions .cta {
+          justify-content: center;
+          width: 100%;
+        }
+      }
+
       @media (max-width: 47.99rem) {
         .academy-lede {
           font-size: 1.05rem;
@@ -1138,12 +1147,6 @@
 
         .academy-closing {
           padding: 1.35rem;
-        }
-
-        .academy-closing .cta,
-        .academy-actions .cta {
-          justify-content: center;
-          width: 100%;
         }
 
         /* A phone drops the hero drawing, as the homepage hero does: the

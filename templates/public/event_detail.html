@@ -578,13 +578,20 @@
           grid-column: 1 / -1;
         }
 
-        .event-register-choices,
         .event-register-password .cmp-form-fields {
           grid-template-columns: 1fr 1fr;
         }
 
         .event-register-providers {
           grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+        }
+      }
+
+      /* The two ways to register share a row from the tablet tier up; only a
+         phone stacks them full width. */
+      @media (min-width: 36rem) {
+        .event-register-choices {
+          grid-template-columns: 1fr 1fr;
         }
       }
 

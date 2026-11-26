@@ -571,6 +571,30 @@
 
       /* --- narrow: reshape, not reflow ----------------------------------- */
 
+      /* Phone only (below 36rem): full-width actions, and the journey read as
+         a numbered list with thumbnail drawings so the three stages are not
+         three screens.  From 36rem the journey is a row of three cards. */
+      @media (max-width: 35.99rem) {
+        .family-hero-actions .cta,
+        .family-card-actions .cta,
+        .family-card-cta,
+        .family-proof .cta,
+        .family-close-panel .cta {
+          justify-content: center;
+          width: 100%;
+        }
+
+        .journey-grid .doodle {
+          justify-self: start;
+          max-width: 10rem;
+        }
+
+        .journey-grid > .stage-card:last-child {
+          border-bottom: 0;
+          padding-bottom: 0;
+        }
+      }
+
       @media (max-width: 47.99rem) {
         /* A phone gets the title, the lede and the action; the drawing
            would only push them down, as the homepage hero's does. */
@@ -586,15 +610,6 @@
         .featured.family-register-card {
           border-radius: var(--radius-card);
           padding: var(--space-5);
-        }
-
-        .family-hero-actions .cta,
-        .family-card-actions .cta,
-        .family-card-cta,
-        .family-proof .cta,
-        .family-close-panel .cta {
-          justify-content: center;
-          width: 100%;
         }
 
         .family-proof {
@@ -623,18 +638,6 @@
         .family-facts:has(.spec:nth-child(4)),
         .family-facts:not(:has(.spec:nth-child(3))) {
           grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        /* The journey reads as a numbered list on a phone; its drawings
-           shrink to a thumbnail so the three stages are not three screens. */
-        .journey-grid .doodle {
-          justify-self: start;
-          max-width: 10rem;
-        }
-
-        .journey-grid > .stage-card:last-child {
-          border-bottom: 0;
-          padding-bottom: 0;
         }
 
         /* A linked title keeps its 44px target as padding the layout does
