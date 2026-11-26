@@ -51,15 +51,27 @@ COHORT_SLUG_OVERRIDES: dict[str, str] = {
     "production-ai-agents-generative-media": "production-ai-agents-generative-media-2026",
 }
 
-# A reviewed correction: ai-dev-tools-zoomcamp's own repository still declares
-# modules 3 and 4's homework files under a zero-padded slug ("hw03"/"hw04",
-# left over from before the assignments were finalized and re-titled for CMP)
-# while CMP's copy of the same two assignments uses "hw3"/"hw4". Modules 1 and
-# 2 already agree with CMP ("hw1"/"hw2") and need no correction. Every other
-# course's repository and CMP slugs already agree, so no other entry is
-# needed here.
+# Reviewed {repository_slug: cmp_slug} pairs, per course, for a repository homework
+# CMP knows under another slug. On a modules or shared cohort the repository's slug
+# wins (the encrypted answers and URLs are bound to it); an entry here pairs the two
+# when the titles alone would not, and renames back a repository row an earlier
+# version of the import gave CMP's slug.
+#
+# llm-zoomcamp: the 2026 repository declares homework-01..05; CMP ran them as
+# hw1..hw5, and the 2026-11-26 local prep import renamed the repository rows to
+# CMP's slugs before this rule existed.
+#
+# ai-dev-tools-zoomcamp's former hw03/hw04 entry is gone: its repository now
+# declares hw3/hw4, the slugs CMP uses, and an entry for a slug the repository no
+# longer has would rename the live row back to it.
 HOMEWORK_SLUG_OVERRIDES: dict[str, dict[str, str]] = {
-    "ai-dev-tools-zoomcamp": {"hw03": "hw3", "hw04": "hw4"},
+    "llm-zoomcamp": {
+        "homework-01": "hw1",
+        "homework-02": "hw2",
+        "homework-03": "hw3",
+        "homework-04": "hw4",
+        "homework-05": "hw5",
+    },
 }
 
 

@@ -28,7 +28,9 @@ accounts.  So every foreign key here is resolved against what those importers
 already wrote, through :class:`Resolution`, built once per run from natural keys:
 
 * a cohort by slug;
-* a homework and a project by ``(cohort, slug)``;
+* a homework through the pairing ``import_cmp_content`` recorded, else by
+  ``(cohort, slug)`` (a repository-authored homework keeps its repository slug);
+* a project by ``(cohort, slug)``;
 * a question by its text within its homework -- and, where one homework repeats
   a question's text verbatim, by the order the texts appear, which is the order
   ``import_cmp_content`` writes them in;
@@ -149,6 +151,7 @@ from courses.models import (
     UserWrappedStatistics,
     WrappedStatistics,
 )
+from courses.services.cmp_content_import import homework_pairings
 from courses.services.course_family_identity import (
     UnparseableEditionSlug,
     family_and_year_from_edition_slug,
@@ -501,24 +504,38 @@ def _campaign_map(connection: sqlite3.Connection) -> dict[int, int]:
 
 
 def _homework_map(connection: sqlite3.Connection, cohorts: Mapping[int, int]) -> dict[int, int]:
-    """Source homework id -> target pk, by ``(cohort, slug)``.
+    """Source homework id -> target pk.
 
-    ``import_cmp_content`` copies CMP's homework slug verbatim -- it even renames
-    a repository-authored row to take it -- so the slug is the identity both
-    sides agree on.
+    ``import_cmp_content`` records which local row it paired each CMP homework with
+    (:func:`courses.services.cmp_content_import.homework_pairings`), and that pairing
+    wins: on a modules or shared cohort a repository-authored row keeps its repository
+    slug, so CMP's slug no longer names it.  A homework the content import has not
+    paired falls back to ``(cohort, slug)``, which is the identity both sides agree on
+    everywhere else.
     """
 
+    rows_by_pk = {
+        pk: course_id
+        for pk, course_id in Homework.objects.filter(
+            course_id__in=set(cohorts.values())
+        ).values_list("pk", "course_id")
+    }
     local = {
         (course_id, slug): pk
         for course_id, slug, pk in Homework.objects.filter(
             course_id__in=set(cohorts.values())
         ).values_list("course_id", "slug", "pk")
     }
+    pairings = homework_pairings()
     resolved: dict[int, int] = {}
     rows = _rows(connection, "courses_homework", "select id, course_id, slug from courses_homework")
     for row in rows:
         cohort_pk = cohorts.get(row["course_id"])
         if cohort_pk is None:
+            continue
+        paired = pairings.get(int(row["id"]))
+        if paired is not None and rows_by_pk.get(paired) == cohort_pk:
+            resolved[int(row["id"])] = paired
             continue
         target = local.get((cohort_pk, str(row["slug"])))
         if target is not None:

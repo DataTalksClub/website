@@ -24,30 +24,34 @@ Scope, deliberately narrow:
   exports under an irregular family spelling (``"ai-dev-tools-2025"``, which omits the
   ``-zoomcamp`` its real family carries) -- see ``scripts/prod/import_cmp_content.py``.
   A slug that doesn't parse as ``<family>-<year>`` at all stays missing and is reported.
-* **CMP owns homework identity.**  A homework's slug is whatever CMP says it is, copied
-  verbatim, including on the modules-format cohorts whose repositories declare a
-  different one.  Nothing is derived, mapped or rewritten.
+* **CMP owns homework content; the repository owns a repository row's slug.**  On a
+  legacy cohort CMP is the whole source, so a homework's slug is whatever CMP says it
+  is.  On a modules or shared cohort a repository-authored row (one carrying
+  ``source_content_id``) keeps the slug its ``homework.yaml`` declares: that slug is
+  bound into the encrypted answer envelopes and published URLs, and the course
+  repository import refuses to change it once learners have submitted.  CMP's fields
+  are copied onto the row, CMP's slug is not.  A row nobody owns still takes CMP's slug.
 
-  A modules-format cohort binds its homework to repository-authored modules through
-  ``Module.terminal_homework``, so adopting CMP's slug means re-pointing that binding.
   The pairing is read from data both sides already publish -- the slug when they agree,
-  otherwise an exact title match -- and anything that does not pair is **left unbound
-  and reported**.  Guessing by ordinal position would misattach CMP's ``dlt`` workshop
-  to the sixth LLM module, which renders as a page that looks fine and is wrong.
+  otherwise an exact title match, otherwise the reviewed ``homework_slug_overrides``
+  entry -- and anything that does not pair is **left unbound and reported**.  Guessing
+  by ordinal position would misattach CMP's ``dlt`` workshop to the sixth LLM module,
+  which renders as a page that looks fine and is wrong.
 
-  A paired row is *renamed*, never replaced.  The row stays the repository's, keeping
+  Each pairing is recorded as a ``CmpHistoryClaim`` under
+  :data:`HOMEWORK_PAIRING_TABLE` (CMP homework id -> local homework pk), because once the
+  slugs differ nothing else ties the two together: a replay finds its row through the
+  claim even after a repository pull rewrote the title, and the learner-history importer
+  resolves CMP submissions through the same claim (:func:`homework_pairings`).
+
+  A paired row is never replaced.  The row stays the repository's, keeping
   ``source_content_id``, the imported instructions Markdown, its source path, its units
-  and its module binding; only the slug and CMP's own fields change.  Replacing it left
-  a homework no import owned, which is what the course-repository path refuses on its
-  next pull with ``homework_slug_collision``, and which re-created the repository row
-  beside it so the reconciliation undid itself on every replay.
+  and its module binding.  Replacing it left a homework no import owned, which is what
+  the course-repository path refuses on its next pull with ``homework_slug_collision``.
 
-  A pairing whose repository title no longer matches CMP's exactly (a stale ``[DRAFT]``
-  marker, a title rewritten before launch) is left unbound by title alone -- guessing by
-  near-enough text is exactly the wrong-attachment risk this reconciliation refuses to
-  take.  ``homework_slug_overrides`` is the small, reviewed correction for that: an
-  explicit ``{repository_slug: cmp_slug}`` pair the caller already knows names the same
-  assignment, used only as a fallback when title matching finds nothing.
+  ``homework_slug_overrides`` (``{repository_slug: cmp_slug}`` per course) also repairs
+  a repository row an earlier version of this import renamed to CMP's slug: such a row
+  is renamed back to the repository slug its override names.
 
 Running it twice is a no-op: every write is keyed on the same natural key the learner
 history importer uses. Questions reconcile by text and source order, and review criteria
@@ -71,6 +75,7 @@ from django.db.models.deletion import ProtectedError
 from accounts.services.cmp_learner_import import _readonly
 from courses.models import (
     Answer,
+    CmpHistoryClaim,
     Cohort,
     Homework,
     Module,
@@ -89,12 +94,36 @@ from courses.services.launch_import_timing import import_explicit_start
 from courses.services.launch_validation import LaunchError
 
 __all__ = [
+    "HOMEWORK_PAIRING_TABLE",
     "CampaignReport",
     "CmpContentImportError",
     "CmpContentImportResult",
     "SKIPPED_COHORTS",
+    "homework_pairings",
     "import_cmp_course_content",
 ]
+
+# The ``CmpHistoryClaim.table`` key under which this import records which local homework
+# each CMP homework was paired with.  It is not one of the learner-history tables, so the
+# two importers' claims never collide.
+HOMEWORK_PAIRING_TABLE = "cmp_content:courses_homework"
+
+
+def homework_pairings() -> dict[int, int]:
+    """CMP homework id -> local homework pk, as this import last paired them."""
+
+    return {
+        int(source_id): int(target_id)
+        for source_id, target_id in CmpHistoryClaim.objects.filter(
+            table=HOMEWORK_PAIRING_TABLE
+        ).values_list("source_id", "target_id")
+    }
+
+
+def _record_pairing(source_id: int, target_id: int) -> None:
+    CmpHistoryClaim.objects.update_or_create(
+        table=HOMEWORK_PAIRING_TABLE, source_id=source_id, defaults={"target_id": target_id}
+    )
 
 
 class CmpContentImportError(RuntimeError):
@@ -228,6 +257,7 @@ class CohortReport:
     homework_removed: int = 0
     questions_written: int = 0
     questions_retained: int = 0
+    repository_questions_kept: int = 0
     projects_written: int = 0
     projects_removed: int = 0
     criteria_written: int = 0
@@ -279,6 +309,9 @@ class CmpContentImportResult:
             "homework_removed": sum(row.homework_removed for row in self.imported),
             "questions_written": sum(row.questions_written for row in self.imported),
             "questions_retained": sum(row.questions_retained for row in self.imported),
+            "repository_questions_kept": sum(
+                row.repository_questions_kept for row in self.imported
+            ),
             "projects_written": sum(row.projects_written for row in self.imported),
             "projects_removed": sum(row.projects_removed for row in self.imported),
             "criteria_written": sum(row.criteria_written for row in self.imported),
@@ -305,6 +338,7 @@ class CmpContentImportResult:
                     "homework_removed": row.homework_removed,
                     "questions": row.questions_written,
                     "questions_retained": row.questions_retained,
+                    "repository_questions_kept": row.repository_questions_kept,
                     "projects": row.projects_written,
                     "projects_removed": row.projects_removed,
                     "criteria": row.criteria_written,
@@ -451,6 +485,11 @@ def _coerce(name: str, value: Any) -> Any:
         return _datetime(value)
     if value is None and name in _NULLABLE_TEXT_FIELDS:
         return ""
+    if name == "possible_answers" and value == "":
+        # CMP stores "no options" as an empty string; the course repository import
+        # stores it as NULL and compares definitions exactly, so normalize at the
+        # boundary instead of flipping the column on every alternate import.
+        return None
     return value
 
 
@@ -754,33 +793,65 @@ def _repository_pair(
 def _adopt_repository_row(
     paired: Homework,
     slug_match: Homework | None,
-    slug: str,
-    values: Mapping[str, Any],
-    rebound: list[tuple[str, str, str]],
     existing: dict[str, Homework],
 ) -> Homework:
-    """Give the repository's row CMP's slug and content, in place.
+    """Make the repository's row the one CMP's assignment lands on, in place.
 
-    CMP owns homework identity, so the slug becomes CMP's.  The row itself stays the
-    repository's: replacing it would drop ``source_content_id`` and leave a homework no
-    import owns, which the course-repository path refuses on its next pull with
-    ``homework_slug_collision`` -- and would drop the imported instructions Markdown, its
-    source path, and the unit links that resolve against it.  Renaming keeps the module
-    binding as well, because the foreign key never moves.
+    A second row already carrying CMP's slug (left by an earlier import, before the
+    repository row existed) is folded away; ``_repository_pair`` only offers a pair when
+    that row has no submissions.  The surviving row stays the repository's: replacing it
+    would drop ``source_content_id`` and leave a homework no import owns, which the
+    course-repository path refuses on its next pull with ``homework_slug_collision`` --
+    and would drop the imported instructions Markdown, its source path, and the unit
+    links that resolve against it.  The module binding never moves either.
     """
 
-    if slug_match is not None:
+    if slug_match is not None and slug_match.pk != paired.pk:
         existing.pop(slug_match.slug, None)
         slug_match.delete()
-    previous_slug = paired.slug
-    existing.pop(previous_slug, None)
-    paired.slug = slug
-    paired.save(update_fields=["slug"])
-    _apply(paired, values)
-    if previous_slug != slug:
-        for module in Module.objects.filter(terminal_homework=paired):
-            rebound.append((module.slug, previous_slug, slug))
     return paired
+
+
+def _target_slug(
+    homework: Homework,
+    cmp_slug: str,
+    *,
+    is_modules: bool,
+    repository_slug_for: Mapping[str, str],
+) -> str:
+    """The slug a paired row should carry after this import.
+
+    On a modules or shared cohort a repository-owned row keeps its repository slug --
+    the encrypted answers and published URLs are bound to it, and the course-repository
+    import refuses to change it once learners submitted.  A row an earlier import
+    renamed to CMP's slug goes back to the repository slug its reviewed override names.
+    Everything else takes CMP's slug, as before.
+    """
+
+    if not is_modules or homework.source_content_id is None:
+        return cmp_slug
+    if homework.slug == cmp_slug:
+        return repository_slug_for.get(cmp_slug, cmp_slug)
+    return homework.slug
+
+
+def _rename(
+    homework: Homework,
+    slug: str,
+    existing: dict[str, Homework],
+    rebound: list[tuple[str, str, str]],
+) -> None:
+    previous_slug = homework.slug
+    if previous_slug == slug:
+        return
+    if slug in existing and existing[slug].pk != homework.pk:
+        _refuse("homework-slug-target-occupied")
+    existing.pop(previous_slug, None)
+    homework.slug = slug
+    homework.save(update_fields=["slug"])
+    existing[slug] = homework
+    for module in Module.objects.filter(terminal_homework=homework):
+        rebound.append((module.slug, previous_slug, slug))
 
 
 def _import_cohort(
@@ -800,62 +871,93 @@ def _import_cohort(
     )
     is_modules = cohort.curriculum_format != Cohort.CurriculumFormat.LEGACY
     existing = {row.slug: row for row in Homework.objects.filter(course=cohort)}
+    by_pk = {row.pk: row for row in existing.values()}
+    pairings = homework_pairings()
+    claimed = {
+        int(source["id"]): by_pk[pairings[int(source["id"])]]
+        for source in homework_rows
+        if pairings.get(int(source["id"])) in by_pk
+    }
+    claimed_pks = {homework.pk for homework in claimed.values()}
     # Only a repository row CMP has no slug for can stand in for a CMP row, so a title
     # already claimed by a matching slug is never reused.
     superseding = {row["slug"] for row in homework_rows}
     by_title = {
-        row.title: row for row in existing.values() if row.slug not in superseding and row.title
+        row.title: row
+        for row in existing.values()
+        if row.slug not in superseding and row.title and row.pk not in claimed_pks
     }
-    # A handful of courses declare a repository homework slug CMP does not agree with
-    # (for example ai-dev-tools-zoomcamp's modules-3/4 files, still ``hw03``/``hw04``
-    # from before the assignments were finalized and re-titled for CMP, so their titles
-    # no longer match exactly either).  ``course_overrides`` is the small, reviewed
-    # correction the caller supplies for exactly that -- see
-    # ``scripts/prod/import_cmp_content.py`` -- keyed by the repository's own irregular
-    # slug, valued by the CMP slug it actually means.  It never guesses a pairing that
-    # title matching wouldn't also catch on its own; it only covers the reviewed cases.
+    # A handful of courses declare a repository homework slug CMP does not agree with,
+    # and whose title no longer matches CMP's exactly either.  ``course_overrides`` is
+    # the small, reviewed correction the caller supplies for exactly that -- see
+    # ``scripts/prod/import_cmp_content.py`` -- keyed by the repository's own slug,
+    # valued by the CMP slug it actually means.  It never guesses a pairing that title
+    # matching wouldn't also catch on its own; it only covers the reviewed cases.
     course_overrides = homework_slug_overrides.get(cohort.course.slug, {})
+    repository_slug_for = {cmp_slug: repo_slug for repo_slug, cmp_slug in course_overrides.items()}
     by_corrected_slug = {
         course_overrides[row.slug]: row
         for row in existing.values()
-        if row.slug in course_overrides and row.slug not in superseding
+        if row.slug in course_overrides
+        and row.slug not in superseding
+        and row.pk not in claimed_pks
     }
 
     written = 0
     questions_written = 0
     questions_retained = 0
-    source_slugs: set[str] = set()
+    repository_questions_kept = 0
+    targets: set[int] = set()
     rebound: list[tuple[str, str, str]] = []
     unpaired_cmp: list[str] = []
     for source in homework_rows:
+        source_id = int(source["id"])
         slug = str(source["slug"])
-        source_slugs.add(slug)
         values = _values(source, _HOMEWORK_FIELDS)
-        homework = existing.get(slug)
-        paired = _repository_pair(by_title, values["title"], homework)
-        if paired is None:
-            paired = _repository_pair(by_corrected_slug, slug, homework)
-        if paired is not None:
-            homework = _adopt_repository_row(paired, homework, slug, values, rebound, existing)
-        elif homework is not None:
-            # Slugs already agree, so the module binding needs no repair.
-            _apply(homework, values)
-        else:
+        slug_match = existing.get(slug)
+        homework = claimed.get(source_id)
+        if homework is None:
+            paired = _repository_pair(by_title, values["title"], slug_match)
+            if paired is None:
+                paired = _repository_pair(by_corrected_slug, slug, slug_match)
+            if paired is not None:
+                homework = _adopt_repository_row(paired, slug_match, existing)
+            else:
+                homework = slug_match
+        if homework is None:
             homework = Homework.objects.create(course=cohort, slug=slug, **values)
+            existing[slug] = homework
             if is_modules:
                 unpaired_cmp.append(slug)
+        else:
+            _rename(
+                homework,
+                _target_slug(
+                    homework,
+                    slug,
+                    is_modules=is_modules,
+                    repository_slug_for=repository_slug_for,
+                ),
+                existing,
+                rebound,
+            )
+            _apply(homework, values)
         _import_explicit_start(homework, source, "homework")
-        existing[slug] = homework
+        _record_pairing(source_id, homework.pk)
+        targets.add(homework.pk)
         written += 1
-        question_count, retained_count = _reconcile_questions(connection, source["id"], homework)
+        question_count, retained_count, kept_count = _reconcile_questions(
+            connection, source["id"], homework, keep_repository_questions=is_modules
+        )
         questions_written += question_count
         questions_retained += retained_count
+        repository_questions_kept += kept_count
 
-    leftover = Homework.objects.filter(course=cohort).exclude(slug__in=source_slugs)
+    leftover = Homework.objects.filter(course=cohort).exclude(pk__in=targets)
     if is_modules:
-        # A modules cohort has two legitimate authors.  CMP owns the identity and content
-        # of the assignments it has; it does not assert that an assignment it lacks does
-        # not exist, and deleting a repository-authored homework would strip its module's
+        # A modules cohort has two legitimate authors.  CMP owns the content of the
+        # assignments it has; it does not assert that an assignment it lacks does not
+        # exist, and deleting a repository-authored homework would strip its module's
         # page.  Report the divergence instead of resolving it by deletion.
         removed = 0
         unpaired_repository = tuple(sorted(leftover.values_list("slug", flat=True)))
@@ -905,6 +1007,7 @@ def _import_cohort(
         homework_removed=removed,
         questions_written=questions_written,
         questions_retained=questions_retained,
+        repository_questions_kept=repository_questions_kept,
         projects_written=projects_written,
         projects_removed=projects_removed,
         criteria_written=criteria_written,
@@ -917,13 +1020,22 @@ def _import_cohort(
 
 
 def _reconcile_questions(
-    connection: sqlite3.Connection, homework_id: Any, homework: Homework
-) -> tuple[int, int]:
+    connection: sqlite3.Connection,
+    homework_id: Any,
+    homework: Homework,
+    *,
+    keep_repository_questions: bool = False,
+) -> tuple[int, int, int]:
     """Reconcile questions without deleting imported learner answers.
 
     Text plus source order is the same identity used by the history importer. Reusing
     those rows keeps answer foreign keys stable on replay, including the one reviewed
     source homework that repeats a question verbatim.
+
+    On a modules or shared cohort a repository-authored question CMP does not have is
+    kept and counted rather than deleted, for the reason a repository homework is: CMP
+    lacking it does not assert it does not exist, and deleting it only made the next
+    repository pull re-create it.  Returns (written, retained, repository kept).
     """
 
     rows = _rows(
@@ -945,13 +1057,16 @@ def _reconcile_questions(
             Question.objects.create(homework=homework, **values)
 
     retained = 0
+    kept = 0
     for leftovers in available.values():
         for question in leftovers:
-            if Answer.objects.filter(question=question).exists():
+            if keep_repository_questions and question.source_content_id is not None:
+                kept += 1
+            elif Answer.objects.filter(question=question).exists():
                 retained += 1
             else:
                 question.delete()
-    return len(rows), retained
+    return len(rows), retained, kept
 
 
 def _reconcile_criteria(

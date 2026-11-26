@@ -35,6 +35,7 @@ from courses.models.cohort import CourseRegistration, RegistrationCampaign
 from courses.services.cmp_content_import import (
     SKIPPED_COHORTS,
     CmpContentImportError,
+    homework_pairings,
     import_cmp_course_content,
 )
 
@@ -550,21 +551,24 @@ class CmpContentImportTests(TestCase):
         return homework
 
     def test_the_reconciled_row_stays_the_one_the_repository_import_owns(self) -> None:
-        """Adopting CMP's slug must not orphan the row from its repository.
+        """Pairing with CMP must not orphan the row from its repository, nor rename it.
 
         Replacing the row dropped ``source_content_id``, so the next repository pull saw
         a homework no import owned holding the slug it declares and refused with
-        ``homework_slug_collision`` -- and the imported instructions Markdown and its
-        source path went with it.
+        ``homework_slug_collision``.  Renaming it to CMP's slug broke the next pull too:
+        the encrypted answers are bound to the repository slug, and the pull refuses a
+        slug change once learners have submitted.
         """
 
         cohort, modules = self._modules_cohort({"homework-01": "Homework 1: Real"})
         owned = self._own(modules["homework-01"].terminal_homework, content_id=CONTENT_ID)
         _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
 
-        import_cmp_course_content(self.source)
+        result = import_cmp_course_content(self.source)
 
-        reconciled = Homework.objects.get(course=cohort, slug="hw1")
+        self.assertEqual(result.summary()["rebindings"], [])
+        self.assertEqual(result.summary()["unpaired_cmp_homework"], [])
+        reconciled = Homework.objects.get(course=cohort, slug="homework-01")
         self.assertEqual(reconciled.pk, owned.pk)
         self.assertEqual(str(reconciled.source_content_id), CONTENT_ID)
         self.assertEqual(
@@ -597,15 +601,115 @@ class CmpContentImportTests(TestCase):
 
         self.assertEqual(
             list(Homework.objects.filter(course=cohort).values_list("slug", flat=True)),
-            ["hw1"],
+            ["homework-01"],
         )
-        survivor = Homework.objects.get(course=cohort, slug="hw1")
+        survivor = Homework.objects.get(course=cohort, slug="homework-01")
         self.assertEqual(str(survivor.source_content_id), CONTENT_ID)
         module = modules["homework-01"]
         module.refresh_from_db()
         self.assertEqual(module.terminal_homework_id, survivor.pk)
         self.assertEqual(survivor.question_set.count(), 1)
         self.assertEqual(result.summary()["unpaired_repository_homework"], [])
+
+    def test_an_override_renames_back_a_row_an_earlier_import_gave_cmps_slug(self) -> None:
+        """The 2026-11-26 prep import renamed LLM's homework-01..05 to CMP's hw1..hw5.
+
+        The reviewed override names the repository slug, so the row goes back to it, and
+        a replay leaves it there.
+        """
+
+        cohort, modules = self._modules_cohort({"hw1": "Homework 1: Real"})
+        owned = self._own(modules["hw1"].terminal_homework, content_id=CONTENT_ID)
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+        overrides = {"llm-zoomcamp": {"homework-01": "hw1"}}
+
+        first = import_cmp_course_content(self.source, homework_slug_overrides=overrides)
+        second = import_cmp_course_content(self.source, homework_slug_overrides=overrides)
+
+        self.assertEqual(
+            list(Homework.objects.filter(course=cohort).values_list("pk", "slug")),
+            [(owned.pk, "homework-01")],
+        )
+        self.assertEqual(
+            first.summary()["rebindings"],
+            [
+                {
+                    "cohort": "llm-zoomcamp-2026",
+                    "module": "01-module",
+                    "was": "hw1",
+                    "now": "homework-01",
+                }
+            ],
+        )
+        self.assertEqual(second.summary()["rebindings"], [])
+        self.assertEqual(second.summary()["unpaired_cmp_homework"], [])
+
+    def test_an_override_never_renames_a_row_nobody_owns(self) -> None:
+        cohort, _ = self._modules_cohort({"hw1": "Homework 1: Real"})
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+
+        import_cmp_course_content(
+            self.source, homework_slug_overrides={"llm-zoomcamp": {"homework-01": "hw1"}}
+        )
+
+        self.assertEqual(
+            list(Homework.objects.filter(course=cohort).values_list("slug", flat=True)),
+            ["hw1"],
+        )
+
+    def test_the_pairing_survives_a_repository_title_rewrite(self) -> None:
+        """A repository pull rewrites the title; the recorded pairing still finds the row."""
+
+        cohort, modules = self._modules_cohort({"homework-01": "Homework 1: Real"})
+        owned = self._own(modules["homework-01"].terminal_homework, content_id=CONTENT_ID)
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+        import_cmp_course_content(self.source)
+        Homework.objects.filter(pk=owned.pk).update(title="Homework 1: Rewritten upstream")
+
+        result = import_cmp_course_content(self.source)
+
+        self.assertEqual(
+            list(Homework.objects.filter(course=cohort).values_list("pk", "slug")),
+            [(owned.pk, "homework-01")],
+        )
+        self.assertEqual(result.summary()["unpaired_cmp_homework"], [])
+        self.assertEqual(homework_pairings(), {10: owned.pk})
+
+    def test_keeps_repository_questions_cmp_lacks_on_a_modules_cohort(self) -> None:
+        """Deleting them only made the next repository pull re-create them."""
+
+        cohort, modules = self._modules_cohort({"homework-01": "Homework 1: Real"})
+        owned = self._own(modules["homework-01"].terminal_homework, content_id=CONTENT_ID)
+        repository_question = Question.objects.create(
+            homework=owned,
+            text="What did you learn from this module?",
+            question_type="FL",
+            answer_type="ANY",
+            source_content_id="86666666-6666-4666-8666-666666666666",
+            source_question_id="reflection",
+            source_path="cohorts/2026/01-agentic-rag/homework.yaml",
+            source_commit_sha="a" * 40,
+            source_checksum="b" * 64,
+        )
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+
+        result = import_cmp_course_content(self.source)
+
+        self.assertTrue(Question.objects.filter(pk=repository_question.pk).exists())
+        self.assertEqual(result.summary()["repository_questions_kept"], 1)
+        self.assertEqual(owned.question_set.count(), 2)
+
+    def test_an_empty_option_list_is_stored_as_no_options(self) -> None:
+        cohort = self._cohort("de-zoomcamp-2026")
+        _build_source(self.source, cohort_slugs=("de-zoomcamp-2026",))
+        connection = sqlite3.connect(self.source)
+        connection.execute("UPDATE courses_question SET possible_answers = ''")
+        connection.commit()
+        connection.close()
+
+        import_cmp_course_content(self.source)
+
+        self.assertIsNone(Question.objects.get(homework__course=cohort).possible_answers)
 
     def test_a_duplicate_carrying_submissions_is_reported_rather_than_folded(self) -> None:
         """Folding discards a row, and a discarded row takes its submissions with it."""

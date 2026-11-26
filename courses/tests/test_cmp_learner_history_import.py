@@ -39,6 +39,7 @@ from courses.models import (
     UserWrappedStatistics,
     WrappedStatistics,
 )
+from courses.services.cmp_content_import import HOMEWORK_PAIRING_TABLE
 from courses.services.cmp_learner_history_import import (
     CONTENT_TABLES,
     FORBIDDEN_TABLES,
@@ -807,6 +808,46 @@ class SubmissionImportTests(HistoryImportFixture):
         report = self.report(result, "courses_submission")
         self.assertEqual(report["unresolved"], {"source_json_invalid": 1})
         self.assertEqual(Submission.objects.count(), 0)
+
+
+class RepositoryHomeworkPairingTests(HistoryImportFixture):
+    """A repository-authored homework keeps its repository slug on a shared cohort,
+    so CMP's slug no longer names it and the content import's pairing has to."""
+
+    def test_a_submission_follows_the_pairing_the_content_import_recorded(self) -> None:
+        self.homework.slug = "homework-01"
+        self.homework.save(update_fields=["slug"])
+        CmpHistoryClaim.objects.create(
+            table=HOMEWORK_PAIRING_TABLE, source_id=1, target_id=self.homework.pk
+        )
+        source = self.source(
+            courses_enrollment=[enrollment_row(1)],
+            courses_submission=[submission_row(1)],
+        )
+
+        result = self.run_import(source)
+
+        self.assertEqual(self.report(result, "courses_submission")["unresolved"], {})
+        self.assertEqual(Submission.objects.get().homework, self.homework)
+
+    def test_a_pairing_into_another_cohort_is_ignored(self) -> None:
+        other = Cohort.objects.create(
+            course=self.family, slug="de-zoomcamp-2026", identifier="2026", year=2026
+        )
+        elsewhere = Homework.objects.create(
+            course=other, slug="module-1", title="Module 1", due_date=MOMENT_UTC
+        )
+        CmpHistoryClaim.objects.create(
+            table=HOMEWORK_PAIRING_TABLE, source_id=1, target_id=elsewhere.pk
+        )
+        source = self.source(
+            courses_enrollment=[enrollment_row(1)],
+            courses_submission=[submission_row(1)],
+        )
+
+        self.run_import(source)
+
+        self.assertEqual(Submission.objects.get().homework, self.homework)
 
 
 class AnswerImportTests(HistoryImportFixture):
