@@ -1,4 +1,4 @@
-{% load seo static %}
+{% load breadcrumbs seo static %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -63,6 +63,11 @@
       /* The same ordinary content column every content page holds. */
       .person-shell {
         max-width: var(--reading-width);
+      }
+
+      .person-hero .breadcrumbs {
+        margin-bottom: var(--space-eyebrow);
+        margin-top: calc(var(--space-3) * -1);
       }
 
       .person-identity {
@@ -181,6 +186,11 @@
     <main id="main-content" tabindex="-1">
       <section class="band band-cream person-hero" aria-labelledby="person-heading">
         <div class="shell person-shell">
+          {% comment %}
+            The way back to /people, from the trail the page publishes as
+            BreadcrumbList JSON-LD; the h1 below names the person.
+          {% endcomment %}
+          {% breadcrumbs breadcrumbs.ancestors.0 %}
           <div class="person-identity">
             {% comment %}
               Every profile in the catalogue carries a portrait today, but a portrait

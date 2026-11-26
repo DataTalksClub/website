@@ -26,6 +26,7 @@ from django.http import (
 )
 from django.http.response import HttpResponseBase
 from django.shortcuts import render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
@@ -1494,6 +1495,14 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         episode_graph = wiki_content.unavailable_episode_graph(episode)
     connections = wiki_content.episode_connections(episode_graph, pages=wiki_reader.wiki_pages())
     related_cards = hub_episodes(related.records)
+    # The way back is the episode's own season page: "Podcast / Season 25".
+    # The season route serves every season, the newest included, so the trail
+    # always names a real place to land.
+    episode_trail = trail(
+        ("Podcast", "/podcast"),
+        (f"Season {episode['season']}", reverse("podcast-season", args=[episode["season"]])),
+        (episode["title"], episode["public_path"]),
+    )
     episode_entity = {
         "@type": "PodcastEpisode",
         "url": _canonical(episode["public_path"]),
@@ -1538,8 +1547,9 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
             "published_time": episode["published"] or "",
             "structured_data": _json_ld(
                 episode_entity,
-                trail(("Podcast", "/podcast"), (episode["title"], episode["public_path"])),
+                episode_trail,
             ),
+            "breadcrumbs": episode_trail,
         },
     )
     response["Cache-Control"] = (
@@ -1690,6 +1700,7 @@ def person_detail(request: HttpRequest, slug: str) -> HttpResponse:
     person = catalogue.person(slug)
     if person is None:
         raise Http404
+    person_trail = trail(("People", "/people"), (person["title"], person["public_path"]))
     return _render(
         request,
         "public/person_detail.html",
@@ -1709,8 +1720,9 @@ def person_detail(request: HttpRequest, slug: str) -> HttpResponse:
                     "sameAs": [link["url"] for link in person["links"]],
                     **({"image": _canonical(person["image_path"])} if person["image_path"] else {}),
                 },
-                trail((person["title"], person["public_path"])),
+                person_trail,
             ),
+            "breadcrumbs": person_trail,
         },
     )
 

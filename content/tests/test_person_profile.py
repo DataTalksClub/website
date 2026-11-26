@@ -411,7 +411,7 @@ class PersonPageTests(TestCase):
         self.assertNotIn('class="when"', body)
         self.assertNotIn('class="status-pill status-pill-mint"', body)
         self.assertIn('class="stat-tiles stat-tiles-row person-stats"', body)
-        # Design system bands, one per kind of work, and no invented catalogue link.
+        # Design system bands, one per kind of work.
         # Every band after the hero takes the content ground, so a profile with
         # four kinds of work still reads as one page.
         self.assertEqual(
@@ -420,7 +420,13 @@ class PersonPageTests(TestCase):
         )
         self.assertNotIn('<section class="band band-mint', body)
         self.assertNotIn('<section class="band band-cream person-contributions', body)
-        self.assertNotIn('href="/people"', body)
+        # /people is a real index now, and the profile's way back to it is the
+        # breadcrumb trail -- the one link to it on the page.
+        self.assertEqual(body.count('href="/people"'), 1)
+        self.assertIn(
+            '<nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/people">People</a>',
+            body,
+        )
 
     def test_a_long_group_offers_one_control_that_says_what_it_is_holding(self) -> None:
         """The fold is a <details>: no script, and it opens with JavaScript off."""

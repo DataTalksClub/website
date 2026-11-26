@@ -1,4 +1,4 @@
-{% load seo static people %}
+{% load breadcrumbs seo static people %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -70,10 +70,9 @@
         max-width: var(--reading-width);
       }
 
-      .episode-back {
-        display: inline-flex;
-        min-height: 2.75rem;
-        align-items: center;
+
+      .episode-hero .breadcrumbs {
+        margin-top: calc(var(--space-3) * -1);
       }
 
       .episode-hero h1 {
@@ -781,7 +780,12 @@
     <main id="main-content" tabindex="-1">
       <section class="band band-cream episode-hero" aria-labelledby="episode-heading">
         <div class="shell episode-shell">
-          <a class="band-link episode-back" href="{% url 'podcast' %}">← all episodes</a>
+          {% comment %}
+            The way back: "Podcast / Season 25".  The trail is the one the page
+            publishes as BreadcrumbList JSON-LD, drawn without its last level
+            because the h1 below already names the episode.
+          {% endcomment %}
+          {% breadcrumbs breadcrumbs.ancestors.0 breadcrumbs.ancestors.1 %}
           <p>
             <span class="status-pill status-pill-mint">{{ episode.season_episode }}</span>
           </p>

@@ -1,4 +1,4 @@
-{% load seo people %}
+{% load breadcrumbs seo people %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -68,23 +68,40 @@
         display: grid;
         gap: var(--space-5) var(--space-7);
         grid-template-areas:
+          "trail trail"
           "media main"
           "hosts main";
         grid-template-columns: 17rem minmax(0, var(--reading-width));
-        grid-template-rows: auto 1fr;
+        grid-template-rows: auto auto 1fr;
         justify-content: center;
       }
 
       /* No picture: the side column holds the speakers list from the top. */
       .event-layout-no-media {
-        grid-template-areas: "hosts main";
-        grid-template-rows: auto;
+        grid-template-areas:
+          "trail trail"
+          "hosts main";
+        grid-template-rows: auto auto;
       }
 
       /* Neither a picture nor speakers: one reading column. */
       .event-layout-single {
-        grid-template-areas: "main";
+        grid-template-areas:
+          "trail"
+          "main";
         grid-template-columns: minmax(0, var(--reading-width));
+      }
+
+      /* The way back to /events.  It is the layout's first row, spanning both
+         columns, so it starts on the picture's left edge -- the edge the two
+         columns below share -- rather than at the shell's edge, which the
+         centred grid sits well inside.  The grid's row gap is the column gap;
+         a trail sits --space-eyebrow above what it heads, so it takes the
+         difference back. */
+      .event-layout > .breadcrumbs {
+        grid-area: trail;
+        margin-bottom: calc(var(--space-eyebrow) - var(--space-5));
+        margin-top: calc(var(--space-3) * -1);
       }
 
       .event-media {
@@ -621,11 +638,16 @@
         .event-layout-no-media {
           gap: var(--space-6);
           grid-template-areas:
+            "trail"
             "media"
             "main"
             "hosts";
           grid-template-columns: minmax(0, 1fr);
           grid-template-rows: auto;
+        }
+
+        .event-layout > .breadcrumbs {
+          margin-bottom: calc(var(--space-eyebrow) - var(--space-6));
         }
 
         .event-media {
@@ -668,6 +690,8 @@
                 {% endif %}
               {% endif %}"
           >
+            {% url 'events' as events_url %}
+            {% breadcrumbs "Events" events_url %}
             {% if event.banner_url %}
               <figure class="event-media" data-testid="event-banner">
                 <img
