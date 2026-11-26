@@ -3400,7 +3400,11 @@ Rules for editing:
       }
 
       /* Filter pills: one row of pill toggles where exactly one is active
-         (courses filters, upcoming/past events, show notes/timestamps). */
+         (courses filters, upcoming/past events, podcast seasons, show
+         notes/timestamps, page numbers).  An unselected pill wears the soft card
+         edge and tints it on hover like a soft card; only the current one is
+         filled ink, so the row reads as one choice, not a row of calls to action
+         (owner feedback 2026-11-26). */
       .filter-pills {
         display: flex;
         flex-wrap: wrap;
@@ -3410,7 +3414,7 @@ Rules for editing:
       .filter-pill {
         align-items: center;
         background: var(--card);
-        border: var(--border-strong);
+        border: var(--border-soft);
         border-radius: var(--radius-pill);
         color: var(--ink);
         cursor: pointer;
@@ -3429,6 +3433,12 @@ Rules for editing:
            there is nothing to wrap. */
         max-width: 100%;
         text-align: center;
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        .filter-pill:not(.is-active, [aria-pressed="true"], [aria-current="page"]):hover {
+          border-color: var(--indigo-soft);
+        }
       }
 
       .filter-pill.is-active,
