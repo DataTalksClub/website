@@ -138,7 +138,7 @@ READING_TEXT = {
     "/podcast": (".episode-hero h1", ".episode-play", ".episode-summary", ".guest-card"),
 }
 CARD_LISTS = {
-    "/wiki": (".wiki-episodes .event-timeline", ".wiki-related-grid"),
+    "/wiki": (".wiki-episodes .event-timeline", ".related-grid"),
     "/podcast": (
         ".episode-related .event-timeline",
         ".episode-topic-grid",

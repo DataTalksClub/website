@@ -85,43 +85,6 @@
         margin-bottom: var(--space-4);
       }
 
-      .wiki-related-grid {
-        gap: var(--space-3);
-      }
-
-      .wiki-topic-card {
-        height: 100%;
-        padding: var(--space-4) var(--space-6) var(--space-4) var(--space-4);
-      }
-
-      .wiki-topic-card h3 {
-        font-size: 1.05rem;
-        margin: 0;
-      }
-
-      .wiki-topic-card p {
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        color: var(--body-text);
-        display: -webkit-box;
-        font-size: 0.9rem;
-        line-height: 1.45;
-        margin: 0;
-        overflow: hidden;
-      }
-
-      @media (min-width: 40rem) {
-        .wiki-related-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-
-      @media (min-width: 62rem) {
-        .wiki-related-grid {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-      }
-
       /* The one quiet line under the summary that says how many episodes
          talk about the topic and jumps to them at the foot of the article. */
       .wiki-episodes-jump {
@@ -282,9 +245,9 @@
           {% if related_cards %}
             <section class="wiki-related shell-breakout shell-breakout-cards" id="related-pages" aria-labelledby="related-heading">
               <h2 class="wiki-section-title" id="related-heading">Related topics</h2>
-              <div class="card-grid wiki-related-grid">
+              <div class="card-grid related-grid">
                 {% for topic in related_cards %}
-                  <article class="event-item interactive-card interactive-lift wiki-topic-card">
+                  <article class="event-item interactive-card interactive-lift related-card">
                     <div class="event-item-body">
                       {% spaceless %}
                       <h3>

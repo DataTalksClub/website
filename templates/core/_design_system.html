@@ -707,6 +707,46 @@ Rules for editing:
         );
       }
 
+      /* The pages a reading page points on to (a wiki topic's related topics,
+         an article's "Read next"): title-and-summary cards, one to three a
+         row, on the card-list column under the reading column. */
+      .related-grid {
+        gap: var(--space-3);
+      }
+
+      .related-card {
+        height: 100%;
+        padding: var(--space-4) var(--space-6) var(--space-4) var(--space-4);
+      }
+
+      .related-card h3 {
+        font-size: 1.05rem;
+        margin: 0;
+      }
+
+      .related-card p {
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        color: var(--body-text);
+        display: -webkit-box;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      @media (min-width: 40rem) {
+        .related-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 62rem) {
+        .related-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
       /* The reading width: the same column an article's prose sits in, for the
          index pages that lead into one.  A list of titles and summaries set at
          the full 76rem shell gives every line a long way to track back from,
