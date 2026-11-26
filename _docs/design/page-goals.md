@@ -183,12 +183,15 @@ first-time visitors.
      friction.
   3. **Speaker credibility:** Speaker bios and links.
   4. **Participation & follow-up:** Q&A link and recording embed once available.
-- **Layout:** one reading column — trail and title, the facts (date and time,
-  where to watch or the recording, registered count), Registration, About the
-  event, About the speakers. Each fact appears once: no event picture on the
-  page (the generated banner is the og/social image and the list/home art only,
-  since it repeats the title, date and speaker), and the speakers are credited
-  only in their own section.
+- **Layout:** two columns, after the homepage event tiles. Left: the event art
+  drawn in HTML (`public/_event_art.html`: kind pill, speaker portraits, names,
+  date and time, no title), then the facts as a short list (where to watch or
+  the recording, registered count, Q&A), then the sponsor. Right: the trail
+  flush on the title, Registration, About the event, About the speakers. A
+  phone stacks trail, title, art, facts, registration, description, speakers.
+  Each fact appears once: the date lives in the art (the facts do not repeat
+  it), the speakers in the art and in their own section only, and the
+  generated banner PNG is the og/social image and list art only.
 
 ---
 

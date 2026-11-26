@@ -653,12 +653,21 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         body = self.detail(event)
 
         self.assertNotIn('<nav class="shell event-shell breadcrumbs"', body)
-        # The dateline is one <time> around both the date and the clock: the machine
-        # value carries a clock, so the accessible text has to name the zone, and the
-        # zone only exists in display_clock.
-        self.assertIn(f'<time class="event-fact-text" datetime="{event["starts_at"]}">', body)
-        self.assertIn('<span class="when-time-range">', body)
-        self.assertIn(f"<strong>{escape(event['display_date_long'])}</strong>", body)
+        # The side column is the homepage tiles' event art, and it carries the
+        # date: one <time> around both the date and the clock, because the
+        # machine value carries a clock, so the accessible text has to name the
+        # zone.  The facts under it do not repeat the dateline.
+        self.assertIn('data-testid="event-art"', body)
+        self.assertIn('<div class="event-art event-art-', body)
+        self.assertRegex(
+            body,
+            rf'<time datetime="{re.escape(event["starts_at"])}">\s*'
+            rf"<b>{re.escape(event['display_art_date'])}</b>\s*"
+            rf"<span>{re.escape(event['display_clock_range'])}</span>",
+        )
+        self.assertNotIn('<li class="event-fact event-when">', body)
+        # The generated banner is the social image only.
+        self.assertNotIn('data-testid="event-banner"', body)
         # The h1 escapes the title it draws (an "&" in a title reaches the
         # document as "&amp;"), so the expected markup is the escaped form.
         self.assertIn(f'<h1 id="event-heading">{escape(event["title"])}</h1>', body)
@@ -667,7 +676,7 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         self.assertNotIn("primer-button", body)
 
     def test_the_kind_leads_the_dateline_and_no_state_pill_is_drawn(self) -> None:
-        """The kind is a word before the date, as on the cards; the date alone says
+        """The kind is the art's pill, as on the homepage tiles; the date alone says
         whether the event has happened, so there is no past/upcoming pill."""
 
         groups = event_groups()
@@ -677,8 +686,8 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         upcoming_body = self.detail(upcoming)
         past_body = self.detail(past)
 
-        self.assertIn(f'<span class="when-kind">{upcoming["type"]}</span>', upcoming_body)
-        self.assertIn(f'<span class="when-kind">{past["type"]}</span>', past_body)
+        self.assertIn(f'<span class="event-art-pill">{upcoming["type"]}</span>', upcoming_body)
+        self.assertIn(f'<span class="event-art-pill">{past["type"]}</span>', past_body)
         for body in (upcoming_body, past_body):
             self.assertNotIn('<span class="status-pill">upcoming</span>', body)
             self.assertNotIn('<span class="status-pill">past</span>', body)
@@ -703,7 +712,9 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
             rf"<span>\s*{re.escape(tagged['type'].capitalize())}"
             r" · Академия · Live online\s*</span>",
         )
-        self.assertIn(f'<span class="when-kind">{tagged["type"]} · Академия</span>', detail_body)
+        self.assertIn(
+            f'<span class="event-art-pill">{tagged["type"]} · Академия</span>', detail_body
+        )
 
     def test_speakers_and_links_keep_their_destinations_and_their_labels(self) -> None:
         event = next(

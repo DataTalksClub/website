@@ -11,6 +11,10 @@
 
       {% include "public/_event_art.html" with event=event %}
 
+  ``clock`` optionally replaces the start time on the date line, and ``pill``
+  the type in the pill (the event page passes the start-to-end range and the
+  kind label, which carries any display tags after the type).
+
   The geometry lives in `.event-art` in the design system partial, in units of
   the picture's 1000-wide canvas, so the drawing scales with whatever width the
   card gives it.  Portraits are decorative (the names beside them are the
@@ -40,7 +44,7 @@
       </div>
     {% endif %}
     <div class="event-art-side">
-      <span class="event-art-pill">{{ event.type|default:"event" }}</span>
+      <span class="event-art-pill">{{ pill|default:event.type|default:"event" }}</span>
       {% if count %}
         <p class="event-art-who event-art-who-{{ shown|length }}">
           {% if count > 3 %}
@@ -58,7 +62,7 @@
         <p class="event-art-when">
           <time datetime="{{ event.starts_at }}">
             <b>{{ event.display_art_date }}</b>
-            <span>{{ event.display_clock }}</span>
+            <span>{{ clock|default:event.display_clock }}</span>
           </time>
         </p>
       {% endif %}

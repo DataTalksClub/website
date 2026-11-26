@@ -516,8 +516,8 @@ to this document — do not fork it locally.
   line of text that ends in an ellipsis rather than wrapping, and never a button. The `/` separator is CSS-drawn with empty alternative text
   (`content: "/" / ""`) so it is never announced. Links keep a `2rem` minimum
   target height. The trail starts on the left edge of the
-  column the page's content sits in — on a centred reading column (an event) that
-  is the column's left edge, not the shell's edge. Markup contract: a `nav`
+  column the page's content sits in — on a two-column detail page (an event) that
+  is the left edge of the main column it heads, not the shell's edge. Markup contract: a `nav`
   with an accessible name holding an `ol`, one `li` per level, every ancestor a link,
   and — where a page's own crumb is drawn at all — the current page on
   `li[aria-current="page"]` as plain text, never a link.
