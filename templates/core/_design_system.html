@@ -2989,9 +2989,9 @@ Rules for editing:
          (the course family landing's outcome numbers, the courses index's
          own facts strip) -- shorter tiles than the base 2x2 grid, and the
          tile count itself decides the shape instead of each page fixing its
-         own column count.  Below 40rem it keeps the base two-column grid,
+         own column count.  Below 36rem it keeps the base two-column grid,
          with a lone odd tile spanning the full row rather than sitting off
-         to one side; at 40rem and up it opens to one row, three columns
+         to one side; from the tablet tier (36rem) up it opens to one row, three columns
          normally and four when a fourth tile is present, so a fully
          populated strip never wraps its last tile onto its own row.
          (Do not name the family page's own stat labels here -- this
@@ -3012,7 +3012,7 @@ Rules for editing:
         grid-column: 1 / -1;
       }
 
-      @media (min-width: 40rem) {
+      @media (min-width: 36rem) {
         .stat-tiles-row {
           grid-template-columns: repeat(3, minmax(0, 1fr));
         }
@@ -4129,12 +4129,12 @@ Rules for editing:
         }
       }
 
-      /* Below 47.99rem the plain card gives up being a card at all: the
-         homepage's mobile mockup reads the climb as a numbered list -- badge,
-         then title over its line -- not the desktop cards reflowed. The rail
-         card keeps its card shape at this width; only its own rule above
-         changes it. */
-      @media (max-width: 47.99rem) {
+      /* On a phone (below 36rem) the plain card gives up being a card at all:
+         the homepage's mobile mockup reads the climb as a numbered list --
+         badge, then title over its line -- not the desktop cards reflowed.
+         From 36rem the three cards share one row instead. The rail card keeps
+         its card shape at this width; only its own rule above changes it. */
+      @media (max-width: 35.99rem) {
         .stage-card:not(.stage-card-rail) {
           background: none;
           border: 0;
@@ -4167,6 +4167,40 @@ Rules for editing:
         }
 
         .stage-card:not(.stage-card-rail) > p {
+          grid-column: 2;
+        }
+      }
+
+      /* The small tablet (36rem to 47.99rem) has no room for three stage
+         cards abreast, so each card turns on its side: the drawing in a
+         fixed column at the left, the step and its line beside it, one card
+         a row.  The drawing stays smaller than its desktop size. */
+      @media (min-width: 36rem) and (max-width: 47.99rem) {
+        .card-grid-3:has(> .stage-card:not(.stage-card-rail)) {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .stage-card:not(.stage-card-rail) {
+          align-content: center;
+          column-gap: var(--space-5);
+          display: grid;
+          grid-template-columns: 13rem minmax(0, 1fr);
+          grid-template-rows: auto auto;
+        }
+
+        .stage-card:not(.stage-card-rail) .doodle {
+          grid-column: 1;
+          grid-row: 1 / span 2;
+        }
+
+        .stage-card:not(.stage-card-rail) .stage-card-step {
+          align-self: end;
+          grid-column: 2;
+          margin-top: 0;
+        }
+
+        .stage-card:not(.stage-card-rail) > p {
+          align-self: start;
           grid-column: 2;
         }
       }
@@ -5837,9 +5871,29 @@ Rules for editing:
           --shell-gutter: var(--space-5);
           --shell-content: calc(var(--shell) - 2 * var(--shell-gutter));
         }
+      }
 
-        .card-grid-2 {
+      /* The tablet tier starts at 36rem (576px): below it is a phone. From
+         here a card grid shows two cards a row (`.card-grid-2`, and the
+         three-up grid until 62rem) rather than one stretched card, so a card
+         is never wider than it is on a desktop.  Stage cards are short and
+         come in threes, so they keep their row of three from here. */
+      @media (min-width: 36rem) {
+        .card-grid-2,
+        .card-grid-3 {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .card-grid-3:has(> .stage-card) {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      /* An odd card left alone on the tablet tier's last row takes the whole
+         row, so the grid ends flush instead of with a hole beside it. */
+      @media (min-width: 36rem) and (max-width: 61.99rem) {
+        .card-grid-3:not(:has(> .stage-card)) > :last-child:nth-child(odd) {
+          grid-column: 1 / -1;
         }
       }
 

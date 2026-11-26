@@ -275,8 +275,8 @@ silence the test.
   wide-table breakout are bounded by it, so a page cannot widen past it by
   using them. Enforced in a browser by
   `playwright_tests/test_shell_width_guard.py`, which measures every visible
-  content box in `<main>` of every public page type at 1440, 900 and 390px
-  against the footer's content box.
+  content box in `<main>` of every public page type at 1440, 900, 705 and
+  390px against the footer's content box.
 - **Measure**: `--measure` = `38rem`, about 70 characters. `.prose-reading` and
   `.prose-lede` are held to it. Ordinary pages use `--content-width` = `56rem`
   (the course platform's `.app-content-shell` width) through `.content-shell`
@@ -534,8 +534,10 @@ to this document — do not fork it locally.
 
 - **`.card`** — white slab, `--border-soft`, `--radius-card`, no shadow, column flex
   with `gap: var(--space-tight)` and `padding: var(--space-card)`. `margin-top: auto` on a child pins it to the card foot.
-- **`.card-grid`** + **`.card-grid-2` / `.card-grid-3`** — the band's card columns;
-  they collapse to one column on narrow screens.
+- **`.card-grid`** + **`.card-grid-2` / `.card-grid-3`** — the band's card columns:
+  one column on a phone, two from the tablet tier (`36rem`; a lone odd card
+  spans the last row), and `.card-grid-3` three from `62rem`. A grid of stage
+  cards keeps three from `48rem` and lays the cards on their side below it.
 - **`.interactive-card.interactive-lift`** — the whole-card link treatment. Hover and
   keyboard focus lift the surface 2px and reveal a fixed bottom-right `→` by opacity
   only. The arrow never travels or bounces; reduced-motion removes the lift while
@@ -1161,13 +1163,48 @@ pages.
 
 ## Responsive rules
 
+The site has three tiers. Phone (390px) and desktop (1366px) are the tuned
+references; the tablet tier between them is laid out on purpose, not left to
+stretch the phone layout.
+
+| Tier | Width | Shape |
+| --- | --- | --- |
+| Phone | below `36rem` (576px) | one column; actions full width; stage cards read as a list |
+| Tablet | `36rem`–`61.99rem` (576–991px; a half-screen window is ~705px) | card grids two (or three) a row; actions at their own width; pictures centred and capped |
+| Desktop | `62rem` and up | the wide grids and two-column heroes |
+
 | Query | What changes |
 | --- | --- |
-| `max-width: 47.99rem` | the narrow layout: **reshape, not reflow** |
-| `min-width: 40rem` | shell padding grows; `.card-grid-2` becomes two columns |
-| `min-width: 48rem` | `.list-row` adopts its `--row-cols` columns |
+| `max-width: 35.99rem` | phone only: hero, closing and card actions go full width (`width: 100%`); the plain stage card becomes a numbered list row |
+| `min-width: 36rem` | the tablet tier opens: `.card-grid-2` and `.card-grid-3` show two columns, a stage-card grid shows three; `.stat-tiles-row` opens to one row |
+| `36rem`–`61.99rem` | a lone odd card on a `.card-grid-3` row spans the whole row |
+| `36rem`–`47.99rem` | stage cards turn on their side (drawing left in a 13rem column, words right), one a row |
+| `max-width: 47.99rem` | the narrow layout: **reshape, not reflow** (hero drawings that drop, row-list stacking) |
+| `min-width: 40rem` | shell padding grows |
+| `min-width: 48rem` | `.list-row` adopts its `--row-cols` columns; `.hero-split` shows its drawing |
 | `min-width: 62rem` | band padding grows; `.card-grid-3` becomes three columns; pages open their wide grids |
 | `min-width: 69rem` | the full navigation link row replaces the Menu toggle |
+
+**Tablet rules.** Between phone and desktop:
+
+- **Grids fill the row.** A card grid shows two or more cards a row; a page grid
+  of its own (`.slack-benefits`, `.tour-norms`, `.home-events`) opens at `36rem`
+  too, with a lone last card spanning the row rather than leaving a hole.
+- **No phone-style buttons.** An action is full width only below `36rem`. Put a
+  page's `width: 100%` CTA rule in its own `@media (max-width: 35.99rem)` block,
+  never in the `47.99rem` reshape block. (Form submit rows, `.cmp-form-actions`,
+  keep their own full-width layout below 48rem: the form is its own narrow
+  measure.)
+- **Pictures are never drawn larger than on a desktop.** A hero drawing that
+  stacks under its words is centred and capped (the homepage hero at `24rem`
+  until it moves beside the words at `56rem`; the `/courses` collage runs as one
+  row of four). Event art scales with its tile, so the homepage events show two
+  a row below `48rem` and three (the fourth behind "see all events") until the
+  desktop row of four.
+
+Enforced in a browser by `playwright_tests/test_tablet_layout.py` (705px and
+390px) and by `playwright_tests/test_shell_width_guard.py`, which includes a
+705px viewport.
 
 **Below 48rem a surface changes shape rather than merely squeezing.** The homepage
 hero drops its drawing and fineprint, the climb and events become dashed lists, and
@@ -1291,6 +1328,6 @@ with a hero banner (which already sets the title) the `h1` is visually hidden.
    `@media (max-width: 47.99rem)` block.
 7. Keep the template readable: one opening tag per line, structural template tags
    alone on their line.
-8. Verify: both themes, 1440×900 and 390×844 screenshots, a keyboard pass (skip link,
+8. Verify: both themes, 1440×900, 705×900 (the tablet tier) and 390×844 screenshots, a keyboard pass (skip link,
    focus visible, menus operable), and the page-owning tests plus
    `uv run --frozen python scripts/ci.py lint`, `format-check`, and `typecheck`.

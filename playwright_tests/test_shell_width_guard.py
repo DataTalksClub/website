@@ -60,6 +60,8 @@ DETAILS = {
 VIEWPORTS = (
     {"width": 1440, "height": 900},
     {"width": 900, "height": 900},
+    # The tablet tier (36rem to 61.99rem): a half-screen window or a tablet.
+    {"width": 705, "height": 900},
     {"width": 390, "height": 844},
 )
 
