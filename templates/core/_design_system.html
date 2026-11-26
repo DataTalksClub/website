@@ -1347,6 +1347,19 @@ Rules for editing:
         padding-block: var(--space-band);
       }
 
+      /* One seam per edge.  The footer draws its own seam on top, so the
+         last band does not add a second one; and the ink band's own change
+         of colour is the edge, so no dashed line runs along either side. */
+      main > .band:last-child,
+      .band:has(+ .band-ink),
+      .band-ink {
+        border-bottom: 0;
+      }
+
+      body:has(main > .band-ink:last-child) .site-footer {
+        border-top: 0;
+      }
+
       .band-cream {
         background: var(--cream);
       }
