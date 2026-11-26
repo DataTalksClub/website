@@ -1,4 +1,7 @@
+import logging
 from dataclasses import dataclass
+
+from community_base.coursework.answer_crypto import HomeworkAnswerCryptoError
 
 from courses.models.homework import (
     Answer,
@@ -12,6 +15,8 @@ from courses.views.homework_answer_formatting import (
     extract_selected_option_indexes,
 )
 
+
+logger = logging.getLogger(__name__)
 
 CHOICE_QUESTION_TYPES = {
     QuestionTypes.MULTIPLE_CHOICE.value,
@@ -177,9 +182,40 @@ def determine_answer_class(*, selected: bool, correct: bool) -> str:
 def process_question_options(
     homework: Homework, question: Question, answer: Answer
 ):
-    if question.question_type in FREE_FORM_QUESTION_TYPES:
-        return process_question_free_form(homework, question, answer)
+    try:
+        if question.question_type in FREE_FORM_QUESTION_TYPES:
+            return process_question_free_form(homework, question, answer)
 
-    return process_question_options_multiple_choice_or_checkboxes(
-        homework, question, answer
-    )
+        return process_question_options_multiple_choice_or_checkboxes(
+            homework, question, answer
+        )
+    except HomeworkAnswerCryptoError as error:
+        # A missing keyring (a local preview) or an envelope that will not
+        # decrypt must not take the page down: the learner still sees the
+        # question and their own answer, only the verdict is withheld.
+        logger.warning(
+            "homework answer unavailable for display",
+            extra={
+                "homework_id": homework.pk,
+                "question_id": question.pk,
+                "error_type": type(error).__name__,
+            },
+        )
+        return process_question_without_answer_key(question, answer)
+
+
+def process_question_without_answer_key(question: Question, answer: Answer | None):
+    """The learner's own answer with no correctness marking."""
+
+    if question.question_type in FREE_FORM_QUESTION_TYPES:
+        result = process_unscored_free_form_answer(answer)
+    else:
+        selected_options = extract_selected_options(answer)
+        result = {
+            "options": [
+                {"value": option, "is_selected": index in selected_options, "index": index}
+                for index, option in enumerate(question.get_possible_answers(), start=1)
+            ]
+        }
+    result["answers_unavailable"] = True
+    return result

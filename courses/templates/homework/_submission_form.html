@@ -177,7 +177,9 @@
                     {% if disabled %}disabled{% endif %}
                   >{{ answer.text|default:'' }}</textarea>
                 {% endif %}
-                {% if answer.correctly_selected_class == 'option-answer-correct' %}
+                {% if answer.answers_unavailable %}
+                  <p class="question-note mono-label">Answers unavailable</p>
+                {% elif answer.correctly_selected_class == 'option-answer-correct' %}
                   <p><span class="status-pill status-pill-mint">Correct</span></p>
                 {% elif answer.correctly_selected_class == 'option-answer-incorrect' %}
                   <p><span class="status-pill status-pill-wait">Incorrect</span></p>
