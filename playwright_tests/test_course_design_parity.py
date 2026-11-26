@@ -411,7 +411,7 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     expect(breadcrumb.get_by_role("link", name="Courses", exact=True)).to_be_visible()
     # One level per crumb.  "<title> registration" used to be a single crumb, which wrote
     # the course this form registers for into the trail as text instead of as the link
-    # back to it.  The course is its own level now, and "registration" — the one thing
+    # back to it.  The course is its own level now, and "Registration" — the one thing
     # the heading below does not say — is the page.
     expect(
         breadcrumb.get_by_role("link", name="Machine Learning Zoomcamp", exact=True)
@@ -426,7 +426,7 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     current = page.locator(".breadcrumbs li[aria-current='page']")
     expect(current).to_have_count(1)
     # Design system leaves the page you are on as text, so the last level is read, not linked.
-    expect(current).to_have_text("registration")
+    expect(current).to_have_text("Registration")
     expect(current.get_by_role("link")).to_have_count(0)
     expect(page.get_by_text("1 already registered for 2026 cohort", exact=True)).to_be_visible()
     _assert_design_breadcrumb_trail(page, levels=3)
