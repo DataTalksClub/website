@@ -105,7 +105,7 @@ class AcademySessionsImportTests(TestCase):
         self.three.refresh_from_db()
         self.assertIsNone(self.three.event_series_id)
 
-    def test_confirmed_signups_become_confirmed_seats_for_upcoming_sessions(self) -> None:
+    def test_confirmed_signups_become_confirmed_seats_for_every_session(self) -> None:
         signups = self._signups(
             [
                 {
@@ -138,8 +138,10 @@ class AcademySessionsImportTests(TestCase):
         self.assertEqual(report.signup_rows_invalid_email, 1)
         self.assertEqual(report.selections_past_session, 1)
         self.assertEqual(report.selections_unknown_session, 1)
-        self.assertEqual(report.registrations_created, {"session-2": 1, "session-3": 2})
-        self.assertEqual(EventRegistration.objects.filter(event=self.one).count(), 0)
+        self.assertEqual(
+            report.registrations_created, {"session-1": 1, "session-2": 1, "session-3": 2}
+        )
+        self.assertEqual(EventRegistration.objects.filter(event=self.one).count(), 1)
         seat = EventRegistration.objects.get(event=self.two)
         self.assertEqual(seat.normalized_email, "ada@example.invalid")
         self.assertEqual(seat.status, EventRegistration.Status.CONFIRMED)
@@ -162,7 +164,9 @@ class AcademySessionsImportTests(TestCase):
         # Replaying writes nothing new, and an existing seat is left as it is.
         again = entry_point.run(signups=signups, apply=True)
         self.assertEqual(again.registrations_created, {})
-        self.assertEqual(again.registrations_already_present, {"session-2": 1, "session-3": 2})
+        self.assertEqual(
+            again.registrations_already_present, {"session-1": 1, "session-2": 1, "session-3": 2}
+        )
         self.assertEqual(EventRegistration.objects.filter(event=self.three).count(), 2)
 
     def test_it_is_a_typed_dry_run_first_operator_command(self) -> None:

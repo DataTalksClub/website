@@ -42,8 +42,8 @@ campaign parameters) is not opened:
 ``consent_version``  the Academy privacy-notice version the signup accepted
 ``academy_optin``    the separate "tell me about the program" opt-in
 
-For every confirmed row and every chosen session whose event is still
-upcoming, one native ``community_base.events.EventRegistration`` is written,
+For every confirmed row and every chosen session (past sessions
+included, so a session that already ran keeps its registered count), one native ``community_base.events.EventRegistration`` is written,
 ``confirmed`` (the backend already verified the address), linked to the
 account holding that address when there is one.  It records the Academy
 consent it was given -- ``privacy_notice_version`` ``academy:<version>`` with
@@ -380,8 +380,10 @@ def _import_signups(
                 report.selections_unresolved_session += 1
                 continue
             if not accepts_registrations(event):
+                # A session that already ran keeps its signups too: they are
+                # its registered count, the way Luma/Eventbrite imports keep
+                # past events' attendees.  Counted, then imported.
                 report.selections_past_session += 1
-                continue
             existing = EventRegistration.objects.filter(event=event, normalized_email=normalized)
             if account is not None:
                 existing = existing | EventRegistration.objects.filter(event=event, user=account)
