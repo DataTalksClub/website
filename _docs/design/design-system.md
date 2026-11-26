@@ -347,6 +347,7 @@ borders (a chevron, a tick, a chart key) are reviewed rows in that test.
 | Media frame | `--border-soft` | `--radius-media` | none | `.prose img`, `.prose-chart-card`, `.prose-scroll` (tables), `.prose pre`, `.player-frame`, `.unit-video`, `.book-cover`, event media, instructor photos |
 | In-content block | `--border-soft` (or `--border-quiet`) | `--radius-media` | none | `.callout`, `.prose blockquote`, `.cb-alert`, `.book-replies`, empty states |
 | Input | `--border-field` | `--radius-control` | none | `.field-input`, `.form-control`, `.cb-field`, entrance and event-register fields; read-only values use `--border-soft` |
+| Search field | `--border-strong` | `--radius-control` | none (the button beside it keeps `--shadow-cta`) | `.search-row` (`core/_search_row.html`): the field takes its Search button's ink edge, radius and 3.25rem height so the pair reads as one control; focus is `--outline-focus`. Every search box is this partial |
 | Button / CTA | `--border-strong` | `--radius-control` or `--radius-pill` | a `--shadow-cta*` token | `.cta`, `.signup-button`, `.pill-button`, `.filter-pill`, `.scroller-button`, `.cohort-tab`, nav toggles |
 | Chip / status pill | `--border-soft` | `--radius-pill` / `--radius-sm` | none | `.chip`, `.status-pill`, `.cb-badge`, past-supporter names, inline `code`; state variants change only `border-color` |
 | Drawn mark | `--border-strong` | `--drawn-circle*` / `--radius-pill` | none | `.step-number`, `.module-number`, `.promise-mark`, `.play-disc`, `.avatar` and portraits, `.progress` |
@@ -947,18 +948,25 @@ HTML.**
 
 ## Search row
 
-```html
-<form class="search-row" action="…" method="get">
-  <label class="sr-only" for="wiki-query">Search the Wiki</label>
-  <input id="wiki-query" class="field-input" name="q" type="search" required>
-  <button class="cta cta-compact cta-primary" type="submit">Search</button>
-</form>
+Every search box is one partial, `templates/core/_search_row.html`:
+
+```django
+{% url 'docs-home' as docs_home_url %}
+{% include "core/_search_row.html" with action=docs_home_url input_id="docs-query" label="Search the documentation" placeholder="…" value=query %}
 ```
 
-The field grows and the button keeps its size; both wrap on a narrow screen. The row
-is capped at `34rem` and the button is always `cta-primary`: the docs hub, every docs
-page and the wiki draw the same field width and the same button. A page does not
-restate the width or pick another variant.
+It draws a `form.search-row` with the label (screen-reader only, or above the row
+with `label_visible=True`), a `type="search"` field named `q`, and a `cta-primary`
+Search button. `listbox_id` turns the field into the wiki's live-results combobox.
+The field and button are one control: the same 3.25rem height, the same
+`--radius-control`, and the field takes the button's `--border-strong` ink edge
+(the "Search field" role under Borders) with no shadow of its own. The field gives
+way and the button keeps its size, so the pair stays on one line down to a phone,
+where a long placeholder ends in an ellipsis. The row is capped at `34rem`. The
+wiki hub and results, the docs hub and every docs page include it; a page places
+the row (`classes`) but does not restate its size, edge or button.
+`core/tests/test_design_border_tokens.py` fails if a public template draws its own
+`type="search"` field.
 
 ## Knowledge graph
 

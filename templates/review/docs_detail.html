@@ -54,18 +54,10 @@
       wiki draw: one field width, one primary button.
     {% endcomment %}
     <div class="docs-header-actions">
-      <form class="search-row docs-search-compact" role="search" action="{% url 'docs-home' %}" method="get">
-        <label class="sr-only" for="docs-query">Search the documentation</label>
-        <input
-          id="docs-query"
-          class="field-input"
-          name="q"
-          type="search"
-          placeholder="Search {{ docs_total_pages }} documentation pages"
-          required
-        >
-        {% include "core/_button.html" with tag="button" type="submit" label="Search" variant="primary" compact=True %}
-      </form>
+      {% url 'docs-home' as docs_home_url %}
+      {% with page_count=docs_total_pages|stringformat:"s" %}
+        {% include "core/_search_row.html" with action=docs_home_url input_id="docs-query" label="Search the documentation" placeholder="Search "|add:page_count|add:" documentation pages" classes="docs-search-compact" %}
+      {% endwith %}
     </div>
   </div>
 {% endblock %}

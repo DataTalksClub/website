@@ -5052,20 +5052,47 @@ Rules for editing:
         white-space: pre-line;
       }
 
-      /* Search row: a labelled query field and its primary submit button on
-         one line.  One component everywhere a page searches -- the wiki hub and
-         results, the docs hub and every docs page -- so the field is the same
-         width and the button the same variant wherever a reader meets it. */
+      /* Search row: the site's one search bar (core/_search_row.html), a
+         query field and its primary Search button drawn as one control.
+         Every page that searches includes it -- the wiki hub and results,
+         the docs hub and every docs page.  The field takes the button's
+         2px ink edge, radius and height so the pair reads as one object;
+         only the button, the thing you press, carries the hard shadow.
+         The field gives way, never the button, so the pair stays on one
+         line down to a phone.  A visible label sits above the pair. */
       .search-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-2);
+        align-items: stretch;
+        display: grid;
+        gap: var(--space-2) var(--space-3);
+        grid-template-columns: minmax(0, 1fr) auto;
         max-width: 34rem;
       }
 
-      .search-row .field-input {
-        flex: 1 1 16rem;
+      .search-row > .field-label {
+        grid-column: 1 / -1;
+      }
+
+      .search-row > .field-input {
+        border: var(--border-strong);
+        border-radius: var(--radius-control);
+        box-shadow: none;
+        font-size: 1.05rem;
+        min-height: 3.25rem;
         min-width: 0;
+        padding-inline: var(--space-4);
+        text-overflow: ellipsis;
+      }
+
+      .search-row > .cta {
+        border-radius: var(--radius-control);
+        min-height: 3.25rem;
+        padding-inline: var(--space-5);
+      }
+
+      .search-row > .field-input:focus-visible {
+        border-radius: var(--radius-control);
+        outline: var(--outline-focus);
+        outline-offset: 2px;
       }
 
       /* CTA additions: the ink-and-bubble pair from the 6-series pages, a

@@ -266,3 +266,34 @@ class BorderTokenTests(SimpleTestCase):
             self.assertIn(present, block, selector)
             if absent:
                 self.assertNotIn(absent, block, selector)
+
+    def test_the_search_field_is_drawn_as_one_control_with_its_button(self):
+        """Role "Search field": the input takes the button's ink edge, radius and
+        height, carries no shadow, and every search box is the one partial."""
+        partial = (ROOT / "templates/core/_design_system.html").read_text(encoding="utf-8")
+
+        def block(selector: str) -> str:
+            start = partial.index("\n      " + selector + " {")
+            return partial[start : partial.index("}", start)]
+
+        field = block(".search-row > .field-input")
+        button = block(".search-row > .cta")
+        for declaration in (
+            "border: var(--border-strong);",
+            "border-radius: var(--radius-control);",
+            "box-shadow: none;",
+            "min-height: 3.25rem;",
+        ):
+            self.assertIn(declaration, field)
+        for declaration in ("border-radius: var(--radius-control);", "min-height: 3.25rem;"):
+            self.assertIn(declaration, button)
+        focus = block(".search-row > .field-input:focus-visible")
+        self.assertIn("outline: var(--outline-focus);", focus)
+
+        public_search_boxes = [
+            rel
+            for rel, path in _template_files()
+            if not rel.startswith("studio_courses/")
+            and 'type="search"' in path.read_text(encoding="utf-8")
+        ]
+        self.assertEqual(public_search_boxes, ["templates/core/_search_row.html"])

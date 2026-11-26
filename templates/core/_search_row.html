@@ -1,0 +1,40 @@
+{% comment %}
+  The site's one search bar: a labelled query field and its primary Search
+  button, drawn as one control.  Every page that searches includes this
+  partial -- the wiki hub and its results page, the docs hub and every docs
+  page -- so the field, the button and the edge between them cannot drift.
+  Its rules are `.search-row` in core/_design_system.html; the Borders role
+  is "Search field" in _docs/design/design-system.md.
+
+  Parameters:
+    action         -- the GET target (required)
+    input_id       -- the field's id (required)
+    label          -- the field's accessible name (required)
+    label_visible  -- show the label above the row instead of only to readers
+    placeholder    -- example queries
+    value          -- the current query
+    classes        -- extra classes on the form, for page placement only
+    listbox_id     -- id of a live-results listbox: turns the field into a
+                      combobox (the wiki's core/static/core/wiki_search.js)
+
+  Usage:
+    {% include "core/_search_row.html" with action=docs_url input_id="docs-query" label="Search the documentation" %}
+{% endcomment %}
+<form class="search-row{% if classes %} {{ classes }}{% endif %}" action="{{ action }}" method="get" role="search">
+  <label class="{% if label_visible %}field-label{% else %}sr-only{% endif %}" for="{{ input_id }}">{{ label }}</label>
+  <input
+    id="{{ input_id }}"
+    class="field-input"
+    name="q"
+    type="search"
+    {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+    value="{{ value|default:'' }}"
+    {% if listbox_id %}autocomplete="off"
+    spellcheck="false"
+    aria-autocomplete="list"
+    aria-controls="{{ listbox_id }}"
+    aria-expanded="false"{% endif %}
+    required
+  >
+  {% include "core/_button.html" with tag="button" type="submit" label="Search" variant="primary" only %}
+</form>
