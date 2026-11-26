@@ -471,14 +471,15 @@ Rules for editing:
         padding-top: var(--space-2);
       }
 
-      /* A folded question and answer.  Both FAQ surfaces — the course FAQ pages
-         and the recovered FAQ at the foot of a blog article — draw this, so the
-         site has one way of writing a question, not two.
+      /* A disclosure fold: one heading that opens one long block (an
+         episode's transcript, the dashboard's per-homework question
+         breakdown).  It is not a FAQ: questions and answers stay open in the
+         FAQ list below (`core/_faq.html`), so they stay visible and
+         indexable.  The class names predate that split.
 
          <details> is doing the work: the keyboard behaviour and the announced
          expanded state come for free, and it still folds with JavaScript off,
-         which a scripted accordion would not.  `:target` opens the question a
-         deep link names, so a link to #faq-… lands on an open answer. */
+         which a scripted accordion would not. */
       .faq-fold {
         border-top: var(--rule);
         min-width: 0;
@@ -578,6 +579,84 @@ Rules for editing:
         background: var(--card);
         gap: 0;
         padding: calc(var(--space-card) - var(--space-3)) var(--space-card);
+      }
+
+      /* The FAQ list (`core/_faq.html`): the site's one way of writing
+         questions and answers.  Everything stays open: the question is a bold
+         heading, its answer sits right under it, and the soft rule divides one
+         item from the next.  One column at the reading measure by default;
+         four or more short items take two columns on a wide screen (the
+         partial decides, `faq_columns`).  Items are blocks, never stretched
+         grid tracks, so an answer can never drift away from its question when
+         its neighbour in the other column runs longer. */
+      .faq-list {
+        display: grid;
+        gap: 0 var(--space-7);
+        max-width: var(--measure);
+      }
+
+      .faq-list-item {
+        align-self: start;
+        border-top: var(--rule);
+        min-width: 0;
+        padding-block: var(--space-5);
+        scroll-margin-top: 1.5rem;
+      }
+
+      .faq-list-question {
+        font-size: 1.15rem;
+        letter-spacing: -0.01em;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+        text-wrap: pretty;
+      }
+
+      /* An answer is one rendered fragment (links, lists, code, a table), so
+         it takes the shared prose rhythm; a long address breaks, a table
+         scrolls inside its own box and a code block wraps rather than
+         widening the page. */
+      .faq-list-answer {
+        color: var(--body-text);
+        margin-top: var(--space-2);
+        overflow-wrap: anywhere;
+        text-wrap: pretty;
+      }
+
+      .faq-list-answer > table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+      }
+
+      .faq-list-answer pre {
+        overflow-wrap: anywhere;
+        overflow-x: visible;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .faq-list-permalink-row {
+        margin-top: var(--space-2);
+      }
+
+      /* The body tone, not the muted one: on the lavender band the muted tone
+         does not clear 4.5:1 in the dark theme. */
+      .faq-list-permalink {
+        color: var(--body-text);
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+      }
+
+      .faq-list-closing {
+        color: var(--body-text);
+        margin-top: var(--space-5);
+      }
+
+      @media (min-width: 48rem) {
+        .faq-list-two-column {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          max-width: none;
+        }
       }
 
       /* A wide element inside a reading column.  Some content genuinely cannot be

@@ -335,7 +335,7 @@ borders (a chevron, a tick, a chart key) are reviewed rows in that test.
 | `--border-strong` | `2px solid var(--line)` | buttons, CTAs, pill controls, toggles, progress tracks, numbered discs |
 | `--border-field` | `1px solid var(--field-edge)` | text inputs, selects, textareas (`--field-edge` is ink at 52% on the card, full `--line` in dark) |
 | `--border-quiet` | `1.5px dashed var(--line-soft)` | a placeholder or the quietest notice (`.prose-unavailable`, `.entrance-notice`, empty states) |
-| `--rule` | `1px solid var(--line-soft)` | a divider *inside* one block: list rows, table rows, FAQ folds, menu groups, a card's footer |
+| `--rule` | `1px solid var(--line-soft)` | a divider *inside* one block: list rows, table rows, FAQ items, disclosure folds, menu groups, a card's footer |
 | `--seam` | `2px dashed var(--line-soft)` | the seam *between* parts of a page: band bottoms, masthead, footer, page sections and chapters, form action rows, `hr` |
 | `--radius-sm` | `0.4rem` | status pills, inline `code`, small marks, the focus ring |
 | `--radius-control` | `0.6rem` | CTAs, inputs, square buttons, nav links, option tiles, date tiles |
@@ -366,7 +366,7 @@ borders (a chevron, a tick, a chart key) are reviewed rows in that test.
 | Chip / status pill | `--border-soft` | `--radius-pill` / `--radius-sm` | none | `.chip`, `.status-pill`, `.cb-badge`, past-supporter names, inline `code`; state variants change only `border-color` |
 | Drawn mark | `--border-strong` | `--drawn-circle*` / `--radius-pill` | none | `.step-number`, `.module-number`, `.promise-mark`, `.play-disc`, `.progress` |
 | Portrait | `--border-soft` | `--radius-pill` | none | every person's face: `.avatar`, `.person-chip-portrait` (and its initials disc), `.person-portrait`, `.article-portrait`, `.academy-person img`. A light ring that still separates a pale photo from the card; the 2px ink ring read as too heavy (owner feedback 2026-11-26) |
-| Rule (inside a block) | `--rule` | — | — | `.row-list` rows, table rows, `.faq-fold`, `.module-fact`, menu groups, timestamp and chapter rows |
+| Rule (inside a block) | `--rule` | — | — | `.row-list` rows, table rows, `.faq-list-item`, `.faq-fold`, `.module-fact`, menu groups, timestamp and chapter rows |
 | Seam (between page parts) | `--seam` | — | — | `.band`, `.masthead`, `.site-footer`, `.spec-strip`, page sections and chapters, `.cmp-form-actions`, `.prose hr` |
 | Focus | `--outline-focus` | — | — | every `:focus-visible`, including whole-card focus |
 
@@ -863,15 +863,16 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
   opens with JavaScript off. A bare "Show more" makes the reader click to find out how
   much they are in for.
 
-- **FAQ fold (`.faq-panel` + `.faq-fold`)** — the one way the site writes a list of
-  questions: the article FAQ, the course-family FAQ, the `/faq/` pages and the
-  dashboard's per-homework breakdown all draw it.
+- **Disclosure fold (`.faq-panel` + `.faq-fold`)** — one heading that opens one
+  long block that would otherwise bury the page: an episode's transcript, the
+  dashboard's per-homework question breakdown. **Not for questions and answers** —
+  those are the FAQ list (see [FAQ](#faq)); the class names predate that split.
 
   ```html
   <div class="faq-panel panel panel-outlined">
     <details class="faq-fold" id="…">
       <summary class="faq-fold-summary">
-        <h3 class="faq-question-title">Question?</h3>
+        <h3 class="faq-question-title">Transcript</h3>
         <span class="faq-fold-marker" aria-hidden="true"></span>
       </summary>
       <div class="prose faq-answer">…</div>
@@ -882,11 +883,69 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
   A white card padded `--space-card` (block padding less the rows' own), rows
   `--space-3` above and below with a dashed rule between them, the chevron centred on
   the question's first line in both states, and `--space-head` below the heading that
-  introduces it. A page does not restyle the fold or wrap it in a `.row-list` (that
-  draws a second rule under each row).
+  introduces it.
 
 - **Timestamp rows** — `.timestamp-row` with a `.timestamp-mark` and a `p`. The same
   shape carries transcript rows with the speaker name as the mark.
+
+### FAQ
+
+Every list of questions and answers on the site — the `/courses` catalogue, a
+course landing, `/newsletter`, `/slack`, a blog article's FAQ, the `/faq/<course>`
+pages, every Academy page with questions, and the "## FAQ" section that closes an
+Academy guide or recap — renders through **one partial, `templates/core/_faq.html`**,
+styled once in `_design_system.html` (`.faq-list*`). No page writes its own question
+markup or CSS; `core/tests/test_design_faq_component.py` fails if one does.
+
+**Shape.** Questions stay open. Each item is the question as a bold `h3` with its
+answer as body text right under it; the soft `--rule` divides one item from the next.
+Nothing folds: an FAQ answers objections, and a closed answer is neither read nor
+indexed. Items are blocks aligned to the top of their cell, so an answer never drifts
+away from its question when its neighbour runs longer.
+
+**Columns.** One column at the reading measure (`--measure`) by default. Four or more
+*short* items (question ≤ 90 characters, answer ≤ 280 characters of plain text) take
+two columns from 48rem. The partial decides (`faq_columns` in
+`core/templatetags/faq.py`); a page never sets the column count.
+
+**Data.** Data stays where it lives (a synced row, the course FAQ document, an
+Academy record); the view hands the partial a list of items:
+
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `question` | yes | the question, plain text |
+| `answer_html` | one of the two | the answer as a rendered, sanitised fragment |
+| `answer` | one of the two | the answer as plain text (drawn as one paragraph) |
+| `id` | no | the item's anchor, for a deep link (`#faq-3`, a course FAQ's ten-character id) |
+
+Items may be mappings or objects with those attributes.
+
+```django
+{% include "core/_faq.html" with items=newsletter.faq %}
+{% include "core/_faq.html" with items=catalogue_faq_items closing="Have more questions?" closing_url=slack_url closing_label="Join Slack and ask away" %}
+```
+
+| Option | Meaning |
+| --- | --- |
+| `closing`, `closing_url`, `closing_label` | an optional closing line under the list: text, then a `.band-link` (a "Have more questions? Join Slack", a "See the full course FAQ →") |
+| `permalinks=True` | a visible `#id` link under each answer (the `/faq/<course>` reference pages) |
+| `structured_data=False` | skip the block's own JSON-LD, for a page that draws several blocks and emits it once |
+
+The heading above the list is the page's own `.band-head` (`--space-head` below it);
+the partial draws no heading and no eyebrow, and renders nothing for an empty list.
+
+**Structured data.** The partial emits one `FAQPage` JSON-LD script from the same
+items it draws (`faq_structured_data`), so the visible questions and the structured
+data cannot disagree; a question with an `id` gets its own `@id`/`url`. One per page:
+a page with several blocks (the `/faq/<course>` sections) passes
+`structured_data=False` to each and calls `{% faq_structured_data all_items %}` once.
+Views do not build `FAQPage` nodes themselves.
+
+**Not an FAQ.** A book's "Questions and answers" are Slack threads — an asker, then
+several replies, each attributed to the author or a reader — a conversation, not a
+question with one site-written answer, so they keep the book thread layout and
+publish no `FAQPage` (that type is for questions the site itself answers). A live
+event's audience Q&A and a homework's questions are not FAQs either.
 
 ### Panels, discs and scrollers
 
@@ -995,7 +1054,7 @@ outside the reviewed non-step lists.
 fields sit on `--sand`.
 
 **A `select` draws the system's chevron, not the platform's.** `select.field-input`
-(and `select.form-control`) sets `appearance: none` and draws the FAQ fold's indigo
+(and `select.form-control`) sets `appearance: none` and draws the disclosure fold's indigo
 2px V inset from the right edge, with `2.75rem` of right padding kept clear for it.
 The mark is two gradient squares rather than an SVG data URL so it reads the
 `--indigo` token and follows the theme; the invalid state keeps it.
@@ -1258,7 +1317,8 @@ section, is the blueprint in `_docs/design/landing-pages.md`.
   answers are `.filter-pill` toggles. A form card starts with its fields, and
   a session that has already happened is not offered.
 - Lists of articles are the shared archive row (`public/_archive_row.html`);
-  FAQ is `.faq-fold`; an article's Markdown tables sit in `.prose-scroll`.
+  questions are the FAQ list (`core/_faq.html`); an article's Markdown tables sit
+  in `.prose-scroll`.
 - On a program page the questions come last, right before the closing
   waitlist.
 

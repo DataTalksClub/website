@@ -1,0 +1,54 @@
+{% load faq %}
+{% comment %}
+  The site's one FAQ block (_docs/design/design-system.md#faq).  Every list of
+  questions renders here; no page writes its own question markup or CSS
+  (core/tests/test_design_faq_component.py).
+
+  The questions stay open: each is a bold heading with its answer right under
+  it, items divided by the soft rule.  Four or more short items take two
+  columns on a wide screen (`faq_columns`); anything else is one column at the
+  reading measure.  Nothing folds, so every answer is visible and indexable.
+
+  items          question + answer_html (rendered, sanitised) or answer (plain
+                 text), optional id for a deep link.
+  closing        optional closing line text ("Have more questions?").
+  closing_url    optional link after it, labelled closing_label.
+  permalinks     True draws a visible "#id" link under each answer with an id.
+  structured_data False when the page emits its FAQPage once elsewhere (a page
+                 that draws several blocks calls `faq_structured_data` once).
+{% endcomment %}
+{% if items %}
+  <div class="faq-list{% if items|faq_columns == 2 %} faq-list-two-column{% endif %}">
+    {% for item in items %}
+      <div class="faq-list-item"{% if item.id %} id="{{ item.id }}"{% endif %}>
+        <h3 class="faq-list-question">{{ item.question }}</h3>
+        <div class="prose faq-list-answer">
+          {% if item.answer_html %}
+            {{ item.answer_html|safe }}
+          {% else %}
+            <p>{{ item.answer }}</p>
+          {% endif %}
+        </div>
+        {% if permalinks and item.id %}
+          <p class="faq-list-permalink-row">
+            <a class="faq-list-permalink" href="#{{ item.id }}">
+              <span aria-hidden="true">#{{ item.id }}</span>
+              <span class="sr-only">Link to {{ item.question }}</span>
+            </a>
+          </p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  {% if closing or closing_url %}
+    <p class="faq-list-closing">
+      {{ closing }}
+      {% if closing_url %}
+        <a class="band-link" href="{{ closing_url }}">{{ closing_label }}</a>
+      {% endif %}
+    </p>
+  {% endif %}
+  {% if structured_data is not False %}
+    {% faq_structured_data items %}
+  {% endif %}
+{% endif %}

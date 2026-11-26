@@ -66,7 +66,7 @@ yet. A `?topic=...` link still loads the full page; the filter is ignored.
 | C7 | "Which course fits me?" helper (new to data / developer / already work with models), each button sets a filter | The question is hidden in the FAQ; a short guide helps people pick | Buttons above the catalogue naming the matching courses | idea |
 | C8 | Every card has the same fields in the same order: status and start date, topic and level, length and hours a week, 3–4 tools, "You will build", "View course" | Cards are hard to compare when they show different things | Unified card field order, read from the `catalog_*` fields | idea |
 | C9 | Reviews band with people's stories about our courses, results first | Stories with a result ("found my first job") work better than general praise; they are already in the site data | All published homepage and course testimonials, de-duplicated, in the shared story card | idea |
-| C10 | FAQ in one column of folds | Two columns are harder to read in order; folds take less space, like on the course page | One column of shared `faq-fold` disclosures | idea |
+| C10 | FAQ in one column of folds | Two columns are harder to read in order; folds take less space, like on the course page | One column of shared `faq-fold` disclosures | superseded: owner, 2026-11-26, FAQs stay open (design-system.md#faq) |
 | C11 | Closing CTA: "Did not find your course? Subscribe to hear about new cohorts" | The page ends without a next step for people who found nothing | Digest subscribe band at the end | idea |
 
 ## How to bring an idea back
