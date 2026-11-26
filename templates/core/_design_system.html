@@ -1381,6 +1381,7 @@ Rules for editing:
          last band does not add a second one; and the ink band's own change
          of colour is the edge, so no dashed line runs along either side. */
       main > .band:last-child,
+      .band:has(+ .site-footer),
       .band:has(+ .band-ink),
       .band-ink {
         border-bottom: 0;
