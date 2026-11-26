@@ -179,6 +179,10 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/tests/test_cohort_projects_import.py",
     "courses/tests/test_homework_learner_state.py",
     "courses/templatetags/attempt_rail.py",
+    # The course rail and the module page's syllabus.
+    "courses/services/course_rail.py",
+    "courses/services/module_syllabus.py",
+    "courses/templatetags/course_rail.py",
     "courses/views/site_project_gallery.py",
     "scripts/dev/check_course_illustrations.py",
     "scripts/tests/test_check_course_illustrations.py",

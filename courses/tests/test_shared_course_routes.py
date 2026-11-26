@@ -236,9 +236,7 @@ class SharedRouteTests(SharedWorldTestCase):
                 "cohort_identifier": self.cohort_2026.identifier,
             },
         )
-        self.assertEqual(
-            canonical, f"/courses/{self.course.slug}/{self.cohort_2026.identifier}"
-        )
+        self.assertEqual(canonical, f"/courses/{self.course.slug}/{self.cohort_2026.identifier}")
         response = self.client.get(canonical)
 
         self.assertEqual(response.status_code, 200)
@@ -322,10 +320,10 @@ class SharedRouteTests(SharedWorldTestCase):
         self.assertNotContains(module_response, "How are you taking this course?")
 
         # The resolved cohort also unlocks this module's own terminal homework
-        # in the "In this module" rail -- a shared module's real homework
+        # in the course rail -- a shared module's real homework
         # assignment is one cohort's placement, not something that exists
         # independent of a resolved delivery.
-        self.assertEqual(module_response.context["terminal_homework"], self.homework)
+        self.assertEqual(module_response.context["rail_homework"], self.homework)
         self.assertContains(module_response, self.homework.title)
         self.assertContains(
             module_response,
@@ -351,9 +349,7 @@ class SharedRouteTests(SharedWorldTestCase):
 
     def test_unknown_module_and_unknown_identifier_are_404(self) -> None:
         self.assertEqual(
-            self.client.get(
-                f"/courses/{self.course.slug}/99-not-a-module"
-            ).status_code,
+            self.client.get(f"/courses/{self.course.slug}/99-not-a-module").status_code,
             404,
         )
         self.assertEqual(
@@ -396,9 +392,7 @@ class SharedRouteTests(SharedWorldTestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(
-            Enrollment.objects.filter(student=user, course=self.cohort_2026).exists()
-        )
+        self.assertFalse(Enrollment.objects.filter(student=user, course=self.cohort_2026).exists())
 
     def test_copied_url_for_a_different_cohort_grants_nothing(self) -> None:
         user = get_user_model().objects.create_user(username="copied-link")
@@ -418,9 +412,7 @@ class SharedRouteTests(SharedWorldTestCase):
         # The read renders (public assignment statements are readable), but no
         # enrollment in the path's cohort may appear as a side effect.
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(
-            Enrollment.objects.filter(student=user, course=self.cohort_2026).exists()
-        )
+        self.assertFalse(Enrollment.objects.filter(student=user, course=self.cohort_2026).exists())
 
 
 class LessonExternalLinkTests(SharedWorldTestCase):
@@ -474,9 +466,166 @@ class LessonExternalLinkTests(SharedWorldTestCase):
         self.assertContains(response, 'href="' + archive_cohort.archive_url + '"')
         self.assertContains(
             response,
-            (
-                'href="'
-                + archive_cohort.archive_url
-                + '" target="_blank" rel="noopener noreferrer"'
-            ),
+            ('href="' + archive_cohort.archive_url + '" target="_blank" rel="noopener noreferrer"'),
         )
+
+
+class ModulePageCourseRailTests(SharedWorldTestCase):
+    """The module page: the course rail beside the module's syllabus (A+B)."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.lesson_2 = SharedLesson.objects.create(
+            module=self.module,
+            position=1,
+            slug="02-search",
+            title="Search",
+            summary="Index the FAQ and search it with keywords.",
+            rendered_html="<h2>Search</h2>",
+            **provenance("35555555-5555-4555-8555-555555555555", "01-agentic-rag/02-search.md"),
+        )
+        self.module_2 = SharedModule.objects.create(
+            curriculum=self.shared,
+            position=1,
+            slug="02-vector-search",
+            title="Vector Search",
+            **provenance("23333333-3333-4333-8333-333333333333", "02-vector-search/module.yaml"),
+        )
+        SharedLesson.objects.create(
+            module=self.module_2,
+            position=0,
+            slug="01-embeddings",
+            title="Embeddings",
+            **provenance("36666666-6666-4666-8666-666666666666", "02-vector-search/01.md"),
+        )
+
+    def sign_in(self, *read):
+        from courses.models import SharedLessonReadState
+
+        user = get_user_model().objects.create_user(username="rail-learner")
+        Enrollment.objects.create(student=user, course=self.cohort_2026)
+        for lesson in read:
+            SharedLessonReadState.objects.create(user=user, shared_lesson=lesson)
+        self.client.force_login(user)
+        return user
+
+    def lesson_path(self, lesson) -> str:
+        return reverse("shared_lesson", args=[self.course.slug, lesson.module.slug, lesson.slug])
+
+    def test_rail_lists_every_module_with_the_current_one_open(self) -> None:
+        response = self.client.get(self.module_url())
+        body = response.content.decode()
+
+        self.assertContains(response, 'data-testid="course-rail"')
+        self.assertContains(response, "Course contents")
+        self.assertContains(response, "2 modules · 3 lessons")
+        self.assertIn('data-module="01-agentic-rag"', body)
+        self.assertIn('data-module="02-vector-search"', body)
+        rail = body[body.index('data-testid="course-rail"') :]
+        # The current module opens into its lessons and homework; the next
+        # one stays a single row.
+        self.assertIn(self.lesson_path(self.lesson_2), rail)
+        self.assertIn('data-testid="rail-homework"', rail)
+        self.assertNotIn("Embeddings", rail)
+        self.assertIn('aria-current="page"', rail[: rail.index("Introduction")])
+
+    def test_no_eyebrows_and_no_next_module_label(self) -> None:
+        response = self.client.get(self.module_url())
+
+        self.assertNotContains(response, "Module 1 of")
+        self.assertNotContains(response, "Next module")
+
+    def test_anonymous_visitor_gets_no_progress_and_starts_lesson_one(self) -> None:
+        response = self.client.get(self.module_url())
+
+        self.assertNotContains(response, 'data-testid="module-progress"')
+        self.assertNotContains(response, 'read-indicator is-read"')
+        self.assertNotContains(response, 'module-number is-read"')
+        self.assertEqual(response.context["primary_action"]["label"], "Start lesson 1")
+        self.assertEqual(response.context["primary_action"]["url"], self.lesson_path(self.lesson))
+        self.assertContains(response, 'class="cta cta-primary', count=1)
+
+    def test_anonymous_visitor_is_sent_to_an_open_registration(self) -> None:
+        from courses.models import RegistrationCampaign
+
+        RegistrationCampaign.objects.create(
+            slug="llm-2026", title="LLM Zoomcamp", current_course=self.cohort_2026
+        )
+
+        response = self.client.get(self.module_url())
+
+        action = response.context["primary_action"]
+        self.assertEqual(action["label"], "Register to start lesson 1")
+        self.assertEqual(action["url"], reverse("registration_campaign", args=["llm-2026"]))
+
+    def test_signed_in_learner_continues_with_the_first_unread_lesson(self) -> None:
+        self.sign_in(self.lesson)
+
+        response = self.client.get(self.module_url())
+
+        self.assertEqual(response.context["primary_action"]["label"], "Continue with lesson 2")
+        self.assertContains(response, 'data-testid="module-progress"')
+        self.assertContains(response, "1 of 2 lessons done")
+        self.assertContains(response, "1/2")
+        self.assertContains(
+            response, '<span class="read-indicator is-read" aria-hidden="true">✓</span>', html=False
+        )
+
+    def test_learner_who_read_every_lesson_goes_on_to_the_next_module(self) -> None:
+        self.sign_in(self.lesson, self.lesson_2)
+
+        response = self.client.get(self.module_url())
+
+        action = response.context["primary_action"]
+        self.assertEqual(action["label"], "Continue to module 2")
+        self.assertTrue(
+            action["url"].startswith(
+                reverse("shared_module", args=[self.course.slug, self.module_2.slug])
+            )
+        )
+
+    def test_syllabus_shows_lesson_descriptions_and_degrades_without_a_write_up(self) -> None:
+        response = self.client.get(self.module_url())
+
+        self.assertContains(response, "Index the FAQ and search it with keywords.")
+        # Nothing imported for the write-up: those sections are not drawn.
+        self.assertNotContains(response, 'data-testid="module-build"')
+        self.assertNotContains(response, 'data-testid="module-extras"')
+        self.assertContains(response, 'data-testid="module-homework"')
+
+    def test_open_homework_expands_into_its_steps_for_a_learner(self) -> None:
+        from courses.models import Question
+
+        self.homework.state = "OP"
+        self.homework.save(update_fields=["state"])
+        for text in ("First?", "Second?"):
+            Question.objects.create(homework=self.homework, text=text, question_type="FF")
+        self.sign_in()
+
+        response = self.client.get(self.module_url())
+        body = response.content.decode()
+
+        steps = body[body.index('data-testid="homework-rail-steps"') :]
+        steps = steps[: steps.index("</ol>")]
+        for title in ("Introduction", "Question 1", "Question 2", "Review &amp; submit"):
+            self.assertIn(title, steps)
+
+    def test_anonymous_homework_row_has_no_steps(self) -> None:
+        response = self.client.get(self.module_url())
+
+        self.assertNotContains(response, 'data-testid="homework-rail-steps"')
+
+    def test_self_paced_delivery_shows_no_other_cohorts_homework(self) -> None:
+        response = self.client.get(self.module_url() + "?cohort=self-paced")
+
+        self.assertIsNone(response.context["rail_homework"])
+        self.assertNotContains(response, 'data-testid="rail-homework"')
+
+    def test_lesson_page_carries_the_same_course_rail(self) -> None:
+        response = self.client.get(self.lesson_url())
+        body = response.content.decode()
+
+        self.assertContains(response, 'data-testid="course-rail"')
+        self.assertIn('data-module="02-vector-search"', body)
+        rail = body[body.index('data-testid="course-rail"') :]
+        self.assertIn('aria-current="page"', rail)

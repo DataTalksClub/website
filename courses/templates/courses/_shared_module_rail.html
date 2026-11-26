@@ -1,71 +1,147 @@
-{% load homework_steps_nav attempt_rail %}
+{% load homework_steps_nav attempt_rail course_rail %}
 {% comment %}
-"In this module" navigation for the shared, cohort-free module and lesson
-pages.
+The course rail for the shared, cohort-free module and lesson pages (and the
+homework and project pages of a shared-curriculum cohort): the whole course,
+every module, with the current module expanded into its lessons, its homework
+and its project attempts -- the AISL/Coursera course sidebar in DTC's rail
+anatomy (styled by _module_rail_styles.html).  One rail runs from the module
+page to its lessons, so moving between them keeps one frame.
 
-This restores the old cohort-bound module rail's layout and wayfinding
-(courses/templates/courses/_module_rail.html, styled by
-_module_rail_styles.html) with two deliberate omissions: no read-state (the
-shared pages carry no per-reader enrollment to track it against -- reading
-here is not gated to one cohort) and no collapse control (nothing stateful to
-restore before paint). A caller passing `current_lesson` gets the current-row
-highlight; the module index page passes none, matching how the old module
-page showed the same rail with nothing marked current.
+Progress is the signed-in reader's own: a read lesson wears the mint check, a
+module shows "read/total".  An anonymous reader sees the same rail without
+any progress.  A caller passing `current_lesson` gets the current-row
+highlight; the module page marks the module row itself as the current page.
 
-The ordered list includes homework as its final step once a delivery cohort is
-actually resolved. The lesson graph is shared across every delivery, but the
-terminal homework it links to belongs to one cohort's assignment of this
-module.
+The homework row belongs to one cohort's run of the module: the reader's own
+delivery (`rail_cohort`/`delivery_cohort`), or the newest cohort's when none
+is resolved.  It carries the due date, the learner's status, and -- for a
+learner who reads it as the stepper -- its steps: Introduction, Question N,
+Learning in Public, Review & submit.
+
+On a phone the rail is a "Course contents" fold above the page content,
+collapsed by default with the current module named on it; on wider screens
+the fold is always open and its summary is not drawn.
 {% endcomment %}
-<nav class="module-sidebar module-rail" aria-labelledby="module-navigation-heading">
-  <h2 class="rail-heading" id="module-navigation-heading">In this module</h2>
-  {% if lessons or terminal_homework %}
-    <ol class="rail-units">
-      {% for rail_lesson in lessons %}
-        <li class="rail-unit{% if rail_lesson.pk == current_lesson.pk %} is-current{% endif %}">
-          <a
-            class="rail-unit-link"
-            href="{% url 'shared_lesson' course_family.slug module.slug rail_lesson.slug %}{{ context_q }}"
-            {% if rail_lesson.pk == current_lesson.pk %}aria-current="page"{% endif %}
-          >
-            <span
-              class="read-indicator{% if rail_lesson.pk == current_lesson.pk %} is-current{% endif %}"
-              aria-hidden="true"
-            >{{ forloop.counter }}</span>
-            <span class="rail-unit-title">{{ rail_lesson.title }}</span>
-          </a>
-        </li>
-      {% endfor %}
-      {% if delivery_cohort and terminal_homework %}
-        <li class="rail-unit rail-homework-step{% if current_homework.pk == terminal_homework.pk %} is-current{% endif %}">
-          <a
-            class="rail-unit-link"
-            href="{% url 'cohort_homework' course_family.slug delivery_cohort.identifier terminal_homework.slug %}{{ context_q }}"
-            {% if current_homework.pk == terminal_homework.pk %}aria-current="page"{% endif %}
-          >
-            <span class="read-indicator rail-homework-mark" aria-hidden="true">HW</span>
-            <span class="rail-unit-title">{{ terminal_homework.title }}</span>
-          </a>
-          {% comment %}
-            The signed-in learner's own status for this homework.  On the
-            homework page itself the page header already says it once, so the
-            row opens into the homework's steps there instead.
-          {% endcomment %}
-          {% if terminal_homework_state and current_homework.pk != terminal_homework.pk %}
-            <p class="rail-unit-status">{% include "courses/_homework_state_pill.html" with homework_state=terminal_homework_state score=None %}</p>
-          {% endif %}
-          {% comment %}
-            On the homework page itself the row opens into the homework's own
-            steps, answered ones checked and the current one marked.
-          {% endcomment %}
-          {% if current_homework.pk == terminal_homework.pk and stepper %}
-            {% include "courses/_rail_substeps.html" with items=stepper|homework_nav_steps label="Homework steps" done_suffix=", answered" testid="homework-rail-steps" %}
-          {% endif %}
-        </li>
-      {% endif %}
-      {% if delivery_cohort %}
-        {% rail_attempts module delivery_cohort current_project attempt_page current_review_id %}
-      {% endif %}
-    </ol>
-  {% endif %}
+{% course_rail_outline module context_q as outline %}
+{% rail_homework_and_cohort as rail_target %}
+{% with rail_hw=rail_target.homework rail_co=rail_target.cohort %}
+<nav class="module-sidebar module-rail course-rail" aria-labelledby="course-rail-heading" data-testid="course-rail">
+  <details class="course-rail-fold" open data-course-rail-fold>
+    <summary class="course-rail-summary">
+      <span class="course-rail-summary-text">
+        <span class="course-rail-summary-label">Course contents</span>
+        <span class="course-rail-summary-current">{{ module.title }}</span>
+      </span>
+      <svg class="course-rail-summary-chevron" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <path d="M4 6l4 4 4-4"></path>
+      </svg>
+    </summary>
+    <div class="course-rail-body">
+      <div class="course-rail-head">
+        <h2 class="course-rail-title" id="course-rail-heading">
+          <a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a>
+        </h2>
+        <p class="mono-note">{{ outline.modules|length }} module{{ outline.modules|length|pluralize }} · {{ outline.lesson_total }} lesson{{ outline.lesson_total|pluralize }}</p>
+      </div>
+      <ol class="course-rail-modules">
+        {% for item in outline.modules %}
+          <li class="course-rail-module{% if item.is_current %} is-open{% endif %}" data-module="{{ item.module.slug }}">
+            <a
+              class="course-rail-module-link"
+              href="{{ item.url }}"
+              {% if item.is_current and not current_lesson and not current_homework and not current_project %}aria-current="page"{% endif %}
+            >
+              <span class="read-indicator{% if outline.signed_in and item.lesson_count and item.read_count == item.lesson_count %} is-read{% endif %}" aria-hidden="true">{{ item.number }}</span>
+              <span class="course-rail-module-title">{{ item.module.title }}</span>
+              {% if outline.signed_in and item.read_count %}
+                <span class="course-rail-count" aria-hidden="true">{{ item.read_count }}/{{ item.lesson_count }}</span>
+                <span class="sr-only">, {{ item.read_count }} of {{ item.lesson_count }} lessons read</span>
+              {% else %}
+                <span class="course-rail-count" aria-hidden="true">{{ item.lesson_count }}</span>
+                <span class="sr-only">, {{ item.lesson_count }} lesson{{ item.lesson_count|pluralize }}</span>
+              {% endif %}
+            </a>
+            {% if item.is_current %}
+              <ol class="rail-units" aria-label="In this module">
+                {% for rail_lesson in lessons %}
+                  <li class="rail-unit{% if rail_lesson.pk == current_lesson.pk %} is-current{% endif %}">
+                    <a
+                      class="rail-unit-link"
+                      href="{% url 'shared_lesson' course_family.slug module.slug rail_lesson.slug %}{{ context_q }}"
+                      {% if rail_lesson.pk == current_lesson.pk %}aria-current="page"{% endif %}
+                    >
+                      {% if rail_lesson.pk in outline.read_lesson_ids %}
+                        <span class="read-indicator is-read" aria-hidden="true">✓</span>
+                      {% else %}
+                        <span class="read-indicator{% if rail_lesson.pk == current_lesson.pk %} is-current{% endif %}" aria-hidden="true">{{ forloop.counter }}</span>
+                      {% endif %}
+                      <span class="rail-unit-title">{{ rail_lesson.title }}{% if rail_lesson.pk in outline.read_lesson_ids %}<span class="sr-only">, read</span>{% endif %}</span>
+                    </a>
+                  </li>
+                {% endfor %}
+                {% if rail_co and rail_hw %}
+                  <li class="rail-unit rail-homework-step{% if current_homework.pk == rail_hw.pk %} is-current{% endif %}" data-testid="rail-homework">
+                    <a
+                      class="rail-unit-link"
+                      href="{% url 'cohort_homework' course_family.slug rail_co.identifier rail_hw.slug %}{{ context_q }}"
+                      {% if current_homework.pk == rail_hw.pk %}aria-current="page"{% endif %}
+                    >
+                      <span class="read-indicator rail-homework-mark" aria-hidden="true">HW</span>
+                      <span class="rail-unit-title">{{ rail_hw.title }}</span>
+                    </a>
+                    {% comment %}
+                      The learner's own status and the due date under the
+                      title.  On the homework page itself the page header
+                      already says both, so the row opens into its steps.
+                    {% endcomment %}
+                    {% if current_homework.pk != rail_hw.pk %}
+                      <p class="rail-unit-status">
+                        {% if rail_homework_state %}
+                          {% include "courses/_homework_state_pill.html" with homework_state=rail_homework_state score=None %}
+                        {% endif %}
+                        {% if rail_hw.due_date %}
+                          <span class="rail-unit-due">{% if rail_hw.state == "OP" %}due{% else %}closed{% endif %} {{ rail_hw.due_date|date:"M j" }}</span>
+                        {% endif %}
+                      </p>
+                    {% endif %}
+                    {% if current_homework.pk == rail_hw.pk and stepper %}
+                      {% include "courses/_rail_substeps.html" with items=stepper|homework_nav_steps label="Homework steps" done_suffix=", answered" testid="homework-rail-steps" %}
+                    {% elif current_homework.pk != rail_hw.pk %}
+                      {% homework_steps_for_rail rail_hw as rail_hw_steps %}
+                      {% if rail_hw_steps %}
+                        {% include "courses/_rail_substeps.html" with items=rail_hw_steps label="Homework steps" done_suffix=", answered" testid="homework-rail-steps" %}
+                      {% endif %}
+                    {% endif %}
+                  </li>
+                {% endif %}
+                {% if rail_co %}
+                  {% rail_attempts module rail_co %}
+                {% endif %}
+              </ol>
+            {% endif %}
+          </li>
+        {% endfor %}
+        {% if rail_co %}
+          {% rail_attempts None rail_co unplaced=True %}
+        {% endif %}
+      </ol>
+    </div>
+  </details>
+  <script>
+    (function () {
+      var fold = document.currentScript.previousElementSibling;
+      if (!fold || !window.matchMedia) {
+        return;
+      }
+      var phone = window.matchMedia('(max-width: 52rem)');
+      var sync = function () {
+        fold.open = !phone.matches;
+      };
+      sync();
+      if (phone.addEventListener) {
+        phone.addEventListener('change', sync);
+      }
+    })();
+  </script>
 </nav>
+{% endwith %}

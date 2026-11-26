@@ -191,7 +191,7 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # CI unblock 2026-11-25 enrolls courses.services.attempt_flow, courses.views.homework_states,
 # courses.views.project_criteria, courses.templatetags.attempt_rail and two tests
 # in strict mypy (configuration only).
-STUDIO_COURSES_PYPROJECT_SHA256 = "106b5be2a53a5f63098f5a9888256564acf32a05141c18d4b76e8b36eec9cded"
+STUDIO_COURSES_PYPROJECT_SHA256 = "bb434768d9b2a1d06ce1d99de6881310a926ae591b0500ab8693da9b821f4c5f"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation

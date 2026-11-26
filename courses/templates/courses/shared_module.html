@@ -1,20 +1,25 @@
 {% extends "core/content_page.html" %}
-{% load breadcrumbs seo %}
+{% load breadcrumbs seo course_rail %}
 
 {% block document_title %}{{ module.title }} — {{ course_family.title }} — DataTalks.Club{% endblock %}
 
 {% block metadata %}
     {% canonical_link canonical_url %}
-    <meta name="description" content="Lessons for {{ module.title }}, part of the current {{ course_family.title }} curriculum.">
+    <meta name="description" content="{% if module.summary %}{{ module.summary }}{% else %}Lessons for {{ module.title }}, part of the current {{ course_family.title }} curriculum.{% endif %}">
 {% endblock %}
 
 {% block page_styles %}
       {% comment %}
-        One shared module: the title block, then the module's lessons as one
-        numbered list at the content width, then each cohort's homework for it
-        and the way on to the next module.  The lesson list is the page's only
-        list of lessons -- no side rail repeats it -- and there is no delivery
-        chooser: the homework rows name their cohort directly.
+        One shared module, laid out the way AI Shipping Labs lays a module
+        out: the course rail on the left (every module, this one open into
+        its lessons, homework and attempts -- the lesson pages' own rail) and
+        the module's syllabus beside it.  The cream header carries the trail,
+        the title, the one-line summary and the key facts, the signed-in
+        learner's progress and the page's one primary action.  The syllabus
+        holds what the rail cannot say: what you'll build, the lessons with
+        their descriptions and lengths grouped into the module's parts, the
+        homework with its status, and the recordings, code and notes.  The
+        rail stays compact (titles and ticks); the syllabus is the rich list.
       {% endcomment %}
       :root {
         --page: var(--lavender);
@@ -27,11 +32,12 @@
 
       .module-hero-inner {
         display: grid;
-        gap: var(--space-3);
+        gap: var(--space-stack);
+        max-width: calc(var(--measure) + 2.5rem);
       }
 
       .module-hero h1 {
-        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        font-size: clamp(2.1rem, 4.9vw, 3.2rem);
         letter-spacing: -0.03em;
         text-wrap: balance;
       }
@@ -42,92 +48,185 @@
         line-height: 1.6;
       }
 
-      .module-section + .module-section {
-        border-top: var(--seam);
-        margin-top: var(--space-7);
-        padding-top: var(--space-7);
+      .module-progress {
+        display: grid;
+        gap: var(--space-2);
+        max-width: 24rem;
       }
 
-      .lesson-list {
+      .module-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3) var(--space-5);
+        margin-top: var(--space-2);
+      }
+
+      .module-main {
+        display: grid;
+        gap: var(--space-section);
+      }
+
+      .module-intro {
+        font-size: 1.05rem;
+        line-height: 1.7;
+      }
+
+      .module-outcomes {
+        display: grid;
+        gap: var(--space-1);
+        margin: var(--space-4) 0 0;
+        padding-inline-start: var(--space-5);
+      }
+
+      .module-outcomes li {
+        color: var(--ink);
+        list-style: disc;
+      }
+
+      .syllabus-part + .syllabus-part {
+        margin-top: var(--space-6);
+      }
+
+      .syllabus-part-head {
+        display: grid;
+        gap: var(--space-1);
+        margin-bottom: var(--space-3);
+      }
+
+      .syllabus-part-head h3 {
+        font-size: 1.15rem;
+      }
+
+      .syllabus-lessons {
         background: var(--card);
         border: var(--border-soft);
         border-radius: var(--radius-card);
+        list-style: none;
+        margin: 0;
         overflow: hidden;
+        padding: 0;
       }
 
-      .lesson-row {
-        align-items: center;
+      .syllabus-lesson {
+        align-items: start;
         display: grid;
-        gap: var(--space-4);
-        grid-template-columns: 2.1rem minmax(0, 1fr);
-        padding: var(--space-2) var(--space-4);
+        gap: var(--space-3);
+        grid-template-columns: 1.9rem minmax(0, 1fr) auto;
+        padding: var(--space-3) var(--space-4);
       }
 
-      /* The shared disc spans the accordion summary's two lines; a lesson
-         row has one. */
-      .lesson-row .module-number {
-        grid-row: auto;
-      }
-
-      .lesson-row + .lesson-row {
+      .syllabus-lesson + .syllabus-lesson {
         border-top: var(--rule);
       }
 
-      .lesson-link {
-        align-items: center;
-        color: var(--ink);
-        display: flex;
-        font-weight: 700;
-        min-height: 2.75rem;
-        text-decoration: none;
+      .syllabus-lesson.is-next {
+        background: var(--lavender-deep);
       }
 
-      .lesson-link:hover,
-      .lesson-link:focus-visible {
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
+      /* The shared disc spans the accordion summary's two lines; a lesson
+         row holds its own title and description beside it. */
+      .syllabus-lesson .module-number {
+        grid-row: auto;
       }
 
-      .module-homework-row {
-        --row-cols: minmax(0, 1fr) auto;
+      .syllabus-lesson .module-number.is-read {
+        background: var(--mint);
+        border-color: var(--green-deep);
+        color: var(--green-deep);
       }
 
-      .module-homework-link {
+      .syllabus-lesson-text {
+        display: grid;
+        gap: var(--space-1);
+        min-width: 0;
+      }
+
+      .syllabus-lesson-link {
         align-items: center;
         color: var(--ink);
         display: inline-flex;
         font-weight: 700;
-        min-height: 2.75rem;
+        min-height: 1.9rem;
         text-decoration: none;
       }
 
-      .module-homework-link:hover,
-      .module-homework-link:focus-visible {
+      .syllabus-lesson-link:hover,
+      .syllabus-lesson-link:focus-visible {
         text-decoration: underline;
         text-underline-offset: 0.2em;
       }
 
-      .module-next {
+      .syllabus-lesson-desc {
+        color: var(--body-text);
+        font-size: 0.92rem;
+        line-height: 1.5;
+      }
+
+      .syllabus-lesson-meta {
         align-items: center;
-        display: flex;
-        flex-wrap: wrap;
+        display: inline-flex;
+        min-height: 1.9rem;
+        white-space: nowrap;
+      }
+
+      .module-work {
+        display: grid;
+        gap: var(--space-3);
+      }
+
+      .module-work-card {
+        align-items: center;
+        display: grid;
         gap: var(--space-2) var(--space-4);
-        justify-content: space-between;
+        grid-template-columns: minmax(0, 1fr) auto;
       }
 
-      .module-next .mono-label {
-        display: block;
-        margin-bottom: var(--space-1);
-      }
-
-      .module-next-title {
-        color: var(--ink);
+      .module-work-card h3 {
         font-size: 1.1rem;
-        font-weight: 800;
       }
 
-      .module-homework-list > :last-child {
-        border-bottom: 0;
+      .module-work-card h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .module-work-card h3 a:hover,
+      .module-work-card h3 a:focus-visible {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .module-work-card .mono-note {
+        grid-column: 1 / -1;
+      }
+
+      .module-extras {
+        display: grid;
+        margin: 0;
+      }
+
+      .module-extra {
+        border-top: var(--rule);
+        display: grid;
+        gap: var(--space-1) var(--space-4);
+        grid-template-columns: 11rem minmax(0, 1fr);
+        padding: var(--space-3) 0;
+      }
+
+      .module-extra:last-child {
+        border-bottom: var(--rule);
+      }
+
+      .module-extra dt {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .module-extra dd {
+        display: grid;
+        gap: var(--space-1);
+        margin: 0;
       }
 
       .delivery-panel {
@@ -135,11 +234,28 @@
       }
 
       @media (max-width: 47.99rem) {
-        .module-next .cta {
+        .syllabus-lesson {
+          grid-template-columns: 1.9rem minmax(0, 1fr);
+        }
+
+        .syllabus-lesson-meta {
+          grid-column: 2;
+          min-height: 0;
+        }
+
+        .module-extra {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      @media (max-width: 35.99rem) {
+        .module-actions .cta {
           justify-content: center;
           width: 100%;
         }
       }
+
+      {% include "courses/_module_rail_styles.html" %}
 {% endblock %}
 
 {% block header_band_class %}module-hero{% endblock %}
@@ -151,49 +267,196 @@
         {% breadcrumbs "Courses" course_list_url course_family.title course_family_url %}
         <div class="module-hero-inner">
           <h1 id="module-heading">{{ module.title }}</h1>
-          <p class="mono-note">Module {{ module_position }} of {{ module_count }}</p>
           {% if module.summary %}
             <p class="module-lede">{{ module.summary }}</p>
+          {% endif %}
+          <p class="mono-note" data-testid="module-facts">
+            {{ lessons|length }} lesson{{ lessons|length|pluralize }}
+            {% if syllabus.total_minutes %}
+              · {{ syllabus.total_minutes|minutes_label }}
+            {% endif %}
+            {% if rail_homework and rail_homework.due_date %}
+              · homework {% if rail_homework.state == "OP" %}due{% else %}closed{% endif %} {{ rail_homework.due_date|date:"M j, Y" }}
+            {% endif %}
+          </p>
+          {% if user.is_authenticated and lessons %}
+            <div class="module-progress" data-testid="module-progress">
+              <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="{{ lessons|length }}" aria-valuenow="{{ read_count }}" aria-label="Lessons done">
+                <div class="progress-fill" style="width: {{ read_percent }}%"></div>
+              </div>
+              <p class="mono-note">{{ read_count }} of {{ lessons|length }} lesson{{ lessons|length|pluralize }} done{% if rail_homework_state %} · homework {{ rail_homework_state.label|lower }}{% endif %}</p>
+            </div>
+          {% endif %}
+          {% if primary_action %}
+            <div class="module-actions">
+              {% include "core/_button.html" with href=primary_action.url label=primary_action.label aria_label=primary_action.aria variant="primary" %}
+              {% if primary_action.note %}
+                <span class="mono-note">{{ primary_action.note }}</span>
+              {% endif %}
+            </div>
           {% endif %}
         </div>
 {% endblock %}
 
 {% block page_content %}
-      <section class="module-section" aria-labelledby="lessons-heading">
-        <div class="band-head">
-          <div>
-            <h2 id="lessons-heading">Lessons</h2>
-            <p>{{ lessons|length }} lesson{{ lessons|length|pluralize }}</p>
-          </div>
-        </div>
-        {% if lessons %}
-          <ol class="lesson-list" aria-label="Lessons in this module">
-            {% for lesson in lessons %}
-              <li class="lesson-row">
-                <span class="module-number" aria-hidden="true">{{ forloop.counter }}</span>
-                <a class="lesson-link" href="{% url 'shared_lesson' course_family.slug module.slug lesson.slug %}{{ context_q }}">{{ lesson.title }}</a>
-              </li>
+      <div class="module-layout shell-breakout">
+        <div class="module-main">
+          {% if syllabus.intro or syllabus.outcomes %}
+            <section aria-labelledby="build-heading" data-testid="module-build">
+              <div class="band-head">
+                <div>
+                  <h2 id="build-heading">What you'll build</h2>
+                </div>
+              </div>
+              {% if syllabus.intro %}
+                <p class="module-intro">{{ syllabus.intro }}</p>
+              {% endif %}
+              {% if syllabus.outcomes %}
+                <ul class="module-outcomes" aria-label="What you'll learn">
+                  {% for outcome in syllabus.outcomes %}
+                    <li>{{ outcome }}</li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            </section>
+          {% endif %}
+
+          <section aria-labelledby="lessons-heading" data-testid="module-syllabus">
+            <div class="band-head">
+              <div>
+                <h2 id="lessons-heading">Lessons</h2>
+              </div>
+            </div>
+            {% for part in syllabus.parts %}
+              <div class="syllabus-part">
+                {% if part.title %}
+                  <div class="syllabus-part-head">
+                    <h3>{{ part.title }}</h3>
+                    {% if part.summary %}
+                      <p>{{ part.summary }}</p>
+                    {% endif %}
+                  </div>
+                {% endif %}
+                <ol class="syllabus-lessons" start="{{ part.first }}" aria-label="{% if part.title %}{{ part.title }}{% else %}Lessons in this module{% endif %}">
+                  {% for row in part.lessons %}
+                    <li class="syllabus-lesson{% if read_count and primary_action and row.url == primary_action.url %} is-next{% endif %}">
+                      {% if row.is_read %}
+                        <span class="module-number is-read" aria-hidden="true">✓</span>
+                      {% else %}
+                        <span class="module-number" aria-hidden="true">{{ row.number }}</span>
+                      {% endif %}
+                      <div class="syllabus-lesson-text">
+                        <a class="syllabus-lesson-link" href="{{ row.url }}">{{ row.lesson.title }}{% if row.is_read %}<span class="sr-only">, done</span>{% endif %}</a>
+                        {% if row.description %}
+                          <p class="syllabus-lesson-desc">{{ row.description }}</p>
+                        {% endif %}
+                      </div>
+                      {% if row.minutes %}
+                        <span class="mono-note syllabus-lesson-meta">{{ row.minutes|minutes_label }}</span>
+                      {% endif %}
+                    </li>
+                  {% endfor %}
+                </ol>
+              </div>
+            {% empty %}
+              <div class="card">
+                <p>This module does not have any lessons yet.</p>
+              </div>
             {% endfor %}
-          </ol>
-        {% else %}
-          <div class="card"><p>This module does not have any lessons yet.</p></div>
-        {% endif %}
-        {% include "courses/_delivery_panel.html" %}
-      </section>
+          </section>
 
-      {% if module_homeworks %}
-        <div class="module-section">
-          {% include "courses/_module_homework.html" %}
+          {% if rail_homework or project_rows %}
+            <section aria-labelledby="work-heading" data-testid="module-work">
+              <div class="band-head">
+                <div>
+                  <h2 id="work-heading">{% if rail_homework and project_rows %}Homework and project{% elif rail_homework %}Homework{% else %}Project{% endif %}</h2>
+                </div>
+              </div>
+              <div class="module-work">
+                {% if rail_homework %}
+                  <article class="card module-work-card" data-testid="module-homework">
+                    <h3><a href="{{ homework_url }}{{ context_q }}">{{ rail_homework.title }}</a></h3>
+                    {% if rail_homework_state %}
+                      {% include "courses/_homework_state_pill.html" with homework_state=rail_homework_state score=None %}
+                    {% elif rail_homework.state == "OP" %}
+                      <span class="status-pill status-pill-open">Open</span>
+                    {% elif rail_homework.state == "SC" %}
+                      <span class="status-pill status-pill-mint">Scored</span>
+                    {% else %}
+                      <span class="status-pill status-pill-wait">Closed</span>
+                    {% endif %}
+                    <p class="mono-note">
+                      {% if homework_question_count %}{{ homework_question_count }} question{{ homework_question_count|pluralize }} · {% endif %}{{ rail_cohort.identifier }} cohort{% if rail_homework.due_date %} · {% if rail_homework.state == "OP" %}due{% else %}closed{% endif %} {{ rail_homework.due_date|date:"M j, Y" }}{% endif %}
+                    </p>
+                  </article>
+                {% endif %}
+                {% for row in project_rows %}
+                  <article class="card module-work-card" data-testid="module-project">
+                    <h3><a href="{{ row.url|default:row.project_url }}">{{ row.project.title }}</a></h3>
+                    {% if user.is_authenticated and row.status %}
+                      <span class="status-pill {{ row.pill }}">{{ row.status }}</span>
+                    {% endif %}
+                    {% if row.project.submission_due_date %}
+                      <p class="mono-note">{{ rail_cohort.identifier }} cohort · submit by {{ row.project.submission_due_date|date:"M j, Y" }}</p>
+                    {% endif %}
+                  </article>
+                {% endfor %}
+              </div>
+            </section>
+          {% endif %}
+
+          {% if syllabus.has_extras %}
+            <section aria-labelledby="extras-heading" data-testid="module-extras">
+              <div class="band-head">
+                <div>
+                  <h2 id="extras-heading">Recordings, code and notes</h2>
+                </div>
+              </div>
+              <dl class="module-extras">
+                {% if syllabus.recordings %}
+                  <div class="module-extra">
+                    <dt>Workshop recordings</dt>
+                    <dd>
+                      {% for link in syllabus.recordings %}
+                        <a class="band-link" href="{{ link.url }}">{{ link.title }}</a>
+                      {% endfor %}
+                    </dd>
+                  </div>
+                {% endif %}
+                {% if syllabus.further %}
+                  <div class="module-extra">
+                    <dt>Go deeper</dt>
+                    <dd>
+                      {% for link in syllabus.further %}
+                        <a class="band-link" href="{{ link.url }}">{{ link.title }}</a>
+                      {% endfor %}
+                    </dd>
+                  </div>
+                {% endif %}
+                {% if syllabus.code_url %}
+                  <div class="module-extra">
+                    <dt>Code</dt>
+                    <dd>
+                      <a class="band-link" href="{{ syllabus.code_url }}">Module code on GitHub</a>
+                    </dd>
+                  </div>
+                {% endif %}
+                {% if syllabus.notes %}
+                  <div class="module-extra">
+                    <dt>Community notes</dt>
+                    <dd>
+                      {% for link in syllabus.notes %}
+                        <a class="band-link" href="{{ link.url }}">{{ link.title }}</a>
+                      {% endfor %}
+                    </dd>
+                  </div>
+                {% endif %}
+              </dl>
+            </section>
+          {% endif %}
+
+          {% include "courses/_delivery_panel.html" %}
         </div>
-      {% endif %}
-
-      {% if next_module %}
-        <section class="module-section module-next" aria-label="Next module">
-          <div>
-            <span class="mono-label">Next module</span>
-            <span class="module-next-title">{{ next_module.title }}</span>
-          </div>
-          {% include "core/_button.html" with href=next_module_url label=next_module_label variant="secondary" %}
-        </section>
-      {% endif %}
+        {% include "courses/_shared_module_rail.html" %}
+      </div>
 {% endblock %}

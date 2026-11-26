@@ -28,6 +28,12 @@ from courses.services.course_context import (
     remember_cohort,
     resolve_delivery_context,
 )
+from courses.models.project import Project, ProjectState
+from courses.services.attempt_flow import attempt_rows, learner_attempts
+from courses.templatetags.attempt_rail import ATTEMPT_STATUS_PILLS
+from courses.services.course_rail import course_rail, lessons_of, rail_placement
+from courses.services.module_syllabus import module_syllabus
+from courses.services.registration_campaigns import family_registration
 from courses.views.homework_states import learner_homework_state
 
 
@@ -69,61 +75,81 @@ def _delivery_panel(request: HttpRequest, course: Course, context) -> dict[str, 
         "delivery_cohort": cohort,
         "delivery_source": context.source,
         "delivery_enrollment": context.enrollment,
-        "delivery_choices": (
-            delivery_choices(course, request) if context.needs_chooser else []
-        ),
+        "delivery_choices": (delivery_choices(course, request) if context.needs_chooser else []),
         "delivery_multiple_enrollments": context.has_multiple_enrollments,
         "delivery_placements": placements,
         "archive_cohort": archive_cohort,
-        "self_paced": (
-            cohort is not None and cohort.delivery_mode == DeliveryMode.SELF_PACED
-        ),
+        "self_paced": (cohort is not None and cohort.delivery_mode == DeliveryMode.SELF_PACED),
         "context_q": context_query(context.cohort),
     }
 
 
-def module_homework_links(
-    course: Course,
-    module: SharedModule,
-    delivery_cohort: Cohort | None,
-) -> list[dict[str, object]]:
-    """Each visible cohort's homework for one shared module, newest first.
+def _registration_action(course: Course) -> dict[str, str] | None:
+    """Where a visitor who is not signed in starts: the family's open registration."""
 
-    The lessons are shared across every delivery, but the homework that
-    closes a module belongs to one cohort's run of it.  Rather than asking the
-    reader to pick a delivery before they can see any assignment, the module
-    and lesson pages name every cohort's homework for this module directly;
-    the reader's own resolved delivery, when there is one, leads the list.
+    registration = family_registration(course)
+    if not registration:
+        return None
+    return {
+        "label": "Register to start lesson 1",
+        "note": "",
+        "aria": "Register for the course to start lesson 1",
+        "url": reverse("registration_campaign", args=[registration.campaign.slug]),
+    }
+
+
+def _module_action(
+    *,
+    user,
+    course: Course,
+    syllabus_lessons,
+    next_module,
+    next_module_url: str,
+    homework,
+    homework_url: str,
+):
+    """The module page's one primary action, from the reader's own progress.
+
+    Start lesson 1, continue with the first unread lesson, then go on to the
+    next module.  A visitor who is not signed in is sent into registration
+    while the course has one open.
     """
 
-    placements = (
-        CohortSharedModule.objects.filter(
-            shared_module=module,
-            cohort__visible=True,
-            terminal_homework__isnull=False,
-        )
-        .select_related("cohort", "terminal_homework")
-        .order_by("-cohort__year", "-cohort__identifier")
-    )
-    links = [
-        {
-            "cohort": placement.cohort,
-            "homework": placement.terminal_homework,
-            "url": reverse(
-                "cohort_homework",
-                args=[
-                    course.slug,
-                    placement.cohort.identifier,
-                    placement.terminal_homework.slug,
-                ],
-            ),
-            "is_current": delivery_cohort is not None
-            and placement.cohort_id == delivery_cohort.pk,
+    if not syllabus_lessons:
+        return None
+    first = syllabus_lessons[0]
+
+    def lesson_action(label, row):
+        return {
+            "label": label,
+            "url": row.url,
+            "note": row.lesson.title,
+            "aria": f"{label}: {row.lesson.title}",
         }
-        for placement in placements
-    ]
-    links.sort(key=lambda link: not link["is_current"])
-    return links
+
+    if not getattr(user, "is_authenticated", False):
+        return _registration_action(course) or lesson_action("Start lesson 1", first)
+    unread = next((row for row in syllabus_lessons if not row.is_read), None)
+    if unread is first:
+        return lesson_action("Start lesson 1", first)
+    if unread is not None:
+        return lesson_action(f"Continue with lesson {unread.number}", unread)
+    if next_module is not None:
+        label = f"Continue to module {next_module.number}"
+        return {
+            "label": label,
+            "url": next_module_url,
+            "note": next_module.module.title,
+            "aria": f"{label}: {next_module.module.title}",
+        }
+    if homework is not None and homework_url:
+        return {
+            "label": "Open the homework",
+            "url": homework_url,
+            "note": homework.title,
+            "aria": f"Open {homework.title}",
+        }
+    return None
 
 
 def _append_context(path: str, context_q: str) -> str:
@@ -150,57 +176,85 @@ def shared_module_view(
             slug=module_slug,
             published=True,
         )
-        .select_related("curriculum")
+        .select_related("curriculum", "curriculum__course")
         .first()
     )
     if module is None:
         return _legacy_two_segment_fallback(request, course, module_slug)
 
     context = _apply_context(request, course)
-    lessons = list(
-        SharedLesson.objects.filter(module=module, published=True).order_by("position", "id")
-    )
     panel = _delivery_panel(request, course, context)
-    placement_by_module: dict[int, CohortSharedModule] = {
-        placement.shared_module_id: placement for placement in panel["delivery_placements"]
-    }
-    placement = placement_by_module.get(module.pk)
+    context_q = panel["context_q"]
+    lessons = lessons_of(module)
+    rail = course_rail(request.user, module, context_q)
+    syllabus = module_syllabus(
+        module,
+        lessons,
+        lesson_url=lambda lesson: _append_context(
+            reverse("shared_lesson", args=[course.slug, module.slug, lesson.slug]), context_q
+        ),
+        read_ids=rail.read_lesson_ids,
+    )
+    syllabus_lessons = [row for part in syllabus.parts for row in part.lessons]
+    current = next((item for item in rail.modules if item.is_current), None)
+    next_module = (
+        rail.modules[current.number] if current and current.number < len(rail.modules) else None
+    )
+    placement = rail_placement(course, module, panel["delivery_cohort"])
+    rail_cohort = placement.cohort if placement else None
+    homework = placement.terminal_homework if placement else None
+    homework_url = (
+        reverse("cohort_homework", args=[course.slug, rail_cohort.identifier, homework.slug])
+        if homework
+        else ""
+    )
+    homework_state = (
+        learner_homework_state(request.user, homework)
+        if homework is not None and request.user.is_authenticated
+        else None
+    )
+    read_count = sum(1 for row in syllabus_lessons if row.is_read)
+    project_rows = []
+    if rail_cohort is not None:
+        projects = list(
+            Project.objects.filter(course=rail_cohort, shared_module=module)
+            .exclude(state=ProjectState.CLOSED.value)
+            .select_related("course__course", "criteria_set")
+            .order_by("submission_due_date", "pk")
+        )
+        if projects:
+            project_rows = attempt_rows(learner_attempts(request.user, rail_cohort, projects))
+            for row in project_rows:
+                row["pill"] = ATTEMPT_STATUS_PILLS.get(row["status_key"], "")
     canonical_path = reverse(
         "shared_module", kwargs={"course_slug": course.slug, "module_slug": module.slug}
     )
-    modules = list(
-        SharedModule.objects.filter(
-            curriculum=module.curriculum,
-            published=True,
-            retired_at__isnull=True,
-        ).order_by("position", "id")
-    )
-    module_index = next((i for i, item in enumerate(modules) if item.pk == module.pk), 0)
-    next_module = modules[module_index + 1] if module_index + 1 < len(modules) else None
     return render(
         request,
         "courses/shared_module.html",
         {
             "course_family": course,
             "module": module,
-            "module_position": module_index + 1,
-            "module_count": len(modules),
-            "next_module": next_module,
-            "next_module_label": f"Continue to module {module_index + 2}",
-            "next_module_url": (
-                _append_context(
-                    reverse("shared_module", args=[course.slug, next_module.slug]),
-                    panel["context_q"],
-                )
-                if next_module
-                else ""
-            ),
             "lessons": lessons,
-            "terminal_homework": placement.terminal_homework if placement else None,
-            "module_homeworks": module_homework_links(course, module, panel["delivery_cohort"]),
-            # The page ends on the way to the next module, not on a site-wide
-            # stripe stacked under it.
-            "hide_tour_cta": True,
+            "syllabus": syllabus,
+            "rail": rail,
+            "rail_cohort": rail_cohort,
+            "rail_homework": homework,
+            "rail_homework_state": homework_state,
+            "homework_url": homework_url,
+            "homework_question_count": homework.question_set.count() if homework else 0,
+            "project_rows": project_rows,
+            "read_count": read_count,
+            "read_percent": round(100 * read_count / len(lessons)) if lessons else 0,
+            "primary_action": _module_action(
+                user=request.user,
+                course=course,
+                syllabus_lessons=syllabus_lessons,
+                next_module=next_module,
+                next_module_url=next_module.url if next_module else "",
+                homework=homework,
+                homework_url=homework_url,
+            ),
             "canonical_url": f"https://datatalks.club{canonical_path}",
             **panel,
         },
@@ -247,6 +301,10 @@ def shared_lesson_view(
         placement.shared_module_id: placement for placement in panel["delivery_placements"]
     }
     placement = placement_by_module.get(module.pk)
+    # The rail shows the reader's own cohort's homework, or the newest
+    # cohort's when no delivery is resolved, exactly as the module page does.
+    shown = rail_placement(course, module, panel["delivery_cohort"])
+    rail_homework = shown.terminal_homework if shown else None
     module_path = reverse(
         "shared_module",
         kwargs={"course_slug": course.slug, "module_slug": module.slug},
@@ -275,15 +333,15 @@ def shared_lesson_view(
                 else ""
             ),
             "next_lesson_url": (
-                _append_context(lesson_path(next_lesson), panel["context_q"])
-                if next_lesson
-                else ""
+                _append_context(lesson_path(next_lesson), panel["context_q"]) if next_lesson else ""
             ),
             "module_url": _append_context(module_path, panel["context_q"]),
             "terminal_homework": placement.terminal_homework if placement else None,
-            "terminal_homework_state": (
-                learner_homework_state(request.user, placement.terminal_homework)
-                if placement and placement.terminal_homework and request.user.is_authenticated
+            "rail_cohort": shown.cohort if shown else None,
+            "rail_homework": rail_homework,
+            "rail_homework_state": (
+                learner_homework_state(request.user, rail_homework)
+                if rail_homework is not None and request.user.is_authenticated
                 else None
             ),
             "canonical_url": f"https://datatalks.club{canonical_path}",
@@ -292,9 +350,7 @@ def shared_lesson_view(
     )
 
 
-def dispatch_two_segment_path(
-    request: HttpRequest, course_slug: str, segment: str
-):
+def dispatch_two_segment_path(request: HttpRequest, course_slug: str, segment: str):
     """Route the bare two-segment course path to its current destination.
 
     The second segment of ``<family>/<segment>`` could name a shared module
@@ -323,9 +379,7 @@ def dispatch_two_segment_path(
     return None
 
 
-def _legacy_two_segment_fallback(
-    request: HttpRequest, course: Course, segment: str
-):
+def _legacy_two_segment_fallback(request: HttpRequest, course: Course, segment: str):
     """Resolve a two-segment path that names no shared module.
 
     The bare ``/courses/<family>/<identifier>`` shape is already canonical

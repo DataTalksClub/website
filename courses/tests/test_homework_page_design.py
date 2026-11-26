@@ -164,7 +164,7 @@ class HomeworkModuleTrailTests(HomeworkDetailViewTestBase):
         self.assertNotContains(response, "← Back to")
         # A legacy `curriculum_format=modules` homework has no `SharedModule`
         # placement, so it never gains the shared-curriculum module rail.
-        self.assertNotContains(response, 'id="module-navigation-heading"')
+        self.assertNotContains(response, 'id="course-rail-heading"')
 
     def test_a_homework_without_a_module_keeps_the_shorter_trail(self) -> None:
         response = self.get_homework_response()
@@ -180,7 +180,7 @@ class HomeworkModuleTrailTests(HomeworkDetailViewTestBase):
         assert breadcrumb is not None
         self.assertNotIn("modules/", breadcrumb.group(1))
         self.assertNotContains(response, "← Back to")
-        self.assertNotContains(response, 'id="module-navigation-heading"')
+        self.assertNotContains(response, 'id="course-rail-heading"')
 
 
 class HomeworkSharedModuleRailTests(HomeworkDetailViewTestBase):
@@ -252,10 +252,10 @@ class HomeworkSharedModuleRailTests(HomeworkDetailViewTestBase):
         module_url = f"/{self.course.course.slug}/{module.slug}?cohort={self.course.identifier}"
         self.assertIn(module_url, breadcrumb.group(1))
 
-        # The "In this module" rail: the module's lesson and this homework's
+        # The course rail, open on this module: the module's lesson and this homework's
         # own row, both navigable, the way `shared_module.html`/
         # `shared_lesson.html` already render it.
-        self.assertContains(response, 'id="module-navigation-heading"')
+        self.assertContains(response, 'id="course-rail-heading"')
         self.assertContains(response, "In this module")
         self.assertContains(response, "Introduction")
         self.assertContains(response, self.homework.title)
@@ -268,7 +268,7 @@ class HomeworkSharedModuleRailTests(HomeworkDetailViewTestBase):
         response = self.get_homework_response()
 
         self.assertIsNone(response.context["shared_homework_module"])
-        self.assertNotContains(response, 'id="module-navigation-heading"')
+        self.assertNotContains(response, 'id="course-rail-heading"')
 
 
 class HomeworkStateMatrixTests(HomeworkDetailViewTestBase):

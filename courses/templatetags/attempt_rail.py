@@ -23,12 +23,24 @@ ATTEMPT_STATUS_PILLS = {
 
 
 @register.inclusion_tag("courses/_rail_attempts.html", takes_context=True)
-def rail_attempts(context, module, cohort, current_project=None, page="", current_review_id=None):
-    """Rail rows for the cohort's attempts placed in ``module``; the open one expands."""
-    if module is None or cohort is None:
+def rail_attempts(context, module, cohort, unplaced=False):
+    """Rail rows for the cohort's attempts placed in ``module``; the open one expands.
+
+    ``unplaced=True`` lists the cohort's attempts no module carries instead,
+    for the course rail's foot.  The attempt pages put ``current_project``,
+    ``attempt_page`` and ``current_review_id`` in their context; pages that
+    are not about an attempt (module, lesson, homework) have none of them.
+    """
+    current_project = context.get("current_project")
+    if not hasattr(current_project, "pk"):
+        current_project = None
+    page = context.get("attempt_page") or ""
+    current_review_id = context.get("current_review_id")
+    if cohort is None or (module is None and not unplaced):
         return {"rows": []}
+    placed = {"shared_module__isnull": True} if unplaced else {"shared_module": module}
     projects = (
-        Project.objects.filter(course=cohort, shared_module=module)
+        Project.objects.filter(course=cohort, **placed)
         .exclude(state=ProjectState.CLOSED.value)
         .select_related("course__course", "criteria_set")
         .order_by("submission_due_date", "pk")
@@ -53,4 +65,4 @@ def rail_attempts(context, module, cohort, current_project=None, page="", curren
                 else (),
             }
         )
-    return {"rows": rows}
+    return {"rows": rows, "unplaced": unplaced}
