@@ -40,12 +40,7 @@
        * horizontal running-now cards.  Those are genuinely wide elements, so
        * each one is a `.shell-breakout` section while the page underneath
        * stays an ordinary content page: the cream hero band and the lavender
-       * content band remain the parent's.  The facts strip that used to be
-       * the mockup's own dark stripe now draws with the shared
-       * `.stat-tiles`/`.stat-tile` primitive instead (2026-09): the site
-       * owner asked for one stats-strip shape shared with the family page,
-       * not two ad hoc grids, so it sits on the ordinary lavender ground at
-       * the ordinary content width like the rest of the page's sections.
+       * content band remain the parent's.
        * ------------------------------------------------------------------ */
 
       /* The page draws with the design system's tokens — the same palette,
@@ -150,25 +145,6 @@
         margin: var(--space-2) 0 0;
         text-align: center;
         text-transform: uppercase;
-      }
-
-      /* --- facts strip --------------------------------------------------
-         Owner feedback (2026-09): this used to be its own bespoke dark
-         full-bleed stripe (.courses-stats-grid) -- a different shape from
-         the family page's real per-family numbers a few clicks away, drawn
-         with the shared design system's .stat-tiles/.stat-tile primitive
-         instead (see templates/core/_design_system.html and
-         course_family.html's .family-outcomes).  The catalogue's own facts
-         (zoomcamp count, open-cohort sign-ups, the free/open framing) stay
-         page-specific; only the tile shape is now shared. */
-      .courses-stats {
-        margin-bottom: var(--space-section);
-      }
-
-      /* Unless the Wrapped entry point sits directly above: the strip then
-         stays in the flow the entry point already opened. */
-      .courses-wrapped + .courses-stats {
-        margin-top: 0;
       }
 
       /* --- projects section -------------------------------------------------
@@ -624,28 +600,6 @@
           </div>
         </section>
       {% endif %}
-      <section class="courses-stats" aria-label="Courses in numbers">
-        <div class="stat-tiles stat-tiles-row">
-          <div class="stat-tile">
-            <strong>{{ course_family_count }}</strong>
-            <span>zoomcamps</span>
-          </div>
-          {% if total_open_registration_count %}
-            <div class="stat-tile">
-              <strong>{{ total_open_registration_count|thousands }}</strong>
-              <span>registered for the open cohorts</span>
-            </div>
-          {% endif %}
-          <div class="stat-tile">
-            <strong>€0</strong>
-            <span>now and always</span>
-          </div>
-          <div class="stat-tile">
-            <strong>100%</strong>
-            <span>open</span>
-          </div>
-        </div>
-      </section>
       <div id="courses">
         {% comment %}
           One unified catalogue: every visible family, in the site's reviewed

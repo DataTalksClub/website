@@ -85,16 +85,11 @@ class CourseListCatalogCardLinkTest(CourseListViewTestBase):
         self.assertEqual(course_card.count("<a "), 1)
 
 
-class CourseListStatsLabelTest(CourseListViewTestBase):
-    def test_materials_stat_drops_the_github_framing(self):
+class CourseListNoStatsStripTest(CourseListViewTestBase):
+    def test_catalogue_follows_the_hero_without_a_numbers_strip(self):
+        # The "7 zoomcamps / EUR0 / 100% open" strip repeated the hero's
+        # "for free" and the catalogue's own count; the owner removed it.
         response = self.course_list_response()
-        content = response.content.decode()
 
-        # The big number ("100%") already carries the "100%"; the label
-        # below it just names what it is, without repeating the number or
-        # naming GitHub specifically.
-        stat_index = content.index("<strong>100%</strong>")
-        stat_html = content[stat_index : stat_index + 200]
-
-        self.assertIn("<span>open</span>", stat_html)
-        self.assertNotContains(response, "materials public on GitHub")
+        self.assertNotContains(response, 'class="courses-stats"')
+        self.assertNotContains(response, "now and always")

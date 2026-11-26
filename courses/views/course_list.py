@@ -493,25 +493,6 @@ def wrapped_entry_year():
     return published_year
 
 
-def open_registration_registered_total(open_registration_family_cards):
-    """Sum the real published registration counts across the open cards.
-
-    Each count is the same governed public figure a card already shows on its
-    own (``registered_learner_count``); this is only their total, for the hero
-    stat tile.  A card with no publishable count contributes nothing, and the
-    tile is omitted entirely (``None``) when no card has one to add.
-    """
-
-    counts = [
-        card.cohort.index_registered
-        for card in open_registration_family_cards
-        if getattr(card.cohort, "index_registered", None)
-    ]
-    if not counts:
-        return None
-    return sum(counts)
-
-
 def hero_collage_cards(active_family_cards, open_registration_family_cards):
     """Pair up to four real family titles with the hero's decorative artwork."""
 
@@ -574,10 +555,6 @@ def course_list_context(request):
         course_groups.active_courses,
         course_groups.finished_courses,
     )
-    course_family_count = len(family_cards)
-    total_open_registration_count = open_registration_registered_total(
-        open_registration_family_cards
-    )
     hero_register_url = None
     for card in open_registration_family_cards:
         campaign = getattr(card.cohort, "registration_campaign", None)
@@ -606,8 +583,6 @@ def course_list_context(request):
         "featured_course_card": selected_featured_card,
         "catalog_cards": catalog_cards,
         "home_stats": home_stats,
-        "course_family_count": course_family_count,
-        "total_open_registration_count": total_open_registration_count,
         "hero_collage": hero_collage_cards(
             displayed_active_family_cards,
             open_registration_family_cards,
