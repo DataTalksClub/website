@@ -37,7 +37,7 @@
       }
 
       .wiki-hero .breadcrumbs {
-        margin-bottom: var(--space-2);
+        margin-bottom: var(--space-eyebrow);
         margin-top: calc(var(--space-3) * -1);
       }
 
@@ -98,7 +98,7 @@
     <main id="main-content" tabindex="-1">
       <section class="band band-cream wiki-hero" aria-labelledby="graph-heading">
         {% url 'wiki-home' as wiki_home_url %}
-        {% breadcrumbs "Wiki" wiki_home_url current="Wiki" nav_class="shell shell-reading" %}
+        {% breadcrumbs "Wiki" wiki_home_url current="Graph" nav_class="shell shell-reading" %}
         <div class="shell shell-reading">
           <h1 id="graph-heading">Wiki</h1>
           <p class="graph-lede">
