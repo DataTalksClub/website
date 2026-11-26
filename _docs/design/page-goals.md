@@ -150,6 +150,26 @@ first-time visitors.
   4. **Workspace navigation** via tabs to materials, leaderboard, dashboard,
      and submissions.
 
+#### 2d. Course module (`/courses/<family>/<module>`, `courses/templates/courses/shared_module.html`)
+
+- **Primary goal:** **Get the learner into the module's next lesson** (a
+  visitor who is not signed in: into registration while the course has one
+  open).
+- **Primary CTA:** One `.cta-primary` in the header, from the reader's
+  progress: `Start lesson 1`, `Continue with lesson N`, `Continue to module
+  N+1`; `Register to start lesson 1` for a visitor while registration is open.
+- **What is secondary:** the course rail (navigation to every module, lesson,
+  the homework and attempts), the homework card's link, recordings, code and
+  notes.
+- **Roles the page plays:**
+  1. **Syllabus:** what you'll build, the outcomes, the lessons grouped into
+     parts with descriptions and lengths.
+  2. **Place in the course:** the course rail (AISL layout), with progress for
+     a signed-in learner.
+  3. **Assignments:** the homework (status, due date, steps) and any project
+     attempt placed in the module.
+  4. **Further material:** workshop recordings, the code link, community notes.
+
 ---
 
 ### 3. Events

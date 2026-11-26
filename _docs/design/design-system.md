@@ -1367,13 +1367,31 @@ number; the attempts of one project (`Project Attempt 1`, `Last Project Attempt`
 (`courses.course_page_content.merge_syllabus_rows_with_projects`). No rule divides the
 index from the row.
 
-**A shared module page** (`courses/shared_module.html`) is an ordinary detail page at
-the content width: breadcrumb, `Module N of M`, the title and the module's summary;
-then its lessons as one numbered list (no side rail repeating it), each cohort's
-homework for the module as `.list-row`s naming the cohort
-(`courses/_module_homework.html`), and the way on to the next module. There is no
-"choose your delivery" step; the delivery notice is drawn only for an archived
-delivery.
+**A shared module page** (`courses/shared_module.html`) is the AISL module layout in
+the site's design: the course rail beside the module's syllabus, in the same
+`.module-layout` the lesson pages use, so module → lesson keeps one frame. The cream
+header (at the rail-and-column width, like a lesson's) holds the trail stopping at the
+course, the title, the summary, one fact line (lesson count, total length when every
+lesson has one, homework due), the signed-in learner's progress bar and the one
+primary action: *Start lesson 1* → *Continue with lesson N* → *Continue to module
+N+1*, or *Register to start lesson 1* for a visitor while the course has an open
+registration. No `Module N of M` line, no `Next module` label. The syllabus column:
+*What you'll build* and the outcomes, the lessons grouped into the module's parts
+with each lesson's description and length, the homework card (and any project attempt
+placed in the module) with its status, then recordings, code and community notes.
+Every section is drawn only when the import stored its data.
+
+**The course rail** (`courses/_shared_module_rail.html`, data from
+`courses.services.course_rail`) is every module of the course, the current one open
+into its lessons (mint checks for a signed-in reader's read lessons, `read/total` on
+the module row), its homework (due date, the learner's status, and for a learner who
+reads it as the stepper its steps: Introduction, Question N, Learning in Public,
+Review & submit) and its project attempts; attempts no module carries close the
+list. The homework belongs to the reader's own delivery, or the newest cohort's when
+none is resolved. The module, lesson, homework and project pages all draw it. It is
+sticky on a desktop; up to `52rem` it becomes a *Course contents* fold above the
+content, collapsed, naming the current module. There is no "choose your delivery"
+step; the delivery notice is drawn only for an archived delivery.
 
 The registration page keeps the ordinary content width. Its campaign copy is one
 editor-owned Markdown field, presented as sections by
