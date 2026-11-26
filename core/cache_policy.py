@@ -108,6 +108,10 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "content.legal_views.terms": EDITORIAL_DETAIL,
     "content.public_views.article_detail": EDITORIAL_DETAIL,
     "content.public_views.book_detail": EDITORIAL_DETAIL,
+    # A book's dated address: a 301 to the dateless canonical (redirect statuses
+    # take the redirect contract), or the detail itself for a row whose synced
+    # canonical is still the dated path.
+    "content.public_views.book_dated_redirect": EDITORIAL_DETAIL,
     "content.public_views.person_detail": EDITORIAL_DETAIL,
     "content.public_views.podcast_detail_by_id": EDITORIAL_DETAIL,
     "content.public_views.podcast_detail_by_id_without_slug": EDITORIAL_DETAIL,
