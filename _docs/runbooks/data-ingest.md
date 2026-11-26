@@ -910,6 +910,13 @@ file's SHA-256, so a later run against a different export is refused.
    renames back a repository row an earlier import gave CMP's slug. The local prep
    dataset needed that on 2026-11-26 (LLM `hw1`..`hw5` back to `homework-01`..`05`);
    production never ran the old rule.
+
+   Projects pair the same way, but only through the reviewed
+   `PROJECT_SLUG_OVERRIDES` (MediaGen: `project-attempt-1`/`-2` are CMP's
+   `capstone`/`capstone2`). The repository keeps its slug and the definition its
+   `cohort.yaml` authors (title, description, deadlines, peers); CMP contributes the
+   rest. A CMP-slugged duplicate is deleted when nobody submitted to it, and the
+   pairing is stored under `cmp_content:courses_project` for step 4.
 2. `scripts/prod/import_cmp_learners.py --database <db> --source <export> --dry-run`,
    then the same without `--dry-run`. Accounts, email addresses and `LearnerProfile`
    rows. About 2.5 minutes locally.

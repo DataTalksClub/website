@@ -30,7 +30,8 @@ already wrote, through :class:`Resolution`, built once per run from natural keys
 * a cohort by slug;
 * a homework through the pairing ``import_cmp_content`` recorded, else by
   ``(cohort, slug)`` (a repository-authored homework keeps its repository slug);
-* a project by ``(cohort, slug)``;
+* a project through the pairing ``import_cmp_content`` recorded, else by
+  ``(cohort, slug)``;
 * a question by its text within its homework -- and, where one homework repeats
   a question's text verbatim, by the order the texts appear, which is the order
   ``import_cmp_content`` writes them in;
@@ -151,7 +152,7 @@ from courses.models import (
     UserWrappedStatistics,
     WrappedStatistics,
 )
-from courses.services.cmp_content_import import homework_pairings
+from courses.services.cmp_content_import import homework_pairings, project_pairings
 from courses.services.course_family_identity import (
     UnparseableEditionSlug,
     family_and_year_from_edition_slug,
@@ -581,19 +582,31 @@ def _question_map(connection: sqlite3.Connection, homework: Mapping[int, int]) -
 
 
 def _project_map(connection: sqlite3.Connection, cohorts: Mapping[int, int]) -> dict[int, int]:
-    """Source project id -> target pk, by ``(cohort, slug)``."""
+    """Source project id -> target pk: the content import's pairing, else ``(cohort, slug)``.
 
+    A repository-authored attempt paired through ``project_slug_overrides`` keeps its
+    repository slug, so only the recorded pairing names it.
+    """
+
+    rows_by_pk = dict(
+        Project.objects.filter(course_id__in=set(cohorts.values())).values_list("pk", "course_id")
+    )
     local = {
         (course_id, slug): pk
         for course_id, slug, pk in Project.objects.filter(
             course_id__in=set(cohorts.values())
         ).values_list("course_id", "slug", "pk")
     }
+    pairings = project_pairings()
     resolved: dict[int, int] = {}
     rows = _rows(connection, "courses_project", "select id, course_id, slug from courses_project")
     for row in rows:
         cohort_pk = cohorts.get(row["course_id"])
         if cohort_pk is None:
+            continue
+        paired = pairings.get(int(row["id"]))
+        if paired is not None and rows_by_pk.get(paired) == cohort_pk:
+            resolved[int(row["id"])] = paired
             continue
         target = local.get((cohort_pk, str(row["slug"])))
         if target is not None:

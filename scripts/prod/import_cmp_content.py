@@ -74,6 +74,17 @@ HOMEWORK_SLUG_OVERRIDES: dict[str, dict[str, str]] = {
     },
 }
 
+# Reviewed {repository_slug: cmp_slug} pairs, per course, for a repository-authored
+# project attempt CMP runs under another slug. The repository keeps its slug and the
+# definition its cohort.yaml authors (title, description, deadlines, peers); CMP's
+# duplicate row is folded away when nobody submitted to it.
+PROJECT_SLUG_OVERRIDES: dict[str, dict[str, str]] = {
+    "production-ai-agents-generative-media": {
+        "project-attempt-1": "capstone",
+        "project-attempt-2": "capstone2",
+    },
+}
+
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -105,6 +116,7 @@ def main(argv: list[str] | None = None) -> int:
             family_slug_overrides=FAMILY_SLUG_OVERRIDES,
             cohort_slug_overrides=COHORT_SLUG_OVERRIDES,
             homework_slug_overrides=HOMEWORK_SLUG_OVERRIDES,
+            project_slug_overrides=PROJECT_SLUG_OVERRIDES,
         )
     except CmpContentImportError as error:
         # The error carries a code, never a source value.

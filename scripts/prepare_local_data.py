@@ -439,6 +439,7 @@ def run(
         from scripts.prod.import_cmp_content import (
             FAMILY_SLUG_OVERRIDES,
             HOMEWORK_SLUG_OVERRIDES,
+            PROJECT_SLUG_OVERRIDES,
         )
 
         try:
@@ -446,6 +447,7 @@ def run(
                 cmp_source_db,
                 family_slug_overrides=FAMILY_SLUG_OVERRIDES,
                 homework_slug_overrides=HOMEWORK_SLUG_OVERRIDES,
+                project_slug_overrides=PROJECT_SLUG_OVERRIDES,
             ).summary()
         except CmpContentImportError as error:
             raise LocalPreparationError(f"cmp_content_{error}") from error

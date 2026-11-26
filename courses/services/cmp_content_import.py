@@ -80,6 +80,7 @@ from courses.models import (
     Homework,
     Module,
     Project,
+    ProjectSubmission,
     Question,
     ReviewCriteria,
     Submission,
@@ -99,30 +100,44 @@ __all__ = [
     "CmpContentImportError",
     "CmpContentImportResult",
     "SKIPPED_COHORTS",
+    "PROJECT_PAIRING_TABLE",
     "homework_pairings",
     "import_cmp_course_content",
+    "project_pairings",
 ]
 
 # The ``CmpHistoryClaim.table`` key under which this import records which local homework
 # each CMP homework was paired with.  It is not one of the learner-history tables, so the
 # two importers' claims never collide.
 HOMEWORK_PAIRING_TABLE = "cmp_content:courses_homework"
+# The same record for projects paired through ``project_slug_overrides``.
+PROJECT_PAIRING_TABLE = "cmp_content:courses_project"
+
+
+def _pairings(table: str) -> dict[int, int]:
+    return {
+        int(source_id): int(target_id)
+        for source_id, target_id in CmpHistoryClaim.objects.filter(table=table).values_list(
+            "source_id", "target_id"
+        )
+    }
 
 
 def homework_pairings() -> dict[int, int]:
     """CMP homework id -> local homework pk, as this import last paired them."""
 
-    return {
-        int(source_id): int(target_id)
-        for source_id, target_id in CmpHistoryClaim.objects.filter(
-            table=HOMEWORK_PAIRING_TABLE
-        ).values_list("source_id", "target_id")
-    }
+    return _pairings(HOMEWORK_PAIRING_TABLE)
 
 
-def _record_pairing(source_id: int, target_id: int) -> None:
+def project_pairings() -> dict[int, int]:
+    """CMP project id -> local project pk, as this import last paired them."""
+
+    return _pairings(PROJECT_PAIRING_TABLE)
+
+
+def _record_pairing(source_id: int, target_id: int, table: str = HOMEWORK_PAIRING_TABLE) -> None:
     CmpHistoryClaim.objects.update_or_create(
-        table=HOMEWORK_PAIRING_TABLE, source_id=source_id, defaults={"target_id": target_id}
+        table=table, source_id=source_id, defaults={"target_id": target_id}
     )
 
 
@@ -201,6 +216,17 @@ _PROJECT_FIELDS = (
     "state",
     "points_for_peer_review",
     "instructions_url",
+)
+# What a repository-authored project's cohort.yaml entry owns (see
+# ``courses.services.curriculum_import._import_cohort_projects``).
+_REPOSITORY_PROJECT_FIELDS = frozenset(
+    {
+        "title",
+        "description",
+        "submission_due_date",
+        "peer_review_due_date",
+        "number_of_peers_to_evaluate",
+    }
 )
 _CRITERIA_FIELDS = ("description", "options", "review_criteria_type")
 # A campaign row is editorial: what is open, under which slug, with which copy.  The
@@ -515,6 +541,7 @@ def import_cmp_course_content(
     family_slug_overrides: Mapping[str, str] = MappingProxyType({}),
     cohort_slug_overrides: Mapping[str, str] = MappingProxyType({}),
     homework_slug_overrides: Mapping[str, Mapping[str, str]] = MappingProxyType({}),
+    project_slug_overrides: Mapping[str, Mapping[str, str]] = MappingProxyType({}),
 ) -> CmpContentImportResult:
     """Copy real CMP content onto the local catalogue's existing legacy cohorts.
 
@@ -587,7 +614,15 @@ def import_cmp_course_content(
                 if cohort.course.slug != family_slug:
                     _refuse("cohort-family-mismatch")
             with transaction.atomic():
-                imported.append(_import_cohort(connection, row, cohort, homework_slug_overrides))
+                imported.append(
+                    _import_cohort(
+                        connection,
+                        row,
+                        cohort,
+                        homework_slug_overrides,
+                        project_slug_overrides,
+                    )
+                )
 
         campaigns, unlinked = _import_registration_campaigns(
             connection,
@@ -859,6 +894,7 @@ def _import_cohort(
     row: Any,
     cohort: Cohort,
     homework_slug_overrides: Mapping[str, Mapping[str, str]] = MappingProxyType({}),
+    project_slug_overrides: Mapping[str, Mapping[str, str]] = MappingProxyType({}),
 ) -> CohortReport:
     _apply(cohort, _values(row, _COHORT_FIELDS))
     _import_explicit_start(cohort, row, "cohort")
@@ -973,20 +1009,56 @@ def _import_cohort(
         (course_id,),
     )
     projects_written = 0
-    project_slugs: set[str] = set()
+    project_targets: set[int] = set()
+    projects_folded = 0
+    repository_project_for = {
+        cmp_slug: repo_slug
+        for repo_slug, cmp_slug in project_slug_overrides.get(cohort.course.slug, {}).items()
+    }
+    stored_projects = project_pairings()
     for source in project_rows:
+        source_id = int(source["id"])
         slug = str(source["slug"])
-        project_slugs.add(slug)
-        project, created = Project.objects.get_or_create(
-            course=cohort,
-            slug=slug,
-            defaults=_values(source, _PROJECT_FIELDS),
-        )
-        if not created:
-            _apply(project, _values(source, _PROJECT_FIELDS))
+        values = _values(source, _PROJECT_FIELDS)
+        project = Project.objects.filter(
+            course=cohort, pk=stored_projects.get(source_id, -1)
+        ).first()
+        if project is None and is_modules and slug in repository_project_for:
+            project = Project.objects.filter(
+                course=cohort, slug=repository_project_for[slug]
+            ).first()
+        if project is not None and project.slug != slug:
+            # A repository-authored attempt CMP knows under another slug (reviewed in
+            # ``project_slug_overrides``).  The repository owns its slug, title,
+            # description, deadlines and peers, so CMP contributes only the rest; a
+            # CMP-slugged duplicate an earlier import created is folded away unless
+            # learners submitted to it.
+            duplicate = Project.objects.filter(course=cohort, slug=slug).first()
+            if (
+                duplicate is not None
+                and not ProjectSubmission.objects.filter(project=duplicate).exists()
+            ):
+                duplicate.delete()
+                projects_folded += 1
+            _apply(
+                project,
+                {
+                    name: value
+                    for name, value in values.items()
+                    if name not in _REPOSITORY_PROJECT_FIELDS
+                },
+            )
+            _record_pairing(source_id, project.pk, PROJECT_PAIRING_TABLE)
+        else:
+            project, created = Project.objects.get_or_create(
+                course=cohort, slug=slug, defaults=values
+            )
+            if not created:
+                _apply(project, values)
         _import_explicit_start(project, source, "project")
+        project_targets.add(project.pk)
         projects_written += 1
-    leftover_projects = Project.objects.filter(course=cohort).exclude(slug__in=project_slugs)
+    leftover_projects = Project.objects.filter(course=cohort).exclude(pk__in=project_targets)
     if is_modules:
         # The homework rule above, for the same reason: a repository-authored project
         # carries the repository's criteria set and module placement, and CMP lacking
@@ -1009,7 +1081,7 @@ def _import_cohort(
         questions_retained=questions_retained,
         repository_questions_kept=repository_questions_kept,
         projects_written=projects_written,
-        projects_removed=projects_removed,
+        projects_removed=projects_removed + projects_folded,
         criteria_written=criteria_written,
         criteria_retained=criteria_retained,
         rebound_modules=tuple(rebound),

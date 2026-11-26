@@ -25,6 +25,7 @@ from courses.models import (
     Module,
     Project,
     ProjectCriteriaAssignment,
+    ProjectSubmission,
     Question,
     ReviewCriteria,
     SharedCurriculum,
@@ -37,6 +38,7 @@ from courses.services.cmp_content_import import (
     CmpContentImportError,
     homework_pairings,
     import_cmp_course_content,
+    project_pairings,
 )
 
 _SCHEMA = """
@@ -459,6 +461,79 @@ class CmpContentImportTests(TestCase):
         summary = result.summary()
         self.assertEqual(summary["projects_removed"], 0)
         self.assertEqual(summary["unpaired_repository_projects"], ["project-attempt-1"])
+
+    def _repository_project(self, cohort: Cohort, slug: str = "project-attempt-1") -> Project:
+        now = datetime.now(UTC)
+        return Project.objects.create(
+            course=cohort,
+            slug=slug,
+            title="Capstone Project, Attempt 1",
+            description="From the course repository",
+            submission_due_date=now + timedelta(days=30),
+            peer_review_due_date=now + timedelta(days=37),
+            number_of_peers_to_evaluate=5,
+        )
+
+    def test_a_reviewed_project_override_keeps_the_repository_attempt(self) -> None:
+        cohort, _ = self._modules_cohort({"hw1": "Homework 1: Real"})
+        repository = self._repository_project(cohort)
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+        overrides = {"llm-zoomcamp": {"project-attempt-1": "project1"}}
+
+        first = import_cmp_course_content(self.source, project_slug_overrides=overrides)
+        second = import_cmp_course_content(self.source, project_slug_overrides=overrides)
+
+        self.assertEqual(
+            list(Project.objects.filter(course=cohort).values_list("pk", "slug")),
+            [(repository.pk, "project-attempt-1")],
+        )
+        repository.refresh_from_db()
+        # The repository owns the definition; CMP contributes the rest (state).
+        self.assertEqual(repository.title, "Capstone Project, Attempt 1")
+        self.assertEqual(repository.number_of_peers_to_evaluate, 5)
+        self.assertEqual(repository.state, "CL")
+        self.assertEqual(project_pairings(), {10: repository.pk})
+        for result in (first, second):
+            self.assertEqual(result.summary()["unpaired_repository_projects"], [])
+
+    def test_a_project_override_folds_the_cmp_duplicate_an_earlier_import_made(self) -> None:
+        cohort, _ = self._modules_cohort({"hw1": "Homework 1: Real"})
+        repository = self._repository_project(cohort)
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+        import_cmp_course_content(self.source)
+        self.assertEqual(Project.objects.filter(course=cohort).count(), 2)
+
+        result = import_cmp_course_content(
+            self.source,
+            project_slug_overrides={"llm-zoomcamp": {"project-attempt-1": "project1"}},
+        )
+
+        self.assertEqual(
+            list(Project.objects.filter(course=cohort).values_list("pk", flat=True)),
+            [repository.pk],
+        )
+        self.assertEqual(result.summary()["projects_removed"], 1)
+
+    def test_a_cmp_duplicate_with_submissions_is_kept(self) -> None:
+        cohort, _ = self._modules_cohort({"hw1": "Homework 1: Real"})
+        self._repository_project(cohort)
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+        import_cmp_course_content(self.source)
+        duplicate = Project.objects.get(course=cohort, slug="project1")
+        student = get_user_model().objects.create_user(
+            username="capstone-learner", email="capstone@example.com"
+        )
+        enrollment = Enrollment.objects.create(student=student, course=cohort)
+        ProjectSubmission.objects.create(
+            project=duplicate, student=student, enrollment=enrollment
+        )
+
+        import_cmp_course_content(
+            self.source,
+            project_slug_overrides={"llm-zoomcamp": {"project-attempt-1": "project1"}},
+        )
+
+        self.assertTrue(Project.objects.filter(pk=duplicate.pk).exists())
 
     def _shared_cohort(
         self, repository_slug: str, repository_title: str

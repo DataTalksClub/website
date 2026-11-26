@@ -39,7 +39,7 @@ from courses.models import (
     UserWrappedStatistics,
     WrappedStatistics,
 )
-from courses.services.cmp_content_import import HOMEWORK_PAIRING_TABLE
+from courses.services.cmp_content_import import HOMEWORK_PAIRING_TABLE, PROJECT_PAIRING_TABLE
 from courses.services.cmp_learner_history_import import (
     CONTENT_TABLES,
     FORBIDDEN_TABLES,
@@ -848,6 +848,24 @@ class RepositoryHomeworkPairingTests(HistoryImportFixture):
         self.run_import(source)
 
         self.assertEqual(Submission.objects.get().homework, self.homework)
+
+
+class RepositoryProjectPairingTests(HistoryImportFixture):
+    def test_a_project_submission_follows_the_recorded_pairing(self) -> None:
+        self.project.slug = "project-attempt-1"
+        self.project.save(update_fields=["slug"])
+        CmpHistoryClaim.objects.create(
+            table=PROJECT_PAIRING_TABLE, source_id=1, target_id=self.project.pk
+        )
+
+        source = self.source(
+            courses_enrollment=[enrollment_row(1)],
+            courses_projectsubmission=[project_submission_row(1)],
+        )
+
+        self.run_import(source)
+
+        self.assertEqual(ProjectSubmission.objects.get().project, self.project)
 
 
 class AnswerImportTests(HistoryImportFixture):
