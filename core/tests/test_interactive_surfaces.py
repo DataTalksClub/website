@@ -40,6 +40,7 @@ TEXT_LINK_BUTTON_CLASSES = {
     "wiki-episodes-more",
     "chapters-more",
     "mini-player-back",
+    "rail-more",
 }
 
 

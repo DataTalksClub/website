@@ -26,8 +26,7 @@ def _provenance(content_id: str, path: str) -> dict[str, str]:
     }
 
 
-@pytest.fixture
-def module_path() -> str:
+def _course(lessons_in_first: int) -> str:
     course = Course.objects.create(slug="rail-zoomcamp", title="Rail Zoomcamp")
     curriculum = SharedCurriculum.objects.create(
         course=course,
@@ -42,7 +41,7 @@ def module_path() -> str:
             title=f"Module {index + 1}: Part {index + 1}",
             **_provenance(f"2222222{index}-2222-4222-8222-222222222222", f"0{index}/module.yaml"),
         )
-        for lesson in range(3):
+        for lesson in range(lessons_in_first if index == 0 else 3):
             SharedLesson.objects.create(
                 module=module,
                 position=lesson,
@@ -50,11 +49,33 @@ def module_path() -> str:
                 title=f"Lesson {index + 1}.{lesson + 1}",
                 rendered_html="<p>Body</p>",
                 **_provenance(
-                    f"3333333{index}-333{lesson}-4333-8333-333333333333",
+                    f"3333333{index}-33{lesson:02d}-4333-8333-333333333333",
                     f"0{index}/lesson-{lesson}.md",
                 ),
             )
     return "/courses/rail-zoomcamp/01-module"
+
+
+@pytest.fixture
+def module_path() -> str:
+    return _course(3)
+
+
+def test_a_long_module_opens_all_its_lessons_on_request(page: Page, live_server) -> None:
+    path = _course(16)
+    page.set_viewport_size({"width": 1366, "height": 768})
+    page.goto(f"{live_server.url}{path}", wait_until="networkidle")
+
+    rail = page.get_by_test_id("course-rail")
+    expect(rail.get_by_role("link", name="Lesson 1.16")).to_be_hidden()
+    # The rest of the course fits beside the window without scrolling the rail.
+    assert rail.evaluate("(node) => node.scrollHeight <= node.clientHeight")
+    more = rail.get_by_role("button", name="Show all 16 lessons")
+    more.click()
+    expect(rail.get_by_role("link", name="Lesson 1.16")).to_be_visible()
+    expect(rail.get_by_role("button", name="Show fewer lessons")).to_have_attribute(
+        "aria-expanded", "true"
+    )
 
 
 def test_desktop_rail_stands_beside_the_syllabus_without_a_fold(

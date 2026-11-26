@@ -452,7 +452,7 @@
         gap: var(--space-2);
         grid-template-columns: 1.75rem minmax(0, 1fr) auto;
         line-height: 1.3;
-        min-height: 2.5rem;
+        min-height: 2.25rem;
         overflow-wrap: anywhere;
         padding: var(--space-1) var(--space-2);
         text-decoration: none;
@@ -540,6 +540,43 @@
       .course-rail-modules > .rail-attempt-step + .rail-attempt-step {
         border-top: 0;
         padding-top: 0;
+      }
+
+      /* A long module's lesson list shows a window around the reader's place;
+         the rest wait behind "Show all N lessons".  Without scripting the
+         button cannot work, so every lesson is shown and the button is not. */
+      .rail-more-row {
+        display: none;
+      }
+
+      :root.js .rail-more-row {
+        display: block;
+      }
+
+      :root.js .rail-units.is-capped:not(.is-expanded) > .rail-unit-extra {
+        display: none;
+      }
+
+      .rail-more {
+        background: none;
+        border: 0;
+        border-radius: var(--radius-control);
+        color: var(--indigo);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.85rem;
+        font-weight: 700;
+        min-height: 2.25rem;
+        padding: var(--space-1) var(--space-2);
+        padding-inline-start: calc(1.75rem + var(--space-2) + var(--space-2));
+        text-align: start;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+        width: 100%;
+      }
+
+      .rail-more:hover {
+        color: var(--ink);
       }
 
       @media (max-width: 52rem) {

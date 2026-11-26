@@ -133,67 +133,35 @@ def lessons_of(module: SharedModule) -> list[SharedLesson]:
     )
 
 
-def _answered(value) -> bool:
-    if isinstance(value, str):
-        return bool(value.strip())
-    return bool(value)
+# A module with more lessons than this shows a window of them in the rail, so
+# the other modules stay on a 1366x768 screen; the rest sit behind a button.
+LESSON_WINDOW_THRESHOLD = 8
+READ_BEFORE = 3
+AFTER = 2
 
 
-def homework_rail_steps(user, homework) -> list[dict]:
-    """The homework's steps as rail sub-rows, the way the stepper names them.
+def lesson_window(lessons, read_ids, current_pk=None) -> dict:
+    """``{capped, visible_ids}`` for the rail's lesson list.
 
-    Introduction, Question 1..N (Learning in Public as its own step when the
-    learner has one), Review & submit -- each linking to its step page, a
-    question checked once it has an answer (the saved draft, else the
-    accepted submission).  Only for a signed-in learner the homework page
-    would show as the stepper; everyone else gets the plain row.
+    The window is anchored on the lesson being read (a lesson page) or the
+    reader's first unread lesson (the module page; lesson 1 for a visitor):
+    up to three lessons before it, it, and two after.
     """
 
-    from community_base.homework_steps.models import HomeworkDraft
-
-    from courses.models.cohort import Enrollment
-    from courses.models.homework import Answer, Question, Submission
-    from courses.services.enrollment_flags import learning_in_public_disabled
-    from courses.views.homework import stepper_shows_homework
-    from courses.views.homework_steps import (
-        build_state_assignment,
-        homework_step_url,
-        learning_in_public_cap,
-    )
-
-    if homework is None or not getattr(user, "is_authenticated", False):
-        return []
-    questions = list(Question.objects.filter(homework=homework).order_by("id"))
-    if not questions or not stepper_shows_homework(user, homework):
-        return []
-    course = homework.course
-    submission = Submission.objects.filter(homework=homework, student=user).order_by("id").first()
-    enrollment = Enrollment.objects.filter(student=user, course=course).first()
-    assignment = build_state_assignment(
-        course=course,
-        homework=homework,
-        questions=questions,
-        submission=submission,
-        answers=list(Answer.objects.filter(submission=submission)) if submission else [],
-        lip_cap=learning_in_public_cap(homework, learning_in_public_disabled(enrollment)),
-    )
-    draft = HomeworkDraft.objects.filter(user=user, assignment_key=assignment.key).first()
-    draft_answers = (draft.answers or {}) if draft else {}
-
-    def step(key, title, done=False):
-        return {
-            "key": key,
-            "title": title,
-            "url": homework_step_url(course, homework, key),
-            "current": False,
-            "done": done,
-        }
-
-    steps = [step("intro", "Introduction")]
-    for index, question in enumerate(assignment.questions, start=1):
-        answer = draft_answers.get(question.key, assignment.existing_answers.get(question.key))
-        steps.append(
-            step(question.key, question.step_label or f"Question {index}", _answered(answer))
-        )
-    steps.append(step("review", "Review & submit"))
-    return steps
+    if len(lessons) <= LESSON_WINDOW_THRESHOLD:
+        return {"capped": False, "visible_ids": frozenset()}
+    ids = [lesson.pk for lesson in lessons]
+    if current_pk in ids:
+        anchor = ids.index(current_pk)
+    else:
+        anchor = next((i for i, pk in enumerate(ids) if pk not in read_ids), len(ids) - 1)
+    start = max(0, anchor - READ_BEFORE)
+    end = min(len(ids), anchor + AFTER + 1)
+    # Keep the window the same size at either end of the module.
+    size = READ_BEFORE + AFTER + 1
+    if end - start < size:
+        if start == 0:
+            end = min(len(ids), size)
+        else:
+            start = max(0, end - size)
+    return {"capped": True, "visible_ids": frozenset(ids[start:end])}

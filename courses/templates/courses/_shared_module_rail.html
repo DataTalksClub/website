@@ -14,15 +14,21 @@ highlight; the module page marks the module row itself as the current page.
 
 The homework row belongs to one cohort's run of the module: the reader's own
 delivery (`rail_cohort`/`delivery_cohort`), or the newest cohort's when none
-is resolved.  It carries the due date, the learner's status, and -- for a
-learner who reads it as the stepper -- its steps: Introduction, Question N,
-Learning in Public, Review & submit.
+is resolved.  It is one row -- title, the learner's status, the due date --
+everywhere but the homework page itself, where it opens into the stepper's
+steps (Introduction, Question N, Learning in Public, Review & submit).
+
+A long module's lessons are cut to the ones around the reader's place (a few
+read ones, the current or next one, a few after) behind a "Show all N
+lessons" button, so the rest of the course stays on screen; without
+scripting every lesson is shown.
 
 On a phone the rail is a "Course contents" fold above the page content,
 collapsed by default with the current module named on it; on wider screens
 the fold is always open and its summary is not drawn.
 {% endcomment %}
 {% course_rail_outline module context_q as outline %}
+{% rail_lesson_window lessons outline current_lesson as lesson_window %}
 {% rail_homework_and_cohort as rail_target %}
 {% with rail_hw=rail_target.homework rail_co=rail_target.cohort %}
 <nav class="module-sidebar module-rail course-rail" aria-labelledby="course-rail-heading" data-testid="course-rail">
@@ -62,9 +68,9 @@ the fold is always open and its summary is not drawn.
               {% endif %}
             </a>
             {% if item.is_current %}
-              <ol class="rail-units" aria-label="In this module">
+              <ol class="rail-units{% if lesson_window.capped %} is-capped{% endif %}" aria-label="In this module" data-rail-lessons>
                 {% for rail_lesson in lessons %}
-                  <li class="rail-unit{% if rail_lesson.pk == current_lesson.pk %} is-current{% endif %}">
+                  <li class="rail-unit{% if rail_lesson.pk == current_lesson.pk %} is-current{% endif %}{% if lesson_window.capped and rail_lesson.pk not in lesson_window.visible_ids %} rail-unit-extra{% endif %}">
                     <a
                       class="rail-unit-link"
                       href="{% url 'shared_lesson' course_family.slug module.slug rail_lesson.slug %}{{ context_q }}"
@@ -79,6 +85,11 @@ the fold is always open and its summary is not drawn.
                     </a>
                   </li>
                 {% endfor %}
+                {% if lesson_window.capped %}
+                  <li class="rail-more-row">
+                    <button class="rail-more" type="button" aria-expanded="false" data-rail-more data-more-label="Show all {{ lessons|length }} lessons" data-less-label="Show fewer lessons">Show all {{ lessons|length }} lessons</button>
+                  </li>
+                {% endif %}
                 {% if rail_co and rail_hw %}
                   <li class="rail-unit rail-homework-step{% if current_homework.pk == rail_hw.pk %} is-current{% endif %}" data-testid="rail-homework">
                     <a
@@ -106,11 +117,6 @@ the fold is always open and its summary is not drawn.
                     {% endif %}
                     {% if current_homework.pk == rail_hw.pk and stepper %}
                       {% include "courses/_rail_substeps.html" with items=stepper|homework_nav_steps label="Homework steps" done_suffix=", answered" testid="homework-rail-steps" %}
-                    {% elif current_homework.pk != rail_hw.pk %}
-                      {% homework_steps_for_rail rail_hw as rail_hw_steps %}
-                      {% if rail_hw_steps %}
-                        {% include "courses/_rail_substeps.html" with items=rail_hw_steps label="Homework steps" done_suffix=", answered" testid="homework-rail-steps" %}
-                      {% endif %}
                     {% endif %}
                   </li>
                 {% endif %}
@@ -140,6 +146,15 @@ the fold is always open and its summary is not drawn.
       sync();
       if (phone.addEventListener) {
         phone.addEventListener('change', sync);
+      }
+      var more = fold.querySelector('[data-rail-more]');
+      var list = fold.querySelector('[data-rail-lessons]');
+      if (more && list) {
+        more.addEventListener('click', function () {
+          var open = list.classList.toggle('is-expanded');
+          more.setAttribute('aria-expanded', open ? 'true' : 'false');
+          more.textContent = open ? more.getAttribute('data-less-label') : more.getAttribute('data-more-label');
+        });
       }
     })();
   </script>

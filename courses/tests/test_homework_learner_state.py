@@ -167,16 +167,10 @@ class RailHomeworkSubstepTests(RailHomeworkStateTests):
         # The header carries the status; the rail row does not repeat it.
         self.assertNotIn('class="rail-unit-status"', html)
 
-    def test_lesson_rail_lists_the_homework_steps_with_none_current(self):
-        # Since the module page rebuild (2fbdded1) the course rail on a lesson
-        # page opens the module's homework into the stepper's steps for a
-        # signed-in learner, so module -> lesson -> homework keeps one frame.
-        # The reader is on the lesson, not inside the homework: no step is current.
+    def test_lesson_rail_has_no_substeps(self):
+        # Off the homework page the rail's homework is one row (title, status,
+        # due date); its steps open on the homework page itself, as in AISL,
+        # so a long module's rail still fits the screen.
         self.client.force_login(self.user)
         response = self.client.get(self.lesson_url() + "?cohort=2026")
-        html = response.content.decode()
-        self.assertIn('<ol class="rail-substeps" aria-label="Homework steps"', html)
-        self.assertNotIn("rail-substep is-current", html)
-        self.assertNotIn('aria-current="step"', html)
-        anonymous = self.client_class().get(self.lesson_url() + "?cohort=2026")
-        self.assertNotContains(anonymous, 'class="rail-substeps"')
+        self.assertNotContains(response, 'class="rail-substeps"')

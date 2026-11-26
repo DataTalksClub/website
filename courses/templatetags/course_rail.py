@@ -2,7 +2,7 @@
 
 from django import template
 
-from courses.services.course_rail import course_rail, homework_rail_steps
+from courses.services.course_rail import course_rail, lesson_window
 
 register = template.Library()
 
@@ -18,12 +18,13 @@ def course_rail_outline(context, module, context_q=""):
     return course_rail(getattr(request, "user", None), module, context_q or "")
 
 
-@register.simple_tag(takes_context=True)
-def homework_steps_for_rail(context, homework):
-    """The homework's steps as rail sub-rows for a signed-in learner, else ``[]``."""
+@register.simple_tag
+def rail_lesson_window(lessons, outline, current_lesson=None):
+    """Which of a long module's lessons the rail shows before "Show all"."""
 
-    request = context.get("request")
-    return homework_rail_steps(getattr(request, "user", None), homework)
+    read_ids: frozenset[int] = getattr(outline, "read_lesson_ids", frozenset())
+    current_pk = getattr(current_lesson, "pk", None)
+    return lesson_window(list(lessons or []), read_ids, current_pk)
 
 
 @register.filter

@@ -1384,9 +1384,11 @@ Every section is drawn only when the import stored its data.
 **The course rail** (`courses/_shared_module_rail.html`, data from
 `courses.services.course_rail`) is every module of the course, the current one open
 into its lessons (mint checks for a signed-in reader's read lessons, `read/total` on
-the module row), its homework (due date, the learner's status, and for a learner who
-reads it as the stepper its steps: Introduction, Question N, Learning in Public,
-Review & submit) and its project attempts; attempts no module carries close the
+the module row), its homework (one row: title, the learner's status, due date; its
+steps -- Introduction, Question N, Learning in Public, Review & submit -- open on the
+homework page itself) and its project attempts. A module of more than eight lessons
+shows three read lessons, the current or next one and two after, behind a *Show all N
+lessons* button, so the whole course fits a 1366×768 screen; attempts no module carries close the
 list. The homework belongs to the reader's own delivery, or the newest cohort's when
 none is resolved. The module, lesson, homework and project pages all draw it. It is
 sticky on a desktop; up to `52rem` it becomes a *Course contents* fold above the

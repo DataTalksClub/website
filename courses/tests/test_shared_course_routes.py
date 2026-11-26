@@ -593,22 +593,65 @@ class ModulePageCourseRailTests(SharedWorldTestCase):
         self.assertNotContains(response, 'data-testid="module-extras"')
         self.assertContains(response, 'data-testid="module-homework"')
 
-    def test_open_homework_expands_into_its_steps_for_a_learner(self) -> None:
+    def test_homework_is_one_row_on_the_module_page(self) -> None:
+        """The steps open on the homework page itself; here it is title, status, date."""
+
         from courses.models import Question
 
         self.homework.state = "OP"
         self.homework.save(update_fields=["state"])
-        for text in ("First?", "Second?"):
-            Question.objects.create(homework=self.homework, text=text, question_type="FF")
+        Question.objects.create(homework=self.homework, text="First?", question_type="FF")
         self.sign_in()
 
         response = self.client.get(self.module_url())
         body = response.content.decode()
 
-        steps = body[body.index('data-testid="homework-rail-steps"') :]
-        steps = steps[: steps.index("</ol>")]
-        for title in ("Introduction", "Question 1", "Question 2", "Review &amp; submit"):
-            self.assertIn(title, steps)
+        row = body[body.index('data-testid="rail-homework"') :]
+        row = row[: row.index("</li>")]
+        self.assertIn(self.homework.title, row)
+        self.assertIn("due", row)
+        self.assertIn("status-pill", row)
+        self.assertNotContains(response, 'data-testid="homework-rail-steps"')
+
+    def test_a_long_module_shows_a_window_of_lessons_around_the_reader(self) -> None:
+        from courses.models import SharedLessonReadState
+
+        extra = [
+            SharedLesson.objects.create(
+                module=self.module,
+                position=index,
+                slug=f"{index:02d}-extra",
+                title=f"Extra lesson {index}",
+                **provenance(
+                    f"3777777{index % 10}-7777-4777-8777-77777777777{index // 10}",
+                    f"01-agentic-rag/{index:02d}-extra.md",
+                ),
+            )
+            for index in range(2, 16)
+        ]
+        lessons = [self.lesson, self.lesson_2, *extra]
+        user = self.sign_in()
+        for lesson in lessons[:9]:
+            SharedLessonReadState.objects.create(user=user, shared_lesson=lesson)
+
+        response = self.client.get(self.module_url())
+        body = response.content.decode()
+        rail = body[body.index("data-rail-lessons") :]
+        rail = rail[: rail.index("</ol>")]
+
+        self.assertIn("Show all 16 lessons", rail)
+        for lesson in lessons[6:12]:  # three read ones, the next one, two after
+            row = rail[: rail.index(f"/{lesson.slug}")]
+            self.assertNotIn("rail-unit-extra", row[row.rindex("<li") :])
+        for lesson in (lessons[0], lessons[5], lessons[12], lessons[15]):
+            row = rail[: rail.index(f"/{lesson.slug}")]
+            self.assertIn("rail-unit-extra", row[row.rindex("<li") :])
+
+    def test_a_short_module_shows_every_lesson(self) -> None:
+        response = self.client.get(self.module_url())
+
+        self.assertNotContains(response, ' rail-unit-extra"')
+        self.assertNotContains(response, 'class="rail-more"')
 
     def test_anonymous_homework_row_has_no_steps(self) -> None:
         response = self.client.get(self.module_url())
