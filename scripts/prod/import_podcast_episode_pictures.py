@@ -5,8 +5,7 @@ The pictures are drawn with banner-generator's ``dtc-event-speaker`` template an
 kept outside the repository, in ``~/prod/dtc-data/episode-pictures-<date>/``, one
 set per episode named by the episode's source slug:
 
-* ``<slug>.png`` (1000 x 1000) -- the card picture, only for an episode whose
-  recording has no event banner;
+* ``<slug>.png`` (1000 x 1000) -- the card picture, for every episode;
 * ``<slug>-yt.png`` (1280 x 720) -- the video poster (also the YouTube thumbnail);
 * ``<slug>-og.png`` (1200 x 630) -- the social preview.
 

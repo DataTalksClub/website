@@ -923,8 +923,8 @@ class PodcastEpisodePicture(models.Model):
     banner generator's ``dtc-event-speaker`` template, pushed in by
     ``scripts/prod/import_podcast_episode_pictures.py``:
 
-    * ``card`` (1000 x 1000): the episode card, for an episode whose recording has
-      no event banner (the event banner is the card's picture when it has one);
+    * ``card`` (1000 x 1000): the episode card on every podcast surface, with no
+      date line (an event is dated; an episode listened to later is not);
     * ``poster`` (1280 x 720): the video poster on the episode page (a YouTube
       thumbnail);
     * ``social`` (1200 x 630): the episode page's ``og:image``.

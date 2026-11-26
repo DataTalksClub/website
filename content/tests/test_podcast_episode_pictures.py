@@ -56,8 +56,23 @@ class EpisodeCardPictureTests(TestCase):
         self.assertNotIn(card.picture_url, guest_images)
         self.assertEqual(card.picture_url, "")
 
-    def test_the_event_banner_wins_over_the_generated_picture(self) -> None:
+    def test_the_dateless_card_wins_over_the_dated_event_banner(self) -> None:
         _store("card")
+        record = _episode()
+        event = {
+            "type": "podcast",
+            "season": record["season"],
+            "episode": record["episode"],
+            "title": record["title"],
+            "starts_at": "2026-01-05T10:00:00+00:00",
+            "has_uploaded_banner": True,
+            "public_id": 7,
+        }
+        with patch("content.podcast_hub.published_event_records", return_value=[event]):
+            card = podcast_hub.hub_episode(record)
+        self.assertEqual(card.picture_url, f"/podcast/{SLUG}/picture")
+
+    def test_without_a_card_the_event_banner_is_the_fallback(self) -> None:
         record = _episode()
         event = {
             "type": "podcast",
@@ -102,10 +117,11 @@ class EpisodePagePictureTests(TestCase):
         self.assertNotIn("/images/podcast/old.jpg", facade.group(0))
 
     def test_the_hero_shows_the_same_picture_as_the_hub_card(self) -> None:
-        # An episode linked to an event has no generated card: its hub card
-        # draws the event banner, and so must its page hero, never the old
-        # text-only artwork.
+        # An episode linked to an event still draws its dateless generated
+        # card on the hub, and so must its page hero -- never the dated event
+        # banner, never the old text-only artwork.
         record = {**_episode(), "image_path": "/images/podcast/old.jpg", "media_available": True}
+        _store("card")
         event = {
             "type": "podcast",
             "season": record["season"],
@@ -121,7 +137,7 @@ class EpisodePagePictureTests(TestCase):
         ):
             card = podcast_hub.hub_episode(record)
             body = self.client.get(record["public_path"]).content.decode()
-        self.assertEqual(card.picture_url, "/events/7/banner")
+        self.assertEqual(card.picture_url, f"/podcast/{SLUG}/picture")
         hero = re.search(r'class="episode-head-picture"\s+src="([^"]+)"', body)
         assert hero is not None
         self.assertEqual(hero.group(1), card.picture_url)

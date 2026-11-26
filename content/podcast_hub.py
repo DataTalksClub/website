@@ -12,9 +12,11 @@ holds; nothing is typed in by hand:
   Staff Data Engineer at …"); the people records carry no role field.
 * **topics** — the wiki pages the knowledge graph files the episode under,
   strongest first (:func:`content.wiki_content.episode_topics`).
-* **picture** — the matched event's banner (the one /events shows), else the
-  episode's generated card picture (``content.podcast_pictures``).  A guest's raw
-  portrait is never the card's picture.
+* **picture** — the episode's generated card picture (``content.podcast_pictures``),
+  which carries no date: an event is dated, a podcast episode listened to later
+  is not.  The matched event's banner (dated, the one /events shows) is only the
+  fallback for an episode without a card.  A guest's raw portrait is never the
+  card's picture.
 """
 
 from __future__ import annotations
@@ -132,17 +134,17 @@ def event_index() -> _EventIndex:
 def episode_picture_url(record: dict[str, Any], events: _EventIndex) -> str:
     """The one square picture every view draws for an episode.
 
-    The matched event's banner (the one /events shows), else the episode's
-    generated card picture, else ``""``.  The hub card, the episode hero, the
-    related timeline, wiki blocks, person and home cards all read this, so an
-    episode looks the same wherever it appears.
+    The episode's generated card picture (no date line), else the matched
+    event's banner (the one /events shows, with its date), else ``""``.  The
+    hub card, the episode hero, the related timeline, wiki blocks, person and
+    home cards all read this, so an episode looks the same wherever it appears.
+    Event pages keep the dated event banner.
     """
 
+    if record["slug"] in events.card_slugs:
+        return picture_path(record["slug"], Variant.CARD)
     event = events.match(record)
-    banner = event_banner_url(event) if event is not None else ""
-    if banner:
-        return banner
-    return picture_path(record["slug"], Variant.CARD) if record["slug"] in events.card_slugs else ""
+    return event_banner_url(event) if event is not None else ""
 
 
 @dataclass(frozen=True, slots=True)

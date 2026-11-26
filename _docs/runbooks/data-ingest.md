@@ -1377,10 +1377,10 @@ other step-6 importers.
 
 | | |
 | --- | --- |
-| **Upstream** | Pictures rendered with banner-generator's `dtc-event-speaker` template (kind `podcast`, the episode's guests, its date; landscape sizes carry the `DataTalks.Club Podcast · S<n> E<n>` series line) |
-| **Staging** | `~/prod/dtc-data/episode-pictures-<date>/`: `<slug>.png` (1000 x 1000 card, only for an episode with no event banner), `<slug>-yt.png` (1280 x 720 video poster, also the YouTube thumbnail), `<slug>-og.png` (1200 x 630 social preview) |
+| **Upstream** | Pictures rendered with banner-generator's `dtc-event-speaker` template (kind `podcast`, the episode's guests, no date line; landscape sizes carry the `DataTalks.Club Podcast · S<n> E<n>` series line) |
+| **Staging** | `~/prod/dtc-data/episode-pictures-<date>/`: `<slug>.png` (1000 x 1000 card, every episode), `<slug>-yt.png` (1280 x 720 video poster, also the YouTube thumbnail), `<slug>-og.png` (1200 x 630 social preview) |
 | **Script** | `scripts/prod/import_podcast_episode_pictures.py` |
-| **Writes** | `content.models.PodcastEpisodePicture` rows keyed on `(episode_slug, variant)`, served at `/podcast/<slug>/picture`, `/poster` and `/social` (`content.podcast_pictures`). Episode cards prefer the event banner, then the card picture; the episode page's video poster and `og:image` read the poster and social rows |
+| **Writes** | `content.models.PodcastEpisodePicture` rows keyed on `(episode_slug, variant)`, served at `/podcast/<slug>/picture`, `/poster` and `/social` (`content.podcast_pictures`). Every podcast surface draws the dateless card first, the dated event banner only as a fallback (event pages keep the banner); the episode page's video poster and `og:image` read the poster and social rows |
 | **Idempotency** | Safe. Every slug must be a published episode before anything is written; a re-run replaces the bytes in place |
 | **Bootstrap** | No. It validates slugs against the podcast catalogue, so it runs after the content sync |
 
