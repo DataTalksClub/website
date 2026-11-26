@@ -782,6 +782,14 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
   </div>
   ```
 
+- **Topic reading (`public/_topic_reading.html`)** — what a wiki topic or a podcast
+  episode points to, one section per kind and only when it has items: "Events about
+  <topic>" as the `/events` timeline (`public/_event_timeline.html`: picture, date,
+  title), "Articles about <topic>" as `/blog` rows, "Books about <topic>" as `/books`
+  rows (on an episode page: "Related events / articles / books"). There is no
+  generic "Read more" list of bare titles behind a kind word. The sections take the
+  card-list measure. Built by `content.topic_reading.topic_reading`.
+
 - **Folded rows (`.row-fold`)** — a list long enough to be a wall keeps its first rows
   in view and puts the rest behind one `<details>` that **names what it holds**:
 

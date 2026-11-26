@@ -95,6 +95,7 @@ from .podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_public_id
 from .public_query import selector_query
 from .review_views import SLACK_PUBLIC_PATH
 from .sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
+from .topic_reading import topic_reading
 from .wiki_content import WIKI_ASSET_ROOT
 
 WIKI_SPECIAL_CATEGORIES = {
@@ -1555,6 +1556,7 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
             "hero_picture_square": bool(hero_card_path),
             "related_cards": related_cards,
             "connections": connections,
+            "topic_reading": topic_reading(card.url for card in connections.reading),
             "season_path": podcast_season_path(episode["season"], latest=latest_season),
             "episode_graph": episode_graph,
             "og_type": "article",
@@ -1849,6 +1851,7 @@ def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
         )
         blocks, closing = blocks[:start], blocks[end:]
     citations = wiki_content.wiki_citations(blocks, closing)
+    further = wiki_content.wiki_relation_groups(page).further
     return _render(
         request,
         "public/wiki_detail.html",
@@ -1862,7 +1865,12 @@ def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
             "wiki_sources": citations.sources,
             "related_cards": related_cards,
             "topic_chips": related_cards[:WIKI_TOPIC_CHIPS],
-            "relation_groups": wiki_content.wiki_relation_groups(page),
+            "topic_reading": topic_reading(
+                (item.url for item in further),
+                event_titles=(
+                    item.label for item in further if item.kind == "event" and not item.url
+                ),
+            ),
             "topic_episodes": topic_episodes(page["public_path"]),
             "episodes_fold": WIKI_EPISODES_FOLD,
             "breadcrumbs": wiki_trail,

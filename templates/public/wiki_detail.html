@@ -172,79 +172,6 @@
         display: none;
       }
 
-      .wiki-further {
-        margin-top: var(--space-6);
-      }
-
-      .wiki-further ul {
-        display: grid;
-        gap: var(--space-2);
-        list-style: none;
-        margin: var(--space-3) 0 0;
-        padding: 0;
-      }
-
-      .wiki-further-kind {
-        color: var(--muted);
-        font-size: 0.9rem;
-        font-weight: 600;
-        margin-right: var(--space-2);
-      }
-
-      /* Numbered citations: a small superscript reference in the text and
-         the numbered source list at the foot of the article body. */
-      .wiki-cite {
-        font-size: 0.72em;
-        line-height: 0;
-        margin-left: 0.1em;
-        white-space: nowrap;
-      }
-
-      .wiki-cite a {
-        text-decoration: none;
-      }
-
-      .wiki-cite a:hover,
-      .wiki-cite a:focus-visible {
-        text-decoration: underline;
-      }
-
-      .wiki-cite:target a,
-      .wiki-sources li:target {
-        background: var(--indigo-soft);
-        border-radius: var(--radius-sm);
-      }
-
-      .wiki-cite,
-      .wiki-sources li {
-        scroll-margin-top: var(--space-6);
-      }
-
-      .wiki-sources {
-        margin-top: var(--space-6);
-        max-width: 48rem;
-        scroll-margin-top: var(--space-5);
-      }
-
-      .wiki-sources ol {
-        display: grid;
-        font-size: 0.95rem;
-        gap: var(--space-2);
-        list-style: decimal;
-        margin: var(--space-3) 0 0;
-        padding-left: var(--space-5);
-      }
-
-      .wiki-sources li::marker {
-        color: var(--muted);
-      }
-
-      .wiki-source-back {
-        color: var(--muted);
-        margin-right: var(--space-1);
-        text-decoration: none;
-      }
-
       .wiki-closing {
         margin-top: var(--space-6);
       }
@@ -349,23 +276,7 @@
               {% endif %}
             </section>
           {% endif %}
-          {% if relation_groups.further %}
-            <section class="wiki-further" aria-labelledby="further-heading">
-              <h2 class="wiki-section-title" id="further-heading">Read more</h2>
-              <ul>
-                {% for item in relation_groups.further %}
-                  <li>
-                    <span class="wiki-further-kind">{{ item.kind|capfirst }}</span>
-                    {% if item.url %}
-                      <a class="band-link" href="{{ item.url }}">{{ item.label }}</a>
-                    {% else %}
-                      {{ item.label }}
-                    {% endif %}
-                  </li>
-                {% endfor %}
-              </ul>
-            </section>
-          {% endif %}
+          {% include "public/_topic_reading.html" with reading=topic_reading subject=record.title heading_class="wiki-section-title" breakout=True only %}
           {% if closing_blocks %}
             <div class="prose wiki-prose wiki-closing">
               {% include "public/_prose_body.html" with blocks=closing_blocks %}

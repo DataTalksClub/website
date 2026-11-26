@@ -22,6 +22,7 @@ from django.utils.html import escape
 from content import catalogue, wiki_content, wiki_hub, wiki_reader
 from content.models import ContentSource
 from content.public_views import WIKI_SPECIAL_CATEGORIES
+from content.topic_reading import topic_reading
 from content.wiki_content import (
     GRAPH_GROUPS,
     GROUP_ENTRY_POINTS,
@@ -624,7 +625,13 @@ class WikiPageTests(TestCase):
                 elif relation["type"] == "person":
                     self.assertIn(f'href="{href}"', self._section('aria-label="People"'))
                 elif relation["type"] == "book":
-                    self.assertIn(f'href="{href}"', self._section('id="further-heading"'))
+                    # A book the catalogue publishes is a /books row in the
+                    # page's own Books section; one it does not is dropped.
+                    for book in topic_reading([href]).books:
+                        self.assertIn(
+                            f'href="{book["public_path"]}"',
+                            self._section('id="topic-books-heading"'),
+                        )
         if episodes:
             self.assertIn('href="#episodes"', self.body)
 

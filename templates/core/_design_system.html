@@ -607,6 +607,20 @@ Rules for editing:
          homepage aligns its wide and narrow blocks.  A card list in its own
          band uses `.content-shell`; one inside a reading column adds this
          modifier to `.shell-breakout`, which recentres it on the page. */
+      /* The events, articles and books a wiki topic or an episode points to
+         (public/_topic_reading.html): one section per kind, a section apart. */
+      .topic-reading {
+        margin-top: var(--space-section);
+      }
+
+      .topic-reading:first-child {
+        margin-top: 0;
+      }
+
+      .topic-reading > h2 {
+        margin-bottom: var(--space-head);
+      }
+
       .shell-breakout-cards {
         --breakout-width: min(
           calc(var(--content-width) - 2 * var(--shell-gutter)),

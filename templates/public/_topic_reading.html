@@ -1,0 +1,80 @@
+{% comment %}
+  The events, articles and books a wiki topic or a podcast episode points to,
+  each kind as its own section of the card that kind has everywhere else
+  (`content.topic_reading.TopicReading`): events as the /events timeline (the
+  picture, the date, the title), articles as the /blog rows, books as the
+  /books rows.  A section appears only when it has cards.  This replaced one
+  "Read more" list of bare titles behind a kind word ("Event  Tracking and…"),
+  which read as neither links nor anything a reader could act on.
+
+  A wiki page and an episode page both draw it, so the two cannot drift:
+
+      {% include "public/_topic_reading.html" with reading=topic_reading subject=record.title heading_class="wiki-section-title" breakout=True only %}
+
+  `subject` names the topic ("Events about Feature Stores"); without one the
+  headings read "Related events".  `breakout` widens each section from a
+  reading column to the card-list column (`.shell-breakout-cards`); a page whose
+  band already holds the card-list column leaves it out.
+{% endcomment %}
+{% if reading.events %}
+  <section
+    class="topic-reading
+      {% if breakout %}
+        shell-breakout shell-breakout-cards
+      {% endif %}"
+    aria-labelledby="topic-events-heading"
+  >
+    <h2 class="{{ heading_class }}" id="topic-events-heading">
+      {% if subject %}
+        Events about {{ subject }}
+      {% else %}
+        Related events
+      {% endif %}
+    </h2>
+    {% include "public/_event_timeline.html" with groups=reading.events only %}
+  </section>
+{% endif %}
+{% if reading.articles %}
+  <section
+    class="topic-reading
+      {% if breakout %}
+        shell-breakout shell-breakout-cards
+      {% endif %}"
+    aria-labelledby="topic-articles-heading"
+  >
+    <h2 class="{{ heading_class }}" id="topic-articles-heading">
+      {% if subject %}
+        Articles about {{ subject }}
+      {% else %}
+        Related articles
+      {% endif %}
+    </h2>
+    <div class="row-list topic-reading-rows">
+      {% for record in reading.articles %}
+        {% include "public/_article_row.html" with record=record only %}
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+{% if reading.books %}
+  <section
+    class="topic-reading
+      {% if breakout %}
+        shell-breakout shell-breakout-cards
+      {% endif %}"
+    aria-labelledby="topic-books-heading"
+  >
+    <h2 class="{{ heading_class }}" id="topic-books-heading">
+      {% if subject %}
+        Books about {{ subject }}
+      {% else %}
+        Related books
+      {% endif %}
+    </h2>
+    <div class="row-list topic-reading-rows">
+      {% for record in reading.books %}
+        {% include "public/_book_row.html" with record=record only %}
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}

@@ -775,6 +775,10 @@ def episode_connections(
     groups = {"wiki": topics, "article": reading, "book": reading, "event": reading}
     for neighbour in graph.neighbors:
         group = groups.get(neighbour.type)
+        if group is reading and neighbour.url.startswith("/wiki/"):
+            # A graph "article" that is a wiki page is a topic: it is drawn as
+            # the wiki's own topic card, not as a reading row.
+            group = topics
         if group is None or not neighbour.url or neighbour.url in group:
             continue
         page = by_path.get(neighbour.url) or {}
