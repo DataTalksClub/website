@@ -85,6 +85,8 @@ from .podcast_content import (
 )
 from .podcast_hub import (
     HUB_LISTEN_ORDER,
+    episode_picture_url,
+    event_index,
     guest_cards,
     hub_episodes,
     hub_season,
@@ -1482,10 +1484,13 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         else ""
     )
     # The picture that sits beside the title in the hero, the way an event page
-    # pairs its picture with its title: the generated 1000 x 1000 card, else
-    # the episode's own (landscape) artwork, else none -- the hero is then one
-    # column of words.
-    hero_card_path = pictures.get(Variant.CARD, "")
+    # pairs its picture with its title: the same square picture the episode's
+    # card shows in every list (the event banner, else the generated card),
+    # else the episode's own (landscape) artwork, else none -- the hero is then
+    # one column of words.  One event index serves the hero and the related
+    # timeline, so the match adds no queries.
+    events = event_index()
+    hero_card_path = episode_picture_url(episode, events)
     hero_picture_path = hero_card_path or (
         episode["image_path"]
         if episode.get("media_available") and episode.get("image_path")
@@ -1509,7 +1514,7 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         # unavailable state.
         episode_graph = wiki_content.unavailable_episode_graph(episode)
     connections = wiki_content.episode_connections(episode_graph, pages=wiki_reader.wiki_pages())
-    related_cards = hub_episodes(related.records)
+    related_cards = hub_episodes(related.records, events=events)
     # The way back is the episode's own season page: "Podcast / Season 25".
     # The season route serves every season, the newest included, so the trail
     # always names a real place to land.

@@ -106,7 +106,9 @@ class _EventIndex:
         )
 
 
-def _event_index() -> _EventIndex:
+def event_index() -> _EventIndex:
+    """Index the published podcast events and stored card pictures (two queries)."""
+
     by_number: dict[tuple[int, int], dict[str, Any]] = {}
     by_title: dict[str, dict[str, Any]] = {}
     ambiguous: set[str] = set()
@@ -125,6 +127,22 @@ def _event_index() -> _EventIndex:
     for title in ambiguous:
         del by_title[title]
     return _EventIndex(by_number=by_number, by_title=by_title, card_slugs=slugs_with(Variant.CARD))
+
+
+def episode_picture_url(record: dict[str, Any], events: _EventIndex) -> str:
+    """The one square picture every view draws for an episode.
+
+    The matched event's banner (the one /events shows), else the episode's
+    generated card picture, else ``""``.  The hub card, the episode hero, the
+    related timeline, wiki blocks, person and home cards all read this, so an
+    episode looks the same wherever it appears.
+    """
+
+    event = events.match(record)
+    banner = event_banner_url(event) if event is not None else ""
+    if banner:
+        return banner
+    return picture_path(record["slug"], Variant.CARD) if record["slug"] in events.card_slugs else ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -177,8 +195,6 @@ def _hub_episode(record: dict[str, Any], episode: Episode, events: _EventIndex) 
     else:
         when = None
     by_provider = {link.provider: link for link in episode.platform_links}
-    banner = event_banner_url(event) if event is not None else ""
-    card = picture_path(record["slug"], Variant.CARD) if record["slug"] in events.card_slugs else ""
     return HubEpisode(
         episode=episode,
         date=when,
@@ -188,14 +204,14 @@ def _hub_episode(record: dict[str, Any], episode: Episode, events: _EventIndex) 
         ),
         listen_links=tuple(by_provider[key] for key in HUB_LISTEN_ORDER if key in by_provider),
         topics=wiki_content.episode_topics(record["slug"], limit=CARD_TOPICS),
-        picture_url=banner or card,
+        picture_url=episode_picture_url(record, events),
     )
 
 
 def hub_season(season: PodcastSeason) -> HubSeason:
     """Compose one season's timeline group from its catalogue records."""
 
-    events = _event_index()
+    events = event_index()
     people = catalogue.people_by_slug()
     return HubSeason(
         number=season.number,
@@ -218,7 +234,7 @@ def hub_episode(record: dict[str, Any]) -> HubEpisode:
     return _hub_episode(
         record,
         episode_view(record, people_by_slug=catalogue.people_by_slug(), include_transcript=False),
-        _event_index(),
+        event_index(),
     )
 
 
@@ -241,10 +257,12 @@ def topic_episodes(wiki_path: str) -> tuple[HubEpisode, ...]:
 
 def hub_episodes(
     records: tuple[dict[str, Any], ...] | list[dict[str, Any]],
+    *,
+    events: _EventIndex | None = None,
 ) -> tuple[HubEpisode, ...]:
     """Compose several episodes as hub cards, in the order given."""
 
-    events = _event_index()
+    events = events if events is not None else event_index()
     people = catalogue.people_by_slug()
     return tuple(
         _hub_episode(

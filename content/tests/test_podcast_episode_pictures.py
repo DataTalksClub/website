@@ -101,6 +101,35 @@ class EpisodePagePictureTests(TestCase):
         assert facade is not None
         self.assertNotIn("/images/podcast/old.jpg", facade.group(0))
 
+    def test_the_hero_shows_the_same_picture_as_the_hub_card(self) -> None:
+        # An episode linked to an event has no generated card: its hub card
+        # draws the event banner, and so must its page hero, never the old
+        # text-only artwork.
+        record = {**_episode(), "image_path": "/images/podcast/old.jpg", "media_available": True}
+        event = {
+            "type": "podcast",
+            "season": record["season"],
+            "episode": record["episode"],
+            "title": record["title"],
+            "starts_at": "2026-01-05T10:00:00+00:00",
+            "has_uploaded_banner": True,
+            "public_id": 7,
+        }
+        with (
+            patch("content.podcast_hub.published_event_records", return_value=[event]),
+            patch("content.catalogue.podcasts", return_value=(record,)),
+        ):
+            card = podcast_hub.hub_episode(record)
+            body = self.client.get(record["public_path"]).content.decode()
+        self.assertEqual(card.picture_url, "/events/7/banner")
+        hero = re.search(r'class="episode-head-picture"\s+src="([^"]+)"', body)
+        assert hero is not None
+        self.assertEqual(hero.group(1), card.picture_url)
+        # Drawn as the square it is, not in the wide artwork slot.
+        self.assertRegex(
+            body, r'class="episode-head-picture"\s+src="[^"]+"\s+alt=""\s+width="1000"'
+        )
+
 
 class ImportEpisodePicturesTests(TestCase):
     def test_import_stores_each_file_under_its_variant_and_replays_in_place(self) -> None:
