@@ -785,8 +785,12 @@ def course_family_page_context(family: Course, user) -> dict:
         "syllabus_fact": syllabus_fact,
         "family_facts": family_hero_facts(
             registration_cohort=registration_cohort,
-            current_edition_row=current_edition_row,
-            has_self_paced_route=bool(self_paced_cohort or materials_url),
+            format_label=family_format_label(
+                family,
+                cohorts=[edition.cohort for edition in editions],
+                registration_cohort=registration_cohort,
+                today=today,
+            ),
             syllabus_fact=syllabus_fact,
             weekly_commitment=family.weekly_commitment.strip(),
         ),
@@ -807,11 +811,54 @@ def course_family_page_context(family: Course, user) -> dict:
     }
 
 
+def family_format_label(
+    family: Course,
+    *,
+    cohorts,
+    registration_cohort,
+    today,
+) -> str:
+    """How a family runs, in words: "Live cohort or self-paced", "Self-paced".
+
+    One reading for every surface that states it -- the family hero's Format
+    fact and the ``/courses`` catalogue card's facts line -- so the two cannot
+    disagree.  A family is *live* while a cohort is open for registration or
+    under way, and *self-paced* when an edition is delivered self-paced or the
+    materials are reachable (imported module pages or a source repository).
+    A family the records cannot place in either says nothing.
+    """
+
+    editions = sorted(cohorts, key=lambda cohort: (cohort.year, cohort.id), reverse=True)
+    current_row, _previous = split_current_edition(
+        family_edition_rows(
+            [CourseFamilyEdition(cohort=cohort, projects=[]) for cohort in editions],
+            registration_cohort,
+            today,
+        )
+    )
+    live = registration_cohort is not None or (
+        current_row is not None and current_row.state_words == "in progress"
+    )
+    self_paced = (
+        any(cohort.delivery_mode == DeliveryMode.SELF_PACED.value for cohort in editions)
+        or bool(family.github_repo_url)
+        or any(cohort.github_repo_url for cohort in editions)
+        or SharedModule.objects.filter(
+            curriculum__course=family,
+            published=True,
+            retired_at__isnull=True,
+        ).exists()
+    )
+    formats = [
+        words for words, present in (("live cohort", live), ("self-paced", self_paced)) if present
+    ]
+    return " or ".join(formats).capitalize()
+
+
 def family_hero_facts(
     *,
     registration_cohort,
-    current_edition_row,
-    has_self_paced_route: bool,
+    format_label: str,
     syllabus_fact: str,
     weekly_commitment: str,
 ) -> tuple[CourseSpec, ...]:
@@ -824,10 +871,7 @@ def family_hero_facts(
     """
 
     facts: list[CourseSpec] = []
-    live = registration_cohort is not None or (
-        current_edition_row is not None and current_edition_row.state_words == "in progress"
-    )
-    if live or has_self_paced_route or syllabus_fact:
+    if format_label or syllabus_fact:
         facts.append(CourseSpec("Cost", "Free"))
     if registration_cohort is not None and registration_cohort.start_date:
         facts.append(
@@ -836,13 +880,8 @@ def family_hero_facts(
                 registration_cohort.start_date.strftime("%b %-d, %Y"),
             )
         )
-    formats = [
-        words
-        for words, present in (("live cohort", live), ("self-paced", has_self_paced_route))
-        if present
-    ]
-    if formats:
-        facts.append(CourseSpec("Format", " or ".join(formats).capitalize()))
+    if format_label:
+        facts.append(CourseSpec("Format", format_label))
     if syllabus_fact:
         facts.append(CourseSpec("Syllabus", syllabus_fact))
     if weekly_commitment:

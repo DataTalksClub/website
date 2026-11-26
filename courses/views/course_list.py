@@ -20,6 +20,7 @@ from courses.services.registration_counts import (
     public_course_registration_count,
 )
 from courses.views.course_homepage import add_course_homepage_info
+from courses.views.course_page_context import family_format_label
 from courses.views.course_list_user_state import (
     attach_registration_campaigns,
     mark_enrolled_courses,
@@ -94,6 +95,7 @@ class CatalogCard:
     card: CourseFamilyCard
     kind: str
     next_campaign: object = None
+    format_label: str = ""
 
     @property
     def family(self):
@@ -118,6 +120,21 @@ class CatalogCard:
     @property
     def github_repo_url(self) -> str:
         return self.card.github_repo_url
+
+    @property
+    def facts(self) -> tuple[str, ...]:
+        """The card's facts line -- level, length, format -- only what the records hold.
+
+        Level and length are the family's curated catalogue fields; the format
+        is the same reading the family page's own Format fact gives.  The length
+        stays in weeks ("19 weeks"), the unit the card was approved with.
+        """
+
+        family = self.family
+        level = family.get_catalog_level_display() if family.catalog_level else ""
+        count = family.catalog_duration_weeks
+        weeks = f"{count} week{'' if count == 1 else 's'}" if count else ""
+        return tuple(fact for fact in (level, weeks, self.format_label) if fact)
 
 
 def catalog_card_kind(card: CourseFamilyCard) -> tuple[str, object]:
@@ -183,10 +200,24 @@ def course_catalog_cards(family_cards: list[CourseFamilyCard]) -> list[CatalogCa
     family last.  Ties within a tier fall back to the site's reviewed family order.
     """
 
+    today = timezone.localdate(timezone.now())
     catalog_cards = []
     for card in family_cards:
         kind, next_campaign = catalog_card_kind(card)
-        catalog_cards.append(CatalogCard(card=card, kind=kind, next_campaign=next_campaign))
+        format_label = family_format_label(
+            card.family,
+            cohorts=card.cohorts,
+            registration_cohort=family_registration(card.family, editions=card.cohorts).cohort,
+            today=today,
+        )
+        catalog_cards.append(
+            CatalogCard(
+                card=card,
+                kind=kind,
+                next_campaign=next_campaign,
+                format_label=format_label,
+            )
+        )
     catalog_cards.sort(
         key=lambda entry: (
             _CATALOG_KIND_PRIORITY.get(entry.kind, 3),
