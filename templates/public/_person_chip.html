@@ -50,7 +50,9 @@
     <span class="person-chip-text">
   {% endif %}
   {% if person.public_path and chip_external %}
-    <a class="band-link person-chip-name" href="{{ person.public_path }}" target="_blank" rel="noopener noreferrer">{{ person.name }}<span class="sr-only"> (opens in a new tab)</span></a>
+    <a class="band-link person-chip-name" href="{{ person.public_path }}" target="_blank" rel="noopener noreferrer">
+      {{ person.name }}<span class="sr-only"> (opens in a new tab)</span>
+    </a>
   {% elif person.public_path %}
     <a class="band-link person-chip-name" href="{{ person.public_path }}">{{ person.name }}</a>
   {% else %}
