@@ -301,13 +301,14 @@ class PublicRouteAndSeoTests(TestCase):
                 else:
                     self.assertNotIn(f'href="{guest["public_path"]}"', body)
 
-    def test_all_person_details_remain_available_without_a_people_catalogue(self) -> None:
+    def test_all_person_details_are_available_and_lead_back_to_the_people_index(self) -> None:
         self.assertNotIn("_template", catalogue.people_by_slug())
         for person in catalogue.people():
             response = self.client.get(person["public_path"])
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, 'alt="Portrait of ', count=1)
-            self.assertNotContains(response, 'href="/people"')
+            # /people is a real index; the breadcrumb trail is the one way back to it.
+            self.assertContains(response, 'href="/people"', count=1)
 
     def test_representative_details_emit_valid_type_specific_json_ld(self) -> None:
         paths_and_types = [
