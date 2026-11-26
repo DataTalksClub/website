@@ -173,7 +173,9 @@ def _blank(match: re.Match[str]) -> str:
 def _template_files():
     seen = set()
     for pattern in TEMPLATE_GLOBS:
-        for path in ROOT.glob(pattern):
+        # Sorted: glob order is filesystem-dependent and the search-box test
+        # compares an ordered list.
+        for path in sorted(ROOT.glob(pattern)):
             rel = path.relative_to(ROOT).as_posix()
             if rel in seen or rel.startswith(EXCLUDED_PREFIXES) or rel in EXCLUDED_FILES:
                 continue
