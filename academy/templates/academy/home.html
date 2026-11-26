@@ -185,10 +185,7 @@
           <h2 id="faq-heading">{{ data.faq.heading }}</h2>
         </div>
       </div>
-      {% include "academy/_faq.html" with items=home_faq prefix="faq" label="" %}
-      <p class="band-more">
-        <a class="band-link" href="{{ faq_path }}">{{ data.faq.link_label }} →</a>
-      </p>
+      {% include "core/_faq.html" with items=home_faq closing_url=faq_path closing_label=data.faq.link_label|add:" →" %}
       {% include "academy/_contact.html" %}
     </section>
   {% endif %}

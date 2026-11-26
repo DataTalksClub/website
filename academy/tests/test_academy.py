@@ -345,9 +345,9 @@ class AcademyPageTests(TestCase):
             json.loads(match)
             for match in re.findall(r'<script type="application/ld\+json">(.*?)</script>', body)
         ]
-        self.assertEqual([document["@type"] for document in documents], ["FAQPage", "Article"])
-        self.assertEqual(documents[0]["mainEntity"][0]["name"], "Synthetic recap question?")
-        article = documents[1]
+        self.assertEqual([document["@type"] for document in documents], ["Article", "FAQPage"])
+        self.assertEqual(documents[1]["mainEntity"][0]["name"], "Synthetic recap question?")
+        article = documents[0]
         self.assertEqual(article["headline"], "Synthetic recap heading")
         self.assertEqual(article["datePublished"], "2026-11-23")
         self.assertEqual(article["author"], {"@type": "Person", "name": "Synthetic Author"})

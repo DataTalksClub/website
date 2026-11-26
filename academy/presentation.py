@@ -21,6 +21,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.safestring import SafeString, mark_safe
 
+from academy.templatetags.academy_text import academy_inline, academy_markdown
 from content import catalogue
 from core.breadcrumbs import Trail, trail
 from core.home_content import READING_WORDS_PER_MINUTE
@@ -150,17 +151,99 @@ def _berlin(instant: str) -> str:
     return moment.astimezone(SESSION_ZONE).isoformat()
 
 
-def _faq_schema(items: Sequence[Mapping[str, str]]) -> dict[str, Any]:
+def faq_items(items: Sequence[Mapping[str, str]], prefix: str) -> list[dict[str, str]]:
+    """Academy question/answer pairs in the FAQ block's shape (core/_faq.html).
+
+    An Academy answer is one line of inline Markdown (a link at most); it is
+    rendered here so the shared block draws it like every other answer, and
+    each item keeps the ``<prefix>-<n>`` anchor the page has always published.
+    """
+
+    return [
+        {
+            "id": f"{prefix}-{number}",
+            "question": item["question"],
+            "answer_html": f"<p>{academy_inline(item['answer'])}</p>",
+        }
+        for number, item in enumerate(items, start=1)
+    ]
+
+
+#: A body heading that opens the page's questions: "## FAQ" and its spellings.
+_FAQ_HEADING = re.compile(
+    r"^##[ \t]+(?P<heading>FAQs?|Frequently asked questions|Frequent questions|"
+    r"Common questions)[ \t]*#*[ \t]*$",
+    re.IGNORECASE,
+)
+_SECTION_HEADING = re.compile(r"^#{1,2}[ \t]+\S")
+_QUESTION_HEADING = re.compile(r"^###[ \t]+(?P<question>.+?)[ \t]*#*[ \t]*$")
+_FENCE = re.compile(r"^[ \t]*(```|~~~)")
+
+
+def split_body_faq(body: str) -> dict[str, Any]:
+    """A Markdown body with its "## FAQ" section lifted out as FAQ items.
+
+    Guides and recaps close on a "## FAQ" heading followed by "### question"
+    headings, each with its answer paragraphs.  That section is drawn by the
+    shared FAQ block (and published as FAQPage data) instead of as prose, so
+    it is read out of the body here, at render time, and the source stays as
+    written.  A section that is not purely question headings with answers is
+    left in the body untouched.  Returns ``body`` (before the section),
+    ``body_after`` (whatever follows it), ``heading`` and ``items``.
+    """
+
+    lines = body.split("\n")
+    in_fence = False
+    start = None
+    heading = ""
+    for index, line in enumerate(lines):
+        match = _FAQ_HEADING.match(line)
+        if _FENCE.match(line):
+            in_fence = not in_fence
+        elif not in_fence and match:
+            start, heading = index, match.group("heading")
+            break
+    unchanged = {"body": body, "body_after": "", "heading": "", "items": []}
+    if start is None:
+        return unchanged
+    end = len(lines)
+    in_fence = False
+    for index in range(start + 1, len(lines)):
+        line = lines[index]
+        if _FENCE.match(line):
+            in_fence = not in_fence
+        elif not in_fence and _SECTION_HEADING.match(line):
+            end = index
+            break
+    items: list[dict[str, str]] = []
+    answer: list[str] = []
+    for line in lines[start + 1 : end]:
+        question = _QUESTION_HEADING.match(line)
+        if question:
+            if items:
+                items[-1]["answer"] = "\n".join(answer).strip()
+            items.append({"question": question.group("question"), "answer": ""})
+            answer = []
+        elif items:
+            answer.append(line)
+        elif line.strip():
+            return unchanged
+    if not items:
+        return unchanged
+    items[-1]["answer"] = "\n".join(answer).strip()
+    if not all(item["answer"] for item in items):
+        return unchanged
     return {
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        "mainEntity": [
+        "body": "\n".join(lines[:start]).rstrip() + "\n",
+        "body_after": "\n".join(lines[end:]).strip(),
+        "heading": heading,
+        "items": [
             {
-                "@type": "Question",
-                "name": item["question"],
-                "acceptedAnswer": {"@type": "Answer", "text": plain(item["answer"])},
+                "id": f"faq-{number}",
+                "question": item["question"],
+                "answer_html": str(academy_markdown(item["answer"])),
             }
-            for item in items
+            for number, item in enumerate(items, start=1)
         ],
     }
 
@@ -275,11 +358,14 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
         faq_page = next((item for item in pages if item.get("layout") == "faq"), None)
         if data.get("faq") and faq_page is not None:
             questions = faq_page["data"]["items"]
-            context["home_faq"] = [
-                questions[index - 1]
-                for index in data["faq"]["picks"]
-                if 0 < index <= len(questions)
-            ]
+            context["home_faq"] = faq_items(
+                [
+                    questions[index - 1]
+                    for index in data["faq"]["picks"]
+                    if 0 < index <= len(questions)
+                ],
+                "faq",
+            )
             context["faq_path"] = faq_page["public_path"]
 
     elif layout == "program":
@@ -300,7 +386,7 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
                     if shared.get("interviews")
                     else []
                 ),
-                "faq": faq,
+                "faq": faq_items(faq, "faq"),
                 "other_program": next(
                     (item for item in all_programs if item["slug"] != program["slug"]), None
                 ),
@@ -344,10 +430,11 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
                 ],
             }
         )
-        schema.append(_faq_schema(faq))
 
     elif layout == "sessions":
         context.update(sessions_context(page))
+        if data.get("faq"):
+            context["faq_items"] = faq_items(data["faq"]["items"], "faq")
         events = data["schema"]
         for session in data["sessions"]:
             schema.append(
@@ -388,14 +475,25 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
         ]
 
     elif layout == "faq":
-        schema.append(_faq_schema(data["items"]))
+        context["faq_items"] = faq_items(data["items"], "question")
 
     elif layout == "articles":
         context["articles"] = articles(pages)
 
     elif layout == "article":
-        if data.get("faq"):
-            schema.append(_faq_schema(data["faq"]["items"]))
+        # Questions come from the record's own `faq` section or, in a guide or
+        # recap, from the "## FAQ" section that closes its Markdown body.
+        split = split_body_faq(page["body"])
+        context["article_body"] = split["body"]
+        context["article_body_after"] = split["body_after"]
+        context["faq_heading"] = (data.get("faq") or {}).get("heading") or split["heading"]
+        context["faq_items"] = [
+            {**item, "id": f"faq-{number}"}
+            for number, item in enumerate(
+                [*faq_items((data.get("faq") or {}).get("items") or [], "faq"), *split["items"]],
+                start=1,
+            )
+        ]
         context["published"] = date.fromisoformat(data["published"])
         context["author"] = author_credit(data["author"])
         # Written the way the blog article writes its estimate.

@@ -2,7 +2,7 @@
 {% load breadcrumbs %}
 {% comment %}
   The Academy FAQ (/academy/faq/): the heading and lede, then the questions
-  as the site's FAQ folds across the content column, server-rendered so every
+  as the site's FAQ list (core/_faq.html), server-rendered so every
   answer is in the HTML, and the closing panel holding the page's one
   waitlist action.  Copy: academy/faq.md.
 {% endcomment %}
@@ -37,7 +37,7 @@
 
 {% block page_content %}
   <section class="academy-reading" aria-label="{{ data.list_label }}">
-    {% include "academy/_faq.html" with items=data.items prefix="question" label="" %}
+    {% include "core/_faq.html" with items=faq_items %}
     {% include "academy/_contact.html" %}
   </section>
   {% if data.join %}

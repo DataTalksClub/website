@@ -178,7 +178,7 @@
         <h2 id="faq-heading">{{ data.faq.heading }}</h2>
       </div>
     </div>
-    {% include "academy/_faq.html" with items=data.faq.items prefix="faq" label="" %}
+    {% include "core/_faq.html" with items=faq_items %}
     {% include "academy/_contact.html" %}
   </section>
 {% endblock %}

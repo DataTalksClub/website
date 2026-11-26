@@ -54,18 +54,25 @@
   {% endif %}
   <article class="academy-article-column">
     <div class="prose prose-reading academy-article-body">
-      {{ page.body|academy_markdown }}
+      {{ article_body|academy_markdown }}
     </div>
   </article>
-  {% if data.faq %}
+  {% if faq_items %}
     <section class="academy-section academy-article-column" aria-labelledby="faq-heading">
       <div class="band-head">
         <div>
-          <h2 id="faq-heading">{{ data.faq.heading }}</h2>
+          <h2 id="faq-heading">{{ faq_heading }}</h2>
         </div>
       </div>
-      {% include "academy/_faq.html" with items=data.faq.items prefix="faq" label="" %}
+      {% include "core/_faq.html" with items=faq_items %}
     </section>
+  {% endif %}
+  {% if article_body_after %}
+    <article class="academy-article-column">
+      <div class="prose prose-reading academy-article-body">
+        {{ article_body_after|academy_markdown }}
+      </div>
+    </article>
   {% endif %}
   {% if data.related %}
     <section class="academy-section academy-article-column" aria-labelledby="related-heading">
