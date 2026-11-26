@@ -49,7 +49,7 @@ class UmamiPolicyTests(SimpleTestCase):
             "/privacy",
             "/blog/safe-slug.html",
             "/books/safe-slug.html",
-            "/podcast/s01e01/safe-slug/",
+            "/podcast/s01/e01-safe-slug/",
             "/podcast/safe-slug.html",
             "/people/safe-person.html",
             "/wiki/safe-topic",

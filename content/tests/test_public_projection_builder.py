@@ -76,7 +76,7 @@ class PublicProjectionBuilderTests(TestCase):
             [
                 {
                     "title": "Related episode",
-                    "url": "/podcast/s01e01/example",
+                    "url": "/podcast/s01/e01-example",
                     "is_external": False,
                     "target": "",
                     "rel": "",
@@ -96,7 +96,7 @@ class PublicProjectionBuilderTests(TestCase):
                     }
                 ],
             )[0]["url"],
-            "/podcast/s01e01/example",
+            "/podcast/s01/e01-example",
         )
         self.assertEqual(
             builder._podcast_resources(
@@ -116,7 +116,7 @@ class PublicProjectionBuilderTests(TestCase):
                     }
                 ],
             )[0]["url"],
-            "/podcast/s01e01/example",
+            "/podcast/s01/e01-example",
         )
         with self.assertRaisesRegex(builder.ProjectionBuildError, "unsafe public URL"):
             builder._podcast_resources(
@@ -266,14 +266,14 @@ class PublicProjectionBuilderTests(TestCase):
 
         localized = builder._canonicalize_wiki_document_urls(
             payload,
-            {"episode": "/podcast/s24e01/episode"},
+            {"episode": "/podcast/s24/e01-episode"},
             {},
             {},
         )
 
         self.assertEqual(
             localized["nodes"][0]["url"],
-            "/podcast/s24e01/episode?from=graph#transcript",
+            "/podcast/s24/e01-episode?from=graph#transcript",
         )
         self.assertEqual(
             localized["nodes"][1]["url"],

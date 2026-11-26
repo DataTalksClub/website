@@ -27,7 +27,7 @@ class PodcastSlugImportTests(_CheckoutCase):
             self.assertEqual(item.key, "test-episode.md")
             record = item.data["record"]
             self.assertEqual(record["slug"], "test-episode")
-            self.assertEqual(record["public_path"], "/podcast/s03e11/test-episode")
+            self.assertEqual(record["public_path"], "/podcast/s03/e11-test-episode")
             self.assertEqual(record["provenance"]["source_key"], "test-episode.md")
             parser.upsert(item, source, media_store())
         row = SyncedDocument.objects.get(source=source, stable_key="test-episode.md")

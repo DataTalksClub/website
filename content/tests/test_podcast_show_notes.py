@@ -17,6 +17,7 @@ from content.podcast_resources import (
     normalize_podcast_resource,
     normalize_podcast_resources,
 )
+from content.podcast_routes import podcast_canonical_path
 
 #: Outside this repository, at ~/prod/dtc-data/content-staging/ -- see
 #: _docs/architecture/database-only-content.md. This contract checks real
@@ -37,7 +38,19 @@ class PodcastShowNotesContractTests(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        cls.records = json.loads((PROJECTION_ROOT / "podcasts.json").read_text(encoding="utf-8"))
+        # The projection predates the /podcast/s18/e09-<slug> scheme; an episode's
+        # address is derived from its numbers, as the catalogue read model does.
+        cls.records = [
+            {
+                **record,
+                "public_path": podcast_canonical_path(
+                    season=record["season"], episode=record["episode"], slug=record["slug"]
+                ),
+            }
+            for record in json.loads(
+                (PROJECTION_ROOT / "podcasts.json").read_text(encoding="utf-8")
+            )
+        ]
 
     def render_episode(self, record: dict) -> str:
         episode = episode_view(record, resource_podcast_records=self.records)
@@ -96,14 +109,16 @@ class PodcastShowNotesContractTests(TestCase):
                 self.assertEqual(resource.target, EXTERNAL_RESOURCE_TARGET)
                 self.assertEqual(resource.rel, EXTERNAL_RESOURCE_REL)
             else:
-                self.assertRegex(resource.url, r"^/podcast/s[0-9]+e[0-9]+/[a-z0-9][a-z0-9_-]*$")
+                self.assertRegex(
+                    resource.url, r"^/podcast/s[0-9]{2}/e[0-9]{2}-[a-z0-9][a-z0-9_-]*$"
+                )
                 self.assertEqual(resource.target, "")
                 self.assertEqual(resource.rel, "")
 
     def test_structured_resources_keep_transcript_and_timestamp_data_separate(self) -> None:
         record = next(record for record in self.records if record["slug"] == "building-data-team")
 
-        self.assertEqual(record["public_path"], "/podcast/s01e03/building-data-team")
+        self.assertEqual(record["public_path"], "/podcast/s01/e03-building-data-team")
         self.assertEqual(
             record["resources"][0],
             {
@@ -170,15 +185,15 @@ class PodcastShowNotesContractTests(TestCase):
         cases = (
             (
                 "/podcast/s16e09-become-data-freelancer.html",
-                "/podcast/s16e09/becoming-data-freelancer",
+                "/podcast/s16/e09-becoming-data-freelancer",
             ),
             (
                 "/podcast/s11e03-from-data-science-to-dataops.html",
-                "/podcast/s11e03/dataops-and-gitops-best-practices-for-data-teams",
+                "/podcast/s11/e03-dataops-and-gitops-best-practices-for-data-teams",
             ),
             (
                 "/podcast/s07e02-recruiting-data-professionals.html",
-                "/podcast/s07e02/hiring-data-scientists-and-analysts",
+                "/podcast/s07/e02-hiring-data-scientists-and-analysts",
             ),
         )
         for source_url, expected_url in cases:
@@ -198,7 +213,7 @@ class PodcastShowNotesContractTests(TestCase):
             },
             records=self.records,
         )
-        self.assertEqual(http_internal.url, "/podcast/s16e09/becoming-data-freelancer")
+        self.assertEqual(http_internal.url, "/podcast/s16/e09-becoming-data-freelancer")
         self.assertFalse(http_internal.is_external)
 
     def test_labels_keep_source_meaning_while_normalizing_platform_spelling(self) -> None:
@@ -255,7 +270,7 @@ class PodcastShowNotesContractTests(TestCase):
             == "data-freelancing-career-strategy-market-demand-and-client-acquisition"
         )
         internal_body = self.render_episode(internal_record)
-        internal_start = internal_body.index('href="/podcast/s16e09/becoming-data-freelancer"')
+        internal_start = internal_body.index('href="/podcast/s16/e09-becoming-data-freelancer"')
         internal_link = internal_body[internal_start : internal_body.index("</a>", internal_start)]
         self.assertNotIn("target=", internal_link)
         self.assertNotIn("rel=", internal_link)

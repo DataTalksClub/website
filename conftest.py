@@ -58,9 +58,7 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
     "test_rich_and_sparse_profiles_render_the_design_system_in_both_themes": (
         (re.compile(r"^/images/posts/ai-dev-tools-zoomcamp/og-image\.jpg$"), 404),
     ),
-    "test_alias_query_and_safe_denial_browser_matrix": (
-        (re.compile(r"^/podcast/s/[0-9]+/$"), 404),
-    ),
+    "test_alias_query_and_safe_denial_browser_matrix": ((re.compile(r"^/podcast/s[0-9]+/$"), 404),),
     "test_complete_accessibility_registry": (
         (re.compile(r"^/_accessibility/identity-conflict/$"), 409),
         (re.compile(r"^/__accessibility_missing__$"), 404),

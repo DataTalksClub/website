@@ -113,8 +113,9 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     # canonical is still the dated path.
     "content.public_views.book_dated_redirect": EDITORIAL_DETAIL,
     "content.public_views.person_detail": EDITORIAL_DETAIL,
-    "content.public_views.podcast_detail_by_id": EDITORIAL_DETAIL,
-    "content.public_views.podcast_detail_by_id_without_slug": EDITORIAL_DETAIL,
+    # An episode's canonical, or a 301 to it from another slug (redirect statuses
+    # take the redirect contract).
+    "content.public_views.podcast_detail": EDITORIAL_DETAIL,
     "content.public_views.podcast_transcript_text": EDITORIAL_DETAIL,
     "content.public_views.wiki_detail": EDITORIAL_DETAIL,
     # Bare `/wiki/search` is the editorial Search topic; a `q` request is not
@@ -169,6 +170,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "academy.views.legacy_image": PERMANENT_REDIRECT,
     "content.public_views.legacy_events_redirect": PERMANENT_REDIRECT,
     "content.public_views.permanent_public_redirect": PERMANENT_REDIRECT,
+    "content.public_views.podcast_episode_short_redirect": PERMANENT_REDIRECT,
     "content.public_views.podwiki_redirect": PERMANENT_REDIRECT,
     "core.views.management_slash_redirect": PERMANENT_REDIRECT,
     "courses.views.course_aliases.legacy_course_redirect": PERMANENT_REDIRECT,
@@ -176,7 +178,6 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     # canonical serves and 301s to that canonical once, so the Location carries only the
     # stable public path plus the raw (credential-free) query.
     "content.public_views.event_detail_slash_alias": PERMANENT_REDIRECT,
-    "content.public_views.podcast_detail_slash_alias": PERMANENT_REDIRECT,
     "content.public_views.wiki_slash_alias": PERMANENT_REDIRECT,
     "courses.views.course_aliases.course_page_slash_redirect": PERMANENT_REDIRECT,
     "courses.views.course_aliases.shared_lesson_slash_redirect": PERMANENT_REDIRECT,

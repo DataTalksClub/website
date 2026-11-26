@@ -225,7 +225,7 @@ class ArchiveRowTagTests(TestCase):
             ROW_TEMPLATE,
             {
                 "row_title": "An episode",
-                "row_url": "/podcast/s01e01/an-episode",
+                "row_url": "/podcast/s01/e01-an-episode",
                 "row_tags": tags,
                 "row_tags_label": "Shared wiki topics",
                 "row_credits": ({"name": "A Guest", "public_path": ""},),

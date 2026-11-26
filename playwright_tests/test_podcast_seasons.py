@@ -35,7 +35,7 @@ def _season_scenarios() -> tuple[tuple[int, str, int | None, int | None], ...]:
     return tuple(
         (
             numbers[index],
-            "/podcast" if index == 0 else f"/podcast/s/{numbers[index]}/",
+            "/podcast" if index == 0 else f"/podcast/s{numbers[index]:02d}/",
             numbers[index - 1] if index else None,
             numbers[index + 1] if index + 1 < len(numbers) else None,
         )
@@ -254,7 +254,7 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
             expect(more_seasons.locator('a[rel="prev"]')).to_have_count(0)
             expect(page.locator('link[rel="prev"]')).to_have_count(0)
         else:
-            newer_path = "/podcast" if newer == latest_number else f"/podcast/s/{newer}/"
+            newer_path = "/podcast" if newer == latest_number else f"/podcast/s{newer:02d}/"
             expect(more_seasons.get_by_role("link", name="← Newer season")).to_have_attribute(
                 "href",
                 newer_path,
@@ -268,7 +268,7 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
             expect(more_seasons.locator('a[rel="next"]')).to_have_count(0)
             expect(page.locator('link[rel="next"]')).to_have_count(0)
         else:
-            older_path = f"/podcast/s/{older}/"
+            older_path = f"/podcast/s{older:02d}/"
             expect(more_seasons.get_by_role("link", name="Older season →")).to_have_attribute(
                 "href",
                 older_path,
@@ -361,11 +361,11 @@ def test_season_controls_activate_direct_normalized_destinations(page: Page, liv
         return pill
 
     page.get_by_role("link", name="Older season →").click()
-    expect(page).to_have_url(f"{origin}/podcast/s/{second}/")
+    expect(page).to_have_url(f"{origin}/podcast/s{second:02d}/")
     expect(_season_heading(page, second)).to_be_visible()
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href",
-        f"https://datatalks.club/podcast/s/{second}/",
+        f"https://datatalks.club/podcast/s{second:02d}/",
     )
 
     page.get_by_role("link", name="← Newer season").click()
@@ -373,11 +373,11 @@ def test_season_controls_activate_direct_normalized_destinations(page: Page, liv
     expect(_season_heading(page, latest)).to_be_visible()
 
     season_pill(middle).click()
-    expect(page).to_have_url(f"{origin}/podcast/s/{middle}/")
+    expect(page).to_have_url(f"{origin}/podcast/s{middle:02d}/")
     expect(_season_heading(page, middle)).to_be_visible()
 
     season_pill(oldest).click()
-    expect(page).to_have_url(f"{origin}/podcast/s/{oldest}/")
+    expect(page).to_have_url(f"{origin}/podcast/s{oldest:02d}/")
     expect(_season_heading(page, oldest)).to_be_visible()
     expect(page.get_by_role("link", name="Older season →")).to_have_count(0)
 
@@ -483,13 +483,13 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
         f"https://datatalks.club{final_path}",
     )
 
-    competing_path = f"/podcast/s{episode['season']:02d}e{episode['episode']:02d}/competing-title"
+    competing_path = f"/podcast/s{episode['season']:02d}/e{episode['episode']:02d}-competing-title"
     competing = page.request.get(f"{origin}{competing_path}", max_redirects=0)
     assert competing.status == 301
     assert competing.headers["location"] == final_path
 
     unknown = page.request.get(
-        f"{origin}/podcast/s99e99/competing-title",
+        f"{origin}/podcast/s99/e99-competing-title",
         max_redirects=0,
     )
     assert unknown.status == 404
@@ -510,8 +510,8 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
         assert ride_along.text() == latest_html
 
     denials = (
-        ("GET", f"/podcast/s/{absent_season}/", 404),
-        ("POST", f"/podcast/s/{published_season}/", 405),
+        ("GET", f"/podcast/s{absent_season:02d}/", 404),
+        ("POST", f"/podcast/s{published_season:02d}/", 405),
     )
     for method, path, status in denials:
         response = (
@@ -528,7 +528,7 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
         if method == "POST":
             assert response.headers["allow"] == "GET, HEAD"
 
-    browser_error = page.goto(f"{origin}/podcast/s/{absent_season}/")
+    browser_error = page.goto(f"{origin}/podcast/s{absent_season:02d}/")
     assert browser_error is not None and browser_error.status == 404
     expect(page.locator('link[rel="canonical"]')).to_have_count(0)
     expect(page.locator('link[rel="prev"]')).to_have_count(0)
@@ -538,9 +538,9 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
 
 
 @pytest.mark.core
-def test_genai_pilots_html_alias_reaches_hierarchical_episode(page: Page, live_server) -> None:
+def test_genai_pilots_episode_answers_at_its_canonical_only(page: Page, live_server) -> None:
     origin = live_server.url
-    canonical_path = "/podcast/s24e04/from-genai-pilots-to-production"
+    canonical_path = "/podcast/s24/e04-from-genai-pilots-to-production"
 
     final = page.goto(f"{origin}{canonical_path}", wait_until="networkidle")
     assert final is not None and final.status == 200
@@ -554,17 +554,13 @@ def test_genai_pilots_html_alias_reaches_hierarchical_episode(page: Page, live_s
         f"https://datatalks.club{canonical_path}",
     )
 
-    legacy = "/podcast/s24e04-from-genai-pilots-to-production.html"
-    query = "utm_source=legacy%2Btest&x=a%2Fb&blank="
-    for method in (page.request.get, page.request.head):
-        redirect = method(f"{origin}{legacy}?{query}", max_redirects=0)
-        assert redirect.status == 301
-        assert redirect.headers["location"] == f"{canonical_path}?{query}"
-    final = page.goto(f"{origin}{legacy}?{query}", wait_until="networkidle")
-    assert final is not None and final.status == 200
-    expect(page).to_have_url(f"{origin}{canonical_path}?{query}")
-    clean_legacy = legacy.removesuffix(".html")
-    for unavailable_path in (clean_legacy, f"{clean_legacy}/"):
+    # No older URL shape is routed: the flat .html, flat and stable-id forms 404.
+    for unavailable_path in (
+        "/podcast/s24e04-from-genai-pilots-to-production.html",
+        "/podcast/s24e04-from-genai-pilots-to-production",
+        "/podcast/s24e04/from-genai-pilots-to-production",
+        "/podcast/s24e04",
+    ):
         for method in (page.request.get, page.request.head):
             unavailable = method(f"{origin}{unavailable_path}", max_redirects=0)
             assert unavailable.status == 404

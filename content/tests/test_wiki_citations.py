@@ -10,8 +10,8 @@ from django.test import SimpleTestCase
 from content import projection_helpers as builder
 from content import wiki_content
 
-STACK = "/podcast/s23e01/skill-stack"
-ROLE = "/podcast/s23e05/inside-role"
+STACK = "/podcast/s23/e01-skill-stack"
+ROLE = "/podcast/s23/e05-inside-role"
 PODCASTS = (
     {"public_path": STACK, "title": "AI Engineering Skill Stack: Agents and LLMOps"},
     {"public_path": ROLE, "title": "Inside the AI Engineer Role"},

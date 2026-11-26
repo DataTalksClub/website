@@ -12,7 +12,6 @@ from __future__ import annotations
 from django.test import TestCase
 
 from content import catalogue, wiki_reader
-from content.podcast_routes import podcast_public_id
 
 RAW_QUERY = "utm_source=route-test&x=%2F&q=A+B"
 
@@ -54,21 +53,19 @@ class PodcastEpisodeSlashAliasTests(SlashAliasAssertions):
             for episode in catalogue.podcasts()
             if not episode["public_path"].endswith(".html")
         )
-        self.episode_id = podcast_public_id(
-            season=self.episode["season"], episode=self.episode["episode"]
-        )
 
-    def test_hierarchical_episode_slash_spellings_redirect_once(self) -> None:
+    def test_episode_slash_spellings_redirect_once(self) -> None:
         canonical = self.episode["public_path"]
         self.assertFalse(canonical.endswith("/"))
         self.assert_one_hop(f"{canonical}/", canonical)
-        self.assert_one_hop(f"/podcast/{self.episode_id}/", canonical)
+        season, episode = canonical.removeprefix("/podcast/").split("-", 1)[0].split("/")
+        self.assert_one_hop(f"/podcast/{season}/{episode}/", canonical)
         # A stale title slug plus slash still reaches the canonical in one hop.
-        self.assert_one_hop(f"/podcast/{self.episode_id}/stale-title/", canonical)
+        self.assert_one_hop(f"/podcast/{season}/{episode}-stale-title/", canonical)
 
     def test_unknown_episode_and_doubled_slash_are_404s(self) -> None:
-        self.assert_not_found("/podcast/s999e999/")
-        self.assert_not_found("/podcast/s999e999/unknown/")
+        self.assert_not_found("/podcast/s999/e999/")
+        self.assert_not_found("/podcast/s999/e999-unknown/")
         self.assert_not_found(f"{self.episode['public_path']}//")
 
     def test_unsafe_methods_and_credential_queries_are_refused(self) -> None:

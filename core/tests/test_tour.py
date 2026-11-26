@@ -254,7 +254,7 @@ class TourPageTests(PublishedTourPage):
         page = {
             **self.page,
             "founder_question": "Why did you choose to create a free-to-learn community?",
-            "founder_source_url": "/podcast/s19e03/synthetic-anniversary",
+            "founder_source_url": "/podcast/s19/e03-synthetic-anniversary",
         }
         self.path.write_text(json.dumps({"schema_version": 1, "page": page}))
         self.assertTrue(run(path=self.path)["applied"])
@@ -267,7 +267,7 @@ class TourPageTests(PublishedTourPage):
                 question = card.index('<p class="story-question">Why did you choose to create')
                 self.assertLess(question, card.index(page["founder_quote"]))
                 self.assertIn(
-                    '<a class="person-chip-role" href="/podcast/s19e03/synthetic-anniversary">'
+                    '<a class="person-chip-role" href="/podcast/s19/e03-synthetic-anniversary">'
                     f"{page['founder_attribution']}</a>",
                     card,
                 )

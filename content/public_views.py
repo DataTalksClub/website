@@ -26,7 +26,6 @@ from django.http import (
 )
 from django.http.response import HttpResponseBase
 from django.shortcuts import render
-from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
@@ -93,7 +92,7 @@ from .podcast_hub import (
     podcast_season_path,
     topic_episodes,
 )
-from .podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_public_id
+from .podcast_routes import podcast_season_canonical_path
 from .public_query import selector_query
 from .review_views import SLACK_PUBLIC_PATH
 from .sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
@@ -203,40 +202,13 @@ def editorial_detail_alias_redirect(
         # so its bare alias resolves by the canonical address it shortens.
         "book": lambda public_slug: catalogue.book_at(f"/books/{public_slug}.html"),
         "person": catalogue.person,
-        "podcast": catalogue.podcast,
     }[collection]
-    source_slug = slug.removesuffix("/")
-    podcast_html_alias = collection == "podcast" and slug.endswith(".html")
-    if podcast_html_alias:
-        source_slug = slug.removesuffix(".html")
-    if (
-        collection == "podcast"
-        and not podcast_html_alias
-        and source_slug in PODCAST_HIERARCHICAL_ONLY_SLUGS
-    ):
-        raise Http404
-    if podcast_html_alias:
-        # Source keys are recorded at ingestion and can differ from a repaired
-        # public slug. Resolve the imported alias exactly, without guessing a
-        # modern slug from its historical spelling or accepting a collision.
-        matches = [
-            episode
-            for episode in catalogue.podcasts()
-            if source_slug in {episode["slug"], episode.get("provenance", {}).get("source_key")}
-        ]
-        record = matches[0] if len(matches) == 1 else None
-    else:
-        record = resolver(source_slug)
+    record = resolver(slug.removesuffix("/"))
     if record is None:
         raise Http404
     target = record["public_path"]
-    clean_alias = (
-        f"/podcast/{source_slug}" if collection == "podcast" else target.removesuffix(".html")
-    )
-    aliases = {clean_alias, f"{clean_alias}/"}
-    if podcast_html_alias:
-        aliases = {f"{clean_alias}.html"}
-    if request.path_info not in aliases:
+    clean_alias = target.removesuffix(".html")
+    if request.path_info not in {clean_alias, f"{clean_alias}/"}:
         raise Http404
     return permanent_public_redirect(request, target=target)
 
@@ -1281,7 +1253,7 @@ def collection_hub(request: HttpRequest, *, collection: str) -> HttpResponse:
 # unsafe methods reach the explicit 405 response; it performs no mutation.
 @csrf_exempt
 def podcast_hub(request: HttpRequest, season: str | None = None) -> HttpResponse:
-    """The podcast index: the newest season at ``/podcast``, any other at ``/podcast/s/<N>/``.
+    """The podcast index: the newest season at ``/podcast``, any other at ``/podcast/s<NN>/``.
 
     One season per page, drawn as the /events timeline (``content.podcast_hub``).
     The query string carries nothing; the season lives in the path.
@@ -1323,7 +1295,9 @@ def podcast_hub(request: HttpRequest, season: str | None = None) -> HttpResponse
         (index for index, available in enumerate(seasons) if available.number == selected_number),
         None,
     )
-    if season_index is None:
+    if season_index is None or (
+        season is not None and request.path_info != podcast_season_canonical_path(selected_number)
+    ):
         return _no_store(HttpResponse("Page not found.", status=404))
 
     newer_season = seasons[season_index - 1] if season_index > 0 else None
@@ -1520,7 +1494,7 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
     # always names a real place to land.
     episode_trail = trail(
         ("Podcast", "/podcast"),
-        (f"Season {episode['season']}", reverse("podcast-season", args=[episode["season"]])),
+        (f"Season {episode['season']}", podcast_season_canonical_path(episode["season"])),
         (episode["title"], episode["public_path"]),
     )
     episode_entity = {
@@ -1583,15 +1557,13 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
     return response
 
 
-def _podcast_by_public_id(episode_id: str) -> dict:
+def _podcast_by_number(season: str, episode: str) -> dict:
+    """The one episode numbered ``season``/``episode``, or 404."""
+
     matches = [
-        episode
-        for episode in catalogue.podcasts()
-        if podcast_public_id(
-            season=episode["season"],
-            episode=episode["episode"],
-        )
-        == episode_id
+        record
+        for record in catalogue.podcasts()
+        if record["season"] == int(season) and record["episode"] == int(episode)
     ]
     if len(matches) != 1:
         raise Http404
@@ -1599,39 +1571,40 @@ def _podcast_by_public_id(episode_id: str) -> dict:
 
 
 @csrf_exempt
-def podcast_detail_by_id(
-    request: HttpRequest,
-    episode_id: str,
-    slug: str,
-) -> HttpResponse:
-    """Resolve an episode by stable ID and treat its title slug as cosmetic."""
+def podcast_detail(request: HttpRequest, season: str, episode: str, slug: str) -> HttpResponse:
+    """Resolve an episode by season and episode number; the title slug is cosmetic.
+
+    Any spelling other than the canonical ``/podcast/s18/e09-<slug>`` -- another
+    slug, unpadded numbers -- is a permanent redirect to it, query kept.
+    """
 
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
-    episode = _podcast_by_public_id(episode_id)
-    if request.path_info != episode["public_path"]:
-        return permanent_public_redirect(request, target=episode["public_path"])
-    return _render_podcast_detail(request, episode)
+    record = _podcast_by_number(season, episode)
+    if request.path_info != record["public_path"]:
+        return permanent_public_redirect(request, target=record["public_path"])
+    return _render_podcast_detail(request, record)
 
 
 @csrf_exempt
 def podcast_transcript_text(
     request: HttpRequest,
-    episode_id: str,
+    season: str,
+    episode: str,
     slug: str,
 ) -> HttpResponse:
     """The episode transcript as a UTF-8 plain-text download, from the catalogue."""
 
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
-    episode = _podcast_by_public_id(episode_id)
-    download_path = f"{episode['public_path']}/transcript.txt"
+    record = _podcast_by_number(season, episode)
+    download_path = f"{record['public_path']}/transcript.txt"
     if request.path_info != download_path:
         return permanent_public_redirect(request, target=download_path)
-    view = episode_view(episode)
+    view = episode_view(record)
     if not view.transcript:
         raise Http404
-    filename = "dtc-podcast-" + episode["public_path"].removeprefix("/podcast/").replace("/", "-")
+    filename = "dtc-podcast-" + record["public_path"].removeprefix("/podcast/").replace("/", "-")
     response = HttpResponse(transcript_text(view), content_type="text/plain; charset=utf-8")
     response["Content-Disposition"] = f'attachment; filename="{filename}.txt"'
     response["Cache-Control"] = "max-age=0, must-revalidate"
@@ -1639,27 +1612,13 @@ def podcast_transcript_text(
 
 
 @csrf_exempt
-def podcast_detail_by_id_without_slug(request: HttpRequest, episode_id: str) -> HttpResponse:
-    if request.method not in {"GET", "HEAD"}:
-        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
-    episode = _podcast_by_public_id(episode_id)
-    return permanent_public_redirect(request, target=episode["public_path"])
-
-
-@csrf_exempt
-def podcast_detail_slash_alias(
-    request: HttpRequest, episode_id: str, slug: str = ""
-) -> HttpResponse:
-    """Redirect ``/podcast/<sNeM>[/<slug>]/`` to the episode canonical in one hop.
-
-    The stable episode ID selects the record and the title slug stays cosmetic, exactly as on
-    the slashless route; only the trailing slash differs.
-    """
+def podcast_episode_short_redirect(request: HttpRequest, season: str, episode: str) -> HttpResponse:
+    """Redirect the short ``/podcast/s18/e09`` (or ``.../e09/``) to the canonical."""
 
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
-    episode = _podcast_by_public_id(episode_id)
-    return permanent_public_redirect(request, target=episode["public_path"])
+    record = _podcast_by_number(season, episode)
+    return permanent_public_redirect(request, target=record["public_path"])
 
 
 @csrf_exempt

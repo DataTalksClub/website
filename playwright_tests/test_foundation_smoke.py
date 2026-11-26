@@ -7,7 +7,6 @@ from playwright.sync_api import Browser, Page, ViewportSize, expect
 from content import catalogue, wiki_reader
 from content.docs_reader import docs_assets
 from content.podcast_content import podcast_seasons
-from content.podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS
 from events.queries import published_event_records
 from playwright_tests.navigation_support import primary_navigation_link
 
@@ -30,14 +29,10 @@ PODCAST_HEADING = "Podcast"
 EVENTS_HEADING = "Events"
 
 
-def _flat_alias_episode() -> dict:
-    """An episode that still answers on its generated flat-slug alias."""
+def _podcast_episode() -> dict:
+    """One published episode, read from the catalogue rather than named."""
 
-    return next(
-        record
-        for record in catalogue.podcasts()
-        if record["slug"] not in PODCAST_HIERARCHICAL_ONLY_SLUGS
-    )
+    return catalogue.podcasts()[0]
 
 
 def _featured_event() -> dict:
@@ -281,8 +276,8 @@ def test_podcast_latest_middle_and_oldest_seasons(
     assert len({latest, middle, oldest}) == 3, numbers
     scenarios = (
         (latest, "/podcast"),
-        (middle, f"/podcast/s/{middle}/"),
-        (oldest, f"/podcast/s/{oldest}/"),
+        (middle, f"/podcast/s{middle:02d}/"),
+        (oldest, f"/podcast/s{oldest:02d}/"),
     )
     for season, path in scenarios:
         response = page.goto(f"{origin}{path}")
@@ -312,11 +307,9 @@ def test_podcast_latest_middle_and_oldest_seasons(
 
 def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server) -> None:
     origin = live_server.url
-    # Any episode that still keeps its generated flat-slug alias proves the
-    # redirect; the catalogue names which episodes those are.
-    podcast_record = _flat_alias_episode()
-    podcast_slug = podcast_record["slug"]
-    podcast_target = podcast_record["public_path"]
+    # An episode's short /podcast/sNN/eNN form redirects to its canonical.
+    podcast_target = _podcast_episode()["public_path"]
+    podcast_short = podcast_target.split("-", 1)[0]
     # An article and a book, read from the catalogue rather than named: the
     # alias shape under test is the extensionless and trailing-slash detail
     # form, which is a property of the route table, not of one record.
@@ -360,8 +353,8 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
         "/wiki/": "/wiki",
         article_alias: article_target,
         f"{article_alias}/": article_target,
-        f"/podcast/{podcast_slug}": podcast_target,
-        f"/podcast/{podcast_slug}/": podcast_target,
+        podcast_short: podcast_target,
+        f"{podcast_short}/": podcast_target,
         book_alias: book_target,
         f"{book_alias}/": book_target,
         FEATURED_SPEAKER_PATH.removesuffix(".html"): FEATURED_SPEAKER_PATH,
@@ -468,7 +461,7 @@ def test_public_pages_remain_meaningful_without_javascript(
 
 def test_oldest_latest_details_and_media_fallback(page: Page, live_server) -> None:
     origin = live_server.url
-    podcast_path = _flat_alias_episode()["public_path"]
+    podcast_path = _podcast_episode()["public_path"]
     for path in (
         catalogue.articles()[0]["public_path"],
         podcast_path,

@@ -589,7 +589,7 @@ class PodcastsParserTests(_CheckoutCase):
             items = parser.discover(checkout, source)
             self.assertEqual([item.key for item in items], ["test-episode"])
             record = items[0].data["record"]
-            self.assertEqual(record["public_path"], "/podcast/s03e11/test-episode")
+            self.assertEqual(record["public_path"], "/podcast/s03/e11-test-episode")
             self.assertEqual(record["season"], 3)
             self.assertEqual(record["episode"], 11)
             self.assertEqual(record["guests"], ["fixture-guest"])
@@ -752,7 +752,7 @@ class PodcastsParserTests(_CheckoutCase):
             sync(tree, "a" * 40), {"other-episode": "created", "test-episode": "created"}
         )
         first = SyncedDocument.objects.get(source=source, stable_key="test-episode")
-        self.assertEqual(first.record["resources"][0]["url"], "/podcast/s03e12/other-episode")
+        self.assertEqual(first.record["resources"][0]["url"], "/podcast/s03/e12-other-episode")
 
         moved = dict(tree)
         moved["podcasts/s03/e12.yaml"] = other.replace(b"episode: 12", b"episode: 13")
@@ -760,7 +760,7 @@ class PodcastsParserTests(_CheckoutCase):
             sync(moved, "b" * 40), {"other-episode": "updated", "test-episode": "updated"}
         )
         first.refresh_from_db()
-        self.assertEqual(first.record["resources"][0]["url"], "/podcast/s03e13/other-episode")
+        self.assertEqual(first.record["resources"][0]["url"], "/podcast/s03/e13-other-episode")
 
     def test_rejects_misnamed_transcripts(self) -> None:
         source = _source("dtc-content")

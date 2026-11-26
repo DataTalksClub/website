@@ -52,12 +52,12 @@ class SeoCutoverTests(TestCase):
             stable_key="mentoring.md",
             slug="mentoring.md",
             title="Mentoring",
-            public_path="/podcast/s01e05/mentoring.md",
+            public_path="/podcast/s01/e05-mentoring.md",
             source_path="podcasts/s01/e05.yaml",
             checksum="a" * 64,
             record={
                 "slug": "mentoring.md",
-                "public_path": "/podcast/s01e05/mentoring.md",
+                "public_path": "/podcast/s01/e05-mentoring.md",
                 "season": 1,
                 "episode": 5,
                 "provenance": {"source_key": "mentoring.md"},
@@ -70,7 +70,7 @@ class SeoCutoverTests(TestCase):
         call_command("prepare_public_seo", apply=True, stdout=StringIO())
         row.refresh_from_db()
         self.assertEqual(row.slug, "mentoring")
-        self.assertEqual(row.public_path, "/podcast/s01e05/mentoring")
+        self.assertEqual(row.public_path, "/podcast/s01/e05-mentoring")
         self.assertEqual(row.record["public_path"], row.public_path)
         self.assertEqual(row.stable_key, "mentoring.md")
         self.assertEqual(row.record["provenance"]["source_key"], row.stable_key)

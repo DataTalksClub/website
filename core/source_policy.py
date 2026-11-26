@@ -24,7 +24,7 @@ UMAMI_HOSTS = frozenset({"datatalks.club", "www.datatalks.club", "prod.datatalks
 _UMAMI_PUBLIC_PATH = re.compile(
     r"/(?:|blog|podcast|books|events|courses|wiki|faq|docs|slack|privacy|terms|impressum)"
     r"/?$|/(?:blog|books|podcast|people|faq)/[a-z0-9][a-z0-9_-]*\.html$"
-    r"|/podcast/s[0-9]+e[0-9]+/[a-z0-9][a-z0-9_-]*/?$"
+    r"|/podcast/s[0-9]{2,4}/(?:e[0-9]{2,4}-[a-z0-9][a-z0-9_-]*/?)?$"
     r"|/academy/(?:|agentic-engineering/|ai-engineering/|sessions/|bildungsgutschein/|faq/|guides/"
     r"|privacy/|impressum/)"
     r"|/academy/(?:sessions/(?!materials/)|guides/)[a-z0-9][a-z0-9-]*/"

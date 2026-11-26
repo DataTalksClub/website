@@ -26,7 +26,9 @@ class PodcastDetailRoutePlayerTests(TestCase):
     def test_canonical_route_renders_the_episode_page(self) -> None:
         canonical = self.record["public_path"]
 
-        self.assertEqual(canonical, "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code")
+        self.assertEqual(
+            canonical, "/podcast/s24/e05-ai-adoption-in-enterprise-beyond-writing-code"
+        )
         response = self.client.get(canonical, follow=False)
         self.assertEqual(response.status_code, 200)
         self.assertContains(
@@ -35,9 +37,10 @@ class PodcastDetailRoutePlayerTests(TestCase):
         )
         self.assertEqual(
             reverse(
-                "public-podcast-by-id",
+                "public-podcast",
                 kwargs={
-                    "episode_id": "s24e05",
+                    "season": "24",
+                    "episode": "05",
                     "slug": "ai-adoption-in-enterprise-beyond-writing-code",
                 },
             ),

@@ -120,15 +120,10 @@ def explain_404(path: str) -> tuple[str, str]:
     clean_path = path.split("?", 1)[0]
     if clean_path in {"/404.html", "/podwiki/404.html"}:
         return "404_expected", "Static 404 error page; not a content route."
-    if re.match(r"^/podcast/[^/]+$", clean_path) and "genai-pilots" in clean_path:
+    if re.match(r"^/podcast/(?!s[0-9]+/)[^?]+$", clean_path):
         return (
             "404_expected",
-            "s24e04 GenAI Pilots is hierarchical-only per SEO cutover runbook.",
-        )
-    if re.match(r"^/podcast/[^/]+\.html$", clean_path):
-        return (
-            "404_explained",
-            "Flat /podcast/<slug>.html alias missing 301 redirect (audit §3 row 1, issue #162).",
+            "Pre-2026-11 podcast URL shape; episodes answer only at /podcast/sNN/eNN-<slug>.",
         )
     if clean_path == "/podwiki" or clean_path.startswith("/podwiki/"):
         return (

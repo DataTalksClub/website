@@ -30,8 +30,14 @@ _NUMBERED_FLAT_PATH = re.compile(
     r"/podcast/s(?P<season>[0-9]+)e(?P<episode>[0-9]+)-"
     r"(?P<slug>[a-z0-9][a-z0-9_-]*)\.html\Z"
 )
+# Source show notes link episodes by the addresses each era of the site used;
+# all of them resolve, by number, to today's canonical.
 _HIERARCHICAL_PATH = re.compile(
     r"/podcast/s(?P<season>[0-9]+)e(?P<episode>[0-9]+)/"
+    r"(?P<slug>[a-z0-9][a-z0-9_-]*)\Z"
+)
+_CANONICAL_PATH = re.compile(
+    r"/podcast/s(?P<season>[0-9]+)/e(?P<episode>[0-9]+)-"
     r"(?P<slug>[a-z0-9][a-z0-9_-]*)\Z"
 )
 _BRAND_SPELLINGS = (
@@ -201,7 +207,7 @@ def _resource_url(
     if target is None:
         numbered = _NUMBERED_FLAT_PATH.fullmatch(internal_path)
         hierarchical = _HIERARCHICAL_PATH.fullmatch(internal_path)
-        match = numbered or hierarchical
+        match = numbered or hierarchical or _CANONICAL_PATH.fullmatch(internal_path)
         if match is not None:
             key = (int(match.group("season")), int(match.group("episode")))
             target = by_number.get(key)

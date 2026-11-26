@@ -39,6 +39,7 @@ from .podcast_content import (
     ordered_podcasts,
 )
 from .podcast_pictures import Variant, picture_path, slugs_with
+from .podcast_routes import podcast_season_canonical_path
 from .wiki_content import SharedConcept
 
 #: The order the hub names listening destinations in.
@@ -62,7 +63,7 @@ _ROLE_END = re.compile(
 def podcast_season_path(number: int, *, latest: int) -> str:
     """Return the public path of one season's page; the newest is the hub itself."""
 
-    return "/podcast" if number == latest else f"/podcast/s/{number}/"
+    return "/podcast" if number == latest else podcast_season_canonical_path(number)
 
 
 def guest_role(summary: str) -> str:

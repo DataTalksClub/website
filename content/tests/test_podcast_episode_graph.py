@@ -10,11 +10,10 @@ from django.template.loader import render_to_string
 from django.test import TestCase
 
 from content import catalogue
-from content.podcast_routes import podcast_public_id
 from content.public_graph import validate_wiki_graph
 from content.wiki_content import episode_connections, episode_graph
 
-PODCAST_GRAPH_PATH_PATTERN = re.compile(r"^/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*$")
+PODCAST_GRAPH_PATH_PATTERN = re.compile(r"^/podcast/s[0-9]{2,4}/e[0-9]{2,4}-[a-z0-9_][a-z0-9_.-]*$")
 
 
 def _episode(slug: str) -> dict[str, Any]:
@@ -40,7 +39,7 @@ def _graph_node(
     }
 
 
-def _synthetic_episode(episode_path: str = "/podcast/s01e01/episode") -> dict[str, Any]:
+def _synthetic_episode(episode_path: str = "/podcast/s01/e01-episode") -> dict[str, Any]:
     return {"title": "Synthetic episode", "public_path": episode_path}
 
 
@@ -84,17 +83,17 @@ class EpisodeGraphContractTests(TestCase):
             "slug": "target-episode.md",
             "season": 2,
             "episode": 3,
-            "public_path": "/podcast/s02e03/target-episode.md",
+            "public_path": "/podcast/s02/e03-target-episode.md",
         }
         nodes = [
             _graph_node(
-                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s99e99/stale-episode"
+                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s99/e99-stale-episode"
             ),
             _graph_node(
                 "podcast:target-episode",
                 "Target episode",
                 "podcast",
-                "/podcast/s02e03/target-episode.md",
+                "/podcast/s02/e03-target-episode.md",
             ),
             *(
                 _graph_node(f"wiki:{index}", f"Wiki {index}", "wiki", f"/wiki/{index}")
@@ -120,8 +119,8 @@ class EpisodeGraphContractTests(TestCase):
             for neighbour in resolved.neighbors
             if neighbour.id == "podcast:target-episode"
         )
-        expected_target = f"/podcast/{podcast_public_id(season=2, episode=3)}/target-episode.md"
-        self.assertEqual(resolved.url, "/podcast/s01e01/episode")
+        expected_target = "/podcast/s02/e03-target-episode.md"
+        self.assertEqual(resolved.url, "/podcast/s01/e01-episode")
         self.assertEqual(target_neighbour.url, expected_target)
         self.assertNotIn(".html", resolved.url)
         self.assertNotIn(".html", target_neighbour.url)
@@ -130,7 +129,7 @@ class EpisodeGraphContractTests(TestCase):
 
     def test_resolution_is_deterministic_and_does_not_use_episode_title_as_identity(self) -> None:
         graph_nodes = [
-            _graph_node("podcast:other", "Synthetic episode", "podcast", "/podcast/s02e01/other"),
+            _graph_node("podcast:other", "Synthetic episode", "podcast", "/podcast/s02/e01-other"),
             _graph_node("wiki:z", "Zed", "wiki", "/wiki/zed"),
             _graph_node("wiki:a", "Alpha", "wiki", "/wiki/alpha"),
             _graph_node("wiki:b", "Beta", "wiki", "/wiki/beta"),
@@ -145,7 +144,7 @@ class EpisodeGraphContractTests(TestCase):
 
         graph_nodes.append(
             _graph_node(
-                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01e01/episode"
+                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01/e01-episode"
             )
         )
         graph_links.extend(
@@ -172,7 +171,7 @@ class EpisodeGraphContractTests(TestCase):
     def test_unsafe_and_missing_destinations_are_never_links(self) -> None:
         nodes = [
             _graph_node(
-                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01e01/episode"
+                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01/e01-episode"
             ),
             _graph_node("wiki:safe", "Safe", "wiki", "/wiki/safe"),
             _graph_node("wiki:none", "No destination", "wiki"),
@@ -209,7 +208,7 @@ class EpisodeGraphContractTests(TestCase):
     def test_connections_keep_reader_destinations_and_drop_graph_internals(self) -> None:
         nodes = [
             _graph_node(
-                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01e01/episode"
+                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01/e01-episode"
             ),
             _graph_node("person:guest", "The Guest", "person", "/people/guest.html"),
             _graph_node("wiki:cited", "Cited Topic", "wiki", "/wiki/cited"),
@@ -217,7 +216,7 @@ class EpisodeGraphContractTests(TestCase):
             _graph_node("topic:search", "Search Only", "topic", "/wiki/search?q=Search"),
             _graph_node("article:guide", "A Guide", "article", "/blog/guide"),
             _graph_node("article:wiki", "Wiki Article", "article", "/wiki/wiki-article"),
-            _graph_node("podcast:other", "Other episode", "podcast", "/podcast/s01e02/other"),
+            _graph_node("podcast:other", "Other episode", "podcast", "/podcast/s01/e02-other"),
         ]
         links = [
             {
@@ -288,7 +287,7 @@ class EpisodeGraphContractTests(TestCase):
     def test_more_than_eight_topics_fold_behind_show_all(self) -> None:
         nodes = [
             _graph_node(
-                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01e01/episode"
+                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01/e01-episode"
             ),
             *(
                 _graph_node(f"wiki:{index}", f"Wiki {index}", "wiki", f"/wiki/wiki-{index}")
@@ -316,7 +315,7 @@ class EpisodeGraphContractTests(TestCase):
                     "podcast:episode",
                     "Synthetic episode",
                     "podcast",
-                    "/podcast/s01e01/episode",
+                    "/podcast/s01/e01-episode",
                 )
             ],
             links=[

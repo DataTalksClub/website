@@ -38,6 +38,7 @@ from django.db.models import Count, Max
 
 from . import wiki_reader
 from .models import ContentDocument, ContentSource, SyncedDocument
+from .podcast_routes import podcast_canonical_path
 from .public_graph import validate_wiki_graph
 from .public_text import strip_leaked_target_attributes
 from .sync_parsers.course import COURSE_SOURCE_SLUGS
@@ -287,6 +288,8 @@ def _synced_records(stamp: tuple[int, str], source_slug: str, kind: str) -> tupl
         # copy the read model holds (ARC-03).
         if kind == "article":
             held = [_cleaned_body(record) for record in held]
+        elif kind == "podcast":
+            held = [_podcast_with_canonical_path(record) for record in held]
     elif kind == PEOPLE_KIND:
         held = [_cleaned_body(record) for record in held]
         held.sort(
@@ -299,6 +302,24 @@ def _synced_records(stamp: tuple[int, str], source_slug: str, kind: str) -> tupl
         for record in held:
             validate_wiki_graph(record)
     return tuple(held)
+
+
+def _podcast_with_canonical_path(record: Record) -> Record:
+    """An episode record whose ``public_path`` is the one its numbers name.
+
+    An episode's address is a function of its season, episode and slug
+    (``content.podcast_routes``), so the read model derives it rather than
+    trusting the path a row was synced with: a URL scheme change reaches every
+    page, link and sitemap entry at deploy, before the next content sync.
+    """
+
+    season, episode, slug = record.get("season"), record.get("episode"), record.get("slug")
+    if not (isinstance(season, int) and isinstance(episode, int) and isinstance(slug, str)):
+        return record
+    return {
+        **record,
+        "public_path": podcast_canonical_path(season=season, episode=episode, slug=slug),
+    }
 
 
 @lru_cache(maxsize=8)

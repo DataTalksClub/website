@@ -248,7 +248,7 @@ class RelatedEpisodePageTests(RelatedGraphTestCase):
         self.assertIn(f"S{older['season']} · Episode {older['episode']}", band)
         self.assertIn(f'href="{older["public_path"]}"', band)
         self.assertIn('href="/wiki/rag">RAG</a>', band)
-        self.assertIn('href="/podcast/s/20/"', band)
+        self.assertIn('href="/podcast/s20/"', band)
 
     def test_the_retired_neighbour_and_season_bands_are_gone(self) -> None:
         body = self.client.get(_episode(CURRENT)["public_path"]).content.decode()

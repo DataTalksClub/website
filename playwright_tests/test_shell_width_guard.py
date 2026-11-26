@@ -52,7 +52,7 @@ DETAILS = {
     "/courses": (r"^/courses/[^/]+/?$", r"^/courses/[^/]+/\d{4}/?$"),
     "/events/past": (r"^/events/\d+/[^/]+$",),
     "/blog": (r"^/blog/[^/]+\.html$",),
-    "/podcast": (r"^/podcast/s\d+e\d+/",),
+    "/podcast": (r"^/podcast/s\d+/e\d+-",),
     "/wiki": (r"^/wiki/(?!graph|special-pages|search)[^/?#]+$",),
     "/books": (r"^/books/[^/]+\.html$",),
     "/docs": (r"^/docs/.+/$",),

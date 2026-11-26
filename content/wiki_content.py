@@ -50,7 +50,7 @@ from .public_graph import safe_public_graph_url
 #: evidence rather than something a request reads.
 WIKI_ASSET_ROOT = Path(__file__).with_name("wiki_assets")
 
-_PODCAST_GRAPH_PATH = re.compile(r"/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*")
+_PODCAST_GRAPH_PATH = re.compile(r"/podcast/s[0-9]{2,4}/e[0-9]{2,4}-[a-z0-9_][a-z0-9_.-]*")
 
 # Every node type the graph carries, in the order /wiki/graph presents them: the
 # heading, the one-line description of what that group is, and the page that

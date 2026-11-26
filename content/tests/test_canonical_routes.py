@@ -14,11 +14,6 @@ class CanonicalRouteTests(TestCase):
             ("article", "/blog/synthetic-article", "/blog/synthetic-article.html"),
             ("book", "/books/synthetic-book", "/books/synthetic-book.html"),
             ("person", "/people/synthetic-person", "/people/synthetic-person.html"),
-            (
-                "podcast",
-                "/podcast/s24e06-synthetic-episode",
-                "/podcast/s24e06/synthetic-episode",
-            ),
         )
         for kind, alias, target in cases:
             with (

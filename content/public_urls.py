@@ -4,6 +4,7 @@ from event_qna import views as qna_views
 
 from . import legal_views, public_views
 from .book_routes import DATED_BOOK_SLUG_PATTERN
+from .podcast_routes import EPISODE_PATTERN, SEASON_PATTERN
 
 urlpatterns = [
     path("terms", legal_views.terms, name="terms"),
@@ -30,52 +31,36 @@ urlpatterns = [
     path("podcast", public_views.podcast_hub, name="podcast"),
     path("podcast.html", public_views.permanent_public_redirect, {"target": "/podcast"}),
     path("podcast/", public_views.permanent_public_redirect, {"target": "/podcast"}),
-    # One season per page; the newest season is the hub itself.  It precedes the
-    # editorial alias catch-all, which would otherwise read it as a flat slug.
+    # Podcast seasons and episodes (``content.podcast_routes``): ``/podcast/s18/`` and
+    # ``/podcast/s18/e09-<slug>``.  The season and episode numbers are the identity and
+    # the slug is cosmetic, so the short ``/podcast/s18/e09`` form and any other slug
+    # redirect permanently to the canonical.  No older spelling is routed.
     re_path(
-        r"^podcast/s/(?P<season>[1-9][0-9]{0,3})/$",
+        rf"^podcast/{SEASON_PATTERN}/$",
         public_views.podcast_hub,
         name="podcast-season",
     ),
     # Generated episode pictures (``content.podcast_pictures``), keyed by the
-    # episode's source slug; they precede the stable-id routes and the catch-all.
+    # episode's source slug.
     re_path(
         r"^podcast/(?P<slug>[-a-zA-Z0-9_]+)/(?P<route>picture|poster|social)$",
         public_views.podcast_episode_picture,
         name="public-podcast-episode-picture",
     ),
     re_path(
-        r"^podcast/(?P<episode_id>s[0-9]+e[0-9]+)/(?P<slug>[-a-zA-Z0-9_]+)$",
-        public_views.podcast_detail_by_id,
-        name="public-podcast-by-id",
+        rf"^podcast/{SEASON_PATTERN}/{EPISODE_PATTERN}-(?P<slug>[-a-zA-Z0-9_]+)/?$",
+        public_views.podcast_detail,
+        name="public-podcast",
     ),
     re_path(
-        r"^podcast/(?P<episode_id>s[0-9]+e[0-9]+)/(?P<slug>[-a-zA-Z0-9_]+)/transcript\.txt$",
+        rf"^podcast/{SEASON_PATTERN}/{EPISODE_PATTERN}-(?P<slug>[-a-zA-Z0-9_]+)/transcript\.txt$",
         public_views.podcast_transcript_text,
         name="public-podcast-transcript-text",
     ),
     re_path(
-        r"^podcast/(?P<episode_id>s[0-9]+e[0-9]+)$",
-        public_views.podcast_detail_by_id_without_slug,
-        name="public-podcast-by-id-without-slug",
-    ),
-    # Trailing-slash spellings of the episode routes (links with a CDN-added slash exist in
-    # the wild) redirect to the canonical in one hop; they precede the editorial alias
-    # catch-all, which would otherwise read them as a flat slug and 404.
-    re_path(
-        r"^podcast/(?P<episode_id>s[0-9]+e[0-9]+)/(?P<slug>[-a-zA-Z0-9_]+)/$",
-        public_views.podcast_detail_slash_alias,
-        name="public-podcast-by-id-slash-redirect",
-    ),
-    re_path(
-        r"^podcast/(?P<episode_id>s[0-9]+e[0-9]+)/$",
-        public_views.podcast_detail_slash_alias,
-        name="public-podcast-by-id-without-slug-slash-redirect",
-    ),
-    path(
-        "podcast/<path:slug>",
-        public_views.editorial_detail_alias_redirect,
-        {"collection": "podcast"},
+        rf"^podcast/{SEASON_PATTERN}/{EPISODE_PATTERN}/?$",
+        public_views.podcast_episode_short_redirect,
+        name="public-podcast-short-redirect",
     ),
     path("books", public_views.collection_hub, {"collection": "books"}, name="books"),
     path("books.html", public_views.permanent_public_redirect, {"target": "/books"}),
