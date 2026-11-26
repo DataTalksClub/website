@@ -3,7 +3,7 @@
 `/accounts/signup/` is where the homepage's primary call to action lands.
 `AccountEntranceDocumentTests` below holds every entrance page — signup
 included — to the design system's own document contract (one inline
-stylesheet, the shared shell, the cream/lavender seam).
+stylesheet, the shared shell, one lavender band holding the entrance card).
 
 Signup is open (`accounts.auth.AccountAdapter`): a GET renders the real
 interactive form (`account/signup.html`), same as before the account
@@ -28,16 +28,17 @@ from django.middleware.csrf import get_token
 from django.template import Context, Template
 from django.test import RequestFactory, TestCase
 
+from accounts.services.local_provider_seed import seed_local_social_providers
+
 STYLE_ELEMENT = re.compile(r"<style\b")
 STYLESHEET_LINK = re.compile(r'<link[^>]+rel="stylesheet"')
 BAND = re.compile(r'class="band (band-[a-z]+)')
 
 # The pages in the family that a signed-out visitor can reach with a plain GET.
-# `/accounts/password/reset/` is deliberately absent: `accounts/urls.py` answers
-# it with a 403 ahead of allauth, which is a routing decision this work did not
-# touch.
 ENTRANCE_PATHS = {
+    "login": "/accounts/login/",
     "signup": "/accounts/signup/",
+    "password reset": "/accounts/password/reset/",
     "password reset sent": "/accounts/password/reset/done/",
     "password changed": "/accounts/password/reset/key/done/",
     "spent reset link": "/accounts/password/reset/key/abc-def/",
@@ -71,18 +72,20 @@ class AccountEntranceDocumentTests(TestCase):
                 self.assertTemplateUsed(response, "core/_site_shell_head.html")
                 self.assertTemplateUsed(response, "core/_site_shell_foot.html")
 
-    def test_every_entrance_page_opens_warm_and_reads_on_the_content_ground(self) -> None:
+    def test_every_entrance_page_is_one_card_on_the_content_ground(self) -> None:
+        # One lavender band holding one centred card, with the page's heading
+        # inside the card: no cream header over a lone panel.
         for name, body in self.rendered_pages().items():
             with self.subTest(page=name):
-                grounds = BAND.findall(body)
-                self.assertEqual(grounds[0], "band-cream")
-                # Entrance pages keep every body band on the content ground; the
-                # selective tour stripe is reserved for newcomer discovery pages.
-                self.assertEqual(
-                    [g for g in grounds[1:] if g != "band-lavender"],
-                    [],
-                )
-                self.assertNotIn("band-ink", grounds)
+                self.assertEqual(BAND.findall(body), ["band-lavender"])
+                self.assertEqual(body.count('class="card auth-panel"'), 1)
+                card_at = body.index('class="card auth-panel"')
+                self.assertGreater(body.index("<h1"), card_at)
+
+    def test_every_entrance_page_extends_the_shared_auth_document(self) -> None:
+        for name, path in ENTRANCE_PATHS.items():
+            with self.subTest(page=name):
+                self.assertTemplateUsed(self.client.get(path), "account/auth_page.html")
 
     def test_every_entrance_page_has_exactly_one_first_level_heading(self) -> None:
         for name, body in self.rendered_pages().items():
@@ -110,6 +113,41 @@ class SignupPageTests(TestCase):
 
         self.assertTemplateUsed(signup, "account/auth_page.html")
         self.assertTemplateUsed(login, "account/auth_page.html")
+
+
+class SignInCardTests(TestCase):
+    """The sign-in card reads top to bottom as one decision."""
+
+    def test_the_card_holds_everything_in_reading_order(self) -> None:
+        seed_local_social_providers()
+
+        body = self.client.get("/accounts/login/").content.decode()
+
+        order = [
+            'class="card auth-panel"',
+            'id="auth-heading"',
+            'class="auth-choices"',
+            'class="auth-or"',
+            'class="auth-form"',
+            'class="cta cta-primary interactive-lift auth-submit"',
+            "Forgot password?",
+            "New here?",
+            "We never see your social media passwords.",
+        ]
+        positions = [body.index(marker) for marker in order]
+        self.assertEqual(positions, sorted(positions))
+        # One primary action: the providers are secondary controls.
+        card = body[body.index('class="card auth-panel"') :]
+        self.assertEqual(card.count("cta-primary"), 1)
+
+    def test_no_provider_hides_the_social_block_and_its_lede(self) -> None:
+        body = self.client.get("/accounts/login/").content.decode()
+
+        self.assertNotIn('class="auth-choices"', body)
+        self.assertNotIn('class="auth-or"', body)
+        self.assertNotIn("Continue with a social account", body)
+        self.assertNotIn("We never see your social media passwords.", body)
+        self.assertIn('class="auth-form"', body)
 
 
 class SignupProviderChoiceTests(TestCase):

@@ -1,112 +1,63 @@
-{% load accessibility %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>
-      {% if not account_entry.unavailable %}
-        Create your account · DataTalks.Club
-      {% else %}
-        Sign-up is closed · DataTalks.Club
-      {% endif %}
-    </title>
-    <style>
-      /* ------------------------------------------------------------------ *
-       * The sign-up page's closed state, design system.  allauth renders this
-       * instead of the sign-up form when registration is not open, so it is
-       * the same page in another state and wears the same document.  It
-       * decides nothing: whether registration is open is settings and
-       * adapter work, and this template only says so.
-       * ------------------------------------------------------------------ */
+{% extends "account/auth_page.html" %}
 
-      {% include "core/_design_system.html" %}
+{% block title %}
+  {% if not account_entry.unavailable %}
+    <title>Create your account · DataTalks.Club</title>
+  {% else %}
+    <title>Sign-up is closed · DataTalks.Club</title>
+  {% endif %}
+{% endblock %}
 
-      :root {
-        --page: var(--lavender);
-      }
+{% comment %}
+  The sign-up page's closed state.  allauth renders this instead of the
+  sign-up form when registration is not open, so it is the same card in
+  another state.  It decides nothing: whether registration is open is
+  settings and adapter work.
 
-      {% include "account/_entrance_styles.html" %}
-    </style>
-  </head>
-  {% url 'update_timezone_preference' as timezone_update_url %}
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-    {% if user.is_authenticated %}
-      data-account-id="{{ user.pk }}"
-      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
-      data-timezone-update-url="{{ timezone_update_url }}"
-    {% endif %}
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      {% comment %}
-        Plain signup is closed (production), so the configured social providers
-        are how a new member gets an account: the first sign-in creates it
-        (`accounts.auth.ConsolidatingSocialAccountAdapter`).  Offer them here,
-        with the visitor's `next`, instead of a dead "closed" message.  With no
-        provider configured the page says so honestly and gives the contact
-        address (`accounts.account_entry`).
-      {% endcomment %}
-      <section class="band band-cream entrance-hero" aria-labelledby="signup-closed-heading">
-        <div class="shell shell-reading">
-          {% if not account_entry.unavailable %}
-            <h1 id="signup-closed-heading">Create your account</h1>
-            <p class="entrance-lede">
-              New accounts are created by signing in with
-              {{ account_entry.provider_names }}.
-            </p>
-          {% else %}
-            <h1 id="signup-closed-heading">Sign-up is closed</h1>
-            <p class="entrance-lede">
-              New accounts can't be created at the moment.
-            </p>
-          {% endif %}
-        </div>
-      </section>
-      <section class="band band-lavender" aria-labelledby="signup-closed-next-heading">
-        <div class="shell shell-reading">
-          {% if not account_entry.unavailable %}
-            <div class="band-head">
-              <div>
-                <h2 id="signup-closed-next-heading">Choose how to sign in</h2>
-              </div>
-            </div>
-            <div class="card entrance-panel">
-              {% include "account/_social_provider_choices.html" with provider_list=account_entry.providers provider_url_mode="provided" %}
-              <p>
-                Already have an account? The same buttons sign you in.
-              </p>
-            </div>
-          {% else %}
-            <div class="band-head">
-              <div>
-                <h2 id="signup-closed-next-heading">What you can still do</h2>
-              </div>
-            </div>
-            <div class="card entrance-panel">
-              <div class="entrance-notice">
-                {% include "account/_no_sign_in_method.html" %}
-              </div>
-              <p>
-                Every course page, article, podcast episode and wiki page stays open
-                without an account.
-              </p>
-              <div class="entrance-actions">
-                <a class="cta cta-primary interactive-lift" href="{% url 'course_list' %}">Browse courses</a>
-              </div>
-            </div>
-          {% endif %}
-        </div>
-      </section>
-    </main>
-    {% include "core/_site_shell_foot.html" %}
-  </body>
-</html>
+  Plain signup closed, the configured social providers are how a new member
+  gets an account: the first sign-in creates it
+  (`accounts.auth.ConsolidatingSocialAccountAdapter`).  Offer them here, with
+  the visitor's `next`, instead of a dead "closed" message.  With no provider
+  configured the page says so honestly and gives the contact address
+  (`accounts.account_entry`).
+{% endcomment %}
+
+{% block auth_header %}
+  {% if not account_entry.unavailable %}
+    <h1 id="auth-heading">Create your account</h1>
+    <p class="entrance-lede">
+      New accounts are created by signing in with
+      {{ account_entry.provider_names }}.
+    </p>
+  {% else %}
+    <h1 id="auth-heading">Sign-up is closed</h1>
+    <p class="entrance-lede">
+      New accounts can't be created at the moment.
+    </p>
+  {% endif %}
+{% endblock %}
+
+{% block auth_content %}
+  {% if not account_entry.unavailable %}
+    {% include "account/_social_provider_choices.html" with provider_list=account_entry.providers provider_url_mode="provided" provider_container_class="auth-choices" %}
+    <div class="auth-foot">
+      <p class="auth-account-links">
+        Already have an account? The same buttons sign you in.
+      </p>
+      <p class="auth-reassurance">
+        We never see your social media passwords.
+      </p>
+    </div>
+  {% else %}
+    <div class="entrance-notice">
+      {% include "account/_no_sign_in_method.html" %}
+    </div>
+    <p>
+      Every course page, article, podcast episode and wiki page stays open
+      without an account.
+    </p>
+    <div class="entrance-actions">
+      <a class="cta cta-primary interactive-lift" href="{% url 'course_list' %}">Browse courses</a>
+    </div>
+  {% endif %}
+{% endblock %}

@@ -77,39 +77,37 @@
 {% endblock %}
 
 {% block auth_content %}
-  <div class="card entrance-panel">
-    <form
-      class="entrance-form"
-      method="post"
-      action="{% url 'account_welcome' %}"
-      aria-labelledby="auth-heading"
-    >
-      {% csrf_token %}
-      {% accessibility_error_summary form %}
-      {% include "account/_welcome_field.html" with field=form.certificate_name %}
-      {% include "account/_welcome_field.html" with field=form.country %}
-      {% include "account/_welcome_field.html" with field=form.registration_role %}
-      <details class="row-fold welcome-fold">
-        <summary class="row-fold-summary">
-          <span class="row-fold-open">Add links and a bio (optional)</span>
-          <span class="row-fold-close">Hide links and bio</span>
-          <span class="row-fold-marker" aria-hidden="true"></span>
-        </summary>
-        <div class="welcome-fold-fields">
-          {% include "account/_welcome_field.html" with field=form.github_url %}
-          {% include "account/_welcome_field.html" with field=form.linkedin_url %}
-          {% include "account/_welcome_field.html" with field=form.personal_website_url %}
-          {% include "account/_welcome_field.html" with field=form.about_me %}
-        </div>
-      </details>
-      <div class="entrance-actions">
-        <button class="cta cta-primary interactive-lift" type="submit">Save</button>
+  <form
+    class="entrance-form"
+    method="post"
+    action="{% url 'account_welcome' %}"
+    aria-labelledby="auth-heading"
+  >
+    {% csrf_token %}
+    {% accessibility_error_summary form %}
+    {% include "account/_welcome_field.html" with field=form.certificate_name %}
+    {% include "account/_welcome_field.html" with field=form.country %}
+    {% include "account/_welcome_field.html" with field=form.registration_role %}
+    <details class="row-fold welcome-fold">
+      <summary class="row-fold-summary">
+        <span class="row-fold-open">Add links and a bio (optional)</span>
+        <span class="row-fold-close">Hide links and bio</span>
+        <span class="row-fold-marker" aria-hidden="true"></span>
+      </summary>
+      <div class="welcome-fold-fields">
+        {% include "account/_welcome_field.html" with field=form.github_url %}
+        {% include "account/_welcome_field.html" with field=form.linkedin_url %}
+        {% include "account/_welcome_field.html" with field=form.personal_website_url %}
+        {% include "account/_welcome_field.html" with field=form.about_me %}
       </div>
-    </form>
-    <p class="entrance-alternative">
-      <a class="band-link" href="{% url 'home' %}">Skip for now</a>
-    </p>
-  </div>
+    </details>
+    <div class="entrance-actions">
+      <button class="cta cta-primary interactive-lift" type="submit">Save</button>
+    </div>
+  </form>
+  <p class="entrance-alternative">
+    <a class="band-link" href="{% url 'home' %}">Skip for now</a>
+  </p>
 {% endblock %}
 
 {% block auth_scripts %}

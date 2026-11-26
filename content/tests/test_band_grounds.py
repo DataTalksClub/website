@@ -105,8 +105,9 @@ def band_sequence(template: Path) -> tuple[str, ...]:
 
 
 #: Pages that draw no hero at all.  The event page is one card layout (picture,
-#: facts and registration) that starts straight on the content ground.
-OPENS_ON_THE_CONTENT_GROUND = frozenset({"event_detail.html"})
+#: facts and registration) that starts straight on the content ground, and the
+#: account entrance parent is one centred card whose heading sits inside it.
+OPENS_ON_THE_CONTENT_GROUND = frozenset({"event_detail.html", "auth_page.html"})
 
 
 class BandGroundTests(SimpleTestCase):

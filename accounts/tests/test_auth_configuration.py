@@ -117,7 +117,8 @@ class LoginPageConfigurationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'name="login"')
         self.assertContains(response, 'name="password"')
-        self.assertContains(response, "with your email and password")
+        # No provider configured: the social lede is not drawn either.
+        self.assertNotContains(response, "Continue with a social account")
         self.assertNotContains(response, "Back to courses")
         self.assertNotContains(response, "Signing in isn't available right now")
 

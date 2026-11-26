@@ -13,14 +13,14 @@
 {% endblock %}
 
 {% block auth_content %}
-  <div class="card entrance-panel">
-    <p>
-      The email comes from DataTalks.Club. If it is not in your inbox within a
-      few minutes, check the spam folder.
-    </p>
-    <p class="entrance-fineprint">
+  <p>
+    The email comes from DataTalks.Club. If it is not in your inbox within a
+    few minutes, check the spam folder.
+  </p>
+  <div class="auth-foot">
+    <p class="auth-account-links">
       Already confirmed?
-      <a class="band-link" href="{% url 'login' %}">Sign in</a>.
+      <a href="{% url 'login' %}">Sign in</a>
     </p>
   </div>
 {% endblock %}

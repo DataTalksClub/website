@@ -2,9 +2,10 @@
 {% comment %}
   Shared public authentication document.
 
-  Sign-up and sign-in are the only normal-site pages with a dedicated width
-  and layout. Their common document owns a cream header and lavender content
-  surface. Provider controls are included by the child through
+  The account entrance family (sign in, sign up, the password reset steps,
+  email confirmation) are the only normal-site pages with a dedicated width
+  and layout. Their common document owns one lavender band holding one
+  centred card: the child's heading sits at the top of the card. Provider controls are included by the child through
   `account/_social_provider_choices.html` so the chooser is reusable outside
   this parent too.
 {% endcomment %}
@@ -29,17 +30,38 @@
       }
       {% include "account/_entrance_styles.html" %}
 
-      /* The sign-in form uses the same surfaces and controls as sign-up. The
-         shared parent owns these rules so the two auth pages cannot drift. */
-      .auth-lede {
-        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: var(--space-stack);
+      /* The entrance card.  Every account page — sign in, sign up, the reset
+         steps, email confirmation — is one focused card centred on the
+         content ground: the heading, then the ways in, then the small print.
+         The card owns the whole decision, so nothing floats under it. */
+      .auth-shell {
+        max-width: calc(27rem + 2 * var(--shell-gutter));
       }
 
       .auth-panel {
+        font-size: 0.95rem;
         gap: var(--space-4);
-        margin-top: var(--space-5);
-        padding: var(--space-5);
+        padding: var(--space-6);
+      }
+
+      .auth-head {
+        display: grid;
+        gap: var(--space-2);
+        margin-bottom: var(--space-1);
+        text-align: center;
+      }
+
+      .auth-head h1 {
+        font-size: clamp(1.6rem, 2.6vw, 2rem);
+        letter-spacing: -0.025em;
+      }
+
+      .auth-head .entrance-lede,
+      .auth-lede {
+        color: var(--body-text);
+        font-size: 0.95rem;
+        margin: 0;
+        max-width: none;
       }
 
       .auth-panel h2 {
@@ -51,24 +73,9 @@
         gap: var(--space-4);
       }
 
-      .auth-field-head {
-        align-items: baseline;
-        display: flex;
-        gap: var(--space-3);
-        justify-content: space-between;
-      }
-
-      .auth-small-link {
-        font-size: 0.85rem;
-      }
-
       .auth-submit {
         justify-content: center;
         width: 100%;
-      }
-
-      .auth-panel .auth-or {
-        margin-block: var(--space-1);
       }
 
       .auth-notice {
@@ -82,15 +89,35 @@
         padding: var(--space-3) var(--space-4);
       }
 
+      /* The providers: one full-width row each, all the same height, the mark
+         pinned to the left edge so the three marks line up while the words
+         stay centred. */
       .auth-choices {
         display: grid;
         gap: var(--space-3);
       }
 
-      .auth-fallback {
+      .auth-choices .provider-choice-form {
         display: grid;
-        gap: var(--space-4);
-        margin-top: var(--space-5);
+      }
+
+      /* Softer than the primary: the small CTA shadow and a lighter weight,
+         so the green "Sign in" stays the one primary action on the card. */
+      .auth-choices .provider-choice {
+        box-shadow: var(--shadow-cta-sm);
+        font-size: 0.98rem;
+        font-weight: 600;
+        min-height: 3rem;
+        padding-inline: var(--space-7);
+        position: relative;
+        width: 100%;
+      }
+
+      .auth-choices .provider-mark {
+        left: var(--space-4);
+        position: absolute;
+        top: 50%;
+        translate: 0 -50%;
       }
 
       .auth-or {
@@ -102,7 +129,6 @@
         gap: var(--space-3);
         grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
         letter-spacing: 0.1em;
-        margin-block: var(--space-5);
         text-align: center;
         text-transform: uppercase;
       }
@@ -113,30 +139,45 @@
         content: "";
       }
 
-      .auth-account-links,
-      .auth-reassurance {
+      .auth-forgot {
+        font-size: 0.9rem;
+        text-align: center;
+      }
+
+      /* The card's foot: the other way round (sign up / sign in) and the
+         reassurance, under a rule, so the small print reads as the end of the
+         card rather than as a second decision. */
+      .auth-foot {
+        border-top: var(--rule);
         color: var(--body-text);
+        display: grid;
+        gap: var(--space-2);
+        padding-top: var(--space-4);
+        text-align: center;
       }
 
       .auth-account-links {
-        font-size: 0.9rem;
-        margin-top: var(--space-4);
-        text-align: center;
+        font-size: 0.92rem;
       }
 
       .auth-reassurance {
-        font-size: 0.85rem;
-        margin-top: var(--space-2);
-        text-align: center;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      /* Inside the narrow card every action is a full-width row, so a pair of
+         actions stacks instead of rewrapping at an awkward width. */
+      .auth-panel .entrance-actions {
+        display: grid;
+      }
+
+      .auth-panel .entrance-actions .cta {
+        width: 100%;
       }
 
       @media (max-width: 47.99rem) {
         .auth-panel {
-          padding: var(--space-4);
-        }
-
-        .auth-choices .cta {
-          width: 100%;
+          padding: var(--space-5) var(--space-4);
         }
       }
 
@@ -159,15 +200,23 @@
   >
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
-      <section class="band band-cream entrance-hero" aria-labelledby="auth-heading">
-        <div class="shell entrance-shell">
-          {% block auth_header %}
-          {% endblock %}
-        </div>
-      </section>
-      <section class="band band-lavender" aria-label="Account options">
-        <div class="shell entrance-shell">
-          {% block auth_content %}
+      {% comment %}
+        One band, one card.  The heading lives inside the card with the
+        decision it introduces, so the page is the card and not a cream
+        header over a lone panel.  `auth_outside` is for a form that must sit
+        outside the card's own form (the reset page's sign-out form).
+      {% endcomment %}
+      <section class="band band-lavender" aria-labelledby="auth-heading">
+        <div class="shell auth-shell">
+          <div class="card auth-panel">
+            <div class="auth-head">
+              {% block auth_header %}
+              {% endblock %}
+            </div>
+            {% block auth_content %}
+            {% endblock %}
+          </div>
+          {% block auth_outside %}
           {% endblock %}
         </div>
       </section>

@@ -6,26 +6,35 @@
 
 {% block auth_header %}
   <h1 id="auth-heading">Sign In</h1>
-  <p class="auth-lede">Continue with a social account, or with your email and password.</p>
+  {% if providers %}
+    <p class="auth-lede">
+      {% if password_login_available %}
+        Continue with a social account, or with your email and password.
+      {% else %}
+        Continue with a social account.
+      {% endif %}
+    </p>
+  {% endif %}
 {% endblock %}
 
 {% block auth_content %}
   {% comment %}
     One card, two ways in: the providers, then allauth's email + password
     form (`accounts.views.login.SiteLoginView`).  The error block keeps the
-    `#login-error p` shape the event page's inline login reads.
+    `#login-error p` shape the event page's inline login reads.  With no
+    provider configured the social block, its divider and its lede are not
+    drawn at all.
   {% endcomment %}
-  <div class="card auth-panel">
-    {% if providers %}
-      {% include "account/_social_provider_choices.html" with provider_list=providers provider_url_mode="provided" provider_container_class="auth-choices" %}
-      {% if password_login_available %}
-        <p class="auth-or">
-          <span>or</span>
-        </p>
-      {% endif %}
-    {% endif %}
+  {% if providers %}
+    {% include "account/_social_provider_choices.html" with provider_list=providers provider_url_mode="provided" provider_container_class="auth-choices" %}
     {% if password_login_available %}
-      <section aria-labelledby="sign-in-password-heading" class="auth-password">
+      <p class="auth-or">
+        <span>or</span>
+      </p>
+    {% endif %}
+  {% endif %}
+  {% if password_login_available %}
+    <section aria-labelledby="sign-in-password-heading" class="auth-password">
       <h2 id="sign-in-password-heading" class="sr-only">Sign in with email and password</h2>
       {% if login_error %}
         <div
@@ -58,12 +67,7 @@
           >
         </div>
         <div class="field">
-          <div class="auth-field-head">
-            <label class="field-label" for="id_password">Password</label>
-            {% if password_reset_url %}
-              <a class="auth-small-link" href="{{ password_reset_url }}">Forgot password?</a>
-            {% endif %}
-          </div>
+          <label class="field-label" for="id_password">Password</label>
           <input
             class="field-input"
             id="id_password"
@@ -84,19 +88,29 @@
         >Sign in</button>
       </form>
     </section>
-    {% elif not providers %}
-      <div class="auth-notice" role="status">
-        {% include "account/_no_sign_in_method.html" %}
-      </div>
+    {% if password_reset_url %}
+      <p class="auth-forgot">
+        <a href="{{ password_reset_url }}">Forgot password?</a>
+      </p>
     {% endif %}
-  </div>
-  {% if account_signup_url %}
-    <p class="auth-account-links">
-      New here?
-      <a href="{{ account_signup_url }}?next={{ safe_next|urlencode }}">Create an account</a>
-    </p>
+  {% elif not providers %}
+    <div class="auth-notice" role="status">
+      {% include "account/_no_sign_in_method.html" %}
+    </div>
   {% endif %}
-  <p class="auth-reassurance">
-    We never see your social media passwords.
-  </p>
+  {% if account_signup_url or providers %}
+    <div class="auth-foot">
+      {% if account_signup_url %}
+        <p class="auth-account-links">
+          New here?
+          <a href="{{ account_signup_url }}?next={{ safe_next|urlencode }}">Create an account</a>
+        </p>
+      {% endif %}
+      {% if providers %}
+        <p class="auth-reassurance">
+          We never see your social media passwords.
+        </p>
+      {% endif %}
+    </div>
+  {% endif %}
 {% endblock %}

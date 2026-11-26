@@ -57,8 +57,8 @@ surface, with a page-specific reason. The breakout grows to the home shell's
 content box (`--shell-content`) and never past it.
 
 The only top-level layout exceptions are the **homepage** (`core/home.html`) and the
-**authentication pages**. Auth may use its own entrance width and composition, but
-its content surface stays lavender. A registration page, dashboard, enrollment page,
+**authentication pages**. Auth may use its own entrance width and composition (one
+centred card on a single lavender band), but its content surface stays lavender. A registration page, dashboard, enrollment page,
 leaderboard, homework or statistics page, module/unit page and project page are all
 ordinary pages and use the shared parent.
 
@@ -1199,29 +1199,36 @@ section, is the blueprint in `_docs/design/landing-pages.md`.
 
 ## The account entrance family
 
-Sign up (and its closed state), sign in, sign out, the four password-reset steps, the
-inactive-account notice and the provider outcomes are one page in several states.
-Each is an ordinary document of this system — one inline `<style>`, no external CSS,
-both shell partials, and the band-ground rule with `:root { --page: var(--lavender); }`
-so the tail matches. `content/tests/test_band_grounds.py` reads them with the public
-pages.
+Sign in, sign up (and its closed state), the password-reset steps, email
+confirmation, set/change password and the inactive-account notice are one page in
+several states. Every one extends `accounts/templates/account/auth_page.html`, an
+ordinary document of this system — one inline `<style>`, no external CSS, both shell
+partials, `:root { --page: var(--lavender); }` — whose composition is the auth
+exception:
 
-- **The column is the reading measure** (`.shell.shell-reading`). A sign-up page is a
-  single decision and does not want the full 76rem shell.
-- **The shared block is a partial, not seven copies.**
-  `accounts/templates/account/_entrance_styles.html` holds the family's own rules and
-  each page includes it inside its own style element, straight after
-  `core/_design_system.html`. Nothing in it is site-wide, so it does not belong in the
-  partial every page loads.
-- **The provider buttons are the primary path**: `.cta.cta-secondary` at full width,
-  one per row. Each carries a `.provider-mark` — a single monochrome path filled with
-  `currentColor`, so the mark takes the control's own `--ink` and survives the theme
-  without a hex or a second asset — and it is `aria-hidden` because the button already
-  says "Continue with GitHub". A provider with no mark keeps its words.
-- **`.entrance-or`** is the seam between the two ways in: the dashed rule on both
-  sides of a real word, so the choice is announced.
-- **The email form is the alternative**, in a `.card` below the divider, using the
-  shared field and `.a11y-*` primitives.
+- **One band, one card.** The page is a single lavender band holding one centred
+  `.card.auth-panel` (27rem wide). The heading and its lede sit *inside* the card,
+  centred, at the top — no cream header over a lone panel. Children fill
+  `auth_header` and `auth_content` and never draw their own card or band.
+  `content/tests/test_band_grounds.py` lists `auth_page.html` with the event page as
+  a page that opens on the content ground.
+- **Reading order inside the card:** heading, the provider buttons, the `.auth-or`
+  divider, the email form, the one green primary action, "Forgot password?", then
+  the `.auth-foot` (a `--rule` above it) holding the other way round ("New here?
+  Create an account") and the small privacy note.
+- **The provider buttons are secondary**: `.cta.cta-secondary` at full width, one
+  per row, equal height, with the small `--shadow-cta-sm` and a lighter weight so
+  the green submit stays the page's only primary. Each carries a `.provider-mark`
+  pinned to the left edge — a single monochrome path filled with `currentColor`,
+  `aria-hidden` because the button already names the provider.
+- **No providers, no social block.** With no provider configured the buttons, the
+  divider, the "Continue with a social account" lede and the privacy note are not
+  drawn.
+- **Actions stack.** Inside the card every `.entrance-actions` row is full width,
+  one per row; a Cancel is `.cta-subtle`.
+- **Shared rules are a partial.** `accounts/templates/account/_entrance_styles.html`
+  holds the field treatment for allauth's class-less widgets and the notice; the
+  parent holds the card, provider and divider rules.
 - **Who may reach these pages is not a design decision.** Redesigning a template
   changes no route, gate or rate limit.
 
