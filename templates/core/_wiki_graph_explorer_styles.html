@@ -136,16 +136,27 @@
   margin-bottom: var(--space-2);
 }
 
+/* A quiet text control still keeps the 24px minimum target (WCAG 2.5.8):
+   the box grows, the text and the toolbar's look do not. */
 .home-graph-link {
+  align-items: center;
   background: none;
   border: 0;
   color: var(--indigo);
   cursor: pointer;
+  display: inline-flex;
   font: inherit;
   font-weight: 600;
+  min-height: 24px;
   padding: 0;
   text-decoration: underline;
   text-underline-offset: 0.2em;
+}
+
+/* The display above would otherwise outrank the `hidden` attribute that
+   keeps Back out of the toolbar until there is somewhere to go back to. */
+.home-graph-link[hidden] {
+  display: none;
 }
 
 .home-graph-toolbar :is(.home-graph-link, .band-link) {
