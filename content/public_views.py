@@ -52,7 +52,7 @@ from events.queries import event_public_record, published_event_records
 from . import catalogue, wiki_content, wiki_reader
 from . import wiki_hub as wiki_hub_content
 from .article_content import article_view, render_body_markdown
-from .article_faq import ArticleFaq, article_faq
+from .article_faq import article_faq
 from .book_content import book_threads
 from .docs_reader import docs_pages
 from .event_banners import event_banner_url
@@ -1363,40 +1363,6 @@ def _hub_platform_links() -> tuple[PlatformLink, ...]:
     return tuple(by_provider[key] for key in HUB_LISTEN_ORDER if key in by_provider)
 
 
-def _article_faq_structured_data(article: dict, faq: ArticleFaq | None) -> tuple[dict, ...]:
-    """Return the FAQPage node one article's FAQ section publishes.
-
-    Written the way `content.review_views._faq_structured_data` writes the course
-    FAQ node, so the two agree: one `FAQPage` whose questions carry their own
-    canonical fragment and the plain text of the answer the page shows.
-    """
-
-    if faq is None:
-        return ()
-    canonical = _canonical(article["public_path"])
-    questions = []
-    for question in faq.questions:
-        question_url = f"{canonical}#{question.id}"
-        questions.append(
-            {
-                "@type": "Question",
-                "@id": question_url,
-                "url": question_url,
-                "name": question.question,
-                "acceptedAnswer": {"@type": "Answer", "text": question.answer_text},
-            }
-        )
-    return (
-        {
-            "@type": "FAQPage",
-            "@id": f"{canonical}#{faq.heading_id}",
-            "url": f"{canonical}#{faq.heading_id}",
-            "name": f"{article['title']} — frequently asked questions",
-            "mainEntity": questions,
-        },
-    )
-
-
 @require_safe
 def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
     article = catalogue.article(slug)
@@ -1442,13 +1408,10 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
                     ],
                     **({"image": _canonical(social_image)} if social_image else {}),
                 },
+                # The FAQPage node, when the article has a FAQ, is written by
+                # the FAQ block itself (core/_faq.html) from the questions it
+                # draws.
                 article_trail,
-                # The legacy accordion published FAQPage data with every one of
-                # these ten sections, and the course FAQ pages publish the same
-                # node today (`review_views._faq_structured_data`).  Restoring it
-                # here keeps the rich result the article already earned; an
-                # article without a recovered FAQ adds no node at all.
-                extra=_article_faq_structured_data(article, faq),
             ),
         },
     )

@@ -215,10 +215,10 @@
         }
       }
 
-      /* The recovered FAQ: the shared fold component (.faq-panel + .faq-fold
-         from the design system), so the site keeps one way of writing a
-         question and an answer.  It sits under the heading the article body
-         already carries, the head's distance below it. */
+      /* The recovered FAQ: the shared FAQ list (core/_faq.html), so the site
+         keeps one way of writing a question and an answer.  It sits under the
+         heading the article body already carries, the head's distance below
+         it. */
       .prose > .article-faq,
       .article-faq {
         margin-top: var(--space-head);
@@ -320,7 +320,11 @@
               wrote after it continues below the panel.  A body without a
               marker has no `sections_after_faq`, so the FAQ closes the article.
             {% endcomment %}
-            {% include "public/_article_faq.html" with faq_questions=article.faq %}
+            {% if article.faq %}
+              <div class="article-faq">
+                {% include "core/_faq.html" with items=article.faq %}
+              </div>
+            {% endif %}
             {% if article.sections_after_faq %}
               <div class="prose prose-reading article-body article-body-after-faq">
                 {% include "public/_prose_blocks.html" with sections=article.sections_after_faq %}

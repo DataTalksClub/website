@@ -263,17 +263,7 @@
         <h2 id="slack-faq-heading">Questions before you join</h2>
       </div>
     </div>
-    <div class="faq-panel panel panel-outlined">
-      {% for item in slack.faq %}
-        <details class="faq-fold" id="slack-faq-{{ forloop.counter }}">
-          <summary class="faq-fold-summary">
-            <h3 class="faq-question-title">{{ item.question }}</h3>
-            <span class="faq-fold-marker" aria-hidden="true"></span>
-          </summary>
-          <div class="prose faq-answer">{{ item.answer_html|safe }}</div>
-        </details>
-      {% endfor %}
-    </div>
+    {% include "core/_faq.html" with items=slack.faq %}
   </section>
 
   <section class="slack-chapter" aria-labelledby="slack-close-heading">

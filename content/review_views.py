@@ -42,7 +42,6 @@ from .docs_reader import (
     docs_page as published_docs_page,
 )
 from .faq_data import (
-    faq_answer_text,
     faq_asset_content_type,
     faq_asset_path,
     faq_courses,
@@ -228,7 +227,7 @@ def _faq_sections(course: dict[str, Any]) -> tuple[dict[str, Any], ...]:
             "questions": tuple(
                 {
                     **question,
-                    "rendered_answer": render_faq_answer(question),
+                    "answer_html": render_faq_answer(question),
                 }
                 for question in section["questions"]
             ),
@@ -237,31 +236,15 @@ def _faq_sections(course: dict[str, Any]) -> tuple[dict[str, Any], ...]:
     )
 
 
-def _faq_structured_data(course: dict[str, Any]) -> str:
+def _faq_breadcrumb_data(course: dict[str, Any]) -> str:
+    """The page's breadcrumb trail.
+
+    The FAQPage node is written by the FAQ block (core/_faq.html, via
+    `faq_structured_data`) from the same questions the page draws.
+    """
+
     canonical = _canonical(course["public_path"])
-    questions = []
-    for question in faq_questions(course):
-        question_url = f"{canonical}#{question['id']}"
-        questions.append(
-            {
-                "@type": "Question",
-                "@id": question_url,
-                "url": question_url,
-                "name": question["question"],
-                "acceptedAnswer": {
-                    "@type": "Answer",
-                    "text": faq_answer_text(question),
-                },
-            }
-        )
     graph = [
-        {
-            "@type": "FAQPage",
-            "@id": canonical,
-            "url": canonical,
-            "name": f"{course['name']} FAQ",
-            "mainEntity": questions,
-        },
         {
             "@type": "BreadcrumbList",
             "itemListElement": [
@@ -296,6 +279,7 @@ def faq_course(request: HttpRequest, course_slug: str) -> HttpResponse:
     course = faq_course_data(course_slug)
     if course is None:
         raise Http404("FAQ course is unavailable.")
+    sections = _faq_sections(course)
     return _render(
         request,
         "review/faq_detail.html",
@@ -304,9 +288,12 @@ def faq_course(request: HttpRequest, course_slug: str) -> HttpResponse:
         description=f"Answers to common questions about {course['name']}.",
         context={
             "faq_course": course,
-            "faq_sections": _faq_sections(course),
+            "faq_sections": sections,
+            "faq_questions": tuple(
+                question for section in sections for question in section["questions"]
+            ),
             "primary_navigation_current": "faq",
-            "structured_data": _faq_structured_data(course),
+            "structured_data": _faq_breadcrumb_data(course),
         },
     )
 

@@ -439,48 +439,9 @@
       }
 
       .courses-faq.shell-breakout .band-head,
-      .courses-faq.shell-breakout .faq-grid,
-      .courses-faq.shell-breakout .faq-note {
+      .courses-faq.shell-breakout .courses-faq-body {
         margin-inline: auto;
         max-width: var(--shell-content);
-      }
-
-      /* --- FAQ ------------------------------------------------------------------------
-     The mockup shows the answers: two columns of question-and-answer pairs
-     divided by a thin rule, not disclosures. */
-      .faq-grid {
-        display: grid;
-        gap: 0 var(--space-7);
-      }
-
-      .faq-item {
-        border-top: var(--rule);
-        display: grid;
-        gap: var(--space-2);
-        padding: var(--space-5) 0;
-      }
-
-      .faq-item h3 {
-        font-size: 1.15rem;
-        letter-spacing: -0.01em;
-        text-wrap: pretty;
-      }
-
-      .faq-item p {
-        color: var(--body-text);
-        font-size: 0.95rem;
-        line-height: 1.6;
-        text-wrap: pretty;
-      }
-
-      @media (min-width: 48rem) {
-        .faq-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-
-      .faq-note {
-        margin-top: var(--space-5);
       }
 {% endblock %}
 
@@ -647,53 +608,9 @@
             <h2 id="courses-faq-heading">Frequent questions</h2>
           </div>
         </div>
-        <div class="faq-grid">
-          <div class="faq-item">
-            <h3>Is it really free?</h3>
-            <p>
-              Yes. Every video, homework and solution stays public — there is nothing
-              to pay and nothing to upsell.
-            </p>
-          </div>
-          <div class="faq-item">
-            <h3>Can I join after a cohort starts?</h3>
-            <p>
-              Yes, while it is still running. Catch up on the recordings and submit
-              whatever homework is still open.
-            </p>
-          </div>
-          <div class="faq-item">
-            <h3>How much time do I need?</h3>
-            <p>
-              Enough for the weekly videos plus hands-on practice. Most people do it
-              alongside a full-time job — each course's own syllabus lays out its pace.
-            </p>
-          </div>
-          <div class="faq-item">
-            <h3>What should I know beforehand?</h3>
-            <p>
-              Comfort with Python and the command line goes a long way. Each course
-              page lists its exact prerequisites.
-            </p>
-          </div>
-          <div class="faq-item">
-            <h3>Do I get a certificate?</h3>
-            <p>
-              To get a certificate you need to pass a project.
-            </p>
-          </div>
-          <div class="faq-item">
-            <h3>Which course should I start with?</h3>
-            <p>
-              Switching into data? Start with Data Engineering Zoomcamp or Machine
-              Learning Zoomcamp. Already shipping models? Try MLOps Zoomcamp or LLM
-              Zoomcamp.
-            </p>
-          </div>
+        {% url 'slack' as slack_url %}
+        <div class="courses-faq-body">
+          {% include "core/_faq.html" with items=catalogue_faq_items closing="Have more questions?" closing_url=slack_url closing_label="Join Slack and ask away" %}
         </div>
-        <p class="faq-note">
-          Have more questions? <a class="band-link" href="{% url 'slack' %}">Join Slack</a>
-          and ask away.
-        </p>
       </section>
 {% endblock %}

@@ -32,7 +32,7 @@
         narrower than the column, so no chapter leaves a dead strip on its
         right.  Every chapter is the same frame -- a dashed seam, a
         .band-head, then the site's own components (spec strip, featured
-        slab, stage cards, cards, stat tiles, list rows, the FAQ fold, the
+        slab, stage cards, cards, stat tiles, list rows, the FAQ list, the
         mint panel).  Every fact is read from the family record and its
         cohorts (see courses.course_page_content); a fact the data cannot back
         is not drawn.
@@ -504,12 +504,6 @@
         padding: 0;
       }
 
-      /* --- FAQ ------------------------------------------------------------- */
-
-      .family-faq-list {
-        margin-bottom: var(--space-4);
-      }
-
       /* A list that ends a chapter does not draw its own last rule: the
          chapter seam below already divides it from what follows. */
       .family-chapter > .row-list > :last-child {
@@ -746,7 +740,7 @@
           6. Final project & what people built — summary, passed learner projects, certificate preview
           (7. Tools & 8. Instructors are drawn only when database-backed fields exist)
           9. Graduate stories — reviews from people who finished this course
-         10. FAQ — single-column accordion
+         10. FAQ — the shared FAQ list (core/_faq.html)
          11. Final CTA — repeats both options (join cohort / start self-paced now)
 
         Cohort editions belong to the LMS layer and are shown only to signed-in
@@ -1110,37 +1104,15 @@
         </section>
       {% endif %}
 
-      {% if family_faq_questions or family_quick_faq_items or course_family.faq_document_url %}
+      {% if family_faq_items or course_family.faq_document_url %}
         <section class="family-chapter family-faq" aria-labelledby="faq-heading">
           <div class="band-head">
             <div>
               <h2 id="faq-heading">Questions before you start?</h2>
             </div>
           </div>
-          {% if family_faq_questions or family_quick_faq_items %}
-            <div class="faq-panel panel panel-outlined family-faq-list">
-              {% for question in family_faq_questions %}
-                <details class="faq-fold" id="{{ question.id }}">
-                  <summary class="faq-fold-summary">
-                    <h3 class="faq-question-title">{{ question.question }}</h3>
-                    <span class="faq-fold-marker" aria-hidden="true"></span>
-                  </summary>
-                  <div class="prose faq-answer">{{ question.rendered_answer|safe }}</div>
-                </details>
-              {% endfor %}
-              {% for item in family_quick_faq_items %}
-                <details class="faq-fold" id="quick-faq-{{ forloop.counter }}">
-                  <summary class="faq-fold-summary">
-                    <h3 class="faq-question-title">{{ item.question }}</h3>
-                    <span class="faq-fold-marker" aria-hidden="true"></span>
-                  </summary>
-                  <div class="prose faq-answer"><p>{{ item.answer }}</p></div>
-                </details>
-              {% endfor %}
-            </div>
-            {% if family_faq_url %}
-              <a class="band-link family-faq-link" href="{{ family_faq_url }}">See the full course FAQ →</a>
-            {% endif %}
+          {% if family_faq_items %}
+            {% include "core/_faq.html" with items=family_faq_items closing_url=family_faq_url closing_label="See the full course FAQ →" %}
           {% elif course_family.faq_document_url %}
             <p class="family-empty">This course keeps its own frequently asked questions.</p>
             <a

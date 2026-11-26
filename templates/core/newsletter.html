@@ -207,17 +207,7 @@
         <h2 id="newsletter-faq-heading">Questions before you subscribe</h2>
       </div>
     </div>
-    <div class="faq-panel panel panel-outlined">
-      {% for item in newsletter.faq %}
-        <details class="faq-fold" id="newsletter-faq-{{ forloop.counter }}">
-          <summary class="faq-fold-summary">
-            <h3 class="faq-question-title">{{ item.question }}</h3>
-            <span class="faq-fold-marker" aria-hidden="true"></span>
-          </summary>
-          <div class="prose faq-answer">{{ item.answer_html|safe }}</div>
-        </details>
-      {% endfor %}
-    </div>
+    {% include "core/_faq.html" with items=newsletter.faq %}
   </section>
 
   <section class="newsletter-chapter" aria-labelledby="newsletter-close-heading">

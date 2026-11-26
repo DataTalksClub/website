@@ -1,4 +1,4 @@
-{% load breadcrumbs seo %}
+{% load breadcrumbs faq seo %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -104,44 +104,6 @@
       .faq-section {
         scroll-margin-top: 1rem;
       }
-
-      /* A question is a row in a grid, so it says so: without the zero minimum
-         the widest unwrapped line in an answer (a code block keeps its lines)
-         would set the row's width and scroll the whole page sideways. */
-      .faq-permalink-row {
-        padding-bottom: var(--space-3);
-      }
-
-      .faq-answer > table {
-        display: block;
-        max-width: 100%;
-        overflow-x: auto;
-      }
-
-      /* The system's code block scrolls inside its own frame, which a keyboard
-         cannot reach because the fragment carries no focus stop to give it.  An
-         answer's commands and tracebacks wrap instead — the behaviour this page
-         has always had — so the block stays readable without one. */
-      .faq-answer pre {
-        overflow-wrap: anywhere;
-        overflow-x: visible;
-        white-space: pre-wrap;
-        word-break: break-word;
-      }
-
-      /* Wide: the question keeps its permalink on the heading's own row.  The
-         link keeps its 2.75rem target, but the negative margin stops that
-         target from stretching a one-line question away from its answer. */
-      @media (min-width: 48rem) {
-        .faq-question-head {
-          align-items: baseline;
-          grid-template-columns: minmax(0, 1fr) auto;
-        }
-
-        .faq-permalink {
-          margin-block: calc(var(--space-3) * -1);
-        }
-      }
     </style>
   </head>
   {% url 'update_timezone_preference' as timezone_update_url %}
@@ -222,36 +184,14 @@
                 </p>
               </div>
             </div>
-            <div class="faq-panel panel panel-outlined">
-              {% for question in section.questions %}
-                {% comment %}
-                  The shared fold from the design system, the same one the blog
-                  articles' recovered FAQ draws.  The permalink keeps its own
-                  row under the summary rather than sitting inside it: a link
-                  inside a <summary> is a control inside a control, and clicking
-                  it would toggle the fold as well as follow the link.
-                {% endcomment %}
-                <details class="faq-fold" id="{{ question.id }}">
-                  <summary class="faq-fold-summary">
-                    <h3 class="faq-question-title">{{ question.question }}</h3>
-                    <span class="faq-fold-marker" aria-hidden="true"></span>
-                  </summary>
-                  <div class="prose faq-answer">{{ question.rendered_answer|safe }}</div>
-                  <p class="faq-permalink-row">
-                    <a class="faq-permalink" href="#{{ question.id }}">
-                      <span aria-hidden="true">#{{ question.id }}</span>
-                      <span class="sr-only">Link to {{ question.question }}</span>
-                    </a>
-                  </p>
-                </details>
-              {% endfor %}
-            </div>
+            {% include "core/_faq.html" with items=section.questions permalinks=True structured_data=False %}
             <p class="band-more">
               <a class="band-link" href="#faq-contents">Back to contents ↑</a>
             </p>
           </div>
         </section>
       {% endfor %}
+      {% faq_structured_data faq_questions %}
     </main>
     {% include "core/_site_shell_foot.html" %}
   </body>

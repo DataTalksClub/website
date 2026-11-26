@@ -924,7 +924,7 @@ class CourseFamilyFaqPreviewTests(TestCase):
 
         self.assertContains(response, "Questions before you start?")
         self.assertContains(response, 'href="https://example.invalid/legacy-course-faq"')
-        self.assertNotContains(response, '<details class="faq-fold"')
+        self.assertNotContains(response, 'class="faq-list-item"')
 
     def test_family_matching_a_real_faq_document_shows_real_questions_inline(self):
         from content.faq_data import faq_course, faq_questions, render_faq_answer
@@ -949,7 +949,7 @@ class CourseFamilyFaqPreviewTests(TestCase):
         self.assertContains(response, "See the full course FAQ")
         # The preview is bounded, not the whole document, however many
         # questions the real FAQ carries.
-        self.assertLessEqual(body.count('<details class="faq-fold"'), 5)
+        self.assertLessEqual(body.count('class="faq-list-item"'), 5)
 
     def test_quick_faq_answers_fill_a_real_course_with_no_synced_document(self):
         # A real course (has a visible cohort) whose FAQ hasn't been synced and

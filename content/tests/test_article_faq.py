@@ -23,6 +23,8 @@ published.
 
 from __future__ import annotations
 
+import json
+import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -37,7 +39,6 @@ from content.article_faq import (
     render_article_faq_answer,
 )
 from content.article_faq_format import faq_anchor_id
-from content.public_views import _article_faq_structured_data
 
 # A slug the reviewed catalogue does not publish, so this module's rows are the
 # only ones its assertions can be reading.
@@ -303,8 +304,8 @@ class ArticleFaqPageRenderTests(TestCase):
     """The rendered page: no bare "#" permalink, but the anchor still works.
 
     The owner asked for the visible "#" permalink mark after each answer to
-    go away (it read as unlabelled clutter).  The `<details>` element already
-    carries the question's id, so the deep link a shared `#faq-…` URL relies
+    go away (it read as unlabelled clutter).  The FAQ item already carries
+    the question's id, so the deep link a shared `#faq-…` URL relies
     on keeps working without that extra anchor.
     """
 
@@ -313,9 +314,9 @@ class ArticleFaqPageRenderTests(TestCase):
 
         body = self.client.get(ARTICLE_PATH).content.decode()
 
-        self.assertNotIn("faq-permalink", body)
+        self.assertNotIn('class="faq-list-permalink"', body)
 
-    def test_the_question_s_own_id_still_anchors_the_details_element(self) -> None:
+    def test_the_question_s_own_id_still_anchors_the_item(self) -> None:
         _publish_article()
         faq = article_faq(ARTICLE_SLUG)
         assert faq is not None
@@ -323,22 +324,31 @@ class ArticleFaqPageRenderTests(TestCase):
         body = self.client.get(ARTICLE_PATH).content.decode()
 
         for question in faq.questions:
-            self.assertIn(f'<details class="faq-fold" id="{question.id}">', body)
+            self.assertIn(f'<div class="faq-list-item" id="{question.id}">', body)
+
+
+def _faq_pages(body: str) -> list[dict]:
+    documents = [
+        json.loads(match)
+        for match in re.findall(r'<script type="application/ld\+json">(.*?)</script>', body, re.S)
+    ]
+    return [document for document in documents if document.get("@type") == "FAQPage"]
 
 
 class ArticleFaqStructuredDataTests(TestCase):
+    """The FAQ block publishes the FAQPage from the questions it draws."""
+
     def test_the_section_publishes_one_faqpage_of_its_own_questions(self) -> None:
         _publish_article()
         faq = article_faq(ARTICLE_SLUG)
         assert faq is not None
 
-        nodes = _article_faq_structured_data(_record(), faq)
+        nodes = _faq_pages(self.client.get(ARTICLE_PATH).content.decode())
 
         self.assertEqual(len(nodes), 1)
         node = nodes[0]
         canonical = f"https://datatalks.club{ARTICLE_PATH}"
-        self.assertEqual(node["@type"], "FAQPage")
-        self.assertEqual(node["@id"], f"{canonical}#{FAQ_SECTION_ANCHOR}")
+        self.assertEqual(node["url"], canonical)
         self.assertEqual(
             [entry["name"] for entry in node["mainEntity"]],
             [pair["question"] for pair in PAIRS],
@@ -346,6 +356,3 @@ class ArticleFaqStructuredDataTests(TestCase):
         for entry, question in zip(node["mainEntity"], faq.questions, strict=True):
             self.assertEqual(entry["url"], f"{canonical}#{question.id}")
             self.assertEqual(entry["acceptedAnswer"]["text"], question.answer_text)
-
-    def test_an_article_without_a_faq_publishes_no_faqpage(self) -> None:
-        self.assertEqual(_article_faq_structured_data(_record(), None), ())

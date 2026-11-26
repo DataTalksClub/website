@@ -382,7 +382,7 @@ def family_faq_preview(family: Course, *, limit: int = FAMILY_FAQ_PREVIEW_LIMIT)
             "question": faq_question_without_section_label(
                 question["question"], section_title(section)
             ),
-            "rendered_answer": render_faq_answer(question),
+            "answer_html": render_faq_answer(question),
         }
         for question, section in questions
     )
@@ -428,9 +428,9 @@ class QuickFaqItem:
 
 
 #: The four objection-answering questions the ``/courses`` catalogue already
-#: answers well (``courses/templates/courses/course_list.html``'s
-#: ``.faq-grid``): is it free, how much time it takes, whether a late start is
-#: fine, and the certificate rule.  A course family's own real FAQ document
+#: answers well (``CATALOGUE_FAQ_ITEMS`` below, drawn by ``core/_faq.html``):
+#: is it free, how much time it takes, whether a late start is fine, and the
+#: certificate rule.  A course family's own real FAQ document
 #: preview (``family_faq_preview``, above) shows the document's first five
 #: questions in source order, which for every real course today are general
 #: orientation questions, not these -- so a visitor who never expands "See the
@@ -466,6 +466,31 @@ QUICK_FAQ_ITEMS: tuple[QuickFaqItem, ...] = (
         keywords=("certificate",),
         question="Do I get a certificate?",
         answer="To get a certificate you need to pass a project.",
+    ),
+)
+
+
+#: The ``/courses`` catalogue's "Frequent questions": the four items above in
+#: the catalogue's order, plus the two that only make sense across all courses.
+CATALOGUE_FAQ_ITEMS: tuple[QuickFaqItem, ...] = (
+    *QUICK_FAQ_ITEMS[:3],
+    QuickFaqItem(
+        keywords=(),
+        question="What should I know beforehand?",
+        answer=(
+            "Comfort with Python and the command line goes a long way. Each "
+            "course page lists its exact prerequisites."
+        ),
+    ),
+    QUICK_FAQ_ITEMS[3],
+    QuickFaqItem(
+        keywords=(),
+        question="Which course should I start with?",
+        answer=(
+            "Switching into data? Start with Data Engineering Zoomcamp or "
+            "Machine Learning Zoomcamp. Already shipping models? Try MLOps "
+            "Zoomcamp or LLM Zoomcamp."
+        ),
     ),
 )
 
@@ -776,6 +801,9 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_faq_questions": family_faq_questions,
         "family_faq_url": family_faq_url,
         "family_quick_faq_items": quick_faq_items,
+        # What the FAQ block draws: the course's own questions, then the
+        # catalogue's quick answers it does not already cover.
+        "family_faq_items": (*family_faq_questions, *quick_faq_items),
         "self_paced_cohort": self_paced_cohort,
         "enroll_cohort": enroll_cohort,
         "family_lede": family_lede(family),
