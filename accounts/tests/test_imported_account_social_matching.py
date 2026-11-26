@@ -966,10 +966,8 @@ class ImportedAccountMatchingFailsClosedTests(ImportedAccountSignInTestCase):
         self.assert_denied(client, response)
         self.assertEqual(User.objects.count(), 1)
 
-    def test_unknown_verified_address_is_denied_rather_than_given_a_new_account(
-        self,
-    ) -> None:
-        """Signup is closed, so an unmatched address must not silently enrol."""
+    def test_unknown_verified_address_gets_a_new_account(self) -> None:
+        """A provider-verified address no member holds signs up a new member."""
 
         client, response = self.sign_in(
             provider="google",
@@ -979,12 +977,9 @@ class ImportedAccountMatchingFailsClosedTests(ImportedAccountSignInTestCase):
             ),
         )
 
-        self.assert_denied(client, response)
-        self.assertEqual(User.objects.count(), 0)
-        self.assertEqual(
-            AccountIdentityQuarantine.objects.get().reason_codes,
-            ["verified_owner_missing"],
-        )
+        self.assertEqual(User.objects.count(), 1)
+        self.assertEqual(User.objects.get().email, "stranger@example.invalid")
+        self.assertFalse(AccountIdentityQuarantine.objects.exists())
 
     def test_two_imported_accounts_sharing_an_address_are_denied(self) -> None:
         """The export carries exactly one such pair; a human must split it."""

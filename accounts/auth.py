@@ -215,6 +215,16 @@ def _account_email(user: Any) -> str | None:
     return normalized_email_of(user) or normalize_account_email(user.email)
 
 
+def _address_claimed_by_any_account(email: str) -> bool:
+    """Whether any account holds ``email``, verified or not."""
+
+    user_model = get_user_model()
+    return (
+        user_model.objects.filter(email__iexact=email).exists()
+        or EmailAddress.objects.filter(email__iexact=email).exists()
+    )
+
+
 def _candidate_users_for_verified_email(email: str) -> tuple[Any, ...]:
     """Accounts that claim ``email``, however this site came to hold them.
 
@@ -598,13 +608,23 @@ class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):
                 candidates_by_id[candidate.pk] = candidate
                 matched_email_by_id.setdefault(candidate.pk, email)
         candidate_ids = tuple(sorted(candidates_by_id))
+        if not candidate_ids:
+            # An address some account claims without proof (an unverified
+            # password account) must not be taken over or duplicated.
+            if any(_address_claimed_by_any_account(email) for email in emails):
+                _deny_link(
+                    request=request,
+                    sociallogin=sociallogin,
+                    reason="verified_owner_missing",
+                )
+            # A provider-verified address no account claims at all is a
+            # genuinely new person: let allauth sign them up.
+            return
         if len(candidate_ids) != 1:
             _deny_link(
                 request=request,
                 sociallogin=sociallogin,
-                reason=(
-                    "verified_owner_missing" if not candidate_ids else "verified_owner_ambiguous"
-                ),
+                reason="verified_owner_ambiguous",
                 user_ids=candidate_ids,
             )
 
