@@ -164,10 +164,6 @@
         scroll-padding-inline: var(--space-2);
       }
 
-      .catalog-scroller-controls {
-        margin-top: var(--space-3);
-      }
-
       /* --- comparison (Free courses vs Academy) --------------------------- */
 
       .comparison-card {
@@ -773,6 +769,32 @@
             <div>
               <h2 id="courses-heading">Active courses</h2>
             </div>
+            {% if catalog_courses %}
+            <div class="scroller-controls" aria-label="Course catalogue controls">
+              <button
+                class="scroller-button interactive-lift"
+                type="button"
+                data-scroll="-1"
+                data-scroll-target="catalog-scroller"
+                aria-label="Scroll catalogue left"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M15 5l-7 7 7 7"/>
+                </svg>
+              </button>
+              <button
+                class="scroller-button interactive-lift"
+                type="button"
+                data-scroll="1"
+                data-scroll-target="catalog-scroller"
+                aria-label="Scroll catalogue right"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M9 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+            {% endif %}
           </div>
           {% if featured_catalog_entry %}
           {% if featured_build_items %}
@@ -851,30 +873,6 @@
                 <a class="band-link course-link" href="{{ course.public_path }}">View course</a>
               </article>
             {% endfor %}
-          </div>
-          <div class="scroller-controls catalog-scroller-controls" aria-label="Course catalogue controls">
-            <button
-              class="scroller-button interactive-lift"
-              type="button"
-              data-scroll="-1"
-              data-scroll-target="catalog-scroller"
-              aria-label="Scroll catalogue left"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M15 5l-7 7 7 7"/>
-              </svg>
-            </button>
-            <button
-              class="scroller-button interactive-lift"
-              type="button"
-              data-scroll="1"
-              data-scroll-target="catalog-scroller"
-              aria-label="Scroll catalogue right"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M9 5l7 7-7 7"/>
-              </svg>
-            </button>
           </div>
           {% elif not featured_catalog_entry %}
             {% comment %}

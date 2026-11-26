@@ -360,7 +360,8 @@ borders (a chevron, a tick, a chart key) are reviewed rows in that test.
 | In-content block | `--border-soft` (or `--border-quiet`) | `--radius-media` | none | `.callout`, `.prose blockquote`, `.cb-alert`, `.book-replies`, empty states |
 | Input | `--border-field` | `--radius-control` | none | `.field-input`, `.form-control`, `.cb-field`, entrance and event-register fields; read-only values use `--border-soft` |
 | Search field | `--border-strong` | `--radius-control` | none (the button beside it keeps `--shadow-cta`) | `.search-row` (`core/_search_row.html`): the field takes its Search button's ink edge, radius and 3.25rem height so the pair reads as one control; focus is `--outline-focus`. Every search box is this partial. The newsletter signup (`.newsletter-form-row`, `core/_newsletter_signup_form.html`) is the same pairing with Subscribe |
-| Button / CTA | `--border-strong` | `--radius-control` or `--radius-pill` | a `--shadow-cta*` token | `.cta`, `.signup-button`, `.pill-button`, `.filter-pill`, `.scroller-button`, `.cohort-tab`, nav toggles |
+| Button / CTA | `--border-strong` | `--radius-control` or `--radius-pill` | a `--shadow-cta*` token | `.cta`, `.signup-button`, `.pill-button`, `.filter-pill`, `.cohort-tab`, nav toggles |
+| Carousel arrow | `--border-soft` | `--radius-pill` | none; hover tints the edge to `--indigo-soft` like a soft card | `.scroller-button`: it pages through soft cards, so it wears their edge, not the CTA's ink. Ink chevron, 2.75rem (44px) disc, shared focus ring. Every carousel puts its arrows at the top right of the band head |
 | Chip / status pill | `--border-soft` | `--radius-pill` / `--radius-sm` | none | `.chip`, `.status-pill`, `.cb-badge`, past-supporter names, inline `code`; state variants change only `border-color` |
 | Drawn mark | `--border-strong` | `--drawn-circle*` / `--radius-pill` | none | `.step-number`, `.module-number`, `.promise-mark`, `.play-disc`, `.avatar` and portraits, `.progress` |
 | Rule (inside a block) | `--rule` | — | — | `.row-list` rows, table rows, `.faq-fold`, `.module-fact`, menu groups, timestamp and chapter rows |
@@ -880,7 +881,9 @@ wraps inside the pill and the pill grows, rather than pushing the page sideways.
 - **`.catalog-scroller`** — a scroll-snap column grid that hides its scrollbar and
   stays a carousel at every width. Pair with `.scroller-controls` / `.scroller-button`
   (hidden without JavaScript via `html.js`); keep `tabindex="0"`, `role="group"` and
-  an `aria-label` on the strip.
+  an `aria-label` on the strip. The controls always sit in the `.band-head`, at the
+  top right beside the heading (home courses, home stories, course stories), never
+  under the cards. The arrows are soft discs (see Borders, "Carousel arrow").
 - **`.doodle`** — a decorative drawing: `display: block; width: 100%`. Pages constrain
   aspect ratio per slot. Always `alt=""`.
 - **`.module` / `.module-list`** — the disclosure accordion for a surface with genuine

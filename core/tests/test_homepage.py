@@ -142,7 +142,7 @@ class CatalogCardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
         scroller = body[body.index('id="catalog-scroller"') :]
-        scroller = scroller[: scroller.index("catalog-scroller-controls")]
+        scroller = scroller[: scroller.index("</section>")]
 
         self.assertNotIn("chip", scroller)
         self.assertNotIn("featured-badges", body)
@@ -175,7 +175,7 @@ class FeaturedFlagTests(TestCase):
 
         self.assertNotIn("data-featured-course", body)
         scroller = body[body.index('id="catalog-scroller"') :]
-        scroller = scroller[: scroller.index("catalog-scroller-controls")]
+        scroller = scroller[: scroller.index("</section>")]
         for _family, title in COURSE_FAMILIES:
             with self.subTest(title=title):
                 self.assertIn(escape(title), scroller)
@@ -189,7 +189,7 @@ class FeaturedFlagTests(TestCase):
         panel = body[body.index("data-featured-course") :]
         panel, scroller = panel.split('id="catalog-scroller"', 1)
         self.assertIn("Data Engineering Zoomcamp", panel)
-        cards = scroller.split("catalog-scroller-controls")[0]
+        cards = scroller.split("</section>")[0]
         self.assertNotIn("Data Engineering Zoomcamp", cards)
         self.assertIn("AI Dev Tools Zoomcamp", scroller)
 
