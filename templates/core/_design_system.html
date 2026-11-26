@@ -419,6 +419,13 @@ Rules for editing:
         outline: 0;
       }
 
+      /* Status messages and summaries take focus from script so screen
+         readers announce them; they are not controls, so no focus ring. */
+      [tabindex="-1"]:focus,
+      [tabindex="-1"]:focus-visible {
+        outline: 0;
+      }
+
       .skip-link {
         background: var(--ink);
         border-radius: var(--radius-sm);
