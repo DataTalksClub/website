@@ -54,6 +54,7 @@ from playwright_tests.credential_clipboard import (
     install_credential_clipboard,
 )
 from test_support.factories import FactoryContext, create_current_scenario
+from test_support.learner_profile import give_confirmed_learner_profile
 from test_support.runtime import DEFAULT_FROZEN_AT, current_worker_id
 
 pytestmark = [
@@ -68,7 +69,7 @@ VIEWPORTS = (
 SCREENSHOTS = Path(".tmp/screenshots/issue-65")
 # The one value the invalid-registration state types, so the same string is
 # submitted and then asserted to have survived the error.
-INVALID_FORM_COMPANY = "Synthetic Valid Company"
+INVALID_FORM_ANSWER = "Synthetic valid answer"
 
 
 def _seed_registration_count(event: dict[str, object], *, count: int) -> None:
@@ -241,6 +242,10 @@ def accessibility_environment() -> AccessibilityEnvironment:
     course = scenario["adopted_courses.course"].value
     campaign = scenario["adopted_courses.registration_campaign"].value
     learner = scenario["adopted_courses.enrollment"].value.student
+    # Registering needs a complete, recently confirmed learner profile
+    # (bf8eface); the registration surfaces below are about the card, not the
+    # profile gate in front of it.
+    give_confirmed_learner_profile(learner)
     homework = scenario["adopted_courses.homework"].value
     project = scenario["adopted_courses.project"].value
     enrollment = scenario["adopted_courses.enrollment"].value
@@ -262,6 +267,9 @@ def accessibility_environment() -> AccessibilityEnvironment:
         edition_label="Synthetic edition",
         current_course=empty_course,
         is_active=True,
+        # One free-text course question, so the invalid submission has a typed
+        # value that must survive the error (profile fields are read-only).
+        registration_questions=["comment"],
     )
 
     _restore_audit_event_id_default()
@@ -277,6 +285,12 @@ def accessibility_environment() -> AccessibilityEnvironment:
     denied_user = get_user_model().objects.create_user(
         username=f"accessibility-denied-{namespace}",
         email=f"denied-{namespace}@example.invalid",
+    )
+    # A new account with no learner profile yet: who the welcome profile card
+    # is for (the learner above has already passed the profile gate).
+    newcomer = get_user_model().objects.create_user(
+        username=f"accessibility-newcomer-{namespace}",
+        email=f"newcomer-{namespace}@example.invalid",
     )
     access = Permission.objects.get(content_type__app_label="core", codename="access_studio")
     high_risk = Permission.objects.get(
@@ -371,7 +385,7 @@ def accessibility_environment() -> AccessibilityEnvironment:
         # answers with the marketing page for "home" and with the member home
         # for a signed-in actor, so both branches are scanned.
         "member-home": Surface("/", actor="learner"),
-        "account-welcome": Surface("/accounts/welcome/", actor="learner"),
+        "account-welcome": Surface("/accounts/welcome/", actor="newcomer"),
         "identity-conflict": Surface(
             "/_accessibility/identity-conflict/",
             expected_status=409,
@@ -468,6 +482,7 @@ def accessibility_environment() -> AccessibilityEnvironment:
             "site-admin": site_admin,
             "credential": credential_user,
             "denied": denied_user,
+            "newcomer": newcomer,
         },
         credential_target_id=str(target.id),
         objects={
@@ -518,7 +533,7 @@ def _visit_surface(
         # to survive it.  The email is not a form field on this card any more —
         # it is the account's, shown read-only (§8.2).
         form = page.locator("[data-registration-form]")
-        form.locator('[name="company_name"]').fill(INVALID_FORM_COMPANY)
+        form.locator('[name="comment"]').fill(INVALID_FORM_ANSWER)
         form.evaluate("element => element.submit()")
         expect(page.locator("[data-focus-error-summary]")).to_be_focused()
 
@@ -1461,7 +1476,7 @@ def test_keyboard_focus_status_and_form_error_contracts(
         preserved_value_issues(
             page,
             "learner.invalid-form",
-            {"company_name": INVALID_FORM_COMPANY},
+            {"comment": INVALID_FORM_ANSWER},
         )
         == []
     )

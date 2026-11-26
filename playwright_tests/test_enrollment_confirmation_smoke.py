@@ -21,9 +21,14 @@ pytestmark = [pytest.mark.smoke, pytest.mark.django_db(transaction=True)]
 
 def _learner():
     from accounts.models import User
+    from test_support.learner_profile import give_confirmed_learner_profile
 
     email = "enroll-confirm-learner@example.invalid"
-    return User.objects.create_user(username=email, email=email)
+    user = User.objects.create_user(username=email, email=email)
+    # Enrolling needs a complete, recently confirmed learner profile (bf8eface);
+    # this smoke is about the enrollment confirmation, not the profile gate.
+    give_confirmed_learner_profile(user)
+    return user
 
 
 def _sign_in(page: Page, live_server, user) -> None:

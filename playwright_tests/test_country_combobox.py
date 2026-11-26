@@ -52,8 +52,9 @@ def _register_path() -> str:
 
 
 def _member_without_country() -> User:
-    # The final step asks for the profile fields the account lacks; a member
-    # with no country is exactly who sees the combobox there.
+    # Registration first asks for the learner profile the account lacks
+    # (bf8eface): a member with no country lands on the profile card, which is
+    # where the country combobox is.
     email = "combobox-member@example.invalid"
     return User.objects.create_user(username=email, email=email)
 
@@ -272,6 +273,7 @@ def test_enter_on_an_open_popup_selects_instead_of_submitting_the_form(
     _campaign()
     _sign_in(page, live_server, _member_without_country())
     page.goto(f"{live_server.url}{_register_path()}")
+    profile_card_url = page.url
 
     field = _input(page)
     panel = _panel(page)
@@ -286,4 +288,4 @@ def test_enter_on_an_open_popup_selects_instead_of_submitting_the_form(
     # act by the member).
     expect(field).to_have_value("Germany")
     expect(panel).to_be_hidden()
-    expect(page).to_have_url(f"{live_server.url}{_register_path()}")
+    expect(page).to_have_url(profile_card_url)
