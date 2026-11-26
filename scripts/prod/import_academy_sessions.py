@@ -20,8 +20,12 @@ position -- which is how ``academy.presentation.session_event_paths`` finds
 the event page to send people to -- and, through the supported
 ``events.admin_services.update_event`` service (audited; the join URL is
 recorded only as a digest), gets ``platform="zoom"``, the session's Zoom
-meeting as ``zoom_join_url`` and its materials minus any link to the retired
-``/academy/sessions/`` signup (the legacy "Event link").
+meeting as ``zoom_join_url``, the session's ``description`` from the sessions
+page as its description (the legacy ``_data/events.yaml`` entries these events
+came from carry none, and no event may be without one) and its materials minus
+any link to the retired ``/academy/sessions/`` signup (the legacy "Event
+link").  All of it is one ``update_event`` call, so an event still missing its
+description is completed by the same write that edits it.
 
 **Signups** (only with ``--signups``).  An export of the Academy backend's
 session signups, pulled by an operator into ``~/prod`` (outside the
@@ -311,6 +315,9 @@ def _reconcile_events(data: dict[str, Any], report: Report) -> dict[str, Any]:
             changes["platform"] = "zoom"
         if session.get("zoom_url") and event.zoom_join_url != session["zoom_url"]:
             changes["zoom_join_url"] = session["zoom_url"]
+        description = str(session.get("description") or "").strip()
+        if description and (event.description or "").strip() != description:
+            changes["description"] = description
         if materials != (event.materials or []):
             changes["materials"] = materials
         if changes:

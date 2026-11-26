@@ -23,6 +23,7 @@ from django.db import IntegrityError, connection, transaction
 from django.test import TestCase
 
 from event_registrants.models import EventOperatorConfig
+from events.admin_services import EventAdminError, update_event
 from events.identity import EventIdentityError, create_event_identity
 from events.pictures import EventPictureRequired
 from events.publication import completeness_gaps, completeness_summary, incomplete_events
@@ -177,6 +178,33 @@ class PictureRuleTests(_WithoutSeedEvents):
         event = _event()
         event.delete()
         self.assertFalse(EventOperatorConfig.objects.exists())
+
+
+class DescriptionRuleTests(_WithoutSeedEvents):
+    """The description rule on edits through the event admin service.
+
+    Creation already refuses a blank description (``create_event_identity``),
+    and on PostgreSQL the triggers refuse an incomplete commit.  The admin
+    service holds the rule itself, so an edit on SQLite (local development and
+    the prep dataset) cannot leave an event without one either.
+    """
+
+    def test_the_admin_update_refuses_to_leave_an_event_without_one(self) -> None:
+        event = _event(description="")
+        with self.assertRaises(EventAdminError) as caught:
+            update_event({"zoom_join_url": "https://example.invalid/zoom"}, event_id=event.pk)
+        self.assertEqual(caught.exception.code, "event_description_required")
+        with self.assertRaises(EventAdminError):
+            update_event({"description": ""}, event_id=_event(title="Other").pk)
+
+    def test_the_admin_update_completes_it_in_the_same_write(self) -> None:
+        event = _event(description="")
+        update_event(
+            {"zoom_join_url": "https://example.invalid/zoom", "description": "About it."},
+            event_id=event.pk,
+        )
+        event.refresh_from_db()
+        self.assertEqual(event.description, "About it.")
 
 
 @unittest.skipUnless(connection.vendor == "postgresql", "constraint triggers are PostgreSQL-only")

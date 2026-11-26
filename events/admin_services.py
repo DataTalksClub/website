@@ -739,6 +739,13 @@ def update_event(
             "sponsor_name": sponsor_name,
         }
     )
+    # The rule create_event applies, held on every edit too: no save leaves
+    # an event without a description (the database refuses it as well).
+    if not (event.description or "").strip():
+        raise EventAdminError(
+            "description is required: every event needs a description.",
+            code="event_description_required",
+        )
     if schedule_changed:
         event.ics_sequence += 1
     event.save()

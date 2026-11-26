@@ -81,12 +81,29 @@ class AcademySessionsImportTests(TestCase):
             self.assertEqual(event.zoom_join_url, f"https://example.invalid/zoom/{number}")
             # The retired signup link goes; every other material stays.
             self.assertEqual(event.materials, [SLIDES])
+            # The description is the session's own, from the sessions page.
+            self.assertEqual(
+                event.description,
+                "Synthetic intro.\n\n- first point\n- second point\n\nSynthetic close.",
+            )
+            self.assertIn("<li>first point</li>", event.description_html)
         # The second run finds everything in place.
         again = entry_point.run(signups=None, apply=True)
         self.assertFalse(again.series_created)
         self.assertEqual(again.events_linked, [])
         self.assertEqual(again.events_updated, [])
         self.assertEqual(len(again.events_unchanged), 3)
+
+    def test_an_event_without_a_description_is_completed_by_the_same_write(self) -> None:
+        # Legacy rows (``_data/events.yaml`` carries no description) predate the
+        # rule; ``update()`` bypasses it, as the legacy import did.
+        Event.objects.filter(pk=self.two.pk).update(description="", description_html="")
+
+        report = entry_point.run(signups=None, apply=True)
+
+        self.assertEqual(report.unresolved_sessions, {})
+        self.two.refresh_from_db()
+        self.assertTrue(self.two.description.startswith("Synthetic intro."))
 
     def test_an_ambiguous_or_missing_event_is_reported_never_guessed(self) -> None:
         _event(2, title="Synthetic Series #2: A second candidate")
