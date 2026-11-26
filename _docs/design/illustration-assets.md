@@ -342,7 +342,9 @@ envelope of event, video and article cards) were generated with the built-in
 imagegen tool through Codex (backend unverified) on `#ff00ff` chroma, with
 `podcast-hero.webp` / `podcast-hero-dark.webp` as the style references; the
 dark file is its own pass from the light composition, finished with
-`finish_chroma.py` at default parameters.
+`finish_chroma.py` at default parameters. A follow-up edit removed the green
+spark lines over the cards and drew the hands as small dark ovals, per the
+illustration style rules.
 
 ## Wire it into a page
 
