@@ -31,7 +31,7 @@ def _boxes(page: Page, selector: str) -> list[dict[str, float]]:
         selector,
         """els => els.map(e => e.getBoundingClientRect())
             .filter(r => r.width > 0)
-            .map(r => ({top: Math.round(r.top), width: r.width, height: r.height}))""",
+            .map(r => ({top: Math.round(r.top), x: r.left, width: r.width, height: r.height}))""",
     )
 
 
@@ -91,3 +91,10 @@ def test_course_catalogue_at_tablet_width(page: Page, live_server) -> None:
     cards = _boxes(page, ".courses-catalog-list > *")
     if len(cards) >= 2:
         assert _items_on_first_row(cards) == 2, cards
+    if len(cards) >= 3 and len(cards) % 2:
+        # A lone last card keeps the ordinary card width, centred under the
+        # row above -- never stretched across the row (owner, round 3).
+        lone, first, second = cards[-1], cards[0], cards[1]
+        assert abs(lone["width"] - first["width"]) < 1, cards
+        row_middle = (first["x"] + second["x"] + second["width"]) / 2
+        assert abs(lone["x"] + lone["width"] / 2 - row_middle) < 1, cards

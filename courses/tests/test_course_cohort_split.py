@@ -264,3 +264,29 @@ class CanonicalCourseRouteTests(TestCase):
         self.assertNotIn('tabindex="0"', course_card)
         self.assertNotIn("event.key === 'Enter'", course_card)
         self.assertNotIn("Open course", course_card)
+
+    def test_course_catalog_card_states_level_weeks_and_format_from_the_family(self):
+        Course.objects.filter(slug="de-zoomcamp").update(
+            catalog_level="beginner",
+            catalog_duration_weeks=10,
+            github_repo_url="https://github.com/DataTalksClub/data-engineering-zoomcamp",
+        )
+
+        response = self.client.get(reverse("course_list"))
+
+        content = response.content.decode()
+        card_start = content.index('<article class="card catalog-card')
+        course_card = content[card_start : content.index("</article>", card_start)]
+        facts_start = course_card.index('<p class="catalog-card-facts">')
+        facts = course_card[facts_start : course_card.index("</p>", facts_start)]
+        self.assertEqual(
+            [part.strip() for part in facts.split("<span>")[1:]],
+            ["Beginner-friendly</span>", "10 weeks</span>", "Self-paced</span>"],
+        )
+        # The catalogue draws the courses once: no other band lists them again.
+        self.assertEqual(content.count('class="course-link" href="/courses/de-zoomcamp"'), 1)
+
+    def test_course_catalog_card_omits_the_facts_line_when_the_family_has_none(self):
+        response = self.client.get(reverse("course_list"))
+
+        self.assertNotContains(response, '<p class="catalog-card-facts">')
