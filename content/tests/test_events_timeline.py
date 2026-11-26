@@ -13,7 +13,12 @@ from django.test.utils import CaptureQueriesContext
 from django.utils.html import escape
 
 from content import catalogue, public_views
-from content.event_content import EventGroups, event_date_groups, event_groups
+from content.event_content import (
+    EventGroups,
+    event_date_groups,
+    event_groups,
+    event_timeline_groups,
+)
 from content.pagination import PUBLIC_PAGE_SIZE
 from content.public_routes import public_paths
 from events.identity import canonical_detail_path
@@ -67,6 +72,26 @@ class EventTimelineDataTests(StableEventClockTestCase):
             sum(len(group.events) for group in grouped.upcoming_groups),
             len(grouped.upcoming),
         )
+
+    def test_timeline_groups_for_chosen_paths_mix_past_and_future_newest_first(self) -> None:
+        grouped = event_groups()
+        if not grouped.upcoming or not grouped.recent:
+            self.skipTest("the dataset needs both an upcoming and a past event")
+        chosen = (grouped.upcoming[0], grouped.recent[0])
+        groups = event_timeline_groups(
+            [event["public_path"] for event in chosen] + ["/events/0/not-published"]
+        )
+        events = [event for group in groups for event in group.events]
+
+        self.assertEqual(
+            [event["public_path"] for event in events],
+            [
+                grouped.upcoming[0]["public_path"],
+                grouped.recent[0]["public_path"],
+            ],
+        )
+        self.assertEqual([event["is_past"] for event in events], [False, True])
+        self.assertEqual(event_timeline_groups([]), ())
 
 
 class EventTimelineRouteTests(StableEventClockTestCase):

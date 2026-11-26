@@ -11,6 +11,7 @@ hub renders its empty archive rather than failing.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
@@ -19,7 +20,7 @@ from zoneinfo import ZoneInfo
 from django.utils import timezone
 
 from events.lifecycle import has_started
-from events.queries import published_event_records
+from events.queries import published_event_records, published_event_records_by_path
 
 from .event_banners import event_banner_url
 
@@ -125,7 +126,8 @@ def _grouped(now: datetime | None) -> EventGroups:
         )
         # Upcoming until the start has passed, then listed with the recent events: the
         # shared ``events.lifecycle`` boundary, never the stored status.
-        (recent if has_started(event["starts_at_value"], current) else upcoming).append(event)
+        event["is_past"] = has_started(event["starts_at_value"], current)
+        (recent if event["is_past"] else upcoming).append(event)
 
     # Keep ties deterministic even when two events share a title-derived slug.  UUID is the
     # immutable final tie-breaker, so a source reorder cannot change the rendered catalogue.
@@ -142,6 +144,27 @@ def _grouped(now: datetime | None) -> EventGroups:
         event_date_groups(upcoming, now=current),
         event_date_groups(recent, descending=True, now=current),
     )
+
+
+def event_timeline_groups(paths: Iterable[str]) -> tuple[EventDateGroup, ...]:
+    """The published events these public paths address, as timeline day groups.
+
+    For a list of chosen events drawn through ``public/_event_timeline.html``
+    (a person's events, a topic's events).  Either path form an event answers
+    to is accepted (see ``published_event_records_by_path``); a path this
+    database publishes nothing for is skipped.  The events are the same
+    decorated records /events draws, newest day first, upcoming and past mixed.
+    """
+
+    wanted = {record["public_path"] for record in published_event_records_by_path(paths).values()}
+    if not wanted:
+        return ()
+    groups = event_groups()
+    chosen = [
+        event for event in (*groups.upcoming, *groups.recent) if event["public_path"] in wanted
+    ]
+    chosen.sort(key=lambda event: event["starts_at_value"], reverse=True)
+    return event_date_groups(chosen, descending=True)
 
 
 _RELATIVE_DAYS = {0: "Today", 1: "Tomorrow", -1: "Yesterday"}

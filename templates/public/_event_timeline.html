@@ -1,0 +1,147 @@
+{% load people %}
+{% comment %}
+  Events as the /events timeline: the rail carries each day ("Nov 30" over
+  "Monday, 2025", or "Tomorrow" over "Nov 30 · Mon"), and the soft
+  `.event-item` card beside it carries the start clock, the title, the
+  speakers, the kind ("Workshop · Recording on YouTube" / "· Live online"),
+  the registered count, the sponsors and the event's square banner.  /events
+  and a person's profile both draw it, so the card cannot drift between them.
+
+  `groups` is a sequence of `content.event_content.EventDateGroup` whose events
+  are the decorated records `content.event_content` prepares (`event_groups()`,
+  or `event_timeline_groups(paths)` for a chosen set of public paths).  Each
+  event says itself whether it has started (`is_past`), so one list may mix
+  past and future events.
+
+  Optional: `event_view` sets the timeline's `data-event-view` hook, and
+  `empty_text` is the line drawn when there are no groups.
+
+      {% include "public/_event_timeline.html" with groups=timeline_groups only %}
+{% endcomment %}
+{% if event_view %}
+  <div class="event-timeline" data-event-view="{{ event_view }}">
+{% else %}
+  <div class="event-timeline">
+{% endif %}
+  {% for group in groups %}
+    <section class="event-day" aria-labelledby="event-day-{{ group.key }}">
+      <h3 class="event-day-date" id="event-day-{{ group.key }}">
+        <time datetime="{{ group.key }}">
+          {% if group.relative_label %}
+            <strong>{{ group.relative_label }}</strong>
+            <span>{{ group.short_date }} · {{ group.weekday }}</span>
+          {% else %}
+            <strong>{{ group.short_date }}</strong>
+            <span>
+              {% if group.year %}
+                {{ group.weekday }}, {{ group.year }}
+              {% else %}
+                {{ group.weekday }}
+              {% endif %}
+            </span>
+          {% endif %}
+        </time>
+      </h3>
+      <span class="event-day-dot" aria-hidden="true"></span>
+      <div class="event-day-cards">
+        {% for event in group.events %}
+          <article class="event-item interactive-card interactive-lift">
+            <div class="event-item-body">
+              <p class="event-item-time">{{ event.display_clock }}</p>
+              {% spaceless %}
+              <h4>
+                <a href="{{ event.public_path }}">{{ event.title }}</a>
+              </h4>
+              {% endspaceless %}
+              {% if event.speakers %}
+                <p class="person-chips event-item-speakers">
+                  {% for speaker in event.speakers %}
+                    {% include "public/_person_chip.html" with person=speaker|person_chip %}
+                  {% endfor %}
+                </p>
+              {% endif %}
+              {% comment %}
+                Only what the record says: the kind, then where — the
+                recording when a past event has a YouTube link, "Live
+                online" for an event still to come — and the same
+                registered count the detail page shows, hidden at zero.
+              {% endcomment %}
+              <ul class="event-item-meta">
+                <li>
+                  {% spaceless %}
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M6.5 5.3v5.4L11 8z" fill="currentColor"/>
+                  </svg>
+                  {% endspaceless %}
+                  <span>
+                    {% if event.kind_label %}
+                      {{ event.kind_label|capfirst }}
+                    {% else %}
+                      Event
+                    {% endif %}
+                    {% if event.is_past %}
+                      {% if event.has_youtube_link %}
+                        · Recording on YouTube
+                      {% endif %}
+                    {% else %}
+                      · Live online
+                    {% endif %}
+                  </span>
+                </li>
+                {% if event.registration_count %}
+                  <li>
+                    {% spaceless %}
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <circle cx="6" cy="5.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                      <path d="M1.8 13.2c.4-2.3 2.1-3.6 4.2-3.6s3.8 1.3 4.2 3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                      <path d="M10.6 3.4a2.3 2.3 0 0 1 0 4.4M12.2 9.9c1 .5 1.7 1.6 2 3.1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    {% endspaceless %}
+                    <span>{{ event.registration_count }} registered</span>
+                  </li>
+                {% endif %}
+                {% if event.sponsors %}
+                  <li class="event-item-sponsors">
+                    {% spaceless %}
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <path d="M8 13.6S2 10.2 2 6.1A3 3 0 0 1 8 4.6a3 3 0 0 1 6 1.5c0 4.1-6 7.5-6 7.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                    </svg>
+                    {% endspaceless %}
+                    <span>Sponsored by</span>
+                    {% for sponsor in event.sponsors %}
+                      {% if sponsor.logo_url %}
+                        <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}" loading="lazy" decoding="async">
+                      {% else %}
+                        <span>{{ sponsor.name }}</span>
+                      {% endif %}
+                    {% endfor %}
+                  </li>
+                {% endif %}
+              </ul>
+            </div>
+            {% if event.banner_url %}
+              <img
+                class="event-item-thumb"
+                src="{{ event.banner_url }}"
+                alt=""
+                width="120"
+                height="120"
+                {% if forloop.parentloop.first %}
+                  loading="eager"
+                {% else %}
+                  loading="lazy"
+                {% endif %}
+                decoding="async"
+              >
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% empty %}
+    {% if empty_text %}
+      <p class="event-empty">{{ empty_text }}</p>
+    {% endif %}
+  {% endfor %}
+</div>
