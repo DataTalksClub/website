@@ -530,6 +530,34 @@ to this document — do not fork it locally.
   back, not two: a page with a back-link does not also carry a trail, and a page
   whose parent index does not exist carries neither.
 
+  The rule, everywhere:
+
+  - **The full path, ending with the page.** A deeper page names every level
+    from its hub down, and the page itself is always the last crumb — even when
+    the `h1` below says the same thing: "Courses / LLM Zoomcamp / 2026 / Module 2
+    / Lesson 3", "Academy / Articles / …", "Studio / Courses / ML Zoomcamp /
+    Enrollments".
+  - **One placement.** The trail is the first row of the page header, on the left
+    edge of the column the `h1` sits in, pulled `--space-3` into the band's top
+    padding with `--space-eyebrow` down to the heading — the
+    `.article-hero .breadcrumbs` rule. A page header restates those two values for
+    its own hero class rather than inventing a third.
+  - **No up-links beside it.** "← all …", "← Back to …" and "Back to …" links and
+    buttons that only lead up the hierarchy are removed; the trail already holds
+    that level. Not up-links, and kept: previous/next lesson or unit buttons
+    (sequence navigation, including the first lesson's step back to its module
+    overview), an in-page "Back to contents ↑" anchor, a form's Cancel, and a
+    transactional page's way back to the form it came from.
+  - **Studio** pages below the Studio home carry "Studio / …"; the Studio home
+    does not.
+  - **No trail on entrances.** Sign in, sign up, password reset, email
+    confirmation, the registration and Slack-application status pages, and the
+    live event Q&A screens are steps of a flow reached from a link or a
+    message, not places under a hub, so they carry none.
+
+  `core/tests/test_breadcrumb_rule.py` lists which templates must call the tag and
+  which must not, and fails on an ad-hoc up-link anywhere under `templates/`.
+
 ### Cards and chips
 
 - **`.card`** — white slab, `--border-soft`, `--radius-card`, no shadow, column flex

@@ -30,12 +30,11 @@ Two call shapes, one output:
   published one cannot disagree: they are the same object.
 
 ``current`` is the page itself, drawn as plain text on ``li[aria-current="page"]``
-and never as a link.  Leave it out and the trail stops at the page's parent,
-which is what a page whose ``h1`` sits directly beneath the trail should do — a
-last crumb repeating the heading word for word costs a whole row and says
-nothing.  Pass it when the page's own name is not what the heading says, or when
-the page publishes itself in a ``BreadcrumbList`` and the visible trail has to
-match what is published.
+and never as a link.  Every page below a hub passes it, so the trail always ends
+with the page the reader is on — the blog article's trail is the reference, and
+``core/tests/test_breadcrumb_rule.py`` holds every trail to it.  Leaving it out
+stops the trail at the parent, which only a caller that renders the trail for
+someone else's page should ever want.
 """
 
 from __future__ import annotations
