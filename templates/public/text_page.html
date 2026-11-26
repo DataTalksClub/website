@@ -13,6 +13,7 @@
 
     {% extends "public/text_page.html" %}
 
+    breadcrumbs  a page below a hub: its {% breadcrumbs %} trail
     title     the page's one <h1>
     meta      a monospaced note under the heading, e.g. "Last updated: ..."
     lede      the standfirst under the heading
@@ -92,6 +93,13 @@
       /* The opening block spaces itself with margins rather than a grid gap:
          margins collapse through an empty element, so a page that carries no
          date or no standfirst loses that line's space with it. */
+      /* A text page below a hub (the Studio's Slack pages) draws its trail
+         where the blog article does: above the heading, on the column. */
+      .text-page-shell > .breadcrumbs {
+        margin-bottom: var(--space-eyebrow);
+        margin-top: calc(var(--space-3) * -1);
+      }
+
       .text-page-head > * + * {
         margin-top: var(--space-4);
       }
@@ -185,6 +193,8 @@
       <article>
         <section class="band band-cream" aria-labelledby="text-page-heading">
           <div class="shell text-page-shell">
+            {% block breadcrumbs %}
+            {% endblock %}
             <header class="text-page-head">
               <h1
                 id="text-page-heading"

@@ -1,4 +1,5 @@
 {% extends "studio/base.html" %}
+{% load breadcrumbs %}
 
 {% comment %}
   Design system (issue #179).  The h1 moved into the base's page_head block, the old
@@ -13,6 +14,10 @@
   Audit · Studio · {{ brand_name }}
 {% endblock %}
 
+{% block breadcrumbs_nav %}
+  {% url 'studio:home' as studio_home_url %}
+  {% breadcrumbs "Studio" studio_home_url current="Audit events" %}
+{% endblock %}
 {% block page_head %}
   <div class="admin-head">
     <p class="mono-label mono-label-indigo">

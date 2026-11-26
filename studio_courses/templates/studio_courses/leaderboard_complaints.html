@@ -38,9 +38,6 @@
     <h1>Flags for {{ course.title }}</h1>
     <p class="admin-lede">Student records are sorted by open flag count, then total flag count.</p>
     <div class="admin-toolbar">
-      <a href="{% url 'studio_courses_course' course.slug %}" class="cta cta-secondary cta-compact">
-        Back to Courses
-      </a>
       <a href="{% url 'cohort_leaderboard' course.course.slug course.identifier %}" class="cta cta-secondary cta-compact">
         View Leaderboard
       </a>

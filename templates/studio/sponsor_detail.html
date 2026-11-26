@@ -1,9 +1,15 @@
 {% extends "studio/base.html" %}
+{% load breadcrumbs %}
 
 {% block title %}
   {{ sponsor.key }} · Sponsors · Studio · {{ brand_name }}
 {% endblock %}
 
+{% block breadcrumbs_nav %}
+  {% url 'studio:home' as studio_home_url %}
+  {% url 'studio:sponsor-list' as studio_sponsor_list_url %}
+  {% breadcrumbs "Studio" studio_home_url "Sponsors" studio_sponsor_list_url current=sponsor.key %}
+{% endblock %}
 {% block page_head %}
   <div class="admin-head">
     <p class="mono-label mono-label-indigo">
@@ -25,7 +31,6 @@
       <a class="filter-pill" href="{% url item.route %}">{{ item.label }}</a>
     {% endfor %}
   </nav>
-  <p><a href="{% url 'studio:sponsor-list' %}">Back to sponsors</a></p>
 
   {% if saved %}
     <div class="admin-notice admin-notice-success" role="status">

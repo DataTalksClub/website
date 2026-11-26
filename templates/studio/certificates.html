@@ -1,9 +1,14 @@
 {% extends "studio/base.html" %}
+{% load breadcrumbs %}
 
 {% block title %}
   Certificates · Studio · {{ brand_name }}
 {% endblock %}
 
+{% block breadcrumbs_nav %}
+  {% url 'studio:home' as studio_home_url %}
+  {% breadcrumbs "Studio" studio_home_url current="Certificates" %}
+{% endblock %}
 {% block page_head %}
   <div class="admin-head">
     <p class="mono-label mono-label-indigo">

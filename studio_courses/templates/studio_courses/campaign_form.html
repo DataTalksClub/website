@@ -72,21 +72,16 @@
         <a href="{% url 'registration_campaign' campaign.slug %}">/courses/register/{{ campaign.slug }}/</a>
       </p>
     {% endif %}
-    <div class="admin-toolbar">
-      {% if campaign %}
+    {% if campaign %}
+      <div class="admin-toolbar">
         <a href="{% url 'registration_campaign' campaign.slug %}" class="cta cta-secondary cta-compact">
           Public
         </a>
         <a href="{% url 'studio_courses_campaign_registrations' campaign.slug %}" class="cta cta-secondary cta-compact">
           Registrations
         </a>
-      {% endif %}
-      {% if course %}
-        <a href="{% url 'studio_courses_course' course.slug %}" class="cta cta-secondary cta-compact">
-          Back to course
-        </a>
-      {% endif %}
-    </div>
+      </div>
+    {% endif %}
   </div>
 {% endblock %}
 

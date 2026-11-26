@@ -1,4 +1,6 @@
 {% extends "public/text_page.html" %}
+{% load breadcrumbs %}
+{% block breadcrumbs %}{% url 'studio:home' as studio_home_url %}{% breadcrumbs "Studio" studio_home_url current="Slack applications" %}{% endblock %}
 {% block title %}Slack applications{% endblock %}
 {% block content %}
 <p><a href="{% url 'studio:slack-report' %}">Slack join monitoring report</a> · <a href="{% url 'studio:slack-moderation' %}">Moderate access</a></p>

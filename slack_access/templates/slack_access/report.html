@@ -1,4 +1,6 @@
 {% extends "public/text_page.html" %}
+{% load breadcrumbs %}
+{% block breadcrumbs %}{% url 'studio:home' as studio_home_url %}{% breadcrumbs "Studio" studio_home_url current="Slack join report" %}{% endblock %}
 {% block title %}Slack join report{% endblock %}
 {% block content %}
 <p>Read-only visibility. Monitoring takes no moderation action. Inviter evidence from Slack is separate from the website sponsor.</p>

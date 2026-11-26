@@ -1,4 +1,6 @@
 {% extends "public/text_page.html" %}
+{% load breadcrumbs %}
+{% block breadcrumbs %}{% url 'studio:home' as studio_home_url %}{% breadcrumbs "Studio" studio_home_url current="Revoke Slack website access" %}{% endblock %}
 {% block title %}Revoke Slack website access{% endblock %}
 {% block content %}
 <p>This revokes website Slack access for the member, their accountable sponsors, and all descendants. It does not deactivate Slack accounts.</p>

@@ -1,6 +1,10 @@
 {% extends "studio/base.html" %}
-{% load launch_tags %}
+{% load breadcrumbs launch_tags %}
 {% block title %}Course announcements · Studio{% endblock %}
+{% block breadcrumbs_nav %}
+  {% url 'studio:home' as studio_home_url %}
+  {% breadcrumbs "Studio" studio_home_url current="Course announcements" %}
+{% endblock %}
 {% block page_head %}
 <div class="admin-head"><p class="mono-label mono-label-indigo">Studio · Courses</p><h1>Course announcements</h1><p class="admin-lede">Compose and review email and Telegram messages. Launch generates unarmed drafts. Approve the current copy before explicitly scheduling or sending.</p></div>
 {% endblock %}
