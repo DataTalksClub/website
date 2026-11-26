@@ -173,6 +173,16 @@ never deletes a project or touches its state, submissions or reviews. Parser:
 `content_sync/course_repository_v2.py`; import: `_import_cohort_projects` in
 `courses/services/curriculum_import.py`.
 
+A `homework:` entry with only `module` (no `source`) places the module in the cohort
+with no homework. LLM Zoomcamp 2026 uses it for modules 6 and 7, which ran without
+homework; their drafts sit in the repository's `future-homework/` directory. A
+repository homework the cohort stops binding is deleted on the next pull, unless
+learners submitted it (`protected_homework_removal`).
+
+A choice question (`multiple_choice`, `checkboxes`) may declare `answer_type: any`
+and no `answer`: an ungraded survey choice, as CMP ran MediaGen Homework 1's
+"Which GPU did you run on?".
+
 A `projects:` entry with only `slug` and `module` is a *placement*: the attempt was
 created by the CMP content import, which keeps owning its title, deadlines, peers and
 criteria, and the repository only places it in a shared module (`Project.shared_module`).
@@ -223,11 +233,14 @@ done yet. Run in this order against production only when the owner schedules it:
    Contabo backup conversion is the current path).
 4. On a copy of production first: `scripts/prod/import_cmp_content.py` for the export.
    The CMP homework slugs (`module1`..) match the repository slugs, so the CMP rows pair
-   with the repository rows by slug and are renamed in place. Check the summary for the
-   cohort: no new questions on `module1` (questions reconcile by text and order; the
-   repository prompts are free-form and their text came from the same `homework.md`). If
-   new questions appear, align the repository prompts with CMP's text and re-pull before
-   going further, otherwise learner answers attach to duplicate questions.
+   with the repository rows by slug. Check the summary for the cohort: no new questions
+   on `module1` (questions reconcile by text and order). The repository's Homework 1
+   now asks questions 3-5 with CMP's exact wording and options (multiple choice,
+   `answer_type: any`, commit `00e18f8` in the course repository), so all seven pair.
+   If new questions appear anyway, align the repository prompts with CMP's text and
+   re-pull: the pull gives a CMP-created question learners answered the repository's
+   identity when its text, type, options and points match exactly, instead of creating
+   a duplicate beside it.
 5. `scripts/prod/import_cmp_learners.py`, then `scripts/prod/import_cmp_learner_history.py`
    against the same database. Compare the Homework 1 submission count with CMP's and
    open the homework as an affected learner (impersonation in Studio, not their
@@ -871,11 +884,32 @@ answers, 4,966 project submissions, 15,240 peer reviews.
 All five steps read the same export file. The history importer binds itself to that
 file's SHA-256, so a later run against a different export is refused.
 
+0. Pull every registered course repository first
+   (`scripts/prod/sync_course_repositories.py`, §3), so the CMP import finds the
+   repository rows to pair with. On a database that already holds learner history,
+   check each pull succeeded: a `protected_homework_change` or
+   `protected_question_change` refusal means the repository and the stored homework
+   disagree on something learners already answered (slug, deadline, form fields,
+   question definition). Fix the repository side to match CMP, never the other way.
 1. `scripts/prod/import_cmp_content.py --database <db> --source <export>` writes
    immediately; it has no dry-run flag, so rehearse it on a copy. A replay is a
-   no-op. Read `unpaired_repository_homework` and `unpaired_repository_projects` in
-   its summary. On a modules or shared cohort, repository-authored rows CMP lacks are
-   kept and listed there, never deleted.
+   no-op. Read `unpaired_repository_homework`, `unpaired_repository_projects` and
+   `repository_questions_kept` in its summary. On a modules or shared cohort,
+   repository-authored homework, projects and questions CMP lacks are kept and
+   counted there, never deleted.
+
+   **Repository slugs win.** On a modules or shared cohort a homework the repository
+   owns keeps the slug its `homework.yaml` declares (LLM Zoomcamp 2026:
+   `homework-01`..`05`, which CMP ran as `hw1`..`hw5`); CMP's title, description,
+   deadline, form fields and state are copied onto it. The encrypted answers are
+   bound to the repository slug, and the repository pull refuses a slug change once
+   learners have submitted. Each pairing is stored as a `CmpHistoryClaim` under
+   `cmp_content:courses_homework`, and step 4 resolves CMP submissions through it.
+   `HOMEWORK_SLUG_OVERRIDES` in `scripts/prod/import_cmp_content.py` is the reviewed
+   `{repository_slug: cmp_slug}` list for pairings the titles alone would miss, and it
+   renames back a repository row an earlier import gave CMP's slug. The local prep
+   dataset needed that on 2026-11-26 (LLM `hw1`..`hw5` back to `homework-01`..`05`);
+   production never ran the old rule.
 2. `scripts/prod/import_cmp_learners.py --database <db> --source <export> --dry-run`,
    then the same without `--dry-run`. Accounts, email addresses and `LearnerProfile`
    rows. About 2.5 minutes locally.
@@ -888,6 +922,16 @@ file's SHA-256, so a later run against a different export is refused.
 5. `scripts/prod/import_cmp_enrollment_certificates.py` is only for re-reconciling
    certificate URLs on one cohort that was imported earlier. A fresh run gets its
    certificates in step 4 through `Enrollment.certificate_url`.
+6. Pull the course repositories once more. The repository's prompts, slugs and form
+   fields must already agree with what step 1 wrote, so each pull either replays or
+   succeeds; a protected-change refusal here is the same disagreement as in step 0.
+
+Course repository changes this order depends on (2026-11-26): `llm-zoomcamp` binds
+modules 6 and 7 with no homework in `cohorts/2026/cohort.yaml` (CMP's 2026 run had
+none, so they showed as open homework on a finished cohort);
+`production-ai-agents-for-media-generation` asks Homework 1 questions 3-5 with CMP's
+wording. Both need the site at or after the commit that accepts module-only homework
+bindings and `answer_type: any` on choice questions; an older site rejects the pull.
 
 For production, swap `--database <db>` for `--deployment-target website-production
 --allow-production-write website-production` on the same commands (the `<target>`
