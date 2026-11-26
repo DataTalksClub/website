@@ -19,7 +19,7 @@
 {% block breadcrumbs_nav %}
   {% url 'studio:home' as studio_home_url %}
   {% url 'studio:event-identity-list' as studio_event_identity_list_url %}
-  {% breadcrumbs "Studio" studio_home_url "Event identities" studio_event_identity_list_url current=identity.title %}
+  {% breadcrumbs "Studio" studio_home_url "Event identities" studio_event_identity_list_url %}
 {% endblock %}
 
 {% block page_head %}

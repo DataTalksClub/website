@@ -245,7 +245,8 @@ class ProjectDesignFiveAShellTests(TestCase):
                 self.assertIn(f'<a href="{reverse("course_list")}">Courses</a>', body)
                 self.assertIn(f'<a href="{family_url}">{self.course.course.title}</a>', body)
                 self.assertIn(f'<a href="{course_url}">{self.course.identifier}</a>', body)
-                self.assertIn('<li aria-current="page">', body)
+                # The trail stops at the parent; the h1 below names the page.
+                self.assertNotIn('<li aria-current="page">', body)
 
     def test_only_the_project_page_itself_is_offered_to_the_index(self) -> None:
         noindex = '<meta name="robots" content="noindex">'

@@ -21,7 +21,7 @@
 {% block breadcrumb_trail %}
   {% url 'studio_courses_course' course.slug as studio_course_url %}
   {% url 'studio_courses_homework_submissions' course.slug homework.slug as studio_homework_submissions_url %}
-  {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url course.title studio_course_url homework.title "" "Submissions" studio_homework_submissions_url current="Edit Submission" %}
+  {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url course.title studio_course_url homework.title "" "Submissions" studio_homework_submissions_url %}
 {% endblock %}
 
 {% block page_head %}

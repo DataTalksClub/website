@@ -1,8 +1,9 @@
 """The site-wide breadcrumb rule (``_docs/design/design-system.md``, ``.breadcrumbs``).
 
 Every page below a hub draws its trail with the one ``{% breadcrumbs %}`` tag,
-ending with the page itself; hubs, the homepage and entrance pages draw none;
-and no template offers an ad-hoc link back up the hierarchy beside the trail.
+stopping at the parent because the ``h1`` below names the page; hubs, the
+homepage and entrance pages draw none; and no template offers an ad-hoc link
+back up the hierarchy beside the trail.
 These are source contracts: the lists name templates, so a new page type has to
 be placed in one of them on purpose.
 """
@@ -170,6 +171,33 @@ SEQUENCE_NAVIGATION = {
 }
 
 _BREADCRUMBS_CALL = re.compile(r"\{%\s*breadcrumbs\b")
+_CALL = re.compile(r"\{%\s*breadcrumbs\s+(.*?)%\}", re.S)
+_COMMENT = re.compile(r"\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}", re.S)
+_CURRENT_KEYWORD = re.compile(r'\b(?:current|show_current)=(?:"[^"]*"|\S+)')
+
+#: The calls that draw the page's own crumb, keyed by (template, keyword), each
+#: with what that crumb says that the h1 directly below it does not.
+DRAWN_CURRENT = {
+    ("courses/templates/courses/register.html", 'current="Registration"'): (
+        "the h1 names the campaign or course; the crumb says this is its registration"
+    ),
+    ("templates/public/wiki_graph.html", 'current="Graph"'): (
+        "the h1 says 'Wiki'; the crumb says this is the wiki's graph view"
+    ),
+    ("templates/public/wiki_special.html", "current=category|title"): (
+        "the h1 says 'Special pages'; the crumb names the category being filtered"
+    ),
+    ("templates/studio/event_qna.html", 'current="Event Q&A"'): (
+        "the h1 names the event; the crumb says this is its Q&A console"
+    ),
+    (
+        "studio_courses/templates/studio_courses/campaign_registrations.html",
+        'current="registrations"',
+    ): "the h1 names the campaign; the crumb says this is its registration list",
+    ("studio_courses/templates/studio_courses/campaign_form.html", "current=campaign.title"): (
+        "the h1 says 'Edit registration landing page'; the crumb names which campaign"
+    ),
+}
 
 
 def _template_files() -> list[Path]:
@@ -183,8 +211,7 @@ def _template_files() -> list[Path]:
 
 def _calls_breadcrumbs(source: str) -> bool:
     # A call inside a {% comment %} block is prose about the tag, not a trail.
-    stripped = re.sub(r"\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}", "", source, flags=re.S)
-    return bool(_BREADCRUMBS_CALL.search(stripped))
+    return bool(_BREADCRUMBS_CALL.search(_COMMENT.sub("", source)))
 
 
 class BreadcrumbRuleTests(SimpleTestCase):
@@ -226,28 +253,21 @@ class BreadcrumbRuleTests(SimpleTestCase):
             with self.subTest(template=name):
                 self.assertIn(snippet, (ROOT / name).read_text())
 
-    def test_every_tag_call_ends_with_the_current_page(self) -> None:
-        # A call either names `current=` or passes a built Trail (a single
-        # variable, whose own `current` is the last crumb).  Shared shells whose
-        # every child overrides the trail block are the one exception.
-        shells = {
-            "courses/templates/courses/_submission_page.html",
-            "courses/templates/projects/_base.html",
-        }
-        call = re.compile(r"\{%\s*breadcrumbs\s+(.*?)%\}", re.S)
+    def test_no_call_draws_a_last_crumb_unless_it_is_a_listed_exception(self) -> None:
+        # The visible trail stops at the parent: the h1 directly below names the
+        # page, so a crumb repeating it is the same words twice.  A call that
+        # draws the page's own crumb (`current=` or `show_current=`) must be one
+        # of the listed exceptions, whose crumb says something the h1 does not.
+        drawn = []
         for path in _template_files():
             name = str(path.relative_to(ROOT))
-            if name in shells:
-                continue
-            source = re.sub(
-                r"\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}", "", path.read_text(), flags=re.S
-            )
-            for match in call.finditer(source):
-                arguments = match.group(1)
-                without_keywords = re.sub(r'\w+=(?:"[^"]*"|\S+)', "", arguments)
-                positional = re.findall(r'"[^"]*"|\S+', without_keywords)
-                with self.subTest(template=name, call=arguments.strip()):
-                    self.assertTrue(
-                        "current=" in arguments or len(positional) == 1,
-                        "a trail must end with the page itself",
-                    )
+            source = _COMMENT.sub("", path.read_text())
+            for match in _CALL.finditer(source):
+                for keyword in _CURRENT_KEYWORD.findall(match.group(1)):
+                    drawn.append((name, keyword))
+        self.assertEqual(sorted(drawn), sorted(DRAWN_CURRENT))
+
+    def test_every_drawn_last_crumb_states_why_it_is_not_the_h1(self) -> None:
+        for (name, keyword), reason in DRAWN_CURRENT.items():
+            with self.subTest(template=name, crumb=keyword):
+                self.assertTrue(reason.strip())

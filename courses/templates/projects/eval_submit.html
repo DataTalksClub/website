@@ -105,7 +105,7 @@
     {% url 'cohort_project' course_slug=course.slug project_slug=project.slug as project_url %}
     {% url 'cohort_projects_eval' course.slug project.slug as projects_eval_url %}
   {% endif %}
-  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url project.title project_url "Evaluations" projects_eval_url current="Evaluate submission" %}
+  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url project.title project_url "Evaluations" projects_eval_url %}
 {% endblock %}
 
 {% block hero_heading %}

@@ -266,6 +266,6 @@ class StudioDesignFiveAShellTests(TestCase):
                 self.assertIn('<nav class="breadcrumbs" aria-label="Breadcrumb">', body)
                 self.assertIn(f'<a href="{reverse("studio:home")}">Studio</a>', body)
 
-        # The base's own trail is the courses list's, and the design system's
-        # breadcrumb names the current page instead of linking to itself.
-        self.assertIn('<li aria-current="page">', bodies["courses list"])
+        # The base's own trail is the courses list's: it stops at Studio, and
+        # the h1 below names the page.
+        self.assertNotIn('<li aria-current="page">', bodies["courses list"])

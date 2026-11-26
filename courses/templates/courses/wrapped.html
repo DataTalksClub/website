@@ -184,7 +184,7 @@
 
 {% block page_header %}
       {% url 'course_list' as course_list_url %}
-      {% breadcrumbs "Courses" course_list_url current=year|stringformat:"s"|add:" Wrapped" %}
+      {% breadcrumbs "Courses" course_list_url %}
       <h1 id="wrapped-heading">DataTalks.Club Wrapped {{ year }}</h1>
       <p class="wrapped-lede">Your year of learning in review.</p>
 {% endblock %}

@@ -235,7 +235,7 @@
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course_family.slug as course_family_url %}
         {% url 'cohort' course_family.slug course.identifier as cohort_url %}
-        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url current="Leaderboard" %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url %}
         <div class="leaderboard-hero-inner">
           <h1 id="leaderboard-heading">Leaderboard</h1>
           <p class="leaderboard-lede">

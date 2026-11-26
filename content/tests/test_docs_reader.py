@@ -295,13 +295,14 @@ class DocsReadModelTests(TestCase):
                 self.assertEqual(response.context["docs_previous"], previous)
                 self.assertEqual(response.context["docs_next"], following)
 
-    def test_detail_marks_current_once_in_each_navigation_landmark(self) -> None:
+    def test_detail_marks_current_once_in_the_rail_and_not_in_the_trail(self) -> None:
         path = "/docs/courses/ai-dev-tools-zoomcamp/getting-started/"
         response = self.client.get(path)
         html = response.content.decode("utf-8").split("</head>", 1)[1]
         breadcrumb = html.split('aria-label="Breadcrumb"', 1)[1].split("</nav>", 1)[0]
         rail = html.split('id="docs-rail"', 1)[1].split("</nav>", 1)[0]
-        self.assertEqual(breadcrumb.count('aria-current="page"'), 1)
+        # The trail stops at the parent; the h1 below names the page.
+        self.assertEqual(breadcrumb.count('aria-current="page"'), 0)
         self.assertEqual(rail.count('aria-current="page"'), 1)
         self.assertIn(f'href="{path}"', rail)
 

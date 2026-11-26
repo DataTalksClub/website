@@ -71,7 +71,7 @@
     <main id="main-content" tabindex="-1">
       <section class="band band-cream wiki-hero" aria-labelledby="search-heading">
         {% url 'wiki-home' as wiki_home_url %}
-        {% breadcrumbs "Wiki" wiki_home_url current="Search" nav_class="shell shell-reading" %}
+        {% breadcrumbs "Wiki" wiki_home_url nav_class="shell shell-reading" %}
         <div class="shell shell-reading">
           <h1 class="page-title" id="search-heading">Search the wiki</h1>
           {% include "public/_wiki_search_form.html" with topic_total=stats.topics query=query %}

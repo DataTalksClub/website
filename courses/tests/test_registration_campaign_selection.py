@@ -207,16 +207,16 @@ class RegistrationSurfaceTests(TestCase):
 
 
 class FamilyHeadingRepetitionTests(TestCase):
-    """The trail ends with the page, the h1 names it, and the lede does not repeat it."""
+    """The trail stops at the hub, the h1 names the page, and the lede does not repeat it."""
 
-    def test_the_family_page_trail_ends_with_the_family(self) -> None:
+    def test_the_family_page_trail_stops_at_courses(self) -> None:
         make_family("de-zoomcamp", "Data Engineering Zoomcamp")
 
         response = self.client.get("/courses/de-zoomcamp")
 
-        # A page below the Courses hub: "Courses / <family>", like the blog.
+        # A page below the Courses hub: "Courses" over the family's h1, like the blog.
         self.assertContains(response, 'class="breadcrumbs"')
-        self.assertContains(response, '<li aria-current="page">Data Engineering Zoomcamp</li>')
+        self.assertNotContains(response, '<li aria-current="page">')
         self.assertContains(response, "Data Engineering Zoomcamp</h1>")
 
     def test_a_description_that_is_only_the_title_is_not_rendered_as_a_lede(self) -> None:

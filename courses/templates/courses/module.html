@@ -153,12 +153,12 @@
         {% comment %}
           The edition, not the course name again: the crumb before it is the
           course family, and every other course trail shows the identifier.  The
-          module itself is the last crumb, as on every page below a hub.
+          trail stops at the cohort; the h1 below names the module.
         {% endcomment %}
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course_family.slug as course_family_url %}
         {% url 'cohort' course_family.slug cohort.identifier as cohort_url %}
-        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url cohort.identifier cohort_url current=module.title %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url cohort.identifier cohort_url %}
         <div class="module-hero-inner">
           <h1 id="module-heading">{{ module.title }}</h1>
         </div>

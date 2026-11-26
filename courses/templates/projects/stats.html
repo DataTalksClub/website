@@ -233,7 +233,7 @@
 
 {% block breadcrumb_trail %}
   {% url 'cohort_project' course.course.slug course.identifier project.slug as project_url %}
-  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url project.title project_url current="Statistics" %}
+  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url project.title project_url %}
 {% endblock %}
 
 {% block page_head %}

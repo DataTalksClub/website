@@ -32,6 +32,8 @@ def test_wiki_detail_has_one_context_label_and_an_accessible_title(
     breadcrumb = page.get_by_role("navigation", name="Breadcrumb")
     expect(breadcrumb).to_have_count(1)
     expect(breadcrumb.get_by_role("link", name="Wiki", exact=True)).to_have_count(1)
-    expect(breadcrumb.locator('li[aria-current="page"]')).to_have_text("A/A Testing")
+    # The trail stops at the parent: the h1 directly below names the topic.
+    expect(breadcrumb.locator("li")).to_have_count(1)
+    expect(breadcrumb.locator('li[aria-current="page"]')).to_have_count(0)
     expect(page.locator(".wiki-hero .wiki-shell > p.mono-label")).to_have_count(0)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")

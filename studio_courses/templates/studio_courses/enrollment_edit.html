@@ -18,7 +18,7 @@
 {% block breadcrumb_trail %}
   {% url 'studio_courses_course' course.slug as studio_course_url %}
   {% url 'studio_courses_enrollments' course.slug as studio_enrollments_url %}
-  {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url course.title studio_course_url "Enrollments" studio_enrollments_url current="Edit Enrollment" %}
+  {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url course.title studio_course_url "Enrollments" studio_enrollments_url %}
 {% endblock %}
 
 {% block page_head %}

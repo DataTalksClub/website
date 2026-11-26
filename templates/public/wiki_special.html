@@ -102,7 +102,7 @@
       <section class="band band-cream wiki-hero" aria-labelledby="special-heading">
         {% url 'wiki-home' as wiki_home_url %}
         {% if category == 'all' %}
-          {% breadcrumbs "Wiki" wiki_home_url current="Special pages" nav_class="shell shell-reading" %}
+          {% breadcrumbs "Wiki" wiki_home_url nav_class="shell shell-reading" %}
         {% else %}
           {% url 'wiki-special' as wiki_special_url %}
           {% breadcrumbs "Wiki" wiki_home_url "Special pages" wiki_special_url current=category|title nav_class="shell shell-reading" %}

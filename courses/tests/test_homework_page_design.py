@@ -143,7 +143,7 @@ class HomeworkModuleTrailTests(HomeworkDetailViewTestBase):
             terminal_homework=self.homework,
         )
 
-    def test_module_crumb_appears_and_the_homework_ends_the_trail(self) -> None:
+    def test_module_crumb_ends_the_trail_above_the_homework_h1(self) -> None:
         module = self.add_module()
 
         response = self.get_homework_response()
@@ -158,9 +158,9 @@ class HomeworkModuleTrailTests(HomeworkDetailViewTestBase):
         self.assertIsNotNone(breadcrumb)
         assert breadcrumb is not None
         self.assertIn(module.title, breadcrumb.group(1))
-        # The homework itself is the last crumb, as on every page below a hub,
-        # and the trail is the one way back: no "← Back to" button beside it.
-        self.assertIn(f'<li aria-current="page">{self.homework.title}</li>', breadcrumb.group(1))
+        # The trail stops at the module (the h1 names the homework), and it
+        # is the one way back: no "← Back to" button beside it.
+        self.assertNotIn("aria-current", breadcrumb.group(1))
         self.assertNotContains(response, "← Back to")
         # A legacy `curriculum_format=modules` homework has no `SharedModule`
         # placement, so it never gains the shared-curriculum module rail.
@@ -248,7 +248,7 @@ class HomeworkSharedModuleRailTests(HomeworkDetailViewTestBase):
         self.assertIsNotNone(breadcrumb)
         assert breadcrumb is not None
         self.assertIn(module.title, breadcrumb.group(1))
-        self.assertIn(f'<li aria-current="page">{self.homework.title}</li>', breadcrumb.group(1))
+        self.assertNotIn("aria-current", breadcrumb.group(1))
         module_url = f"/{self.course.course.slug}/{module.slug}?cohort={self.course.identifier}"
         self.assertIn(module_url, breadcrumb.group(1))
 

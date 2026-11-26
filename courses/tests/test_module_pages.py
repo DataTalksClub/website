@@ -111,8 +111,8 @@ class ModulePageTests(TestCase):
         self.assertLess(body.index('class="module-main"'), body.index('class="module-sidebar'))
         self.assertNotIn("Shared module navigation contract", body)
 
-    def test_breadcrumb_ends_with_the_module_and_names_the_edition_once(self):
-        """The module is the last crumb; the cohort crumb is the identifier, not the course again."""
+    def test_breadcrumb_stops_at_the_cohort_and_names_the_edition_once(self):
+        """The h1 names the module; the cohort crumb is the identifier, not the course again."""
 
         body = self.client.get(self.module_url()).content.decode()
         trail = body.split('<nav class="breadcrumbs"', 1)[1].split("</nav>", 1)[0]
@@ -121,8 +121,8 @@ class ModulePageTests(TestCase):
         self.assertIn(f">{self.course.title}</a>", trail)
         self.assertIn(f">{self.cohort.identifier}</a>", trail)
         self.assertNotIn(self.cohort.title, trail)
-        self.assertIn(f'<li aria-current="page">{self.module.title}</li>', trail)
-        self.assertEqual(trail.count("<li"), 4)
+        self.assertNotIn("aria-current", trail)
+        self.assertEqual(trail.count("<li"), 3)
 
     def test_module_and_unit_links_keep_numeric_source_slugs(self):
         module_url = reverse(

@@ -138,8 +138,8 @@ class CourseFamilyNavigationTest(TestCase):
                 f"{self.family.title}</a>"
             ),
         )
-        # The trail ends with this cohort's edition, as on every page below a hub.
-        self.assertContains(response, f'<li aria-current="page">{self.current.identifier}</li>')
+        # The trail stops at the family: the h1 below names this cohort.
+        self.assertNotContains(response, f'<li aria-current="page">{self.current.identifier}</li>')
         self.assertContains(response, f'<h1 id="course-heading">{self.current.title}</h1>')
         self.assertContains(response, self.course_url(self.previous))
         self.assertNotContains(response, self.course_url(self.hidden))

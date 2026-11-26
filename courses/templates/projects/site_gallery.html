@@ -509,15 +509,15 @@
       {% url 'cohort' course_family.slug course.identifier as cohort_url %}
       {% if project %}
         {% url 'cohort_project' course_family.slug course.identifier project.slug as project_url %}
-        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url project.title project_url current="Project submissions" %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url project.title project_url %}
       {% else %}
-        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url current="Learner projects" %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url %}
       {% endif %}
     {% else %}
-      {% breadcrumbs "Courses" course_list_url course_family.title course_family_url current="Learner projects" %}
+      {% breadcrumbs "Courses" course_list_url course_family.title course_family_url %}
     {% endif %}
   {% else %}
-    {% breadcrumbs "Courses" course_list_url current="Learner projects" %}
+    {% breadcrumbs "Courses" course_list_url %}
   {% endif %}
   <div class="gallery-heading">
     {% if project %}

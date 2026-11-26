@@ -75,7 +75,7 @@
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course_family.slug as course_family_url %}
         {% url 'shared_module' course_family.slug module.slug as module_link %}
-        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url module.title module_link|add:context_q current=lesson.title %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url module.title module_link|add:context_q %}
         <div class="unit-hero-inner">
           <h1 id="lesson-heading">{{ lesson.title }}</h1>
         </div>

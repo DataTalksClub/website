@@ -27,7 +27,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
             f'<h1 id="submission-heading">{self.homework.title}</h1>',
         )
         self.assertIn(self.course.title, breadcrumb.group(1))
-        self.assertIn(f'<li aria-current="page">{self.homework.title}</li>', breadcrumb.group(1))
+        self.assertNotIn("aria-current", breadcrumb.group(1))
         self.assertNotIn("Homework submission", body)
         self.assertIn('aria-labelledby="submission-heading"', body)
 

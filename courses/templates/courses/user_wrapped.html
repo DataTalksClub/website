@@ -152,7 +152,7 @@
         object in the context to fall back to.
       {% endcomment %}
       {% url 'course_list' as course_list_url %}
-      {% breadcrumbs "Courses" course_list_url year|stringformat:"s"|add:" Wrapped" wrapped_url current=display_name|add:"'s Wrapped" %}
+      {% breadcrumbs "Courses" course_list_url year|stringformat:"s"|add:" Wrapped" wrapped_url %}
       {% if no_activity %}
         <h1 id="user-wrapped-heading">DataTalks.Club Wrapped {{ year }}</h1>
         <p class="wrapped-lede">{{ display_name }}'s year in review.</p>

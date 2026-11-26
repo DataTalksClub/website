@@ -405,27 +405,26 @@ class CoursePageBreadcrumbTests(CourseDetailViewTestBase):
         self.assertIn("<ol>", trail)
         self.assertNotIn("<ul>", trail)
         crumbs = re.findall(r"<li[^>]*>(.*?)</li>", trail, re.DOTALL)
-        self.assertEqual(len(crumbs), 3)
+        self.assertEqual(len(crumbs), 2)
         self.assertIn(f'href="{reverse("course_list")}"', crumbs[0])
         self.assertIn(">Courses<", crumbs[0])
         self.assertIn(f">{self.course.title}<", crumbs[1])
 
-    def test_the_trail_ends_with_this_cohort_as_plain_text(self):
-        """The cohort's edition is the last crumb, as on every page below a hub."""
+    def test_the_trail_stops_at_the_family_and_the_h1_names_the_cohort(self):
+        """A last crumb repeating the heading is the same words twice."""
 
         body, trail = self.breadcrumb_nav()
 
-        self.assertIn(f'<li aria-current="page">{self.course.identifier}</li>', trail)
+        self.assertNotIn("aria-current", trail)
         self.assertIn(f'<h1 id="course-heading">{self.course.title}</h1>', body)
 
-    def test_every_ancestor_crumb_is_a_link_and_the_page_is_not(self):
+    def test_every_crumb_is_a_link(self):
         _body, trail = self.breadcrumb_nav()
 
         crumbs = re.findall(r"<li[^>]*>(.*?)</li>", trail, re.DOTALL)
         self.assertTrue(crumbs)
-        for crumb in crumbs[:-1]:
+        for crumb in crumbs:
             self.assertIn("<a", crumb)
-        self.assertNotIn("<a", crumbs[-1])
 
     def test_separators_are_css_drawn_and_never_written_into_the_markup(self):
         body, trail = self.breadcrumb_nav()

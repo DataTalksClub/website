@@ -1523,14 +1523,13 @@ Rules for editing:
          (restored on the course page after the design system rebuild; the mockups
          draw none, so the shape is this system's own).  Markup contract: a
          nav.breadcrumbs with aria-label="Breadcrumb" holding an ol, one li per
-         level; every ancestor is a link.  A page whose h1 sits directly under
-         the trail stops at its parent and lets the heading say where you are —
-         the course, module and unit pages do — because a last crumb repeating
-         the h1 word for word is duplication that costs a whole row.  Where the
-         current page is still listed it sits on li[aria-current="page"] as
-         plain text, never a link; the content pages keep it because their
-         BreadcrumbList JSON-LD lists the page itself and the visible trail must
-         match what is published.
+         level; every ancestor is a link.  The trail stops at the parent and
+         lets the h1 directly below say the page's name, because a last crumb
+         repeating the heading is the same words twice (owner, 2026-11-26).  The
+         published BreadcrumbList JSON-LD still lists the page itself; the two
+         differ by that level on purpose.  A page whose own crumb says something
+         its h1 does not (registration under a course-named heading) asks for
+         it, and it sits on li[aria-current="page"] as plain text, never a link.
 
          A trail is chrome, not content, so it is drawn at the secondary size
          and in the muted ink `.mono-note` already uses rather than at body size
@@ -1589,16 +1588,28 @@ Rules for editing:
         margin-inline: var(--space-2);
       }
 
-      /* The trail is one line: the current page shrinks and ends in an
-         ellipsis rather than wrapping under its parents. */
+      /* The trail is one line: its last crumb — the parent, or the page
+         itself where a call asks for it — shrinks and ends in an ellipsis
+         rather than wrapping under the levels before it.  The separator only
+         follows a crumb that has another after it, so the line never ends on
+         a dangling "/". */
+      .breadcrumbs li:last-child {
+        flex: 0 1 auto;
+      }
+
+      .breadcrumbs li:last-child > a,
+      .breadcrumbs li:last-child > span,
       .breadcrumbs [aria-current="page"] {
-        color: var(--muted);
         display: block;
-        flex: 1 1 auto;
-        font-weight: 500;
+        line-height: 2rem;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .breadcrumbs [aria-current="page"] {
+        color: var(--muted);
+        font-weight: 500;
       }
 
       /* --- calls to action ---------------------------------------------- */

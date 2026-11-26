@@ -14,7 +14,7 @@ Two call shapes, one output:
 * inline levels, for a page that knows its ancestors in the template::
 
       {% url 'course_list' as courses_url %}
-      {% breadcrumbs "Courses" courses_url current="registration" %}
+      {% breadcrumbs "Courses" courses_url course.title family_url %}
 
   Positional arguments are read in ``label, url`` pairs.  A pair whose label is
   empty is dropped, so an ancestor that only sometimes exists costs no ``{% if
@@ -26,15 +26,24 @@ Two call shapes, one output:
 
       {% breadcrumbs breadcrumb_trail nav_class="shell article-shell" %}
 
-  The trail's own ``current`` becomes the last crumb, so the drawn trail and the
-  published one cannot disagree: they are the same object.
+  The trail's ancestors are drawn; its own ``current`` stays in the published
+  JSON-LD, which names the page it describes, and is not drawn.
 
-``current`` is the page itself, drawn as plain text on ``li[aria-current="page"]``
-and never as a link.  Every page below a hub passes it, so the trail always ends
-with the page the reader is on — the blog article's trail is the reference, and
-``core/tests/test_breadcrumb_rule.py`` holds every trail to it.  Leaving it out
-stops the trail at the parent, which only a caller that renders the trail for
-someone else's page should ever want.
+The visible trail stops at the parent.  The ``h1`` directly below it already
+says the page's name, so a last crumb repeating it ("Blog / Sponsor
+DataTalks.Club: …" over the same title) is the same words twice.  The trail
+reads "Blog", "Podcast / Season 25", "Courses / AI Dev Tools Zoomcamp", and the
+heading finishes the sentence.  The drawn trail and the published
+``BreadcrumbList`` therefore differ by exactly that last level, by design.
+
+The exception is a page whose own crumb says something its ``h1`` does not —
+the registration page under a heading that names the course, the wiki graph
+under a heading that says "Wiki".  Such a call asks for the crumb explicitly:
+``current="Registration"`` for inline levels, or ``show_current=True`` to draw a
+Trail's own ``current``.  It is drawn as plain text on
+``li[aria-current="page"]``, never as a link.  ``core/tests/test_breadcrumb_rule.py``
+lists every call that asks, with its reason, so a crumb that repeats the
+heading cannot creep back in.
 """
 
 from __future__ import annotations
@@ -57,7 +66,7 @@ def _crumb(label: object, url: object) -> Crumb:
 
 
 def _levels(arguments: Sequence[object]) -> tuple[list[Crumb], str]:
-    """Read positional arguments into ancestors plus the current page's label."""
+    """Read positional arguments into ancestors plus a Trail's own current label."""
 
     crumbs: list[Crumb] = []
     current = ""
@@ -104,6 +113,7 @@ def _levels(arguments: Sequence[object]) -> tuple[list[Crumb], str]:
 def breadcrumbs(
     *levels: object,
     current: object = "",
+    show_current: bool = False,
     nav_class: str = "",
     aria_label: str = "Breadcrumb",
 ) -> SafeString:
@@ -113,10 +123,13 @@ def breadcrumbs(
     the reading surfaces put the trail on their own ``shell`` so it lines up with
     the column beneath it.  The primitive's own class is always last and always
     present, so no caller can style the trail by forgetting it.
+
+    ``current`` and ``show_current`` are the exception described in the module
+    docstring: without one of them the trail ends at the parent.
     """
 
     ancestors, trail_current = _levels(levels)
-    label = str(current or "") or trail_current
+    label = str(current or "") or (trail_current if show_current else "")
     if not ancestors and not label:
         # Nothing to draw. An empty nav landmark is worse than no landmark: a
         # screen reader announces "Breadcrumb navigation" and then finds it

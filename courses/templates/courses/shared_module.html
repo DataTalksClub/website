@@ -148,7 +148,7 @@
 {% block page_header %}
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course_family.slug as course_family_url %}
-        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url current=module.title %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url %}
         <div class="module-hero-inner">
           <h1 id="module-heading">{{ module.title }}</h1>
           <p class="mono-note">Module {{ module_position }} of {{ module_count }}</p>

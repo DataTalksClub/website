@@ -124,14 +124,14 @@
           above it already names "Machine Learning Zoomcamp", so "ML Zoomcamp
           2026" repeated it in an abbreviation the reader then had to match up.
           The identifier is what the URL segment and every other course page's
-          trail already show.  The lesson itself
-          is the last crumb, as on every page below a hub.
+          trail already show.  The trail stops at the module: the h1 below
+          names the lesson.
         {% endcomment %}
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course_family.slug as course_family_url %}
         {% url 'cohort' course_family.slug cohort.identifier as cohort_url %}
         {% url 'cohort_module' course_family.slug cohort.identifier module.slug as module_url %}
-        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url cohort.identifier cohort_url module.title module_url current=unit.title %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url cohort.identifier cohort_url module.title module_url %}
         <div class="unit-hero-inner">
           {% comment %}
             The heading alone.  The module line that used to sit under it was

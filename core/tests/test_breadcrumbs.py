@@ -106,17 +106,34 @@ class BreadcrumbMarkupTests(SimpleTestCase):
 
 
 class PublishedTrailTests(SimpleTestCase):
-    def test_a_trail_draws_its_own_ancestors_and_marks_itself(self) -> None:
+    def test_a_trail_draws_its_ancestors_and_leaves_the_page_to_the_h1(self) -> None:
         markup = render(
             "{% breadcrumbs breadcrumbs %}",
             breadcrumbs=trail(("Blog", "/blog"), ("A title", "/blog/a.html")),
         )
 
         self.assertIn('<li><a href="/blog">Blog</a></li>', markup)
-        self.assertIn('<li aria-current="page">A title</li>', markup)
+        self.assertNotIn("A title", markup)
+        self.assertNotIn("aria-current", markup)
 
-    def test_the_published_list_is_the_drawn_trail_plus_the_site_root(self) -> None:
-        """One value, two renderings: the visible crumbs cannot drift from the JSON-LD."""
+    def test_a_trail_draws_its_own_page_only_when_asked(self) -> None:
+        markup = render(
+            "{% breadcrumbs breadcrumbs show_current=True %}",
+            breadcrumbs=trail(("Wiki", "/wiki"), ("Graph", "/wiki/graph")),
+        )
+
+        self.assertIn('<li aria-current="page">Graph</li>', markup)
+
+    def test_a_page_directly_under_the_site_root_draws_no_trail(self) -> None:
+        markup = render(
+            "{% breadcrumbs breadcrumbs %}",
+            breadcrumbs=trail(("Alexey", "/people/alexey.html")),
+        )
+
+        self.assertEqual(markup, "")
+
+    def test_the_published_list_is_the_trail_plus_the_site_root(self) -> None:
+        """The JSON-LD keeps the page itself even though the visible trail stops above it."""
 
         published = trail(("Blog", "/blog"), ("A title", "/blog/a.html")).published_items()
 

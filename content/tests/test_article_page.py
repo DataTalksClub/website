@@ -422,7 +422,8 @@ class ArticlePageTests(TestCase):
             count=1,
         )
         self.assertContains(response, '<a href="/blog">Blog</a>', html=True)
-        self.assertContains(response, '<li aria-current="page">')
+        # The trail stops at the blog: the h1 below names the article.
+        self.assertNotContains(response, '<li aria-current="page">')
         # The trail is the only way back; the page does not also grow a back-link.
         # Above the site footer (which lists Blog among its sections) that is the
         # masthead's entry plus the trail.

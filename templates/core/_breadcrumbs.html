@@ -5,9 +5,10 @@
   The markup contract the .breadcrumbs primitive in core/_design_system.html is
   styled against: a nav landmark labelled "Breadcrumb", holding an ordered list
   because the levels are a sequence and not a set, one li per level, every
-  ancestor a link, and the page itself — where it is drawn at all — as plain text
-  on li[aria-current="page"] rather than a link back to the page the reader is
-  already on.
+  ancestor a link.  The trail normally stops at the parent, because the h1
+  below names the page; where a call asks for the page's own crumb (it says
+  something the h1 does not) it is plain text on li[aria-current="page"] rather
+  than a link back to the page the reader is already on.
 
   The separator is drawn by CSS on li:not(:last-child)::after with empty
   alternative text, so no "/" is ever written into the markup or announced.

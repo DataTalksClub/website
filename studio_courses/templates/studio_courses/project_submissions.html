@@ -47,7 +47,7 @@
     without linking rather than pointing at this list or off to the public page.
   {% endcomment %}
   {% url 'studio_courses_course' course.slug as studio_course_url %}
-  {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url course.title studio_course_url project.title "" current="Submissions" %}
+  {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url course.title studio_course_url project.title "" %}
 {% endblock %}
 
 {% block page_head %}

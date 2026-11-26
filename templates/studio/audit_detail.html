@@ -17,7 +17,7 @@
 {% block breadcrumbs_nav %}
   {% url 'studio:home' as studio_home_url %}
   {% url 'studio:audit-list' as studio_audit_list_url %}
-  {% breadcrumbs "Studio" studio_home_url "Audit events" studio_audit_list_url current="Audit event" %}
+  {% breadcrumbs "Studio" studio_home_url "Audit events" studio_audit_list_url %}
 {% endblock %}
 
 {% block page_head %}
