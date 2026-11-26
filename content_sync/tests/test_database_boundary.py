@@ -57,6 +57,10 @@ class Verdict:
 
 
 VERDICTS: dict[str, Verdict] = {
+    "ModuleOverviewParserTests": Verdict(
+        "content_sync.module_overview.parse_module_overview splits README text into "
+        "frozen dataclasses with regular expressions; no model and no catalogue on the path.",
+    ),
     "CourseRepositoryArchiveTests": Verdict(
         "content_sync.course_repository_ingest.fetch_course_repository_snapshot unpacks a "
         "patched requests response with tarfile and returns bytes; no model and no "
