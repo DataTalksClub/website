@@ -1466,16 +1466,17 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
 
 
 def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
-    from .podcast_pictures import Variant, stored_path
+    from .podcast_pictures import Variant, stored_paths
 
+    pictures = stored_paths(episode["slug"])
     # The generated 1200 x 630 social picture is the page's preview image; the
     # episode's own artwork is only the fallback for an episode without one.
-    image_path = stored_path(episode["slug"], Variant.SOCIAL) or (
+    image_path = pictures.get(Variant.SOCIAL, "") or (
         episode["image_path"]
         if episode.get("media_available") and episode.get("image_path")
         else ""
     )
-    poster_path = stored_path(episode["slug"], Variant.POSTER) or (
+    poster_path = pictures.get(Variant.POSTER, "") or (
         episode["image_path"]
         if episode.get("media_available") and episode.get("image_path")
         else ""
@@ -1484,7 +1485,7 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
     # pairs its picture with its title: the generated 1000 x 1000 card, else
     # the episode's own (landscape) artwork, else none -- the hero is then one
     # column of words.
-    hero_card_path = stored_path(episode["slug"], Variant.CARD)
+    hero_card_path = pictures.get(Variant.CARD, "")
     hero_picture_path = hero_card_path or (
         episode["image_path"]
         if episode.get("media_available") and episode.get("image_path")

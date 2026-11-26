@@ -32,8 +32,14 @@ def slugs_with(variant: str) -> frozenset[str]:
     )
 
 
-def stored_path(slug: str, variant: str) -> str:
-    """The episode's picture path for ``variant``, or ``""`` when none is stored."""
+def stored_paths(slug: str) -> dict[str, str]:
+    """The episode's picture path for each stored variant (one query).
 
-    exists = PodcastEpisodePicture.objects.filter(episode_slug=slug, variant=variant).exists()
-    return picture_path(slug, variant) if exists else ""
+    A variant with no stored picture is absent, so ``.get(variant, "")`` reads
+    as "the generated picture, or nothing".
+    """
+
+    variants = PodcastEpisodePicture.objects.filter(episode_slug=slug).values_list(
+        "variant", flat=True
+    )
+    return {variant: picture_path(slug, variant) for variant in variants}
