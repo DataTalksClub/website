@@ -1562,7 +1562,7 @@ Rules for editing:
       .breadcrumbs li {
         align-items: center;
         display: inline-flex;
-        flex: none;
+        flex: 0 1 auto;
         min-width: 0;
       }
 
@@ -1590,20 +1590,31 @@ Rules for editing:
         margin-inline: var(--space-2);
       }
 
-      /* The trail is one line: its last crumb — the parent, or the page
-         itself where a call asks for it — shrinks and ends in an ellipsis
-         rather than wrapping under the levels before it.  The separator only
-         follows a crumb that has another after it, so the line never ends on
-         a dangling "/". */
-      .breadcrumbs li:last-child {
-        flex: 0 1 auto;
+      /* The trail is one line and never wider than its column: its last
+         crumb — the parent, or the page itself where a call asks for it —
+         gives way first and ends in an ellipsis rather than wrapping under
+         the levels before it.  Once it is down to a few characters, the
+         ancestors shorten with an ellipsis too, so a deep trail (Courses /
+         family / cohort) on a 320px phone or under WCAG text spacing never
+         pushes the page sideways.  The separator only follows a crumb that
+         has another after it, so the line never ends on a dangling "/". */
+      /* The root crumb is a short section name ("Courses", "Blog") that
+         says where the reader is; it keeps its full word. */
+      .breadcrumbs li:first-child:not(:last-child) {
+        flex-shrink: 0;
       }
 
-      .breadcrumbs li:last-child > a,
-      .breadcrumbs li:last-child > span,
+      .breadcrumbs li:last-child {
+        flex-shrink: 1000;
+        min-width: min(4em, 100%);
+      }
+
+      .breadcrumbs li > a,
+      .breadcrumbs li > span,
       .breadcrumbs [aria-current="page"] {
         display: block;
         line-height: 2rem;
+        min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
