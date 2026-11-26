@@ -274,6 +274,8 @@ class AcademyPageTests(TestCase):
         # A session recap sits under the sessions page its URL is under, not
         # under the article index; the trail stops there and the h1 names it.
         self.assertIn('href="/academy/sessions/">Synthetic Series</a>', header)
+        # The trail's root is the Academy's short name, not the brand.
+        self.assertIn('href="/academy/">Synthetic wordmark</a>', header)
         self.assertNotIn('<li aria-current="page">', header)
         content = body[body.index(READING_BAND) :]
         self.assertIn('<h2 id="synthetic-recap-section">Synthetic recap section</h2>', content)

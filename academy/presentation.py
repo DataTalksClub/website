@@ -384,7 +384,10 @@ def page_trail(page: Record, shared: Record, pages: Sequence[Record]) -> Trail |
         and path.startswith(item["public_path"])
         and item["layout"] not in UNTRAILED_LAYOUTS
     ]
-    levels = [(shared["brand"], ACADEMY_ROOT)]
+    # The root is the Academy's short name, the way every other trail names
+    # its section ("Blog", "Courses"), not the brand.
+    root_label = (shared.get("header") or {}).get("wordmark") or shared["brand"]
+    levels = [(root_label, ACADEMY_ROOT)]
     if parents:
         parent = max(parents, key=lambda item: len(item["public_path"]))
         levels.append((crumb_label(parent), parent["public_path"]))

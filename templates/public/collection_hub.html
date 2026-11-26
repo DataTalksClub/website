@@ -186,8 +186,10 @@
         <div class="shell shell-reading">
           <div class="band-head">
             <div>
-              {% if collection == "articles" or collection == "academy" %}
+              {% if collection == "articles" %}
                 <h2 id="collection-list-heading">All articles</h2>
+              {% elif collection == "academy" %}
+                <h2 id="collection-list-heading">All guides</h2>
               {% elif collection == "podcasts" %}
                 <h2 id="collection-list-heading">All episodes</h2>
               {% elif collection == "people" %}
