@@ -136,27 +136,15 @@
       }
 
       /* The optional slots an Academy article fills (academy.presentation):
-         its recording above the prose, its own questions below it, the pages
-         it points on to, and its one closing action.  A blog post fills none
-         of them. */
+         its recording above the prose and the pages it points on to; its
+         closing action (`closing_cta`) is the site's closing stripe
+         (core/_tour_cta.html).  A blog post fills none of them. */
       .article-related {
         margin-top: var(--space-section);
       }
 
       .article-related > h2 {
         margin-bottom: var(--space-head);
-      }
-
-      /* The stripe's copy column grows; its actions keep their width and
-         wrap under one another on a phone rather than widening the page. */
-      .tour-cta > .article-closing-actions {
-        flex: 0 1 auto;
-      }
-
-      .article-closing-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-3);
       }
 
       .article-languages {
@@ -436,26 +424,6 @@
             {% endif %}
           </div>
         </section>
-        {% if closing_cta %}
-          {% comment %}
-            The page's one primary action, in the site's closing stripe (the
-            band the blog closes on, core/_tour_cta.html, which the Academy's
-            own pages leave out).
-          {% endcomment %}
-          <section class="band band-ink" aria-labelledby="join-heading">
-            <div class="shell tour-cta">
-              <div>
-                <h2 id="join-heading">{{ closing_cta.heading }}</h2>
-                <p>{{ closing_cta.text }}</p>
-              </div>
-              <div class="article-closing-actions">
-                {% for action in closing_cta.actions %}
-                  {% include "core/_button.html" with href=action.href label=action.label variant=forloop.first|yesno:"primary,secondary" %}
-                {% endfor %}
-              </div>
-            </div>
-          </section>
-        {% endif %}
       </article>
     </main>
     {% include "core/_site_shell_foot.html" %}

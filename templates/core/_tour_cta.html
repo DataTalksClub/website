@@ -7,14 +7,35 @@
   the About page (`/about`, published as the tour -- the name this partial and
   its hooks still carry).
 
-  Views can also set `hide_tour_cta` to True to opt out explicitly.
+  Views can also set `hide_tour_cta` to True to opt out explicitly, or pass
+  `closing_cta` to put their own closing action in the stripe.
 
   The destination is a literal path, not a `{% url %}` tag: this footer also
   renders under the compatibility urlconf (`course_management.urls`), which
   carries no `about` route, and a reversing tag would 500 there. The legal
   links below hardcode for the same reason.
 {% endcomment %}
-{% if not hide_tour_cta and primary_navigation_current and primary_navigation_current != "courses" and primary_navigation_current != "academy" %}
+{% if closing_cta %}
+  {% comment %}
+    A page that names its own closing action (`closing_cta`: heading, text and
+    actions, the first primary -- an Academy article's waitlist) takes this
+    stripe for it instead of the About invitation, so it still ends on one
+    closing band.
+  {% endcomment %}
+  <section class="band band-ink" aria-labelledby="join-heading">
+    <div class="shell tour-cta">
+      <div>
+        <h2 id="join-heading">{{ closing_cta.heading }}</h2>
+        <p>{{ closing_cta.text }}</p>
+      </div>
+      <div class="tour-cta-actions">
+        {% for action in closing_cta.actions %}
+          {% include "core/_button.html" with href=action.href label=action.label variant=forloop.first|yesno:"primary,secondary" %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% elif not hide_tour_cta and primary_navigation_current and primary_navigation_current != "courses" and primary_navigation_current != "academy" %}
   <section class="band band-ink" aria-labelledby="tour-cta-heading">
     <div class="shell tour-cta">
       <div>

@@ -1561,6 +1561,15 @@ Rules for editing:
         margin-top: var(--space-2);
       }
 
+      /* A page's own closing actions (`closing_cta`): they keep their width
+         and wrap under one another on a phone rather than widening the page. */
+      .tour-cta > .tour-cta-actions {
+        display: flex;
+        flex: 0 1 auto;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+      }
+
       .tour-cta .cta-primary {
         border-color: #ffffff;
         box-shadow: none;
