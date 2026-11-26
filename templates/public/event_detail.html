@@ -49,6 +49,8 @@
        * ------------------------------------------------------------------ */
 
       {% include "core/_design_system.html" %}
+      {% include "account/_entrance_styles.html" %}
+      {% include "account/_auth_card_styles.html" %}
 
       /* ------------------------------------------------------------------ *
        * Event page rules.  Every visual part is a shared primitive
@@ -340,16 +342,13 @@
       }
 
       /* Choosing "Register with email" swaps the greeting and the two
-         choices for the form; "Log in to register" swaps them for the login
-         panel, in place.  Without JS the email form shows outright and the
+         choices for the form, in place; "Log in to register" opens the
+         sign-in dialog.  Without JS the email form shows outright and the
          login button stays a link to the login page. */
       .js .event-register:not(.is-email) .event-register-email,
       .no-js .event-register-email-toggle,
-      .event-register:not(.is-login) .event-register-login,
       .event-register.is-email .event-register-greeting,
-      .event-register.is-email .event-register-choices,
-      .event-register.is-login .event-register-greeting,
-      .event-register.is-login .event-register-choices {
+      .event-register.is-email .event-register-choices {
         display: none;
       }
 
@@ -411,63 +410,83 @@
         overflow-wrap: anywhere;
       }
 
-      .event-register-login {
-        display: grid;
-        gap: var(--space-3);
+      /* The sign-in dialog: the login page's own card body
+         (account/_auth_card_styles.html) in a soft popover frame, centred
+         over a dimmed page; a full-screen sheet on a phone. */
+      .auth-dialog {
+        background: var(--card);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
+        box-shadow: var(--shadow-popover);
+        color: var(--body-text);
+        max-height: calc(100dvh - 2 * var(--space-4));
+        max-width: calc(100vw - 2 * var(--shell-gutter));
+        overflow: auto;
+        overscroll-behavior: contain;
+        padding: 0;
+        width: 28rem;
       }
 
-      .event-register-login-title {
-        color: var(--ink);
-        font-weight: 700;
-        margin: 0;
+      .auth-dialog::backdrop {
+        background: color-mix(in srgb, var(--ink) 48%, transparent);
       }
 
-      .event-register-providers {
-        display: grid;
-        gap: var(--space-2);
+      .auth-dialog-bar {
+        display: flex;
+        justify-content: flex-end;
+        padding: var(--space-2) var(--space-2) 0;
       }
 
-      .event-register-providers form {
-        margin: 0;
-      }
-
-      .event-register .cta.event-register-provider {
-        gap: var(--space-2);
-        justify-content: center;
-        width: 100%;
-      }
-
-      .event-register-or {
+      .auth-dialog-close {
         align-items: center;
-        color: var(--muted);
-        display: flex;
-        font-size: 0.82rem;
-        gap: var(--space-2);
-        margin: 0;
+        background: transparent;
+        border: 0;
+        border-radius: var(--radius-control);
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-size: 1.6rem;
+        height: 2.75rem;
+        justify-content: center;
+        line-height: 1;
+        width: 2.75rem;
       }
 
-      .event-register-or::before,
-      .event-register-or::after {
-        border-top: var(--rule);
-        content: "";
-        flex: 1;
+      .auth-dialog-close:hover {
+        background: var(--lavender);
       }
 
-      .event-register-login-error {
-        margin: 0;
+      .auth-dialog-view {
+        padding: 0 var(--space-6) var(--space-6);
       }
 
-      .event-register-login-links {
-        color: var(--muted);
-        display: flex;
-        flex-wrap: wrap;
-        font-size: 0.82rem;
-        gap: var(--space-2);
-        margin: 0;
-      }
-
-      .event-register-login-error[hidden] {
+      .auth-dialog-view[hidden],
+      .auth-dialog-error[hidden] {
         display: none;
+      }
+
+      .auth-dialog .auth-head .auth-title {
+        font-size: 1.6rem;
+      }
+
+      .auth-dialog-error {
+        margin: 0;
+      }
+
+      @media (max-width: 35.99rem) {
+        .auth-dialog {
+          border: 0;
+          border-radius: 0;
+          height: 100dvh;
+          max-height: none;
+          max-width: none;
+          width: 100vw;
+        }
+
+        .auth-dialog-view {
+          padding: 0 var(--space-4) var(--space-5);
+        }
       }
 
       .event-section h2 {
@@ -534,14 +553,6 @@
         .event-register-email .form-check,
         .event-register-email .event-register-agree {
           grid-column: 1 / -1;
-        }
-
-        .event-register-password .cmp-form-fields {
-          grid-template-columns: 1fr 1fr;
-        }
-
-        .event-register-providers {
-          grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
         }
       }
 
@@ -795,9 +806,7 @@
                     {% if not request.user.is_authenticated and registered == 'invalid_email' or not request.user.is_authenticated and registered == 'newsletter_required' %}
                       is-email
                     {% endif %}
-                    {% if email_registration.quick_account == 'exists' %}
-                      is-login
-                    {% endif %}"
+"
                   data-signed-in="{{ request.user.is_authenticated|yesno:'true,false' }}"
                   aria-labelledby="event-register-heading"
                 >
@@ -854,7 +863,13 @@
                             </p>
                           </form>
                         {% elif email_registration.quick_account == "exists" %}
-                          {% include "public/_event_register_login.html" with title="You already have an account — log in" %}
+                          <p class="event-register-offer">You already have an account.</p>
+                          <a
+                            class="cta cta-primary cta-compact event-register-submit event-register-login-toggle interactive-lift"
+                            href="{{ account_login_url }}"
+                            aria-haspopup="dialog"
+                            data-dialog-title="Log in"
+                          >Log in</a>
                         {% else %}
                           <p class="event-register-offer">
                             Want one-click registration next time?
@@ -1002,8 +1017,8 @@
                           <a
                             class="cta cta-primary cta-compact event-register-submit event-register-login-toggle interactive-lift"
                             href="{{ account_login_url }}"
-                            aria-controls="event-register-login"
-                            aria-expanded="false"
+                            aria-haspopup="dialog"
+                            data-dialog-title="Log in to register"
                           >Log in to register</a>
                           <button
                             type="button"
@@ -1016,7 +1031,6 @@
                             {% endif %}
                           >Register with email</button>
                         </div>
-                        {% include "public/_event_register_login.html" with title="Log in to register" %}
                         <form
                           id="event-register-email-form"
                           method="post"
@@ -1085,6 +1099,9 @@
                         </form>
                       {% endif %}
                     {% endif %}
+                    {% if event_state == "upcoming" and not request.user.is_authenticated %}
+                      {% include "public/_event_sign_in_dialog.html" %}
+                    {% endif %}
                   </div>
                 </section>
                 <script>
@@ -1101,7 +1118,7 @@
                     var waiting = false;
 
                     function showError(text) {
-                      var errorLine = card.querySelector(".event-register-login-error");
+                      var errorLine = card.querySelector(".auth-dialog-error");
                       if (!errorLine) return;
                       errorLine.textContent = text;
                       errorLine.hidden = !text;
@@ -1129,6 +1146,8 @@
                     function swapCard(doc) {
                       var fresh = doc.querySelector(".event-register");
                       if (!fresh) return false;
+                      var dialog = card.querySelector("[data-auth-dialog]");
+                      if (dialog && dialog.open) dialog.close();
                       card.replaceWith(fresh);
                       card = fresh;
                       if (fresh.dataset.signedIn === "true") swapMasthead(doc);
@@ -1179,7 +1198,6 @@
 
                     function bind() {
                       var emailToggle = card.querySelector(".event-register-email-toggle");
-                      var loginToggle = card.querySelector(".event-register-login-toggle");
 
                       if (emailToggle) emailToggle.addEventListener("click", function () {
                         emailToggle.setAttribute("aria-expanded", "true");
@@ -1187,15 +1205,57 @@
                         document.getElementById("id_reg_email").focus();
                       });
 
-                      if (loginToggle) loginToggle.addEventListener("click", function (event) {
-                        event.preventDefault();
-                        loginToggle.setAttribute("aria-expanded", "true");
-                        card.classList.add("is-login");
-                        var first = card.querySelector(".event-register-login button, .event-register-login input");
-                        if (first) first.focus();
-                      });
+                      /* "Log in to register" opens the sign-in dialog: a native
+                         modal <dialog>, so focus stays inside it, Esc closes it
+                         and the page behind is inert.  The link's own href (the
+                         login page, back to this event) is the no-JS path. */
+                      var dialog = card.querySelector("[data-auth-dialog]");
+                      var opener = null;
 
-                      card.querySelectorAll(".event-register-provider-form").forEach(function (form) {
+                      function showView(name) {
+                        dialog.querySelectorAll("[data-auth-view]").forEach(function (view) {
+                          view.hidden = view.dataset.authView !== name;
+                        });
+                        var title = name === "signup" ? "event-sign-up-title" : "event-sign-in-title";
+                        dialog.setAttribute("aria-labelledby", title);
+                        var first = dialog.querySelector("[data-auth-view='" + name + "'] button, [data-auth-view='" + name + "'] input:not([type=hidden])");
+                        if (first) first.focus();
+                      }
+
+                      if (dialog && typeof dialog.showModal === "function") {
+                        card.querySelectorAll(".event-register-login-toggle").forEach(function (toggle) {
+                          toggle.addEventListener("click", function (event) {
+                            event.preventDefault();
+                            opener = toggle;
+                            showError("");
+                            var title = dialog.querySelector("[data-auth-title]");
+                            if (title && toggle.dataset.dialogTitle) title.textContent = toggle.dataset.dialogTitle;
+                            dialog.showModal();
+                            showView("signin");
+                          });
+                        });
+                        dialog.querySelector("[data-auth-close]").addEventListener("click", function () {
+                          dialog.close();
+                        });
+                        /* A click on the dimmed page around the card closes it. */
+                        dialog.addEventListener("click", function (event) {
+                          if (event.target === dialog) dialog.close();
+                        });
+                        dialog.addEventListener("close", function () {
+                          waiting = false;
+                          if (opener && document.contains(opener)) opener.focus();
+                        });
+                        dialog.querySelectorAll("[data-auth-switch]").forEach(function (link) {
+                          var target = link.dataset.authSwitch;
+                          if (!dialog.querySelector("[data-auth-view='" + target + "']")) return;
+                          link.addEventListener("click", function (event) {
+                            event.preventDefault();
+                            showView(target);
+                          });
+                        });
+                      }
+
+                      card.querySelectorAll(".auth-dialog .provider-choice-form").forEach(function (form) {
                         form.addEventListener("submit", function () {
                           showError("");
                           var width = 520, height = 680;
@@ -1212,8 +1272,9 @@
                         });
                       });
 
-                      var passwordForm = card.querySelector(".event-register-password");
+                      var passwordForm = card.querySelector(".auth-dialog .auth-form");
                       if (passwordForm) {
+                        var submitLabel = passwordForm.querySelector("button[type=submit]").textContent;
                         passwordForm.addEventListener("submit", function (event) {
                           event.preventDefault();
                           showError("");
@@ -1222,11 +1283,13 @@
                           fetch(passwordForm.action, {
                             method: "POST",
                             body: new FormData(passwordForm),
-                            credentials: "same-origin",
-                            redirect: "manual"
+                            credentials: "same-origin"
                           })
                             .then(function (response) {
-                              if (response.type === "opaqueredirect" || response.status === 302) {
+                              /* allauth redirects on success (to this event) and on
+                                 an unverified address (to its "check your email"
+                                 page); a failed attempt re-renders the form. */
+                              if (response.redirected) {
                                 waiting = true;
                                 return refreshCard(false).then(function (signedIn) {
                                   /* Redirected without a session: the address is not
@@ -1249,7 +1312,12 @@
                               showError("Could not reach the server. Try again.");
                             })
                             .then(function () {
+                              /* The shared busy label (accessibility.js) expects a
+                                 navigation; this form stays, so undo it. */
                               submit.disabled = false;
+                              submit.textContent = submitLabel;
+                              submit.removeAttribute("aria-disabled");
+                              submit.removeAttribute("aria-busy");
                             });
                         });
                       }

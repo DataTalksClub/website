@@ -18,36 +18,5 @@
     email + password signup.  A new password account confirms its address by
     email before it can sign in (ACCOUNT_EMAIL_VERIFICATION = "mandatory").
   {% endcomment %}
-  {% if account_entry.providers %}
-    {% include "account/_social_provider_choices.html" with provider_list=account_entry.providers provider_url_mode="provided" provider_container_class="auth-choices" %}
-    <p class="auth-or">
-      <span>or</span>
-    </p>
-  {% endif %}
-  <section aria-labelledby="signup-email-heading">
-    <h2 id="signup-email-heading" class="sr-only">Sign up with email and password</h2>
-    <form class="entrance-form" method="post" action="{% url 'account_signup' %}">
-      {% csrf_token %}
-      {% include "account/_entrance_fields.html" %}
-      {{ redirect_field }}
-      <button class="cta cta-primary interactive-lift auth-submit" type="submit">Create account</button>
-      <p class="entrance-legal">
-        By creating an account, you agree to the
-        <a href="{% url 'terms' %}">Terms of Service</a>
-        and acknowledge the
-        <a href="{% url 'privacy' %}">Privacy Policy</a>.
-      </p>
-    </form>
-  </section>
-  <div class="auth-foot">
-    <p class="auth-account-links">
-      Already have an account?
-      <a href="{{ login_url }}">Sign in</a>
-    </p>
-    {% if account_entry.providers %}
-      <p class="auth-reassurance">
-        We never see your social media passwords.
-      </p>
-    {% endif %}
-  </div>
+  {% include "account/_sign_up_body.html" with providers=account_entry.providers %}
 {% endblock %}

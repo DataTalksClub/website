@@ -1,0 +1,44 @@
+{% comment %}
+  The sign-up card's body: the providers, then allauth's email + password
+  signup, the legal line and the foot.  Shared by the sign-up page and the
+  event page's sign-in dialog.
+
+  Context: `providers`, `form` (allauth's signup form), `login_url`, and
+  either allauth's `redirect_field` or a `safe_next` path.
+{% endcomment %}
+{% if providers %}
+  {% include "account/_social_provider_choices.html" with provider_list=providers provider_url_mode="provided" provider_container_class="auth-choices" %}
+  <p class="auth-or">
+    <span>or</span>
+  </p>
+{% endif %}
+<section aria-labelledby="signup-email-heading">
+  <h2 id="signup-email-heading" class="sr-only">Sign up with email and password</h2>
+  <form class="entrance-form" method="post" action="{% url 'account_signup' %}">
+    {% csrf_token %}
+    {% include "account/_entrance_fields.html" %}
+    {% if redirect_field %}
+      {{ redirect_field }}
+    {% elif safe_next %}
+      <input type="hidden" name="next" value="{{ safe_next }}">
+    {% endif %}
+    <button class="cta cta-primary interactive-lift auth-submit" type="submit">Create account</button>
+    <p class="entrance-legal">
+      By creating an account, you agree to the
+      <a href="{% url 'terms' %}">Terms of Service</a>
+      and acknowledge the
+      <a href="{% url 'privacy' %}">Privacy Policy</a>.
+    </p>
+  </form>
+</section>
+<div class="auth-foot">
+  <p class="auth-account-links">
+    Already have an account?
+    <a href="{{ login_url }}" data-auth-switch="signin">Sign in</a>
+  </p>
+  {% if providers %}
+    <p class="auth-reassurance">
+      We never see your social media passwords.
+    </p>
+  {% endif %}
+</div>

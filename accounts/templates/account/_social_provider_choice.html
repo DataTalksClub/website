@@ -2,6 +2,9 @@
   class="provider-choice-form"
   method="post"
   action="{{ provider_url }}"
+  {% if provider.page_url %}
+    data-page-action="{{ provider.page_url }}"
+  {% endif %}
 >
   {% csrf_token %}
   <button

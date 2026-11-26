@@ -189,7 +189,9 @@ class BandGroundTests(SimpleTestCase):
         signup = REPOSITORY_ROOT / "accounts/templates/account/signup.html"
         source = signup.read_text(encoding="utf-8")
         self.assertIn('{% extends "account/auth_page.html" %}', source)
-        self.assertIn("account/_social_provider_choices.html", source)
+        self.assertIn("account/_sign_up_body.html", source)
+        body = (REPOSITORY_ROOT / "accounts/templates/account/_sign_up_body.html").read_text()
+        self.assertIn("account/_social_provider_choices.html", body)
 
     def test_course_uses_the_shared_content_page_band(self) -> None:
         course = REPOSITORY_ROOT / "courses/templates/courses/course.html"

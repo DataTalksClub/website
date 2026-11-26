@@ -1229,6 +1229,14 @@ exception:
 - **Shared rules are a partial.** `accounts/templates/account/_entrance_styles.html`
   holds the field treatment for allauth's class-less widgets and the notice; the
   parent holds the card, provider and divider rules.
+- **One card body, two surfaces.** The card's inside is two partials,
+  `account/_sign_in_body.html` and `account/_sign_up_body.html`, styled by
+  `account/_auth_card_styles.html`. The event page's "Log in to register" opens them
+  in a native modal `<dialog>` (`public/_event_sign_in_dialog.html`): the soft card
+  frame with `--shadow-popover`, a close button, Esc, a full-screen sheet on a phone,
+  and "Create an account" / "Sign in" switching the dialog between the two bodies.
+  Without JavaScript the trigger is a link to the login page with the event as
+  `next`.
 - **Who may reach these pages is not a design decision.** Redesigning a template
   changes no route, gate or rate limit.
 

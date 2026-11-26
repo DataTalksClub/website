@@ -1,0 +1,51 @@
+{% comment %}
+  The event page's sign-in dialog.  "Log in to register" (and, after a
+  confirmed email registration, "Log in") opens it instead of taking the
+  visitor away; without JavaScript those triggers stay links to the login
+  page with this event as `next`.
+
+  It draws the login and sign-up pages' own card bodies
+  (`account/_sign_in_body.html`, `account/_sign_up_body.html`), so there is one
+  design.  Each provider posts into a small pop-up window and the card
+  refreshes itself when the pop-up reports back (`accounts.views.signed_in`);
+  a blocked pop-up falls back to the full-page flow back to this event.  The
+  password form posts to the login page in the background.  "Create an
+  account" swaps the dialog to the sign-up form, which posts normally and
+  comes back here once the address is confirmed.
+{% endcomment %}
+{% url 'account_reset_password' as dialog_reset_url %}
+{% url 'account_signup' as dialog_signup_url %}
+{% url 'login' as dialog_login_url %}
+<dialog
+  id="event-sign-in"
+  class="auth-dialog"
+  aria-labelledby="event-sign-in-title"
+  data-auth-dialog
+>
+  <div class="auth-dialog-bar">
+    <button type="button" class="auth-dialog-close interactive-lift" data-auth-close aria-label="Close">
+      <span aria-hidden="true">×</span>
+    </button>
+  </div>
+  <div class="auth-panel auth-dialog-view" data-auth-view="signin">
+    <div class="auth-head">
+      <h2 id="event-sign-in-title" class="auth-title" data-auth-title>Log in to register</h2>
+      <p class="auth-lede">You come back to this event, ready to register.</p>
+    </div>
+    <p class="a11y-error auth-dialog-error" role="alert" hidden></p>
+    {% if dialog_signup_form %}
+      {% include "account/_sign_in_body.html" with providers=inline_login_providers password_login_available=True password_reset_url=dialog_reset_url account_signup_url=dialog_signup_url safe_next=event.public_path login_error="" form=None %}
+    {% else %}
+      {% include "account/_sign_in_body.html" with providers=inline_login_providers password_login_available=True password_reset_url=dialog_reset_url account_signup_url=account_entry.signup_url safe_next=event.public_path login_error="" form=None %}
+    {% endif %}
+  </div>
+  {% if dialog_signup_form %}
+    <div class="auth-panel auth-dialog-view" data-auth-view="signup" hidden>
+      <div class="auth-head">
+        <h2 id="event-sign-up-title" class="auth-title">Create your account</h2>
+        <p class="auth-lede">One account for every event and free course.</p>
+      </div>
+      {% include "account/_sign_up_body.html" with providers=inline_login_providers form=dialog_signup_form login_url=dialog_login_url safe_next=event.public_path redirect_field="" %}
+    </div>
+  {% endif %}
+</dialog>

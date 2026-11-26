@@ -1,0 +1,146 @@
+{% comment %}
+  The sign-in card's inside: heading, provider buttons, the "or" divider, the
+  email form, the primary action, "Forgot password?" and the ruled foot.
+
+  Included by `account/auth_page.html` (the whole entrance family) and by the
+  event page's sign-in dialog, so the two draw one design.  The card frame
+  itself (border, padding, width) belongs to whichever surface holds it.
+{% endcomment %}
+.auth-panel {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.95rem;
+  gap: var(--space-4);
+}
+
+.auth-head {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  text-align: center;
+}
+
+.auth-head h1,
+.auth-head .auth-title {
+  font-size: clamp(1.6rem, 2.6vw, 2rem);
+  letter-spacing: -0.025em;
+}
+
+.auth-head .entrance-lede,
+.auth-lede {
+  color: var(--body-text);
+  font-size: 0.95rem;
+  margin: 0;
+  max-width: none;
+}
+
+.auth-panel h2 {
+  font-size: 1.05rem;
+}
+
+.auth-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.auth-submit {
+  justify-content: center;
+  width: 100%;
+}
+
+.auth-notice {
+  background: var(--sand);
+  border: var(--border-quiet);
+  border-radius: var(--radius-media);
+  color: var(--ink);
+  display: grid;
+  font-size: 0.92rem;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+}
+
+/* The providers: one full-width row each, all the same height, the mark
+   pinned to the left edge so the three marks line up while the words
+   stay centred. */
+.auth-choices {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.auth-choices .provider-choice-form {
+  display: grid;
+}
+
+/* Softer than the primary: the small CTA shadow and a lighter weight,
+   so the green "Sign in" stays the one primary action on the card. */
+.auth-choices .provider-choice {
+  box-shadow: var(--shadow-cta-sm);
+  font-size: 0.98rem;
+  font-weight: 600;
+  min-height: 3rem;
+  padding-inline: var(--space-7);
+  position: relative;
+  width: 100%;
+}
+
+.auth-choices .provider-mark {
+  left: var(--space-4);
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+}
+
+.auth-or {
+  align-items: center;
+  color: var(--muted);
+  display: grid;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  letter-spacing: 0.1em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.auth-or::before,
+.auth-or::after {
+  border-top: var(--rule);
+  content: "";
+}
+
+.auth-forgot {
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* The card's foot: the other way round (sign up / sign in) and the
+   reassurance, under a rule, so the small print reads as the end of the
+   card rather than as a second decision. */
+.auth-foot {
+  border-top: var(--rule);
+  color: var(--body-text);
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  text-align: center;
+}
+
+.auth-account-links {
+  font-size: 0.92rem;
+}
+
+.auth-reassurance {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* Inside the narrow card every action is a full-width row, so a pair of
+   actions stacks instead of rewrapping at an awkward width. */
+.auth-panel .entrance-actions {
+  display: grid;
+}
+
+.auth-panel .entrance-actions .cta {
+  width: 100%;
+}

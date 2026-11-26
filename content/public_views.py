@@ -533,6 +533,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
     # runs in a pop-up that lands on `login_popup_done`, and without a pop-up
     # (blocked, or no JavaScript) the same form returns to this page.
     inline_login_providers: list[dict[str, str]] = []
+    dialog_signup_form = None
     # The email form's outcome for this browser: "pending" until the emailed
     # link is followed, then "confirmed".
     email_registration = None
@@ -580,15 +581,25 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             provider["id"]: provider["login_url"]
             for provider in get_available_providers(event["public_path"])
         }
+        # The sign-in dialog draws the login page's own card body: each
+        # provider posts to its pop-up URL (`login_url`), and falls back to
+        # the full-page flow back to this event (`page_url`).
         inline_login_providers = [
             {
                 "id": provider["id"],
                 "name": provider["name"],
-                "popup_url": provider["login_url"],
+                "login_url": provider["login_url"],
                 "page_url": page_urls[provider["id"]],
             }
             for provider in get_available_providers(popup_next)
         ]
+        # The dialog's "Create an account" switch shows the sign-up page's own
+        # form, unbound, when plain sign-up is open.
+        from accounts.account_entry import signup_is_open
+        from accounts.forms import SiteSignupForm
+
+        if signup_is_open(request):
+            dialog_signup_form = SiteSignupForm()
     response = _render(
         request,
         "public/event_detail.html",
@@ -604,6 +615,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             "viewer_registered": viewer_registered,
             "zoom_join_url": zoom_join_url,
             "inline_login_providers": inline_login_providers,
+            "dialog_signup_form": dialog_signup_form,
             "email_registration": email_registration,
             "account_ready": viewer.is_authenticated
             and request.session.get(QUICK_ACCOUNT_READY_SESSION_KEY) == str(identity.pk),
