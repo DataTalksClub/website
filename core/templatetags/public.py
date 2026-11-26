@@ -47,6 +47,21 @@ def public_text(value: object) -> str:
     return mark_safe("<br>".join("".join(output).splitlines()))
 
 
+@register.filter
+def prose_html(block: dict) -> str:
+    """One prose block's inline content: its pre-rendered ``html``, else its text.
+
+    A paragraph keeps its own line breaks (``white-space: pre-line``), so the value
+    has to sit flush inside its ``<p>``/``<li>``: an ``{% if %}`` laid out over
+    several lines would draw its indentation and newlines as blank lines in the
+    page.  Choosing the value here keeps the template one tag per line.
+    """
+
+    if block.get("html"):
+        return block["html"]
+    return public_text(block.get("markdown") or block.get("text", ""))
+
+
 # Slack's own emphasis mark: ``_word_`` or ``_a few words_``, opened after a space or
 # punctuation (never inside a word, an address or an ``a_b_c`` identifier) and closed
 # before one.  Runs on already-escaped markup, where an underscore is still literal.

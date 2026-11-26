@@ -28,13 +28,7 @@
       <ul>
     {% endif %}
       {% for item in block.items %}
-        <li>
-          {% if item.html %}
-            {{ item.html }}
-          {% else %}
-            {{ item.markdown|default:item.text|public_text }}
-          {% endif %}
-        </li>
+        <li>{{ item|prose_html }}</li>
       {% endfor %}
     {% if block.ordered %}
       </ol>
@@ -42,12 +36,6 @@
       </ul>
     {% endif %}
   {% else %}
-    <p class="prose-paragraph">
-      {% if block.html %}
-        {{ block.html }}
-      {% else %}
-        {{ block.markdown|default:block.text|public_text }}
-      {% endif %}
-    </p>
+    <p class="prose-paragraph">{{ block|prose_html }}</p>
   {% endif %}
 {% endfor %}
