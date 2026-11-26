@@ -71,9 +71,11 @@
     </div>
     <div class="card-grid card-grid-2" data-tracks>
       {% for track in tracks %}
-        <article class="card academy-track-card">
+        <article class="card academy-track-card interactive-card interactive-lift">
           <div class="academy-track-head">
-            <h3>{{ track.name }}</h3>
+            <h3>
+              <a href="{{ track.path }}">{{ track.name }}</a>
+            </h3>
             <p class="academy-track-tagline">{{ track.headline }}</p>
           </div>
           <ul class="academy-checks">
@@ -81,7 +83,6 @@
               <li>{{ outcome }}</li>
             {% endfor %}
           </ul>
-          {% include "core/_button.html" with href=track.path label=track.button variant="secondary" %}
         </article>
       {% endfor %}
     </div>

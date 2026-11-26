@@ -500,7 +500,6 @@ class AcademyPageTests(TestCase):
         for text in (
             "Synthetic home headline",
             "Synthetic home lead.",
-            "Read about Agentic Engineering",
             "Agentic Engineering highlight 1.",
             "Agentic Engineering highlight 3.",
             "Synthetic instructor line.",
@@ -511,6 +510,10 @@ class AcademyPageTests(TestCase):
             self.assertContains(home, text)
         # The card shows the program's own highlights, not picked outcomes.
         self.assertNotContains(home, "Agentic Engineering outcome 1.")
+        # The whole card is the link: the program name is its one anchor,
+        # with no separate button.
+        self.assertContains(home, '<a href="/academy/agentic-engineering/">Agentic Engineering</a>', html=True)
+        self.assertNotContains(home, "Read about Agentic Engineering")
         program = self.client.get("/academy/agentic-engineering/")
         for text in (
             "Agentic Engineering synthetic first fit.",

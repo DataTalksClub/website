@@ -449,6 +449,18 @@
         margin-top: auto;
       }
 
+      /* On the Academy home the whole program card is the link: the name is
+         the one anchor and its ::after covers the card, as on event cards. */
+      .academy-track-card h3 a {
+        color: var(--ink);
+      }
+
+      .academy-track-card h3 a::after {
+        content: "";
+        inset: 0;
+        position: absolute;
+      }
+
       .academy-track-card .academy-checks {
         margin-bottom: var(--space-2);
       }
