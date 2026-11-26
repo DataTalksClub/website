@@ -757,7 +757,7 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         bio = catalogue.people_by_slug()[speaker["key"]]["blocks"][0]["text"]
         body = self.detail(event)
 
-        self.assertIn(
+        self.assertInHTML(
             '<h2 id="event-speakers-heading" class="event-section-head">About the speakers</h2>',
             body,
         )

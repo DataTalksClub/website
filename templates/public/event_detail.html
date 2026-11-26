@@ -1406,7 +1406,13 @@
               {% endcomment %}
               {% if event.speakers %}
                 <section class="event-section speaker-band" aria-labelledby="event-speakers-heading">
-                  <h2 id="event-speakers-heading" class="event-section-head">{% if speaker_bios %}About the speakers{% else %}Speakers{% endif %}</h2>
+                  <h2 id="event-speakers-heading" class="event-section-head">
+                    {% if speaker_bios %}
+                      About the speakers
+                    {% else %}
+                      Speakers
+                    {% endif %}
+                  </h2>
                   <ul class="row-list speaker-rows">
                     {% for speaker in event.speakers %}
                       <li class="list-row speaker-row">
