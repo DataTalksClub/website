@@ -45,9 +45,12 @@ class EventBannerPageTests(TestCase):
     def setUpTestData(cls) -> None:
         load_reviewed_reference_data()
 
-    def test_event_pages_render_the_uploaded_picture_and_social_metadata(self) -> None:
+    def test_event_pages_publish_the_uploaded_picture_as_social_metadata(self) -> None:
         # Every event is created with its picture (events.pictures), and the
-        # uploaded picture wins over the code-owned artwork.
+        # uploaded picture wins over the code-owned artwork.  The picture is
+        # the social image only: the page itself does not show it, because it
+        # repeats the title, date and speaker the page prints (owner decision
+        # 2026-11-26).
         for identity_id in EVENT_BANNER_FILENAMES:
             with self.subTest(identity_id=identity_id):
                 event = Event.objects.get(content_id=identity_id)
@@ -61,8 +64,8 @@ class EventBannerPageTests(TestCase):
 
                 self.assertEqual(response.status_code, 200)
                 assert projected_event is not None
-                self.assertIn('data-testid="event-banner"', body)
-                self.assertIn(f'src="{image_path}"', body)
+                self.assertNotIn('data-testid="event-banner"', body)
+                self.assertNotIn(f'src="{image_path}"', body)
                 self.assertIn(
                     f'<meta property="og:image" content="{canonical_image_url}">',
                     body,

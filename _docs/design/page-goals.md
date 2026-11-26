@@ -183,6 +183,12 @@ first-time visitors.
      friction.
   3. **Speaker credibility:** Speaker bios and links.
   4. **Participation & follow-up:** Q&A link and recording embed once available.
+- **Layout:** one reading column — trail and title, the facts (date and time,
+  where to watch or the recording, registered count), Registration, About the
+  event, About the speakers. Each fact appears once: no event picture on the
+  page (the generated banner is the og/social image and the list/home art only,
+  since it repeats the title, date and speaker), and the speakers are credited
+  only in their own section.
 
 ---
 

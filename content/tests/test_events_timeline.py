@@ -713,16 +713,20 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         )
         body = self.detail(event)
 
-        self.assertIn('<h2 id="event-hosts-heading" class="event-side-heading">Speakers</h2>', body)
-        self.assertIn('<ul class="event-host-list">', body)
+        # The speakers are credited once, in their own section at the foot of
+        # the page; there is no second list beside it (owner feedback
+        # 2026-11-26).
+        self.assertIn('id="event-speakers-heading"', body)
+        self.assertNotIn('class="event-hosts', body)
+        self.assertNotIn('<ul class="event-host-list">', body)
         for speaker in event["speakers"]:
             # A speaker is the shared person chip: their portrait beside their
-            # name, and the name is the link to their profile.
-            self.assertIn(
+            # name, and the name is the link to their profile -- once.
+            chip = (
                 f'<a class="band-link person-chip-name" '
-                f'href="{speaker["public_path"]}">{escape(speaker["name"])}</a>',
-                body,
+                f'href="{speaker["public_path"]}">{escape(speaker["name"])}</a>'
             )
+            self.assertEqual(body.count(chip), 1)
         # The links keep the group label the old heading carried, so the actions are
         # still named without adding a heading between the title and the body.
         self.assertIn('<ul class="event-facts">', body)

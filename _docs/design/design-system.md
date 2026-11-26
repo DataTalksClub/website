@@ -208,7 +208,7 @@ component internals no role names (a pill's padding, a table cell, a form row).
 | --- | --- | --- | --- |
 | `--space-inline` | `--space-2` | icon ↔ label, a row of chips or pills | `.past-supporters`, chip rows |
 | `--space-tight` | `--space-2` | a heading ↔ its own subline; label ↔ value | `.band-head p`, `.band-head` row gap, `.card` gap (title ↔ text) |
-| `--space-eyebrow` | `--space-3` | a page header's status pill or breadcrumb trail ↔ its `h1` — one value on every page header | `.*-hero h1`, `.person-identity h1`, `.article-hero .breadcrumbs`, `.course-hero .breadcrumbs`, `.event-head` |
+| `--space-eyebrow` | `--space-3` | a page header's status pill or breadcrumb trail ↔ its `h1` — one value on every page header | `.*-hero h1`, `.person-identity h1`, `.article-hero .breadcrumbs`, `.course-hero .breadcrumbs` (the event page sets its trail flush on the title: `.event-title-head`) |
 | `--space-stack` | `--space-4` | paragraph ↔ paragraph; `h1` ↔ hero lede; blocks inside a card | `.prose > * + *`, `.*-lede` |
 | `--space-head` | `--space-5` | a heading block ↔ the content it introduces (including an FAQ block under its heading); hero lede ↔ hero actions | `.band-head`, `.article-faq`, `.sponsor-section-heading`, `.module-section-heading`, `.admin-head`, `.*-hero-actions` |
 | `--space-grid` | `--space-5` | between cards in a grid, list or scroller of cards | `.card-grid`, `.catalog-scroller`, `.stories-scroller`, `.featured-supporters`, `.episode-navigation` |
@@ -516,8 +516,8 @@ to this document — do not fork it locally.
   line of text that ends in an ellipsis rather than wrapping, and never a button. The `/` separator is CSS-drawn with empty alternative text
   (`content: "/" / ""`) so it is never announced. Links keep a `2rem` minimum
   target height. The trail starts on the left edge of the
-  column the page's content sits in — on a two-column detail page (an event) that
-  is the left edge of the whole layout, not the shell's edge. Markup contract: a `nav`
+  column the page's content sits in — on a centred reading column (an event) that
+  is the column's left edge, not the shell's edge. Markup contract: a `nav`
   with an accessible name holding an `ol`, one `li` per level, every ancestor a link,
   and — where a page's own crumb is drawn at all — the current page on
   `li[aria-current="page"]` as plain text, never a link.

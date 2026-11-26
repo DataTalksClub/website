@@ -57,70 +57,28 @@
        * page arranges them.
        * ------------------------------------------------------------------ */
 
-      /* The arrangement: a narrow side column with the event's square
-         picture and its speakers, and a wide main column with the title,
-         the dateline, the registration card and the description.  The main
-         column is the reading measure, so the whole layout stays well inside
-         the homepage's shell.  On a phone it stacks as picture, main column,
-         speakers: the grid areas follow the DOM order. */
+      /* The arrangement: one reading column, in the order a reader needs
+         it -- the trail and the title, the facts, the registration card,
+         the description, the speakers.  No picture: the banner is the
+         social image only (owner decision 2026-11-26).  The column is the
+         reading measure, centred in the shell like an article. */
       .event-layout {
-        align-items: start;
         display: grid;
-        gap: var(--space-5) var(--space-7);
-        grid-template-areas:
-          ". trail"
-          ". title"
-          "media main"
-          "hosts main";
-        grid-template-columns: 17rem minmax(0, var(--reading-width));
-        grid-template-rows: auto auto auto 1fr;
-        justify-content: center;
+        gap: var(--space-6);
+        margin-inline: auto;
+        max-width: var(--reading-width);
       }
 
-      /* No picture: the side column holds the speakers list from the top. */
-      .event-layout-no-media {
-        grid-template-areas:
-          ". trail"
-          ". title"
-          "hosts main";
-        grid-template-rows: auto auto auto;
-      }
-
-      /* Neither a picture nor speakers: one reading column. */
-      .event-layout-single {
-        grid-template-areas:
-          "trail"
-          "title"
-          "main";
-        grid-template-columns: minmax(0, var(--reading-width));
-      }
-
-      /* The way back to /events sits right above the title in the main column;
-         the picture starts under the title, level with the facts.  The grid's row gap is the column gap;
-         a trail sits --space-eyebrow above what it heads, so it takes the
-         difference back. */
-      .event-layout > .breadcrumbs {
-        grid-area: trail;
-        margin-bottom: calc(var(--space-2) - var(--space-5));
+      /* The trail sits right on the title it leads back from: the trail's
+         2rem tap row already leaves air under its small text, so the two
+         take no gap of their own and read as one head. */
+      .event-title-head {
+        display: grid;
         margin-top: calc(var(--space-3) * -1);
       }
 
-      .event-media {
-        grid-area: media;
-        margin: 0;
-      }
-
-      .event-media > img {
-        aspect-ratio: 1;
-        background: var(--card);
-        /* A soft frame, like the site's other image frames: no hard offset
-           shadow, no ink border (owner feedback 2026-11-25). */
-        border: var(--border-soft);
-        border-radius: var(--radius-media);
-        display: block;
-        height: auto;
-        object-fit: cover;
-        width: 100%;
+      .event-title-head > .breadcrumbs {
+        margin-bottom: calc(var(--space-1) * -1);
       }
 
       /* A sponsored event: "Sponsored by" and the sponsor's logo under the
@@ -132,7 +90,6 @@
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-2) var(--space-3);
-        margin-top: var(--space-3);
       }
 
       .event-sponsors-label {
@@ -167,65 +124,27 @@
         width: auto;
       }
 
-      .event-hosts {
-        align-content: start;
-        display: grid;
-        gap: var(--space-2);
-        grid-area: hosts;
-        min-width: 0;
-      }
-
-      .event-side-heading {
-        border-bottom: var(--rule);
-        color: var(--muted);
-        font-size: 0.92rem;
-        font-weight: 700;
-        letter-spacing: 0;
-        padding-bottom: var(--space-2);
-      }
-
-      .event-host-list {
-        display: grid;
-        list-style: none;
-        margin: 0;
-        padding: 0;
-      }
-
       .event-main {
         display: grid;
         gap: var(--space-6);
-        grid-area: main;
         min-width: 0;
       }
 
-      .event-head {
-        display: grid;
-        gap: var(--space-5);
-      }
-
-      /* The title is its own row in the main column, so the picture beside the
-         facts starts below it. */
-      .event-title {
-        grid-area: title;
-        font-size: clamp(1.8rem, 3.6vw, 2.6rem);
-        letter-spacing: -0.025em;
-        line-height: 1.12;
-        /* Closer to what it heads than the grid's row gap. */
-        margin: 0 0 calc(var(--space-3) - var(--space-5));
-      }
-
-      .event-head h1 {
+      .event-title-head h1 {
         font-size: clamp(1.8rem, 3.6vw, 2.6rem);
         letter-spacing: -0.025em;
         line-height: 1.12;
       }
 
-      /* The facts under the title, one row each: a small square tile on the
+      /* The facts under the picture, one row each: a small square tile on the
          left (a calendar leaf for the date, an icon for a link), the fact in
          two lines beside it. */
+      /* One compact row under the title that wraps where it must: on a
+         phone it falls into a short list. */
       .event-facts {
-        display: grid;
-        gap: var(--space-4);
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-4) var(--space-5);
         list-style: none;
         margin: 0;
         padding: 0;
@@ -235,7 +154,8 @@
         align-items: center;
         display: grid;
         gap: var(--space-3);
-        grid-template-columns: 3rem minmax(0, 1fr);
+        grid-template-columns: 3rem auto;
+        min-width: 0;
       }
 
       .event-tile {
@@ -619,6 +539,8 @@
 
       .event-description {
         --measure: 100%;
+        min-width: 0;
+        overflow-wrap: anywhere;
       }
 
       .event-description > :first-child {
@@ -653,33 +575,21 @@
       }
 
       @media (max-width: 47.99rem) {
-        .event-layout,
-        .event-layout-no-media {
-          gap: var(--space-6);
-          grid-template-areas:
-            "trail"
-            "title"
-            "media"
-            "main"
-            "hosts";
-          grid-template-columns: minmax(0, 1fr);
-          grid-template-rows: auto;
+        .event-layout {
+          gap: var(--space-5);
         }
 
-        .event-layout > .breadcrumbs {
-          margin-bottom: calc(var(--space-eyebrow) - var(--space-6));
+        .event-title-head {
+          margin-top: calc(var(--space-2) * -1);
         }
 
-        .event-media {
-          justify-self: center;
-          max-width: min(100%, 22rem);
-          width: 100%;
+        .event-facts {
+          display: grid;
+          gap: var(--space-3);
         }
 
-        /* When the biographies section already credits every speaker at the
-           foot of the main column, the short list would repeat it. */
-        .event-hosts-with-bios {
-          display: none;
+        .event-fact {
+          grid-template-columns: 3rem minmax(0, 1fr);
         }
       }
     </style>
@@ -700,146 +610,135 @@
     <main id="main-content" tabindex="-1">
       <section class="band band-lavender event-page" aria-labelledby="event-heading">
         <div class="shell">
-          <article
-            class="event-layout
-              {% if not event.banner_url %}
-                {% if event.speakers %}
-                  event-layout-no-media
-                {% else %}
-                  event-layout-single
-                {% endif %}
-              {% endif %}"
-          >
-            {% url 'events' as events_url %}
-            {% breadcrumbs "Events" events_url %}
-            <h1 class="event-title" id="event-heading">{{ event.title }}</h1>
-            {% if event.banner_url %}
-              <figure class="event-media" data-testid="event-banner">
-                <img
-                  src="{{ event.banner_url }}"
-                  alt="{{ event.title }} event artwork"
-                  width="1000"
-                  height="1000"
-                  loading="eager"
-                  decoding="async"
-                  fetchpriority="high"
-                >
-                {% if event.sponsors %}
-                  <figcaption class="event-sponsors" data-testid="event-sponsors">
-                    {% include "public/_event_sponsors.html" with sponsors=event.sponsors %}
-                  </figcaption>
-                {% endif %}
-              </figure>
+          <article class="event-layout">
+            {% comment %}
+              The trail and the title are one head: the trail sits right on the
+              title it leads back from, in the main column (owner feedback
+              2026-11-26: the lone trail should not float above the title).
+            {% endcomment %}
+            <header class="event-title-head">
+              {% url 'events' as events_url %}
+              {% breadcrumbs "Events" events_url %}
+              <h1 id="event-heading">{{ event.title }}</h1>
+            </header>
+
+            {% comment %}
+              No picture on the page itself (owner decision 2026-11-26): the
+              generated banner repeats the title, the date and the speaker the
+              page already prints, so it stays the og/social image and the list
+              and homepage art only.  Each fact appears once: the date here, the
+              speakers in "About the speakers".
+
+              The facts under the title, in the order a reader needs them:
+              when, where to watch, links, how many registered.  The dateline
+              is one <time>, not just the date: the machine value carries a
+              clock, so the accessible text has to name the zone too, and the
+              zone is the %Z in display_clock
+              (playwright_tests/accessibility_support.py time_issues).  The
+              kind leads the second line as a quiet word, with no boxed pill
+              and no past/upcoming marker: the date already says which it is.
+            {% endcomment %}
+            <ul class="event-facts">
+              <li class="event-fact event-when">
+                <span class="event-tile event-tile-date" aria-hidden="true">
+                  <span class="event-tile-month">{{ event.display_month }}</span>
+                  <span class="event-tile-day">{{ event.display_day }}</span>
+                </span>
+                <time class="event-fact-text" datetime="{{ event.starts_at }}">
+                  <strong>{{ event.display_date_long }}</strong>
+                  <span class="event-fact-sub">
+                    {% if event.kind_label %}
+                      {% spaceless %}
+                      <span class="when-kind">{{ event.kind_label }}</span>
+                      <span class="when-sep" aria-hidden="true">·</span>
+                      {% endspaceless %}
+                    {% endif %}
+                    <span class="when-time-range">{{ event.display_clock_range }}</span>
+                  </span>
+                </time>
+              </li>
+              {% if event.online_on_zoom and event_state == "upcoming" %}
+                {% comment %}
+                  Where it happens, for an event run on Zoom: the place is
+                  public, the meeting link is not.  The view hands
+                  `zoom_join_url` only to a viewer with a confirmed seat;
+                  everyone else reads that registering gets them in.
+                {% endcomment %}
+                <li class="event-fact event-location" data-testid="event-location">
+                  <span class="event-tile" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path d="M4 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1.6l3.4-2.3A1 1 0 0 1 21 7.1v9.8a1 1 0 0 1-1.6.8L16 15.4V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Zm2 0v10h8V7Zm10 4.8 3 2v-3.6l-3 2Z" fill="currentColor"></path>
+                    </svg>
+                  </span>
+                  <span class="event-fact-text">
+                    <strong>Online on Zoom</strong>
+                    {% if zoom_join_url %}
+                      <a class="band-link" href="{{ zoom_join_url }}" target="_blank" rel="noopener noreferrer">
+                        Join the meeting<span class="sr-only"> (opens Zoom in a new tab)</span>
+                      </a>
+                    {% else %}
+                      <span class="event-fact-sub">Register to get the link</span>
+                    {% endif %}
+                  </span>
+                </li>
+              {% endif %}
+              {% for link in event.links %}
+                <li class="event-fact event-link">
+                  <span class="event-tile" aria-hidden="true">
+                    {% if "youtu" in link.url %}
+                      <svg viewBox="0 0 24 24" focusable="false">
+                        <path d="M21.55 7.2a2.8 2.8 0 0 0-1.95-1.98C17.88 4.75 12 4.75 12 4.75s-5.88 0-7.6.47A2.8 2.8 0 0 0 2.45 7.2 29.1 29.1 0 0 0 2 12a29.1 29.1 0 0 0 .45 4.8 2.8 2.8 0 0 0 1.95 1.98c1.72.47 7.6.47 7.6.47s5.88 0 7.6-.47a2.8 2.8 0 0 0 1.95-1.98A29.1 29.1 0 0 0 22 12a29.1 29.1 0 0 0-.45-4.8Z" fill="currentColor"></path>
+                        <path d="m10 15.15 5.2-3.15L10 8.85v6.3Z" fill="var(--card)"></path>
+                      </svg>
+                    {% else %}
+                      <svg viewBox="0 0 24 24" focusable="false">
+                        <path d="M14 3v2h3.6l-7.3 7.3 1.4 1.4L19 6.4V10h2V3zM5 5h5V3H3v18h18v-7h-2v5H5z" fill="currentColor"></path>
+                      </svg>
+                    {% endif %}
+                  </span>
+                  <span class="event-fact-text">
+                    {% if "youtu" in link.url %}
+                      <strong>YouTube</strong>
+                    {% endif %}
+                    <a class="band-link" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+                      {{ link.label }}<span class="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  </span>
+                </li>
+              {% endfor %}
+              {% if event.registration_count %}
+                <li class="event-fact event-registered">
+                  <span class="event-tile" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-2a2 2 0 1 1 0-4 2 2 0 0 1 0 4Zm7.5 2a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm0-2a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3ZM2 20c0-3.3 3.1-6 7-6s7 2.7 7 6h-2c0-2.1-2.2-4-5-4s-5 1.9-5 4Zm15.2-5.9c2.7.4 4.8 2.6 4.8 5.9h-2c0-2.2-1.3-3.6-3.2-3.9Z" fill="currentColor"></path>
+                    </svg>
+                  </span>
+                  <span class="event-fact-text">
+                    <strong>{{ event.registration_count }} registered</strong>
+                  </span>
+                </li>
+              {% endif %}
+              {% if qna_url %}
+                <li class="event-fact event-qna">
+                  <span class="event-tile" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-4.4 3.5A.4.4 0 0 1 4 20.2V17a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm1 2v9h1v2.2L8.3 15H19V6Z" fill="currentColor"></path>
+                    </svg>
+                  </span>
+                  <span class="event-fact-text">
+                    <strong>Questions</strong>
+                    <a class="band-link" href="{{ qna_url }}">Event Q&amp;A</a>
+                  </span>
+                </li>
+              {% endif %}
+            </ul>
+            {% if event.sponsors %}
+              <div class="event-sponsors" data-testid="event-sponsors">
+                {% include "public/_event_sponsors.html" with sponsors=event.sponsors %}
+              </div>
             {% endif %}
 
             <div class="event-main">
-              <header class="event-head">
-                {% comment %}
-                  The facts under the title, in the order a reader needs them:
-                  when, then where to watch.  The whole dateline is one <time>,
-                  not just the date: the machine value carries a clock, so the
-                  accessible text has to name the zone too, and the zone is the
-                  %Z in display_clock (playwright_tests/accessibility_support.py
-                  time_issues).  The kind leads the second line as a quiet word,
-                  with no boxed pill above the title and no past/upcoming
-                  marker: the date already says which it is (owner feedback
-                  2026-11-25).
-                {% endcomment %}
-                <ul class="event-facts">
-                  <li class="event-fact event-when">
-                    <span class="event-tile event-tile-date" aria-hidden="true">
-                      <span class="event-tile-month">{{ event.display_month }}</span>
-                      <span class="event-tile-day">{{ event.display_day }}</span>
-                    </span>
-                    <time class="event-fact-text" datetime="{{ event.starts_at }}">
-                      <strong>{{ event.display_date_long }}</strong>
-                      <span class="event-fact-sub">
-                        {% if event.kind_label %}
-                          {% spaceless %}
-                          <span class="when-kind">{{ event.kind_label }}</span>
-                          <span class="when-sep" aria-hidden="true">·</span>
-                          {% endspaceless %}
-                        {% endif %}
-                        <span class="when-time-range">{{ event.display_clock_range }}</span>
-                      </span>
-                    </time>
-                  </li>
-                  {% if event.online_on_zoom and event_state == "upcoming" %}
-                    {% comment %}
-                      Where it happens, for an event run on Zoom: the place is
-                      public, the meeting link is not.  The view hands
-                      `zoom_join_url` only to a viewer with a confirmed seat;
-                      everyone else reads that registering gets them in.
-                    {% endcomment %}
-                    <li class="event-fact event-location" data-testid="event-location">
-                      <span class="event-tile" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" focusable="false">
-                          <path d="M4 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1.6l3.4-2.3A1 1 0 0 1 21 7.1v9.8a1 1 0 0 1-1.6.8L16 15.4V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Zm2 0v10h8V7Zm10 4.8 3 2v-3.6l-3 2Z" fill="currentColor"></path>
-                        </svg>
-                      </span>
-                      <span class="event-fact-text">
-                        <strong>Online on Zoom</strong>
-                        {% if zoom_join_url %}
-                          <a class="band-link" href="{{ zoom_join_url }}" target="_blank" rel="noopener noreferrer">
-                            Join the meeting<span class="sr-only"> (opens Zoom in a new tab)</span>
-                          </a>
-                        {% else %}
-                          <span class="event-fact-sub">Register to get the link</span>
-                        {% endif %}
-                      </span>
-                    </li>
-                  {% endif %}
-                  {% for link in event.links %}
-                    <li class="event-fact event-link">
-                      <span class="event-tile" aria-hidden="true">
-                        {% if "youtu" in link.url %}
-                          <svg viewBox="0 0 24 24" focusable="false">
-                            <path d="M21.55 7.2a2.8 2.8 0 0 0-1.95-1.98C17.88 4.75 12 4.75 12 4.75s-5.88 0-7.6.47A2.8 2.8 0 0 0 2.45 7.2 29.1 29.1 0 0 0 2 12a29.1 29.1 0 0 0 .45 4.8 2.8 2.8 0 0 0 1.95 1.98c1.72.47 7.6.47 7.6.47s5.88 0 7.6-.47a2.8 2.8 0 0 0 1.95-1.98A29.1 29.1 0 0 0 22 12a29.1 29.1 0 0 0-.45-4.8Z" fill="currentColor"></path>
-                            <path d="m10 15.15 5.2-3.15L10 8.85v6.3Z" fill="var(--card)"></path>
-                          </svg>
-                        {% else %}
-                          <svg viewBox="0 0 24 24" focusable="false">
-                            <path d="M14 3v2h3.6l-7.3 7.3 1.4 1.4L19 6.4V10h2V3zM5 5h5V3H3v18h18v-7h-2v5H5z" fill="currentColor"></path>
-                          </svg>
-                        {% endif %}
-                      </span>
-                      <span class="event-fact-text">
-                        {% if "youtu" in link.url %}
-                          <strong>YouTube</strong>
-                        {% endif %}
-                        <a class="band-link" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
-                          {{ link.label }}<span class="sr-only"> (opens in a new tab)</span>
-                        </a>
-                      </span>
-                    </li>
-                  {% endfor %}
-                  {% if event.registration_count %}
-                    <li class="event-fact event-registered">
-                      <span class="event-tile" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" focusable="false">
-                          <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-2a2 2 0 1 1 0-4 2 2 0 0 1 0 4Zm7.5 2a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm0-2a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3ZM2 20c0-3.3 3.1-6 7-6s7 2.7 7 6h-2c0-2.1-2.2-4-5-4s-5 1.9-5 4Zm15.2-5.9c2.7.4 4.8 2.6 4.8 5.9h-2c0-2.2-1.3-3.6-3.2-3.9Z" fill="currentColor"></path>
-                        </svg>
-                      </span>
-                      <span class="event-fact-text">
-                        <strong>{{ event.registration_count }} registered</strong>
-                      </span>
-                    </li>
-                  {% endif %}
-                  {% if qna_url %}
-                    <li class="event-fact event-qna">
-                      <span class="event-tile" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" focusable="false">
-                          <path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-4.4 3.5A.4.4 0 0 1 4 20.2V17a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm1 2v9h1v2.2L8.3 15H19V6Z" fill="currentColor"></path>
-                        </svg>
-                      </span>
-                      <span class="event-fact-text">
-                        <strong>Questions</strong>
-                        <a class="band-link" href="{{ qna_url }}">Event Q&amp;A</a>
-                      </span>
-                    </li>
-                  {% endif %}
-                </ul>
-              </header>
 
               {% comment %}
                 Registration is drawn from the shared form primitives (`.cmp-form`,
@@ -1402,9 +1301,14 @@
                 </section>
               {% endif %}
 
-              {% if speaker_bios %}
+              {% comment %}
+                The speakers' one credit on the page (the side list that used to
+                repeat it is gone, owner feedback 2026-11-26): the person chip,
+                then the biography when the person's profile has one.
+              {% endcomment %}
+              {% if event.speakers %}
                 <section class="event-section speaker-band" aria-labelledby="event-speakers-heading">
-                  <h2 id="event-speakers-heading" class="event-section-head">About the speakers</h2>
+                  <h2 id="event-speakers-heading" class="event-section-head">{% if speaker_bios %}About the speakers{% else %}Speakers{% endif %}</h2>
                   <ul class="row-list speaker-rows">
                     {% for speaker in event.speakers %}
                       <li class="list-row speaker-row">
@@ -1415,25 +1319,6 @@
                 </section>
               {% endif %}
             </div>
-
-            {% if event.speakers %}
-              <aside
-                class="event-hosts
-                  {% if speaker_bios %}
-                    event-hosts-with-bios
-                  {% endif %}"
-                aria-labelledby="event-hosts-heading"
-              >
-                <h2 id="event-hosts-heading" class="event-side-heading">Speakers</h2>
-                <ul class="event-host-list">
-                  {% for speaker in event.speakers %}
-                    <li class="event-host">
-                      {% include "public/_person_chip.html" with person=speaker|person_chip only %}
-                    </li>
-                  {% endfor %}
-                </ul>
-              </aside>
-            {% endif %}
           </article>
         </div>
       </section>
