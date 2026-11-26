@@ -211,21 +211,38 @@ first-time visitors.
 
 - **Primary goal:** **Play/listen to the episode** (or read its summary,
   timestamps, and transcript).
-- **Primary CTA:** `Play the episode` (`.cta-primary`) on the video poster,
-  the page's one picture (player first, owner pick "B", 2026-11-26). Without
-  a YouTube video the Spotify player takes the poster's place. The other
-  platforms are one quiet line of text links under it ("Prefer audio? Listen
-  on Apple Podcasts · Spotify"), never a row of buttons.
-- **What is secondary:** Chapters, links mentioned, transcript fold, guest
-  bio, related episodes, and Wiki knowledge-graph connections. Empty sections
-  (e.g. no links mentioned beyond the guest's own profiles, missing Wiki
-  connections) are omitted rather than rendered as empty placeholders.
-- **Order:** a compact cream head (trail, title, season/episode/date line,
-  guest chip); the poster; "What we talked about"; the chapters (first eight,
-  the rest behind "Show all N chapters", all of them without JavaScript; each
-  time seeks the player); "About <guest>"; "Links mentioned"; the transcript
-  as one fold with its .txt download; then topics, related reading and
-  related episodes. No tabs and no side rail.
+- **Primary CTA:** `Play episode` (`.cta-primary`, with the length) on a
+  plain player frame under the guest's chip in the cream head. The frame
+  carries no picture and no text: the generated poster/social images are for
+  og:image/twitter:image only (owner review, 2026-11-26: no title-printing
+  poster, no duplication). Nothing loads from YouTube or Spotify until Play
+  (or a chapter time) is pressed; then the player is built in place. Without
+  a YouTube video the Spotify player takes its place, at its compact height.
+  Under the frame, one quiet line of text links: "Also on Apple Podcasts ·
+  Spotify · YouTube", never a row of buttons. Without JavaScript, Play is a
+  link to the episode on that platform.
+- **Seeking never leaves the site:** every chapter and transcript time is a
+  `?t=<seconds>` link on the episode's own URL. With JavaScript it plays the
+  embedded video from there; the URL itself opens the page with the player
+  cued at that time. Once playing and scrolled out of view, a docked
+  mini-player keeps play/pause, the current chapter, the time,
+  previous/next chapter, "Back to video" and a close button. The chapter
+  being played is marked in the chapter list and in the transcript's rail.
+- **What is secondary:** Chapters, guest card, links mentioned, topics,
+  transcript fold, related episodes. Empty sections are omitted rather than
+  rendered as empty placeholders.
+- **Order** (patterns from the 2026-11-26 reference research; Practical AI
+  is the closest model): the cream head (trail, title, season · episode ·
+  date · length, guest chip with role, the player and the platform line);
+  "What we talked about"; the chapters (start, title, length; first eight,
+  the rest behind "Show all N chapters"); "About <guest>" (bio, labelled
+  links, "More episodes with <guest>"); "Links mentioned"; "Topics in this
+  episode"; the transcript (folded, `#transcript` opens it; search with a
+  match count; chapter headings with their start; speaker turns with
+  seeking times; a sticky chapter rail beside it on wide screens; the .txt
+  download); then three related episodes and the previous/next episode. No
+  tabs. Not yet: "In this episode" takeaways and grouped/annotated links,
+  which need content work.
 - **Roles the page plays:**
   1. **Playback & platform access.**
   2. **Scannable reference:** Summary, clickable chapters, links mentioned,
