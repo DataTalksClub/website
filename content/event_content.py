@@ -126,8 +126,8 @@ def _grouped(now: datetime | None) -> EventGroups:
         )
         # Upcoming until the start has passed, then listed with the recent events: the
         # shared ``events.lifecycle`` boundary, never the stored status.
-        event["is_past"] = has_started(event["starts_at_value"], current)
-        (recent if event["is_past"] else upcoming).append(event)
+        event["has_started"] = has_started(event["starts_at_value"], current)
+        (recent if event["has_started"] else upcoming).append(event)
 
     # Keep ties deterministic even when two events share a title-derived slug.  UUID is the
     # immutable final tie-breaker, so a source reorder cannot change the rendered catalogue.

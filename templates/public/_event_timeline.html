@@ -10,7 +10,7 @@
   `groups` is a sequence of `content.event_content.EventDateGroup` whose events
   are the decorated records `content.event_content` prepares (`event_groups()`,
   or `event_timeline_groups(paths)` for a chosen set of public paths).  Each
-  event says itself whether it has started (`is_past`), so one list may mix
+  event says itself whether it has started (`has_started`), so one list may mix
   past and future events.
 
   Optional: `event_view` sets the timeline's `data-event-view` hook, and
@@ -80,7 +80,7 @@
                     {% else %}
                       Event
                     {% endif %}
-                    {% if event.is_past %}
+                    {% if event.has_started %}
                       {% if event.has_youtube_link %}
                         · Recording on YouTube
                       {% endif %}

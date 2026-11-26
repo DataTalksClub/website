@@ -90,7 +90,7 @@ class EventTimelineDataTests(StableEventClockTestCase):
                 grouped.recent[0]["public_path"],
             ],
         )
-        self.assertEqual([event["is_past"] for event in events], [False, True])
+        self.assertEqual([event["has_started"] for event in events], [False, True])
         self.assertEqual(event_timeline_groups([]), ())
 
 
