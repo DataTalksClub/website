@@ -139,14 +139,30 @@
          its recording above the prose, its own questions below it, the pages
          it points on to, and its one closing action.  A blog post fills none
          of them. */
-      .article-extra,
       .article-related {
         margin-top: var(--space-section);
       }
 
-      .article-extra > h2,
       .article-related > h2 {
         margin-bottom: var(--space-head);
+      }
+
+      /* The stripe's copy column grows; its actions keep their width and
+         wrap under one another on a phone rather than widening the page. */
+      .tour-cta > .article-closing-actions {
+        flex: 0 1 auto;
+      }
+
+      .article-closing-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+      }
+
+      .article-languages {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
       }
 
       {% if article_styles_template %}
@@ -308,10 +324,31 @@
                 is the shared person chip, so an author looks the same here as on
                 the blog index and on their own profile.
               {% endcomment %}
-              <p class="mono-note article-meta">
-                <time datetime="{{ article.published }}">{{ article.published_display }}</time>
-                · {{ article.reading_time }}
-              </p>
+              {% if article.published %}
+                <p class="mono-note article-meta">
+                  <time datetime="{{ article.published }}">{{ article.published_display }}</time>
+                  · {{ article.reading_time }}
+                </p>
+              {% endif %}
+              {% if language_switch %}
+                {% comment %}
+                  The same page in its other language (an Academy page's
+                  `alternates`), each language named in itself; the one being
+                  read is not a link.
+                {% endcomment %}
+                <p class="mono-note article-languages">
+                  {% for language in language_switch %}
+                    {% if language.href %}
+                      <a href="{{ language.href }}" hreflang="{{ language.lang }}" lang="{{ language.lang }}">{{ language.label }}</a>
+                    {% else %}
+                      <span lang="{{ language.lang }}" aria-current="page">{{ language.label }}</span>
+                    {% endif %}
+                    {% if not forloop.last %}
+                      <span aria-hidden="true">·</span>
+                    {% endif %}
+                  {% endfor %}
+                </p>
+              {% endif %}
               {% if article.authors %}
                 <p class="article-byline person-chips">
                   {% for author in article.authors %}
@@ -411,7 +448,11 @@
                 <h2 id="join-heading">{{ closing_cta.heading }}</h2>
                 <p>{{ closing_cta.text }}</p>
               </div>
-              <a class="cta cta-primary interactive-lift" href="{{ closing_cta.href }}">{{ closing_cta.label }}</a>
+              <div class="article-closing-actions">
+                {% for action in closing_cta.actions %}
+                  {% include "core/_button.html" with href=action.href label=action.label variant=forloop.first|yesno:"primary,secondary" %}
+                {% endfor %}
+              </div>
             </div>
           </section>
         {% endif %}

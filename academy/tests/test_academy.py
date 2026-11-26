@@ -384,6 +384,84 @@ class AcademyPageTests(TestCase):
         self.assertEqual(article["author"], {"@type": "Person", "name": "Synthetic Author"})
         self.assertEqual(article["url"], "https://datatalks.club/academy/sessions/recap/")
 
+    def test_an_undated_article_places_elements_and_names_its_languages(self) -> None:
+        pages = fixture.pages_copy()
+        guide = pages["guides-synthetic"][0]
+        del guide["author"], guide["published"]
+        guide["alternates"] = [{"lang": "de", "path": "/academy/bildungsgutschein/"}]
+        guide["join"] = {
+            "heading": "Synthetic guide closing",
+            "text": "Synthetic guide closing text.",
+            "actions": [
+                {"label": "Synthetic first", "href": "/academy/agentic-engineering/#signup-hero"},
+                {"label": "Synthetic second", "href": "/academy/ai-engineering/#signup-hero"},
+            ],
+        }
+        pages["guides-synthetic"] = (
+            guide,
+            "Synthetic guide body.\n\n"
+            "```facts\nlabel: Synthetic facts\nitems:\n"
+            "  - label: Start\n    value: April 2027\n"
+            "  - label: Seats\n    value: 15\n```\n\n"
+            "```cards\nitems:\n"
+            "  - title: Synthetic card\n    body: '- synthetic card point'\n"
+            "    link:\n      label: Synthetic card link\n"
+            "      href: /academy/agentic-engineering/\n```\n\n"
+            "```steps\nitems:\n  - Synthetic first step.\n"
+            "  - title: Synthetic titled step\n    body: Synthetic step body.\n```\n\n"
+            "```callout\nvariant: quiet\nbody: Synthetic [note](/academy/faq/).\n```\n",
+        )
+        _clear_academy()
+        fixture.publish(fixture.academy_tree(pages=pages))
+        body = self.client.get("/academy/guides/synthetic/").content.decode()
+        header = body[: body.index(READING_BAND)]
+        content = body[body.index(READING_BAND) :]
+        # No date line, no byline and no Article structured data without them.
+        self.assertNotIn('class="mono-note article-meta"', header)
+        self.assertNotIn('class="article-byline', header)
+        self.assertNotIn('"@type":"Article"', body)
+        # The language switch: the page unlinked, its alternate linked.
+        switch = header[header.index('class="mono-note article-languages"') :]
+        switch = switch[: switch.index("</p>")]
+        self.assertIn('<span lang="en" aria-current="page">English</span>', switch)
+        self.assertIn(
+            '<a href="/academy/bildungsgutschein/" hreflang="de" lang="de">Deutsch</a>', switch
+        )
+        self.assertLess(switch.index("Deutsch"), switch.index("English"))
+        # Each fenced element is drawn by the site's component for it.
+        self.assertIn(
+            '<dl class="spec-strip prose-facts shell-breakout shell-breakout-cards" '
+            'aria-label="Synthetic facts">',
+            content,
+        )
+        self.assertIn('<dt class="mono-label">Seats</dt>', content)
+        self.assertIn("<dd>15</dd>", content)
+        self.assertIn("<h3>Synthetic card</h3>", content)
+        self.assertIn("<li>synthetic card point</li>", content)
+        self.assertIn('href="/academy/agentic-engineering/"', content)
+        self.assertIn('class="steps steps-count-2"', content)
+        self.assertIn('<p class="steps-body">Synthetic first step.</p>', content)
+        self.assertIn("Synthetic titled step</h4>", content)
+        self.assertIn('<aside class="callout callout-quiet prose-callout">', content)
+        self.assertIn('<a href="/academy/faq/">note</a>', content)
+        self.assertNotIn("```", body)
+        # One action per program: the first primary, the rest secondary.
+        closing = content[content.index('id="join-heading"') :]
+        closing = closing[: closing.index("</section>")]
+        self.assertEqual(closing.count("cta cta-primary"), 1)
+        self.assertLess(closing.index("cta-primary"), closing.index("Synthetic first"))
+        self.assertLess(closing.index("Synthetic first"), closing.index("cta-secondary"))
+        self.assertIn("Synthetic second", closing)
+        # The index lists it after the dated articles, without a date rail.
+        index = self.client.get("/academy/guides/").content.decode()
+        self.assertLess(
+            index.index('href="/academy/sessions/recap/"'),
+            index.index('href="/academy/guides/synthetic/"'),
+        )
+        self.assertIn("archive-row-undated", index)
+        home = self.client.get("/academy/").content.decode()
+        self.assertNotIn("Synthetic guide heading", home)
+
     def test_an_article_names_its_own_closing_action(self) -> None:
         body = self.client.get("/academy/guides/synthetic/").content.decode()
         closing = body[body.index('id="join-heading"') :]

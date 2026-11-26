@@ -117,17 +117,26 @@ def articles(pages: Sequence[Record]) -> list[dict[str, Any]]:
     """
 
     held = [page for page in pages if page.get("layout") == "article"]
-    held.sort(key=lambda page: (page["data"]["published"], page["public_path"]), reverse=True)
+    # An undated page (one that is not a piece of writing) follows the dated ones.
+    held.sort(
+        key=lambda page: (page["data"].get("published") or "", page["public_path"]), reverse=True
+    )
     return [
         {
             "path": page["public_path"],
             "heading": page["data"]["heading"],
             "lead": page["data"]["lead"],
-            "published": date.fromisoformat(page["data"]["published"]),
+            "published": (
+                date.fromisoformat(page["data"]["published"])
+                if page["data"].get("published")
+                else None
+            ),
             "title": page["data"]["heading"],
             "public_path": page["public_path"],
             "description": page["data"]["lead"],
-            "author_profiles": [author_credit(page["data"]["author"])],
+            "author_profiles": (
+                [author_credit(page["data"]["author"])] if page["data"].get("author") else []
+            ),
         }
         for page in held
     ]
@@ -156,21 +165,26 @@ def article_view(
             *sections,
             ProseSection(kind="heading", level=2, id="faq-heading", text=faq_heading),
         )
-    credit = author_credit(data["author"])
+    published = data.get("published") or ""
+    credit = author_credit(data["author"]) if data.get("author") else None
     return ArticleView(
         title=data["heading"],
         subtitle=data["lead"],
         public_path=page["public_path"],
-        published=data["published"],
-        published_display=published_display(data["published"]),
+        published=published,
+        published_display=published_display(published) if published else "",
         reading_minutes=reading_minutes({"blocks": _body_blocks(page["body"])}),
         authors=(
-            Author(
-                name=credit["name"],
-                public_path=credit.get("public_path", ""),
-                image_path="",
-                media_available=False,
-            ),
+            (
+                Author(
+                    name=credit["name"],
+                    public_path=credit.get("public_path", ""),
+                    image_path="",
+                    media_available=False,
+                ),
+            )
+            if credit
+            else ()
         ),
         sections=sections,
         faq=tuple(
@@ -188,6 +202,35 @@ def article_view(
 
 def _body_blocks(body: str) -> list[dict[str, Any]]:
     return builder._article_blocks(body, media_root=None, counters={}) if body.strip() else []
+
+
+#: Each language a page is published in, named in itself, in the order the
+#: switch lists them.
+LANGUAGE_NAMES = {"de": "Deutsch", "en": "English"}
+
+
+def language_switch(page: Record, by_path: Mapping[str, Record]) -> list[dict[str, str]]:
+    """The page's languages for the switch at the top of an article.
+
+    The page and the pages its ``alternates`` name, each by its own name; the
+    page being read has no link.  A page in one language has no switch.
+    """
+
+    alternates = page["data"].get("alternates") or []
+    if not alternates:
+        return []
+    entries = [{"lang": page["lang"], "label": LANGUAGE_NAMES[page["lang"]], "href": ""}]
+    for alternate in alternates:
+        if alternate["path"] in by_path:
+            entries.append(
+                {
+                    "lang": alternate["lang"],
+                    "label": LANGUAGE_NAMES[alternate["lang"]],
+                    "href": alternate["path"],
+                }
+            )
+    order = list(LANGUAGE_NAMES)
+    return sorted(entries, key=lambda entry: order.index(entry["lang"]))
 
 
 def related_cards(links: Sequence[Record], pages: Sequence[Record]) -> list[dict[str, str]]:
@@ -442,7 +485,9 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
             }
             for program in all_programs
         ]
-        context["articles"] = articles(pages)[:HOME_ARTICLES]
+        context["articles"] = [item for item in articles(pages) if item["published"]][
+            :HOME_ARTICLES
+        ]
         sessions_page = sessions_page_of(pages)
         if data.get("sessions") and sessions_page is not None:
             context["home_sessions"] = sessions_context(sessions_page)["sessions"]
@@ -600,7 +645,8 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
                 "seo_title": page["title"],
                 "seo_description": page["description"],
                 "og_type": "article",
-                "published_time": data["published"],
+                "published_time": data.get("published") or "",
+                "language_switch": language_switch(page, by_path),
                 "article": article_view(page, split, questions, faq_heading),
                 "article_styles_template": "academy/_session_media_styles.html",
                 "article_media_template": (
@@ -615,11 +661,19 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
                 "closing_cta": {
                     "heading": data["join"]["heading"],
                     "text": data["join"]["text"],
-                    "href": data["join"].get("href") or f"{ACADEMY_ROOT}#signup-hero",
-                    "label": data["join"].get("label") or shared["waitlist_button"],
+                    # One action per program where the page names them, else
+                    # the one waitlist action; the first is the primary button.
+                    "actions": data["join"].get("actions")
+                    or [
+                        {
+                            "href": data["join"].get("href") or f"{ACADEMY_ROOT}#signup-hero",
+                            "label": data["join"].get("label") or shared["waitlist_button"],
+                        }
+                    ],
                 },
             }
         )
+    if layout == "article" and data.get("published") and data.get("author"):
         schema.append(
             {
                 "@context": "https://schema.org",

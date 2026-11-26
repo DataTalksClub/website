@@ -361,14 +361,16 @@ LAYOUTS: dict[str, dict[str, Any]] = {
     # first; the list itself is read from the article pages.
     "articles": {"heading": "text", "lead": "text"},
     # A free-form page read as prose -- a session recap, a guide: a heading
-    # and lead over a Markdown body, the pages it points on to, and one
-    # closing waitlist panel.
+    # and lead over a Markdown body (which may place the named elements of
+    # content.article_components), the pages it points on to, and one
+    # closing action.  A page that is not a dated piece of writing (the
+    # German Bildungsgutschein page) names no author or date.
     "article": {
         "eyebrow": "text",
         "heading": "text",
         "lead": "text",
-        "author": "text",
-        "published": "date",
+        "author": Optional("text"),
+        "published": Optional("date"),
         "related": Optional({"heading": "text", "links": [LINK]}),
         # Questions the article answers, drawn as the site's FAQ folds and
         # published as FAQPage structured data.
@@ -381,6 +383,8 @@ LAYOUTS: dict[str, dict[str, Any]] = {
             "text": "text",
             "href": Optional("href"),
             "label": Optional("text"),
+            # Or one action per program: the first is the primary button.
+            "actions": Optional([LINK]),
         },
         # A session recap's recording and slides.  Either one draws the
         # recording frame; without ``recording`` it says the video is coming.
