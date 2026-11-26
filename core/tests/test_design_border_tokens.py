@@ -105,11 +105,6 @@ ALLOWED: dict[tuple[str, str, str], str] = {
         "border: 1.5px solid var(--line)",
     ): "Legend key for the graph drawing.",
     (
-        "templates/core/_design_system.html",
-        ".person-chip-portrait",
-        "border: 1px solid var(--line)",
-    ): "Hairline ring on a portrait small enough that the 2px drawn edge would eat it.",
-    (
         "templates/public/podcast_detail.html",
         ".episode-tab",
         "border-bottom: 3px solid transparent",
@@ -314,3 +309,24 @@ class BorderTokenTests(SimpleTestCase):
                 self.assertEqual(search, signup, part)
             else:
                 self.assertIn("grid-template-columns: minmax(0, 1fr) auto;", signup)
+
+    def test_person_portraits_wear_the_soft_ring(self):
+        """Role "Portrait": a person's face sits in the soft 1px edge, never the
+        2px ink ring of a drawn mark (owner feedback 2026-11-26: the ink ring
+        read as too heavy).  The hand-drawn number discs keep theirs."""
+        for rel, selector in (
+            ("templates/core/_design_system.html", ".avatar"),
+            ("templates/core/_design_system.html", ".person-chip-portrait"),
+            ("templates/public/person_detail.html", ".person-portrait"),
+            ("templates/public/article_detail.html", ".article-portrait"),
+            ("templates/public/podcast_detail.html", ".guest-card-portrait"),
+            ("academy/templates/academy/_styles.html", ".academy-person img"),
+        ):
+            with self.subTest(selector=selector):
+                text = (ROOT / rel).read_text(encoding="utf-8")
+                start = text.index("\n      " + selector + " {")
+                block = text[start : text.index("}", start)]
+                self.assertIn("border: var(--border-soft);", block)
+        partial = (ROOT / "templates/core/_design_system.html").read_text(encoding="utf-8")
+        start = partial.index("\n      .step-number {")
+        self.assertIn("var(--border-strong)", partial[start : partial.index("}", start)])

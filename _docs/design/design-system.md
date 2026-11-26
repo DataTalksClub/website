@@ -318,7 +318,7 @@ press are drawn in ink.** A card, panel, popover, image, table or chart has a 1p
 `--line-soft` edge and no shadow — the `/events` and `/podcast` cards are the
 reference. The heavy 2px ink edge and the hard offset shadow belong to buttons and
 calls to action (and to the drawn marks that share their hand: numbered discs,
-portraits, toggles). Dashes mean a seam between parts of a page, nothing else.
+toggles). A person's portrait is content: it takes the soft edge. Dashes mean a seam between parts of a page, nothing else.
 
 Every `border`, `border-*`, `border-radius`, `box-shadow` and `outline` in page and
 partial CSS is one of the tokens below, defined once on `:root, body` in
@@ -331,8 +331,8 @@ borders (a chevron, a tick, a chart key) are reviewed rows in that test.
 
 | Token | Value | Role |
 | --- | --- | --- |
-| `--border-soft` | `1px solid var(--line-soft)` | every card, panel, popover, media frame, chip |
-| `--border-strong` | `2px solid var(--line)` | buttons, CTAs, pill controls, toggles, progress tracks, numbered discs, portraits |
+| `--border-soft` | `1px solid var(--line-soft)` | every card, panel, popover, media frame, chip, person portrait |
+| `--border-strong` | `2px solid var(--line)` | buttons, CTAs, pill controls, toggles, progress tracks, numbered discs |
 | `--border-field` | `1px solid var(--field-edge)` | text inputs, selects, textareas (`--field-edge` is ink at 52% on the card, full `--line` in dark) |
 | `--border-quiet` | `1.5px dashed var(--line-soft)` | a placeholder or the quietest notice (`.prose-unavailable`, `.entrance-notice`, empty states) |
 | `--rule` | `1px solid var(--line-soft)` | a divider *inside* one block: list rows, table rows, FAQ folds, menu groups, a card's footer |
@@ -364,7 +364,8 @@ borders (a chevron, a tick, a chart key) are reviewed rows in that test.
 | Filter pill / page number | `--border-soft`; the current one is filled `--ink` | `--radius-pill` (page numbers `--drawn-circle*`) | none; hover tints the edge to `--indigo-soft` | `.filter-pill` rows: podcast seasons, `/events` Upcoming/Past, course filters, and `.pagination` numbers. A choice among soft things, not a call to action |
 | Carousel arrow | `--border-soft` | `--radius-pill` | none; hover tints the edge to `--indigo-soft` like a soft card | `.scroller-button`: it pages through soft cards, so it wears their edge, not the CTA's ink. Ink chevron, 2.75rem (44px) disc, shared focus ring. Every carousel puts its arrows at the top right of the band head |
 | Chip / status pill | `--border-soft` | `--radius-pill` / `--radius-sm` | none | `.chip`, `.status-pill`, `.cb-badge`, past-supporter names, inline `code`; state variants change only `border-color` |
-| Drawn mark | `--border-strong` | `--drawn-circle*` / `--radius-pill` | none | `.step-number`, `.module-number`, `.promise-mark`, `.play-disc`, `.avatar` and portraits, `.progress` |
+| Drawn mark | `--border-strong` | `--drawn-circle*` / `--radius-pill` | none | `.step-number`, `.module-number`, `.promise-mark`, `.play-disc`, `.progress` |
+| Portrait | `--border-soft` | `--radius-pill` | none | every person's face: `.avatar`, `.person-chip-portrait` (and its initials disc), `.guest-card-portrait`, `.person-portrait`, `.article-portrait`, `.academy-person img`. A light ring that still separates a pale photo from the card; the 2px ink ring read as too heavy (owner feedback 2026-11-26) |
 | Rule (inside a block) | `--rule` | — | — | `.row-list` rows, table rows, `.faq-fold`, `.module-fact`, menu groups, timestamp and chapter rows |
 | Seam (between page parts) | `--seam` | — | — | `.band`, `.masthead`, `.site-footer`, `.spec-strip`, page sections and chapters, `.cmp-form-actions`, `.prose hr` |
 | Focus | `--outline-focus` | — | — | every `:focus-visible`, including whole-card focus |
@@ -615,7 +616,7 @@ to this document — do not fork it locally.
 - **`.chip`** — round uppercase mini-pill. Variants: `.chip-plain`, `.chip-green`,
   `.chip-live`, `.chip-ink`. **`a.chip-link`** is a chip that opens a page (a wiki
   concept): indigo border and text, underlined on hover.
-- **`.avatar`** — striped round placeholder disc, `2.6rem`.
+- **`.avatar`** — round portrait disc, `2.6rem`, soft `--border-soft` ring (striped when empty).
 - **`.person-chip`** — one credited person: a small portrait and their linked name.
   Every surface that names a person draws this.
 
