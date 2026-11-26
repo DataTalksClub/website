@@ -55,9 +55,10 @@ class MailchimpSubscriptionImportTests(TestCase):
             subscribed=self.subscribed_path, as_of=as_of, **kwargs
         )
 
-    def test_new_account_defaults_to_subscribed(self):
+    def test_new_account_defaults_to_unsubscribed(self):
+        # No consent, no newsletter (email-audience-merge.md, accounts 0012).
         user = User.objects.create(username="fresh", email="fresh@example.invalid")
-        self.assertTrue(user.newsletter_subscribed)
+        self.assertFalse(user.newsletter_subscribed)
 
     def test_subscribed_match_sets_true_explicitly(self):
         user = User.objects.create(
@@ -70,22 +71,24 @@ class MailchimpSubscriptionImportTests(TestCase):
         self.assertEqual(result.subscribed.accounts_changed, 1)
         self.assertEqual(result.subscribed.unmatched_rows, 0)
 
-    def test_subscribed_match_against_default_true_is_a_reported_no_op(self):
-        user = User.objects.create(username="already", email="already@example.invalid")
+    def test_subscribed_match_against_true_is_a_reported_no_op(self):
+        user = User.objects.create(
+            username="already", email="already@example.invalid", newsletter_subscribed=True
+        )
         self.assertTrue(user.newsletter_subscribed)
         result = self._run(subscribed=[{EMAIL_COLUMN: "already@example.invalid"}])
         user.refresh_from_db()
         self.assertTrue(user.newsletter_subscribed)
         self.assertEqual(result.subscribed.matched_rows, 1)
         # Already True, so bulk_update has nothing to change -- confirming
-        # the default rather than toggling it.
+        # the stored value rather than toggling it.
         self.assertEqual(result.subscribed.accounts_changed, 0)
 
     def test_no_match_anywhere_leaves_account_untouched_at_default(self):
         user = User.objects.create(username="untouched", email="untouched@example.invalid")
         result = self._run(subscribed=[{EMAIL_COLUMN: "someone-else@example.invalid"}])
         user.refresh_from_db()
-        self.assertTrue(user.newsletter_subscribed)
+        self.assertFalse(user.newsletter_subscribed)
         self.assertEqual(result.subscribed.unmatched_rows, 1)
         self.assertEqual(result.subscribed.matched_rows, 0)
 
@@ -171,7 +174,9 @@ class LocalDecisionCutoffTests(TestCase):
         user.refresh_from_db()
 
     def test_an_in_app_preference_change_sets_the_decision_stamp(self) -> None:
-        user = User.objects.create(username="decided", email="decided@example.invalid")
+        user = User.objects.create(
+            username="decided", email="decided@example.invalid", newsletter_subscribed=True
+        )
         self.assertIsNone(user.newsletter_preference_changed_at)
 
         self._decide_locally(user, subscribed=False)
@@ -189,9 +194,7 @@ class LocalDecisionCutoffTests(TestCase):
         self.assertIsNone(user.newsletter_preference_changed_at)
 
     def test_the_stamp_survives_an_update_fields_save(self) -> None:
-        user = User.objects.create(
-            username="update-fields", email="update-fields@example.invalid"
-        )
+        user = User.objects.create(username="update-fields", email="update-fields@example.invalid")
         self._decide_locally(user, subscribed=False)
         first_stamp = user.newsletter_preference_changed_at
 
@@ -203,7 +206,9 @@ class LocalDecisionCutoffTests(TestCase):
         self.assertNotEqual(user.newsletter_preference_changed_at, first_stamp)
 
     def test_a_local_opt_out_survives_a_stale_replay(self) -> None:
-        user = User.objects.create(username="opted-out", email="opted-out@example.invalid")
+        user = User.objects.create(
+            username="opted-out", email="opted-out@example.invalid", newsletter_subscribed=True
+        )
         self._decide_locally(user, subscribed=False)
 
         result = self._import_rows([{EMAIL_COLUMN: "opted-out@example.invalid"}])

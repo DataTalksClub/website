@@ -129,6 +129,25 @@ run. Account identity itself is in
   full export (subscribed, unsubscribed and cleaned) is merged before that,
   per Relay's `docs/mailchimp-migration.md`.
 
+## Signup onboarding consent (website, 2026-11-26)
+
+The post-signup profile step (`/accounts/welcome/?onboarding=1`) says that
+signing up means emails about the course and the community (the weekly
+newsletter) and shows a pre-ticked box. Account states
+(`accounts.services.newsletter_consent.newsletter_state`):
+
+| State | Stored as | Meaning |
+| --- | --- | --- |
+| off | `newsletter_subscribed = false`, no `newsletter_confirmation_sent_at` | No consent (the default for every new account), unticked at signup, or unsubscribed on the account page |
+| pending | `newsletter_subscribed = false`, `newsletter_confirmation_sent_at` set | A social signup left the box ticked; the `newsletter-confirm` email went out and its link was not clicked yet. **Not consent** (rule 4) |
+| active | `newsletter_subscribed = true`, with `newsletter_consent_version`, `newsletter_consent_source = signup onboarding` (or `account settings`) and `newsletter_consented_at` = the confirmation time | Confirmed: the emailed link was clicked, or, for an email + password signup, its account verification link (which comes before onboarding) |
+
+The account page shows the state, unsubscribes at once, and sends turning it
+back on through the same confirmation. Like event consent, onboarding consent
+is not yet pushed to Relay (open decision 4 applies to it too); when it is,
+only the *active* state is pushed, and Relay's refusal to resubscribe an
+opted-out address keeps rule 3.
+
 ## Open decisions for the owner
 
 1. **The 20,722 bulk-imported CMP registrations without the box (11,839
@@ -139,10 +158,9 @@ run. Account identity itself is in
    registered for a course, ticking the box, after unsubscribing from
    Mailchimp. Rule 3 keeps them out. The alternative is to accept the newer
    consent.
-3. **`User.newsletter_subscribed` defaults to true.** Every new account starts
-   subscribed without consent. The onboarding consent work should change the
-   default to false. Otherwise this merge's `to_false` rows drift back as new
-   accounts arrive.
+3. **Resolved 2026-11-26: `User.newsletter_subscribed` defaults to false**
+   (`accounts` migration 0012). A new account is not subscribed until it
+   confirms; see "Signup onboarding consent" below.
 4. **Event registration consent is not pushed to Relay.** It is stored only on
    the site.
 5. **Course category opt-outs.** Import Relay's `dtc-courses` category

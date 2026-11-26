@@ -2,8 +2,8 @@
 
 Reads a Mailchimp audience export's **subscribed** CSV only and writes a
 single fact onto matching accounts: ``User.newsletter_subscribed``. See
-the field's own docstring in ``accounts/models.py`` for the default (``True``,
-unconditional, applied regardless of how the account was created).
+the field's own comment in ``accounts/models.py`` for the default (``False``
+since accounts migration 0012: no consent, no newsletter).
 
 The matching rule, exactly (owner's own words, quoted in the issue that scoped
 this importer, and narrowed once more after an initial draft covered all
@@ -12,9 +12,8 @@ subscribed only to those who are subscribed in mailchimp."
 
 * A Mailchimp row matched by ``normalized_email`` against an existing account
   in the **subscribed** export -> that account's ``newsletter_subscribed`` is
-  set ``True``, explicitly. This is usually a no-op against the model
-  default, but it is written anyway: Mailchimp's subscribed file is the
-  authoritative confirmation, not just an absence of contrary evidence.
+  set ``True``, explicitly: Mailchimp's subscribed file is the authoritative
+  confirmation.
 * **A recorded local decision always wins (audit BE-15).** An account whose
   ``newsletter_preference_changed_at`` is non-null has had its preference
   deliberately changed in this application, and no audience snapshot --
@@ -26,7 +25,7 @@ subscribed only to those who are subscribed in mailchimp."
 * Everything else -- no match in the subscribed export at all, or a match
   only in Mailchimp's separate unsubscribed/cleaned exports -- is left
   completely untouched, at whatever value the account already holds (the
-  model default, ``True``, for an account no earlier run has touched). This
+  model default, ``False``, for an account nothing has touched). This
   importer never opens, parses, or matches against the unsubscribed or
   cleaned files at all -- an earlier draft did, writing ``False`` for a match
   there, but the owner narrowed scope to subscribed-only before that shipped;

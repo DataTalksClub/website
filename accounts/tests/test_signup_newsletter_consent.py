@@ -9,7 +9,6 @@ unticked sends nothing.  Account settings shows the state and unsubscribes.
 from urllib.parse import parse_qs, urlsplit
 
 from allauth.account.models import EmailAddress
-from allauth.account.signals import user_signed_up
 from allauth.socialaccount.models import SocialAccount
 from community_base.mail.models import EmailDelivery
 from django.test import TestCase, override_settings
@@ -132,14 +131,12 @@ class SignupNewsletterConsentTests(TestCase):
         user.refresh_from_db()
         self.assertEqual(newsletter_state(user), STATE_PENDING)
 
-    def test_a_new_signup_starts_unsubscribed(self):
+    def test_a_new_account_starts_unsubscribed(self):
+        # No consent, no newsletter (email-audience-merge.md rule 4).
         user = User.objects.create_user(username="fresh", email="fresh@example.com")
-        self.assertTrue(user.newsletter_subscribed)
 
-        user_signed_up.send(sender=User, request=None, user=user)
-
-        user.refresh_from_db()
         self.assertFalse(user.newsletter_subscribed)
+        self.assertEqual(newsletter_state(user), STATE_OFF)
 
 
 class AccountSettingsNewsletterTests(TestCase):
@@ -162,7 +159,8 @@ class AccountSettingsNewsletterTests(TestCase):
         self.assertContains(page, "check your inbox to confirm")
 
     def test_unticking_in_settings_unsubscribes(self):
-        self.assertTrue(self.user.newsletter_subscribed)
+        self.user.newsletter_subscribed = True
+        self.user.save()
         page = self.client.get(reverse("account_settings"))
         self.assertContains(page, 'data-newsletter-state="active"')
 

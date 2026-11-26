@@ -40,17 +40,18 @@ class User(AbstractUser):
         default="",
         help_text=("IANA timezone used for backend-rendered deadlines and notification emails."),
     )
-    # Every account starts subscribed, regardless of how it was created (a new
-    # signup, the legacy zoomcamp importer, the CMP learner importer -- none of
-    # those need to know this field exists). The only importer that writes this
-    # field at all, ``scripts/prod/import_mailchimp_subscriptions.py``, only
-    # ever confirms the default: a match in Mailchimp's subscribed export
-    # writes ``True`` explicitly (Mailchimp's own record is the authority, not
-    # the absence of contrary evidence). It does not read Mailchimp's separate
-    # unsubscribed/cleaned exports, so nothing today ever writes ``False``.
+    # No account is subscribed without evidence of consent
+    # (_docs/architecture/email-audience-merge.md, rule 4 and open decision
+    # 3).  A new account starts False; the signup onboarding double opt-in
+    # (``accounts.services.newsletter_consent``) sets True only when the
+    # emailed link (or, for an email + password signup, the account
+    # verification link) is clicked, and ``newsletter_confirmation_sent_at``
+    # marks the pending state in between.  Imported accounts get their verdict
+    # from the audience merge (``scripts/prod/import_email_audience_merge.py``)
+    # and the Mailchimp subscription import, both through ``bulk_update``.
     newsletter_subscribed = models.BooleanField(
         verbose_name="Newsletter subscribed",
-        default=True,
+        default=False,
         help_text="Whether this account receives newsletter email.",
     )
     # When the member last changed ``newsletter_subscribed`` through an

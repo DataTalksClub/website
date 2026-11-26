@@ -235,13 +235,17 @@ class MergeRunTests(TestCase):
         self.cmponly = user_model.objects.create(
             username="cmponly", email="CmpOnly@example.invalid", newsletter_subscribed=False
         )
-        self.nobox = user_model.objects.create(username="nobox", email="nobox@example.invalid")
+        # Accounts created before the default turned false (accounts 0012)
+        # hold true without any consent; the merge is what corrects them.
+        self.nobox = user_model.objects.create(
+            username="nobox", email="nobox@example.invalid", newsletter_subscribed=True
+        )
         self.decided = user_model.objects.create(
-            username="decided", email="sitedecided@example.invalid"
+            username="decided", email="sitedecided@example.invalid", newsletter_subscribed=True
         )
         user_model.objects.filter(pk=self.decided.pk).update(newsletter_preference_changed_at=T1)
         self.reconsent = user_model.objects.create(
-            username="reconsent", email="reconsent@example.invalid"
+            username="reconsent", email="reconsent@example.invalid", newsletter_subscribed=True
         )
         user_model.objects.filter(pk=self.reconsent.pk).update(newsletter_preference_changed_at=T1)
 

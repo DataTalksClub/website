@@ -1,5 +1,4 @@
 from allauth.account.signals import password_reset as allauth_password_reset
-from allauth.account.signals import user_signed_up as allauth_user_signed_up
 from django.contrib.auth.signals import (
     user_logged_in,
     user_logged_out,
@@ -110,17 +109,3 @@ def verify_address_after_password_reset(sender, request, user, **kwargs):
             address.save(update_fields=["verified"])
 
 
-
-@receiver(allauth_user_signed_up)
-def start_new_signup_unsubscribed(sender, request, user, **kwargs):
-    """A brand-new account receives no course or community email yet.
-
-    The signup onboarding step asks (pre-ticked) and the emailed confirmation
-    -- or, for an email + password signup, its account verification -- turns
-    it on (``accounts.services.newsletter_consent``).  The model default
-    (subscribed) belongs to imported audiences, not to a fresh signup.
-    """
-
-    if user.newsletter_subscribed:
-        user.newsletter_subscribed = False
-        user.save(update_fields=["newsletter_subscribed"])
