@@ -103,7 +103,11 @@ eligible for a new authentication.
 GitHub, Google, and Slack remain the configured Allauth providers. The social
 adapter has these rules:
 
-1. Social signup is closed. A callback cannot create a second website account.
+1. Social signup is open (owner ruling, 2026-11-26). A callback with verified
+   email evidence that matches no account creates a new website account. A
+   callback whose address is already claimed by any account (`User.email` or
+   an `EmailAddress` row) never creates a second account; it links under the
+   rules below or is refused.
 2. Only adapter-provided, verified email evidence may select an owner. Raw
    provider response fields and notification emails are ignored.
 3. Zero or multiple owners, multiple identity claims, unavailable owners, and

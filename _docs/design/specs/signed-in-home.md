@@ -41,6 +41,7 @@ Several second-hand claims needed checking. Three are wrong or misleading:
 
 2. **"Social sign-in via Google, GitHub and Slack is configured" — configured
    for sign-in, closed for sign-up.**
+   *(Superseded 2026-11-26: social signup is now open; see open question 2.)*
    `ConsolidatingSocialAccountAdapter.is_open_for_signup` returns `False`
    unconditionally (`accounts/auth.py:261-263`); a social login only links to
    an *existing* account whose verified email matches exactly one user
@@ -947,11 +948,9 @@ code paths named, and state 1 was verified live today.
    concern about bundling was raised explicitly and overruled; the decision
    is the owner's to make. See §8.4 — the field stays required and stays
    unticked on render. Do not reopen this.
-2. **Open social signup?** The gate (§8.3) is markedly cheaper if "Continue
-   with Google/GitHub/Slack" can create accounts; today the adapter forbids
-   it (`accounts/auth.py:261-263`) for identity-consolidation reasons.
-   Default: **separate groomed issue; do not block this work on it** — the
-   email path suffices meanwhile.
+2. **Open social signup?** **CLOSED by owner ruling, 2026-11-26: open.**
+   "Continue with Google/GitHub/Slack" creates an account when no account
+   claims the verified address (see `_docs/architecture/single-durable-account.md`).
 3. **Greet by name?** Default: **no** — `certificate_name` is optional,
    legal-name-flavoured, and absent for most accounts; "Welcome back"
    without a name is honest everywhere.
