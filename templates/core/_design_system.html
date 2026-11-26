@@ -2305,6 +2305,15 @@ Rules for editing:
         line-height: 1.6;
       }
 
+      /* The question the quote answers, in the interviewer's words: a plain
+         sentence in muted ink above the quote, not an eyebrow label. */
+      .story-question {
+        color: var(--muted);
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin: 0;
+      }
+
       /* --- person chip -------------------------------------------------- */
 
       /* One person, drawn the same way everywhere they are credited: a small
@@ -2397,6 +2406,19 @@ Rules for editing:
         color: var(--muted);
         font-size: 0.88rem;
         font-weight: 600;
+      }
+
+      /* A role line that links (the founder quote's source episode) stays a
+         quiet role line until it is pointed at. */
+      .person-chip a.person-chip-role {
+        display: inline;
+        min-height: 0;
+        text-decoration: none;
+      }
+
+      .person-chip a.person-chip-role:hover {
+        color: var(--indigo);
+        text-decoration: underline;
       }
 
       .person-chip:has(.person-chip-role) .person-chip-portrait {
@@ -3188,17 +3210,27 @@ Rules for editing:
         z-index: 1;
       }
 
-      .event-item .person-chip-name {
+      /* A quote card's person row (member stories, the founder quote) draws the
+         same chip as a card's credit, so every person on a page links alike:
+         the name in body ink, indigo and underlined on hover. */
+      .story-person .person-chip a {
+        min-height: 0;
+      }
+
+      .event-item .person-chip-name,
+      .story-person .person-chip-name {
         font-size: 0.92rem;
         font-weight: 600;
       }
 
-      .event-item .person-chip a.person-chip-name {
+      .event-item .person-chip a.person-chip-name,
+      .story-person .person-chip a.person-chip-name {
         color: var(--body-text);
         text-decoration: none;
       }
 
-      .event-item .person-chip a.person-chip-name:hover {
+      .event-item .person-chip a.person-chip-name:hover,
+      .story-person .person-chip a.person-chip-name:hover {
         color: var(--indigo);
         text-decoration: underline;
       }

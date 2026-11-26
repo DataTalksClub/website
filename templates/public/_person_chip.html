@@ -25,7 +25,11 @@
   line it sits on cannot shift as it arrives.  A chip in a page's opening screen
   passes `chip_loading="eager"`; everything further down keeps the lazy default.
   A `chip_role` ("Staff Data Engineer at …") stacks under the name, and the
-  portrait grows to the two lines it then sits beside.
+  portrait grows to the two lines it then sits beside.  `chip_role_url` makes
+  that role line a link (the founder quote's "Founder · DataTalks.Club
+  Anniversary Podcast" opens the episode it was said in).  `chip_external`
+  marks a name whose link leaves the site (a member story's public post): it
+  opens in a new tab and says so to a screen reader.
 {% endcomment %}
 <span class="person-chip">
   {% if person.media_available %}
@@ -45,12 +49,17 @@
   {% if chip_role %}
     <span class="person-chip-text">
   {% endif %}
-  {% if person.public_path %}
+  {% if person.public_path and chip_external %}
+    <a class="band-link person-chip-name" href="{{ person.public_path }}" target="_blank" rel="noopener noreferrer">{{ person.name }}<span class="sr-only"> (opens in a new tab)</span></a>
+  {% elif person.public_path %}
     <a class="band-link person-chip-name" href="{{ person.public_path }}">{{ person.name }}</a>
   {% else %}
     <span class="person-chip-name">{{ person.name }}</span>
   {% endif %}
-  {% if chip_role %}
+  {% if chip_role and chip_role_url %}
+    <a class="person-chip-role" href="{{ chip_role_url }}">{{ chip_role }}</a>
+    </span>
+  {% elif chip_role %}
     <span class="person-chip-role">{{ chip_role }}</span>
     </span>
   {% endif %}

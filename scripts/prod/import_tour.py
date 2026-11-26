@@ -59,7 +59,17 @@ def load_reviewed_tour(path: Path) -> dict:
                 assert all(isinstance(item[field], str) and item[field].strip() for field in fields)
         for key in ("youtube", "slack", "events", "podcasts", "articles", "books", "wiki", "docs"):
             assert isinstance(page["channels"][key], str) and page["channels"][key].strip()
-        URLValidator(schemes=["https"])(page["founder_source_url"])
+        # The quote's source is the episode's page on this site ("/podcast/…"),
+        # or, for a source the site does not hold, an https address.
+        source_url = page["founder_source_url"]
+        if source_url.startswith("/"):
+            assert not source_url.startswith("//") and " " not in source_url
+        else:
+            URLValidator(schemes=["https"])(source_url)
+        # Optional: the question the founder quote answers, in the interviewer's
+        # words, drawn above the quote so it stands on its own.
+        if "founder_question" in page:
+            assert isinstance(page["founder_question"], str) and page["founder_question"].strip()
         assert isinstance(page["sources"], list) and page["sources"]
         for source in page["sources"]:
             URLValidator(schemes=["https"])(source)

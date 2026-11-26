@@ -250,6 +250,33 @@ class TourPageTests(PublishedTourPage):
             run(path=self.path)
         self.assertEqual(ContentDocument.objects.filter(content_kind="tour_page").count(), 1)
 
+    def test_the_founder_quote_leads_with_its_question_and_links_its_episode(self):
+        page = {
+            **self.page,
+            "founder_question": "Why did you choose to create a free-to-learn community?",
+            "founder_source_url": "/podcast/s19e03/synthetic-anniversary",
+        }
+        self.path.write_text(json.dumps({"schema_version": 1, "page": page}))
+        self.assertTrue(run(path=self.path)["applied"])
+        for url in ("/", "/about"):
+            with self.subTest(url=url):
+                body = self.client.get(url).content.decode()
+                found = re.search(r'<figure class="card founder-story">.*?</figure>', body, re.S)
+                assert found is not None
+                card = found.group()
+                question = card.index('<p class="story-question">Why did you choose to create')
+                self.assertLess(question, card.index(page["founder_quote"]))
+                self.assertIn(
+                    '<a class="person-chip-role" href="/podcast/s19e03/synthetic-anniversary">'
+                    f"{page['founder_attribution']}</a>",
+                    card,
+                )
+                self.assertNotIn("target=", card[card.index("person-chip-role") :])
+        page["founder_source_url"] = "//evil.example/x"
+        self.path.write_text(json.dumps({"schema_version": 1, "page": page}))
+        with self.assertRaisesRegex(ValueError, "reviewed_tour_invalid"):
+            run(path=self.path)
+
     def test_tour_testimonial_import_is_separate_and_replay_safe(self):
         path = Path(self.temporary.name) / "testimonials.json"
         path.write_text(
@@ -416,5 +443,7 @@ class HomepageAboutBandTests(PublishedTourPage):
         card = re.search(r'<figure class="card founder-story">.*?</figure>', body, re.DOTALL)
         assert card is not None, "the founder story is still published"
         self.assertIn(self.page["founder_quote"], card.group())
-        self.assertIn('<span class="avatar" aria-hidden="true"></span>', card.group())
+        self.assertIn(
+            f'<span class="person-chip-name">{self.page["founder_name"]}</span>', card.group()
+        )
         self.assertNotIn("<img", card.group())
