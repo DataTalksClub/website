@@ -362,11 +362,24 @@
         width: 1rem;
       }
 
-      /* Four tiles: two by two on a tablet, one row of four on a wide screen,
-         so each picture is smaller than a third of the row. */
-      @media (min-width: 48rem) {
+      /* Four tiles: two by two on a small tablet, three in a row from 48rem
+         (the fourth waits behind "see all events", as the family page's
+         proof gallery trims itself on a phone), one row of four on a wide
+         screen -- so a picture stays near its desktop size instead of
+         growing with a half-width column. */
+      @media (min-width: 36rem) {
         .home-events {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 48rem) and (max-width: 61.99rem) {
+        .home-events {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .home-event:nth-child(n + 4) {
+          display: none;
         }
       }
 
@@ -462,11 +475,15 @@
        * lists instead of cards.  Same markup, different shape.
        * ------------------------------------------------------------------ */
 
-      @media (max-width: 47.99rem) {
+      /* Only a phone stacks the hero's two actions full width; from 36rem
+         they sit side by side at their own width. */
+      @media (max-width: 35.99rem) {
         .hero-actions .cta {
           width: 100%;
         }
+      }
 
+      @media (max-width: 47.99rem) {
         /* The climb reads as a numbered list: badge, then title over its
            line.  The card's own mobile rules live with the rest of the
            component in core/_design_system.html. */
@@ -500,16 +517,35 @@
           border-left: var(--seam);
           padding-left: var(--space-7);
         }
+      }
 
+      @media (min-width: 36rem) {
         .promise-grid {
           grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      /* Tablet tier: the drawing stacks under the words between 36rem and
+         56rem, centred and capped near its desktop size; from 56rem, where
+         the copy column still holds both actions on one line, it sits beside
+         them, as it does on a desktop. */
+      @media (min-width: 36rem) and (max-width: 55.99rem) {
+        .hero-figure {
+          justify-self: center;
+          max-width: 24rem;
+          width: 100%;
+        }
+      }
+
+      @media (min-width: 56rem) {
+        .hero-grid {
+          grid-template-columns: minmax(0, 1.32fr) minmax(0, 1fr);
         }
       }
 
       @media (min-width: 62rem) {
         .hero-grid {
           gap: var(--space-7);
-          grid-template-columns: minmax(0, 1.32fr) minmax(0, 1fr);
         }
 
         /* The drawing carries its own air above the figure and to its right, so
