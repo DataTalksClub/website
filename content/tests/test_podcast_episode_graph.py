@@ -215,7 +215,8 @@ class EpisodeGraphContractTests(TestCase):
             _graph_node("wiki:cited", "Cited Topic", "wiki", "/wiki/cited"),
             _graph_node("wiki:filed", "Filed Topic", "wiki", "/wiki/filed"),
             _graph_node("topic:search", "Search Only", "topic", "/wiki/search?q=Search"),
-            _graph_node("article:guide", "A Guide", "article", "/wiki/guide"),
+            _graph_node("article:guide", "A Guide", "article", "/blog/guide"),
+            _graph_node("article:wiki", "Wiki Article", "article", "/wiki/wiki-article"),
             _graph_node("podcast:other", "Other episode", "podcast", "/podcast/s01e02/other"),
         ]
         links = [
@@ -246,6 +247,12 @@ class EpisodeGraphContractTests(TestCase):
                 "weight": 1,
             },
             {
+                "kind": "article-chip",
+                "source": "podcast:episode",
+                "target": "article:wiki",
+                "weight": 1,
+            },
+            {
                 "kind": "related",
                 "source": "podcast:episode",
                 "target": "podcast:other",
@@ -259,8 +266,10 @@ class EpisodeGraphContractTests(TestCase):
 
         self.assertEqual(
             [(topic.title, topic.summary) for topic in connections.topics],
-            [("Filed Topic", "What filing means."), ("Cited Topic", "")],
+            [("Filed Topic", "What filing means."), ("Cited Topic", ""), ("Wiki Article", "")],
         )
+        # A graph "article" that is a wiki page joins the topic cards; only
+        # off-wiki articles, books and events are further reading.
         self.assertEqual([item.title for item in connections.reading], ["A Guide"])
         body = render_to_string("public/_podcast_episode_topics.html", {"connections": connections})
         self.assertIn("Topics in this episode", body)

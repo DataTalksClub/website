@@ -76,6 +76,7 @@ class EpisodeCardPictureTests(TestCase):
 class EpisodePagePictureTests(TestCase):
     def test_the_video_poster_and_social_image_are_the_generated_pictures(self) -> None:
         record = {**_episode(), "image_path": "/images/podcast/old.jpg", "media_available": True}
+        _store("card")
         _store("poster")
         _store("social")
         with patch("content.catalogue.podcasts", return_value=(record,)):
@@ -85,7 +86,20 @@ class EpisodePagePictureTests(TestCase):
         self.assertIn(f'src="/podcast/{SLUG}/poster"', facade.group(0))
         self.assertRegex(body, rf'property="og:image" content="[^"]*/podcast/{SLUG}/social"')
         self.assertRegex(body, rf'name="twitter:image" content="[^"]*/podcast/{SLUG}/social"')
+        # The hero pairs the square generated card with the title.
+        self.assertRegex(body, rf'class="episode-head-picture"\s+src="/podcast/{SLUG}/picture"')
         self.assertNotIn("/images/podcast/old.jpg", body)
+
+    def test_without_a_generated_card_the_hero_falls_back_to_the_artwork(self) -> None:
+        record = {**_episode(), "image_path": "/images/podcast/old.jpg", "media_available": True}
+        _store("poster")
+        with patch("content.catalogue.podcasts", return_value=(record,)):
+            body = self.client.get(record["public_path"]).content.decode()
+        self.assertIn("episode-head-wide", body)
+        self.assertRegex(body, r'class="episode-head-picture"\s+src="/images/podcast/old.jpg"')
+        facade = re.search(r'<a\s+id="podcast-video-facade".*?</a>', body, re.S)
+        assert facade is not None
+        self.assertNotIn("/images/podcast/old.jpg", facade.group(0))
 
 
 class ImportEpisodePicturesTests(TestCase):
