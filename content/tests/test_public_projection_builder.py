@@ -210,10 +210,9 @@ class PublicProjectionBuilderTests(TestCase):
             [
                 {
                     "kind": "list_item",
-                    "text": "Full-stack builders start at Stage 1, then add RAG, "
-                    "and monitoring. Skill Stack",
+                    "text": "Full-stack builders start at Stage 1, then add RAG, and monitoring.",
                     "markdown": "Full-stack builders start at Stage 1, then add RAG, "
-                    "and monitoring. [Skill Stack](/podcast/s23e01-skill-stack)",
+                    "and monitoring. [^Skill Stack](/podcast/s23e01-skill-stack)",
                 },
                 {
                     "kind": "list_item",

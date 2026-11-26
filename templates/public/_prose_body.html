@@ -11,7 +11,8 @@
   every "#section" link into a wiki page still lands.  Paragraph text keeps its own
   line breaks (`white-space: pre-line`), so the opening tag and the value stay on
   one line here.  Consecutive list items arrive grouped (`prose_runs`) and draw as one
-  real list.
+  real list.  A block that carries `html` (a wiki paragraph with its numbered
+  citations drawn in by content.wiki_content.wiki_citations) is already rendered.
 {% endcomment %}
 {% for block in blocks|prose_runs %}
   {% if block.kind == "heading" %}
@@ -27,7 +28,7 @@
       <ul>
     {% endif %}
       {% for item in block.items %}
-        <li>{{ item.markdown|default:item.text|public_text }}</li>
+        <li>{% if item.html %}{{ item.html }}{% else %}{{ item.markdown|default:item.text|public_text }}{% endif %}</li>
       {% endfor %}
     {% if block.ordered %}
       </ol>
@@ -35,6 +36,6 @@
       </ul>
     {% endif %}
   {% else %}
-    <p class="prose-paragraph">{{ block.markdown|default:block.text|public_text }}</p>
+    <p class="prose-paragraph">{% if block.html %}{{ block.html }}{% else %}{{ block.markdown|default:block.text|public_text }}{% endif %}</p>
   {% endif %}
 {% endfor %}

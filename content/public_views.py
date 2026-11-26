@@ -1807,6 +1807,7 @@ def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
             len(blocks),
         )
         blocks, closing = blocks[:start], blocks[end:]
+    citations = wiki_content.wiki_citations(blocks, closing)
     return _render(
         request,
         "public/wiki_detail.html",
@@ -1815,8 +1816,9 @@ def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
         description=page["summary"],
         context={
             "record": page,
-            "body_blocks": blocks,
-            "closing_blocks": closing,
+            "body_blocks": citations.body,
+            "closing_blocks": citations.closing,
+            "wiki_sources": citations.sources,
             "related_cards": related_cards,
             "topic_chips": related_cards[:WIKI_TOPIC_CHIPS],
             "relation_groups": wiki_content.wiki_relation_groups(page),

@@ -71,6 +71,10 @@ LIQUID = re.compile(r"{%.*?%}|{{.*?}}", re.DOTALL)
 MARKDOWN_IMAGE = re.compile(r"!\[([^]]*)\]\([^)]*\)")
 MARKDOWN_LINK = re.compile(r"\[([^]]+)\]\([^)]*\)")
 WIKI_TOKEN = re.compile(r"\[\[([^]]+)\]\]")
+#: A resolved ``[[cite:...]]`` token in a wiki block's ``markdown``: a footnote-style
+#: ``[^label](href)`` link, so the page can draw it as a numbered reference instead of
+#: an inline link that reads as part of the sentence.
+WIKI_CITATION_LINK = re.compile(r"\[\^([^]]+)\]\(([^)\s]+)\)")
 BODY_LIST_ITEM = re.compile(r"^([-*+]|\d{1,3}[.)])[ \t]+(.+)$")
 YOUTUBE_VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{6,20}$")
 
@@ -457,8 +461,13 @@ def _body_blocks(
             token = match.group(1).strip()
             label = _wiki_token_label(token)
             href = wiki_href(token) if wiki_href is not None else ""
+            citation = token.partition("=>")[0].strip().startswith("cite:")
             if not href or not label or "]" in label or "[" in label:
-                return _wiki_plain_label(match.group(1))
+                # A source the site cannot link is no reference at all; its
+                # bare title would only read as part of the sentence.
+                return "" if citation else _wiki_plain_label(match.group(1))
+            if citation:
+                return f"[^{label}]({href})"
             return f"[{label}]({href})"
 
         return WIKI_TOKEN.sub(replace, value)
@@ -474,7 +483,8 @@ def _body_blocks(
             # The page renders links only, so strong emphasis would show as
             # literal asterisks; the plain text drops it the same way.
             segment = link_wiki_tokens(segment).replace("**", "")
-        text = _plain_inline(segment)
+        # A citation is a reference, not prose: the plain text leaves it out.
+        text = _plain_inline(WIKI_CITATION_LINK.sub("", segment))
         if text:
             block = {"kind": kind, "text": text}
             if preserve_links and MARKDOWN_LINK.search(segment):

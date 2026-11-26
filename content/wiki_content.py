@@ -975,3 +975,123 @@ def busiest_neighbourhood() -> GraphNeighbourhood:
             wide_wrap_over=WIDE_WRAP_OVER,
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# Citations
+#
+# The sync writes a resolved ``[[cite:...]]`` token as a footnote-style
+# ``[^label](href)`` link (``projection_helpers.WIKI_CITATION_LINK``).  The page
+# draws each as a numbered superscript reference, Wikipedia-style, and lists the
+# sources once at the foot of the article body.  A source cited again reuses its
+# number, and a reference sticks to the sentence before it: the space before it
+# goes, and trailing punctuation moves in front of it.
+# ---------------------------------------------------------------------------
+
+_CITATION_RUN = re.compile(r"[ \t]*((?:\[\^[^]]+\]\([^)\s]+\)[ \t]*)+)([.,;:!?](?![\w]))?[ \t]*")
+_CITATION = re.compile(r"\[\^([^]]+)\]\(([^)\s]+)\)")
+
+
+@dataclass(frozen=True, slots=True)
+class WikiSource:
+    """One source a wiki page cites: its number, title, link and first use."""
+
+    number: int
+    title: str
+    url: str
+
+    @property
+    def note_id(self) -> str:
+        return f"cite-note-{self.number}"
+
+    @property
+    def first_ref_id(self) -> str:
+        return f"cite-ref-{self.number}"
+
+
+@dataclass(frozen=True, slots=True)
+class WikiCitations:
+    """A page's blocks with references drawn in, and the sources they number."""
+
+    body: tuple[dict[str, Any], ...]
+    closing: tuple[dict[str, Any], ...]
+    sources: tuple[WikiSource, ...]
+
+
+def wiki_citations(
+    body: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+    closing: list[dict[str, Any]] | tuple[dict[str, Any], ...] = (),
+) -> WikiCitations:
+    """Number ``body`` and ``closing``'s citations in reading order.
+
+    A block that cites anything gains ``html``, its rendered paragraph; every
+    other block is passed through untouched (the stored record is never
+    mutated).  A source is titled as its episode titles itself, falling back to
+    the label the wiki gave it.
+    """
+
+    from django.utils.html import format_html
+    from django.utils.safestring import mark_safe
+
+    from core.templatetags.public import public_text
+
+    titles = {
+        str(record.get("public_path")): str(record.get("title") or "")
+        for record in catalogue.podcasts()
+        if record.get("public_path")
+    }
+    sources: dict[str, WikiSource] = {}
+    uses: dict[int, int] = {}
+
+    def reference(label: str, url: str) -> str:
+        source = sources.get(url)
+        if source is None:
+            title = titles.get(url.split("#", 1)[0]) or " ".join(label.split())
+            source = WikiSource(number=len(sources) + 1, title=title, url=url)
+            sources[url] = source
+        uses[source.number] = uses.get(source.number, 0) + 1
+        use = uses[source.number]
+        ref_id = source.first_ref_id if use == 1 else f"{source.first_ref_id}-{use}"
+        return format_html(
+            # The word joiner keeps the reference on the line of the word it follows.
+            '\u2060<sup class="wiki-cite" id="{}"><a href="#{}" title="{}" aria-label="{}">'
+            "[{}]</a></sup>",
+            ref_id,
+            source.note_id,
+            source.title,
+            f"Source {source.number}: {source.title}",
+            source.number,
+        )
+
+    def render(markdown: str) -> str:
+        parts: list[str] = []
+        position = 0
+        for run in _CITATION_RUN.finditer(markdown):
+            before = markdown[position : run.start()]
+            punctuation = run.group(2) or ""
+            if punctuation and before.rstrip()[-1:] in tuple(".,;:!?"):
+                punctuation = ""  # "proof. [1]." keeps the sentence's own stop
+            parts.append(public_text(before + punctuation))
+            parts.extend(reference(*cite.groups()) for cite in _CITATION.finditer(run.group(1)))
+            position = run.end()
+            following = markdown[position : position + 1]
+            spaced = run.group(0)[-1:].isspace()
+            if markdown.startswith("[^", position):
+                continue  # the next run of references follows on directly
+            if following and (spaced or following.isalnum() or following in "[(\"'*_"):
+                parts.append(" ")
+        parts.append(public_text(markdown[position:]))
+        return mark_safe("".join(parts))
+
+    def walk(blocks) -> tuple[dict[str, Any], ...]:
+        result = []
+        for block in blocks:
+            markdown = block.get("markdown")
+            if isinstance(markdown, str) and _CITATION.search(markdown):
+                block = {**block, "html": render(markdown)}
+            result.append(block)
+        return tuple(result)
+
+    drawn_body = walk(body)
+    drawn_closing = walk(closing)
+    return WikiCitations(body=drawn_body, closing=drawn_closing, sources=tuple(sources.values()))
