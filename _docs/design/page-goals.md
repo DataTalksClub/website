@@ -202,16 +202,25 @@ first-time visitors.
 
 - **Primary goal:** **Play/listen to the episode** (or read its summary,
   timestamps, and transcript).
-- **Primary CTA:** Listen/watch on the visitor's platform (embedded player /
-  platform links).
-- **What is secondary:** Show notes, transcript expansion, guest bio, related
-  episodes, and Wiki knowledge-graph connections. Empty sections (e.g. missing
-  show notes or missing Wiki connections) are omitted rather than rendered as
-  empty placeholders.
+- **Primary CTA:** `Play the episode` (`.cta-primary`) on the video poster,
+  the page's one picture (player first, owner pick "B", 2026-11-26). Without
+  a YouTube video the Spotify player takes the poster's place. The other
+  platforms are one quiet line of text links under it ("Prefer audio? Listen
+  on Apple Podcasts · Spotify"), never a row of buttons.
+- **What is secondary:** Chapters, links mentioned, transcript fold, guest
+  bio, related episodes, and Wiki knowledge-graph connections. Empty sections
+  (e.g. no links mentioned beyond the guest's own profiles, missing Wiki
+  connections) are omitted rather than rendered as empty placeholders.
+- **Order:** a compact cream head (trail, title, season/episode/date line,
+  guest chip); the poster; "What we talked about"; the chapters (first eight,
+  the rest behind "Show all N chapters", all of them without JavaScript; each
+  time seeks the player); "About <guest>"; "Links mentioned"; the transcript
+  as one fold with its .txt download; then topics, related reading and
+  related episodes. No tabs and no side rail.
 - **Roles the page plays:**
   1. **Playback & platform access.**
-  2. **Scannable reference:** Summary, show notes, clickable timestamps, and
-     searchable transcript.
+  2. **Scannable reference:** Summary, clickable chapters, links mentioned,
+     and the transcript.
   3. **Guest context & discovery:** Guest bio, related episodes, and Wiki
      connections.
 
