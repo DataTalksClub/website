@@ -13,8 +13,9 @@
 
   Three facts can each be missing, and each degrades on its own:
 
-  * no portrait keeps the system's striped stand-in disc, which claims no identity
-    and is hidden from assistive technology;
+  * no portrait draws the person's initials in the same disc, hidden from
+    assistive technology (the name beside it is the credit); a portrait that
+    fails to load is swapped for the same initials by core/media_fallback.js;
   * no profile keeps the name as plain text rather than a link to nowhere;
   * the portrait itself is decorative and carries empty alternative text, because
     the name it sits beside is already the credit — a screen reader that heard
@@ -32,13 +33,14 @@
       class="person-chip-portrait"
       src="{{ person.image_path }}"
       alt=""
+      data-initials="{{ person.initials }}"
       width="96"
       height="96"
       decoding="async"
       loading="{{ chip_loading|default:'lazy' }}"
     >
   {% else %}
-    <span class="avatar avatar-striped person-chip-portrait" aria-hidden="true"></span>
+    <span class="person-chip-portrait person-chip-initials" aria-hidden="true">{{ person.initials }}</span>
   {% endif %}
   {% if chip_role %}
     <span class="person-chip-text">

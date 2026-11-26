@@ -140,6 +140,7 @@ EXPECTED_SCRIPTS = (
     "timezone_preference.js",
     "core/code_blocks.js",
     "user_menu.js",
+    "core/media_fallback.js",
     "core/site_navigation.js",
     "core/accessibility.js",
     "core/analytics_preferences.js",

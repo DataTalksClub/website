@@ -601,8 +601,11 @@ to this document — do not fork it locally.
   On a card, pair `.person-chips` with `.card-credit` so the credit is the card's last
   line and pins to the floor of a fixed-height column.
 
-  Three facts can each be missing and each degrades on its own: no portrait keeps
-  `.avatar.avatar-striped` (`aria-hidden`); no profile keeps the name as a plain
+  Three facts can each be missing and each degrades on its own: no portrait draws
+  the person's initials in the same disc (`.person-chip-initials`, `aria-hidden`),
+  and a portrait that fails to load is swapped for that disc by
+  `core/media_fallback.js` (which also removes a card thumbnail that fails, so a
+  card never shows a broken picture box); no profile keeps the name as a plain
   `span.person-chip-name`, not a link to nowhere; the portrait always carries `alt=""`
   because the name beside it is already the credit and a screen reader must not hear
   it twice. Give the picture its intrinsic square so the line cannot shift.

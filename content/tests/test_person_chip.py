@@ -230,14 +230,14 @@ class PersonChipRenderingTests(TestCase):
         self.assertIn('width="96"', portrait)
         self.assertIn('height="96"', portrait)
 
-    def test_a_credit_without_a_portrait_keeps_the_stand_in_disc(self) -> None:
+    def test_a_credit_without_a_portrait_draws_its_initials(self) -> None:
         """Every profile carries a picture today; a credit with no profile does not."""
 
         record = _book(MIXED_BOOK)
         body = self.client.get(record["public_path"]).content.decode()
 
         self.assertIn(
-            '<span class="avatar avatar-striped person-chip-portrait" aria-hidden="true">',
+            '<span class="person-chip-portrait person-chip-initials" aria-hidden="true">SO</span>',
             body,
         )
         self.assertIn('<span class="person-chip-name">Synthetic Unresolved Author One</span>', body)
@@ -311,6 +311,10 @@ class DesignSystemOwnershipTests(TestCase):
                     continue
                 if template == through_the_card:
                     self.assertIn('{% include "public/_podcast_episode_card.html"', source)
+                    continue
+                if template == "templates/public/events.html":
+                    # The /events cards are the shared event timeline partial.
+                    self.assertIn('{% include "public/_event_timeline.html"', source)
                     continue
                 if template == through_the_speaker:
                     self.assertIn('{% include "public/_event_speaker.html"', source)

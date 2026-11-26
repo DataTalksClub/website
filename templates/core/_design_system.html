@@ -2351,6 +2351,26 @@ Rules for editing:
         width: 1.6rem;
       }
 
+      /* A person with no portrait (or one that failed to load) keeps the disc,
+         with their initials in it, so the row keeps its shape and still says
+         who it is. */
+      .person-chip-initials {
+        align-items: center;
+        background: var(--indigo-soft);
+        color: var(--ink);
+        display: inline-flex;
+        font-size: 0.62rem;
+        font-weight: 800;
+        justify-content: center;
+        letter-spacing: 0;
+        line-height: 1;
+      }
+
+      .person-chip:has(.person-chip-role) .person-chip-initials,
+      .person-chip-lead .person-chip-initials {
+        font-size: 0.9rem;
+      }
+
       /* A chip with a role under the name (a podcast guest on the hub): the
          two lines stack and the face grows to their height. */
       .person-chip-text {
