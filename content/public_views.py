@@ -196,7 +196,9 @@ def editorial_detail_alias_redirect(
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
     resolver = {
         "article": catalogue.article,
-        "book": catalogue.book,
+        # A book's public slug is not its source slug (the week date is dropped),
+        # so its bare alias resolves by the canonical address it shortens.
+        "book": lambda public_slug: catalogue.book_at(f"/books/{public_slug}.html"),
         "person": catalogue.person,
         "podcast": catalogue.podcast,
     }[collection]
@@ -1652,11 +1654,36 @@ def podcast_detail_slash_alias(
     return permanent_public_redirect(request, target=episode["public_path"])
 
 
-@require_safe
-def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    book = catalogue.book(slug)
+@csrf_exempt
+def book_dated_redirect(request: HttpRequest, source_slug: str) -> HttpResponse:
+    """Redirect a book's dated address (``/books/<YYYYMMDD-slug>.html``, bare or with a
+    trailing slash) permanently to its dateless canonical.
+
+    The mapping is the catalogue's own: the dated spelling is the book's source slug,
+    and the target is the public path the book's synced record publishes.  A row
+    synced before the dateless path existed still names the dated path as its
+    canonical; that page renders rather than redirecting to itself.
+    """
+
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    book = catalogue.book(source_slug)
     if book is None:
         raise Http404
+    if request.path_info != book["public_path"]:
+        return permanent_public_redirect(request, target=book["public_path"])
+    return _render_book_detail(request, book)
+
+
+@require_safe
+def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
+    book = catalogue.book_at(f"/books/{slug}.html")
+    if book is None:
+        raise Http404
+    return _render_book_detail(request, book)
+
+
+def _render_book_detail(request: HttpRequest, book: dict) -> HttpResponse:
     # The book's own summary is source Markdown, not plain text — it used to be
     # printed literally (asterisks and all).  It goes through the same
     # Markdown-then-shared-sanitizer path an article body uses

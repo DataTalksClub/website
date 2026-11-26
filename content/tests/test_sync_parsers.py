@@ -822,7 +822,9 @@ class BooksParserTests(_CheckoutCase):
             items = parser.discover(checkout, source)
             self.assertEqual([item.key for item in items], ["20201214-ml-bookcamp"])
             record = items[0].data["record"]
-            self.assertEqual(record["public_path"], "/books/20201214-ml-bookcamp.html")
+            # The stable identity keeps the week's date; the public address drops it.
+            self.assertEqual(record["slug"], "20201214-ml-bookcamp")
+            self.assertEqual(record["public_path"], "/books/ml-bookcamp.html")
             self.assertEqual(record["authors"], ["fixture-book-author"])
             self.assertEqual(record["published"], "2020-12-14")
             self.assertEqual(
@@ -836,6 +838,8 @@ class BooksParserTests(_CheckoutCase):
         self.assertEqual(result.action, "created")
         stored = SyncedDocument.objects.get(source=source, content_kind="book")
         self.assertEqual(stored.title, "Machine Learning Bookcamp")
+        self.assertEqual(stored.stable_key, "20201214-ml-bookcamp")
+        self.assertEqual(stored.public_path, "/books/ml-bookcamp.html")
         self.assertEqual(parser.soft_delete_missing(set(), source), 1)
         self.assertFalse(SyncedDocument.objects.filter(source=source).exists())
 
@@ -853,6 +857,20 @@ def _docs_page(title: str, parent: str | None = None, body: str = "A paragraph.\
     if parent is not None:
         frontmatter += f"parent: {parent}\n"
     return f"---\n{frontmatter}---\n\n{body}".encode()
+
+    def test_two_books_whose_slugs_differ_only_in_the_date_refuse_the_run(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("book")
+        second = _book_yaml().replace(b"20201214-ml-bookcamp", b"20221214-ml-bookcamp")
+        tree = {
+            "books/2020/201214-ml-bookcamp.yaml": _book_yaml(),
+            "books/2022/221214-ml-bookcamp.yaml": second,
+        }
+        with (
+            self.checkout(tree) as checkout,
+            self.assertRaisesRegex(ContentParserError, "book public path collision"),
+        ):
+            parser.discover(checkout, source)
 
 
 class DocsParserTests(_CheckoutCase):

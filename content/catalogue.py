@@ -616,6 +616,16 @@ def book(slug: str) -> Record | None:
     return _by_slug(books(), slug)
 
 
+def book_at(public_path: str) -> Record | None:
+    """The book published at ``public_path``, or ``None``.
+
+    A book's source slug carries its week's date and its public path does not
+    (``content.book_routes``), so the page resolves by the address it answers at.
+    """
+
+    return next((record for record in books() if record.get("public_path") == public_path), None)
+
+
 def wiki_graph() -> Record:
     """The wiki knowledge graph, checked before it can reach a page.
 

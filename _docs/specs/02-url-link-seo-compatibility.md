@@ -36,7 +36,10 @@ application renders.
   to `/blog`; the `.html` and slash variants of Podcast, Events, and Books to their clean hub; and
   `/courses/` and `/wiki/` to `/courses` and `/wiki`. Queries are preserved.
 - Main editorial details preserve the established canonical paths `/blog/<slug>.html`,
-  `/books/<slug>.html`, and `/people/<slug>.html`. Podcast episodes retain their established
+  `/books/<slug>.html`, and `/people/<slug>.html`. A book's public `<slug>` is its source slug
+  without the leading `YYYYMMDD-` week date (`content.book_routes`); the stored identity keeps the
+  dated slug, and every dated address (`/books/<YYYYMMDD-slug>.html`, bare, or with a trailing
+  slash) redirects permanently in one hop to the dateless canonical, preserving the query. Podcast episodes retain their established
   `/podcast/<slug>.html` canonicals unless a reviewed hierarchical route is recorded; the
   hierarchical-only `From GenAI Pilots to Production` episode is `/podcast/s24e04/from-genai-pilots-to-production`
   and its flat-slug forms return `404` without a redirect. Clean and trailing-slash aliases for

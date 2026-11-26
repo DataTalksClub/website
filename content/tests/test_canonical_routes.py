@@ -24,7 +24,9 @@ class CanonicalRouteTests(TestCase):
             with (
                 self.subTest(kind=kind),
                 patch(
-                    f"content.public_views.catalogue.{kind}",
+                    # A book's bare alias resolves by the canonical address it
+                    # shortens, not by its (dated) source slug.
+                    f"content.public_views.catalogue.{'book_at' if kind == 'book' else kind}",
                     return_value={"public_path": target},
                 ),
             ):
@@ -48,7 +50,10 @@ class CanonicalRouteTests(TestCase):
         for kind, path in cases:
             with (
                 self.subTest(kind=kind),
-                patch(f"content.public_views.catalogue.{kind}", return_value=None),
+                patch(
+                    f"content.public_views.catalogue.{'book_at' if kind == 'book' else kind}",
+                    return_value=None,
+                ),
             ):
                 self.assertEqual(self.client.get(path).status_code, 404)
 

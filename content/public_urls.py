@@ -3,6 +3,7 @@ from django.urls import path, re_path
 from event_qna import views as qna_views
 
 from . import legal_views, public_views
+from .book_routes import DATED_BOOK_SLUG_PATTERN
 
 urlpatterns = [
     path("terms", legal_views.terms, name="terms"),
@@ -79,11 +80,14 @@ urlpatterns = [
     path("books", public_views.collection_hub, {"collection": "books"}, name="books"),
     path("books.html", public_views.permanent_public_redirect, {"target": "/books"}),
     path("books/", public_views.permanent_public_redirect, {"target": "/books"}),
-    path(
-        "books/20250922-how-software-fails.html",
-        public_views.book_detail,
-        {"slug": "20250922-how-software-fails"},
-        name="book-how-software-fails",
+    # A book answers at its dateless address (content.book_routes).  The dated address
+    # every book was first published under -- with ``.html``, bare, or with a trailing
+    # slash -- is a permanent redirect resolved from the book's source slug, so it
+    # precedes the detail route and the alias catch-all.
+    re_path(
+        rf"^books/(?P<source_slug>{DATED_BOOK_SLUG_PATTERN})(?:\.html|/)?$",
+        public_views.book_dated_redirect,
+        name="public-book-dated-redirect",
     ),
     path("books/<path:slug>.html", public_views.book_detail, name="public-book"),
     path(

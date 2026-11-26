@@ -12,6 +12,7 @@ from community_base.content_sync.orchestration import UpsertResult
 from community_base.content_sync.parsers import SourceItem, register_parser
 
 from content import projection_helpers as builder
+from content.book_routes import book_canonical_path
 
 from . import base
 
@@ -35,6 +36,14 @@ class BooksParser:
                 continue
             items.append(self._item(checkout, path))
         items.sort(key=lambda item: item.key)
+        # The public path drops the slug's week date, so two source slugs that
+        # differ only in their date would claim one address: refuse the run.
+        claimed: dict[str, str] = {}
+        for item in items:
+            path = item.data["record"]["public_path"]
+            if path in claimed:
+                base.fail("book public path collision", f"{claimed[path]} {item.path}")
+            claimed[path] = item.path
         return items
 
     def upsert(self, item, source, media):
@@ -92,7 +101,9 @@ class BooksParser:
             )
         record = {
             "slug": slug,
-            "public_path": f"/books/{slug}.html",
+            # The stable identity stays the dated source slug; only the public
+            # address drops the date (content.book_routes).
+            "public_path": book_canonical_path(slug),
             "title": builder._title_from_record(raw, slug),
             "description": builder._string(
                 raw.get("description"), field="book description", maximum=4_000, optional=True
