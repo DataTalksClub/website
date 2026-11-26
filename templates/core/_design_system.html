@@ -598,6 +598,22 @@ Rules for editing:
         width: var(--breakout-width);
       }
 
+      /* Reading measure vs card-list measure.  Reading text (an article body,
+         a wiki body, an episode's overview) holds the reading column,
+         `--reading-width`.  A list of cards under that text (episode timelines,
+         topic cards, event and article cards) may take the wider card-list
+         column, `--content-width`, so a card's platform links and tags fit on
+         one line.  Both columns are centred on the same axis, the way the
+         homepage aligns its wide and narrow blocks.  A card list in its own
+         band uses `.content-shell`; one inside a reading column adds this
+         modifier to `.shell-breakout`, which recentres it on the page. */
+      .shell-breakout-cards {
+        --breakout-width: min(
+          calc(var(--content-width) - 2 * var(--shell-gutter)),
+          calc(100vw - 2 * var(--shell-gutter))
+        );
+      }
+
       /* The reading width: the same column an article's prose sits in, for the
          index pages that lead into one.  A list of titles and summaries set at
          the full 76rem shell gives every line a long way to track back from,

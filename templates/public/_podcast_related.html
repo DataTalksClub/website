@@ -11,15 +11,11 @@
 {% endcomment %}
 {% if related_cards %}
   <section class="band band-lavender episode-related" aria-labelledby="related-episodes-heading">
-    <div class="shell episode-shell">
+    <div class="shell content-shell">
       <div class="band-head">
         <div>
           <h2 id="related-episodes-heading">Related episodes</h2>
-          {% if related.basis == "graph" %}
-            <p>
-              Conversations the <a href="{% url 'wiki-home' %}">Wiki</a> files under the same topics as this one.
-            </p>
-          {% else %}
+          {% if related.basis != "graph" %}
             <p>
               The wiki has not linked this episode to others yet, so these are the
               newest conversations from Season {{ episode.season }}.

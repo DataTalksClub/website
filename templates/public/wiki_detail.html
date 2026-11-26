@@ -28,9 +28,12 @@
         --page: var(--lavender);
       }
 
-      /* The same ordinary content column every content page holds. */
+      /* The reading column, the article's own measure: the title, the
+         summary and the body read at the width a blog article does.  The card
+         lists under the body (related topics, episodes) break out to the
+         card-list column on the same axis (`.shell-breakout-cards`). */
       .wiki-shell {
-        max-width: var(--content-width);
+        max-width: var(--reading-width);
       }
 
       .wiki-hero .breadcrumbs {
@@ -69,10 +72,6 @@
       a.relation:hover {
         text-decoration: underline;
         text-underline-offset: 0.2em;
-      }
-
-      .wiki-prose {
-        max-width: 48rem;
       }
 
       /* The curated related pages as a grid of soft topic cards: the
@@ -175,7 +174,6 @@
 
       .wiki-further {
         margin-top: var(--space-6);
-        max-width: 48rem;
       }
 
       .wiki-further ul {
@@ -318,7 +316,7 @@
             </section>
           {% endif %}
           {% if related_cards %}
-            <section class="wiki-related" id="related-pages" aria-labelledby="related-heading">
+            <section class="wiki-related shell-breakout shell-breakout-cards" id="related-pages" aria-labelledby="related-heading">
               <h2 class="wiki-section-title" id="related-heading">Related topics</h2>
               <div class="card-grid wiki-related-grid">
                 {% for topic in related_cards %}
@@ -339,7 +337,7 @@
             </section>
           {% endif %}
           {% if topic_episodes %}
-            <section class="wiki-episodes" id="episodes" aria-labelledby="episodes-heading" data-wiki-episodes>
+            <section class="wiki-episodes shell-breakout shell-breakout-cards" id="episodes" aria-labelledby="episodes-heading" data-wiki-episodes>
               <h2 class="wiki-section-title" id="episodes-heading">Podcast episodes about {{ record.title }}</h2>
               {% include "public/_podcast_episode_timeline.html" with items=topic_episodes only %}
               {% if topic_episodes|length > episodes_fold %}

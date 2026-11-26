@@ -239,7 +239,8 @@ class RelatedEpisodePageTests(RelatedGraphTestCase):
 
         self.assertIn('id="related-episodes-heading">Related episodes</h2>', band)
         self.assertIn('data-related-basis="graph"', band)
-        self.assertIn("files under the same topics", band)
+        # The heading says it all; the owner struck the subline under it.
+        self.assertNotIn("files under the same topics", band)
         # The /podcast timeline a wiki page lists its episodes with: the rail
         # names the season and episode, the shared episode card sits beside it.
         self.assertIn('<div class="event-timeline">', band)

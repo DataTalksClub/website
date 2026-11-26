@@ -126,3 +126,55 @@ def test_no_page_content_is_wider_than_the_home_shell(
                 f"{home['left']}..{home['right']}"
             )
     assert not failures, "\n".join(failures)
+
+
+# Reading measure vs card-list measure (_docs/design/design-system.md): the blog
+# article's body is the reference measure for reading text; card lists under the
+# text may be as wide as the card-list column; both share the article's axis.
+READING_TEXT = {
+    "/wiki": ("main h1", ".wiki-prose"),
+    "/podcast": (".episode-head", ".episode-summary, .episode-tabs"),
+}
+CARD_LISTS = {
+    "/wiki": (".wiki-episodes .event-timeline", ".wiki-related-grid"),
+    "/podcast": (".episode-related .event-timeline", ".episode-topic-grid"),
+}
+CARD_LIST_MAX_PX = 848
+BOX = """sel => { const e = document.querySelector(sel); if (!e) return null;
+  const r = e.getBoundingClientRect(); return {left: r.left, right: r.right}; }"""
+
+
+def test_reading_text_and_card_lists_hold_their_measures(page: Page, site) -> None:
+    page.set_viewport_size({"width": 1366, "height": 900})
+    base = site.url
+    details = {path.split("/")[1]: path for path in _detail_paths(page, base)}
+    assert _open(page, base + details["blog"]) == 200
+    reference = page.evaluate(BOX, ".article-body")
+    assert reference is not None
+    axis = (reference["left"] + reference["right"]) / 2
+    measure = reference["right"] - reference["left"]
+
+    failures: list[str] = []
+    for index in ("/wiki", "/podcast"):
+        path = details[index.strip("/")]
+        assert _open(page, base + path) == 200, path
+        for selector in READING_TEXT[index]:
+            box = page.evaluate(BOX, selector)
+            if box is None:
+                continue
+            width = box["right"] - box["left"]
+            if width > measure + TOLERANCE_PX:
+                failures.append(
+                    f"{path}: {selector} is {width}px, the reading measure is {measure}px"
+                )
+        for selector in CARD_LISTS[index]:
+            box = page.evaluate(BOX, selector)
+            if box is None:
+                continue
+            width = box["right"] - box["left"]
+            centre = (box["left"] + box["right"]) / 2
+            if width > CARD_LIST_MAX_PX + TOLERANCE_PX:
+                failures.append(f"{path}: {selector} is {width}px, wider than the card-list column")
+            if abs(centre - axis) > TOLERANCE_PX:
+                failures.append(f"{path}: {selector} is centred at {centre}, the axis is {axis}")
+    assert not failures, "\n".join(failures)

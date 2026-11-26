@@ -282,6 +282,18 @@ silence the test.
   (the course platform's `.app-content-shell` width) through `.content-shell`
   rather than choosing a local max width; prose inside the column stays at the
   measure.
+- **Reading measure vs card-list measure.** Reading text — an article body, a wiki
+  topic's title, summary and body, an episode's hero and overview — holds the
+  reading column, `--reading-width` (`44rem` shell, 656px of text at a desktop
+  width): the blog article's measure, which the owner judged the better read.
+  A list of cards under that text — the episode timeline ("Related episodes",
+  "Podcast episodes about …"), topic cards, event/article/book cards — may take
+  the wider card-list column, `--content-width` (`56rem` shell, 848px), so a
+  card's platform links and tags fit on one line. Both columns are centred on
+  the same axis, the way the homepage aligns its wide and narrow blocks. A card
+  list in its own band uses `.content-shell`; one inside a reading column adds
+  `.shell-breakout.shell-breakout-cards`. Enforced in a browser by
+  `playwright_tests/test_shell_width_guard.py::test_reading_text_and_card_lists_hold_their_measures`.
 - **Index and hub pages hold the content column too.** `/docs/`, `/wiki` (and its
   search and special pages), `/blog`, `/podcast`, `/events`, `/books`, `/people`,
   `/sponsors` and `/slack` all sit at `--content-width`, so their titles share one
