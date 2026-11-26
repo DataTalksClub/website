@@ -69,7 +69,10 @@ class FlowTests(TestCase):
         self.assertNotContains(response, self.answers["work"])
         self.assertIn("no-store", response["Cache-Control"])
         self.assertEqual(response["Referrer-Policy"], "same-origin")
-        self.assertTrue(self.applicant.newsletter_subscribed)
+        # The newsletter is managed separately: applying neither subscribes nor
+        # unsubscribes.  A new account starts unsubscribed (accounts 0012).
+        self.applicant.refresh_from_db()
+        self.assertFalse(self.applicant.newsletter_subscribed)
 
     def test_course_participant_auto_approval_and_ban_override(self):
         course = Course.objects.create(slug="synthetic-course", title="Synthetic course")
