@@ -15,35 +15,12 @@
   margin-bottom: var(--space-3);
 }
 
-.home-graph-tool {
-  background: var(--card);
-  border: var(--border-strong);
-  border-radius: var(--radius-pill);
-  color: var(--ink);
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 600;
-  padding: var(--space-1) var(--space-3);
-  transition: background 0.15s ease, transform 0.15s ease;
-}
-
-.home-graph-tool:hover,
-a.home-graph-tool:hover {
-  background: var(--lavender);
-  text-decoration: none;
-}
-
-.home-graph-tool:active {
-  transform: translateY(1px);
-}
-
 /* Toggled per hub (e.g. "Open wiki page" when the current hub has no
    page of its own): kept in the flex flow with `visibility` rather than
    `hidden`/`display: none`, so the toolbar's row count — and therefore
    the frame's height — never changes just because a different node was
    clicked. */
-.home-graph-tool.is-hidden-reserved {
+.home-graph-toolbar .is-hidden-reserved {
   pointer-events: none;
   visibility: hidden;
 }
@@ -171,7 +148,7 @@ a.home-graph-tool:hover {
   text-underline-offset: 0.2em;
 }
 
-.home-graph-compact .home-graph-toolbar :is(.home-graph-link, .band-link) {
+.home-graph-toolbar :is(.home-graph-link, .band-link) {
   font-size: 0.85rem;
 }
 

@@ -20,7 +20,6 @@ TEMPLATE_ROOTS = (
 CONTROL_CLASSES = {
     "cta",
     "filter-pill",
-    "home-graph-tool",
     "pill-button",
     "scroller-button",
     "signup-button",

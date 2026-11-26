@@ -3,7 +3,8 @@
   drawn server-side as the no-JS fallback, which core/static/core/home_graph.js
   then turns into a walk (click a neighbour to re-centre on it).  The homepage
   draws the full card (Back, Random topic, Open wiki page, the legend and the
-  count line); the wiki hub's hero passes `compact=True` for the card without
+  count line), its controls quiet text links like the compact card's: they are
+  secondary actions inside a soft card, and 2px ink is for calls to action; the wiki hub's hero passes `compact=True` for the card without
   the chrome: a "Random topic" control and the "full graph" link in its top
   corner, and the drawing.  Its rules are core/_wiki_graph_explorer_styles.html,
   which every page drawing this partial includes in its stylesheet.
@@ -31,9 +32,9 @@
     </p>
   {% else %}
     <div class="home-graph-toolbar" aria-label="Graph controls">
-      <button class="home-graph-tool interactive-lift" type="button" data-home-graph-back hidden>Back</button>
-      <button class="home-graph-tool interactive-lift" type="button" data-home-graph-random>Random topic</button>
-      <a class="home-graph-tool interactive-lift" data-home-graph-open href="{{ wiki_graph.hub.public_path }}">Open wiki page →</a>
+      <button class="home-graph-link" type="button" data-home-graph-back hidden>Back</button>
+      <button class="home-graph-link" type="button" data-home-graph-random>Random topic</button>
+      <a class="band-link" data-home-graph-open href="{{ wiki_graph.hub.public_path }}">Open wiki page →</a>
     </div>
     <p class="home-graph-status" data-home-graph-status aria-live="polite">
       Exploring {{ wiki_graph.hub.title }}. Click a neighbour to move there.
