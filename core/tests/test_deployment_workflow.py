@@ -191,7 +191,9 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # CI unblock 2026-11-25 enrolls courses.services.attempt_flow, courses.views.homework_states,
 # courses.views.project_criteria, courses.templatetags.attempt_rail and two tests
 # in strict mypy (configuration only).
-STUDIO_COURSES_PYPROJECT_SHA256 = "bb434768d9b2a1d06ce1d99de6881310a926ae591b0500ab8693da9b821f4c5f"
+# The email audience merge script and its tests join strict mypy (configuration
+# only, no dependency change); the pyproject seal moves with that reviewed pyproject.
+STUDIO_COURSES_PYPROJECT_SHA256 = "a83603658edfdd303877357ed2038047ab5ee572138a4688d882260946596df3"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation

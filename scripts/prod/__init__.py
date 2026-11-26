@@ -186,6 +186,12 @@ SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
         "Needs Mailchimp provider credentials and reads subscriber-level personal "
         "data. Step 6, excluded from the local dataset runner."
     ),
+    "import_email_audience_merge": (
+        "Reads subscriber-level personal data from the CMP, Mailchimp and Relay "
+        "exports and rewrites every account's newsletter flag, so it is a "
+        "dry-run-first operator command (data-ingest section 27), never part of a "
+        "dataset rebuild."
+    ),
     "sync_public_media_hydrate": (
         "Takes the shared target selection but stays a typed operator command: it "
         "fills a media object root from a named source (a checkout, a store, or the "

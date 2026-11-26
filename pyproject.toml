@@ -253,6 +253,8 @@ module = [
     "scripts.tests.test_import_event_backfill",
     "scripts.prod.import_academy_sessions",
     "scripts.tests.test_import_academy_sessions",
+    "scripts.prod.import_email_audience_merge",
+    "scripts.tests.test_import_email_audience_merge",
     "scripts.prod.import_podcast_episode_pictures",
     "scripts.tests.test_scoring_import_submitted_at",
     "studio_courses.tests.test_enrollment_sorting",

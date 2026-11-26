@@ -159,6 +159,7 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "scripts/tests/test_import_event_duplicate_merges.py",
     "scripts/tests/test_import_event_backfill.py",
     "scripts/tests/test_import_academy_sessions.py",
+    "scripts/tests/test_import_email_audience_merge.py",
     "courses/tests/test_enrollment_error_accessibility.py",
     "studio_courses/tests/test_enrollment_sorting.py",
     "courses/tests/test_course_external_links.py",
@@ -344,6 +345,8 @@ PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod/import_event_backfill.py",
     # Academy sessions (Hireable With AI series, Zoom links) from the synced content repo.
     "scripts/prod/import_academy_sessions.py",
+    # Newsletter audience merge: CMP + Mailchimp + Relay + website consent.
+    "scripts/prod/import_email_audience_merge.py",
     # Reviewed podcast episode pictures (card / -yt / -og).
     "scripts/prod/import_podcast_episode_pictures.py",
 )
