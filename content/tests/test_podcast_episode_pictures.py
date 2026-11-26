@@ -89,36 +89,26 @@ class EpisodeCardPictureTests(TestCase):
 
 
 class EpisodePagePictureTests(TestCase):
-    def test_the_video_poster_and_social_image_are_the_generated_pictures(self) -> None:
+    def test_the_social_image_is_the_generated_picture_and_the_page_draws_none(self) -> None:
+        # 2026-11-26 owner review: the generated pictures are for social
+        # previews only.  The page draws no poster or card picture; the guest's
+        # chip in the head is its one picture.
         record = {**_episode(), "image_path": "/images/podcast/old.jpg", "media_available": True}
         _store("card")
         _store("poster")
         _store("social")
         with patch("content.catalogue.podcasts", return_value=(record,)):
             body = self.client.get(record["public_path"]).content.decode()
-        facade = re.search(r'<a\s+id="podcast-video-facade".*?</a>', body, re.S)
-        assert facade is not None
-        self.assertIn(f'src="/podcast/{SLUG}/poster"', facade.group(0))
         self.assertRegex(body, rf'property="og:image" content="[^"]*/podcast/{SLUG}/social"')
         self.assertRegex(body, rf'name="twitter:image" content="[^"]*/podcast/{SLUG}/social"')
+        page = body.split("</head>", 1)[1]
+        for variant in ("poster", "picture", "card", "social"):
+            self.assertNotIn(f"/podcast/{SLUG}/{variant}", page)
         self.assertNotIn("/images/podcast/old.jpg", body)
-
-    def test_the_poster_is_the_pages_only_episode_picture(self) -> None:
-        # Player first (owner pick "B", 2026-11-26): no square card or old
-        # artwork beside the title, so the guest's face is not drawn twice.
-        record = {**_episode(), "image_path": "/images/podcast/old.jpg", "media_available": True}
-        _store("card")
-        _store("poster")
-        with patch("content.catalogue.podcasts", return_value=(record,)):
-            body = self.client.get(record["public_path"]).content.decode()
-        hero = body[body.index("episode-hero") : body.index("episode-read")]
+        main = page[page.index("<main") : page.index("</main>")]
+        hero = main[: main.index("episode-read")]
         for image in re.findall(r"<img\b[^>]*>", hero):
             self.assertIn("person-chip-portrait", image)
-        self.assertNotIn(f"/podcast/{SLUG}/picture", hero)
-        self.assertNotIn("/images/podcast/old.jpg", hero)
-        facade = re.search(r'<a\s+id="podcast-video-facade".*?</a>', body, re.S)
-        assert facade is not None
-        self.assertIn(f'src="/podcast/{SLUG}/poster"', facade.group(0))
 
 
 class ImportEpisodePicturesTests(TestCase):

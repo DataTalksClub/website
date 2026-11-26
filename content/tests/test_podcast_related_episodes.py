@@ -257,6 +257,25 @@ class RelatedEpisodePageTests(RelatedGraphTestCase):
         self.assertNotIn("More from this season", body)
         self.assertNotIn("episode-navigation", body)
 
+    def test_three_related_episodes_then_the_ones_either_side(self) -> None:
+        # The research-led layout (2026-11-26): three related episodes, then
+        # one line to the previous and next episode in catalogue order.
+        self.publish_graph(nodes=[], links=[])
+        band = self.band()
+        self.assertLessEqual(band.count("data-podcast-episode"), 3)
+        ordered = sorted(catalogue.podcasts(), key=lambda item: (item["season"], item["episode"]))
+        current = _episode(CURRENT)
+        position = next(i for i, item in enumerate(ordered) if item["slug"] == current["slug"])
+        pager = band[band.index('class="episode-pager"') :]
+        if position > 0:
+            self.assertIn(f'rel="prev" href="{ordered[position - 1]["public_path"]}"', pager)
+        else:
+            self.assertNotIn('rel="prev"', pager)
+        if position + 1 < len(ordered):
+            self.assertIn(f'rel="next" href="{ordered[position + 1]["public_path"]}"', pager)
+        else:
+            self.assertNotIn('rel="next"', pager)
+
     def test_an_unfiled_episode_says_it_is_showing_its_season(self) -> None:
         self.publish_graph(nodes=[], links=[])
 
@@ -267,7 +286,7 @@ class RelatedEpisodePageTests(RelatedGraphTestCase):
         self.assertIn("Season 20", band)
         self.assertEqual(
             len(re.findall(r"data-podcast-episode", band)),
-            min(5, sum(1 for item in catalogue.podcasts() if item["season"] == 20) - 1),
+            min(3, sum(1 for item in catalogue.podcasts() if item["season"] == 20) - 1),
         )
 
     def test_a_graph_the_catalogue_cannot_supply_keeps_the_page_up(self) -> None:

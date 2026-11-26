@@ -32,11 +32,55 @@ def _person(key: str) -> dict[str, Any]:
     return catalogue.people_by_slug()[key]
 
 
-def _timestamp_href(episode: dict[str, Any]) -> str:
-    """The first transcript timestamp's deep link into the episode's own video."""
-
+def _first_seconds(episode: dict[str, Any]) -> int:
     first = next(entry for entry in episode["transcript"] if "sec" in entry)
-    return f"https://www.youtube.com/watch?v={episode['video']['id']}&t={first['sec']}"
+    return int(first["sec"])
+
+
+def _timestamp_href(episode: dict[str, Any]) -> str:
+    """The first timestamp's link: this page, cued at that second (``?t=``)."""
+
+    return f"?t={_first_seconds(episode)}"
+
+
+def _embed(episode: dict[str, Any]) -> str:
+    return f"https://www.youtube-nocookie.com/embed/{episode['video']['id']}?enablejsapi=1&rel=0"
+
+
+# A stand-in for the YouTube embed that speaks the IFrame API's message
+# protocol: it answers "listening", reports its time and state, and records
+# every seek command, so the page's player wiring is exercised offline.
+FAKE_EMBED = """<html><body><script>
+var state = {t: 0, s: -1, seeks: []};
+var cue = location.search.match(/start=(\\d+)/);
+if (cue) { state.t = +cue[1]; }
+function send(message) { parent.postMessage(JSON.stringify(message), '*'); }
+function info() {
+  send({event: 'infoDelivery', info: {currentTime: state.t, playerState: state.s, duration: 3600}});
+}
+var ticking = false;
+window.addEventListener('message', function (event) {
+  var data = JSON.parse(event.data);
+  if (data.event === 'listening' && !ticking) {
+    ticking = true;
+    state.s = 1;
+    send({event: 'onReady'});
+    setInterval(function () { if (state.s === 1) { state.t += 0.5; } info(); }, 250);
+  }
+  if (data.event === 'command') {
+    if (data.func === 'seekTo') { state.t = data.args[0]; state.seeks.push(data.args[0]); }
+    if (data.func === 'playVideo') { state.s = 1; }
+    if (data.func === 'pauseVideo') { state.s = 2; }
+    send({event: 'onStateChange', info: state.s});
+    info();
+  }
+});
+</script></body></html>"""
+
+
+def _embed_seeks(page: Page) -> list[float]:
+    frame = next(frame for frame in page.frames if "youtube-nocookie" in frame.url)
+    return frame.evaluate("state.seeks")
 
 
 def _settle_analytics_preferences(page: Page) -> None:
@@ -50,7 +94,7 @@ def _stub_video_provider(page: Page) -> None:
 
     page.route(
         "https://www.youtube-nocookie.com/**",
-        lambda route: route.fulfill(status=200, content_type="text/html", body=""),
+        lambda route: route.fulfill(status=200, content_type="text/html", body=FAKE_EMBED),
     )
 
 
@@ -74,50 +118,125 @@ def test_episode_sections_player_and_guest_links_are_keyboard_reachable(
     _settle_analytics_preferences(page)
 
     expect(page.locator("#episode-heading")).to_have_text(episode["title"])
-    # The YouTube player is a click-to-play poster until the reader asks for it.
+    # The player is a plain frame with one "Play episode" button until the
+    # reader asks for it; nothing loads from YouTube before that.
     facade = page.get_by_role("button", name=f"Play {episode['title']} on YouTube")
     expect(facade).to_be_visible()
-    expect(page.locator("#podcast-video-player")).to_have_count(0)
+    expect(page.locator("iframe")).to_have_count(0)
     expect(page.locator("[data-video-fallback]").first).to_be_hidden()
     facade.press("Enter")
-    expect(page.locator("#podcast-video-player")).to_have_attribute(
-        "title", f"Watch {episode['title']} on YouTube"
-    )
-    expect(page.locator("#podcast-video-player")).to_be_focused()
+    player = page.locator("#podcast-video-player")
+    expect(player).to_have_attribute("title", f"Watch {episode['title']} on YouTube")
+    expect(player).to_have_attribute("src", _embed(episode) + "&autoplay=1")
+    expect(player).to_be_focused()
     # One reading column, no tabs: every section is on the page in order.
     expect(page.get_by_role("tab")).to_have_count(0)
     for heading in ("What we talked about", "Chapters"):
         expect(page.get_by_role("heading", level=2, name=heading)).to_be_visible()
     expect(page.locator("#transcript-heading")).to_be_visible()
     guests = episode["guest_profiles"]
-    expect(page.locator(".guest-card-name a").first).to_have_text(guests[0]["name"])
-    # Every guest card carries that guest's own profile links, as icon buttons.
-    expect(page.locator(".guest-card-links a[target='_blank']")).to_have_count(
-        sum(len(_person(guest["key"])["links"]) for guest in guests)
-    )
-    expect(page.locator(".chapter-time").first).to_have_attribute("href", _timestamp_href(episode))
+    expect(page.locator(".episode-guests .person-chip-name").first).to_have_text(guests[0]["name"])
+    # Every guest card carries that guest's own profile links, labelled.
+    links = page.locator(".guest-card-links a[target='_blank']")
+    expect(links).to_have_count(sum(len(_person(guest["key"])["links"]) for guest in guests))
+    if links.count():
+        assert links.first.inner_text().strip(), "a guest link names where it goes"
+    expect(page.locator(".chapter-link").first).to_have_attribute("href", _timestamp_href(episode))
     _assert_no_horizontal_overflow(page)
 
 
-def test_timestamp_enhancement_updates_player_and_keeps_native_target(
+def test_a_chapter_plays_in_place_and_the_docked_player_follows(
     page: Page,
     live_server,
 ) -> None:
     episode = _episode(REPRESENTATIVE)
     _stub_video_provider(page)
+    page.set_viewport_size({"width": 1280, "height": 800})
     page.goto(f"{live_server.url}{episode['public_path']}", wait_until="networkidle")
     _settle_analytics_preferences(page)
 
-    timestamp = page.locator("#timestamps .chapter-time").first
-    expect(timestamp).to_have_attribute("href", _timestamp_href(episode))
-    timestamp.focus()
-    timestamp.press("Enter")
-    video_id = episode["video"]["id"]
-    expect(page.locator("#podcast-video-player")).to_have_attribute(
-        "src",
-        f"https://www.youtube-nocookie.com/embed/{video_id}?enablejsapi=1&rel=0&autoplay=1&start=0",
+    # The first chapter builds the player at its start.
+    chapter = page.locator("#timestamps .chapter-link").first
+    expect(chapter).to_have_attribute("href", _timestamp_href(episode))
+    chapter.focus()
+    chapter.press("Enter")
+    player = page.locator("#podcast-video-player")
+    cued = _embed(episode) + f"&autoplay=1&start={_first_seconds(episode)}"
+    expect(player).to_have_attribute("src", cued)
+    expect(chapter).to_be_focused()
+    expect(page.locator(".chapter-row.is-current")).to_have_count(1)
+
+    # Once the player reports in, a later chapter seeks it without a reload,
+    # and that chapter is marked as the one playing.
+    target = page.locator("#timestamps .chapter-row").nth(1)
+    seconds = int(float(target.get_attribute("data-chapter-start") or "0"))
+    page.wait_for_function(
+        "() => document.querySelector('[data-mini-time]').textContent.includes('/')"
     )
-    expect(timestamp).to_be_focused()
+    target.locator("a").click()
+    page.wait_for_function(
+        "(s) => { const row = document.querySelector('.chapter-row.is-current');"
+        " return row && Number(row.dataset.chapterStart) === s; }",
+        arg=seconds,
+    )
+    assert seconds in _embed_seeks(page)
+    expect(player).to_have_attribute("src", cued)
+
+    # Scrolled away from the video, the docked player appears with the
+    # chapter and its controls; closing it puts it away.
+    mini = page.locator("[data-mini-player]")
+    expect(mini).to_be_hidden()
+    page.locator("#transcript").scroll_into_view_if_needed()
+    expect(mini).to_be_visible()
+    expect(mini.locator("[data-mini-chapter]")).to_have_text(
+        target.get_attribute("data-chapter-title") or ""
+    )
+    expect(mini.get_by_role("button", name="Pause")).to_be_visible()
+    mini.get_by_role("button", name="Close the docked player").click()
+    expect(mini).to_be_hidden()
+
+
+def test_a_t_link_opens_the_page_with_the_player_cued_there(
+    page: Page,
+    live_server,
+) -> None:
+    episode = _episode(REPRESENTATIVE)
+    _stub_video_provider(page)
+    page.goto(f"{live_server.url}{episode['public_path']}?t=95", wait_until="networkidle")
+    expect(page.locator("#podcast-video-player")).to_have_attribute(
+        "src", _embed(episode) + "&autoplay=1&start=95"
+    )
+
+
+def test_the_transcript_opens_from_its_link_and_searches(
+    page: Page,
+    live_server,
+) -> None:
+    episode = _episode(REPRESENTATIVE)
+    _stub_video_provider(page)
+    page.goto(f"{live_server.url}{episode['public_path']}#transcript", wait_until="networkidle")
+    _settle_analytics_preferences(page)
+
+    expect(page.locator("#transcript details")).to_have_attribute("open", "")
+    total = page.locator("[data-transcript-line]").count()
+    word = next(
+        word
+        for entry in episode["transcript"]
+        if entry.get("line")
+        for word in entry["line"].split()
+        if len(word) > 5 and word.isalpha()
+    )
+    search = page.get_by_role("searchbox", name="Search the transcript")
+    search.fill(word)
+    count = page.locator("[data-transcript-count]")
+    expect(count).to_contain_text("match")
+    expect(page.locator("[data-transcript-body] mark").first).to_be_visible()
+    visible = page.locator("[data-transcript-line]:not([hidden])").count()
+    assert 0 < visible <= total
+    search.fill("zzzz-no-such-words")
+    expect(count).to_have_text("0 matches")
+    search.fill("")
+    expect(page.locator("[data-transcript-line]:not([hidden])")).to_have_count(total)
 
 
 def test_chapters_fold_past_eight_and_the_transcript_opens_as_one_fold(
@@ -180,12 +299,11 @@ def test_timestamp_and_section_links_remain_native_without_javascript(
         expect(page.locator("#timestamps .chapter-row").last).to_be_visible()
         expect(page.locator("[data-chapters-more]")).to_be_hidden()
         expect(page.locator("#transcript")).to_be_visible()
-        expect(page.locator("#timestamps .chapter-time").first).to_have_attribute(
+        expect(page.locator("#timestamps .chapter-link").first).to_have_attribute(
             "href", _timestamp_href(episode)
         )
-        expect(page.locator("#timestamps .chapter-time").first).not_to_have_attribute("href", "#")
-        # Without JavaScript the poster is a plain link to the YouTube watch page;
-        # the "unavailable" note is reserved for a player that actually failed.
+        # Without JavaScript the Play button is a plain link to the YouTube watch
+        # page; the "unavailable" note is reserved for a player that failed.
         expect(page.locator("#podcast-video-player")).to_have_count(0)
         expect(page.locator("#podcast-video-facade")).to_have_attribute(
             "href", f"https://www.youtube.com/watch?v={episode['video']['id']}"

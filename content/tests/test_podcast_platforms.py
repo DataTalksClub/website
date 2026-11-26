@@ -101,7 +101,7 @@ class PodcastPlatformDataTests(TestCase):
                 Path(__file__).resolve().parents[2] / "templates/public/_podcast_episode_card.html"
             ).read_text(encoding="utf-8"),
         )
-        self.assertIn("{% for link in episode.other_platform_links %}", detail)
+        self.assertIn("{% for link in episode.listener_platform_links %}", detail)
         self.assertNotIn("pill-button", detail)
         self.assertNotIn("data-podcast-platform-icon=", hub)
         self.assertNotIn("data-podcast-platform-icon=", detail)
@@ -159,8 +159,7 @@ class PodcastPlatformDataTests(TestCase):
         self.assertNotContains(response, "creators.spotify.com/pod/profile/datatalksclub/embed/")
         line_start = body.index("data-platform-links")
         line = body[line_start : body.index("</p>", line_start)]
-        self.assertNotIn('data-podcast-platform="youtube"', line)
-        for provider in ("apple", "spotify"):
+        for provider in ("apple", "spotify", "youtube"):
             marker_start = line.index(f'data-podcast-platform="{provider}"')
             link_start = line.rfind("<a", 0, marker_start)
             link_markup = line[link_start : line.index("</a>", link_start)]

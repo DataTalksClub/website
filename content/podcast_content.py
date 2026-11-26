@@ -17,11 +17,11 @@ the records rather than hard-coded (:func:`listening_platform_phrase`).
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from functools import lru_cache
 from typing import Any
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlsplit
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -175,6 +175,8 @@ class Guest:
     media_available: bool = False
     summary: str = ""
     profile_links: tuple[ExternalLink, ...] = ()
+    #: The catalogue's person key, which ties the guest to their other episodes.
+    key: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -219,7 +221,13 @@ class TimestampEntry:
     label: str
     seconds: int | float | None
     time: str
-    fallback_url: str = ""
+    #: ``?t=<seconds>`` on the episode's own page: the player starts there.
+    #: Empty when the page has no YouTube player to seek.
+    seek_href: str = ""
+    #: How long the chapter runs, "9 min"; empty when it cannot be known.
+    duration: str = ""
+    #: The id of the chapter's heading inside the transcript.
+    anchor: str = ""
 
     @property
     def topic(self) -> str:
@@ -305,7 +313,11 @@ class TranscriptEntry:
     time: str = ""
     who: str = ""
     anchor: str = ""
-    fallback_url: str = ""
+    #: ``?t=<seconds>`` on the episode's own page; see ``TimestampEntry``.
+    seek_href: str = ""
+    #: True where a new speaker turn starts, so the name is printed once per
+    #: turn rather than on every paragraph.
+    new_turn: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -388,17 +400,6 @@ class Episode:
         return tuple(
             link for link in self.platform_links if link.provider != "spotify_for_creators"
         )
-
-    @property
-    def other_platform_links(self) -> tuple[PlatformLink, ...]:
-        """The listening destinations other than the one the page's player plays.
-
-        The episode page leads with its player (YouTube, else Spotify); these
-        are the quiet "listen elsewhere" links under it.
-        """
-
-        played = "youtube" if self.video else ("spotify" if self.spotify else "")
-        return tuple(link for link in self.listener_platform_links if link.provider != played)
 
 
 PROFILE_LINK = re.compile(r"^(linkedin\.com/in/[^/]+|(github|twitter|x)\.com/[^/]+)$")
@@ -530,6 +531,7 @@ def _guests(
                 else False,
                 summary=_person_summary(person) if person is not None else "",
                 profile_links=_person_links(person) if person is not None else (),
+                key=key or "",
             )
         )
     return tuple(guests)
@@ -775,26 +777,19 @@ def _format_seconds(seconds: int | float) -> str:
     return f"{hours}:{minutes:02d}:{seconds_part:02d}" if hours else f"{minutes}:{seconds_part:02d}"
 
 
-def _timestamp_fallback(url: str, seconds: int | float | None) -> str:
-    if not url or seconds is None:
+def _seek_href(seekable: bool, seconds: int | float | None) -> str:
+    """The episode page's own ``?t=`` link, which starts its player there.
+
+    Seeking never leaves the site: with JavaScript the time plays the embedded
+    player in place, and without it the link reloads this page at that time.
+    """
+
+    if not seekable or seconds is None:
         return ""
-    if _youtube_video_id(url) == "":
-        # Spotify, Apple, and other validated destinations do not share YouTube's
-        # seconds parameter.  They are still useful native fallbacks for a
-        # timestamp row; the player enhancement remains available only when the
-        # page has a validated YouTube identity.
-        return url
-    parsed = urlsplit(url)
-    query = [
-        (key, value) for key, value in parse_qsl(parsed.query, keep_blank_values=True) if key != "t"
-    ]
-    query.append(("t", str(max(0, int(seconds)))))
-    return urlunsplit(
-        (parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment)
-    )
+    return f"?t={max(0, int(seconds))}"
 
 
-def _transcript(record: dict[str, Any], watch_url: str) -> tuple[TranscriptEntry, ...]:
+def _transcript(record: dict[str, Any], *, seekable: bool) -> tuple[TranscriptEntry, ...]:
     raw_transcript = record.get("transcript", ()) or ()
     if not isinstance(raw_transcript, (list, tuple)):
         raise ImproperlyConfigured("Public podcast transcript must be a list.")
@@ -811,7 +806,9 @@ def _transcript(record: dict[str, Any], watch_url: str) -> tuple[TranscriptEntry
         if header:
             if not isinstance(header, str) or not header.strip():
                 raise ImproperlyConfigured("Public podcast transcript header is invalid.")
-            entries.append(TranscriptEntry(header=header.strip()))
+            entries.append(
+                TranscriptEntry(header=header.strip(), anchor=f"transcript-entry-{index}")
+            )
             continue
         if not isinstance(line, str) or not line.strip():
             raise ImproperlyConfigured("Public podcast transcript line is invalid.")
@@ -829,17 +826,51 @@ def _transcript(record: dict[str, Any], watch_url: str) -> tuple[TranscriptEntry
         who = raw_entry.get("who") or ""
         if who and (not isinstance(who, str) or not who.strip()):
             raise ImproperlyConfigured("Public podcast transcript speaker is invalid.")
+        speaker = who.strip() if isinstance(who, str) else ""
+        previous = entries[-1] if entries else None
         entries.append(
             TranscriptEntry(
                 line=line.strip(),
                 seconds=seconds,
                 time=time,
-                who=who.strip() if isinstance(who, str) else "",
+                who=speaker,
                 anchor=f"transcript-entry-{index}",
-                fallback_url=_timestamp_fallback(watch_url, seconds),
+                seek_href=_seek_href(seekable, seconds),
+                new_turn=bool(speaker)
+                and (previous is None or bool(previous.header) or previous.who != speaker),
             )
         )
-    return tuple(entries)
+    return _timed_headers(tuple(entries))
+
+
+def _chapter_marker(transcript: tuple[TranscriptEntry, ...], index: int) -> TranscriptEntry | None:
+    """The first timed line of the section a header at ``index`` opens."""
+
+    for candidate in transcript[index + 1 :]:
+        if candidate.header:
+            return None
+        if candidate.line and candidate.time and candidate.seconds is not None:
+            return candidate
+    return None
+
+
+def _timed_headers(transcript: tuple[TranscriptEntry, ...]) -> tuple[TranscriptEntry, ...]:
+    """Give each section header its section's start, so its heading can seek."""
+
+    timed: list[TranscriptEntry] = []
+    for index, entry in enumerate(transcript):
+        marker = _chapter_marker(transcript, index) if entry.header else None
+        if marker is not None:
+            entry = replace(
+                entry, seconds=marker.seconds, time=marker.time, seek_href=marker.seek_href
+            )
+        timed.append(entry)
+    return tuple(timed)
+
+
+def _duration_label(seconds: float) -> str:
+    minutes = round(seconds / 60)
+    return f"{minutes} min" if minutes >= 1 else "<1 min"
 
 
 _TIMESTAMP_LABEL_MAX_LENGTH = 160
@@ -855,32 +886,42 @@ def _timestamp_entries(
     this handles source sections whose opening paragraph is un-timestamped.
     This intentionally does not use transcript prose as a fallback label: a
     missing or malformed chapter marker stays missing rather than becoming a
-    second copy of the transcript.
+    second copy of the transcript.  A chapter runs to the next one's start;
+    the last runs to the transcript's last timed line.
     """
 
-    entries: list[TimestampEntry] = []
+    chapters: list[TimestampEntry] = []
     for index, entry in enumerate(transcript):
         label = entry.header.strip()
         if not label or len(label) > _TIMESTAMP_LABEL_MAX_LENGTH:
             continue
-        marker = None
-        for candidate in transcript[index + 1 :]:
-            if candidate.header:
-                break
-            if candidate.line and candidate.time and candidate.seconds is not None:
-                marker = candidate
-                break
-        if marker is None:
+        marker = _chapter_marker(transcript, index)
+        if marker is None or marker.seconds is None:
             continue
-        entries.append(
+        chapters.append(
             TimestampEntry(
                 label=" ".join(label.split()),
                 seconds=marker.seconds,
                 time=marker.time,
-                fallback_url=marker.fallback_url,
+                seek_href=marker.seek_href,
+                anchor=entry.anchor,
             )
         )
-    return tuple(entries)
+    end = max(
+        (entry.seconds for entry in transcript if entry.line and entry.seconds is not None),
+        default=None,
+    )
+    timed: list[TimestampEntry] = []
+    for position, chapter in enumerate(chapters):
+        following = chapters[position + 1].seconds if position + 1 < len(chapters) else end
+        start = chapter.seconds
+        duration = (
+            _duration_label(following - start)
+            if following is not None and start is not None and following > start
+            else ""
+        )
+        timed.append(replace(chapter, duration=duration))
+    return tuple(timed)
 
 
 def episode_view(
@@ -894,7 +935,8 @@ def episode_view(
 
     published = str(record.get("published") or "")
     watch_url, watch_label = _watch_destination(record)
-    transcript = _transcript(record, watch_url) if include_transcript else ()
+    video = _video_embed(record)
+    transcript = _transcript(record, seekable=video is not None) if include_transcript else ()
     return Episode(
         title=_required_text(record, "title"),
         description=_required_text(record, "description"),
@@ -912,7 +954,7 @@ def episode_view(
         watch_url=watch_url,
         watch_label=watch_label,
         resources=_resources(record, podcast_records=resource_podcast_records),
-        video=_video_embed(record),
+        video=video,
         spotify=_spotify_embed(record),
         transcript=transcript,
         timestamp_entries=_timestamp_entries(transcript) if transcript else (),

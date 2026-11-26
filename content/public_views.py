@@ -1442,6 +1442,13 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
     )
 
 
+def _start_seconds(request: HttpRequest) -> int | None:
+    """The ``?t=`` start an episode link asks for, or None when absent or invalid."""
+
+    raw = request.GET.get("t", "")
+    return int(raw) if re.fullmatch(r"[0-9]{1,6}", raw) else None
+
+
 def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
     from .podcast_pictures import Variant, stored_paths
 
@@ -1453,12 +1460,8 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         if episode.get("media_available") and episode.get("image_path")
         else ""
     )
-    poster_path = pictures.get(Variant.POSTER, "") or (
-        episode["image_path"]
-        if episode.get("media_available") and episode.get("image_path")
-        else ""
-    )
     events = event_index()
+    start_seconds = _start_seconds(request) if episode.get("video") else None
     try:
         related_matches = wiki_content.related_episode_matches(episode)
     except ImproperlyConfigured:
@@ -1466,7 +1469,13 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         # supply leaves the page up, and the band falls back to the season.
         related_matches = ()
     podcasts = catalogue.podcasts()
-    related = related_episodes(episode, podcasts, related_matches)
+    # Three related episodes, then the way along the catalogue: the episodes
+    # either side of this one, in season and episode order.
+    related = related_episodes(episode, podcasts, related_matches, limit=3)
+    in_order = sorted(podcasts, key=lambda item: (item["season"], item["episode"]))
+    position = next(index for index, item in enumerate(in_order) if item["slug"] == episode["slug"])
+    previous_episode = in_order[position - 1] if position > 0 else None
+    next_episode = in_order[position + 1] if position + 1 < len(in_order) else None
     latest_season = max(item["season"] for item in podcasts)
     try:
         episode_graph = wiki_content.episode_graph(episode)
@@ -1518,9 +1527,22 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         context={
             "record": episode,
             "episode": episode_page,
-            "guest_cards": guest_cards(episode_page.guests),
+            "guest_cards": guest_cards(
+                episode_page.guests, records=podcasts, current_slug=episode["slug"]
+            ),
+            "previous_episode": previous_episode,
+            "next_episode": next_episode,
+            # ``?t=<seconds>``: a chapter or transcript time's own link starts
+            # the player there (and, without JavaScript, the YouTube link).
+            "start_seconds": start_seconds,
+            # Without JavaScript, Play opens the episode on its platform (at
+            # the asked-for second on YouTube).
+            "play_href": (
+                episode_page.video.watch_url + (f"&t={start_seconds}" if start_seconds else "")
+                if episode_page.video
+                else episode_page.watch_url
+            ),
             "related": related,
-            "video_poster_path": poster_path,
             # The head's fact line: the publication date (else the recording
             # day, as the hub card dates it) and the length the transcript runs.
             "episode_date": episode_date(episode, events),

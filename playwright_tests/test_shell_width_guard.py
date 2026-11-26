@@ -135,14 +135,14 @@ def test_no_page_content_is_wider_than_the_home_shell(
 # text may be as wide as the card-list column; both share the article's axis.
 READING_TEXT = {
     "/wiki": ("main h1", ".wiki-prose"),
-    "/podcast": (".episode-hero h1", ".episode-summary", ".guest-card"),
+    "/podcast": (".episode-hero h1", ".episode-play", ".episode-summary", ".guest-card"),
 }
 CARD_LISTS = {
     "/wiki": (".wiki-episodes .event-timeline", ".wiki-related-grid"),
     "/podcast": (
         ".episode-related .event-timeline",
         ".episode-topic-grid",
-        ".episode-player-block",
+        "#transcript",
         ".chapter-list",
     ),
 }

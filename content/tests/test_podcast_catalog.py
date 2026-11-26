@@ -275,54 +275,18 @@ class PodcastPageCompositionTests(TestCase):
             "Spotify",
         )
 
-    def test_episode_artwork_is_named_and_never_depends_on_a_listening_link(self) -> None:
-        """Artwork and a listening link are independent facts (issue #179)."""
-
-        record = dict(ordered_podcasts()[0])
-        record["links"] = {}
-        # The current catalogue carries no episode artwork at all (every record's
-        # ``image_path`` is empty), so this fact is asserted explicitly rather than
-        # relied upon from the real catalogue -- the point under test is that
-        # artwork availability is independent of a listening link, not of content.
-        record["media_available"] = True
-        record["image_path"] = "/images/podcast/example-episode.jpg"
-        unplayable = episode_view(record)
-        self.assertEqual(unplayable.watch_url, "")
-        self.assertTrue(unplayable.media_available)
-
-        # The view resolves the frame's image (generated poster, else the artwork).
-        artwork = render_to_string(
-            "public/_episode_artwork.html",
-            {"episode": unplayable, "video_poster_path": unplayable.image_path},
-        )
-        self.assertIn(f'alt="Artwork for {conditional_escape(unplayable.title)}"', artwork)
-        self.assertIn(f'src="{unplayable.image_path}"', artwork)
-
-        record["media_available"] = False
-        record["image_path"] = ""
-        missing = render_to_string(
-            "public/_episode_artwork.html",
-            {"episode": episode_view(record), "video_poster_path": ""},
-        )
-        self.assertIn("Artwork unavailable.", missing)
-        self.assertNotIn("<img", missing)
-
-        # The fallback frame still draws the shared artwork partial. A validated embed is
-        # intentionally an iframe rather than an artwork link.
-        source = (REPOSITORY_ROOT / "templates/public/podcast_detail.html").read_text(
-            encoding="utf-8"
-        )
-        self.assertEqual(source.count('{% include "public/_episode_artwork.html" %}'), 1)
-
     def test_publication_dates_are_read_and_never_guessed(self) -> None:
         self.assertEqual(published_display("2021-02-23"), "Feb 23, 2021")
         self.assertEqual(published_display(""), "")
         with self.assertRaisesRegex(ImproperlyConfigured, "publication date is invalid"):
             published_display("23 February 2021")
 
-    def test_timestamp_fallbacks_keep_non_youtube_destinations_and_skip_unseekable_rows(
+    def test_times_link_only_where_the_page_has_a_youtube_player_to_seek(
         self,
     ) -> None:
+        # Seeking never leaves the site: a time is a ``?t=`` link on the
+        # episode's own page, and an episode without a YouTube player (here a
+        # Spotify-only one) prints its times as plain text.
         record = dict(ordered_podcasts()[0])
         record["links"] = {"spotify": "https://open.spotify.com/episode/synthetic"}
         record["video"] = None
@@ -336,8 +300,51 @@ class PodcastPageCompositionTests(TestCase):
         view = episode_view(record)
 
         self.assertEqual(len(view.timestamp_entries), 1)
-        self.assertEqual(view.timestamp_entries[0].fallback_url, record["links"]["spotify"])
-        self.assertEqual(view.transcript[1].fallback_url, "")
+        self.assertEqual(view.timestamp_entries[0].seek_href, "")
+        self.assertEqual(view.transcript[1].seek_href, "")
+        self.assertEqual(view.transcript[3].seek_href, "")
+
+        seekable = episode_view(
+            {
+                **record,
+                "links": {"youtube": "https://www.youtube.com/watch?v=Video_1"},
+                "video": {"provider": "youtube", "id": "Video_1"},
+            }
+        )
+        self.assertEqual(seekable.timestamp_entries[0].seek_href, "?t=42")
+        self.assertEqual(seekable.transcript[3].seek_href, "?t=42")
+        self.assertEqual(seekable.transcript[1].seek_href, "")
+
+    def test_chapters_carry_their_length_and_transcript_turns_name_the_speaker_once(
+        self,
+    ) -> None:
+        record = dict(ordered_podcasts()[0])
+        record["links"] = {"youtube": "https://www.youtube.com/watch?v=Video_1"}
+        record["video"] = {"provider": "youtube", "id": "Video_1"}
+        record["transcript"] = [
+            {"header": "Opening"},
+            {"line": "Hello.", "sec": 0, "time": "0:00", "who": "Alexey"},
+            {"line": "Welcome.", "sec": 30, "time": "0:30", "who": "Alexey"},
+            {"line": "Thanks.", "sec": 60, "time": "1:00", "who": "Ada"},
+            {"header": "Careers"},
+            {"line": "So, careers.", "sec": 600, "time": "10:00", "who": "Alexey"},
+            {"line": "Last word.", "sec": 1500, "time": "25:00", "who": "Ada"},
+        ]
+
+        view = episode_view(record)
+
+        self.assertEqual([entry.duration for entry in view.timestamp_entries], ["10 min", "15 min"])
+        self.assertEqual(
+            [entry.anchor for entry in view.timestamp_entries],
+            ["transcript-entry-0", "transcript-entry-4"],
+        )
+        self.assertEqual(
+            [entry.new_turn for entry in view.transcript if entry.line],
+            [True, False, True, True, True],
+        )
+        # A chapter heading inside the transcript carries its start, too.
+        self.assertEqual(view.transcript[4].time, "10:00")
+        self.assertEqual(view.transcript[4].seek_href, "?t=600")
 
     def test_timestamp_topics_use_the_first_timed_line_in_each_source_section(self) -> None:
         record = dict(ordered_podcasts()[0])
@@ -447,10 +454,7 @@ class PodcastEpisodeParityTests(TestCase):
             view.timestamp_entries[0].label,
             "Synthetic Chapter 1",
         )
-        self.assertEqual(
-            view.timestamp_entries[0].fallback_url,
-            "https://www.youtube.com/watch?v=aaaaaaaaaaa&t=0",
-        )
+        self.assertEqual(view.timestamp_entries[0].seek_href, "?t=0")
         guest = view.guests[0]
         # The credit's display name is the person's catalogue title, derived at
         # read time now rather than frozen into the stored record.
@@ -477,7 +481,7 @@ class PodcastEpisodeParityTests(TestCase):
         ):
             self.assertContains(response, f'id="{heading_id}"')
         self.assertContains(response, 'id="podcast-video-facade"')
-        self.assertContains(response, 'href="https://www.youtube.com/watch?v=aaaaaaaaaaa&amp;t=0"')
+        self.assertContains(response, 'href="?t=0"')
         self.assertNotIn('property="article:published_time"', body)
         match = re.search(
             r'<script type="application/ld\+json">\s*(.*?)\s*</script>',
@@ -496,11 +500,12 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertNotIn("list-manage.com", body)
         self.assertNotIn(record["transcript_provenance"]["source_url"], body)
 
-    def test_hero_is_a_compact_head_and_the_player_opens_the_content_band(self) -> None:
-        # Player first (owner pick "B", 2026-11-26): the cream head holds the
-        # trail, the title, the season/episode fact line and the guest chip,
-        # and nothing else; the poster with the one primary action opens the
-        # lavender band, and the standfirst is not repeated above the summary.
+    def test_the_head_holds_the_facts_the_guest_and_the_player(self) -> None:
+        # The cream head holds the trail, the title, the season/episode fact
+        # line, the guest's chip with their role and then the player: a plain
+        # frame whose one primary action is "Play episode", with no picture
+        # (2026-11-26 owner review: the generated posters are for social
+        # previews only).  The standfirst is not repeated above the summary.
         record = self.representative()
         view = episode_view(record, people_by_slug=catalogue.people_by_slug())
         response = self.client.get(record["public_path"])
@@ -511,19 +516,20 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertNotEqual(hero_start, -1)
         self.assertNotEqual(about_start, -1)
         hero_html = body[hero_start:about_start]
-        about_html = body[about_start : body.index('<section id="overview"', about_start)]
 
         self.assertIn(escape(view.title), hero_html)
         self.assertIn(view.season_episode, hero_html)
         self.assertIn(escape(view.guests[0].name), hero_html)
         self.assertIn('class="person-chips episode-guests"', hero_html)
         self.assertNotIn(escape(view.description), hero_html)
-        self.assertNotIn("player-frame", hero_html)
-        # The poster is the page's only picture besides the guest's chip, and
-        # it carries the page's one primary action.
-        self.assertIn('id="podcast-video-facade"', about_html)
-        self.assertEqual(body.count("cta-primary episode-video-play"), 1)
-        self.assertNotIn("episode-head-picture", body)
+        self.assertLess(hero_html.index("episode-guests"), hero_html.index("player-frame"))
+        self.assertIn('id="podcast-video-facade"', hero_html)
+        self.assertEqual(body.count("cta-primary episode-play-button"), 1)
+        self.assertEqual(hero_html.count("cta-primary"), 1)
+        self.assertIn("Play episode", hero_html)
+        # The title is printed once, as the h1: no poster repeats it.
+        self.assertNotIn("<img", hero_html.split("episode-guests", 1)[1].split("</div>", 1)[1])
+        self.assertNotIn("/poster", body.split("</head>", 1)[1])
         self.assertNotIn("guest-card-portrait", body)
 
     def test_the_other_platforms_are_one_quiet_line_under_the_player(self) -> None:
@@ -544,15 +550,13 @@ class PodcastEpisodeParityTests(TestCase):
         line = re.search(r'<p class="episode-elsewhere" data-platform-links>.*?</p>', body, re.S)
         assert line is not None
         markup = line.group(0)
-        self.assertIn("Prefer audio? Listen on", markup)
+        self.assertIn("Also on", markup)
         self.assertNotIn("pill-button", markup)
-        # The poster already plays YouTube; the line names the other places.
-        self.assertNotIn('data-podcast-platform="youtube"', markup)
         self.assertEqual(
             re.findall(r'data-podcast-platform="([a-z_]+)"', markup),
-            [link.provider for link in view.other_platform_links],
+            [link.provider for link in view.listener_platform_links],
         )
-        self.assertTrue(view.other_platform_links)
+        self.assertIn('data-podcast-platform="youtube"', markup)
         self.assertNotIn("Listen to or watch on your favorite platform", body)
 
     def test_reading_sections_are_one_column_with_no_tabs_and_no_hidden_panels(self) -> None:
@@ -595,8 +599,9 @@ class PodcastEpisodeParityTests(TestCase):
         else:
             self.assertNotIn("data-chapters-more", chapters)
         for entry in view.timestamp_entries:
-            if entry.fallback_url:
+            if entry.seek_href:
                 self.assertIn(f'data-seconds="{entry.seconds}"', chapters)
+                self.assertIn(f'href="{entry.seek_href}"', chapters)
 
     def test_links_mentioned_leave_out_the_guests_own_profiles(self) -> None:
         guest = Guest(
@@ -678,7 +683,14 @@ class PodcastEpisodeParityTests(TestCase):
         guest = episode_view(record, people_by_slug=catalogue.people_by_slug()).guests[0]
 
         self.assertEqual(overview_html.count("data-guest-card"), len(record["guest_profiles"]))
-        self.assertIn(f'<a href="{guest.public_path}">{escape(guest.name)}</a>', overview_html)
+        # The heading names a lone guest and their chip in the head links the
+        # profile, so the card names them again only when there are several.
+        if len(record["guest_profiles"]) > 1:
+            self.assertIn(
+                f'<a href="{guest.public_path}">{escape(guest.name)}</a>', overview_html
+            )
+        else:
+            self.assertNotIn("guest-card-name", overview_html)
         # The role line is the one the podcast hub's person chips carry, read
         # from the bio; this bio does not open with "<Name> is a …", so none.
         self.assertEqual(guest_role(guest.summary), "")
@@ -689,9 +701,11 @@ class PodcastEpisodeParityTests(TestCase):
         for link in guest.profile_links:
             with self.subTest(link=link.label):
                 self.assertIn(f'href="{link.url}"', overview_html)
-                self.assertIn(
-                    f'aria-label="{escape(guest.name)} on {link.label} (opens in a new tab)"',
+                # Each link says where it goes, in words.
+                self.assertRegex(
                     overview_html,
+                    rf'(?s)href="{re.escape(link.url)}"[^>]*>\s*(?:<svg.*?</svg>\s*)?'
+                    rf"<span>{re.escape(link.label)}</span>",
                 )
         self.assertNotIn('class="band-link" href="/people', overview_html)
 
@@ -817,10 +831,11 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertNotIn('class="episode-artwork"', body)
         self.assertNotIn("episode-artwork-missing", body)
 
-    def test_a_no_player_episode_keeps_its_only_artwork_in_the_fallback(self) -> None:
+    def test_a_no_player_episode_draws_no_frame_and_no_artwork(self) -> None:
         # No catalogue record lacks a player today (verified against the full
         # catalogue), so this exercises the documented no-player state with a
-        # synthetic record, the same way the Spotify-creator test above does.
+        # synthetic record: no frame, no picture, and no listening line when
+        # there is nowhere to listen.
         record = self.representative()
         synthetic = {
             **record,
@@ -836,13 +851,10 @@ class PodcastEpisodeParityTests(TestCase):
             response = self.client.get(synthetic["public_path"])
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'class="player-frame episode-player episode-fallback"')
-        # The fallback's own artwork partial is the page's only artwork for a
-        # no-player episode: either the real image or its named-missing state.
         body = response.content.decode()
-        self.assertTrue(
-            'class="player-art"' in body or 'class="player-art-missing mono-note"' in body
-        )
+        self.assertNotIn('class="player-frame', body)
+        self.assertNotIn("data-platform-links", body)
+        self.assertNotIn("player-art", body)
 
     def test_episode_page_omits_unsafe_guest_paths_but_keeps_root_relative_links(self) -> None:
         record = self.representative()
@@ -900,17 +912,19 @@ class PodcastEpisodeParityTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-video-provider="spotify"')
+        # Like YouTube, the Spotify player is built in place on Play: the
+        # embed address rides on the frame, and no frame loads with the page.
         self.assertContains(
             response,
-            'src="https://creators.spotify.com/pod/profile/synthetic-creator/embed/episodes/'
-            "Synthetic-Spotify-Creator-Episode-e0"
+            'data-video-embed="https://creators.spotify.com/pod/profile/synthetic-creator/embed/'
+            "episodes/Synthetic-Spotify-Creator-Episode-e0"
             '"',
         )
         self.assertContains(
             response,
-            'title="Listen to Synthetic Spotify Creator Episode on Spotify"',
+            'data-video-title="Listen to Synthetic Spotify Creator Episode on Spotify"',
         )
-        self.assertContains(response, "allowfullscreen")
+        self.assertNotContains(response, "<iframe")
         self.assertContains(response, "Audio unavailable.")
 
     def test_s24e05_youtube_player_uses_the_stored_watch_url_identity(self) -> None:
@@ -990,7 +1004,9 @@ class PodcastEpisodeParityTests(TestCase):
             response = self.client.get(synthetic["public_path"])
         body = response.content.decode()
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Video unavailable.")
+        # No player to draw: the page offers the one place to listen as text.
+        self.assertNotContains(response, 'class="player-frame')
+        self.assertContains(response, "Listen on")
         self.assertContains(response, 'href="https://open.spotify.com/episode/synthetic"')
         self.assertNotContains(response, 'id="show-notes-heading"')
         self.assertNotContains(response, "No show notes are available")
@@ -1004,13 +1020,13 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertNotIn('property="og:image"', body)
         self.assertNotIn('name="twitter:image"', body)
 
-    def test_youtube_player_is_a_first_party_click_to_play_poster(self) -> None:
+    def test_youtube_player_is_a_first_party_click_to_play_frame(self) -> None:
         """Nothing loads from YouTube until the reader presses play.
 
-        The poster is the episode's own artwork from the site's media store
-        (the privacy notice names no video provider as a recipient), the
-        control's accessible name says what pressing it does, and without
-        JavaScript it is a plain link to the YouTube watch page.
+        The frame carries no picture (the privacy notice names no video
+        provider as a recipient), the control's accessible name says what
+        pressing it does, and without JavaScript it is a plain link to the
+        YouTube watch page, at ``?t=`` when one was asked for.
         """
 
         record = self.representative()
@@ -1019,6 +1035,8 @@ class PodcastEpisodeParityTests(TestCase):
         assert view.video is not None
         with patch("content.catalogue.podcasts", return_value=(artwork,)):
             response = self.client.get(artwork["public_path"])
+            cued = self.client.get(artwork["public_path"] + "?t=95")
+            junk = self.client.get(artwork["public_path"] + "?t=%C2%B2")
         body = response.content.decode()
 
         self.assertEqual(response.status_code, 200)
@@ -1026,17 +1044,24 @@ class PodcastEpisodeParityTests(TestCase):
         assert facade is not None
         markup = facade.group(0)
         self.assertIn(f'href="{view.video.watch_url}"', markup)
-        self.assertIn('src="/images/podcast/poster.jpg"', markup)
-        self.assertIn('alt=""', markup)
+        self.assertNotIn("<img", markup)
+        self.assertNotIn("/images/podcast/poster.jpg", body.split("</head>", 1)[1])
         self.assertIn(
             f'<span class="sr-only">Play {conditional_escape(view.title)} on YouTube</span>',
             markup,
         )
-        self.assertIn('data-video-state="poster"', body)
+        self.assertIn('data-video-state="idle"', body)
+        self.assertIn('data-video-start=""', body)
         # No YouTube frame, thumbnail host or script is requested before the click.
-        self.assertNotIn("<iframe", body.split('id="podcast-audio-player"')[0])
+        self.assertNotIn("<iframe", body)
         for host in ("i.ytimg.com", "img.youtube.com", "youtube.com/iframe_api"):
             self.assertNotIn(host, body)
+
+        cued_body = cued.content.decode()
+        self.assertIn('data-video-start="95"', cued_body)
+        self.assertIn(f'href="{view.video.watch_url}&amp;t=95"', cued_body)
+        self.assertEqual(cued.headers["Cache-Control"], "no-store, max-age=0")
+        self.assertIn('data-video-start=""', junk.content.decode())
 
     def test_player_fallback_is_a_failure_state_never_a_loading_state(self) -> None:
         """The "unavailable" note only ever follows a reported error."""
@@ -1078,7 +1103,7 @@ class PodcastEpisodeParityTests(TestCase):
         # video-present episode with no image shows no separate artwork note,
         # and its click-to-play poster draws the play control on the frame alone.
         self.assertNotIn("Artwork unavailable.", body)
-        self.assertNotIn('class="episode-video-poster"', body)
+        self.assertNotIn("<img", body.split('id="podcast-video-facade"', 1)[1].split("</a>", 1)[0])
         self.assertNotIn('property="og:image"', body)
         self.assertNotIn('name="twitter:image"', body)
 
@@ -1583,7 +1608,7 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertNotContains(response, 'class="status-pill status-pill-mint"')
         self.assertContains(response, '<p class="mono-note episode-facts">')
         self.assertContains(response, f"Season {episode['season']} · Episode {episode['episode']}")
-        self.assertContains(response, 'class="player-frame episode-player episode-video"')
+        self.assertContains(response, 'class="player-frame episode-video"')
         self.assertContains(response, f'data-video-id="{episode["video"]["id"]}"')
         self.assertContains(response, f'href="{episode["links"]["youtube"]}"')
         # The player fills the artwork's visual slot, so a video-present episode
@@ -1606,7 +1631,7 @@ class PodcastSeasonNavigationTests(TestCase):
             self.assertContains(response, f'href="{guest["public_path"]}"')
         self.assertContains(response, 'id="transcript-heading"')
         self.assertEqual(
-            body.count('class="timestamp-row"'),
+            body.count('class="transcript-turn"'),
             sum(1 for entry in episode["transcript"] if not entry.get("header")),
         )
         # Transcript provenance stays out of the reader's page.

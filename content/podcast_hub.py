@@ -297,6 +297,17 @@ class GuestCard:
     guest: Guest
     role: str
     links: tuple[GuestProfileLink, ...]
+    #: The guest's other episodes, newest first ("More episodes with ...").
+    other_episodes: tuple[GuestEpisode, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class GuestEpisode:
+    """Another episode a guest was on, as one line of links."""
+
+    title: str
+    public_path: str
+    season_episode: str
 
 
 #: Profile hosts the page draws a brand mark for; any other link is a website.
@@ -317,8 +328,35 @@ def _link_icon(url: str) -> str:
     return "website"
 
 
-def guest_cards(guests: tuple[Guest, ...]) -> tuple[GuestCard, ...]:
-    """Each guest with their role line and their links' marks."""
+def guest_cards(
+    guests: tuple[Guest, ...],
+    *,
+    records: tuple[dict[str, Any], ...] | list[dict[str, Any]] = (),
+    current_slug: str = "",
+) -> tuple[GuestCard, ...]:
+    """Each guest with their role line, their links' marks and other episodes.
+
+    ``records`` is the catalogue the guest's other episodes are found in; the
+    episode being read (``current_slug``) is never one of them.
+    """
+
+    def others(guest: Guest) -> tuple[GuestEpisode, ...]:
+        if not guest.key:
+            return ()
+        found = [
+            record
+            for record in records
+            if guest.key in (record.get("guests") or ()) and record.get("slug") != current_slug
+        ]
+        found.sort(key=lambda record: (record["season"], record["episode"]), reverse=True)
+        return tuple(
+            GuestEpisode(
+                title=record["title"],
+                public_path=record["public_path"],
+                season_episode=f"Season {record['season']} · Episode {record['episode']}",
+            )
+            for record in found
+        )
 
     return tuple(
         GuestCard(
@@ -328,6 +366,7 @@ def guest_cards(guests: tuple[Guest, ...]) -> tuple[GuestCard, ...]:
                 GuestProfileLink(label=link.label, url=link.url, icon=_link_icon(link.url))
                 for link in guest.profile_links
             ),
+            other_episodes=others(guest),
         )
         for guest in guests
     )

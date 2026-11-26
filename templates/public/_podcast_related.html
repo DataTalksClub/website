@@ -9,13 +9,17 @@
   They are drawn as the /podcast timeline (`public/_podcast_episode_timeline.html`),
   the same block a wiki page lists its episodes with.
 {% endcomment %}
-{% if related_cards %}
+{% if related_cards or previous_episode or next_episode %}
   <section class="band band-lavender episode-related" aria-labelledby="related-episodes-heading">
     <div class="shell content-shell">
       <div class="band-head">
         <div>
-          <h2 id="related-episodes-heading">Related episodes</h2>
-          {% if related.basis != "graph" %}
+          {% if related_cards %}
+            <h2 id="related-episodes-heading">Related episodes</h2>
+          {% else %}
+            <h2 id="related-episodes-heading">Keep listening</h2>
+          {% endif %}
+          {% if related_cards and related.basis != "graph" %}
             <p>
               The wiki has not linked this episode to others yet, so these are the
               newest conversations from Season {{ episode.season }}.
@@ -23,9 +27,29 @@
           {% endif %}
         </div>
       </div>
-      <div data-related-basis="{{ related.basis }}">
-        {% include "public/_podcast_episode_timeline.html" with items=related_cards only %}
-      </div>
+      {% if related_cards %}
+        <div data-related-basis="{{ related.basis }}">
+          {% include "public/_podcast_episode_timeline.html" with items=related_cards only %}
+        </div>
+      {% endif %}
+      {% comment %}
+        The way along the catalogue: the episodes either side of this one, in
+        season and episode order, then the whole season.
+      {% endcomment %}
+      <nav class="episode-pager" aria-label="Previous and next episode">
+        {% if previous_episode %}
+          <a class="episode-pager-link" rel="prev" href="{{ previous_episode.public_path }}">
+            <span class="mono-note">← Previous · S{{ previous_episode.season }} E{{ previous_episode.episode }}</span>
+            <span class="episode-pager-title">{{ previous_episode.title }}</span>
+          </a>
+        {% endif %}
+        {% if next_episode %}
+          <a class="episode-pager-link episode-pager-next" rel="next" href="{{ next_episode.public_path }}">
+            <span class="mono-note">Next · S{{ next_episode.season }} E{{ next_episode.episode }} →</span>
+            <span class="episode-pager-title">{{ next_episode.title }}</span>
+          </a>
+        {% endif %}
+      </nav>
       <p class="band-more">
         <a class="band-link" href="{{ season_path }}">all of season {{ episode.season }} →</a>
       </p>

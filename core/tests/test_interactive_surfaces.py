@@ -38,6 +38,8 @@ TEXT_LINK_BUTTON_CLASSES = {
     "guest-card-more",
     "episode-topics-more",
     "wiki-episodes-more",
+    "chapters-more",
+    "mini-player-back",
 }
 
 

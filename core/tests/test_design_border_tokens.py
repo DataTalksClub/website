@@ -286,7 +286,13 @@ class BorderTokenTests(SimpleTestCase):
             if not rel.startswith("studio_courses/")
             and 'type="search"' in path.read_text(encoding="utf-8")
         ]
-        self.assertEqual(public_search_boxes, ["templates/core/_search_row.html"])
+        # The one exception is the episode transcript's in-page filter: it
+        # narrows the open transcript as the reader types and submits nothing,
+        # so it has no Search button to be drawn with.
+        self.assertEqual(
+            public_search_boxes,
+            ["templates/core/_search_row.html", "templates/public/podcast_detail.html"],
+        )
 
     def test_the_newsletter_signup_is_the_search_fields_pairing(self):
         """The signup row draws its field and Subscribe button exactly as the

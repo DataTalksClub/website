@@ -108,18 +108,16 @@ def _assert_platform_buttons(page: Page, container: str) -> None:
 
 
 def _assert_platform_line(page: Page) -> None:
-    """The episode names its other platforms as one line of text links.
+    """The episode names where else to hear it as one line of text links.
 
-    The poster plays YouTube, so the line holds the rest, each opening in a
-    new tab and saying so.
+    "Also on Spotify · Apple Podcasts · YouTube": each platform, YouTube too,
+    opening in a new tab and saying so.
     """
 
     line = page.locator("[data-platform-links]")
     expect(line).to_have_count(1)
-    expect(line.locator('a[data-podcast-platform="youtube"]')).to_have_count(0)
+    expect(line).to_contain_text("Also on")
     for provider, label in PLATFORMS.items():
-        if provider == "youtube":
-            continue
         link = line.locator(f'a[data-podcast-platform="{provider}"]')
         expect(link).to_have_count(1)
         expect(link).to_have_attribute("target", "_blank")
