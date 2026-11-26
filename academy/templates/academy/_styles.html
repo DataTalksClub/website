@@ -1018,9 +1018,12 @@
         max-width: calc(var(--reading-width) - 2.5rem);
       }
 
-      .academy-article-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
+      /* The trail above every Academy page below the home, placed as the blog
+         article's is: a pull into the band's top padding, then the eyebrow
+         step to the heading. */
+      .academy-hero .breadcrumbs {
+        margin-bottom: var(--space-eyebrow);
+        margin-top: calc(var(--space-3) * -1);
       }
 
       .academy-article-head {

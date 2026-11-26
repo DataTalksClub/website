@@ -1,4 +1,5 @@
 {% extends "core/content_page.html" %}
+{% load breadcrumbs %}
 {% comment %}
   The Academy's articles (/academy/guides/): every article page -- session
   recaps, guides, comparisons -- newest first, as the site's archive rows,
@@ -27,6 +28,7 @@
 {% endblock %}
 
 {% block page_header %}
+  {% breadcrumbs breadcrumbs %}
   <div class="academy-hero-copy">
     <h1 id="academy-heading">{{ data.heading }}</h1>
     <p class="academy-lede">{{ data.lead }}</p>

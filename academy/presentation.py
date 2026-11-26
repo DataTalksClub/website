@@ -22,6 +22,7 @@ from django.utils import timezone
 from django.utils.safestring import SafeString, mark_safe
 
 from content import catalogue
+from core.breadcrumbs import Trail, trail
 from core.home_content import READING_WORDS_PER_MINUTE
 
 Record = Mapping[str, Any]
@@ -171,6 +172,55 @@ def _program_faq(shared: Record, prerequisites: str) -> list[dict[str, str]]:
     ]
 
 
+#: Pages that are steps of a flow rather than places in the Academy: the email
+#: confirmation landing is reached from a link in a message, not from a parent.
+UNTRAILED_LAYOUTS = frozenset({"home", "confirm"})
+
+
+def crumb_label(page: Record) -> str:
+    """What a page is called as a level of a trail: its name, not its pitch.
+
+    A program is its course name ("Agentic Engineering"), a landing with a
+    marketing hero its headline's subject, and a page with a plain heading
+    that heading.
+    """
+
+    data = page["data"]
+    if page["layout"] == "program":
+        return data["program"]["name"]
+    if page["layout"] in {"sessions", "guide"}:
+        return data["hero"]["headline"]
+    return data.get("heading") or page["title"]
+
+
+def page_trail(page: Record, shared: Record, pages: Sequence[Record]) -> Trail | None:
+    """The Academy root, the nearest page whose path holds this one, and the page.
+
+    The parent is read from the URL rather than declared, so a session recap
+    under ``/academy/sessions/`` sits under the sessions page and an article
+    under ``/academy/guides/`` under the article index, without a field that
+    could disagree with the path.
+    """
+
+    if page["layout"] in UNTRAILED_LAYOUTS:
+        return None
+    path = page["public_path"]
+    parents = [
+        item
+        for item in pages
+        if item["public_path"] != ACADEMY_ROOT
+        and item["public_path"] != path
+        and path.startswith(item["public_path"])
+        and item["layout"] not in UNTRAILED_LAYOUTS
+    ]
+    levels = [(shared["brand"], ACADEMY_ROOT)]
+    if parents:
+        parent = max(parents, key=lambda item: len(item["public_path"]))
+        levels.append((crumb_label(parent), parent["public_path"]))
+    levels.append((crumb_label(page), path))
+    return trail(*levels)
+
+
 def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[str, Any]:
     data = page["data"]
     layout = page["layout"]
@@ -189,6 +239,7 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
         "api_origin": settings.ACADEMY_API_ORIGIN,
         "consent_version": settings.ACADEMY_CONSENT_VERSION,
         "is_home": page["public_path"] == ACADEMY_ROOT,
+        "breadcrumbs": page_trail(page, shared, pages),
     }
     schema: list[dict[str, Any]] = []
 

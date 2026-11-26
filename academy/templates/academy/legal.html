@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load academy_text %}
+{% load breadcrumbs academy_text %}
 {% comment %}
   The Academy's legal pages (/academy/privacy/, /academy/impressum/): a
   heading and a Markdown body read as prose on the reading column the
@@ -27,6 +27,7 @@
 {% endblock %}
 
 {% block page_header %}
+  {% breadcrumbs breadcrumbs nav_class="academy-article-column" %}
   <h1 class="academy-article-column" id="academy-heading">{{ data.heading }}</h1>
 {% endblock %}
 

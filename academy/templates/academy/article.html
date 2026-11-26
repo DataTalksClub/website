@@ -34,7 +34,7 @@
 {% endblock %}
 
 {% block page_header %}
-  {% breadcrumbs shared.brand academy_root articles_index.heading articles_path current=data.heading nav_class="academy-article-column" %}
+  {% breadcrumbs breadcrumbs nav_class="academy-article-column" %}
   <header class="academy-article-column academy-article-head">
     <h1 id="academy-heading">{{ data.heading }}</h1>
     <p class="prose-lede">{{ data.lead }}</p>

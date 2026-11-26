@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load static %}
+{% load breadcrumbs static %}
 {% comment %}
   The recording and materials form the session slides' QR code opens
   (/academy/sessions/materials/?session=N): the heading and
@@ -30,6 +30,7 @@
 {% endblock %}
 
 {% block page_header %}
+  {% breadcrumbs breadcrumbs %}
   <div class="academy-hero-copy">
     <h1 id="academy-heading">{{ data.heading }}</h1>
     <p class="academy-lede">{{ data.text }}</p>

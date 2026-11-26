@@ -39,7 +39,6 @@ SITEMAP_PAGES = (
     "/academy/guides/synthetic/",
     "/academy/sessions/recap/",
 )
-ARTICLES = ("/academy/sessions/recap/", "/academy/guides/synthetic/")
 ALL_PAGES = (*SITEMAP_PAGES, "/academy/confirm/", "/academy/sessions/materials/")
 TEMPLATES = (
     "home",
@@ -142,12 +141,12 @@ class AcademyPageTests(TestCase):
                 # One footer, the site's: no Academy link footer and no copyright line.
                 self.assertNotIn("academy-links", body)
                 self.assertNotIn("©", body)
-                # Only an article, read like a blog post, carries the trail
-                # back to its index.
-                if path in ARTICLES:
-                    self.assertIn('breadcrumbs" aria-label="Breadcrumb"', body)
-                else:
+                # Every page below the Academy home carries the trail; the
+                # home and the email confirmation step do not.
+                if path in {"/academy/", "/academy/confirm/"}:
                     self.assertNotIn('breadcrumbs" aria-label="Breadcrumb"', body)
+                else:
+                    self.assertIn('breadcrumbs" aria-label="Breadcrumb"', body)
 
     def test_home_keeps_its_anchors_and_the_funding_notice(self) -> None:
         home = self.client.get("/academy/").content.decode()
@@ -254,7 +253,10 @@ class AcademyPageTests(TestCase):
         self.assertIn('<time datetime="2026-11-23">Nov 23, 2026</time>', header)
         self.assertIn("1 min read", header)
         self.assertIn("Synthetic Author", header)
-        self.assertIn('href="/academy/guides/">Synthetic articles index</a>', header)
+        # A session recap sits under the sessions page its URL is under, not
+        # under the article index, and ends with itself.
+        self.assertIn('href="/academy/sessions/">Synthetic Series</a>', header)
+        self.assertIn('<li aria-current="page">Synthetic recap heading</li>', header)
         content = body[body.index("content-page-content") :]
         self.assertIn("<h2>Synthetic recap section</h2>", content)
         self.assertIn('<a href="/academy/ai-engineering/">a program</a>', content)
