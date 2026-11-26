@@ -251,7 +251,7 @@ class PersonChipRenderingTests(TestCase):
         guest = episode_view(episode).guests[0]
         body = self.client.get(episode["public_path"]).content.decode()
 
-        self.assertIn('<div class="guest-row person-chip-lead">', body)
+        self.assertIn('<div class="person-chips episode-guests">', body)
         self.assertIn(
             f'<a class="band-link person-chip-name" '
             f'href="{guest.public_path}">{escape(guest.name)}</a>',

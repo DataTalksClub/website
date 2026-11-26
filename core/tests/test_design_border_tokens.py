@@ -105,11 +105,6 @@ ALLOWED: dict[tuple[str, str, str], str] = {
         "border: 1.5px solid var(--line)",
     ): "Legend key for the graph drawing.",
     (
-        "templates/public/podcast_detail.html",
-        ".episode-tab",
-        "border-bottom: 3px solid transparent",
-    ): "The active-tab indicator: transparent until the tab is selected.",
-    (
         "courses/templates/courses/course_list.html",
         ".step",
         "border-top: 3px solid var(--line)",
@@ -319,7 +314,6 @@ class BorderTokenTests(SimpleTestCase):
             ("templates/core/_design_system.html", ".person-chip-portrait"),
             ("templates/public/person_detail.html", ".person-portrait"),
             ("templates/public/article_detail.html", ".article-portrait"),
-            ("templates/public/podcast_detail.html", ".guest-card-portrait"),
             ("academy/templates/academy/_styles.html", ".academy-person img"),
         ):
             with self.subTest(selector=selector):

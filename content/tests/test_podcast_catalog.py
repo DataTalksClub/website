@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import json
 import re
 from pathlib import Path
@@ -14,6 +15,7 @@ from django.utils.html import conditional_escape, escape
 
 from content import catalogue
 from content.podcast_content import (
+    EpisodeResource,
     ExternalLink,
     Guest,
     _spotify_creator_embed,
@@ -494,12 +496,11 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertNotIn("list-manage.com", body)
         self.assertNotIn(record["transcript_provenance"]["source_url"], body)
 
-    def test_hero_leads_with_guest_identity_and_the_standfirst_description(self) -> None:
-        # Issue #234: the live production page leads with the guest's identity
-        # and the episode standfirst before anything else. This page keeps the
-        # h1 title-only (so the JSON-LD `name` above stays clean) and instead
-        # surfaces the guest chip and the description inside the cream hero,
-        # ahead of the player/platform band — not duplicated in both places.
+    def test_hero_is_a_compact_head_and_the_player_opens_the_content_band(self) -> None:
+        # Player first (owner pick "B", 2026-11-26): the cream head holds the
+        # trail, the title, the season/episode fact line and the guest chip,
+        # and nothing else; the poster with the one primary action opens the
+        # lavender band, and the standfirst is not repeated above the summary.
         record = self.representative()
         view = episode_view(record, people_by_slug=catalogue.people_by_slug())
         response = self.client.get(record["public_path"])
@@ -509,40 +510,126 @@ class PodcastEpisodeParityTests(TestCase):
         about_start = body.find('class="band band-lavender episode-read"')
         self.assertNotEqual(hero_start, -1)
         self.assertNotEqual(about_start, -1)
-        about_end = body.find("<section", about_start + 1)
-        self.assertNotEqual(about_end, -1)
         hero_html = body[hero_start:about_start]
-        about_html = body[about_start:about_end]
+        about_html = body[about_start : body.index('<section id="overview"', about_start)]
 
+        self.assertIn(escape(view.title), hero_html)
+        self.assertIn(view.season_episode, hero_html)
         self.assertIn(escape(view.guests[0].name), hero_html)
-        self.assertIn(escape(view.description), hero_html)
-        self.assertNotIn(escape(view.guests[0].name), about_html)
-        self.assertNotIn(escape(view.description), about_html)
+        self.assertIn('class="person-chips episode-guests"', hero_html)
+        self.assertNotIn(escape(view.description), hero_html)
+        self.assertNotIn("player-frame", hero_html)
+        # The poster is the page's only picture besides the guest's chip, and
+        # it carries the page's one primary action.
+        self.assertIn('id="podcast-video-facade"', about_html)
+        self.assertEqual(body.count("cta-primary episode-video-play"), 1)
+        self.assertNotIn("episode-head-picture", body)
+        self.assertNotIn("guest-card-portrait", body)
 
-    def test_about_band_names_the_listening_platforms_with_a_real_heading(self) -> None:
-        record = self.representative()
-        response = self.client.get(record["public_path"])
+    def test_the_other_platforms_are_one_quiet_line_under_the_player(self) -> None:
+        representative = self.representative()
+        record = {
+            **representative,
+            "links": {
+                **representative["links"],
+                "apple": "https://podcasts.apple.com/us/podcast/synthetic/id1?i=2",
+                "spotify": "https://open.spotify.com/episode/1kwtGLI6dOq2HgKzJmLMkw",
+            },
+        }
+        view = episode_view(record)
+        with patch("content.catalogue.podcasts", return_value=(record,)):
+            response = self.client.get(record["public_path"])
+        body = response.content.decode()
 
-        self.assertContains(response, "Listen to or watch on your favorite platform")
-        self.assertContains(response, 'id="platform-links-heading"')
-        self.assertContains(response, 'aria-labelledby="platform-links-heading"')
+        line = re.search(r'<p class="episode-elsewhere" data-platform-links>.*?</p>', body, re.S)
+        assert line is not None
+        markup = line.group(0)
+        self.assertIn("Prefer audio? Listen on", markup)
+        self.assertNotIn("pill-button", markup)
+        # The poster already plays YouTube; the line names the other places.
+        self.assertNotIn('data-podcast-platform="youtube"', markup)
+        self.assertEqual(
+            re.findall(r'data-podcast-platform="([a-z_]+)"', markup),
+            [link.provider for link in view.other_platform_links],
+        )
+        self.assertTrue(view.other_platform_links)
+        self.assertNotIn("Listen to or watch on your favorite platform", body)
 
-    def test_reading_sections_render_without_baked_in_tab_roles_or_hidden_panels(self) -> None:
-        # The tabs are progressive enhancement applied by client-side script: the
-        # server-rendered page must never bake in ARIA tab roles or a `hidden`
-        # panel, or a visitor without JavaScript loses reachable content.
+    def test_reading_sections_are_one_column_with_no_tabs_and_no_hidden_panels(self) -> None:
+        # Every section is server-rendered in reading order and reachable by
+        # its anchor; there is no tab widget to hide one behind another.
         record = self.representative()
         response = self.client.get(record["public_path"])
         body = response.content.decode()
 
         self.assertNotIn('role="tablist"', body)
         self.assertNotIn('role="tab"', body)
-        self.assertNotIn('role="tabpanel"', body)
-        for section_id in ("overview", "timestamps", "transcript"):
+        self.assertNotIn("episode-tab", body)
+        positions = []
+        for section_id in ("overview", "timestamps", "guests", "transcript"):
             match = re.search(rf'<section id="{section_id}"[^>]*>', body)
-            self.assertIsNotNone(match)
+            self.assertIsNotNone(match, section_id)
             assert match is not None
             self.assertNotIn("hidden", match.group(0))
+            positions.append(match.start())
+        self.assertEqual(positions, sorted(positions))
+        # The transcript is one native fold, closed until the reader opens it.
+        self.assertRegex(body, r'<details class="faq-fold" data-transcript-fold>')
+        self.assertIn('id="transcript-heading" class="faq-question-title"', body)
+
+    def test_chapters_fold_past_eight_only_with_script(self) -> None:
+        record = self.representative()
+        view = episode_view(record)
+        body = self.client.get(record["public_path"]).content.decode()
+        chapters = body[body.index('<section id="timestamps"') :]
+        chapters = chapters[: chapters.index("</section>")]
+
+        # Every chapter is in the markup, so without JavaScript all show; the
+        # script folds them past the eighth and reveals the button that says
+        # how many there are.
+        self.assertEqual(chapters.count('class="chapter-row"'), len(view.timestamp_entries))
+        self.assertNotIn("is-folded", chapters)
+        if len(view.timestamp_entries) > 10:
+            self.assertRegex(chapters, r"data-chapters-more\s+hidden")
+            self.assertIn(f"Show all {len(view.timestamp_entries)} chapters", chapters)
+        else:
+            self.assertNotIn("data-chapters-more", chapters)
+        for entry in view.timestamp_entries:
+            if entry.fallback_url:
+                self.assertIn(f'data-seconds="{entry.seconds}"', chapters)
+
+    def test_links_mentioned_leave_out_the_guests_own_profiles(self) -> None:
+        guest = Guest(
+            name="Ada Example",
+            public_path="/people/ada.html",
+            profile_links=(
+                ExternalLink(label="Website", url="https://ada.example/"),
+                ExternalLink(label="LinkedIn", url="https://www.linkedin.com/in/ada"),
+            ),
+        )
+        record = self.representative()
+        view = episode_view(record)
+        resources = (
+            EpisodeResource(title="Ada's site", url="http://www.ada.example"),
+            EpisodeResource(title="Someone on LinkedIn", url="https://linkedin.com/in/someone/"),
+            EpisodeResource(title="A GitHub account", url="https://github.com/someone"),
+            EpisodeResource(title="The paper", url="https://arxiv.org/abs/1234.5678"),
+            EpisodeResource(title="A repository", url="https://github.com/someone/project"),
+        )
+        episode = dataclasses.replace(view, guests=(guest,), resources=resources)
+        self.assertEqual(
+            [resource.title for resource in episode.mentioned_links],
+            ["The paper", "A repository"],
+        )
+
+    def test_without_mentioned_links_the_section_is_left_out(self) -> None:
+        # The representative's show notes are only its guest's own profiles.
+        record = self.representative()
+        view = episode_view(record, people_by_slug=catalogue.people_by_slug())
+        self.assertTrue(view.links)
+        self.assertEqual(view.mentioned_links, ())
+        body = self.client.get(record["public_path"]).content.decode()
+        self.assertNotIn('id="links-heading"', body)
 
     def render_record(self, record: dict) -> str:
         view = episode_view(record, people_by_slug=catalogue.people_by_slug())
@@ -559,7 +646,7 @@ class PodcastEpisodeParityTests(TestCase):
             },
         )
 
-    def test_overview_is_the_first_tab_and_leads_with_the_summary(self) -> None:
+    def test_the_reading_column_opens_with_the_summary(self) -> None:
         record = {
             **self.representative(),
             "summary": "What they discussed.\n\nThe key takeaway,\nwrapped in the source.",
@@ -571,27 +658,23 @@ class PodcastEpisodeParityTests(TestCase):
         )
         body = self.render_record(record)
 
-        tabs = re.findall(r'<a class="episode-tab" href="#([a-z-]+)"', body)
-        self.assertEqual(tabs, ["overview", "timestamps", "transcript"])
         overview_start = body.index('<section id="overview"')
         overview_html = body[overview_start : body.index("</section>", overview_start)]
+        self.assertIn("What we talked about", overview_html)
         self.assertIn("<p>What they discussed.</p>", overview_html)
         self.assertIn("<p>The key takeaway, wrapped in the source.</p>", overview_html)
-        # The show-note links and the guest bios live inside Overview.
-        self.assertIn("https://example.invalid/synthetic-guest-two", overview_html)
-        self.assertIn('id="guest-bios-heading"', overview_html)
-        # The summary is the overview itself: it comes before the guest cards.
-        self.assertLess(
-            overview_html.index("What they discussed."), overview_html.index("guest-bios-heading")
-        )
+        self.assertNotIn(escape(view.description), overview_html)
         self.assertNotIn('id="show-notes"', body)
         self.assertLess(overview_start, body.index('<section id="timestamps"'))
+        self.assertLess(
+            body.index('<section id="timestamps"'), body.index('id="guest-bios-heading"')
+        )
 
     def test_each_guest_is_a_card_with_role_bio_and_icon_links(self) -> None:
         record = self.representative()
         body = self.render_record(record)
-        overview_start = body.index('<section id="overview"')
-        overview_html = body[overview_start : body.index('<section id="timestamps"')]
+        overview_start = body.index('<section id="guests"')
+        overview_html = body[overview_start : body.index("</section>", overview_start)]
         guest = episode_view(record, people_by_slug=catalogue.people_by_slug()).guests[0]
 
         self.assertEqual(overview_html.count("data-guest-card"), len(record["guest_profiles"]))
@@ -632,17 +715,16 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertEqual(card.role, "Staff Data Engineer at Example")
         self.assertEqual([link.icon for link in card.links], ["linkedin", "x", "github", "website"])
 
-    def test_without_a_summary_overview_still_leads_with_guests_and_links(self) -> None:
+    def test_without_a_summary_the_column_opens_with_the_standfirst(self) -> None:
         record = {**self.representative(), "summary": ""}
-        self.assertEqual(episode_view(record).summary_paragraphs, ())
+        view = episode_view(record)
+        self.assertEqual(view.summary_paragraphs, ())
         body = self.render_record(record)
 
-        tabs = re.findall(r'<a class="episode-tab" href="#([a-z-]+)"', body)
-        self.assertEqual(tabs, ["overview", "timestamps", "transcript"])
         overview_start = body.index('<section id="overview"')
         overview_html = body[overview_start : body.index("</section>", overview_start)]
-        self.assertIn('id="guest-bios-heading"', overview_html)
-        self.assertNotIn('class="episode-summary"', overview_html)
+        self.assertIn(f"<p>{escape(view.description)}</p>", overview_html)
+        self.assertIn('id="guest-bios-heading"', body)
 
     def test_transcript_downloads_as_plain_text(self) -> None:
         record = self.representative()
@@ -916,8 +998,8 @@ class PodcastEpisodeParityTests(TestCase):
             self.assertNotIn(f'id="{heading_id}"', body)
         self.assertNotIn('id="podcast-video-player"', body)
         self.assertNotIn('href="#"', body)
-        # A guest without a portrait gets their initials, decorative, in its place.
-        self.assertContains(response, 'class="guest-card-portrait guest-card-initials"')
+        # A guest without a portrait gets their initials, decorative, in the chip.
+        self.assertContains(response, "person-chip-initials")
         self.assertNotIn("not-available.jpg", body)
         self.assertNotIn('property="og:image"', body)
         self.assertNotIn('name="twitter:image"', body)

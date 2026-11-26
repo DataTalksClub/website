@@ -101,50 +101,24 @@ class EpisodePagePictureTests(TestCase):
         self.assertIn(f'src="/podcast/{SLUG}/poster"', facade.group(0))
         self.assertRegex(body, rf'property="og:image" content="[^"]*/podcast/{SLUG}/social"')
         self.assertRegex(body, rf'name="twitter:image" content="[^"]*/podcast/{SLUG}/social"')
-        # The hero pairs the square generated card with the title.
-        self.assertRegex(body, rf'class="episode-head-picture"\s+src="/podcast/{SLUG}/picture"')
         self.assertNotIn("/images/podcast/old.jpg", body)
 
-    def test_without_a_generated_card_the_hero_falls_back_to_the_artwork(self) -> None:
+    def test_the_poster_is_the_pages_only_episode_picture(self) -> None:
+        # Player first (owner pick "B", 2026-11-26): no square card or old
+        # artwork beside the title, so the guest's face is not drawn twice.
         record = {**_episode(), "image_path": "/images/podcast/old.jpg", "media_available": True}
+        _store("card")
         _store("poster")
         with patch("content.catalogue.podcasts", return_value=(record,)):
             body = self.client.get(record["public_path"]).content.decode()
-        self.assertIn("episode-head-wide", body)
-        self.assertRegex(body, r'class="episode-head-picture"\s+src="/images/podcast/old.jpg"')
+        hero = body[body.index("episode-hero") : body.index("episode-read")]
+        for image in re.findall(r"<img\b[^>]*>", hero):
+            self.assertIn("person-chip-portrait", image)
+        self.assertNotIn(f"/podcast/{SLUG}/picture", hero)
+        self.assertNotIn("/images/podcast/old.jpg", hero)
         facade = re.search(r'<a\s+id="podcast-video-facade".*?</a>', body, re.S)
         assert facade is not None
-        self.assertNotIn("/images/podcast/old.jpg", facade.group(0))
-
-    def test_the_hero_shows_the_same_picture_as_the_hub_card(self) -> None:
-        # An episode linked to an event still draws its dateless generated
-        # card on the hub, and so must its page hero -- never the dated event
-        # banner, never the old text-only artwork.
-        record = {**_episode(), "image_path": "/images/podcast/old.jpg", "media_available": True}
-        _store("card")
-        event = {
-            "type": "podcast",
-            "season": record["season"],
-            "episode": record["episode"],
-            "title": record["title"],
-            "starts_at": "2026-01-05T10:00:00+00:00",
-            "has_uploaded_banner": True,
-            "public_id": 7,
-        }
-        with (
-            patch("content.podcast_hub.published_event_records", return_value=[event]),
-            patch("content.catalogue.podcasts", return_value=(record,)),
-        ):
-            card = podcast_hub.hub_episode(record)
-            body = self.client.get(record["public_path"]).content.decode()
-        self.assertEqual(card.picture_url, f"/podcast/{SLUG}/picture")
-        hero = re.search(r'class="episode-head-picture"\s+src="([^"]+)"', body)
-        assert hero is not None
-        self.assertEqual(hero.group(1), card.picture_url)
-        # Drawn as the square it is, not in the wide artwork slot.
-        self.assertRegex(
-            body, r'class="episode-head-picture"\s+src="[^"]+"\s+alt=""\s+width="1000"'
-        )
+        self.assertIn(f'src="/podcast/{SLUG}/poster"', facade.group(0))
 
 
 class ImportEpisodePicturesTests(TestCase):

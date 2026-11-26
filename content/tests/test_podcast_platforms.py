@@ -91,7 +91,8 @@ class PodcastPlatformDataTests(TestCase):
         ).read_text(encoding="utf-8")
 
         # The hub's follow line and every card's "Listen on" row draw the mark
-        # through the shared icon partial; the episode page draws pill buttons.
+        # through the shared icon partial; the episode page names its other
+        # platforms as one line of text links under the player.
         icon = '{% include "public/_podcast_platform_icon.html" with provider=link.provider'
         self.assertIn(icon, hub)
         self.assertIn(
@@ -100,8 +101,8 @@ class PodcastPlatformDataTests(TestCase):
                 Path(__file__).resolve().parents[2] / "templates/public/_podcast_episode_card.html"
             ).read_text(encoding="utf-8"),
         )
-        include = '{% include "public/_podcast_platform_button.html" with link=link only %}'
-        self.assertIn(include, detail)
+        self.assertIn("{% for link in episode.other_platform_links %}", detail)
+        self.assertNotIn("pill-button", detail)
         self.assertNotIn("data-podcast-platform-icon=", hub)
         self.assertNotIn("data-podcast-platform-icon=", detail)
 
@@ -116,17 +117,22 @@ class PodcastPlatformDataTests(TestCase):
             "https://creators.spotify.com/pod/profile/datatalksclub/",
         )
 
-    def test_episode_keeps_youtube_and_restores_open_spotify_audio_without_creator_pill(
+    def test_episode_keeps_youtube_and_links_open_spotify_without_creator_link(
         self,
     ) -> None:
-        """The player prefers ``open.spotify.com`` over the creator dashboard embed.
+        """The poster plays YouTube; Spotify is a link, never a second player.
+
+        Under a YouTube poster a Spotify frame is one more slab that shows
+        nothing until it loads (owner pick "B", 2026-11-26), so the page links
+        Spotify instead.  Where Spotify *is* the player, the
+        ``open.spotify.com`` embed is preferred over the creator dashboard's:
 
         ``creators.spotify.com`` declares ``frame-ancestors https://creators.spotify.com``
         on the internal auth frame its player bootstraps, so a real browser refuses to
         load it from any third-party parent -- including this one -- and the audio
         player renders as a blank box.  This episode has both a ``spotify`` (open)
-        link and a ``spotify_for_creators`` link; the validated, publicly embeddable
-        ``open.spotify.com`` player is the one that must render.
+        link and a ``spotify_for_creators`` link; the open one is the link shown,
+        and nothing from the creator dashboard is.
         """
 
         episode = _episode("s24e06-how-to-build-ai-that-actually-ships-in-production")
@@ -143,27 +149,22 @@ class PodcastPlatformDataTests(TestCase):
             '?enablejsapi=1&amp;rel=0"',
         )
         self.assertNotContains(response, 'src="https://www.youtube-nocookie.com/')
-        open_embed = "https://open.spotify.com/embed/episode/1kwtGLI6dOq2HgKzJmLMkw"
-        self.assertContains(response, 'id="podcast-audio-player"')
-        self.assertContains(response, f'src="{open_embed}"')
+        self.assertNotContains(response, 'id="podcast-audio-player"')
+        self.assertNotContains(response, "open.spotify.com/embed/")
         self.assertNotContains(response, "Spotify for Creators")
         self.assertNotContains(
             response,
             'href="https://creators.spotify.com/pod/profile/datatalksclub/episodes/',
         )
         self.assertNotContains(response, "creators.spotify.com/pod/profile/datatalksclub/embed/")
-        for provider in ("apple", "spotify", "youtube"):
-            marker_start = body.index(f'data-podcast-platform="{provider}"')
-            link_start = body.rfind("<a", 0, marker_start)
-            link_markup = body[link_start : body.index("</a>", link_start)]
+        line_start = body.index("data-platform-links")
+        line = body[line_start : body.index("</p>", line_start)]
+        self.assertNotIn('data-podcast-platform="youtube"', line)
+        for provider in ("apple", "spotify"):
+            marker_start = line.index(f'data-podcast-platform="{provider}"')
+            link_start = line.rfind("<a", 0, marker_start)
+            link_markup = line[link_start : line.index("</a>", link_start)]
             self.assertIn(f'href="{episode["links"][provider]}"', link_markup)
-            self.assertIn(f'data-podcast-platform="{provider}"', link_markup)
-            self.assertIn(
-                f'class="podcast-platform-icon" data-podcast-platform-icon="{provider}" '
-                'viewBox="0 0 24 24" aria-hidden="true" focusable="false"',
-                link_markup,
-            )
-            self.assertNotIn('class="dot ', link_markup)
             self.assertIn('target="_blank"', link_markup)
             self.assertIn('rel="noopener noreferrer"', link_markup)
             self.assertIn(

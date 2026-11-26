@@ -355,6 +355,27 @@ class Episode:
         return self.resources
 
     @property
+    def mentioned_links(self) -> tuple[EpisodeResource, ...]:
+        """The show-note links that are not a guest's own profile.
+
+        The guest card already carries each guest's site and social profiles,
+        so the "Links mentioned" block keeps only what was talked about: a
+        link equal to a guest's profile link, or shaped like a personal
+        profile (a LinkedIn ``/in/`` page, a bare GitHub, Twitter or X
+        account), is left out.
+        """
+
+        guest_urls = {
+            _link_identity(link.url) for guest in self.guests for link in guest.profile_links
+        }
+        return tuple(
+            resource
+            for resource in self.resources
+            if _link_identity(resource.url) not in guest_urls
+            and PROFILE_LINK.match(_link_identity(resource.url)) is None
+        )
+
+    @property
     def player(self) -> VideoEmbed | SpotifyEmbed | None:
         """Return the preferred validated player, with Spotify as the fallback."""
 
@@ -367,6 +388,28 @@ class Episode:
         return tuple(
             link for link in self.platform_links if link.provider != "spotify_for_creators"
         )
+
+    @property
+    def other_platform_links(self) -> tuple[PlatformLink, ...]:
+        """The listening destinations other than the one the page's player plays.
+
+        The episode page leads with its player (YouTube, else Spotify); these
+        are the quiet "listen elsewhere" links under it.
+        """
+
+        played = "youtube" if self.video else ("spotify" if self.spotify else "")
+        return tuple(link for link in self.listener_platform_links if link.provider != played)
+
+
+PROFILE_LINK = re.compile(r"^(linkedin\.com/in/[^/]+|(github|twitter|x)\.com/[^/]+)$")
+
+
+def _link_identity(url: str) -> str:
+    """A URL reduced to host and path, for comparing two spellings of one link."""
+
+    parsed = urlsplit(url.strip())
+    host = (parsed.hostname or "").casefold().removeprefix("www.")
+    return f"{host}{parsed.path}".rstrip("/").casefold()
 
 
 def _required_text(record: dict[str, Any], field: str) -> str:

@@ -107,6 +107,26 @@ def _assert_platform_buttons(page: Page, container: str) -> None:
         expect(icon).to_have_attribute("focusable", "false")
 
 
+def _assert_platform_line(page: Page) -> None:
+    """The episode names its other platforms as one line of text links.
+
+    The poster plays YouTube, so the line holds the rest, each opening in a
+    new tab and saying so.
+    """
+
+    line = page.locator("[data-platform-links]")
+    expect(line).to_have_count(1)
+    expect(line.locator('a[data-podcast-platform="youtube"]')).to_have_count(0)
+    for provider, label in PLATFORMS.items():
+        if provider == "youtube":
+            continue
+        link = line.locator(f'a[data-podcast-platform="{provider}"]')
+        expect(link).to_have_count(1)
+        expect(link).to_have_attribute("target", "_blank")
+        expect(link).to_have_attribute("rel", "noopener noreferrer")
+        expect(link).to_have_accessible_name(f"{label} (opens in a new tab)")
+
+
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
 def test_index_and_episode_render_the_design_system_in_both_themes(
     page: Page,
@@ -135,7 +155,10 @@ def test_index_and_episode_render_the_design_system_in_both_themes(
         expect(page.locator("body")).not_to_contain_text("Traceback")
         if path == "/podcast":
             expect(page.locator(".podcast-follow")).to_be_visible()
-        _assert_platform_buttons(page, ".podcast-follow" if path == "/podcast" else ".listen-row")
+        if path == "/podcast":
+            _assert_platform_buttons(page, ".podcast-follow")
+        else:
+            _assert_platform_line(page)
         _assert_no_horizontal_overflow(page)
         _shot(page, f"podcast-{label}-{suffix}-light.png")
 
@@ -168,14 +191,12 @@ def test_episode_play_control_is_a_labelled_keyboard_destination(
     page.goto(f"{live_server.url}{episode['public_path']}", wait_until="networkidle")
     _settle_analytics_preferences(page)
 
-    # A video episode can also carry the separate Spotify audio embed. Target
-    # the preferred YouTube player by provider instead of counting both media
-    # frames as the same control.
+    # The YouTube poster is the one player; Spotify is a link under it.
     player = page.locator('.episode-video[data-video-provider="youtube"]')
     expect(player).to_have_count(1)
     expect(player).to_have_attribute("data-video-id", episode["video"]["id"])
     expect(player.get_by_role("button", name=f"Play {episode['title']} on YouTube")).to_be_visible()
-    platform_link = page.locator(f'.listen-row a[href="{episode["links"]["youtube"]}"]')
+    platform_link = page.locator(f'[data-platform-links] a[href="{episode["links"]["apple"]}"]')
     expect(platform_link).to_have_count(1)
     platform_link.focus()
     focus = platform_link.evaluate(
@@ -202,16 +223,15 @@ def test_episode_play_control_is_a_labelled_keyboard_destination(
     assert alts.count(artwork_alt) == 0, alts
     # The click-to-play poster is decorative too: its control names the episode.
     assert all(
-        image["alt"]
-        or image["className"]
-        in {"person-chip-portrait", "guest-card-portrait", "episode-video-poster"}
+        image["alt"] or image["className"] in {"person-chip-portrait", "episode-video-poster"}
         for image in image_data
     ), image_data
-    # Transcript is not the default tab (Overview is); activate it to reach
-    # its panel, the same way a keyboard or pointer user would.
-    page.get_by_role("tab", name="Transcript").click()
+    # The transcript is one fold: its heading is the control that opens it.
     expect(page.locator("#transcript")).to_be_visible()
     expect(page.locator("#transcript-heading")).to_have_count(1)
+    page.locator("#transcript summary").click()
+    expect(page.locator("#transcript details")).to_have_attribute("open", "")
+    expect(page.locator("#transcript .transcript-body")).to_be_visible()
 
 
 def test_index_and_episode_stay_usable_at_320px_without_javascript(

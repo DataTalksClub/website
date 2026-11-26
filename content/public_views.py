@@ -84,13 +84,14 @@ from .podcast_content import (
 )
 from .podcast_hub import (
     HUB_LISTEN_ORDER,
-    episode_picture_url,
+    episode_date,
     event_index,
     guest_cards,
     hub_episodes,
     hub_season,
     podcast_season_path,
     topic_episodes,
+    transcript_minutes,
 )
 from .podcast_routes import podcast_season_canonical_path
 from .public_query import selector_query
@@ -1457,19 +1458,7 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         if episode.get("media_available") and episode.get("image_path")
         else ""
     )
-    # The picture that sits beside the title in the hero, the way an event page
-    # pairs its picture with its title: the same square picture the episode's
-    # card shows in every list (the event banner, else the generated card),
-    # else the episode's own (landscape) artwork, else none -- the hero is then
-    # one column of words.  One event index serves the hero and the related
-    # timeline, so the match adds no queries.
     events = event_index()
-    hero_card_path = episode_picture_url(episode, events)
-    hero_picture_path = hero_card_path or (
-        episode["image_path"]
-        if episode.get("media_available") and episode.get("image_path")
-        else ""
-    )
     try:
         related_matches = wiki_content.related_episode_matches(episode)
     except ImproperlyConfigured:
@@ -1532,8 +1521,10 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
             "guest_cards": guest_cards(episode_page.guests),
             "related": related,
             "video_poster_path": poster_path,
-            "hero_picture_path": hero_picture_path,
-            "hero_picture_square": bool(hero_card_path),
+            # The head's fact line: the publication date (else the recording
+            # day, as the hub card dates it) and the length the transcript runs.
+            "episode_date": episode_date(episode, events),
+            "episode_minutes": transcript_minutes(episode),
             "related_cards": related_cards,
             "connections": connections,
             "topic_reading": topic_reading(card.url for card in connections.reading),

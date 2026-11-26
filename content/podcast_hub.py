@@ -85,7 +85,7 @@ def guest_role(summary: str) -> str:
     return role[0].upper() + role[1:]
 
 
-def _transcript_minutes(record: dict[str, Any]) -> int | None:
+def transcript_minutes(record: dict[str, Any]) -> int | None:
     seconds = [
         entry["sec"]
         for entry in record.get("transcript") or ()
@@ -148,6 +148,16 @@ def episode_picture_url(record: dict[str, Any], events: _EventIndex) -> str:
     return event_banner_url(event) if event is not None else ""
 
 
+def episode_date(record: dict[str, Any], events: _EventIndex) -> date | None:
+    """The episode's publication date, else the day its podcast event was recorded."""
+
+    published = str(record.get("published") or "")
+    if published:
+        return date.fromisoformat(published[:10])
+    event = events.match(record)
+    return datetime.fromisoformat(event["starts_at"]).date() if event is not None else None
+
+
 @dataclass(frozen=True, slots=True)
 class HubGuest:
     guest: Guest
@@ -190,18 +200,12 @@ class HubSeason:
 
 
 def _hub_episode(record: dict[str, Any], episode: Episode, events: _EventIndex) -> HubEpisode:
-    event = events.match(record)
-    if episode.published:
-        when: date | None = date.fromisoformat(episode.published[:10])
-    elif event is not None:
-        when = datetime.fromisoformat(event["starts_at"]).date()
-    else:
-        when = None
+    when = episode_date(record, events)
     by_provider = {link.provider: link for link in episode.platform_links}
     return HubEpisode(
         episode=episode,
         date=when,
-        minutes=_transcript_minutes(record),
+        minutes=transcript_minutes(record),
         guests=tuple(
             HubGuest(guest=guest, role=guest_role(guest.summary)) for guest in episode.guests
         ),

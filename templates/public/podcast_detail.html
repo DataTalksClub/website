@@ -47,8 +47,12 @@
       {% include "core/_design_system.html" %}
 
       /* ------------------------------------------------------------------ *
-       * Episode page rules.  The player frame, play discs, timestamp rows,
-       * status pills and platform pills are all shared primitives.
+       * Episode page rules: player first (owner pick "B", 2026-11-26).  A
+       * compact cream head, the video poster as the one picture with the
+       * page's one primary action on it, then the reading column: what was
+       * talked about, the chapters, the guest, the links mentioned and the
+       * transcript fold.  The player frame, play discs, timestamp rows and
+       * the FAQ fold are shared primitives.
        * ------------------------------------------------------------------ */
 
       /* --page follows the cool ground, since that is what the tail below the
@@ -64,96 +68,38 @@
         --episode-player-link: #a9b0f2;
       }
 
-      /* The episode reads as one column. */
-      /* The same ordinary content column every content page holds. */
+      /* The episode reads as one column: the blog article's reading width. */
       .episode-shell {
         max-width: var(--reading-width);
       }
-
 
       .episode-hero .breadcrumbs {
         margin-top: calc(var(--space-3) * -1);
       }
 
-      /* The head: the episode's square picture beside its title, as the event
-         page pairs them.  The pair holds the reading column the tabs below
-         hold, so the title, the standfirst and the tabs share one left edge.
-         On a phone the picture shrinks rather than stacking, so the title
-         stays in the opening screen. */
-      .episode-head {
-        align-items: center;
-        display: grid;
-        gap: var(--space-5);
-        grid-template-columns: 11rem minmax(0, 1fr);
-        margin-top: var(--space-eyebrow);
-      }
-
-      .episode-head-single {
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      /* An episode without a generated square card shows its own landscape
-         artwork, a little wider so it reads at the same weight. */
-      .episode-head-wide {
-        grid-template-columns: 15rem minmax(0, 1fr);
-      }
-
-      .episode-head-wide .episode-head-picture {
-        aspect-ratio: 16 / 9;
-      }
-
-      .episode-head-picture {
-        aspect-ratio: 1;
-        background: var(--card);
-        border: var(--border-soft);
-        border-radius: var(--radius-media);
-        display: block;
-        height: auto;
-        object-fit: cover;
-        width: 100%;
-      }
-
-      .episode-head-copy {
-        display: grid;
-        gap: var(--space-3);
-        justify-items: start;
-        min-width: 0;
-      }
-
       .episode-hero h1 {
-        font-size: clamp(1.6rem, 3.2vw, 2.3rem);
+        font-size: clamp(1.8rem, 3.6vw, 2.6rem);
         letter-spacing: -0.025em;
         line-height: 1.12;
+        margin: var(--space-eyebrow) 0 0;
       }
 
-      /* Season, episode and date: the quiet fact line under the title, the
-         way the event page writes its date line. */
+      /* Season, episode and date: the quiet fact line under the title, never
+         a boxed pill above it (no eyebrows). */
       .episode-facts {
         color: var(--muted);
+        margin: var(--space-tight) 0 0;
       }
 
-      @media (max-width: 39.99rem) {
-        .episode-head {
-          align-items: start;
-          gap: var(--space-4);
-          grid-template-columns: 6rem minmax(0, 1fr);
-        }
-
-        .episode-head-wide {
-          grid-template-columns: 8rem minmax(0, 1fr);
-        }
-
-        .episode-head-single {
-          grid-template-columns: minmax(0, 1fr);
-        }
+      .episode-guests {
+        margin-top: var(--space-3);
       }
 
-      /* The player frame is a real destination here: the episode artwork fills
-         the striped slab, and the disc sits on top of it.  The mockup's white
-         `.play-disc-card` was drawn against the empty striped placeholder; over
-         real artwork it can land on white, so the frame keeps the brand-bubble
-         disc the index rows and the homepage already use. */
+      /* The player opens the content ground: it is the page's goal, so it
+         leaves the reading column for the card-list column on the same axis,
+         the way the related episodes below do. */
       .episode-player {
+        margin: 0;
         overflow: hidden;
         position: relative;
         text-decoration: none;
@@ -172,12 +118,8 @@
         width: 100%;
       }
 
-      .episode-player + .episode-player {
-        margin-top: var(--space-4);
-      }
-
       /* Spotify's compact episode player has a fixed content height, while its
-         width remains fluid with the reading column. */
+         width remains fluid with the column. */
       .episode-video[data-video-provider="spotify"] {
         aspect-ratio: auto;
         min-height: 152px;
@@ -197,6 +139,7 @@
       }
 
       .episode-video-fallback-copy {
+        color: var(--episode-player-text);
         display: grid;
         gap: var(--space-3);
         max-width: 32rem;
@@ -204,10 +147,6 @@
 
       .episode-video-fallback-copy p {
         margin: 0;
-      }
-
-      .episode-video-fallback-copy {
-        color: var(--episode-player-text);
       }
 
       .episode-video-fallback-copy .band-link {
@@ -231,16 +170,12 @@
       }
 
       /* Click-to-play YouTube poster.  Nothing is requested from YouTube until
-         the reader asks for the video: the poster is the episode's own artwork
+         the reader asks for the video: the poster is the episode's own picture
          from the site's media store, and the frame is only built on click.
          Without JavaScript it is a plain link to the YouTube watch page. */
       .episode-video-facade {
-        align-items: center;
-        color: var(--episode-player-text);
         cursor: pointer;
-        display: flex;
         inset: 0;
-        justify-content: center;
         position: absolute;
       }
 
@@ -256,32 +191,24 @@
         width: 100%;
       }
 
-      /* The play control sits in the poster's lower-left corner rather than its
-         centre, where every episode's artwork prints the episode title. */
+      /* The page's one primary action, drawn as the primary CTA on the
+         poster's lower-left corner rather than its centre, where the poster
+         prints the episode title.  The glyph takes the label's own colour,
+         so it reads exactly as well as the words in both themes. */
       .episode-video-play {
-        align-items: center;
-        background: var(--card);
-        border: var(--border-strong);
-        border-radius: var(--radius-pill);
-        bottom: 1rem;
+        bottom: var(--space-4);
         box-shadow: var(--shadow-cta-sm);
-        color: var(--ink);
-        display: inline-flex;
-        font-weight: 700;
         gap: var(--space-2);
-        left: 1rem;
-        padding: var(--space-1) var(--space-4) var(--space-1) var(--space-1);
+        left: var(--space-4);
         position: absolute;
         transition: transform 0.15s ease;
       }
 
-      .episode-video-play .play-disc {
-        height: 2.75rem;
-        width: 2.75rem;
-      }
-
-      .episode-video-play .play-disc svg {
-        margin-left: 0.15rem;
+      .episode-video-play svg {
+        fill: currentColor;
+        flex: none;
+        height: 1.25rem;
+        width: 1.25rem;
       }
 
       .episode-video-facade:hover .episode-video-play,
@@ -289,17 +216,22 @@
         transform: translate(-0.1rem, -0.1rem);
       }
 
+      /* On a phone the poster prints its title and guest close to the
+         corner, so the action shortens to "Play" and stays on the artwork's
+         empty ground. */
+      @media (max-width: 35.99rem) {
+        .episode-video-play-rest {
+          display: none;
+        }
+      }
+
       @media (max-width: 30rem) {
         .episode-video-play {
-          bottom: 0.6rem;
-          left: 0.6rem;
-          font-size: 0.85rem;
-          padding-right: var(--space-3);
-        }
-
-        .episode-video-play .play-disc {
-          height: 2.25rem;
-          width: 2.25rem;
+          bottom: var(--space-3);
+          font-size: 0.92rem;
+          left: var(--space-3);
+          min-height: 2.75rem;
+          padding: var(--space-2) var(--space-4);
         }
       }
 
@@ -338,12 +270,6 @@
         width: 100%;
       }
 
-      .episode-player .play-disc {
-        position: relative;
-      }
-
-      /* Said out loud, not implied by an empty frame: an episode whose catalogue entry
-         carries no image still says so, under the disc rather than behind it. */
       .player-art-missing {
         bottom: 0.9rem;
         color: var(--ink);
@@ -351,155 +277,69 @@
         text-align: center;
       }
 
-      /* The guest is the shared person chip at its standalone size; this row
-         only places it and the word for what they did on the episode. */
-      .guest-row {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-2) var(--space-3);
-      }
-
-      .episode-description {
-        margin-top: var(--space-5);
-      }
-
-      .episode-listen {
-        margin-top: var(--space-5);
-      }
-
-      /* The platforms belong to the title block: a quiet label over one row
-         of the shared pill buttons, under the standfirst. */
-      .episode-listen-heading {
+      /* The other places to hear it: one quiet line of text links under the
+         player, never a row of buttons beside the one primary action. */
+      .episode-elsewhere {
         color: var(--muted);
         font-size: 0.92rem;
-        font-weight: 700;
-        letter-spacing: 0;
-        margin: 0 0 var(--space-2);
+        margin: var(--space-3) 0 0;
       }
 
-      .listen-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-2);
-      }
-
-      .listen-row .pill-button,
-      .episode-resource-list a {
+      .episode-elsewhere a {
         overflow-wrap: anywhere;
       }
 
-      .episode-tabs {
-        align-items: center;
-        border-bottom: var(--rule);
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-2) var(--space-4);
-        margin-bottom: var(--space-6);
+      .episode-elsewhere-sep {
+        margin-inline: var(--space-1);
       }
 
-      .episode-tab {
-        border-bottom: 3px solid transparent;
-        color: var(--muted);
-        display: inline-flex;
-        min-height: 2.75rem;
-        align-items: center;
-        font-weight: 800;
-        padding: var(--space-2) 0;
-        text-decoration: none;
+      /* The reading column: one section after another, a section apart. */
+      .episode-sections > * + * {
+        margin-top: var(--space-section);
       }
 
-      /* Set by the tab script only: without it every link keeps its plain,
-         always-visible fallback appearance. */
-      .episode-tab[aria-selected="true"] {
-        border-bottom-color: var(--ink);
-        color: var(--ink);
-      }
-
-      .episode-section {
+      .episode-sections > section {
         scroll-margin-top: 1.5rem;
       }
 
-      /* The script hides every panel but the active one with the `hidden`
-         attribute; without JavaScript no panel ever gets it, so all three stay
-         stacked and reachable exactly as the anchor links describe them. */
-      .episode-section[hidden] {
-        display: none;
-      }
-
-      .episode-summary p {
-        line-height: 1.7;
-        margin: 0 0 var(--space-4);
-      }
-
-      .episode-summary p:last-child {
-        margin-bottom: 0;
-      }
-
-      .episode-overview-block + .episode-overview-block,
-      .episode-summary + .episode-overview-block {
-        margin-top: var(--space-6);
-      }
-
-      .episode-overview-heading {
-        font-size: 1.05rem;
-        margin: 0;
-      }
-
-      .episode-resource-list {
-        display: grid;
-        gap: var(--space-3);
-        list-style: none;
-        margin: var(--space-5) 0 0;
-        padding: 0;
-      }
-
-      .episode-resource-list li {
-        align-items: baseline;
-        border-bottom: var(--rule);
-        display: flex;
-        gap: var(--space-3);
-        justify-content: space-between;
-        padding-bottom: var(--space-3);
-      }
-
-      .episode-resource-list li:last-child {
-        border-bottom: 0;
-      }
-
-      .episode-empty-state {
-        color: var(--muted);
-        margin-top: var(--space-5);
-      }
-
-      /* Chapter list: one ruled list, time and topic on one shared baseline
-         (both are flex items aligned by baseline, so the smaller mono time no
-         longer floats above the topic text), a fixed narrow time column so
-         every topic starts at the same x, and hairline separators. */
+      /* Chapters: a compact list in a soft card, the time on a fixed narrow
+         column and the topic on one line beside it.  The list takes the
+         card-list column, the poster's width, so a full chapter title fits
+         on one line on a desktop.  Past the first eight the
+         list folds behind "Show all" (added by script, so without JavaScript
+         every chapter shows). */
       .chapter-list {
+        background: var(--card);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
         list-style: none;
         margin: 0;
-        padding: 0;
+        padding: var(--space-2) var(--space-5);
       }
 
       .chapter-row {
         align-items: baseline;
         border-bottom: var(--rule);
-        display: flex;
+        display: grid;
         gap: var(--space-3);
+        grid-template-columns: 4.25rem minmax(0, 1fr);
         line-height: 1.45;
         padding-block: var(--space-2);
       }
 
-      .chapter-row:last-child {
+      .chapter-row:last-child,
+      .chapter-list.is-folded .chapter-row:nth-child(8) {
         border-bottom: 0;
       }
 
+      .chapter-list.is-folded .chapter-row:nth-child(n + 9) {
+        display: none;
+      }
+
       .chapter-time {
-        color: var(--muted);
-        flex: 0 0 3.75rem;
+        color: var(--indigo);
         font-family: var(--font-mono);
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         font-variant-numeric: tabular-nums;
         text-decoration: none;
         white-space: nowrap;
@@ -507,115 +347,57 @@
 
       a.chapter-time:hover,
       a.chapter-time:focus-visible {
-        color: var(--indigo);
         text-decoration: underline;
       }
 
       .chapter-label {
+        color: var(--ink);
+        font-weight: 600;
         min-width: 0;
         overflow-wrap: anywhere;
       }
 
-      .transcript-tools {
-        display: flex;
-        justify-content: flex-end;
-        margin-bottom: var(--space-4);
+      .chapters-more,
+      .guest-card-more {
+        background: none;
+        border: 0;
+        cursor: pointer;
+        font: inherit;
+        padding: 0;
       }
 
-      .transcript-body > .transcript-section:first-child {
-        margin-top: 0;
-      }
-
-      .episode-overview-block .episode-resource-list {
-        margin-top: var(--space-3);
-      }
-
-      /* Timestamps and transcript rows sit tighter than the shared list
-         rows: a chapter list reads as one list, not a stack of cards. */
-      .episode-section .timestamp-row {
-        padding-block: var(--space-2);
-      }
-
-      /* The transcript's timestamp is a quiet handle, not a headline link:
-         muted, no underline until it is hovered or focused, so the reader's
-         eye goes to what was said (owner feedback 2026-11-24). */
-      .transcript-time-link {
-        color: var(--muted);
-        font-family: var(--font-mono);
-        font-size: 0.75rem;
-        text-decoration: none;
-        white-space: nowrap;
-      }
-
-      .transcript-time-link:hover,
-      .transcript-time-link:focus-visible {
-        color: var(--indigo);
-        text-decoration: underline;
-      }
-
-      /* A long transcript opens folded: the first screenful fades out and a
-         button unfolds the rest (owner feedback 2026-11-24).  The fold is
-         added by script only, so without JavaScript the whole transcript is
-         simply there; every line stays in the document either way. */
-      .transcript-body.is-collapsed {
-        max-height: 28rem;
-        -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
-        mask-image: linear-gradient(to bottom, #000 55%, transparent);
-        overflow: hidden;
-      }
-
-      .transcript-more {
-        margin-top: var(--space-4);
-      }
-
-      /* .cta sets its own display, which would beat the hidden attribute. */
-      .transcript-more[hidden] {
+      .chapters-more[hidden],
+      .guest-card-more[hidden] {
         display: none;
       }
 
+      @media (max-width: 35.99rem) {
+        .chapter-list {
+          padding-inline: var(--space-4);
+        }
+
+        .chapter-row {
+          grid-template-columns: 3.5rem minmax(0, 1fr);
+        }
+      }
+
+      /* A guest is a soft card, the /events card surface: the name linked to
+         the profile, the role line, the bio and the guest's own links as small
+         icon buttons.  The face is on the poster and in the head's chip, so
+         the card does not draw it a third time. */
       .episode-bios {
         display: grid;
         gap: var(--space-4);
-        margin-top: var(--space-4);
       }
 
-      /* A guest is a soft card, the /events card surface: portrait, the name
-         linked to the profile, the role line the podcast hub's person chips
-         carry, the bio and the guest's own links as small icon buttons. */
       .guest-card {
-        align-items: start;
         background: var(--card);
         border: var(--border-soft);
         border-radius: var(--radius-card);
         display: grid;
-        gap: var(--space-4);
-        grid-template-columns: auto minmax(0, 1fr);
-        padding: var(--space-5);
-      }
-
-      .guest-card-portrait {
-        border: var(--border-soft);
-        border-radius: var(--radius-pill);
-        height: 5.5rem;
-        object-fit: cover;
-        width: 5.5rem;
-      }
-
-      .guest-card-initials {
-        align-items: center;
-        background: var(--mint);
-        color: var(--ink);
-        display: flex;
-        font-size: 1.4rem;
-        font-weight: 800;
-        justify-content: center;
-      }
-
-      .guest-card-body {
-        display: grid;
         gap: var(--space-2);
         justify-items: start;
-        min-width: 0;
+        padding: var(--space-5);
       }
 
       .guest-card-name {
@@ -655,18 +437,6 @@
         overflow: hidden;
       }
 
-      .guest-card-more {
-        background: none;
-        border: 0;
-        cursor: pointer;
-        font: inherit;
-        padding: 0;
-      }
-
-      .guest-card-more[hidden] {
-        display: none;
-      }
-
       .guest-card-links {
         display: flex;
         flex-wrap: wrap;
@@ -697,6 +467,97 @@
         fill: currentColor;
         height: 1.05rem;
         width: 1.05rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        .guest-card {
+          padding: var(--space-4);
+        }
+      }
+
+      /* Links mentioned: a small soft card of ruled rows. */
+      .episode-resource-list {
+        background: var(--card);
+        border: var(--border-soft);
+        border-radius: var(--radius-card);
+        list-style: none;
+        margin: 0;
+        padding: var(--space-2) var(--space-5);
+      }
+
+      .episode-resource-list li {
+        border-bottom: var(--rule);
+        padding-block: var(--space-3);
+      }
+
+      .episode-resource-list li:last-child {
+        border-bottom: 0;
+      }
+
+      .episode-resource-list a {
+        font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+
+      /* Transcript: one fold.  Inside it the download comes first, then the
+         shared timestamp rows with the section headers the source gives the
+         conversation and the speaker as each row's mark. */
+      .episode-transcript .faq-question-title {
+        font-size: 1.15rem;
+      }
+
+      .episode-transcript-body {
+        padding-bottom: var(--space-4);
+      }
+
+      .episode-transcript-download {
+        margin: 0 0 var(--space-4);
+      }
+
+      .transcript-body > .transcript-section:first-child {
+        margin-top: 0;
+      }
+
+      .episode-transcript .timestamp-row {
+        padding-block: var(--space-2);
+      }
+
+      /* The transcript's timestamp is a quiet handle, not a headline link:
+         muted, no underline until it is hovered or focused, so the reader's
+         eye goes to what was said (owner feedback 2026-11-24). */
+      .transcript-time-link {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .transcript-time-link:hover,
+      .transcript-time-link:focus-visible {
+        color: var(--indigo);
+        text-decoration: underline;
+      }
+
+      /* Topic headings break the transcript into chapters, so they read as
+         headings (owner: the mono caps label was too subtle to notice). */
+      .transcript-section {
+        color: var(--ink);
+        font-size: 1.2rem;
+        font-weight: 700;
+        line-height: 1.3;
+        margin: var(--space-6) 0 var(--space-2);
+      }
+
+      .timestamp-mark {
+        max-width: 7rem;
+        min-width: 4.5rem;
+      }
+
+      .transcript-time {
+        color: var(--muted);
+        display: block;
+        font-size: 0.7rem;
       }
 
       /* The topics the graph files the episode under: the wiki's own topic
@@ -763,32 +624,9 @@
         }
       }
 
-      /* Transcript: shared timestamp rows, with the section headers the source
-         gives the conversation and the speaker as each row's mark. */
-      /* Topic headings break the transcript into chapters, so they read as
-         headings (owner: the mono caps label was too subtle to notice). */
-      .transcript-section {
-        color: var(--ink);
-        font-size: 1.2rem;
-        font-weight: 700;
-        line-height: 1.3;
-        margin: var(--space-6) 0 var(--space-2);
-      }
-
-      .timestamp-mark {
-        max-width: 7rem;
-        min-width: 4.5rem;
-      }
-
-      .transcript-time {
-        color: var(--muted);
-        display: block;
-        font-size: 0.7rem;
-      }
-
       @media (max-width: 47.99rem) {
-        /* Narrow: the speaker sits above their line instead of stealing half the
-           row, and the artwork keeps its shape. */
+        /* Narrow: the speaker sits above their line instead of stealing half
+           the row. */
         .timestamp-row {
           grid-template-columns: minmax(0, 1fr);
           row-gap: 0.15rem;
@@ -801,17 +639,6 @@
         .transcript-time {
           display: inline;
           margin-left: var(--space-2);
-        }
-
-        .guest-card {
-          gap: var(--space-3);
-          grid-template-columns: minmax(0, 1fr);
-          padding: var(--space-4);
-        }
-
-        .guest-card-portrait {
-          height: 4rem;
-          width: 4rem;
         }
       }
     </style>
@@ -838,115 +665,131 @@
           {% endcomment %}
           {% breadcrumbs breadcrumbs %}
           {% comment %}
-            The head pairs the episode's square picture with its title, the way
-            the event page does (owner feedback 2026-11-26): picture, then the
-            title, the season/episode/date fact line and the guest beside it.
-            The season and episode are a quiet line under the title, never a
-            boxed pill above it (no eyebrows).
+            A compact head: the title, the season/episode/date fact line and
+            the guest's chip.  The poster that opens the content band is the
+            page's one picture.
           {% endcomment %}
-          <div
-            class="episode-head
-              {% if not hero_picture_path %}
-                episode-head-single
-              {% elif not hero_picture_square %}
-                episode-head-wide
-              {% endif %}"
-          >
-            {% if hero_picture_square %}
-              <img
-                class="episode-head-picture"
-                src="{{ hero_picture_path }}"
-                alt=""
-                width="1000"
-                height="1000"
-                decoding="async"
-                fetchpriority="high"
-              >
-            {% elif hero_picture_path %}
-              <img
-                class="episode-head-picture"
-                src="{{ hero_picture_path }}"
-                alt=""
-                width="1280"
-                height="720"
-                decoding="async"
-                fetchpriority="high"
-              >
+          <h1 id="episode-heading">{{ episode.title }}</h1>
+          <p class="mono-note episode-facts">
+            {{ episode.season_episode }}
+            {% if episode_date %}
+              <span aria-hidden="true">·</span>
+              <time datetime="{{ episode_date|date:'Y-m-d' }}">{{ episode_date|date:'M j, Y' }}</time>
             {% endif %}
-            <div class="episode-head-copy">
-              <h1 id="episode-heading">{{ episode.title }}</h1>
-              <p class="mono-note episode-facts">
-                {{ episode.season_episode }}
-                {% if episode.published %}
-                  <span aria-hidden="true">·</span>
-                  <time datetime="{{ episode.published }}">{{ episode.published_display }}</time>
-                {% endif %}
-              </p>
+            {% if episode_minutes %}
+              <span aria-hidden="true">·</span>
+              {{ episode_minutes }} min
+            {% endif %}
+          </p>
+          {% if episode.guests %}
+            <div class="person-chips episode-guests">
+              <span class="person-chips-label">With</span>
               {% for guest in episode.guests %}
-                <div class="guest-row person-chip-lead">
-                  {% include "public/_person_chip.html" with person=guest|person_chip chip_loading="eager" only %}
-                </div>
+                {% include "public/_person_chip.html" with person=guest|person_chip chip_loading="eager" only %}
               {% endfor %}
-            </div>
-          </div>
-          <p class="episode-description">{{ episode.description }}</p>
-          {% if episode.listener_platform_links %}
-            <div class="episode-listen">
-              <h2 id="platform-links-heading" class="episode-listen-heading">
-                Listen to or watch on your favorite platform
-              </h2>
-              <div class="listen-row" role="group" aria-labelledby="platform-links-heading">
-                {% for link in episode.listener_platform_links %}
-                  {% include "public/_podcast_platform_button.html" with link=link only %}
-                {% endfor %}
-              </div>
             </div>
           {% endif %}
         </div>
       </section>
 
       <section class="band band-lavender episode-read" aria-label="About this episode">
-        <div class="shell episode-shell">
-          {% if episode.video %}
-            <div
-              class="player-frame episode-player episode-video"
-              data-video-provider="youtube"
-              data-video-id="{{ episode.video.media_id }}"
-              data-video-embed="{{ episode.video.embed_url }}"
-              data-video-title="Watch {{ episode.title }} on YouTube"
-              data-video-state="poster"
-            >
-              <a
-                id="podcast-video-facade"
-                class="episode-video-facade"
-                href="{{ episode.video.watch_url }}"
-                data-video-facade
+        <div class="shell episode-shell episode-sections">
+          <div class="episode-player-block shell-breakout shell-breakout-cards">
+            {% if episode.video %}
+              <div
+                class="player-frame episode-player episode-video"
+                data-video-provider="youtube"
+                data-video-id="{{ episode.video.media_id }}"
+                data-video-embed="{{ episode.video.embed_url }}"
+                data-video-title="Watch {{ episode.title }} on YouTube"
+                data-video-state="poster"
               >
-                {% if video_poster_path %}
-                  <img
-                    class="episode-video-poster"
-                    src="{{ video_poster_path }}"
-                    alt=""
-                    decoding="async"
-                    fetchpriority="high"
-                  >
-                {% endif %}
-                <span class="episode-video-play" aria-hidden="true">
-                  <span class="play-disc">
+                <a
+                  id="podcast-video-facade"
+                  class="episode-video-facade"
+                  href="{{ episode.video.watch_url }}"
+                  data-video-facade
+                >
+                  {% if video_poster_path %}
+                    <img
+                      class="episode-video-poster"
+                      src="{{ video_poster_path }}"
+                      alt=""
+                      decoding="async"
+                      fetchpriority="high"
+                    >
+                  {% endif %}
+                  <span class="cta cta-primary episode-video-play" aria-hidden="true">
                     <svg viewBox="0 0 24 24" focusable="false">
-                      <path d="M9 6.5l9 5.5-9 5.5z"/>
+                      <path d="M7.5 4.5v15l12.5-7.5z"/>
                     </svg>
+                    Play<span class="episode-video-play-rest"> the episode</span>
                   </span>
-                  Play video
-                </span>
-                <span class="sr-only">Play {{ episode.title }} on YouTube</span>
-              </a>
-              <div class="episode-video-fallback" data-video-fallback role="status">
-                <div class="episode-video-fallback-copy">
+                  <span class="sr-only">Play {{ episode.title }} on YouTube</span>
+                </a>
+                <div class="episode-video-fallback" data-video-fallback role="status">
+                  <div class="episode-video-fallback-copy">
+                    <p>
+                      <strong>{{ episode.video.media_label }} unavailable.</strong>
+                    </p>
+                    <p>Use one of the listening links below to hear this episode.</p>
+                    {% if episode.watch_url %}
+                      <a
+                        class="band-link"
+                        href="{{ episode.watch_url }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Open {{ episode.watch_label }}
+                        <span class="sr-only"> (opens in a new tab)</span>
+                      </a>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% elif episode.player %}
+              <div
+                class="player-frame episode-player episode-video"
+                data-video-provider="{{ episode.player.provider }}"
+                data-video-id="{{ episode.player.media_id }}"
+                data-video-state="loading"
+              >
+                <iframe
+                  id="podcast-video-player"
+                  src="{{ episode.player.embed_url }}"
+                  title="{{ episode.player.action_label }} {{ episode.title }} on {{ episode.player.provider_label }}"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allowfullscreen
+                ></iframe>
+                <div class="episode-video-fallback" data-video-fallback role="status">
+                  <div class="episode-video-fallback-copy">
+                    <p>
+                      <strong>{{ episode.player.media_label }} unavailable.</strong>
+                    </p>
+                    <p>Use one of the listening links below to hear this episode.</p>
+                    {% if episode.watch_url %}
+                      <a
+                        class="band-link"
+                        href="{{ episode.watch_url }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Open {{ episode.watch_label }}
+                        <span class="sr-only"> (opens in a new tab)</span>
+                      </a>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% else %}
+              <div class="player-frame episode-player episode-fallback">
+                {% include "public/_episode_artwork.html" %}
+                <div class="episode-fallback-copy">
                   <p>
-                    <strong>{{ episode.video.media_label }} unavailable.</strong>
+                    <strong>Video unavailable.</strong>
                   </p>
-                  <p>Use one of the listening links above to hear this episode.</p>
+                  <p>Use one of the listening links below to hear this episode.</p>
                   {% if episode.watch_url %}
                     <a
                       class="band-link"
@@ -960,262 +803,200 @@
                   {% endif %}
                 </div>
               </div>
-            </div>
-          {% elif episode.player %}
-            <div
-              class="player-frame episode-player episode-video"
-              data-video-provider="{{ episode.player.provider }}"
-              data-video-id="{{ episode.player.media_id }}"
-              data-video-state="loading"
-            >
-              <iframe
-                id="podcast-video-player"
-                src="{{ episode.player.embed_url }}"
-                title="{{ episode.player.action_label }} {{ episode.title }} on {{ episode.player.provider_label }}"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allowfullscreen
-              ></iframe>
-              <div class="episode-video-fallback" data-video-fallback role="status">
-                <div class="episode-video-fallback-copy">
-                  <p>
-                    <strong>{{ episode.player.media_label }} unavailable.</strong>
-                  </p>
-                  <p>Use one of the listening links above to hear this episode.</p>
-                  {% if episode.watch_url %}
-                    <a
-                      class="band-link"
-                      href="{{ episode.watch_url }}"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Open {{ episode.watch_label }}
-                      <span class="sr-only"> (opens in a new tab)</span>
-                    </a>
+            {% endif %}
+            {% if episode.other_platform_links %}
+              <p class="episode-elsewhere" data-platform-links>
+                {% if episode.video %}
+                  Prefer audio? Listen on
+                {% else %}
+                  Also on
+                {% endif %}
+                {% for link in episode.other_platform_links %}
+                  {% if not forloop.first %}
+                    <span class="episode-elsewhere-sep" aria-hidden="true">·</span>
                   {% endif %}
-                </div>
-              </div>
-            </div>
-          {% else %}
-            <div class="player-frame episode-player episode-fallback">
-              {% include "public/_episode_artwork.html" %}
-              <div class="episode-fallback-copy">
-                <p>
-                  <strong>Video unavailable.</strong>
-                </p>
-                <p>Use one of the listening links above to hear this episode.</p>
-                {% if episode.watch_url %}
                   <a
                     class="band-link"
-                    href="{{ episode.watch_url }}"
+                    data-podcast-platform="{{ link.provider }}"
+                    href="{{ link.url }}"
                     target="_blank"
                     rel="noopener noreferrer"
-                  >
-                    Open {{ episode.watch_label }}
-                    <span class="sr-only"> (opens in a new tab)</span>
-                  </a>
-                {% endif %}
-              </div>
-            </div>
-          {% endif %}
-          {% if episode.video and episode.spotify %}
-            <div
-              class="player-frame episode-player episode-video episode-audio"
-              data-video-provider="spotify"
-              data-video-id="{{ episode.spotify.media_id }}"
-              data-video-state="loading"
-            >
-              <iframe
-                id="podcast-audio-player"
-                src="{{ episode.spotify.embed_url }}"
-                title="Listen to {{ episode.title }} on Spotify"
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allowfullscreen
-              ></iframe>
-              <div class="episode-video-fallback" data-video-fallback role="status">
-                <div class="episode-video-fallback-copy">
-                  <p>
-                    <strong>{{ episode.spotify.media_label }} unavailable.</strong>
-                  </p>
-                  <p>Use one of the listening links above to hear this episode.</p>
-                </div>
-              </div>
-            </div>
-          {% endif %}
-        </div>
-      </section>
-
-      <section class="band band-lavender" aria-label="Episode reading sections">
-        <div class="shell episode-shell">
-          {% comment %}Every episode opens on Overview.  With an editorial summary
-          it leads with that prose; without one it carries what the page already
-          has that describes the episode beyond the hero standfirst: the guests'
-          bios and the links mentioned (the standfirst itself only when neither
-          exists, so the panel is never empty and never repeats the hero).  Each
-          panel's heading is screen-reader only: the tab label already says it.{% endcomment %}
-          <nav class="episode-tabs" aria-label="Episode sections">
-            <a class="episode-tab" href="#overview">Overview</a>
-            {% if episode.timestamp_entries %}
-              <a class="episode-tab" href="#timestamps">Timestamps</a>
-            {% endif %}
-            {% if episode.transcript %}
-              <a class="episode-tab" href="#transcript">Transcript</a>
-            {% endif %}
-          </nav>
-
-          <section id="overview" class="episode-section" aria-labelledby="overview-heading">
-            <h2 id="overview-heading" class="sr-only">Overview</h2>
-            {% if episode.summary_paragraphs %}
-              <div class="episode-summary">
-                {% for paragraph in episode.summary_paragraphs %}
-                  <p>{{ paragraph }}</p>
+                  >{{ link.label }}<span class="sr-only"> (opens in a new tab)</span></a>
                 {% endfor %}
+              </p>
+            {% endif %}
+          </div>
+          {% comment %}
+            One reading column, top to bottom: what was talked about, the
+            chapters, the guest, the links mentioned and the transcript.  The
+            summary falls back to the episode's standfirst, so the column
+            always opens on words about the episode.
+          {% endcomment %}
+          <section id="overview" aria-labelledby="overview-heading">
+            <div class="band-head">
+              <div>
+                <h2 id="overview-heading">What we talked about</h2>
               </div>
-            {% elif not episode.guests and not episode.links %}
-              <div class="episode-summary">
+            </div>
+            <div class="prose prose-reading episode-summary">
+              {% for paragraph in episode.summary_paragraphs %}
+                <p>{{ paragraph }}</p>
+              {% empty %}
                 <p>{{ episode.description }}</p>
-              </div>
-            {% endif %}
-            {% if guest_cards %}
-              <div class="episode-overview-block">
-                <h3 id="guest-bios-heading" class="episode-overview-heading">
-                  About the guest{{ guest_cards|length|pluralize }}
-                </h3>
-                <div class="episode-bios">
-                  {% for card in guest_cards %}
-                    {% with guest=card.guest chip=card.guest|person_chip %}
-                      <article class="guest-card" data-guest-card>
-                        {% if guest.media_available %}
-                          <img
-                            class="guest-card-portrait"
-                            src="{{ guest.image_path }}"
-                            alt=""
-                            width="160"
-                            height="160"
-                            loading="lazy"
-                            decoding="async"
-                          >
-                        {% else %}
-                          <span class="guest-card-portrait guest-card-initials" aria-hidden="true">{{ chip.initials }}</span>
-                        {% endif %}
-                        <div class="guest-card-body">
-                          <h4 class="guest-card-name">
-                            {% if guest.public_path %}
-                              <a href="{{ guest.public_path }}">{{ guest.name }}</a>
-                            {% else %}
-                              {{ guest.name }}
-                            {% endif %}
-                          </h4>
-                          {% if card.role %}
-                            <p class="guest-card-role">{{ card.role }}</p>
-                          {% endif %}
-                          {% if guest.summary %}
-                            <p class="guest-card-bio" id="guest-bio-{{ forloop.counter }}" data-guest-bio>{{ guest.summary }}</p>
-                            <button
-                              class="band-link guest-card-more"
-                              type="button"
-                              aria-controls="guest-bio-{{ forloop.counter }}"
-                              aria-expanded="false"
-                              data-guest-bio-more
-                              hidden
-                            >Read more</button>
-                          {% endif %}
-                          {% if card.links %}
-                            <ul class="guest-card-links" aria-label="{{ guest.name }} elsewhere">
-                              {% for link in card.links %}
-                                <li>
-                                  <a
-                                    class="guest-card-link interactive-lift"
-                                    href="{{ link.url }}"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    aria-label="{{ guest.name }} on {{ link.label }} (opens in a new tab)"
-                                    title="{{ link.label }}"
-                                  >
-                                    {% include "core/_social_icon.html" with icon=link.icon only %}
-                                  </a>
-                                </li>
-                              {% endfor %}
-                            </ul>
-                          {% endif %}
-                        </div>
-                      </article>
-                    {% endwith %}
-                  {% endfor %}
-                </div>
-              </div>
-            {% endif %}
-            {% if episode.links %}
-              <div class="episode-overview-block">
-                <h3 class="episode-overview-heading">Links mentioned</h3>
-                {% include "public/_episode_resource_list.html" with resources=episode.links only %}
-              </div>
-            {% endif %}
+              {% endfor %}
+            </div>
           </section>
 
           {% if episode.timestamp_entries %}
-            <section id="timestamps" class="episode-section" aria-labelledby="timestamps-heading">
-              <h2 id="timestamps-heading" class="sr-only">Timestamps</h2>
-              <ol class="chapter-list">
-                {% for entry in episode.timestamp_entries %}
-                  <li class="chapter-row">
-                    {% if entry.fallback_url %}
-                      <a
-                        class="chapter-time"
-                        href="{{ entry.fallback_url }}"
-                        data-seconds="{{ entry.seconds }}"
-                        aria-label="Jump to {{ entry.time }}: {{ entry.label }}"
-                      >{{ entry.time }}</a>
-                    {% else %}
-                      <span class="chapter-time">{{ entry.time }}</span>
-                    {% endif %}
-                    <span class="chapter-label">{{ entry.label }}</span>
-                  </li>
+            <section id="timestamps" class="episode-chapters" aria-labelledby="timestamps-heading">
+              <div class="band-head">
+                <div>
+                  <h2 id="timestamps-heading">Chapters</h2>
+                </div>
+              </div>
+              <div class="shell-breakout shell-breakout-cards">
+                <ol class="chapter-list" id="chapter-list" data-chapter-list>
+                  {% for entry in episode.timestamp_entries %}
+                    <li class="chapter-row">
+                      {% if entry.fallback_url %}
+                        <a
+                          class="chapter-time"
+                          href="{{ entry.fallback_url }}"
+                          data-seconds="{{ entry.seconds }}"
+                          aria-label="Jump to {{ entry.time }}: {{ entry.label }}"
+                        >{{ entry.time }}</a>
+                      {% else %}
+                        <span class="chapter-time">{{ entry.time }}</span>
+                      {% endif %}
+                      <span class="chapter-label">{{ entry.label }}</span>
+                    </li>
+                  {% endfor %}
+                </ol>
+                {% if episode.timestamp_entries|length > 10 %}
+                  <p class="band-more">
+                    <button
+                      class="band-link chapters-more"
+                      type="button"
+                      aria-controls="chapter-list"
+                      aria-expanded="false"
+                      data-chapters-more
+                      hidden
+                    >Show all {{ episode.timestamp_entries|length }} chapters</button>
+                  </p>
+                {% endif %}
+              </div>
+            </section>
+          {% endif %}
+
+          {% if guest_cards %}
+            <section id="guests" aria-labelledby="guest-bios-heading">
+              <div class="band-head">
+                <div>
+                  <h2 id="guest-bios-heading">About {{ episode.guest_names }}</h2>
+                </div>
+              </div>
+              <div class="episode-bios">
+                {% for card in guest_cards %}
+                  {% with guest=card.guest %}
+                    <article class="guest-card" data-guest-card>
+                      <h3 class="guest-card-name">
+                        {% if guest.public_path %}
+                          <a href="{{ guest.public_path }}">{{ guest.name }}</a>
+                        {% else %}
+                          {{ guest.name }}
+                        {% endif %}
+                      </h3>
+                      {% if card.role %}
+                        <p class="guest-card-role">{{ card.role }}</p>
+                      {% endif %}
+                      {% if guest.summary %}
+                        <p class="guest-card-bio" id="guest-bio-{{ forloop.counter }}" data-guest-bio>{{ guest.summary }}</p>
+                        <button
+                          class="band-link guest-card-more"
+                          type="button"
+                          aria-controls="guest-bio-{{ forloop.counter }}"
+                          aria-expanded="false"
+                          data-guest-bio-more
+                          hidden
+                        >Read more</button>
+                      {% endif %}
+                      {% if card.links %}
+                        <ul class="guest-card-links" aria-label="{{ guest.name }} elsewhere">
+                          {% for link in card.links %}
+                            <li>
+                              <a
+                                class="guest-card-link interactive-lift"
+                                href="{{ link.url }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="{{ guest.name }} on {{ link.label }} (opens in a new tab)"
+                                title="{{ link.label }}"
+                              >
+                                {% include "core/_social_icon.html" with icon=link.icon only %}
+                              </a>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      {% endif %}
+                    </article>
+                  {% endwith %}
                 {% endfor %}
-              </ol>
+              </div>
+            </section>
+          {% endif %}
+
+          {% if episode.mentioned_links %}
+            <section id="links" aria-labelledby="links-heading">
+              <div class="band-head">
+                <div>
+                  <h2 id="links-heading">Links mentioned</h2>
+                </div>
+              </div>
+              {% include "public/_episode_resource_list.html" with resources=episode.mentioned_links only %}
             </section>
           {% endif %}
 
           {% if episode.transcript %}
-            <section id="transcript" class="episode-section" aria-labelledby="transcript-heading">
-              <div class="transcript-tools">
-                <h2 id="transcript-heading" class="sr-only">Transcript</h2>
-                <a
-                  class="cta cta-secondary cta-compact interactive-lift"
-                  href="{{ episode.public_path }}/transcript.txt"
-                  download
-                >Download transcript (.txt)</a>
-              </div>
-              <div class="transcript-body" data-transcript-body>
-              {% for entry in episode.transcript %}
-                {% if entry.header %}
-                  <h3 class="transcript-section">{{ entry.header }}</h3>
-                {% else %}
-                  <div class="timestamp-row" id="{{ entry.anchor }}">
-                    <span class="timestamp-mark">
-                      {% if entry.fallback_url %}
-                        <a
-                          class="transcript-time-link"
-                          href="{{ entry.fallback_url }}"
-                          data-seconds="{{ entry.seconds }}"
-                          aria-label="Jump to {{ entry.time }}: {{ entry.line }}"
-                        >{{ entry.time }}</a>
-                      {% elif entry.time %}
-                        <span class="transcript-time-link">{{ entry.time }}</span>
-                      {% endif %}
-                      {% if entry.who %}
-                        <span class="transcript-time">{{ entry.who }}</span>
-                      {% endif %}
-                    </span>
-                    <p>{{ entry.line }}</p>
+            <section id="transcript" class="episode-transcript" aria-labelledby="transcript-heading">
+              <div class="faq-panel panel panel-outlined">
+                <details class="faq-fold" data-transcript-fold>
+                  <summary class="faq-fold-summary">
+                    <h2 id="transcript-heading" class="faq-question-title">Transcript</h2>
+                    <span class="faq-fold-marker" aria-hidden="true"></span>
+                  </summary>
+                  <div class="episode-transcript-body">
+                    <p class="episode-transcript-download">
+                      <a class="band-link" href="{{ episode.public_path }}/transcript.txt" download>Download the transcript (.txt)</a>
+                    </p>
+                    <div class="transcript-body">
+                      {% for entry in episode.transcript %}
+                        {% if entry.header %}
+                          <h3 class="transcript-section">{{ entry.header }}</h3>
+                        {% else %}
+                          <div class="timestamp-row" id="{{ entry.anchor }}">
+                            <span class="timestamp-mark">
+                              {% if entry.fallback_url %}
+                                <a
+                                  class="transcript-time-link"
+                                  href="{{ entry.fallback_url }}"
+                                  data-seconds="{{ entry.seconds }}"
+                                  aria-label="Jump to {{ entry.time }}: {{ entry.line }}"
+                                >{{ entry.time }}</a>
+                              {% elif entry.time %}
+                                <span class="transcript-time-link">{{ entry.time }}</span>
+                              {% endif %}
+                              {% if entry.who %}
+                                <span class="transcript-time">{{ entry.who }}</span>
+                              {% endif %}
+                            </span>
+                            <p>{{ entry.line }}</p>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
                   </div>
-                {% endif %}
-              {% endfor %}
+                </details>
               </div>
-              <button class="cta cta-secondary cta-compact interactive-lift transcript-more" type="button" data-transcript-more hidden>
-                Read the full transcript
-              </button>
             </section>
           {% endif %}
         </div>
@@ -1301,6 +1082,8 @@
           });
         }
 
+        /* A chapter or transcript time seeks the player in place.  The player
+           sits above the column, so it is brought back into view. */
         document.querySelectorAll('[data-seconds]').forEach(function (link) {
           link.addEventListener('click', function (event) {
             var seconds = Number(link.getAttribute('data-seconds'));
@@ -1313,14 +1096,17 @@
             }
             event.preventDefault();
             play(Math.floor(seconds));
-            link.focus();
+            var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            frame.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+            link.focus({ preventScroll: true });
           });
         });
       })();
 
       /* Clamp each guest bio to four lines behind "Read more", and fold the
-         topics past the first eight behind "Show all".  Both are script-only:
-         without JavaScript every bio and topic shows in full. */
+         chapters and topics past the first eight behind "Show all".  All are
+         script-only: without JavaScript every bio, chapter and topic shows in
+         full. */
       (function () {
         document.querySelectorAll('[data-guest-card]').forEach(function (card) {
           var bio = card.querySelector('[data-guest-bio]');
@@ -1341,6 +1127,22 @@
           });
         });
 
+        var chapters = document.querySelector('[data-chapter-list]');
+        var allChapters = document.querySelector('[data-chapters-more]');
+        if (chapters && allChapters) {
+          chapters.classList.add('is-folded');
+          allChapters.hidden = false;
+          allChapters.addEventListener('click', function () {
+            chapters.classList.remove('is-folded');
+            allChapters.setAttribute('aria-expanded', 'true');
+            allChapters.parentNode.remove();
+            var next = chapters.querySelector('.chapter-row:nth-child(9) a');
+            if (next) {
+              next.focus();
+            }
+          });
+        }
+
         var topics = document.querySelector('[data-episode-topics]');
         var showAll = topics ? topics.querySelector('[data-episode-topics-more]') : null;
         if (showAll) {
@@ -1353,113 +1155,25 @@
         }
       })();
 
-      /* Fold a long transcript behind "Read the full transcript".  A link
-         straight to a transcript line (#t-...) opens it unfolded. */
+      /* A link straight to a transcript line (#t-...) opens the fold it sits
+         in, on load and on a later in-page jump. */
       (function () {
-        var body = document.querySelector('[data-transcript-body]');
-        var more = document.querySelector('[data-transcript-more]');
-        if (!body || !more) {
+        var fold = document.querySelector('[data-transcript-fold]');
+        if (!fold) {
           return;
         }
-        var target = window.location.hash ? document.getElementById(window.location.hash.slice(1)) : null;
-        if (target && body.contains(target)) {
-          return;
-        }
-        body.classList.add('is-collapsed');
-        if (body.scrollHeight <= body.clientHeight + 8) {
-          body.classList.remove('is-collapsed');
-          return;
-        }
-        more.hidden = false;
-        more.addEventListener('click', function () {
-          body.classList.remove('is-collapsed');
-          more.hidden = true;
-        });
-      })();
-
-      /* Progressive enhancement of the reading sections: the server always
-         renders Overview, Timestamps and Transcript stacked and reachable
-         through the anchor links above them, so a visitor without JavaScript
-         loses nothing. When this runs, the same anchors and sections become a
-         real WAI-ARIA tabs widget (https://www.w3.org/WAI/ARIA/apg/patterns/tabs/)
-         with one panel visible at a time: Overview by default, or the panel a
-         link's #hash names (a panel id or a line inside one, e.g. a
-         transcript entry). */
-      (function () {
-        var nav = document.querySelector('.episode-tabs');
-        if (!nav) {
-          return;
-        }
-        var tabs = Array.prototype.slice.call(nav.querySelectorAll('a.episode-tab'));
-        if (tabs.length < 2) {
-          return;
-        }
-        var panels = tabs.map(function (tab) {
-          var id = tab.getAttribute('href').slice(1);
-          return document.getElementById(id);
-        });
-        if (panels.indexOf(null) !== -1) {
-          return;
-        }
-
-        nav.setAttribute('role', 'tablist');
-
-        function activate(index, moveFocus) {
-          tabs.forEach(function (tab, tabIndex) {
-            var selected = tabIndex === index;
-            tab.setAttribute('aria-selected', selected ? 'true' : 'false');
-            tab.setAttribute('tabindex', selected ? '0' : '-1');
-            panels[tabIndex].hidden = !selected;
-          });
-          if (moveFocus) {
-            tabs[index].focus();
+        function reveal() {
+          var id = window.location.hash.slice(1);
+          var target = id ? document.getElementById(id) : null;
+          if (target && (target === fold.parentNode.parentNode || fold.contains(target))) {
+            fold.open = true;
+            if (target !== fold.parentNode.parentNode) {
+              target.scrollIntoView();
+            }
           }
         }
-
-        tabs.forEach(function (tab, index) {
-          var panel = panels[index];
-          tab.setAttribute('role', 'tab');
-          tab.setAttribute('aria-controls', panel.id);
-
-          tab.addEventListener('click', function (event) {
-            event.preventDefault();
-            activate(index, false);
-          });
-
-          tab.addEventListener('keydown', function (event) {
-            var nextIndex = null;
-            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-              nextIndex = (index + 1) % tabs.length;
-            } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-              nextIndex = (index - 1 + tabs.length) % tabs.length;
-            } else if (event.key === 'Home') {
-              nextIndex = 0;
-            } else if (event.key === 'End') {
-              nextIndex = tabs.length - 1;
-            }
-            if (nextIndex !== null) {
-              event.preventDefault();
-              activate(nextIndex, true);
-            }
-          });
-
-          panel.setAttribute('role', 'tabpanel');
-          panel.setAttribute('tabindex', '0');
-        });
-
-        var initial = 0;
-        var target = window.location.hash ? document.getElementById(window.location.hash.slice(1)) : null;
-        if (target) {
-          panels.forEach(function (panel, index) {
-            if (panel.contains(target)) {
-              initial = index;
-            }
-          });
-        }
-        activate(initial, false);
-        if (target && initial !== 0) {
-          target.scrollIntoView();
-        }
+        reveal();
+        window.addEventListener('hashchange', reveal);
       })();
     </script>
   </body>

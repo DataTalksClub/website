@@ -84,15 +84,11 @@ def test_episode_sections_player_and_guest_links_are_keyboard_reachable(
         "title", f"Watch {episode['title']} on YouTube"
     )
     expect(page.locator("#podcast-video-player")).to_be_focused()
-    # The reading-section anchors keep their `#overview`/`#timestamps`/`#transcript`
-    # hrefs as a working no-JS fallback, but the tabs script enhances them into a
-    # real WAI-ARIA tablist once it runs, so their accessible role is "tab".
-    expect(page.get_by_role("tab", name="Overview")).to_have_attribute("href", "#overview")
-    expect(page.get_by_role("tab", name="Timestamps")).to_have_attribute("href", "#timestamps")
-    expect(page.get_by_role("tab", name="Transcript")).to_have_attribute("href", "#transcript")
-    expect(page.locator("#overview .episode-resource-list a[target='_blank']")).to_have_count(
-        len(episode["resources"])
-    )
+    # One reading column, no tabs: every section is on the page in order.
+    expect(page.get_by_role("tab")).to_have_count(0)
+    for heading in ("What we talked about", "Chapters"):
+        expect(page.get_by_role("heading", level=2, name=heading)).to_be_visible()
+    expect(page.locator("#transcript-heading")).to_be_visible()
     guests = episode["guest_profiles"]
     expect(page.locator(".guest-card-name a").first).to_have_text(guests[0]["name"])
     # Every guest card carries that guest's own profile links, as icon buttons.
@@ -112,9 +108,6 @@ def test_timestamp_enhancement_updates_player_and_keeps_native_target(
     page.goto(f"{live_server.url}{episode['public_path']}", wait_until="networkidle")
     _settle_analytics_preferences(page)
 
-    # Timestamps is not the default tab (Overview is); activate it first so the
-    # panel is actually visible and its links can receive real keyboard focus.
-    page.get_by_role("tab", name="Timestamps").click()
     timestamp = page.locator("#timestamps .chapter-time").first
     expect(timestamp).to_have_attribute("href", _timestamp_href(episode))
     timestamp.focus()
@@ -127,7 +120,7 @@ def test_timestamp_enhancement_updates_player_and_keeps_native_target(
     expect(timestamp).to_be_focused()
 
 
-def test_reading_sections_become_a_wai_aria_tablist_with_overview_first(
+def test_chapters_fold_past_eight_and_the_transcript_opens_as_one_fold(
     page: Page,
     live_server,
 ) -> None:
@@ -136,50 +129,28 @@ def test_reading_sections_become_a_wai_aria_tablist_with_overview_first(
     page.goto(f"{live_server.url}{episode['public_path']}", wait_until="networkidle")
     _settle_analytics_preferences(page)
 
-    tablist = page.get_by_role("tablist", name="Episode sections")
-    expect(tablist).to_be_visible()
+    rows = page.locator("#timestamps .chapter-row")
+    total = rows.count()
+    more = page.locator("[data-chapters-more]")
+    if total > 10:
+        # The script folds the list past the eighth chapter and offers the rest.
+        expect(rows.nth(7)).to_be_visible()
+        expect(rows.nth(8)).to_be_hidden()
+        expect(more).to_have_text(f"Show all {total} chapters")
+        more.click()
+        expect(rows.nth(total - 1)).to_be_visible()
+        expect(rows.nth(8).locator("a")).to_be_focused()
+    else:
+        expect(more).to_have_count(0)
+        expect(rows.nth(total - 1)).to_be_visible()
 
-    overview_tab = page.get_by_role("tab", name="Overview")
-    timestamps_tab = page.get_by_role("tab", name="Timestamps")
-    transcript_tab = page.get_by_role("tab", name="Transcript")
-
-    # Overview is the default panel: selected, in the tab order, and visible.
-    expect(overview_tab).to_have_attribute("aria-selected", "true")
-    expect(overview_tab).to_have_attribute("tabindex", "0")
-    expect(timestamps_tab).to_have_attribute("aria-selected", "false")
-    expect(timestamps_tab).to_have_attribute("tabindex", "-1")
-    expect(transcript_tab).to_have_attribute("aria-selected", "false")
-    expect(transcript_tab).to_have_attribute("tabindex", "-1")
-
-    overview_panel = page.locator("#overview")
-    timestamps_panel = page.locator("#timestamps")
-    transcript_panel = page.locator("#transcript")
-    expect(overview_panel).to_be_visible()
-    expect(overview_panel).to_have_attribute("role", "tabpanel")
-    expect(timestamps_panel).to_be_hidden()
-    expect(transcript_panel).to_be_hidden()
-
-    # Clicking another tab swaps the selected state and the visible panel.
-    timestamps_tab.click()
-    expect(timestamps_tab).to_have_attribute("aria-selected", "true")
-    expect(overview_tab).to_have_attribute("aria-selected", "false")
-    expect(timestamps_panel).to_be_visible()
-    expect(overview_panel).to_be_hidden()
-    expect(transcript_panel).to_be_hidden()
-
-    # Arrow-key navigation moves focus and activates the next tab, per the
-    # WAI-ARIA tabs pattern's automatic-activation model.
-    timestamps_tab.focus()
-    page.keyboard.press("ArrowRight")
-    expect(transcript_tab).to_be_focused()
-    expect(transcript_tab).to_have_attribute("aria-selected", "true")
-    expect(transcript_panel).to_be_visible()
-    expect(timestamps_panel).to_be_hidden()
-
-    page.keyboard.press("ArrowLeft")
-    expect(timestamps_tab).to_be_focused()
-    expect(timestamps_tab).to_have_attribute("aria-selected", "true")
-    expect(timestamps_panel).to_be_visible()
+    fold = page.locator("#transcript details")
+    expect(fold).not_to_have_attribute("open", "")
+    expect(page.locator("#transcript .transcript-body")).to_be_hidden()
+    page.locator("#transcript summary").press("Enter")
+    expect(fold).to_have_attribute("open", "")
+    expect(page.locator("#transcript .transcript-body")).to_be_visible()
+    expect(page.get_by_role("link", name="Download the transcript (.txt)")).to_be_visible()
 
 
 def test_timestamp_and_section_links_remain_native_without_javascript(
@@ -200,16 +171,14 @@ def test_timestamp_and_section_links_remain_native_without_javascript(
             wait_until="domcontentloaded",
         )
         assert response is not None and response.status == 200
-        # Panel headings are screen-reader only (the tab label says it); the
-        # panels themselves are all there.
         expect(page.locator("#overview-heading")).to_have_count(1)
         expect(page.locator("#timestamps-heading")).to_have_count(1)
         expect(page.locator("#transcript-heading")).to_have_count(1)
         expect(page.locator("#overview")).to_be_visible()
-        # No JavaScript ran, so the tabs script never rewrote the nav or hid any
-        # panel: all three stay stacked and reachable through the plain anchors.
-        expect(page.locator(".episode-tabs")).not_to_have_attribute("role", "tablist")
+        # No JavaScript ran, so nothing is folded: every chapter shows.
         expect(page.locator("#timestamps")).to_be_visible()
+        expect(page.locator("#timestamps .chapter-row").last).to_be_visible()
+        expect(page.locator("[data-chapters-more]")).to_be_hidden()
         expect(page.locator("#transcript")).to_be_visible()
         expect(page.locator("#timestamps .chapter-time").first).to_have_attribute(
             "href", _timestamp_href(episode)
