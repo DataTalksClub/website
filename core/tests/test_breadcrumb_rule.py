@@ -60,8 +60,6 @@ TRAILED = (
     "courses/templates/projects/stats.html",
     "courses/templates/projects/site_gallery.html",
     # Academy pages below the Academy home.
-    "academy/templates/academy/article.html",
-    "academy/templates/academy/articles.html",
     "academy/templates/academy/faq.html",
     "academy/templates/academy/guide.html",
     "academy/templates/academy/legal.html",

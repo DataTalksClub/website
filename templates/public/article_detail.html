@@ -1,6 +1,6 @@
 {% load breadcrumbs seo people %}
 <!DOCTYPE html>
-<html lang="en" class="no-js">
+<html lang="{{ html_lang|default:'en' }}" class="no-js">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,6 +11,9 @@
     <title>{{ seo_title }}</title>
     {% canonical_link canonical_url %}
     <meta name="description" content="{{ seo_description }}">
+    {% if page.noindex %}
+      <meta name="robots" content="noindex">
+    {% endif %}
     <meta property="og:type" content="{{ og_type|default:'article' }}">
     <meta property="og:site_name" content="DataTalks.Club">
     <meta property="og:title" content="{{ seo_title }}">
@@ -38,6 +41,20 @@
         {{ structured_data|safe }}
       </script>
     {% endif %}
+    {% comment %}
+      An Academy article (academy.presentation) publishes its structured data
+      as a list of script-safe documents, and an English guide names the
+      German page it translates.
+    {% endcomment %}
+    {% for item in json_ld %}
+      <script type="application/ld+json">{{ item }}</script>
+    {% endfor %}
+    {% if alternates %}
+      <link rel="alternate" hreflang="{{ html_lang|default:'en' }}" href="{{ canonical_url }}">
+    {% endif %}
+    {% for alternate in alternates %}
+      <link rel="alternate" hreflang="{{ alternate.lang }}" href="{{ alternate.href }}">
+    {% endfor %}
     <style>
       /* ------------------------------------------------------------------ *
        * Blog article, design system (issue #179).  One inline stylesheet: the
@@ -117,6 +134,24 @@
         margin-bottom: var(--space-eyebrow);
         margin-top: calc(var(--space-3) * -1);
       }
+
+      /* The optional slots an Academy article fills (academy.presentation):
+         its recording above the prose, its own questions below it, the pages
+         it points on to, and its one closing action.  A blog post fills none
+         of them. */
+      .article-extra,
+      .article-related {
+        margin-top: var(--space-section);
+      }
+
+      .article-extra > h2,
+      .article-related > h2 {
+        margin-bottom: var(--space-head);
+      }
+
+      {% if article_styles_template %}
+        {% include article_styles_template %}
+      {% endif %}
 
       .article-head {
         display: grid;
@@ -296,6 +331,9 @@
               where it read as a low-resolution letterboxed plate above the
               first paragraph.  The reading band therefore opens on the prose.
             {% endcomment %}
+            {% if article_media_template %}
+              {% include article_media_template %}
+            {% endif %}
             {% if article.sponsor %}
               {% comment %}
                 A sponsored post says so before the reader starts, not after
@@ -330,8 +368,53 @@
                 {% include "public/_prose_blocks.html" with sections=article.sections_after_faq %}
               </div>
             {% endif %}
+            {% if article_extra_template %}
+              {% include article_extra_template %}
+            {% endif %}
+            {% if related_cards %}
+              {% comment %}
+                The pages the article points on to, as the wiki's related-topic
+                cards: the title and the one-line summary the linked page's own
+                record carries, on the card-list column under the prose.
+              {% endcomment %}
+              <section class="article-related shell-breakout shell-breakout-cards" aria-labelledby="related-heading">
+                <h2 id="related-heading">{{ related_heading }}</h2>
+                <div class="card-grid related-grid">
+                  {% for card in related_cards %}
+                    <article class="event-item interactive-card interactive-lift related-card">
+                      <div class="event-item-body">
+                        {% spaceless %}
+                        <h3>
+                          <a href="{{ card.url }}">{{ card.title }}</a>
+                        </h3>
+                        {% endspaceless %}
+                        {% if card.summary %}
+                          <p>{{ card.summary }}</p>
+                        {% endif %}
+                      </div>
+                    </article>
+                  {% endfor %}
+                </div>
+              </section>
+            {% endif %}
           </div>
         </section>
+        {% if closing_cta %}
+          {% comment %}
+            The page's one primary action, in the site's closing stripe (the
+            band the blog closes on, core/_tour_cta.html, which the Academy's
+            own pages leave out).
+          {% endcomment %}
+          <section class="band band-ink" aria-labelledby="join-heading">
+            <div class="shell tour-cta">
+              <div>
+                <h2 id="join-heading">{{ closing_cta.heading }}</h2>
+                <p>{{ closing_cta.text }}</p>
+              </div>
+              <a class="cta cta-primary interactive-lift" href="{{ closing_cta.href }}">{{ closing_cta.label }}</a>
+            </div>
+          </section>
+        {% endif %}
       </article>
     </main>
     {% include "core/_site_shell_foot.html" %}

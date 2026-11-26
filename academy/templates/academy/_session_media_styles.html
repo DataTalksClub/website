@@ -1,10 +1,15 @@
 {% comment %}
-  The recap recording frame and slides link (_session_media.html).  The
+  The recap recording frame and slides link (_session_media.html), in the
+  shared article template's styles.  The
   frame is the system's .player-frame with its .play-disc; these rules only
   place the label, the facade and the built player.
 {% endcomment %}
+      .academy-session-media {
+        margin-bottom: var(--space-section);
+      }
+
       .academy-session-media h2 {
-        margin-bottom: 1rem;
+        margin-bottom: var(--space-head);
       }
 
       .academy-recording {

@@ -11,6 +11,9 @@
     <title>{{ seo_title }}</title>
     {% canonical_link canonical_url %}
     <meta name="description" content="{{ seo_description }}">
+    {% if page.noindex %}
+      <meta name="robots" content="noindex">
+    {% endif %}
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="DataTalks.Club">
     <meta property="og:title" content="{{ seo_title }}">
@@ -21,6 +24,9 @@
     <meta name="twitter:title" content="{{ seo_title }}">
     <meta name="twitter:description" content="{{ seo_description }}">
     {% include "public/_page_relations.html" %}
+    {% for item in json_ld %}
+      <script type="application/ld+json">{{ item }}</script>
+    {% endfor %}
     <style>
       /* ------------------------------------------------------------------ *
        * Collection hub, design system (issue #179).  One template behind the
@@ -105,6 +111,8 @@
                 <h1 class="page-title" id="collection-heading">Podcast</h1>
               {% elif collection == "people" %}
                 <h1 class="page-title" id="collection-heading">People</h1>
+              {% elif collection == "academy" %}
+                <h1 class="page-title" id="collection-heading">{{ data.heading }}</h1>
               {% else %}
                 <h1 class="page-title" id="collection-heading">Book of the Week</h1>
               {% endif %}
@@ -115,6 +123,8 @@
                   same page already publishes in its head.
                 {% endcomment %}
                 <p class="collection-lede">{{ seo_description }}</p>
+              {% elif collection == "academy" %}
+                <p class="collection-lede">{{ data.lead }}</p>
               {% elif collection == "podcasts" %}
                 <p class="collection-lede">
                   Listen to {{ collection_total }} conversations with data science experts, machine learning practitioners,
@@ -176,7 +186,7 @@
         <div class="shell shell-reading">
           <div class="band-head">
             <div>
-              {% if collection == "articles" %}
+              {% if collection == "articles" or collection == "academy" %}
                 <h2 id="collection-list-heading">All articles</h2>
               {% elif collection == "podcasts" %}
                 <h2 id="collection-list-heading">All episodes</h2>
@@ -211,7 +221,7 @@
               {% endif %}
             {% empty %}
               <p class="collection-empty">
-                {% if collection == "articles" %}
+                {% if collection == "articles" or collection == "academy" %}
                   No articles yet.
                 {% elif collection == "podcasts" %}
                   No episodes yet.

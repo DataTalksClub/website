@@ -29,6 +29,14 @@ from .calendars import calendar_for
 
 ACADEMY_ROOT = presentation.ACADEMY_ROOT
 
+#: Layouts the Academy draws with the site's shared templates rather than one of
+#: its own: an article reads like a blog post, and the article index lists like
+#: the blog index.  Every other layout is ``academy/<layout>.html``.
+SHARED_TEMPLATES = {
+    "article": "public/article_detail.html",
+    "articles": "public/collection_hub.html",
+}
+
 
 def _backend_connect_sources() -> str:
     origin = settings.ACADEMY_API_ORIGIN.rstrip("/")
@@ -67,7 +75,8 @@ def page(request: HttpRequest, path: str = "") -> HttpResponse:
         context = presentation.page_context(record, shared, catalogue.academy_pages())
     except LookupError as error:
         raise Http404 from error
-    response = render(request, f"academy/{record['layout']}.html", context)
+    layout = record["layout"]
+    response = render(request, SHARED_TEMPLATES.get(layout, f"academy/{layout}.html"), context)
     response["Content-Security-Policy"] = academy_csp()
     return _private(response)
 

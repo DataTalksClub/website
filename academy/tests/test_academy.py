@@ -49,9 +49,19 @@ TEMPLATES = (
     "guide",
     "faq",
     "legal",
-    "article",
-    "articles",
 )
+#: Where a page drawn with the blog's article template starts its reading band.
+READING_BAND = 'class="band band-lavender article-read"'
+#: The pages drawn with the site's shared templates (``academy.views.SHARED_TEMPLATES``):
+#: the article index lists like the blog index, an article reads like a blog post.
+SHARED_TEMPLATE_HEADERS = {
+    "/academy/guides/": ("band band-cream collection-hero", "band band-lavender"),
+    "/academy/guides/synthetic/": (
+        "band band-cream article-hero",
+        "band band-lavender article-read",
+    ),
+    "/academy/sessions/recap/": ("band band-cream article-hero", "band band-lavender article-read"),
+}
 
 
 def _clear_academy() -> None:
@@ -122,8 +132,15 @@ class AcademyPageTests(TestCase):
                 self.assertEqual(response.resolver_match.app_name, "academy")
                 body = response.content.decode()
                 self.assertIn('<header class="masthead">', body)
-                self.assertIn('class="band band-cream content-page-header', body)
-                self.assertIn('class="band band-lavender content-page-content', body)
+                header, content = SHARED_TEMPLATE_HEADERS.get(
+                    path,
+                    (
+                        "band band-cream content-page-header",
+                        "band band-lavender content-page-content",
+                    ),
+                )
+                self.assertIn(f'class="{header}', body)
+                self.assertIn(f'class="{content}', body)
                 self.assertIn("site-footer", body)
                 self.assertEqual(body.count("<style>"), 1)
                 self.assertNotIn('rel="stylesheet"', body)
@@ -142,8 +159,9 @@ class AcademyPageTests(TestCase):
                 self.assertNotIn("academy-links", body)
                 self.assertNotIn("©", body)
                 # Every page below the Academy home carries the trail; the
-                # home and the email confirmation step do not.
-                if path in {"/academy/", "/academy/confirm/"}:
+                # home, the email confirmation step and the article index (a
+                # hub, like the blog index) do not.
+                if path in {"/academy/", "/academy/confirm/", "/academy/guides/"}:
                     self.assertNotIn('breadcrumbs" aria-label="Breadcrumb"', body)
                 else:
                     self.assertIn('breadcrumbs" aria-label="Breadcrumb"', body)
@@ -247,8 +265,8 @@ class AcademyPageTests(TestCase):
         response = self.client.get("/academy/sessions/recap/")
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
-        header = body[: body.index("content-page-content")]
-        self.assertIn('<h1 id="academy-heading">Synthetic recap heading</h1>', header)
+        header = body[: body.index(READING_BAND)]
+        self.assertIn('<h1 id="article-heading">Synthetic recap heading</h1>', header)
         self.assertIn("Synthetic recap lead.", header)
         self.assertIn('<time datetime="2026-11-23">Nov 23, 2026</time>', header)
         self.assertIn("1 min read", header)
@@ -257,8 +275,8 @@ class AcademyPageTests(TestCase):
         # under the article index; the trail stops there and the h1 names it.
         self.assertIn('href="/academy/sessions/">Synthetic Series</a>', header)
         self.assertNotIn('<li aria-current="page">', header)
-        content = body[body.index("content-page-content") :]
-        self.assertIn("<h2>Synthetic recap section</h2>", content)
+        content = body[body.index(READING_BAND) :]
+        self.assertIn('<h2 id="synthetic-recap-section">Synthetic recap section</h2>', content)
         self.assertIn('<a href="/academy/ai-engineering/">a program</a>', content)
         self.assertIn("<li>synthetic point</li>", content)
         # A marked standalone link in the body is the shared secondary action.
@@ -270,10 +288,18 @@ class AcademyPageTests(TestCase):
         )
         self.assertNotIn("{.button}", body)
         self.assertIn('href="/academy/agentic-engineering/">Synthetic AE program</a>', content)
+        # The pages it points on to are the wiki's related cards, each with the
+        # summary the linked page's own record gives (none for an outside page).
+        related = content[content.index('id="related-heading"') :]
+        related = related[: related.index("</section>")]
+        self.assertIn("Synthetic read next", related)
+        self.assertEqual(related.count('interactive-lift related-card"'), 2)
+        self.assertIn("<p>Agentic Engineering synthetic description.</p>", related)
+        self.assertEqual(related.count("<p>"), 1)
         self.assertIn('href="https://example.invalid/post">Synthetic outside link</a>', content)
         # A table scrolls inside the system's named frame.
         self.assertIn(
-            '<div class="prose-scroll" role="region" tabindex="0" aria-label="Table 1"><table>',
+            '<div class="prose-scroll" role="region" tabindex="0" aria-label="Table 1">',
             content,
         )
         self.assertIn('id="faq-1"', content)
@@ -285,6 +311,9 @@ class AcademyPageTests(TestCase):
         self.assertIn('href="/academy/#signup-hero"', closing)
         self.assertIn("Join the synthetic list", closing)
         self.assertEqual(content.count('id="join-heading"'), 1)
+        # The closing action is the site's closing stripe, the one primary action.
+        self.assertEqual(content.count('class="band band-ink"'), 1)
+        self.assertEqual(content.count("cta cta-primary"), 1)
         self.assertNotIn("data-academy-signup", body)
         self.assertContains(
             response,
@@ -295,7 +324,7 @@ class AcademyPageTests(TestCase):
 
     def test_a_recap_without_a_recording_says_it_is_coming_and_links_the_slides(self) -> None:
         body = self.client.get("/academy/sessions/recap/").content.decode()
-        content = body[body.index("content-page-content") :]
+        content = body[body.index(READING_BAND) :]
         media = content[content.index("data-session-media") :]
         media = media[: media.index("</section>")]
         self.assertIn("Recording and slides", media)
@@ -903,6 +932,18 @@ class AcademySyncTests(TestCase):
 
 
 class AcademyTemplateContractTests(SimpleTestCase):
+    def test_articles_use_the_blog_templates_rather_than_their_own(self) -> None:
+        from academy.views import SHARED_TEMPLATES
+
+        self.assertEqual(
+            SHARED_TEMPLATES,
+            {"article": "public/article_detail.html", "articles": "public/collection_hub.html"},
+        )
+        for layout in SHARED_TEMPLATES:
+            self.assertFalse(
+                (REPOSITORY_ROOT / f"academy/templates/academy/{layout}.html").exists()
+            )
+
     def test_every_page_extends_the_shared_content_page(self) -> None:
         for name in TEMPLATES:
             with self.subTest(template=name):

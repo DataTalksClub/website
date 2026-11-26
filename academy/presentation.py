@@ -10,6 +10,7 @@ reads.  It invents no copy.
 
 from __future__ import annotations
 
+import html
 import json
 import re
 from collections.abc import Mapping, Sequence
@@ -19,12 +20,16 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.utils import timezone
+from django.utils.html import strip_tags
 from django.utils.safestring import SafeString, mark_safe
 
 from academy.templatetags.academy_text import academy_inline, academy_markdown
 from content import catalogue
+from content import projection_helpers as builder
+from content.article_content import ArticleView, Author, ProseSection, prose_sections
+from content.article_faq import FaqQuestion
 from core.breadcrumbs import Trail, trail
-from core.home_content import READING_WORDS_PER_MINUTE
+from core.home_content import published_display, reading_minutes
 
 Record = Mapping[str, Any]
 
@@ -104,7 +109,12 @@ def syllabus_phases(phases: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]
 
 
 def articles(pages: Sequence[Record]) -> list[dict[str, Any]]:
-    """The article pages (recaps, guides), newest first."""
+    """The article pages (recaps, guides), newest first.
+
+    Each entry also carries the fields of a blog article record that the
+    shared archive row reads (``public/_article_row.html``), so the article
+    index is drawn by the blog's own list template.
+    """
 
     held = [page for page in pages if page.get("layout") == "article"]
     held.sort(key=lambda page: (page["data"]["published"], page["public_path"]), reverse=True)
@@ -114,9 +124,87 @@ def articles(pages: Sequence[Record]) -> list[dict[str, Any]]:
             "heading": page["data"]["heading"],
             "lead": page["data"]["lead"],
             "published": date.fromisoformat(page["data"]["published"]),
+            "title": page["data"]["heading"],
+            "public_path": page["public_path"],
+            "description": page["data"]["lead"],
+            "author_profiles": [author_credit(page["data"]["author"])],
         }
         for page in held
     ]
+
+
+def article_view(
+    page: Record,
+    split: Mapping[str, Any],
+    questions: Sequence[Mapping[str, str]],
+    faq_heading: str,
+) -> ArticleView:
+    """An article page as the value the blog's article template draws.
+
+    The Markdown body (``split``: the body with its "## FAQ" section lifted out,
+    ``split_body_faq``) is cut into the same blocks a blog article's body is
+    synced to, so the two read through one prose renderer.  The questions are
+    drawn by the template's FAQ block under their heading, where the section
+    stood, and whatever followed it continues below.
+    """
+
+    data = page["data"]
+    blocks = _body_blocks(split["body"])
+    sections = prose_sections(blocks)
+    if questions:
+        sections = (
+            *sections,
+            ProseSection(kind="heading", level=2, id="faq-heading", text=faq_heading),
+        )
+    credit = author_credit(data["author"])
+    return ArticleView(
+        title=data["heading"],
+        subtitle=data["lead"],
+        public_path=page["public_path"],
+        published=data["published"],
+        published_display=published_display(data["published"]),
+        reading_minutes=reading_minutes({"blocks": _body_blocks(page["body"])}),
+        authors=(
+            Author(
+                name=credit["name"],
+                public_path=credit.get("public_path", ""),
+                image_path="",
+                media_available=False,
+            ),
+        ),
+        sections=sections,
+        faq=tuple(
+            FaqQuestion(
+                id=item["id"],
+                question=item["question"],
+                answer_html=item["answer_html"],
+                answer_text=html.unescape(strip_tags(item["answer_html"])).strip(),
+            )
+            for item in questions
+        ),
+        sections_after_faq=prose_sections(_body_blocks(split["body_after"])),
+    )
+
+
+def _body_blocks(body: str) -> list[dict[str, Any]]:
+    return builder._article_blocks(body, media_root=None, counters={}) if body.strip() else []
+
+
+def related_cards(links: Sequence[Record], pages: Sequence[Record]) -> list[dict[str, str]]:
+    """The pages an article points on to, each with the summary its own record gives."""
+
+    by_path = {page["public_path"]: page for page in pages}
+    cards = []
+    for link in links:
+        target = by_path.get(re.split(r"[?#]", link["href"], maxsplit=1)[0])
+        cards.append(
+            {
+                "title": link["label"],
+                "url": link["href"],
+                "summary": target["description"] if target else "",
+            }
+        )
+    return cards
 
 
 def author_credit(name: str) -> dict[str, str]:
@@ -478,27 +566,57 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
         context["faq_items"] = faq_items(data["items"], "question")
 
     elif layout == "articles":
-        context["articles"] = articles(pages)
+        # Drawn by the blog index's template (public/collection_hub.html).
+        context.update(
+            {
+                "seo_title": page["title"],
+                "seo_description": page["description"],
+                "collection": "academy",
+                "records": articles(pages),
+            }
+        )
 
     elif layout == "article":
         # Questions come from the record's own `faq` section or, in a guide or
         # recap, from the "## FAQ" section that closes its Markdown body.
         split = split_body_faq(page["body"])
-        context["article_body"] = split["body"]
-        context["article_body_after"] = split["body_after"]
-        context["faq_heading"] = (data.get("faq") or {}).get("heading") or split["heading"]
-        context["faq_items"] = [
+        questions = [
             {**item, "id": f"faq-{number}"}
             for number, item in enumerate(
                 [*faq_items((data.get("faq") or {}).get("items") or [], "faq"), *split["items"]],
                 start=1,
             )
         ]
-        context["published"] = date.fromisoformat(data["published"])
-        context["author"] = author_credit(data["author"])
-        # Written the way the blog article writes its estimate.
-        words = len(page["body"].split())
-        context["reading_time"] = f"{max(1, round(words / READING_WORDS_PER_MINUTE))} min read"
+        faq_heading = (data.get("faq") or {}).get("heading") or split["heading"]
+        # Drawn by the blog's article template (public/article_detail.html):
+        # the same hero, trail, reading column, prose and FAQ block, with the
+        # Academy's recording, related pages and closing action in the
+        # template's optional slots.
+        context.update(
+            {
+                "seo_title": page["title"],
+                "seo_description": page["description"],
+                "og_type": "article",
+                "published_time": data["published"],
+                "article": article_view(page, split, questions, faq_heading),
+                "article_styles_template": "academy/_session_media_styles.html",
+                "article_media_template": (
+                    "academy/_session_media.html"
+                    if data.get("recording") or data.get("slides")
+                    else ""
+                ),
+                "related_heading": data["related"]["heading"] if data.get("related") else "",
+                "related_cards": (
+                    related_cards(data["related"]["links"], pages) if data.get("related") else []
+                ),
+                "closing_cta": {
+                    "heading": data["join"]["heading"],
+                    "text": data["join"]["text"],
+                    "href": data["join"].get("href") or f"{ACADEMY_ROOT}#signup-hero",
+                    "label": data["join"].get("label") or shared["waitlist_button"],
+                },
+            }
+        )
         schema.append(
             {
                 "@context": "https://schema.org",

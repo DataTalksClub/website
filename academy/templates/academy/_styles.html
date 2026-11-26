@@ -945,7 +945,7 @@
         color: var(--indigo);
       }
 
-      /* --- the reading column (articles, legal pages) ---------------------- *
+      /* --- the reading column (legal pages) ------------------------------- *
        * The blog article's column: the reading width, centred, with the
        * heading, standfirst, date and byline on the same column as the body
        * and the prose filling it rather than stopping at the measure. */
@@ -964,32 +964,13 @@
         margin-top: calc(var(--space-3) * -1);
       }
 
-      .academy-article-head {
-        display: grid;
-        gap: 0.9rem;
-        justify-items: start;
-      }
-
       /* The blog article's heading: its size, and wrapped as running text
          rather than balanced into a narrow block. */
-      .academy-hero .academy-article-head h1,
       .academy-hero h1.academy-article-column {
         font-size: clamp(1.9rem, 4.2vw, 2.75rem);
         letter-spacing: -0.025em;
         margin-top: 0;
         text-wrap: wrap;
-      }
-
-      .academy-article-body.prose-reading {
-        max-width: none;
-      }
-
-      /* The closing panel of a reading page is its own chapter, framed like
-         every other: a dashed seam and the chapter spacing above it. */
-      .academy-article-closing > .academy-section:first-child {
-        border-top: var(--seam);
-        margin-top: 3rem;
-        padding-top: 2.75rem;
       }
 
       .academy-related {
