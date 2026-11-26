@@ -5489,6 +5489,71 @@ Rules for editing:
         line-height: 1.6;
       }
 
+      /* The named elements an article body places with a fenced block
+         (public/_prose_component.html, content/article_components.py): the
+         spec strip, cards, the steps component and a callout, each set into
+         the text like a framed block. */
+      .prose > * + :is(.prose-facts, .prose-cards, .prose-callout, .steps-frame),
+      .prose > :is(.prose-facts, .prose-cards, .prose-callout, .steps-frame) + :not(h2) {
+        margin-top: var(--space-5);
+      }
+
+      .prose-facts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .prose-facts dt {
+        display: block;
+      }
+
+      .prose-facts dd {
+        color: var(--ink);
+        font-size: 0.92rem;
+        font-weight: 700;
+        margin: 0;
+        text-wrap: balance;
+      }
+
+      .prose-cards {
+        gap: var(--space-grid);
+      }
+
+      .prose-card {
+        align-content: start;
+        display: grid;
+        gap: var(--space-3);
+        padding: var(--space-card);
+      }
+
+      .prose-card h3 {
+        font-size: 1.05rem;
+        margin: 0;
+      }
+
+      .prose-card-body > * + * {
+        margin-top: var(--space-2);
+      }
+
+      .prose-card .cta {
+        justify-self: start;
+      }
+
+      @media (min-width: 40rem) {
+        .prose-facts {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .prose-cards {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 62rem) {
+        .prose-facts {
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+      }
+
       /* Source paragraphs carry their own line breaks; the block keeps them. */
       .prose-paragraph {
         white-space: pre-line;

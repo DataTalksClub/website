@@ -1159,6 +1159,11 @@ Modifiers:
 - **`.prose-action`** — a CTA inside a body uses the `{.button}` marker: a standalone
   `[Label](url){.button}` line renders as this paragraph holding the shared `.cta` control
   (`core.markdown_actions`, documented in `_docs/content-authoring.md`).
+- **`.prose-facts` / `.prose-cards` / `.prose-callout` / steps** — the elements a body places
+  with a named fenced block (```` ```facts ````, ```` ```cards ````, ```` ```steps ````,
+  ```` ```callout ````): the spec strip, soft cards, the numbered-steps component and the
+  callout, each set into the text with framed-block spacing (`content.article_components`,
+  `public/_prose_component.html`, documented in `_docs/content-authoring.md`).
 
 A richer body also carries `h4`–`h6` continuing the ladder, real `ul`/`ol`/`li`,
 `--ink` strong, an italic `blockquote` on the card surface inside the soft media frame,

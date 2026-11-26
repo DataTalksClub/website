@@ -1,0 +1,43 @@
+{% comment %}
+  One named element an article body placed with a fenced block
+  (content.article_components; the author's list is in
+  _docs/content-authoring.md), drawn with the site's own component for it.
+
+  The strip and the cards take the card-list column on the reading column's
+  axis (`.shell-breakout-cards`), the way the related cards under an article
+  do, so six facts sit on one row and two cards keep a readable width.
+
+  component  the rendered element: `name` plus that element's fields.  Card and
+             callout bodies arrive as markup the composition already put
+             through the shared sanitizer, which is why they are marked safe.
+{% endcomment %}
+{% if component.name == "facts" %}
+  <dl class="spec-strip prose-facts shell-breakout shell-breakout-cards" aria-label="{{ component.label }}">
+    {% for fact in component.items %}
+      <div class="spec">
+        <dt class="mono-label">{{ fact.label }}</dt>
+        <dd>{{ fact.value }}</dd>
+      </div>
+    {% endfor %}
+  </dl>
+{% elif component.name == "cards" %}
+  <div class="card-grid prose-cards shell-breakout shell-breakout-cards">
+    {% for card in component.items %}
+      <article class="card prose-card">
+        <h3>{{ card.title }}</h3>
+        <div class="prose-card-body">
+          {{ card.body_html|safe }}
+        </div>
+        {% if card.link %}
+          {% include "core/_button.html" with href=card.link.href label=card.link.label variant="secondary" %}
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+{% elif component.name == "steps" %}
+  {% include "core/_steps.html" with steps=component.items heading_level=4 only %}
+{% elif component.name == "callout" %}
+  <aside class="callout callout-{{ component.variant }} prose-callout">
+    {{ component.body_html|safe }}
+  </aside>
+{% endif %}

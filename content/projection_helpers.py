@@ -29,6 +29,7 @@ from urllib.parse import parse_qs, quote, urlsplit, urlunsplit
 
 import yaml
 
+from content.article_components import COMPONENT_FENCES, ComponentError, component_block
 from content.podcast_resources import (
     PodcastResourceError,
     normalize_podcast_resource,
@@ -1226,6 +1227,16 @@ def _article_blocks(
                 collected.append(lines[index])
                 index += 1
             index += 1
+            element = fence.group(2).casefold()
+            if element in COMPONENT_FENCES:
+                # A named element (content.article_components), not a code sample.
+                try:
+                    blocks.append(component_block(element, "\n".join(collected)))
+                except ComponentError as error:
+                    raise ProjectionBuildError(
+                        f"article {element} block rejected: {error}"
+                    ) from error
+                continue
             counters["code_blocks"] = counters.get("code_blocks", 0) + 1
             code = "\n".join(collected).rstrip()
             if len(code) > MAX_ARTICLE_SEGMENT_CHARACTERS or "\x00" in code:

@@ -132,6 +132,8 @@
         <p class="prose-paragraph">{{ section.text }}</p>
       </blockquote>
     {% endif %}
+  {% elif section.kind == "component" %}
+    {% include "public/_prose_component.html" with component=section.component only %}
   {% elif section.kind == "separator" %}
     <hr>
   {% elif section.kind == "chart" %}

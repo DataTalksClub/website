@@ -188,6 +188,61 @@ Subscribe to get the rest of the articles as they're published:
 It renders as `<p class="prose-action">` holding the `templates/core/_button.html` control
 (`cta cta-secondary interactive-lift`, or `cta-primary`). The parser is `core.markdown_actions`.
 
+## Elements in a body: facts, cards, steps, callouts
+
+An article body (a blog article, an Academy guide or page) can place a few of the site's own
+components exactly where they belong in the text. Each is a fenced block whose info string names
+the element and whose content is YAML -- the same fence mechanism community-base uses for
+```` ```embed ```` and AI Shipping Labs for ```` ```eventwidget ````. Any other info string stays
+a code sample.
+
+````markdown
+```facts
+label: Key facts            # the strip's accessible name
+items:
+  - label: Start
+    value: April 2027
+  - label: Seats
+    value: 15
+```
+
+```cards                    # one to three cards
+items:
+  - title: Agentic Engineering
+    body: |                 # Markdown: paragraphs, lists, links
+      Ship software with coding agents.
+    link:                   # optional; drawn as the card's secondary button
+      label: More about Agentic Engineering
+      href: /academy/agentic-engineering/
+```
+
+```steps                    # the shared numbered steps (core/_steps.html)
+items:
+  - A line of text is a step.
+  - title: A step with a title
+    body: And a line under it.
+```
+
+```callout
+variant: info               # info (default), quiet or attention
+body: A short note, with [a link](/academy/faq/).
+```
+````
+
+- `facts` is the design system's spec strip; `cards` are the soft `.card`s, two to a row from the
+  tablet width; `steps` is the numbered-steps component; `callout` is `.callout`.
+- The fields are checked when the content syncs. A missing field, an unknown variant, more than
+  three cards or a link that is not a site path or `https://` address fails the sync with the
+  file named, so a broken block never reaches a page.
+- Markdown in `body` goes through the same sanitizer as the rest of the body. Raw HTML in a body is
+  still not a way to get a component.
+- A page's FAQ is not an element: write it as the closing `## FAQ` section with `###` questions,
+  and the page draws it with the FAQ block (`core/_faq.html`).
+- The one primary action stays the page's closing action; a card's link is a secondary button.
+
+The parser is `content.article_components`; the page draws each element in
+`templates/public/_prose_component.html`.
+
 ## Editing and provenance
 
 The operator-facing edit action opens the one authoritative file on the `main` branch of

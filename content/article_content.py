@@ -60,6 +60,7 @@ from core.home_content import published_display, reading_minutes
 from core.markdown_actions import markdown_buttons
 
 from .article_charts import ArticleChart, chart_view
+from .article_components import component_view
 from .article_faq import ArticleFaq, FaqQuestion
 from .services import sanitize_rendered_html
 
@@ -125,6 +126,13 @@ def render_body_markdown(markdown: str) -> tuple[str, bool]:
     return rendered, True
 
 
+def _block_html(markdown: str) -> str:
+    """A Markdown field of a body element as sanitized block markup."""
+
+    rendered, block_level = render_body_markdown(markdown)
+    return rendered if block_level else f"<p>{rendered}</p>"
+
+
 def _rendered(block: dict[str, Any]) -> tuple[str, bool]:
     markdown = block.get("markdown")
     if not isinstance(markdown, str) or not markdown.strip():
@@ -168,6 +176,8 @@ class ProseSection:
     head: tuple[str, ...] = ()
     rows: tuple[tuple[str, ...], ...] = ()
     chart: ArticleChart | None = None
+    # A named element the body placed (content.article_components), rendered.
+    component: dict[str, Any] | None = None
 
     @property
     def labelled_rows(self) -> tuple[tuple[TableCell, ...], ...]:
@@ -407,6 +417,11 @@ def prose_sections(blocks: Any) -> tuple[ProseSection, ...]:
             continue
         if kind == "separator":
             sections.append(ProseSection(kind="separator"))
+            continue
+        if kind == "component":
+            sections.append(
+                ProseSection(kind="component", component=component_view(block, _block_html))
+            )
             continue
         if kind == "chart":
             chart = chart_view(block)
