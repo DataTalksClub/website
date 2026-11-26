@@ -512,7 +512,11 @@ class AcademyPageTests(TestCase):
         self.assertNotContains(home, "Agentic Engineering outcome 1.")
         # The whole card is the link: the program name is its one anchor,
         # with no separate button.
-        self.assertContains(home, '<a href="/academy/agentic-engineering/">Agentic Engineering</a>', html=True)
+        self.assertContains(
+            home,
+            '<a href="/academy/agentic-engineering/">Agentic Engineering</a>',
+            html=True,
+        )
         self.assertNotContains(home, "Read about Agentic Engineering")
         program = self.client.get("/academy/agentic-engineering/")
         for text in (
