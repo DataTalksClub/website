@@ -43,7 +43,7 @@
        * ------------------------------------------------------------------ */
 
       .wrapped-hero .breadcrumbs {
-        margin-bottom: var(--space-2);
+        margin-bottom: var(--space-eyebrow);
         margin-top: calc(var(--space-3) * -1);
       }
 
@@ -151,7 +151,8 @@
         guarantees it is a pseudonym: there is deliberately no viewed-member
         object in the context to fall back to.
       {% endcomment %}
-      {% breadcrumbs year|stringformat:"s"|add:" Wrapped" wrapped_url current=display_name|add:"'s Wrapped" %}
+      {% url 'course_list' as course_list_url %}
+      {% breadcrumbs "Courses" course_list_url year|stringformat:"s"|add:" Wrapped" wrapped_url current=display_name|add:"'s Wrapped" %}
       {% if no_activity %}
         <h1 id="user-wrapped-heading">DataTalks.Club Wrapped {{ year }}</h1>
         <p class="wrapped-lede">{{ display_name }}'s year in review.</p>

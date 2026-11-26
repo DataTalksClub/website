@@ -45,6 +45,11 @@
 
       /* --- hero --------------------------------------------------------- */
 
+      .family-hero .breadcrumbs {
+        margin-bottom: var(--space-eyebrow);
+        margin-top: calc(var(--space-3) * -1);
+      }
+
       .family-hero-inner {
         align-items: center;
         display: grid;
@@ -678,6 +683,8 @@
 {% endblock %}
 
 {% block page_header %}
+        {% url 'course_list' as course_list_url %}
+        {% breadcrumbs "Courses" course_list_url current=course_family.title %}
         <div class="family-hero-inner">
           <div>
             <h1 id="family-heading">{{ course_family.title }}</h1>

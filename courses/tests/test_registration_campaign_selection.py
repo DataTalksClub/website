@@ -207,15 +207,16 @@ class RegistrationSurfaceTests(TestCase):
 
 
 class FamilyHeadingRepetitionTests(TestCase):
-    """The trail lists ancestors, the h1 says where you are, and neither repeats."""
+    """The trail ends with the page, the h1 names it, and the lede does not repeat it."""
 
-    def test_the_family_page_carries_no_breadcrumb_trail(self) -> None:
+    def test_the_family_page_trail_ends_with_the_family(self) -> None:
         make_family("de-zoomcamp", "Data Engineering Zoomcamp")
 
         response = self.client.get("/courses/de-zoomcamp")
 
-        self.assertNotContains(response, 'class="breadcrumbs"')
-        self.assertNotContains(response, 'aria-current="page">Data Engineering Zoomcamp')
+        # A page below the Courses hub: "Courses / <family>", like the blog.
+        self.assertContains(response, 'class="breadcrumbs"')
+        self.assertContains(response, '<li aria-current="page">Data Engineering Zoomcamp</li>')
         self.assertContains(response, "Data Engineering Zoomcamp</h1>")
 
     def test_a_description_that_is_only_the_title_is_not_rendered_as_a_lede(self) -> None:
@@ -224,7 +225,7 @@ class FamilyHeadingRepetitionTests(TestCase):
         family.save(update_fields=["description"])
 
         self.assertEqual(family_lede(family), "")
-        self.assertNotContains(self.client.get("/courses/de-zoomcamp"), "family-lede\">")
+        self.assertNotContains(self.client.get("/courses/de-zoomcamp"), 'family-lede">')
 
     def test_the_written_outcome_wins_over_a_readme_description(self) -> None:
         family = make_family("ai-dev-tools", "AI Dev Tools Zoomcamp")

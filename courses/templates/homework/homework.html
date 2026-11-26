@@ -30,9 +30,8 @@
   {% comment %}
     The module crumb, restored.  A learner reaches this page from a module rail
     that names "Homework 1: Agentic RAG"; without the module the trail forgot
-    the only step that was theirs.  The trail still stops at the parent — the
-    homework title is the h1 directly beneath it — and it keeps the quiet
-    shared treatment the course, module and unit trails now use.  A homework
+    the only step that was theirs.  The homework itself is the last crumb, as on
+    every page below a hub.  A homework
     with no module of its own names none, and the trail is the shell's three.
 
     Two module shapes reach this page: a `curriculum_format=modules` cohort's
@@ -44,10 +43,10 @@
   {% endcomment %}
   {% if shared_homework_module %}
     {% url 'shared_module' course_family.slug shared_homework_module.slug as shared_homework_module_url %}
-    {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url shared_homework_module.title shared_homework_module_url|add:context_q %}
+    {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url shared_homework_module.title shared_homework_module_url|add:context_q current=homework.title %}
   {% else %}
     {% url 'cohort_module' course.course.slug course.identifier homework_module.slug as homework_module_url %}
-    {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url homework_module.title homework_module_url %}
+    {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url homework_module.title homework_module_url current=homework.title %}
   {% endif %}
 {% endblock %}
 

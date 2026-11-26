@@ -75,7 +75,10 @@ class HomeworkSolutionTests(HomeworkDetailViewTestBase):
             page = client.get(self.solution_url)
             self.assertContains(page, "Synthetic explanation")
             self.assertContains(page, "synthetic-private-reference")
-            self.assertContains(page, "Back to Test Homework")
+            # The way back is the trail, ending with the solution itself.
+            self.assertContains(page, '<li aria-current="page">Solution</li>')
+            self.assertContains(page, ">Test Homework</a>")
+            self.assertNotContains(page, "Back to Test Homework")
             self.assertIn("noindex", page["X-Robots-Tag"])
             self.assertIn("no-store", page["Cache-Control"])
 

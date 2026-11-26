@@ -27,20 +27,18 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
             f'<h1 id="submission-heading">{self.homework.title}</h1>',
         )
         self.assertIn(self.course.title, breadcrumb.group(1))
-        self.assertNotIn(self.homework.title, breadcrumb.group(1))
+        self.assertIn(f'<li aria-current="page">{self.homework.title}</li>', breadcrumb.group(1))
         self.assertNotIn("Homework submission", body)
         self.assertIn('aria-labelledby="submission-heading"', body)
 
     def test_homework_questions_use_borderless_fieldsets_and_shared_field_primitives(self):
         response = self.get_homework_response()
         body = response.content.decode()
-        template_path = (
-            Path(__file__).resolve().parents[1] / "templates/homework/homework.html"
-        )
+        template_path = Path(__file__).resolve().parents[1] / "templates/homework/homework.html"
         template = template_path.read_text(encoding="utf-8")
-        extra_styles = template.split("{% block extra_styles %}", 1)[1].split(
-            "{% endblock %}", 1
-        )[0]
+        extra_styles = template.split("{% block extra_styles %}", 1)[1].split("{% endblock %}", 1)[
+            0
+        ]
         question_rule = re.search(r"\.question\s*\{(.*?)\}", extra_styles, re.DOTALL)
 
         self.assertIsNotNone(question_rule)
@@ -65,9 +63,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
             "homework-submit",
         ):
             with self.subTest(rule=duplicated):
-                self.assertIsNone(
-                    re.search(rf"^\s*\.{duplicated} \{{", extra_styles, re.MULTILINE)
-                )
+                self.assertIsNone(re.search(rf"^\s*\.{duplicated} \{{", extra_styles, re.MULTILINE))
         # The receding disabled edge, and the form that is a measure rather
         # than a box, now come from the design system this page used to scope
         # them out of, so the page states neither.
@@ -187,9 +183,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "homework/homework.html")
 
-        context = self.assert_homework_context(
-            response, is_authenticated=True
-        )
+        context = self.assert_homework_context(response, is_authenticated=True)
 
         self.assert_empty_question_answers(context["question_answers"])
         self.assertEqual(context["homework"].due_date, self.homework.due_date)

@@ -33,7 +33,7 @@
        * ------------------------------------------------------------------ */
 
       .enrollment-hero .breadcrumbs {
-        margin-bottom: var(--space-2);
+        margin-bottom: var(--space-eyebrow);
         margin-top: calc(var(--space-3) * -1);
       }
 
@@ -46,10 +46,6 @@
       .enrollment-lede {
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
         margin-top: var(--space-stack);
-      }
-
-      .enrollment-back {
-        margin-top: var(--space-5);
       }
 
       .enrollment-fields {
@@ -210,9 +206,8 @@
       }
 
       @media (max-width: 47.99rem) {
-        /* Reshape on a phone: both actions take the full width instead of
+        /* Reshape on a phone: the actions take the full width instead of
            sitting as narrow targets in a wrapped row. */
-        .enrollment-back .cta,
         .enrollment-actions .cta {
           width: 100%;
         }
@@ -240,11 +235,6 @@
           <p class="enrollment-lede">
             Update how your profile appears on the leaderboard and public score breakdown.
             Certificate name is managed in account settings.
-          </p>
-          <p class="enrollment-back">
-            <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'cohort' course.course.slug course.identifier %}">
-              Back to course
-            </a>
           </p>
         </div>
 {% endblock %}

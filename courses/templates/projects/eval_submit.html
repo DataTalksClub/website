@@ -190,13 +190,6 @@
   {% if review.optional %}
     <p class="project-note">You selected this review. You can remove it if you do not have time.</p>
   {% endif %}
-  <p>
-    {% if course.course %}
-      <a class="band-link" href="{% url 'cohort_projects_eval' course.course.slug course.identifier project.slug %}">Back to evaluations</a>
-    {% else %}
-      <a class="band-link" href="{% url 'cohort_projects_eval' course.slug project.slug %}">Back to evaluations</a>
-    {% endif %}
-  </p>
 {% endblock %}
 
 {% block hero_notices %}

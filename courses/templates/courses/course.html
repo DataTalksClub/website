@@ -476,12 +476,12 @@
 {% block page_header %}
         {% comment %}
           The trail the adopted shell used to draw, restored as a design system
-          primitive: every crumb is an ancestor index and a link.  It stops
-          before this cohort, which the heading underneath already names.
+          primitive: every crumb is an ancestor index and a link.  The
+          cohort's edition is the last crumb, as on every page below a hub.
         {% endcomment %}
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course_family.slug as course_family_url %}
-        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url current=course.identifier %}
         <div class="course-hero-inner">
           <h1 id="course-heading">{{ course.title }}</h1>
           {% if course.home_outcome %}

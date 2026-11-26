@@ -38,7 +38,7 @@
        * ------------------------------------------------------------------ */
 
       .registration-hero .breadcrumbs {
-        margin-bottom: var(--space-2);
+        margin-bottom: var(--space-eyebrow);
         margin-top: calc(var(--space-3) * -1);
       }
 
@@ -689,7 +689,7 @@
         {% endcomment %}
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course.course.slug as course_family_url %}
-        {% breadcrumbs "Courses" course_list_url course.course.title course_family_url current="registration" %}
+        {% breadcrumbs "Courses" course_list_url course.course.title course_family_url current="Registration" %}
         <div class="registration-hero-body">
           {% comment %}
             A campaign's hero artwork is its title card: it already sets the

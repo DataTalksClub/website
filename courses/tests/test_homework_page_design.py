@@ -32,6 +32,7 @@ def _provenance(content_id: str, path: str) -> dict[str, str]:
         "source_checksum": CHECKSUM,
     }
 
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 HOMEWORK_TEMPLATE = REPOSITORY_ROOT / "courses/templates/homework/homework.html"
 SUBMISSION_SHELL = REPOSITORY_ROOT / "courses/templates/courses/_submission_page.html"
@@ -47,9 +48,7 @@ class HomeworkAccentBorderTests(SimpleTestCase):
 
     def test_page_styles_neutralise_the_shared_callout_tone_rail(self) -> None:
         styles = page_styles(HOMEWORK_TEMPLATE)
-        callout_rule = re.search(
-            r"\.submission-band \.callout \{(.*?)\}", styles, re.DOTALL
-        )
+        callout_rule = re.search(r"\.submission-band \.callout \{(.*?)\}", styles, re.DOTALL)
 
         self.assertIsNotNone(callout_rule)
         assert callout_rule is not None
@@ -66,9 +65,7 @@ class HomeworkAccentBorderTests(SimpleTestCase):
                     "border-left:",
                     "border-right:",
                 ):
-                    matches = re.findall(
-                        rf"{re.escape(property_name)}[^;]*;", source
-                    )
+                    matches = re.findall(rf"{re.escape(property_name)}[^;]*;", source)
                     for declaration in matches:
                         self.assertIn(
                             "var(--line-soft)",
@@ -82,9 +79,9 @@ class HomeworkAccentBorderTests(SimpleTestCase):
         styles = page_styles(HOMEWORK_TEMPLATE)
         self.assertNotIn(".submission-band .cmp-form", styles)
 
-        design_system = (
-            REPOSITORY_ROOT / "templates/core/_design_system.html"
-        ).read_text(encoding="utf-8")
+        design_system = (REPOSITORY_ROOT / "templates/core/_design_system.html").read_text(
+            encoding="utf-8"
+        )
         form_rule = re.search(r"\n      \.cmp-form \{(.*?)\}", design_system, re.DOTALL)
 
         self.assertIsNotNone(form_rule)
@@ -99,12 +96,12 @@ class HomeworkAccentBorderTests(SimpleTestCase):
 class HomeworkPageStructureTests(HomeworkDetailViewTestBase):
     def band_html(self, response) -> str:
         body = response.content.decode()
-        return body.split('content-page-content submission-band', 1)[1]
+        return body.split("content-page-content submission-band", 1)[1]
 
     def header_html(self, response) -> str:
         body = response.content.decode()
         header = body.split("content-page-header submission-hero", 1)[1]
-        return header.split('content-page-content submission-band', 1)[0]
+        return header.split("content-page-content submission-band", 1)[0]
 
     def test_state_notices_render_in_the_content_band_not_the_header(self) -> None:
         response = self.get_homework_response()
@@ -146,7 +143,7 @@ class HomeworkModuleTrailTests(HomeworkDetailViewTestBase):
             terminal_homework=self.homework,
         )
 
-    def test_module_crumb_and_back_link_appear_for_a_module_homework(self) -> None:
+    def test_module_crumb_appears_and_the_homework_ends_the_trail(self) -> None:
         module = self.add_module()
 
         response = self.get_homework_response()
@@ -161,9 +158,10 @@ class HomeworkModuleTrailTests(HomeworkDetailViewTestBase):
         self.assertIsNotNone(breadcrumb)
         assert breadcrumb is not None
         self.assertIn(module.title, breadcrumb.group(1))
-        # The trail still stops at the parent: the homework title is the h1.
-        self.assertNotIn(self.homework.title, breadcrumb.group(1))
-        self.assertContains(response, f"← Back to {module.title}")
+        # The homework itself is the last crumb, as on every page below a hub,
+        # and the trail is the one way back: no "← Back to" button beside it.
+        self.assertIn(f'<li aria-current="page">{self.homework.title}</li>', breadcrumb.group(1))
+        self.assertNotContains(response, "← Back to")
         # A legacy `curriculum_format=modules` homework has no `SharedModule`
         # placement, so it never gains the shared-curriculum module rail.
         self.assertNotContains(response, 'id="module-navigation-heading"')
@@ -210,9 +208,7 @@ class HomeworkSharedModuleRailTests(HomeworkDetailViewTestBase):
             position=0,
             slug="ai-native-workflow",
             title="AI-Native Developer Workflow",
-            **_provenance(
-                "22222222-2222-4222-8222-222222222222", "ai-native-workflow/module.yaml"
-            ),
+            **_provenance("22222222-2222-4222-8222-222222222222", "ai-native-workflow/module.yaml"),
         )
         SharedLesson.objects.create(
             module=module,
@@ -252,10 +248,8 @@ class HomeworkSharedModuleRailTests(HomeworkDetailViewTestBase):
         self.assertIsNotNone(breadcrumb)
         assert breadcrumb is not None
         self.assertIn(module.title, breadcrumb.group(1))
-        self.assertNotIn(self.homework.title, breadcrumb.group(1))
-        module_url = (
-            f"/{self.course.course.slug}/{module.slug}?cohort={self.course.identifier}"
-        )
+        self.assertIn(f'<li aria-current="page">{self.homework.title}</li>', breadcrumb.group(1))
+        module_url = f"/{self.course.course.slug}/{module.slug}?cohort={self.course.identifier}"
         self.assertIn(module_url, breadcrumb.group(1))
 
         # The "In this module" rail: the module's lesson and this homework's

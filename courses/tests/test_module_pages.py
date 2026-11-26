@@ -111,8 +111,8 @@ class ModulePageTests(TestCase):
         self.assertLess(body.index('class="module-main"'), body.index('class="module-sidebar'))
         self.assertNotIn("Shared module navigation contract", body)
 
-    def test_breadcrumb_stops_at_the_edition_and_names_it_once(self):
-        """Ancestors only, and the cohort crumb is the identifier, not the course again."""
+    def test_breadcrumb_ends_with_the_module_and_names_the_edition_once(self):
+        """The module is the last crumb; the cohort crumb is the identifier, not the course again."""
 
         body = self.client.get(self.module_url()).content.decode()
         trail = body.split('<nav class="breadcrumbs"', 1)[1].split("</nav>", 1)[0]
@@ -121,10 +121,8 @@ class ModulePageTests(TestCase):
         self.assertIn(f">{self.course.title}</a>", trail)
         self.assertIn(f">{self.cohort.identifier}</a>", trail)
         self.assertNotIn(self.cohort.title, trail)
-        # This module is the heading below, so it is not also a crumb.
-        self.assertNotIn(self.module.title, trail)
-        self.assertNotIn('aria-current="page"', trail)
-        self.assertEqual(trail.count("<li"), 3)
+        self.assertIn(f'<li aria-current="page">{self.module.title}</li>', trail)
+        self.assertEqual(trail.count("<li"), 4)
 
     def test_module_and_unit_links_keep_numeric_source_slugs(self):
         module_url = reverse(
@@ -145,9 +143,7 @@ class ModulePageTests(TestCase):
             },
         )
 
-        self.assertEqual(
-            module_url, "/courses/llm-zoomcamp/2026/modules/01-agentic-rag"
-        )
+        self.assertEqual(module_url, "/courses/llm-zoomcamp/2026/modules/01-agentic-rag")
         self.assertEqual(
             unit_url,
             "/courses/llm-zoomcamp/2026/modules/01-agentic-rag/01-intro",

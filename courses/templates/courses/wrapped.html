@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo %}
+{% load breadcrumbs seo %}
 
 {% block document_title %}DataTalks.Club Wrapped {{ year }}{% endblock %}
 
@@ -31,6 +31,11 @@
       /* ------------------------------------------------------------------ *
        * Wrapped rules.
        * ------------------------------------------------------------------ */
+
+      .wrapped-hero .breadcrumbs {
+        margin-bottom: var(--space-eyebrow);
+        margin-top: calc(var(--space-3) * -1);
+      }
 
       .wrapped-hero h1 {
         font-size: clamp(2.1rem, 4.9vw, 3.4rem);
@@ -178,6 +183,8 @@
 {% block header_attributes %}aria-labelledby="wrapped-heading"{% endblock %}
 
 {% block page_header %}
+      {% url 'course_list' as course_list_url %}
+      {% breadcrumbs "Courses" course_list_url current=year|stringformat:"s"|add:" Wrapped" %}
       <h1 id="wrapped-heading">DataTalks.Club Wrapped {{ year }}</h1>
       <p class="wrapped-lede">Your year of learning in review.</p>
 {% endblock %}

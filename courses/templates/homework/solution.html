@@ -1,9 +1,13 @@
 {% extends "core/content_page.html" %}
+{% load breadcrumbs %}
 
 {% block document_title %}Solution — {{ homework.title }} — DataTalks.Club{% endblock %}
 {% block metadata %}<meta name="robots" content="noindex">{% endblock %}
 {% block page_header %}
-  <p><a href="{{ homework_url }}">Back to {{ homework.title }}</a></p>
+  {% url 'course_list' as course_list_url %}
+  {% url 'course_family' course.course.slug as course_family_url %}
+  {% url 'cohort' course.course.slug course.identifier as cohort_url %}
+  {% breadcrumbs "Courses" course_list_url course.course.title course_family_url course.identifier cohort_url homework.title homework_url current="Solution" %}
   <h1>{{ homework.title }}: solution</h1>
   <p>{{ course.title }}</p>
 {% endblock %}

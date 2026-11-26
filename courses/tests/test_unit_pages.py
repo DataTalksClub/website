@@ -463,13 +463,12 @@ class PublicUnitPageTests(TestCase):
         self.assertContains(response, homework_url)
         self.assertContains(response, "Continue to homework →")
 
-    def test_breadcrumb_stops_at_the_module_and_names_the_edition_once(self):
-        """The trail is ancestors only, and the cohort crumb is not the course again.
+    def test_breadcrumb_ends_with_the_lesson_and_names_the_edition_once(self):
+        """The full path down to the lesson, and the cohort crumb is not the course again.
 
-        "Courses / LLM Zoomcamp / spring-2026 / Agentic RAG", then the lesson as
-        the h1.  The old trail said "LLM Zoomcamp Spring 2026" one crumb after
-        "LLM Zoomcamp" and then repeated the lesson title as a fifth crumb, which
-        is what pushed it onto a second row.
+        "Courses / LLM Zoomcamp / spring-2026 / Agentic RAG / <lesson>": the
+        lesson is the last crumb, as on every page below a hub.  The old trail
+        said "LLM Zoomcamp Spring 2026" one crumb after "LLM Zoomcamp".
         """
 
         body = self.client.get(self.unit_url(self.first_unit)).content.decode()
@@ -481,10 +480,8 @@ class PublicUnitPageTests(TestCase):
         self.assertIn(f">{self.module.title}</a>", trail)
         # The edition crumb is the identifier, never the course name repeated.
         self.assertNotIn(self.cohort.title, trail)
-        # The lesson is the heading below, so it is not also a crumb.
-        self.assertNotIn(self.first_unit.title, trail)
-        self.assertNotIn('aria-current="page"', trail)
-        self.assertEqual(trail.count("<li"), 4)
+        self.assertIn(f'<li aria-current="page">{self.first_unit.title}</li>', trail)
+        self.assertEqual(trail.count("<li"), 5)
 
     def test_the_unit_heading_stands_alone_without_a_module_subtitle(self):
         """The module line under the h1 was the crumb above it, said twice."""

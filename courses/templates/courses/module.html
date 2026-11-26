@@ -15,7 +15,7 @@
       }
 
       .module-hero .breadcrumbs {
-        margin-bottom: var(--space-2);
+        margin-bottom: var(--space-eyebrow);
         margin-top: calc(var(--space-3) * -1);
       }
 
@@ -153,12 +153,12 @@
         {% comment %}
           The edition, not the course name again: the crumb before it is the
           course family, and every other course trail shows the identifier.  The
-          trail then stops at the edition, because this module is the heading below.
+          module itself is the last crumb, as on every page below a hub.
         {% endcomment %}
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course_family.slug as course_family_url %}
         {% url 'cohort' course_family.slug cohort.identifier as cohort_url %}
-        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url cohort.identifier cohort_url %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url cohort.identifier cohort_url current=module.title %}
         <div class="module-hero-inner">
           <h1 id="module-heading">{{ module.title }}</h1>
         </div>
