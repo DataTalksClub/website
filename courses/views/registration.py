@@ -23,6 +23,10 @@ from courses.registration import (
 )
 from courses.services import cross_sell
 from courses.services.application_notifications import queue_operator_notification
+from courses.services.learner_profile_gate import (
+    profile_form_url,
+    profile_gate_redirect_url,
+)
 from courses.services.registration_contacts import queue_registration_contacts
 from courses.services.registration_counts import public_course_registration_count
 from courses.views.registration_marketing import (
@@ -36,6 +40,7 @@ from .registration_form import (
     authenticated_registration_identity,
     campaign_requires_approval,
     missing_profile_field_names,
+    registration_question_fields,
 )
 
 
@@ -112,18 +117,29 @@ def _save_registration_if_valid(
     if not form.is_valid():
         return None
 
-    from courses.registration_confirmation import issue_confirmation_token
+    from courses.registration_confirmation import (
+        issue_confirmation_token,
+        mark_registration_confirmed,
+    )
 
     registration = form.save()
-    # New registrations start pending email confirmation: issue the
-    # token now so the confirmation email carries the link.
-    issue_confirmation_token(registration)
+    if registration_email_already_verified(registration):
+        # A signed-in member whose account address is already verified (a
+        # provider-verified social sign-in, or an email they confirmed) has
+        # nothing left to prove: the registration is confirmed now, and the
+        # double-opt-in email -- whose only job is the confirm link -- is not
+        # sent.  The double opt-in stays for unverified addresses.
+        mark_registration_confirmed(registration)
+    else:
+        # New registrations start pending email confirmation: issue the
+        # token now so the confirmation email carries the link.
+        issue_confirmation_token(registration)
+        email_callback = partial(
+            send_registration_confirmation_mail,
+            registration,
+        )
+        transaction.on_commit(email_callback)
     transaction.on_commit(partial(queue_registration_contacts, registration.pk))
-    email_callback = partial(
-        send_registration_confirmation_mail,
-        registration,
-    )
-    transaction.on_commit(email_callback)
     # Application-style campaigns notify the operators once per pending
     # registration (mirror of CMP intake 4d0452a8). The service is a
     # no-op for open campaigns; resend/fix-email paths never create a
@@ -131,6 +147,15 @@ def _save_registration_if_valid(
     operator_callback = partial(queue_operator_notification, registration)
     transaction.on_commit(operator_callback)
     return registration
+
+
+def registration_email_already_verified(registration: CourseRegistration) -> bool:
+    """Whether a new registration's address is already a verified account email."""
+
+    if registration.user_id is None:
+        return False
+    email = registration.email_normalized or registration.email
+    return is_account_email_verified(registration.user, email)
 
 
 def _pending_duplicate_registration(
@@ -227,6 +252,8 @@ def _registration_context(
         "registration_gate": registration_is_gated(request),
         "profile_identity": authenticated_registration_identity(user),
         "missing_profile_fields": missing_profile_field_names(user),
+        "registration_questions": registration_question_fields(form) if form is not None else [],
+        "profile_edit_url": profile_form_url(request.get_full_path()),
         "registration_email_verified": _registration_email_verified(registration),
         "registration_share_text": _registration_share_text(campaign),
         **_cross_sell_context(request, campaign, registration),
@@ -323,6 +350,13 @@ def registration_campaign_view(
         return render(request, "courses/register.html", context)
 
     existing_registration = _existing_user_registration(request, campaign)
+    if existing_registration is None and request.user.is_authenticated:
+        # Registering needs a complete, recently confirmed learner profile:
+        # the profile form or the "still up to date?" review comes first and
+        # returns here (courses/services/learner_profile_gate.py).
+        gate_url = profile_gate_redirect_url(request.user, request.get_full_path())
+        if gate_url is not None:
+            return redirect(gate_url)
     if existing_registration is None and cross_sell.SESSION_FLASH_KEY in request.session:
         # Back from a one-click cross-sell POST: keep showing the success
         # panel to the anonymous registrant whose session holds the source.

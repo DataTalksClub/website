@@ -3,7 +3,9 @@
   closing panel: the label says exactly where the button goes.
 
   An open registration is the goal while it exists (the application form when
-  the cohort is approval-gated).  Without one, the strongest start-now route
+  the cohort is approval-gated).  Without a campaign but with a cohort to join,
+  registering is enrolling in it (the learner-profile gate runs first).
+  Otherwise, the strongest start-now route
   the data has: the self-paced edition, the first module on the platform, or
   the course repository for a family whose curriculum was never imported.
 {% endcomment %}
@@ -22,6 +24,9 @@
   {% else %}
     {% include "core/_button.html" with href=family_action_url label="Register interest" variant="primary" %}
   {% endif %}
+{% elif enroll_cohort %}
+  {% url 'cohort_enrollment' course_family.slug enroll_cohort.identifier as family_action_url %}
+  {% include "core/_button.html" with href=family_action_url label="Register for the course" variant="primary" %}
 {% elif self_paced_cohort %}
   {% url 'cohort' course_family.slug self_paced_cohort.identifier as family_action_url %}
   {% include "core/_button.html" with href=family_action_url label="Start the self-paced course" variant="primary" %}

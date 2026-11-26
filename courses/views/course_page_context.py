@@ -723,6 +723,20 @@ def course_family_page_context(family: Course, user) -> dict:
         (row for row in syllabus_rows if not row.is_project),
         None,
     )
+    # No open campaign, but a cohort to join: registering is enrolling in it,
+    # which is what tracks a learner's progress (the owner's flow: register
+    # first, then start module 1).  Only where the curriculum is on the
+    # platform: a GitHub-only family has nothing here to track.  Self-paced
+    # and approval-walled cohorts keep their own routes.
+    enroll_cohort = (
+        front_cohort
+        if registration.campaign is None
+        and materials_on_platform
+        and front_cohort is not None
+        and self_paced_cohort is None
+        and not front_cohort.requires_registration_approval
+        else None
+    )
     quick_faq_items = family_quick_faq_items(
         family_faq_questions,
         family_has_a_real_cohort=front_cohort is not None,
@@ -763,6 +777,7 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_faq_url": family_faq_url,
         "family_quick_faq_items": quick_faq_items,
         "self_paced_cohort": self_paced_cohort,
+        "enroll_cohort": enroll_cohort,
         "family_lede": family_lede(family),
         "family_docs_path": family_docs_path(family),
         "family_starting_point": family.starting_point.strip(),

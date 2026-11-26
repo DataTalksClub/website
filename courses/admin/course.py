@@ -376,6 +376,7 @@ class RegistrationCampaignAdmin(ModelAdmin):
                     "is_active",
                     "requires_approval",
                     "application_notice",
+                    "registration_questions",
                     "hero_image_url",
                     "video_url",
                     "meta_description",

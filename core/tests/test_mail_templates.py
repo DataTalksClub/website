@@ -40,6 +40,7 @@ EXPECTED_KEYS = frozenset(
         "event-registration-confirmed",
         "event-registration-verify",
         "event-reminder",
+        "newsletter-confirm",
         "homework-score-notification",
         "homework-submission-confirmation",
         "peer-review-assignment",

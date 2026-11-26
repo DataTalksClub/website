@@ -23,6 +23,7 @@ from courses.models import (
     RegistrationCampaign,
 )
 from courses.services.enrollment import enroll_learner
+from test_support.learner_profile import give_confirmed_learner_profile
 
 FLOW_SETTINGS = {
     "PUBLIC_BASE_URL": "https://courses.example.com",
@@ -391,6 +392,7 @@ class EnrollmentConfirmationMailTest(TestCase):
     def test_first_enrollment_form_post_confirms_and_an_update_does_not(self):
         cohort = create_cohort()
         user = create_user("student@example.com")
+        give_confirmed_learner_profile(user)
         self.client.force_login(user)
         url = reverse(
             "cohort_enrollment",

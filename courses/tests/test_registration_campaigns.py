@@ -187,15 +187,19 @@ class RegistrationCampaignPublicTests(RegistrationCampaignBase):
         url = self.campaign_url()
         response = self.client.get(url)
 
-        self.assert_signed_profile_form(response)
+        self.assert_signed_profile_shown(response)
 
+        # Typed person fields are not part of a signed-in registration any
+        # more: the learner profile answers them (edited on its own form).
         payload = self.updated_account_payload()
         response = self.client.post(url, payload)
 
         self.assertEqual(response.status_code, 200)
         registration = CourseRegistration.objects.get()
         self.assert_logged_in_registration(registration, user)
-        self.assert_signed_profile_updated(user)
+        self.assertEqual(registration.name, "Signed Student")
+        self.assertEqual(registration.country, "Canada")
+        self.assert_signed_profile_unchanged(user)
 
     def test_logged_in_registration_page_shows_logout_link(self):
         user = self.create_signed_user()

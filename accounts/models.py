@@ -73,6 +73,24 @@ class User(AbstractUser):
             "overwrite a recorded local decision."
         ),
     )
+    # Signup-onboarding newsletter double opt-in (accounts/services/
+    # newsletter_consent.py).  ``newsletter_confirmation_sent_at`` marks a
+    # pending subscription (a confirm email went out, not clicked yet); the
+    # three consent fields record the confirmed consent: the privacy-notice
+    # version, the confirmation time and where it was given.  Empty for
+    # imported subscriptions.
+    newsletter_confirmation_sent_at = models.DateTimeField(
+        verbose_name="Newsletter confirmation sent at", null=True, blank=True
+    )
+    newsletter_consent_version = models.CharField(
+        verbose_name="Newsletter consent version", max_length=32, blank=True
+    )
+    newsletter_consent_source = models.CharField(
+        verbose_name="Newsletter consent source", max_length=40, blank=True
+    )
+    newsletter_consented_at = models.DateTimeField(
+        verbose_name="Newsletter consent confirmed at", null=True, blank=True
+    )
     home_dismissals = models.JSONField(
         verbose_name="Home dismissals",
         default=dict,

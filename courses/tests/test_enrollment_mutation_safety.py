@@ -17,6 +17,7 @@ from courses.views.project_eval_submit_context import (
     ProjectEvalSubmitPage,
     project_eval_submit_context,
 )
+from test_support.learner_profile import give_confirmed_learner_profile
 
 
 def enrollment_count_for(user, course):
@@ -92,6 +93,7 @@ class EnrollmentSettingsPageReadOnlyTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(**credentials)
+        give_confirmed_learner_profile(self.user)
         self.course = Cohort.objects.create(
             slug="settings-course",
             title="Settings Course",

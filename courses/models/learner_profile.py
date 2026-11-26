@@ -3,6 +3,16 @@ from typing import cast
 from django.conf import settings
 from django.db import models
 
+#: The registration form's years-of-experience vocabulary
+#: (``CourseRegistration.YearsExperience``), repeated here because the
+#: registration model imports this module's neighbours, not the reverse.
+YEARS_EXPERIENCE_CHOICES = (
+    ("lt1", "<1"),
+    ("1_3", "1–3"),
+    ("3_6", "3–6"),
+    ("6plus", "6+"),
+)
+
 
 class LearnerProfile(models.Model):
     """The course-platform person fields, one row per account.
@@ -71,6 +81,28 @@ class LearnerProfile(models.Model):
         verbose_name="About me",
         blank=True,
         null=True,
+    )
+    company_name = models.CharField(
+        verbose_name="Company",
+        max_length=255,
+        blank=True,
+        help_text="Where you work now; leave empty if you are not employed",
+    )
+    years_experience = models.CharField(
+        verbose_name="Years of experience",
+        max_length=10,
+        blank=True,
+        choices=YEARS_EXPERIENCE_CHOICES,
+    )
+    profile_confirmed_at = models.DateTimeField(
+        verbose_name="Profile confirmed at",
+        null=True,
+        blank=True,
+        help_text=(
+            "When the learner last saved or confirmed this profile; course "
+            "registration asks for a review once it is older than "
+            "LEARNER_PROFILE_CONFIRMATION_MAX_AGE_DAYS"
+        ),
     )
     dark_mode = models.BooleanField(
         verbose_name="Dark mode", default=False, help_text="Enable dark mode theme"

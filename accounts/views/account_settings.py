@@ -69,6 +69,7 @@ def _account_settings_context(request, user, form):
 
     return {
         "form": form,
+        "learner_profile": _learner_profile(user),
         "enrollments": enrollments,
         "course_registrations": _user_course_registrations(user),
         "preferred_timezone_label": preferred_timezone_label,
@@ -77,6 +78,12 @@ def _account_settings_context(request, user, form):
         # Sign-in methods moved here from the separate /accounts/3rdparty/ page.
         "social_connections": list_social_connections(user),
     }
+
+
+def _learner_profile(user):
+    from courses.models.learner_profile import learner_profile_for
+
+    return learner_profile_for(user)
 
 
 def _user_course_registrations(user):

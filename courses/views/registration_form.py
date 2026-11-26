@@ -3,6 +3,10 @@ from django import forms
 from courses.genmedia_policy import CAMPAIGN_SLUG, UKRAINE_REGION_CHOICES
 from courses.models.cohort import CourseRegistration
 from courses.registration import region_for_country
+from courses.registration_questions import (
+    REGISTRATION_QUESTION_KEYS,
+    campaign_registration_questions,
+)
 from courses.views.registration_profile import (
     update_user_profile_from_registration,
 )
@@ -72,23 +76,39 @@ def campaign_requires_approval(campaign) -> bool:
     return bool(campaign is not None and getattr(campaign, "requires_approval", False))
 
 
+#: The registration columns the learner profile answers for a signed-in
+#: member: copied from ``LearnerProfile`` on save, never asked again here.
+PROFILE_OWNED_REGISTRATION_FIELDS = (
+    "name",
+    "country",
+    "role",
+    "company_name",
+    "years_experience",
+    "linkedin_url",
+    "github_url",
+)
+
+
 def configure_registration_form_fields(form, campaign=None):
     for field_name in OPTIONAL_REGISTRATION_FIELDS:
         form.fields[field_name].required = False
 
     if campaign_requires_approval(campaign):
         for field_name in APPLICATION_REQUIRED_FIELDS:
-            form.fields[field_name].required = True
+            if field_name in form.fields:
+                form.fields[field_name].required = True
     else:
         form.fields.pop("accepted_nebius_sharing", None)
 
-    country_widget = forms.TextInput(attrs=COUNTRY_COMBOBOX_WIDGET_ATTRS)
-    form.fields["country"].widget = country_widget
+    if "country" in form.fields:
+        country_widget = forms.TextInput(attrs=COUNTRY_COMBOBOX_WIDGET_ATTRS)
+        form.fields["country"].widget = country_widget
 
-    role_choices = [("", "Select role")]
-    for role_choice in CourseRegistration.Role.choices:
-        role_choices.append(role_choice)
-    form.fields["role"].choices = role_choices
+    if "role" in form.fields:
+        role_choices = [("", "Select role")]
+        for role_choice in CourseRegistration.Role.choices:
+            role_choices.append(role_choice)
+        form.fields["role"].choices = role_choices
 
     if "years_experience" in form.fields:
         years_choices = [("", "Select years of experience")]
@@ -139,22 +159,27 @@ def registration_role_label(role_value):
 
 
 def missing_profile_field_names(user):
-    """The person-level fields (spec §7.5) the account still has not supplied.
+    """The registration-form names of the required profile fields still empty.
 
-    Signed-in-home spec §8.2 asks registration for exactly these and no more:
-    everything the profile already knows is shown read-only and correctable,
-    and only what is genuinely unknown is an open field.
+    One rule with the learner-profile gate
+    (``courses.services.learner_profile_gate.REQUIRED_PROFILE_FIELDS``),
+    reported in this form's vocabulary (``name``, ``country``, ``role``).
     """
 
     if not has_authenticated_registration_user(user):
         return ()
 
-    initial_values = authenticated_registration_initial_values(user)
-    missing = []
-    for field_name in ("name", "country", "role"):
-        if not initial_values.get(field_name):
-            missing.append(field_name)
-    return tuple(missing)
+    from courses.models.learner_profile import learner_profile_for
+    from courses.services.learner_profile_gate import missing_required_fields
+
+    form_names = {
+        "certificate_name": "name",
+        "country": "country",
+        "registration_role": "role",
+    }
+    return tuple(
+        form_names[name] for name in missing_required_fields(learner_profile_for(user))
+    )
 
 
 def authenticated_registration_identity(user):
@@ -167,16 +192,29 @@ def authenticated_registration_identity(user):
     if not has_authenticated_registration_user(user):
         return {}
 
+    from courses.models.learner_profile import learner_profile_for
+
     initial_values = authenticated_registration_initial_values(user)
+    profile = learner_profile_for(user)
     return {
         "name": initial_values.get("name") or "",
         "email": user.email or "",
         "country": initial_values.get("country") or "",
         "role": registration_role_label(initial_values.get("role")),
+        "company": (profile.company_name if profile is not None else "") or "",
     }
 
 
 def configure_authenticated_registration_user(form, user):
+    """A signed-in member's card: the profile answers, the campaign asks.
+
+    The learner-profile gate (``courses.services.learner_profile_gate``) has
+    already made the profile complete before this form renders, so every
+    profile-owned column leaves the form and is copied from the profile on
+    save; of the per-registration questions only the ones the campaign asks
+    (``campaign_registration_questions``) stay.
+    """
+
     if not has_authenticated_registration_user(user):
         return
 
@@ -184,9 +222,35 @@ def configure_authenticated_registration_user(form, user):
     form.fields["email"].disabled = True
     form.fields["email"].help_text = "Using your account email."
 
-    if not form.is_bound:
-        initial_values = authenticated_registration_initial_values(user)
-        form.initial.update(initial_values)
+    for field_name in PROFILE_OWNED_REGISTRATION_FIELDS:
+        form.fields.pop(field_name, None)
+    asked = set(campaign_registration_questions(form.campaign))
+    for field_name in REGISTRATION_QUESTION_KEYS:
+        if field_name not in asked:
+            form.fields.pop(field_name, None)
+
+
+def apply_profile_to_registration(registration, user):
+    """Copy the learner profile's answers onto a new registration's columns."""
+
+    from courses.models.learner_profile import learner_profile_for
+
+    profile = learner_profile_for(user)
+    if profile is None:
+        return
+    registration.name = (profile.certificate_name or user.get_full_name() or "").strip()
+    registration.country = profile.country or ""
+    registration.role = profile.registration_role or ""
+    registration.company_name = profile.company_name or ""
+    registration.years_experience = profile.years_experience or ""
+    registration.linkedin_url = profile.linkedin_url or ""
+    registration.github_url = profile.github_url or ""
+
+
+def registration_question_fields(form):
+    """The bound per-course question fields, in render order."""
+
+    return [form[name] for name in REGISTRATION_QUESTION_KEYS if name in form.fields]
 
 
 def normalized_registration_email(email):
@@ -374,10 +438,18 @@ class CourseRegistrationForm(forms.ModelForm):
             raise forms.ValidationError("Select a valid country.")
         return country
 
+    def _effective_country(self, cleaned_data):
+        if "country" in self.fields:
+            return cleaned_data.get("country", "") or ""
+        from courses.models.learner_profile import learner_profile_for
+
+        profile = learner_profile_for(self.user)
+        return (profile.country if profile is not None else "") or ""
+
     def clean(self):
         cleaned_data = super().clean()
         if self.campaign and self.campaign.slug == CAMPAIGN_SLUG:
-            if cleaned_data.get("country", "").strip().casefold() == "ukraine":
+            if self._effective_country(cleaned_data).strip().casefold() == "ukraine":
                 if not cleaned_data.get("ukraine_region"):
                     self.add_error("ukraine_region", "Select your region or oblast.")
             else:
@@ -404,6 +476,8 @@ class CourseRegistrationForm(forms.ModelForm):
         registration = super().save(commit=False)
         registration.campaign = self.campaign
         registration.course = self.campaign.current_course
+        if has_authenticated_registration_user(self.user):
+            apply_profile_to_registration(registration, self.user)
         registration.region = region_for_country(registration.country)
         registration.ukraine_region = self.cleaned_data.get("ukraine_region", "")
         if campaign_requires_approval(self.campaign):

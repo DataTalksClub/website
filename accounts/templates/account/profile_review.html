@@ -1,0 +1,65 @@
+{% extends "account/auth_page.html" %}
+{% comment %}
+  "Is this still up to date?" -- the review step course registration shows when
+  the learner profile was last saved or confirmed longer ago than
+  LEARNER_PROFILE_CONFIRMATION_MAX_AGE_DAYS (accounts/views/welcome.py).  The
+  current values as the registration card's fact rows, one primary "Yes, still
+  correct" that records the confirmation and continues to ``next``, and
+  "Update" to the same profile form onboarding uses.
+{% endcomment %}
+
+{% block title %}
+  <title>Is this still up to date? · DataTalks.Club</title>
+{% endblock %}
+
+{% block auth_styles %}
+  .fact-rows {
+    margin: 0;
+  }
+
+  .fact-rows .list-row {
+    --row-cols: 7rem minmax(0, 1fr);
+    padding-block: var(--space-3);
+  }
+
+  .fact-rows dd {
+    color: var(--ink);
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+{% endblock %}
+
+{% block auth_header %}
+  <h1 id="auth-heading">Is this still up to date?</h1>
+  <p class="entrance-lede">
+    {% if profile.profile_confirmed_at %}
+      You last checked your profile on {{ profile.profile_confirmed_at|date:"j M Y" }}.
+    {% else %}
+      Your profile came from the old course platform.
+    {% endif %}
+    Course registration uses these details, so take a second to check them.
+  </p>
+{% endblock %}
+
+{% block auth_content %}
+  <dl class="row-list fact-rows" aria-labelledby="auth-heading">
+    {% for label, value in rows %}
+      <div class="list-row">
+        <dt class="mono-label">{{ label }}</dt>
+        <dd>{{ value }}</dd>
+      </div>
+    {% endfor %}
+  </dl>
+  <form class="entrance-form" method="post" action="{% url 'account_profile_review' %}">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <div class="entrance-actions">
+      <button class="cta cta-primary interactive-lift" type="submit" data-profile-confirm>
+        Yes, still correct
+      </button>
+    </div>
+  </form>
+  <p class="entrance-alternative">
+    <a class="band-link" href="{{ update_url }}" data-profile-update>Update</a>
+  </p>
+{% endblock %}

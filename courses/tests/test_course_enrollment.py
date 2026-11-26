@@ -5,11 +5,13 @@ from courses.tests.course_view_base import (
     CourseDetailViewTestBase,
     credentials,
 )
+from test_support.learner_profile import give_confirmed_learner_profile
 
 
 class CourseEnrollmentDisplayTest(CourseDetailViewTestBase):
     def test_not_enrolled_but_can_edit_details(self):
         self.enrollment.delete()
+        give_confirmed_learner_profile(self.enrollment.student)
 
         self.client.login(**credentials)
 

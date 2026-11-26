@@ -593,6 +593,44 @@ overridable in settings (`accounts/forms.py:63-75`,
 masthead already; email preferences — Datamailer-owned, settings only;
 company — per-registration, not per-person (§8.3).
 
+### 7.3a Learner-profile gate, post-signup step and email consent (2026-11-26)
+
+Superseding parts of §7.3: the page is now the **learner profile** every
+course registration needs.
+
+- **Required:** full name (certificate name), country and role. Company and
+  years of experience join the visible fields (they moved from
+  per-registration to the profile; CMP only had them per registration).
+  Links and bio stay folded and optional. Saving stamps
+  `LearnerProfile.profile_confirmed_at`.
+- **Entrances, each with `next=`:** (1) right after a new account signs up,
+  social or email (`AccountAdapter.post_login`, `onboarding=1`, skippable);
+  (2) in front of a campaign registration or cohort enrollment when a
+  required field is empty (`courses/services/learner_profile_gate.py`); (3)
+  "Update" on the review step.
+- **Review step** `/accounts/profile/review/`: when the last confirmation is
+  older than `LEARNER_PROFILE_CONFIRMATION_MAX_AGE_DAYS` (180), registration
+  first shows the current values with **Yes, still correct** (stamps the date)
+  and **Update** (the form).
+- **Course and community emails, OWNER RULING 2026-11-26 (final).** The
+  post-signup step says plainly that signing up means emails about the course
+  and the DataTalks.Club community (the weekly newsletter), unsubscribe
+  anytime, with a **pre-ticked** box. Receiving them starts only after a
+  confirmed click, for everyone: an email + password signup's account
+  verification click confirms both (it happens before the member can sign
+  in); a social signup gets one `newsletter-confirm` email and stays
+  *pending* until its link is clicked. On confirmation the account records
+  `newsletter_consent_version` (`SIGNUP_NEWSLETTER_CONSENT_VERSION`),
+  `newsletter_consented_at` (the confirmation time) and
+  `newsletter_consent_source` (`signup onboarding`). Unticked: no
+  subscription and no email. A brand-new account starts unsubscribed
+  (`accounts/signals.py`). Account settings shows active / pending and
+  unsubscribes at once; turning it back on goes through the same double
+  opt-in. The owner was told about the German/GDPR implications of a
+  pre-ticked box; the double opt-in click is the active consent. This does
+  not change §8.4: a course registration's own `accepted_newsletter` box
+  stays unticked and required.
+
 ### 7.4 Existing signals — prefill, never re-ask
 
 When the account has a linked GitHub `SocialAccount`, prefill **GitHub URL**

@@ -1,0 +1,38 @@
+{% extends "account/auth_page.html" %}
+
+{% block title %}
+  {% if confirmed %}
+    <title>You're subscribed · DataTalks.Club</title>
+  {% else %}
+    <title>Link not valid · DataTalks.Club</title>
+  {% endif %}
+{% endblock %}
+
+{% block auth_header %}
+  {% if confirmed %}
+    <h1 id="auth-heading">You're subscribed</h1>
+    <p class="entrance-lede">
+      You'll get emails about your course and the DataTalks.Club community,
+      including the weekly newsletter. Unsubscribe anytime in account settings.
+    </p>
+  {% else %}
+    <h1 id="auth-heading">This link doesn't work</h1>
+    <p class="entrance-lede">
+      {% if expired %}
+        The confirmation link has expired.
+      {% else %}
+        The confirmation link is not valid.
+      {% endif %}
+      You can turn course and community emails on in account settings.
+    </p>
+  {% endif %}
+{% endblock %}
+
+{% block auth_content %}
+  <div class="entrance-actions">
+    <a class="cta cta-primary interactive-lift" href="{% url 'home' %}">Go to DataTalks.Club</a>
+  </div>
+  <p class="entrance-alternative">
+    <a class="band-link" href="{% url 'account_settings' %}">Account settings</a>
+  </p>
+{% endblock %}

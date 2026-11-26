@@ -10,6 +10,7 @@ from course_management.observability import record_event
 from courses.models.cohort import Cohort, Enrollment
 from courses.registration_wall import require_registration_approval
 from courses.services.enrollment import confirm_new_enrollment
+from courses.services.learner_profile_gate import profile_gate_redirect_url
 from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
 from .course_leaderboard_data import invalidate_leaderboard_cache
@@ -178,6 +179,11 @@ def enrollment_view(request, course_slug, cohort_identifier=None):
         course=course,
     ).first()
     if enrollment is None:
+        # Enrolling is registering for the course: a complete, recently
+        # confirmed learner profile comes first, then back here.
+        gate_url = profile_gate_redirect_url(request.user, request.get_full_path())
+        if gate_url is not None:
+            return redirect(gate_url)
         enrollment = Enrollment(student=request.user, course=course)
 
     if request.method == "POST":

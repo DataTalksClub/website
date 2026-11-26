@@ -1,35 +1,36 @@
 {% load accessibility %}
 {% comment %}
-  "One final step" (`_docs/design/specs/signed-in-home.md` §8.2).
+  "One final step" (`_docs/design/specs/signed-in-home.md` §8.2), after the
+  learner-profile gate (`courses/services/learner_profile_gate.py`).
 
-  A signed-in member used to re-enter, at every registration, the profile they
-  had already given during onboarding.  What the account knows is now shown
-  read-only and correctable — a stale job title is one click from fixable —
-  and only what the account does not know is an open field.  Saving still
-  writes those back to the profile (registration_profile.py), so they are
-  asked once and never again.
+  The shared learner profile is complete and recently confirmed by the time a
+  member reaches this card, so it is shown read-only with one "Edit profile"
+  link to the profile form (which comes back here).  Registration copies it
+  onto the registration (`apply_profile_to_registration`); nothing person-level
+  is typed twice.
+
+  Below it, only the questions this course asks
+  (`RegistrationCampaign.registration_questions`, the application set for an
+  approval campaign that chose none).  A course that asks none shows no
+  questions block at all.
 
   Email is never editable here: `clean_email` forces the account address, and
   the escape hatch is to log out.  The read-only row carries the email field's
   own id so the accessible error summary always has a real target to point at.
-
-  Company and the free-text comment stay per-registration by design (§7.5):
-  jobs change between cohorts.
 {% endcomment %}
 <div class="card registration-panel">
   <h2 id="registration-form-heading">One final step</h2>
   <p class="registration-note">
-    You're registered in ten seconds — check your details and go.
+    {% if registration_questions %}
+      Your profile is filled in. Answer the course questions below and register.
+    {% else %}
+      Your profile is filled in. Check it and register.
+    {% endif %}
   </p>
   <form method="post" class="registration-form" data-registration-form>
     {% csrf_token %}
-    <p class="registration-fineprint">
-      Fields marked
-      <span class="a11y-required" aria-hidden="true">*</span>
-      are required.
-    </p>
     {% accessibility_error_summary form %}
-    <dl class="row-list fact-rows">
+    <dl class="row-list fact-rows" data-registration-profile>
       {% if profile_identity.name %}
         <div class="list-row">
           <dt class="mono-label">Name</dt>
@@ -54,69 +55,41 @@
           <dd class="fact-value">{{ profile_identity.role }}</dd>
         </div>
       {% endif %}
+      {% if profile_identity.company %}
+        <div class="list-row">
+          <dt class="mono-label">Company</dt>
+          <dd class="fact-value">{{ profile_identity.company }}</dd>
+        </div>
+      {% endif %}
     </dl>
     <p class="registration-fineprint">
+      <a href="{{ profile_edit_url }}" data-registration-edit-profile>Edit profile</a>
+      ·
       <a href="{% url 'account_logout' %}?next={{ request.path }}">Log out</a>
       to use a different email address.
     </p>
-    {% if missing_profile_fields %}
-      <div class="registration-missing">
-        <p class="registration-fineprint">A couple of details we don't have yet:</p>
-        {% if 'name' in missing_profile_fields %}
-          {% include "courses/_registration_field.html" with field=form.name %}
-        {% endif %}
-        {% if 'country' in missing_profile_fields %}
-          {% include "courses/_registration_field.html" with field=form.country %}
-        {% endif %}
-        {% if 'role' in missing_profile_fields %}
-          {% include "courses/_registration_field.html" with field=form.role %}
-        {% endif %}
+    {% if registration_questions %}
+      <div class="registration-about" data-registration-questions>
+        <p class="mono-label">Questions for this course</p>
+        <p class="registration-fineprint">
+          Fields marked
+          <span class="a11y-required" aria-hidden="true">*</span>
+          are required.
+        </p>
+        {% for field in registration_questions %}
+          {% if field.name != "accepted_nebius_sharing" %}
+            {% if field.field.widget.input_type == 'checkbox' %}
+              {% include "courses/_registration_consent.html" %}
+            {% else %}
+              {% include "courses/_registration_field.html" %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
       </div>
     {% endif %}
-    {% if profile_identity.name or profile_identity.country or profile_identity.role %}
-      {% comment %}
-        Open when one of the folded fields is what went wrong, so the error
-        summary never points at a control the fold is hiding.  An unrelated
-        error (an unticked consent box) leaves it closed.
-      {% endcomment %}
-      <details
-        class="row-fold registration-fold"
-        {% if form.name.errors or form.country.errors or form.role.errors %}
-          open
-        {% endif %}
-      >
-        <summary class="row-fold-summary">
-          <span class="row-fold-open">Edit these details</span>
-          <span class="row-fold-close">Hide these details</span>
-          <span class="row-fold-marker" aria-hidden="true"></span>
-        </summary>
-        <div class="registration-fold-fields">
-          {% if profile_identity.name %}
-            {% include "courses/_registration_field.html" with field=form.name %}
-          {% endif %}
-          {% if profile_identity.country %}
-            {% include "courses/_registration_field.html" with field=form.country %}
-          {% endif %}
-          {% if profile_identity.role %}
-            {% include "courses/_registration_field.html" with field=form.role %}
-          {% endif %}
-        </div>
-      </details>
+    {% if form.ukraine_region and profile_identity.country|lower == "ukraine" %}
+      {% include "courses/_registration_field.html" with field=form.ukraine_region %}
     {% endif %}
-    <div class="registration-about">
-      <p class="mono-label">About this registration</p>
-      {% include "courses/_registration_field.html" with field=form.company_name %}
-      {% include "courses/_registration_field.html" with field=form.experience %}
-      {% include "courses/_registration_field.html" with field=form.years_experience %}
-      {% include "courses/_registration_consent.html" with field=form.prereq_python %}
-      {% include "courses/_registration_consent.html" with field=form.prereq_docker %}
-      {% include "courses/_registration_consent.html" with field=form.prereq_http_apis %}
-      {% include "courses/_registration_consent.html" with field=form.prereq_cli %}
-      {% include "courses/_registration_field.html" with field=form.linkedin_url %}
-      {% include "courses/_registration_field.html" with field=form.github_url %}
-      {% include "courses/_registration_field.html" with field=form.motivation %}
-      {% include "courses/_registration_field.html" with field=form.comment %}
-    </div>
     {% include "courses/_registration_consent.html" with field=form.accepted_newsletter %}
     {% if form.accepted_nebius_sharing %}
       {% include "courses/_registration_consent.html" with field=form.accepted_nebius_sharing %}
@@ -127,7 +100,7 @@
         type="submit"
         data-busy-label="Registering…"
         data-registration-submit
-      >Register</button>
+      >{% if campaign.requires_approval %}Submit application{% else %}Register{% endif %}</button>
     </div>
   </form>
 </div>

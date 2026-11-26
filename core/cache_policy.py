@@ -219,6 +219,8 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "accounts.views.social_connections.social_connections_moved": PRIVATE_DYNAMIC,
     "accounts.views.timezone.update_timezone_preference": PRIVATE_DYNAMIC,
     "accounts.views.welcome.welcome": PRIVATE_DYNAMIC,
+    "accounts.views.welcome.profile_review": PRIVATE_DYNAMIC,
+    "accounts.views.newsletter.newsletter_confirm": PRIVATE_DYNAMIC,
     "allauth.account.views.AccountInactiveView": PRIVATE_DYNAMIC,
     "allauth.account.views.ConfirmEmailView": PRIVATE_DYNAMIC,
     "allauth.account.views.ConfirmLoginCodeView": PRIVATE_DYNAMIC,

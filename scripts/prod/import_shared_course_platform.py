@@ -982,6 +982,9 @@ def _mapping() -> dict[
             # no package columns; approval routing stays site-side.
             "requires_approval": _STAYS,
             "application_notice": _STAYS,
+            # Per-course registration questions sit on top of the site's
+            # learner profile; the package has no equivalent column.
+            "registration_questions": _STAYS,
             # Cross-sell curation (_docs/runbooks/cross-sell.md) is site
             # marketing state with no package columns.
             "suggested_campaigns": _STAYS,

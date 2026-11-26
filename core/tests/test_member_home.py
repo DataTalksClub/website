@@ -391,10 +391,18 @@ class AboutYouPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Select a valid country.")
         self.member.refresh_from_db()
-        self.assertEqual(_profile_of(self.member).country, "")
+        profile = _profile_of(self.member)
+        self.assertEqual((profile.country if profile else "") or "", "")
 
     def test_saving_a_country_derives_the_region_registration_would_derive(self):
-        self.client.post(self.url, {"country": "Germany"})
+        self.client.post(
+            self.url,
+            {
+                "certificate_name": "Ada Lovelace",
+                "country": "Germany",
+                "registration_role": "data_engineer",
+            },
+        )
 
         self.member.refresh_from_db()
         self.assertEqual(_profile_of(self.member).country, "Germany")
@@ -421,13 +429,15 @@ class AboutYouPageTests(TestCase):
         self.assertIn("Tell us about you", body)
         self.assertNotIn("Add your details", body)
 
-    def test_an_empty_submission_is_accepted_and_writes_nothing(self):
+    def test_an_empty_submission_is_refused_and_writes_nothing(self):
+        # The learner profile's name, country and role are required now
+        # (courses/services/learner_profile_gate.py); "Skip for now" is the
+        # way past the page without them.
         response = self.client.post(self.url, {})
 
-        self.assertRedirects(response, reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].errors)
         self.member.refresh_from_db()
-        # An empty submission may create the (empty) profile row; what it must
-        # not do is write a value into it.
         profile = _profile_of(self.member)
         self.assertEqual((profile.certificate_name if profile else None) or "", "")
 

@@ -4,6 +4,7 @@ import logging
 from collections.abc import Iterable
 from functools import wraps
 from typing import Any, NoReturn
+from urllib.parse import urlencode
 
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.models import EmailAddress
@@ -480,6 +481,47 @@ class AccountAdapter(DefaultAccountAdapter):
             if not User.objects.filter(username=candidate).exists():
                 user.username = candidate
                 return
+
+    def post_login(
+        self,
+        request,
+        user,
+        *,
+        email_verification,
+        signal_kwargs,
+        email,
+        signup,
+        redirect_url,
+    ):
+        """Send a brand-new account through the profile step first.
+
+        Right after a sign-up -- social or email + password, the latter on the
+        login that follows confirming the address -- the member lands on the
+        learner-profile card (``/accounts/welcome/?onboarding=1``) with
+        ``next=`` set to wherever the sign-in was going, so they continue
+        exactly there after saving or skipping.
+        """
+
+        if signup:
+            from allauth.account.utils import get_login_redirect_url
+            from django.urls import reverse
+
+            target = get_login_redirect_url(request, redirect_url, signup=True)
+            # The event card's pop-up sign-in must land on the page that
+            # closes the pop-up; the profile step waits for registration.
+            if not target.startswith(reverse("login_popup_done")):
+                redirect_url = (
+                    f"{reverse('account_welcome')}?{urlencode({'next': target, 'onboarding': '1'})}"
+                )
+        return super().post_login(
+            request,
+            user,
+            email_verification=email_verification,
+            signal_kwargs=signal_kwargs,
+            email=email,
+            signup=signup,
+            redirect_url=redirect_url,
+        )
 
     def send_notification_mail(self, template_prefix, user, context=None, email=None):
         # Imported and one-click accounts often have no ``EmailAddress`` row;

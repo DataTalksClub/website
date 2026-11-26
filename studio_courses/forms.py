@@ -1,6 +1,7 @@
 from django import forms
 
 from courses.models.cohort import Cohort, RegistrationCampaign
+from courses.registration_questions import REGISTRATION_QUESTION_CHOICES
 
 REGISTRATION_CAMPAIGN_TITLE_WIDGET = forms.TextInput(
     attrs={"class": "form-control"}
@@ -118,6 +119,18 @@ class ProjectSubmissionEditForm(forms.Form):
 
 
 class RegistrationCampaignForm(forms.ModelForm):
+    registration_questions = forms.MultipleChoiceField(
+        required=False,
+        label="Course-specific questions",
+        choices=REGISTRATION_QUESTION_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        help_text=(
+            "Asked at registration on top of the shared learner profile. "
+            "None ticked asks none; an approval campaign then asks the "
+            "application questions."
+        ),
+    )
+
     class Meta:
         model = RegistrationCampaign
         fields = [
@@ -128,6 +141,7 @@ class RegistrationCampaignForm(forms.ModelForm):
             "is_active",
             "requires_approval",
             "application_notice",
+            "registration_questions",
             "hero_image_url",
             "video_url",
             "meta_description",

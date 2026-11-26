@@ -16,6 +16,7 @@ from courses.catalog_facets import (
 from courses.curriculum_source_validators import validate_course_progression
 from courses.genmedia_policy import UKRAINE_REGION_CHOICES
 from courses.random_names import generate_random_name
+from courses.registration_questions import validate_registration_questions
 
 from .curriculum_import import (
     SOURCE_STABLE_ID_PATTERN,
@@ -676,6 +677,17 @@ class RegistrationCampaign(models.Model):
             "Short disclaimer shown above the registration form, for "
             "example seat limits and the level expected. Shown only when "
             "the campaign requires approval."
+        ),
+    )
+    registration_questions = models.JSONField(
+        default=list,
+        db_default=[],
+        blank=True,
+        validators=[validate_registration_questions],
+        help_text=(
+            "Course-specific questions asked at registration, on top of the "
+            "shared learner profile. Empty asks none (an approval campaign "
+            "then asks the application questions)."
         ),
     )
     suggested_campaigns = models.ManyToManyField(

@@ -357,6 +357,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # owner can turn it off on evidence rather than on argument, without a code
 # change.  Default on.
 REGISTRATION_REQUIRES_ACCOUNT = env_flag("REGISTRATION_REQUIRES_ACCOUNT", default=True)
+# Course registration needs a complete learner profile; a profile last saved or
+# confirmed longer ago than this asks "Is this still up to date?" first.
+LEARNER_PROFILE_CONFIRMATION_MAX_AGE_DAYS = int(
+    os.environ.get("LEARNER_PROFILE_CONFIRMATION_MAX_AGE_DAYS", "180")
+)
 # Operator recipients for application-style registration notices (mirror of
 # CMP intake 4d0452a8): every new pending registration on a campaign with
 # ``requires_approval`` emails these addresses plus the default below via
@@ -654,6 +659,11 @@ ACADEMY_CONSENT_VERSION = "2026-11-13.v1"
 # required to register); it changes together with that text and the privacy
 # notice.
 EVENT_NEWSLETTER_CONSENT_VERSION = "2026-11-25.v1"
+# The version of the signup-onboarding email consent ("you'll receive emails
+# about your course and the DataTalks.Club community, the weekly newsletter;
+# unsubscribe anytime", pre-ticked, confirmed by an emailed link); it changes
+# together with that text and the privacy notice.
+SIGNUP_NEWSLETTER_CONSENT_VERSION = "2026-11-26.v1"
 
 # Certificate generation.  Rendering goes through the private Banner Generator
 # (AI-Shipping-Labs/banner-generator Lambda Function URL, bearer token).  Published PDFs/PNGs are

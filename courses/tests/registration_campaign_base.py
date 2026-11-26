@@ -3,7 +3,6 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import User
-from courses.models.learner_profile import LearnerProfile
 from courses.models import (
     Cohort,
     CourseRegistration,
@@ -11,6 +10,7 @@ from courses.models import (
     HomeworkState,
     RegistrationCampaign,
 )
+from courses.models.learner_profile import LearnerProfile
 
 
 # These suites predate the §8.3 sign-in gate and describe the anonymous
@@ -88,6 +88,8 @@ class RegistrationCampaignBase(TestCase):
                 "country": "Canada",
                 "region": "North America",
                 "registration_role": CourseRegistration.Role.DATA_SCIENTIST,
+                # A member who already passed the learner-profile gate.
+                "profile_confirmed_at": timezone.now(),
             },
         )
         return user
@@ -105,6 +107,8 @@ class RegistrationCampaignBase(TestCase):
                 "country": "Canada",
                 "region": "North America",
                 "registration_role": CourseRegistration.Role.DATA_SCIENTIST,
+                # A member who already passed the learner-profile gate.
+                "profile_confirmed_at": timezone.now(),
             },
         )
         return user
@@ -122,37 +126,34 @@ class RegistrationCampaignBase(TestCase):
             "accepted_newsletter": "on",
         }
 
-    def assert_signed_profile_form(self, response):
-        self.assertContains(response, 'value="Signed Student"')
-        self.assertContains(response, 'value="Canada"')
-        self.assertContains(
-            response,
-            '<option value="data_scientist" selected>Data Scientist</option>',
-            html=True,
-        )
+    def assert_signed_profile_shown(self, response):
+        self.assertContains(response, "Signed Student")
+        self.assertContains(response, "Canada")
+        self.assertContains(response, "Data Scientist")
+        self.assertNotContains(response, 'name="name"')
 
     def assert_logged_in_registration(self, registration, user):
         self.assertEqual(registration.email_normalized, "signed@example.com")
         self.assertEqual(registration.user, user)
 
-    def assert_signed_profile_updated(self, user):
+    def assert_signed_profile_unchanged(self, user):
         profile = LearnerProfile.objects.get(user=user)
-        self.assertEqual(profile.certificate_name, "Updated Certificate Name")
-        self.assertEqual(profile.country, "Germany")
-        self.assertEqual(profile.region, "Europe")
+        self.assertEqual(profile.certificate_name, "Signed Student")
+        self.assertEqual(profile.country, "Canada")
         self.assertEqual(
             profile.registration_role,
-            CourseRegistration.Role.DATA_ENGINEER,
+            CourseRegistration.Role.DATA_SCIENTIST,
         )
 
     def assert_blank_logged_in_registration(self, registration, user):
         self.assertEqual(
             registration.email_normalized, "signed-blank@example.com"
         )
-        self.assertEqual(registration.name, "")
-        self.assertEqual(registration.country, "")
-        self.assertEqual(registration.region, "")
-        self.assertEqual(registration.role, "")
+        # The profile answers the person fields the payload left out.
+        self.assertEqual(registration.name, "Existing Name")
+        self.assertEqual(registration.country, "Canada")
+        self.assertEqual(registration.region, "North America")
+        self.assertEqual(registration.role, CourseRegistration.Role.DATA_SCIENTIST)
         self.assertEqual(registration.user, user)
 
     def assert_signed_blank_profile_unchanged(self, user):

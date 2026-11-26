@@ -9,6 +9,50 @@
   /* The optional-fields disclosure holds form fields, not `.row-list` rows,
      so it keeps the fold's summary treatment without the list-row grid
      rules `.row-fold > .list-row` would otherwise impose. */
+  .welcome-consent {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  /* The registration card's consent checkbox (courses/register.html
+     `.checkbox-row`), drawn the same here so the two boxes match. */
+  .welcome-consent-label {
+    align-items: start;
+    display: grid;
+    gap: var(--space-3);
+    grid-template-columns: 1.5rem minmax(0, 1fr);
+    line-height: 1.5rem;
+  }
+
+  .welcome-consent-label input[type="checkbox"] {
+    appearance: none;
+    background: var(--card);
+    border: var(--border-strong);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    height: 1.5rem;
+    margin: 0;
+    position: relative;
+    width: 1.5rem;
+  }
+
+  .welcome-consent-label input[type="checkbox"]:checked {
+    background: var(--green);
+    border-color: var(--green);
+  }
+
+  .welcome-consent-label input[type="checkbox"]:checked::after {
+    border: solid var(--on-green);
+    border-width: 0 0.16rem 0.16rem 0;
+    content: "";
+    height: 0.6rem;
+    left: 0.38rem;
+    position: absolute;
+    top: 0.15rem;
+    transform: rotate(45deg);
+    width: 0.3rem;
+  }
+
   .welcome-fold {
     margin-top: var(--space-2);
   }
@@ -69,10 +113,21 @@
 {% endblock %}
 
 {% block auth_header %}
-  <h1 id="auth-heading">About you</h1>
+  <h1 id="auth-heading">
+    {% if profile_complete %}
+      Your learner profile
+    {% else %}
+      About you
+    {% endif %}
+  </h1>
   <p class="entrance-lede">
-    Three details that follow you into every course — and a few optional
-    ones. Everything here can be changed later in account settings.
+    {% if profile_complete %}
+      Check these details and update anything that changed. Every course
+      registration uses them.
+    {% else %}
+      A few details every course registration uses, filled in once. You can
+      change them later in account settings.
+    {% endif %}
   </p>
 {% endblock %}
 
@@ -84,11 +139,24 @@
     aria-labelledby="auth-heading"
   >
     {% csrf_token %}
+    {% if next_url %}
+      <input type="hidden" name="next" value="{{ next_url }}">
+    {% endif %}
+    {% if onboarding %}
+      <input type="hidden" name="onboarding" value="1">
+    {% endif %}
     {% accessibility_error_summary form %}
     {% include "account/_welcome_field.html" with field=form.certificate_name %}
     {% include "account/_welcome_field.html" with field=form.country %}
     {% include "account/_welcome_field.html" with field=form.registration_role %}
-    <details class="row-fold welcome-fold">
+    {% include "account/_welcome_field.html" with field=form.company_name %}
+    {% include "account/_welcome_field.html" with field=form.years_experience %}
+    <details
+      class="row-fold welcome-fold"
+      {% if form.github_url.errors or form.linkedin_url.errors or form.personal_website_url.errors or form.about_me.errors %}
+        open
+      {% endif %}
+    >
       <summary class="row-fold-summary">
         <span class="row-fold-open">Add links and a bio (optional)</span>
         <span class="row-fold-close">Hide links and bio</span>
@@ -101,13 +169,40 @@
         {% include "account/_welcome_field.html" with field=form.about_me %}
       </div>
     </details>
+    {% if form.newsletter %}
+      <div class="welcome-consent" data-signup-newsletter>
+        <p class="entrance-fineprint">
+          By signing up you'll receive emails about your course and the
+          DataTalks.Club community, including the weekly newsletter.
+          {% if newsletter_needs_email %}
+            We'll email you a confirmation link first: nothing else arrives
+            until you click it.
+          {% else %}
+            Your email is already confirmed, so they start right away.
+          {% endif %}
+          You can unsubscribe anytime.
+        </p>
+        <label class="welcome-consent-label" for="{{ form.newsletter.id_for_label }}">
+          {{ form.newsletter }}
+          <span>{{ form.newsletter.label }}</span>
+        </label>
+      </div>
+    {% endif %}
     <div class="entrance-actions">
-      <button class="cta cta-primary interactive-lift" type="submit">Save</button>
+      <button class="cta cta-primary interactive-lift" type="submit">
+        {% if next_url and not onboarding %}
+          Save and continue
+        {% else %}
+          Save
+        {% endif %}
+      </button>
     </div>
   </form>
-  <p class="entrance-alternative">
-    <a class="band-link" href="{% url 'home' %}">Skip for now</a>
-  </p>
+  {% if skip_url %}
+    <p class="entrance-alternative">
+      <a class="band-link" href="{{ skip_url }}">Skip for now</a>
+    </p>
+  {% endif %}
 {% endblock %}
 
 {% block auth_scripts %}

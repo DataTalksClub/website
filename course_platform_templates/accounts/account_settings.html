@@ -335,7 +335,12 @@
               <div class="band-head">
                 <div>
                   <h2 id="profile-heading">Profile</h2>
-                  <p>Your account-level certificate name and public profile details.</p>
+                  <p>Your learner profile: course registration uses it for every course.</p>
+                  {% if learner_profile.profile_confirmed_at %}
+                    <p class="mono-note" data-profile-confirmed-at>
+                      Last confirmed {{ learner_profile.profile_confirmed_at|date:"j M Y" }}
+                    </p>
+                  {% endif %}
                 </div>
               </div>
               <div class="settings-group settings-fields">
@@ -398,6 +403,32 @@
                   {% endif %}
                 </div>
                 <div class="field">
+                  <label class="field-label" for="{{ form.company_name.id_for_label }}">
+                    Company
+                    <span class="settings-optional">(optional)</span>
+                  </label>
+                  {% accessible_widget form.company_name %}
+                  {% if form.company_name.errors %}
+                    <div class="settings-error" id="{{ form.company_name.id_for_label }}-error">
+                      <span class="sr-only">Error:</span>
+                      {{ form.company_name.errors|join:" " }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="field">
+                  <label class="field-label" for="{{ form.years_experience.id_for_label }}">
+                    Years of professional experience
+                    <span class="settings-optional">(optional)</span>
+                  </label>
+                  {% accessible_widget form.years_experience %}
+                  {% if form.years_experience.errors %}
+                    <div class="settings-error" id="{{ form.years_experience.id_for_label }}-error">
+                      <span class="sr-only">Error:</span>
+                      {{ form.years_experience.errors|join:" " }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="field">
                   <label class="field-label" for="{{ form.github_url.id_for_label }}">
                     GitHub URL
                     <span class="settings-optional">(optional)</span>
@@ -448,6 +479,23 @@
                       {{ form.about_me.errors|join:" " }}
                     </div>
                   {% endif %}
+                </div>
+                <div class="toggle-row" data-newsletter-row>
+                  {% accessible_widget form.newsletter %}
+                  <span class="toggle-copy">
+                    <label class="toggle-label" for="{{ form.newsletter.id_for_label }}">
+                      {{ form.newsletter.label }}
+                    </label>
+                    <span class="toggle-help" data-newsletter-state="{{ form.newsletter_state }}">
+                      {% if form.newsletter_state == "active" %}
+                        Active. Switch off and save to unsubscribe.
+                      {% elif form.newsletter_state == "pending" %}
+                        Pending: check your inbox to confirm. Switch off and save to cancel.
+                      {% else %}
+                        Off. Switch on and save, then confirm the link we email you.
+                      {% endif %}
+                    </span>
+                  </span>
                 </div>
               </div>
               <p class="settings-note">

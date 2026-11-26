@@ -14,7 +14,6 @@ from django.test import override_settings
 from django.urls import reverse
 
 from accounts.models import User
-from courses.models.learner_profile import LearnerProfile
 from courses.models import CourseRegistration
 from courses.tests.registration_campaign_base import RegistrationCampaignBase
 
@@ -84,16 +83,16 @@ class RegistrationFinalStepTests(RegistrationCampaignBase):
         response = self.client.get(self.campaign_url())
 
         self.assertContains(response, "One final step")
-        self.assertContains(response, "You're registered in ten seconds")
-        # The read-only identity block, filled from the profile.
+        # The read-only profile block, filled from the learner profile.
         self.assertContains(response, "Signed Student")
         self.assertContains(response, "signed@example.com")
         self.assertContains(response, "Canada")
         # The stored role reads as its label, not as its stored value.
         self.assertContains(response, "Data Scientist")
-        # And the same three fields stay correctable behind the fold.
-        self.assertContains(response, "Edit these details")
-        self.assertContains(response, "A couple of details we don't have yet", count=0)
+        # Correcting it is the profile form, which comes back here.
+        self.assertContains(response, "data-registration-edit-profile")
+        for name in ("name", "country", "role", "company_name"):
+            self.assertNotContains(response, f'name="{name}"')
 
     def test_the_email_is_never_editable_and_the_escape_hatch_stays(self):
         user = self.create_signed_user()
@@ -104,41 +103,31 @@ class RegistrationFinalStepTests(RegistrationCampaignBase):
         self.assertNotContains(response, 'name="email"')
         self.assertContains(response, "to use a different email address")
 
-    def test_only_the_missing_details_are_asked_for(self):
+    def test_missing_details_are_asked_on_the_profile_form_first(self):
         user = self.blank_profile_user()
         self.client.force_login(user)
 
         response = self.client.get(self.campaign_url())
 
-        self.assertContains(response, "A couple of details we don't have yet")
-        self.assertContains(response, 'name="name"')
-        self.assertContains(response, 'name="country"')
-        self.assertContains(response, 'name="role"')
-        # Nothing is known, so there is nothing to fold away.
-        self.assertNotContains(response, "Edit these details")
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response["Location"].startswith(reverse("account_welcome")))
 
-    def test_registering_answers_the_missing_details_once_and_for_all(self):
-        user = self.blank_profile_user()
+    def test_registering_copies_the_profile_onto_the_registration(self):
+        user = self.create_signed_user()
         self.client.force_login(user)
-        payload = {
-            "email": "ignored@example.com",
-            "name": "Blank Profile",
-            "country": "Germany",
-            "role": CourseRegistration.Role.DATA_ENGINEER,
-            "accepted_newsletter": "on",
-        }
 
-        response = self.client.post(self.campaign_url(), payload)
+        response = self.client.post(
+            self.campaign_url(),
+            {"email": "ignored@example.com", "accepted_newsletter": "on"},
+        )
 
         self.assertEqual(response.status_code, 200)
         registration = CourseRegistration.objects.get()
         self.assertEqual(registration.user, user)
-        user.refresh_from_db()
-        profile = LearnerProfile.objects.get(user=user)
-        self.assertEqual(profile.certificate_name, "Blank Profile")
-        self.assertEqual(profile.country, "Germany")
-        self.assertEqual(profile.region, "Europe")
-        self.assertEqual(profile.registration_role, CourseRegistration.Role.DATA_ENGINEER)
+        self.assertEqual(registration.name, "Signed Student")
+        self.assertEqual(registration.country, "Canada")
+        self.assertEqual(registration.region, "North America")
+        self.assertEqual(registration.role, CourseRegistration.Role.DATA_SCIENTIST)
 
     def test_registering_hands_the_member_off_to_their_home(self):
         user = self.create_signed_user()
@@ -162,43 +151,6 @@ class RegistrationFinalStepTests(RegistrationCampaignBase):
 
         self.assertContains(response, "You are already registered")
         self.assertContains(response, "Go to your home")
-
-    def _fold_tag(self, response) -> str:
-        """The rendered `<details>` opening tag of the "Edit these details" fold."""
-
-        body = response.content.decode()
-        marker = body.index("row-fold registration-fold")
-        start = body.rindex("<details", 0, marker)
-        return body[start : body.index(">", marker) + 1]
-
-    def test_a_folded_field_that_fails_opens_the_fold_it_is_hiding(self):
-        """The error summary may never point at a control a `<details>` hides."""
-
-        user = self.create_signed_user()
-        self.client.force_login(user)
-        payload = {
-            "email": "ignored@example.com",
-            "name": "Signed Student",
-            "country": "Nowhere",
-            "role": CourseRegistration.Role.DATA_SCIENTIST,
-            "accepted_newsletter": "on",
-        }
-
-        response = self.client.post(self.campaign_url(), payload)
-
-        self.assertContains(response, "Select a valid country.")
-        self.assertIn("open", self._fold_tag(response))
-
-    def test_an_unrelated_error_leaves_the_fold_closed(self):
-        user = self.create_signed_user()
-        self.client.force_login(user)
-
-        response = self.client.post(
-            self.campaign_url(),
-            {"email": "ignored@example.com"},
-        )
-
-        self.assertNotIn("open", self._fold_tag(response))
 
     def test_consent_is_still_required_and_still_arrives_unticked(self):
         user = self.create_signed_user()

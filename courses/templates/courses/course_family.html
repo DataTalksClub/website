@@ -699,7 +699,7 @@
             {% endcomment %}
             <div class="family-hero-actions">
               {% include "courses/_family_primary_action.html" %}
-              {% if not enrolled_cohort and family_registration %}
+              {% if not enrolled_cohort and family_registration or not enrolled_cohort and enroll_cohort %}
                 {% if self_paced_cohort %}
                   {% url 'cohort' course_family.slug self_paced_cohort.identifier as hero_self_paced_url %}
                   {% include "core/_button.html" with href=hero_self_paced_url label="Start self-paced now" variant="secondary" %}
@@ -1206,7 +1206,7 @@
             </div>
             <div class="family-close-actions">
               {% include "courses/_family_primary_action.html" %}
-              {% if not enrolled_cohort and family_registration %}
+              {% if not enrolled_cohort and family_registration or not enrolled_cohort and enroll_cohort %}
                 {% if self_paced_cohort %}
                   {% url 'cohort' course_family.slug self_paced_cohort.identifier as close_self_paced_url %}
                   {% include "core/_button.html" with href=close_self_paced_url label="Start self-paced now" variant="secondary" %}

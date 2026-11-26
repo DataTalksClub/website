@@ -8,6 +8,7 @@ offers nothing at all rather than a link to the platform this site replaces.
 from __future__ import annotations
 
 from django.test import TestCase, override_settings
+from django.utils import timezone
 
 from accounts.models import User
 from courses.models.cohort import CourseRegistration, RegistrationCampaign
@@ -298,6 +299,7 @@ class NewsletterConsentDefaultTests(TestCase):
                 "country": "Germany",
                 "region": "Europe",
                 "registration_role": CourseRegistration.Role.DATA_ENGINEER,
+                "profile_confirmed_at": timezone.now(),
             },
         )
         self.client.force_login(user)

@@ -403,8 +403,14 @@ class CourseFamilyLandingTests(TestCase):
         self.campaign.delete()
         response = self.client.get(self.url)
 
-        # One action, in the hero and the closing panel, says where it goes.
-        self.assertContains(response, "Start module 1", count=2)
+        # The owner's flow: register first (enrolling in the cohort, behind
+        # the learner-profile gate), with module 1 one secondary click away.
+        enrollment_url = reverse(
+            "cohort_enrollment", args=[self.family.slug, self.cohort.identifier]
+        )
+        self.assertContains(response, "Register for the course", count=2)
+        self.assertContains(response, f'href="{enrollment_url}"', count=2)
+        self.assertContains(response, "Start module 1")
         self.assertContains(
             response,
             reverse("shared_module", args=[self.family.slug, "skill-0"]),

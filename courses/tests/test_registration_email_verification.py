@@ -58,8 +58,10 @@ class RegistrationConfirmationVerifyEmailMailTests(RegistrationCampaignBase):
         with self.captureOnCommitCallbacks(execute=True):
             self.client.post(self.campaign_url(), self.blank_optional_logged_in_payload())
 
-        delivery = EmailDelivery.objects.get()
-        self.assertEqual(delivery.context_data["verify_email_prompt"], "")
+        # A verified account email is not asked to confirm again: the
+        # registration is confirmed at once and no double-opt-in email goes.
+        self.assertFalse(EmailDelivery.objects.exists())
+        self.assertTrue(CourseRegistration.objects.get().email_confirmed)
 
     def test_a_registration_with_no_account_has_no_account_to_verify(self):
         # `CourseRegistration.user` is nullable (the un-gated anonymous path,
@@ -102,8 +104,9 @@ class RegistrationConfirmationVerifyEmailScreenTests(RegistrationCampaignBase):
 
         response = self.client.post(self.campaign_url(), self.blank_optional_logged_in_payload())
 
-        self.assertContains(response, "Check your inbox to finish registering")
+        self.assertNotContains(response, "Check your inbox to finish registering")
         self.assertNotContains(response, "One last step: verify your email")
+        self.assertContains(response, "You are registered")
 
     def test_the_screen_always_offers_the_generic_next_steps(self):
         user = self.create_signed_user()

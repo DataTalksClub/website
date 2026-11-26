@@ -15,12 +15,18 @@ from accounts.services.timezones import build_timezone_options, is_valid_timezon
 # ``courses.models.Enrollment`` for the same reason.
 from courses.models.cohort import CourseRegistration
 from courses.models.learner_profile import (
+    YEARS_EXPERIENCE_CHOICES,
     LearnerProfile,
     ensure_learner_profile,
     learner_profile_for,
     profile_field_default,
 )
 from courses.registration import ordered_countries, region_for_country
+from courses.services.learner_profile_gate import (
+    REQUIRED_PROFILE_FIELDS,
+    mark_profile_confirmed,
+    missing_required_fields,
+)
 
 
 def _account_for_email(email: str):
@@ -151,6 +157,10 @@ COUNTRY_COMBOBOX_WIDGET = forms.TextInput(
     }
 )
 REGISTRATION_ROLE_SELECT_WIDGET = forms.Select(attrs={"class": "form-control"})
+YEARS_EXPERIENCE_SELECT_WIDGET = forms.Select(attrs={"class": "form-control"})
+COMPANY_NAME_WIDGET = forms.TextInput(
+    attrs={"class": "form-control", "autocomplete": "organization"}
+)
 REGISTRATION_ROLE_CHOICES = [("", "Select role"), *CourseRegistration.Role.choices]
 GITHUB_URL_WIDGET = forms.TextInput(attrs={"class": "form-control"})
 LINKEDIN_URL_WIDGET = forms.TextInput(attrs={"class": "form-control"})
@@ -174,6 +184,8 @@ PROFILE_FORM_FIELDS = (
     "certificate_name",
     "country",
     "registration_role",
+    "company_name",
+    "years_experience",
     "github_url",
     "linkedin_url",
     "personal_website_url",
@@ -209,6 +221,19 @@ class AccountSettingsForm(forms.ModelForm):
         help_text="Used to prefill course registration forms.",
         widget=REGISTRATION_ROLE_WIDGET,
     )
+    company_name = forms.CharField(
+        required=False,
+        max_length=255,
+        label="Company",
+        help_text="Optional. Leave empty if you are a student or not employed.",
+        widget=COMPANY_NAME_WIDGET,
+    )
+    years_experience = forms.ChoiceField(
+        required=False,
+        label="Years of professional experience",
+        choices=[("", "Select years of experience"), *YEARS_EXPERIENCE_CHOICES],
+        widget=YEARS_EXPERIENCE_SELECT_WIDGET,
+    )
     github_url = forms.URLField(
         required=False,
         label="GitHub URL",
@@ -234,9 +259,18 @@ class AccountSettingsForm(forms.ModelForm):
         label="Use dark mode",
         widget=DARK_MODE_WIDGET,
     )
+    newsletter = forms.BooleanField(
+        required=False,
+        label="Course and community emails, including the weekly newsletter",
+        widget=DARK_MODE_WIDGET,
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        from accounts.services.newsletter_consent import STATE_OFF, newsletter_state
+
+        self.newsletter_state = newsletter_state(self.instance)
+        self.fields["newsletter"].initial = self.newsletter_state != STATE_OFF
         timezone_choices = [("", "UTC until your browser timezone is detected")]
         for option in build_timezone_options():
             timezone_choice = (option.value, option.label)
@@ -262,9 +296,31 @@ class AccountSettingsForm(forms.ModelForm):
         profile = ensure_learner_profile(user)
         for field_name in PROFILE_FORM_FIELDS:
             setattr(profile, field_name, self.cleaned_data.get(field_name))
+        # Saving a complete profile here confirms it as current, exactly as
+        # the onboarding form does; an incomplete one stays unconfirmed so
+        # registration still asks for the missing fields.
+        if not missing_required_fields(profile):
+            mark_profile_confirmed(profile)
         if commit:
             profile.save()
+            self._save_newsletter(user)
         return user
+
+    def _save_newsletter(self, user) -> None:
+        """Unsubscribe at once; turning emails back on goes through the double opt-in."""
+
+        from accounts.services.newsletter_consent import (
+            ACCOUNT_SETTINGS_SOURCE,
+            STATE_OFF,
+            record_signup_email_choice,
+            unsubscribe,
+        )
+
+        wanted = bool(self.cleaned_data.get("newsletter"))
+        if not wanted and self.newsletter_state != STATE_OFF:
+            unsubscribe(user)
+        elif wanted and self.newsletter_state == STATE_OFF:
+            record_signup_email_choice(user, subscribe=True, source=ACCOUNT_SETTINGS_SOURCE)
 
     class Meta:
         model = User
@@ -306,15 +362,19 @@ class AboutYouForm(forms.ModelForm):
             "certificate_name",
             "country",
             "registration_role",
+            "company_name",
+            "years_experience",
             "github_url",
             "linkedin_url",
             "personal_website_url",
             "about_me",
         ]
         labels = {
-            "certificate_name": "Certificate name",
+            "certificate_name": "Full name",
             "country": "Country",
             "registration_role": "Role",
+            "company_name": "Company",
+            "years_experience": "Years of professional experience",
             "github_url": "GitHub URL",
             "linkedin_url": "LinkedIn URL",
             "personal_website_url": "Website URL",
@@ -322,21 +382,46 @@ class AboutYouForm(forms.ModelForm):
         }
         help_texts = {
             "certificate_name": ("Used on your certificates, across all your course enrollments."),
-            "country": "Used to prefill course registration.",
+            "country": "Used for course registration and regional statistics.",
+            "company_name": "Optional. Leave empty if you are a student or not employed.",
         }
         widgets = {
             "certificate_name": CERTIFICATE_NAME_WIDGET,
             "country": COUNTRY_COMBOBOX_WIDGET,
+            "company_name": COMPANY_NAME_WIDGET,
+            "years_experience": YEARS_EXPERIENCE_SELECT_WIDGET,
             "github_url": GITHUB_URL_WIDGET,
             "linkedin_url": LINKEDIN_URL_WIDGET,
             "personal_website_url": PERSONAL_WEBSITE_URL_WIDGET,
             "about_me": ABOUT_ME_WIDGET,
         }
 
-    def __init__(self, *args, **kwargs):
+    newsletter = forms.BooleanField(
+        required=False,
+        initial=True,
+        label=(
+            "Send me emails about my course and the DataTalks.Club community, "
+            "including the weekly newsletter (you can unsubscribe anytime)"
+        ),
+    )
+
+    def __init__(self, *args, ask_newsletter=False, **kwargs):
         super().__init__(*args, **kwargs)
+        # The signup-onboarding email consent: asked only on that step
+        # (accounts/services/newsletter_consent.py).
+        if not ask_newsletter:
+            self.fields.pop("newsletter")
+        # The learner-profile gate's required set: registration cannot go
+        # ahead without these, so the form that completes the profile asks
+        # for them.  Everything else saves if present.
         for field_name in self.fields:
-            self.fields[field_name].required = False
+            self.fields[field_name].required = field_name in REQUIRED_PROFILE_FIELDS
+        if "newsletter" in self.fields:
+            self.fields["newsletter"].initial = True
+        self.fields["years_experience"].choices = [
+            ("", "Select years of experience"),
+            *YEARS_EXPERIENCE_CHOICES,
+        ]
         # A role stored before a choice was renamed (or by an import) must not
         # silently disappear from the select the person is looking at.
         stored_role = self.initial.get("registration_role") or ""
@@ -363,6 +448,8 @@ class AboutYouForm(forms.ModelForm):
         # onboarding and a profile completed through registration hold the same
         # record rather than one with a country and no region.
         self.instance.region = region_for_country(self.instance.country or "")
+        # Saving the whole profile is a confirmation that it is current.
+        mark_profile_confirmed(self.instance)
         return super().save(commit=commit)
 
 
