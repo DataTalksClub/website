@@ -194,9 +194,9 @@ done yet. Run in this order against production only when the owner schedules it:
    `curriculum_format=shared`; `visible` and `requires_registration_approval` are kept.
    The importer replaces the cohort `description` with the derived schema-2 text
    ("The 2026 live delivery of ..."), as for every schema-2 cohort.
-3. Take a fresh CMP export that includes the cohort's Homework 1 (the daily
-   `/data/tmp/rds-export/cmp/` export stopped on 2026-11-17 and the newest usable
-   export predates the cohort, so this could not be rehearsed with real submissions).
+3. Take a fresh CMP export that includes the cohort's Homework 1 — see "Taking a
+   fresh export" under §12 (the RDS SnapshotExport stopped on 2026-10-22; the
+   Contabo backup conversion is the current path).
 4. On a copy of production first: `scripts/prod/import_cmp_content.py` for the export.
    The CMP homework slugs (`module1`..) match the repository slugs, so the CMP rows pair
    with the repository rows by slug and are renamed in place. Check the summary for the
@@ -820,6 +820,65 @@ carries PII, so it stays under `production-data-migration.md` step 4's transform
 never-import list; that document's §8.3 step 4 records the verified end-to-end run
 (20,469 accounts and 414,768 history rows, replay a no-op, SIGKILL-and-resume
 identical).
+
+#### Taking a fresh export
+
+CMP's live database is on Contabo now. The RDS SnapshotExport cron for `cmp` was
+disabled on 2026-10-22 (its last real file is `rds-prod-20261021-182234.db`), and the
+0-byte `/data/tmp/rds-export/cmp/*.db` dated 2026-11-17 is a failed run, not an export.
+Coolify writes a nightly `pg_dump -Fc` of CMP to
+`contabo-b:/var/backups/coolify-postgres/cmp-pg-shared-<stamp>.dump.gz`.
+`~/rds-export/contabo_dump_to_sqlite.py` copies that backup file and converts it to
+the SQLite artifact the importers read; it never connects to a live database:
+
+```
+cd ~/rds-export && uv run --frozen contabo_dump_to_sqlite.py \
+    --remote 'contabo-b:/var/backups/coolify-postgres/cmp-pg-shared-<stamp>.dump.gz' \
+    --schema prod --out-dir /data/tmp/rds-export/cmp
+```
+
+Name the dump file exactly. The README's `cmp-pg-shared-*` glob may be what left the
+literal `*.db` behind. The 2026-11-26 backup became `rds-prod-20261126-153117.db`:
+666 MB, 53 tables, 27,191 accounts, 29,446 enrollments, 41,541 submissions, 249,017
+answers, 4,966 project submissions, 15,240 peer reviews.
+
+#### Full run order (local rehearsal, then production)
+
+All four steps read the same export file. The history importer binds itself to that
+file's SHA-256, so a later run against a different export is refused.
+
+1. `scripts/prod/import_cmp_content.py --database <db> --source <export>` writes
+   immediately; it has no dry-run flag, so rehearse it on a copy. A replay is a
+   no-op. Read `unpaired_repository_homework` and `unpaired_repository_projects` in
+   its summary. On a modules or shared cohort, repository-authored rows CMP lacks are
+   kept and listed there, never deleted.
+2. `scripts/prod/import_cmp_learners.py --database <db> --source <export> --dry-run`,
+   then the same without `--dry-run`. Accounts, email addresses and `LearnerProfile`
+   rows. About 2.5 minutes locally.
+3. `scripts/prod/import_cmp_learner_history.py ... --dry-run`, then without it. About
+   2.5 minutes locally, resumable.
+4. `scripts/prod/import_cmp_enrollment_certificates.py` is only for re-reconciling
+   certificate URLs on one cohort that was imported earlier. A fresh run gets its
+   certificates in step 3 through `Enrollment.certificate_url`.
+
+For production, swap `--database <db>` for `--deployment-target website-production
+--allow-production-write website-production` on the same commands (the `<target>`
+substitution in `production-data-migration.md`). Take a backup first, and run it only
+when the owner schedules it. The export file has to be readable from wherever the
+command runs.
+
+Measured on the local prep dataset on 2026-11-26 with the export above: 27,191
+accounts (906 matched existing accounts), 27,191 learner profiles, and 548,423 history
+rows created. 8,123 rows were left unresolved, every one under a named bucket. 177
+enrollments, 227 submissions and 70 project submissions (with their answers, reviews,
+responses and scores) belong to the owner-deferred cohorts `ai-bootcamp-2025`,
+`ai-buildcamp-2`, `ai-buildcamp-3`, `ai-hero-2025` and `ai-hero-2026`. Two
+registrations belong to a test campaign. The 4,219 per-user Wrapped rows have no
+local `WrappedStatistics` year, which `courses/wrapped_statistics/calculator.py`
+recomputes. A replay created nothing new. CMP's `Enrollment.bonus_points` (referral
+points, 67 enrollments) has no column here, but CMP already counts it in
+`total_score`, and the import copies `total_score` and `position_on_leaderboard` as
+CMP has them.
 
 ### 13 — `zoomcamp-scoring`, pre-2024 history
 
