@@ -117,6 +117,16 @@
         width: 100%;
       }
 
+      /* Tablet tier: the stacked collage runs as one row of four across the
+         column instead of a half-width block, each card no larger than on a
+         desktop. */
+      @media (min-width: 36rem) and (max-width: 61.99rem) {
+        .hero-collage {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          max-width: none;
+        }
+      }
+
       .hero-collage-card {
         background: var(--cream);
         border: var(--border-soft);
