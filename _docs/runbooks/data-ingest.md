@@ -1482,6 +1482,78 @@ website-production`, as for the other step-6 importers. `--force` is required be
 content and podwiki commits may already be synced. Then check that `/about`, `/podcast`,
 the season pages, `/wiki` and the blog link only to `/podcast/sNN/…` URLs that return 200.
 
+### 27 — Newsletter audience merge: CMP + Mailchimp + Relay + website
+
+The rules are in [`email-audience-merge.md`](../architecture/email-audience-merge.md).
+This step answers "who is subscribed now" and writes one merged audience. It runs
+after the CMP learners (§12), because it reconciles onto existing accounts.
+
+| | |
+| --- | --- |
+| **Upstream** | A CMP SQLite export (`/data/tmp/rds-export/cmp/rds-prod-<ts>.db`; pick it deliberately and record it), a full Mailchimp audience export (subscribed, unsubscribed and cleaned CSVs) and a Relay export (`relay-contacts.csv`, `relay-category-preferences.csv`). All are read in place under `~/prod`. Missing exports are requested in `~/prod/dtc-data/requests/relay-audience-export-2026-11-26.md` and `~/prod/dtc-data/requests/mailchimp-export.md` |
+| **Script** | `scripts/prod/import_email_audience_merge.py`. A typed operator command, never part of a dataset rebuild |
+| **Writes** | Into `--output-dir`, which is refused inside the repository: `report.json` (counts only), `relay-import-dtc.csv`, `evidence.jsonl` (real addresses), `site-account-changes.json` (ids). With `--apply`, also `User.newsletter_subscribed`, through `bulk_update`, never stamping `newsletter_preference_changed_at` |
+| **Idempotency** | Safe. The output files are byte-identical for the same inputs. A second `--apply` changes no row. It never creates an account and never resubscribes an opt-out |
+| **Bootstrap** | **No.** It only reconciles onto existing accounts |
+
+1. Dry run against a local copy and the staged exports. Each run gets a fresh
+   directory; never empty an old one:
+
+   ```bash
+   uv run --frozen python scripts/prod/import_email_audience_merge.py \
+       --database .tmp/audience/dataset.sqlite3 \
+       --cmp-export /data/tmp/rds-export/cmp/rds-prod-<ts>.db \
+       --mailchimp-export-dir ~/prod/dtc-data/mailchimp-export-<date> \
+       --relay-export-dir ~/prod/dtc-data/relay-export-<date> \
+       --output-dir ~/prod/dtc-data/email-audience/run-<timestamp>
+   ```
+
+2. Review `report.json`:
+   - `buckets`: both CMP and Relay subscribed, CMP only, Relay only, Mailchimp
+     only, unsubscribed somewhere, bounced or complained, conflicting, no
+     consent evidence;
+   - `conflicts` and `no_evidence_reasons`;
+   - `inputs.*`. `"relay": "missing"` means the merge is incomplete.
+
+   Only counts go into issues or chat.
+3. Relay first, dry run then apply, on the Relay host, with the file copied over
+   securely and deleted afterwards:
+
+   ```bash
+   python manage.py import_audience_csv --csv relay-import-dtc.csv \
+       --organization datatalksclub --audience dtc --client dtc-newsletter --dry-run
+   ```
+
+   Then run it again without `--dry-run`. Relay keeps existing opt-outs, and the
+   file never asks it to resubscribe anyone.
+4. The website: rerun step 1 with
+   `--deployment-target website-production --allow-production-write website-production --apply`
+   in place of `--database`, into a new run directory. Check that its
+   `site_accounts.to_true`/`to_false` match the dry run's.
+
+Dry run of 2026-11-26, against the local dataset copy, CMP export
+`rds-prod-20261126-153117` and Mailchimp export `mailchimp-export/` (cut around
+2026-09-03), with **no Relay export**. The counts are for 165,594 addresses:
+
+| Bucket | Addresses |
+| --- | ---: |
+| Subscribed, total | 145,048 |
+| — both CMP and Relay | 0 (no Relay export) |
+| — CMP only | 14,195 |
+| — Mailchimp only | 126,298 |
+| — CMP and Mailchimp | 4,555 |
+| — Relay only | 0 (no Relay export) |
+| Unsubscribed somewhere | 7,260 |
+| Bounced or complained | 1,400 |
+| Conflicting (consent in one source, opt-out in another) | 109 |
+| — of which consent is newer than the opt-out | 83 |
+| No consent evidence (registration without the box, unconfirmed address) | 11,886 |
+
+On the website it would set 9,282 accounts to not subscribed and 0 to
+subscribed. 20,968 subscribed addresses have an account, and 124,080 are
+newsletter-only contacts. The `--apply` rehearsal on a scratch copy changed
+9,282 rows, and a second run changed 0.
+
 ---
 
 ## 8.1 Rebuilding a local dev database end to end
@@ -2036,7 +2108,8 @@ points are deliberately outside it, and the exclusions are checked by
 `scripts/tests/test_prod_conventions.py` rather than left to prose.
 
 - **Step 6** — `import_event_registrants`, `import_mailchimp_event_tags`,
-  `import_mailchimp_subscriptions` and `import_academy_sessions`. They read attendee-level personal data and need
+  `import_mailchimp_subscriptions`, `import_academy_sessions` and `import_email_audience_merge`
+  (§27). They read attendee-level personal data and need
   provider credentials, so they stay separately invoked runs. The rehearsal's own
   registrant leg is opt-in for the same reason (`--with-registrants`, §8.1).
 - **The CMP learner importers** — `scripts/prod/import_cmp_learners.py`,
