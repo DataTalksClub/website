@@ -69,10 +69,11 @@
         gap: var(--space-5) var(--space-7);
         grid-template-areas:
           ". trail"
+          ". title"
           "media main"
           "hosts main";
         grid-template-columns: 17rem minmax(0, var(--reading-width));
-        grid-template-rows: auto auto 1fr;
+        grid-template-rows: auto auto auto 1fr;
         justify-content: center;
       }
 
@@ -80,25 +81,27 @@
       .event-layout-no-media {
         grid-template-areas:
           ". trail"
+          ". title"
           "hosts main";
-        grid-template-rows: auto auto;
+        grid-template-rows: auto auto auto;
       }
 
       /* Neither a picture nor speakers: one reading column. */
       .event-layout-single {
         grid-template-areas:
           "trail"
+          "title"
           "main";
         grid-template-columns: minmax(0, var(--reading-width));
       }
 
-      /* The way back to /events sits directly above the title, in the main
-         column, so the picture's top lines up with the title's top.  The grid's row gap is the column gap;
+      /* The way back to /events sits right above the title in the main column;
+         the picture starts under the title, level with the facts.  The grid's row gap is the column gap;
          a trail sits --space-eyebrow above what it heads, so it takes the
          difference back. */
       .event-layout > .breadcrumbs {
         grid-area: trail;
-        margin-bottom: calc(var(--space-eyebrow) - var(--space-5));
+        margin-bottom: calc(var(--space-2) - var(--space-5));
         margin-top: calc(var(--space-3) * -1);
       }
 
@@ -198,6 +201,17 @@
       .event-head {
         display: grid;
         gap: var(--space-5);
+      }
+
+      /* The title is its own row in the main column, so the picture beside the
+         facts starts below it. */
+      .event-title {
+        grid-area: title;
+        font-size: clamp(1.8rem, 3.6vw, 2.6rem);
+        letter-spacing: -0.025em;
+        line-height: 1.12;
+        /* Closer to what it heads than the grid's row gap. */
+        margin: 0 0 calc(var(--space-3) - var(--space-5));
       }
 
       .event-head h1 {
@@ -644,6 +658,7 @@
           gap: var(--space-6);
           grid-template-areas:
             "trail"
+            "title"
             "media"
             "main"
             "hosts";
@@ -696,7 +711,8 @@
               {% endif %}"
           >
             {% url 'events' as events_url %}
-            {% breadcrumbs "Events" events_url current=event.title %}
+            {% breadcrumbs "Events" events_url %}
+            <h1 class="event-title" id="event-heading">{{ event.title }}</h1>
             {% if event.banner_url %}
               <figure class="event-media" data-testid="event-banner">
                 <img
@@ -718,7 +734,6 @@
 
             <div class="event-main">
               <header class="event-head">
-                <h1 id="event-heading">{{ event.title }}</h1>
                 {% comment %}
                   The facts under the title, in the order a reader needs them:
                   when, then where to watch.  The whole dateline is one <time>,
