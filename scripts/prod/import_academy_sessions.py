@@ -42,8 +42,9 @@ campaign parameters) is not opened:
 ``consent_version``  the Academy privacy-notice version the signup accepted
 ``academy_optin``    the separate "tell me about the program" opt-in
 
-For every confirmed row and every chosen session (past sessions
-included, so a session that already ran keeps its registered count), one native ``community_base.events.EventRegistration`` is written,
+For every confirmed row and every chosen session (past sessions included,
+so a session that already ran keeps its registered count), one native
+``community_base.events.EventRegistration`` is written,
 ``confirmed`` (the backend already verified the address), linked to the
 account holding that address when there is one.  It records the Academy
 consent it was given -- ``privacy_notice_version`` ``academy:<version>`` with
