@@ -333,6 +333,17 @@ Keep screenshots below `.tmp/`, then run the focused homepage tests:
 uv run pytest core/tests/test_homepage.py -q
 ```
 
+## Index hero pairs
+
+The index heroes drawn through `templates/core/_hero_illustration.html` are
+`1254x1254` pairs in the podcast hero's style. `newsletter-hero.webp` /
+`newsletter-hero-dark.webp` (the `/newsletter` hero: a reader opening an
+envelope of event, video and article cards) were generated with the built-in
+imagegen tool through Codex (backend unverified) on `#ff00ff` chroma, with
+`podcast-hero.webp` / `podcast-hero-dark.webp` as the style references; the
+dark file is its own pass from the light composition, finished with
+`finish_chroma.py` at default parameters.
+
 ## Wire it into a page
 
 1. Choose a stable filename under `core/static/core/illustrations/`.

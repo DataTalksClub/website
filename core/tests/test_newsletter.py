@@ -51,6 +51,26 @@ class NewsletterSignupTests(TestCase):
                 self.assertEqual(redirect_response.status_code, 301)
                 self.assertEqual(redirect_response.headers["Location"], "/newsletter")
 
+    def test_newsletter_page_is_its_synced_row_with_one_form_pairing(self) -> None:
+        from content.models import SyncedDocument
+
+        record = SyncedDocument.objects.get(content_kind="newsletter_page").record
+        body = self.client.get(reverse("newsletter")).content.decode()
+        for text in (record["title"], record["lead"], record["proof"], record["close_title"]):
+            self.assertIn(escape(text), body)
+        for part in record["issue_parts"]:
+            self.assertIn(escape(part["title"]), body)
+        # The hero and the closing panel carry the same form, input and button
+        # on one row, and Subscribe is the same button in both.
+        self.assertEqual(body.count('class="newsletter-form-row"'), 2)
+        self.assertEqual(body.count(">Subscribe</button>"), 2)
+
+    def test_newsletter_page_is_absent_without_its_row(self) -> None:
+        from content.models import SyncedDocument
+
+        SyncedDocument.objects.filter(content_kind="newsletter_page").delete()
+        self.assertEqual(self.client.get(reverse("newsletter")).status_code, 404)
+
     def test_main_sitemap_includes_newsletter(self) -> None:
         response = self.client.get("/sitemaps/main.xml")
         self.assertEqual(response.status_code, 200)

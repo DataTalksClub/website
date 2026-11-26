@@ -1,0 +1,24 @@
+{
+  "page": {
+    "close_text": "Synthetic closing line.",
+    "close_title": "Synthetic closing title",
+    "community_note": "Synthetic community note.",
+    "faq": [
+      {
+        "answer": "Read the [privacy policy](/privacy).",
+        "question": "Synthetic question?"
+      }
+    ],
+    "issue_intro": "Synthetic issue intro.",
+    "issue_parts": [
+      {"body": "Synthetic events part.", "part": "events", "title": "Synthetic events"},
+      {"body": "Synthetic courses part.", "part": "courses", "title": "Synthetic courses"},
+      {"body": "Synthetic articles part.", "part": "articles", "title": "Synthetic articles"}
+    ],
+    "lead": "Synthetic newsletter lead copy.",
+    "proof": "Synthetic newsletter proof line.",
+    "public_path": "/newsletter",
+    "source_path": "newsletter.yaml",
+    "title": "Synthetic newsletter title"
+  }
+}

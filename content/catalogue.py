@@ -105,10 +105,12 @@ PEOPLE_KIND = "people"
 MEDIA_KIND = "media"
 
 #: The site page kinds the editorial source publishes as one row apiece: the
-#: podcast platform catalog and the ``/slack`` page. Both are authored in the
-#: structured content repository and read like every other synced kind; a
-#: database that publishes none offers no platforms and no Slack page.
+#: podcast platform catalog, the ``/slack`` page and the ``/newsletter`` page.
+#: All are authored in the structured content repository and read like every
+#: other synced kind; a database that publishes none offers no platforms and
+#: no Slack or newsletter page.
 SLACK_PAGE_KIND = "slack_page"
+NEWSLETTER_PAGE_KIND = "newsletter_page"
 #: The Academy pages (one row per page) and the copy they share (one row),
 #: authored under ``academy/`` in the same repository.
 ACADEMY_PAGE_KIND = "academy_page"
@@ -116,6 +118,7 @@ ACADEMY_SHARED_KIND = "academy_shared"
 SITE_PAGE_SYNCED_KINDS = (
     "podcast_platforms",
     SLACK_PAGE_KIND,
+    NEWSLETTER_PAGE_KIND,
     ACADEMY_PAGE_KIND,
     ACADEMY_SHARED_KIND,
 )
@@ -579,6 +582,13 @@ def slack_page() -> Record | None:
     """The ``/slack`` page's record, or ``None`` when no row publishes it."""
 
     held = records(SLACK_PAGE_KIND)
+    return held[0] if held else None
+
+
+def newsletter_page() -> Record | None:
+    """The ``/newsletter`` page's record, or ``None`` when no row publishes it."""
+
+    held = records(NEWSLETTER_PAGE_KIND)
     return held[0] if held else None
 
 

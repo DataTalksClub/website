@@ -58,6 +58,7 @@ FAQ_PROJECTION = FIXTURE_ROOT / "faq_projection.json"
 HOMEPAGE_TESTIMONIALS = FIXTURE_ROOT / "homepage_testimonials.json"
 PUBLIC_CONTENT_CATALOGUE = FIXTURE_ROOT / "public_content_catalogue.json"
 SLACK_PAGE = FIXTURE_ROOT / "slack_page.json"
+NEWSLETTER_PAGE = FIXTURE_ROOT / "newsletter_page.json"
 PODCAST_PLATFORMS_SEED = FIXTURE_ROOT / "podcast_platforms.json"
 
 #: The collections the synthetic catalogue carries as lists in JSON, but which
@@ -566,11 +567,11 @@ def add_synced_media(records: Iterable[dict[str, Any]], *, published: bool = Tru
 
 
 def load_synced_site_pages() -> int:
-    """Publish the podcast platforms and the ``/slack`` page as synced rows.
+    """Publish the podcast platforms, ``/slack`` and ``/newsletter`` as synced rows.
 
-    Both are single rows on the editorial source: the platform catalog and the
-    Slack page are authored in the structured content repository now
-    (``podcast-platforms.yaml`` and ``slack.yaml``), and the catalogue reads
+    All are single rows on the editorial source: the platform catalog and the
+    two pages are authored in the structured content repository now
+    (``podcast-platforms.yaml``, ``slack.yaml``, ``newsletter.yaml``), and the catalogue reads
     them like every other synced kind (issue #384).  The synthetic platform
     fixture keeps the reviewed record shape -- ``key``/``title`` included --
     because that is exactly what the parser derives from the authored file.
@@ -588,6 +589,10 @@ def load_synced_site_pages() -> int:
     platforms = json.loads(PODCAST_PLATFORMS_SEED.read_text(encoding="utf-8"))
     page = json.loads(SLACK_PAGE.read_text(encoding="utf-8"))["page"]
     slack_record = {key: value for key, value in page.items() if key != "source_path"}
+    newsletter_page = json.loads(NEWSLETTER_PAGE.read_text(encoding="utf-8"))["page"]
+    newsletter_record = {
+        key: value for key, value in newsletter_page.items() if key != "source_path"
+    }
     editorial_source, _ = _sync_engine_sources()
     rows = [
         SyncedDocument(
@@ -613,6 +618,18 @@ def load_synced_site_pages() -> int:
             source_path="slack.yaml",
             checksum=_checksum(slack_record),
             record=slack_record,
+        ),
+        SyncedDocument(
+            source=editorial_source,
+            content_kind="newsletter_page",
+            stable_key="newsletter",
+            slug="newsletter",
+            title=newsletter_record["title"],
+            summary=newsletter_record["lead"],
+            public_path="/newsletter",
+            source_path="newsletter.yaml",
+            checksum=_checksum(newsletter_record),
+            record=newsletter_record,
         ),
     ]
     SyncedDocument.objects.bulk_create(rows)

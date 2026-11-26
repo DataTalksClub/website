@@ -67,8 +67,8 @@ default anyway). `content_sync/dtc_content/parity.py` itself stays --
 a real, ongoing production check gated to that same frozen commit.
 
 `test_support/reference_data.py` no longer reads this tree either. Articles,
-podcasts, books, people, media, FAQ, the podcast platform links and `/slack`
-all read `content.models.SyncedDocument` rows now, written by the live
+podcasts, books, people, media, FAQ, the podcast platform links, `/slack` and
+`/newsletter` all read `content.models.SyncedDocument` rows now, written by the live
 `community_base.content_sync` engine (`manage.py sync_content` against a real
 checkout, or its webhook) -- `content/catalogue.py` and `content/faq_data.py`
 resolve their own synced source rather than a staged `ContentDocument`
@@ -94,6 +94,7 @@ this exact gap by writing a staged `ContentDocument` release --
 | Documentation | `content/docs_reader.py` -> `community_base.knowledge_base.KnowledgeBasePage` | `manage.py sync_content` / webhook |
 | Course FAQ | `content/faq_data.py` -> `SyncedDocument` (`dtc-faq`) | `manage.py sync_content` / webhook |
 | `/slack` | `content/catalogue.py` -> `SyncedDocument` (`dtc-content`) | `manage.py sync_content` / webhook |
+| `/newsletter` | `content/catalogue.py` -> `SyncedDocument` (`dtc-content`, `newsletter_page`) | `manage.py sync_content` / webhook |
 | Academy pages (`/academy/`) | `content/catalogue.py` -> `SyncedDocument` (`dtc-content`, `academy_page` / `academy_shared`) | `manage.py sync_content` / webhook |
 | Article FAQ sections | `content/article_faq.py` -> the article's own row | with the article |
 | Events | `events/queries.py` -> `Event`/`EventContent` | `scripts/prod/import_events.py` (identity, then content) |

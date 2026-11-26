@@ -275,6 +275,12 @@ arm of DataTalks.Club. Its layout blueprint is in `_docs/design/landing-pages.md
   conversion pages with one action each (`Join Slack` and `Subscribe to the
   digest`), kept clearly distinct from each other and from `Create free
   account`.
+- **Newsletter (`/newsletter`):** Primary goal = subscribe. The one action is
+  the signup form (email field and `Subscribe` on one row), drawn identically
+  in the hero (with the subscriber-count proof line) and in the closing mint
+  panel. Roles: what an issue holds, with the site's current events, course
+  launches and articles listed under each part (real rows, never an invented
+  issue), then the FAQ. No other primary button on the page.
 
 ---
 

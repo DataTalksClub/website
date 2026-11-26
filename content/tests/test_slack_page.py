@@ -53,7 +53,8 @@ class SlackPageTests(TestCase):
         # rather than restating it. Re-seed from empty so a page that hides in
         # the shared reference data cannot pass for the row's own presence.
         SyncedDocument.objects.filter(
-            source__slug="dtc-content", content_kind__in=("podcast_platforms", "slack_page")
+            source__slug="dtc-content",
+            content_kind__in=("podcast_platforms", "slack_page", "newsletter_page"),
         ).delete()
         from test_support.reference_data import load_synced_site_pages
 

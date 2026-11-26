@@ -1617,6 +1617,66 @@ class SlackPageParserTests(_CheckoutCase):
                 parser.discover(checkout, source)
 
 
+def _newsletter_yaml() -> bytes:
+    return (
+        b"title: Synthetic Newsletter\n"
+        b"lead: A synthetic lead.\n"
+        b"proof: A synthetic proof.\n"
+        b"issue_intro: A synthetic intro.\n"
+        b"issue_parts:\n"
+        b"- {part: events, title: Events, body: Live events.}\n"
+        b"- {part: articles, title: Articles, body: New articles.}\n"
+        b"community_note: A synthetic note.\n"
+        b"faq:\n"
+        b"- {question: Is it free, answer: Yes.}\n"
+        b"close_title: Subscribe\n"
+        b"close_text: Join the readers.\n"
+    )
+
+
+class NewsletterPageParserTests(_CheckoutCase):
+    def setUp(self) -> None:
+        super().setUp()
+        SyncedDocument.objects.filter(source__slug="dtc-content").delete()
+
+    def test_discover_upsert_and_delete(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("newsletter_page")
+        with self.checkout({"newsletter.yaml": _newsletter_yaml()}) as checkout:
+            items = parser.discover(checkout, source)
+            self.assertEqual([item.key for item in items], ["newsletter"])
+            record = items[0].data["record"]
+            self.assertEqual(record["public_path"], "/newsletter")
+            self.assertEqual(record["title"], "Synthetic Newsletter")
+            self.assertEqual(
+                [part["part"] for part in record["issue_parts"]], ["events", "articles"]
+            )
+            self.assertEqual(record["faq"], [{"question": "Is it free", "answer": "Yes."}])
+            result = parser.upsert(items[0], source, media_store())
+        self.assertEqual(result.action, "created")
+        stored = SyncedDocument.objects.get(source=source, content_kind="newsletter_page")
+        self.assertEqual((stored.stable_key, stored.slug), ("newsletter", "newsletter"))
+        self.assertEqual(stored.summary, "A synthetic lead.")
+        self.assertEqual(parser.soft_delete_missing(set(), source), 1)
+
+    def test_a_repository_without_the_page_publishes_no_row(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("newsletter_page")
+        with self.checkout({"slack.yaml": _slack_yaml()}) as checkout:
+            self.assertEqual(parser.discover(checkout, source), [])
+
+    def test_an_unknown_or_repeated_issue_part_is_rejected(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("newsletter_page")
+        for bad in (
+            _newsletter_yaml().replace(b"part: articles", b"part: jobs"),
+            _newsletter_yaml().replace(b"part: articles", b"part: events"),
+        ):
+            with self.checkout({"newsletter.yaml": bad}) as checkout:
+                with self.assertRaises(ContentParserError):
+                    parser.discover(checkout, source)
+
+
 def _course_yaml(editions: bytes = b"", title: str = "Data Engineering Zoomcamp") -> bytes:
     catalog = b"catalog:\n  editions:\n" + editions if editions else b""
     return (
@@ -1773,6 +1833,7 @@ class RegistrationTests(unittest.TestCase):
         self.assertEqual(type(get_parser("media")).__name__, "MediaParser")
         self.assertEqual(type(get_parser("podcast_platforms")).__name__, "PodcastPlatformsParser")
         self.assertEqual(type(get_parser("slack_page")).__name__, "SlackPageParser")
+        self.assertEqual(type(get_parser("newsletter_page")).__name__, "NewsletterPageParser")
         self.assertEqual(type(get_parser("course")).__name__, "CourseCatalogParser")
 
 

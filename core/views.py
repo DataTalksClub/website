@@ -1,5 +1,6 @@
 import json
 import time
+from datetime import date
 from typing import Any
 
 from django.conf import settings
@@ -14,10 +15,12 @@ from django.http import (
     JsonResponse,
 )
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_safe
 
 from content import catalogue
+from content.article_faq import render_article_faq_answer
 from content.docs_reader import DOCS_ROOT_PATH, docs_page
 from content.event_content import event_groups
 from content.person_chip import PersonChip, person_chip
@@ -360,6 +363,64 @@ def _wants_json_response(request: HttpRequest) -> bool:
     return "application/json" in accept
 
 
+def _newsletter_courses(today: date) -> tuple[dict[str, Any], ...]:
+    """The course launches an issue would carry: the cohorts still to start,
+    soonest first, or -- when none is scheduled -- the one that started last."""
+
+    dated = sorted(
+        ((entry.start_date, entry) for entry in course_catalog() if entry.start_date is not None),
+        key=lambda pair: pair[0],
+    )
+    upcoming = [pair for pair in dated if pair[0] >= today][:2]
+    chosen = upcoming or [pair for pair in dated if pair[0] < today][-1:]
+    return tuple(
+        {
+            "title": entry.title,
+            "public_path": entry.public_path,
+            "starts": start >= today,
+            "start_date": start,
+        }
+        for start, entry in chosen
+    )
+
+
+def _newsletter_context() -> dict[str, Any]:
+    """The /newsletter page: its synced ``newsletter_page`` row (the copy) and,
+    under each issue part, what the site holds for that part right now."""
+
+    record = catalogue.newsletter_page()
+    if record is None:
+        raise Http404("The newsletter page is unavailable.")
+    feeds: dict[str, tuple[dict[str, Any], ...]] = {
+        "events": tuple(event_groups().upcoming[:3]),
+        "courses": _newsletter_courses(timezone.localdate()),
+        "articles": tuple(
+            {**article, "dateline": article_dateline(article)}
+            for article in list(catalogue.articles())[:3]
+        ),
+    }
+    page = {
+        **record,
+        "issue_parts": tuple(
+            {**part, "items": feeds.get(part["part"], ())}
+            for part in record.get("issue_parts") or ()
+        ),
+        "faq": tuple(
+            {
+                "question": entry["question"],
+                "answer_html": render_article_faq_answer(entry["answer"]),
+            }
+            for entry in record.get("faq") or ()
+        ),
+    }
+    return {
+        "canonical_url": "https://datatalks.club/newsletter",
+        "seo_title": "Newsletter — DataTalks.Club",
+        "seo_description": f"{record.get('lead', '')} {record.get('proof', '')}".strip(),
+        "newsletter": page,
+    }
+
+
 @csrf_exempt
 def newsletter(request: HttpRequest) -> HttpResponse:
     if request.method not in {"GET", "HEAD", "POST"}:
@@ -367,18 +428,8 @@ def newsletter(request: HttpRequest) -> HttpResponse:
         response["Cache-Control"] = "private, no-store, max-age=0"
         return response
 
-    context: dict[str, Any] = {
-        "canonical_url": "https://datatalks.club/newsletter",
-        "seo_title": "Newsletter — DataTalks.Club",
-        "seo_description": (
-            "One email every Monday with DataTalks.Club events, free course launches, "
-            "new articles, and community news. Read by 130,000+ data and AI practitioners."
-        ),
-        "tour_content": homepage_tour_page(),
-    }
-
     if request.method in {"GET", "HEAD"}:
-        return render(request, "core/newsletter.html", context)
+        return render(request, "core/newsletter.html", _newsletter_context())
 
     wants_json = _wants_json_response(request)
     if request.content_type == "application/json":
@@ -420,6 +471,7 @@ def newsletter(request: HttpRequest) -> HttpResponse:
             status=result.http_status,
         )
 
+    context = _newsletter_context()
     context["newsletter_result"] = result
     context["submitted_email"] = "" if result.ok else email
     return render(request, "core/newsletter.html", context, status=result.http_status)
