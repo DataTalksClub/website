@@ -868,7 +868,7 @@ answers, 4,966 project submissions, 15,240 peer reviews.
 
 #### Full run order (local rehearsal, then production)
 
-All four steps read the same export file. The history importer binds itself to that
+All five steps read the same export file. The history importer binds itself to that
 file's SHA-256, so a later run against a different export is refused.
 
 1. `scripts/prod/import_cmp_content.py --database <db> --source <export>` writes
@@ -879,11 +879,15 @@ file's SHA-256, so a later run against a different export is refused.
 2. `scripts/prod/import_cmp_learners.py --database <db> --source <export> --dry-run`,
    then the same without `--dry-run`. Accounts, email addresses and `LearnerProfile`
    rows. About 2.5 minutes locally.
-3. `scripts/prod/import_cmp_learner_history.py ... --dry-run`, then without it. About
+3. `scripts/prod/import_cmp_learner_profiles.py --database <db> --source <export>`
+   (dry run), then with `--apply`. Fills the learner profiles' blank work fields and
+   `profile_confirmed_at` from CMP registrations; also the backfill for accounts step 2
+   imported before those fields existed (see below). Seconds.
+4. `scripts/prod/import_cmp_learner_history.py ... --dry-run`, then without it. About
    2.5 minutes locally, resumable.
-4. `scripts/prod/import_cmp_enrollment_certificates.py` is only for re-reconciling
+5. `scripts/prod/import_cmp_enrollment_certificates.py` is only for re-reconciling
    certificate URLs on one cohort that was imported earlier. A fresh run gets its
-   certificates in step 3 through `Enrollment.certificate_url`.
+   certificates in step 4 through `Enrollment.certificate_url`.
 
 For production, swap `--database <db>` for `--deployment-target website-production
 --allow-production-write website-production` on the same commands (the `<target>`
@@ -903,6 +907,41 @@ recomputes. A replay created nothing new. CMP's `Enrollment.bonus_points` (refer
 points, 67 enrollments) has no column here, but CMP already counts it in
 `total_score`, and the import copies `total_score` and `position_on_leaderboard` as
 CMP has them.
+
+**Learner-profile details: `scripts/prod/import_cmp_learner_profiles.py`** (over
+`accounts/services/cmp_learner_profile_import.py`), run after `import_cmp_learners`.
+`import_cmp_learners` copied the CMP user's own profile columns once, but CMP keeps the
+work data per registration (`courses_courseregistration.company_name`, the role and name
+last typed, LinkedIn/GitHub, `years_experience` where the export has it), and CMP has no
+profile timestamp. This reconciler fills each claimed learner's **blank**
+`LearnerProfile` fields from the CMP user row and the learner's latest CMP registration,
+and carries that registration's `updated_at` over as `profile_confirmed_at` (on CMP a
+registration prefilled from the profile and wrote back to it). The 180-day
+"still up to date?" review (`LEARNER_PROFILE_CONFIRMATION_MAX_AGE_DAYS`) then treats a
+recent CMP registrant as current. A learner with no CMP registration keeps
+`profile_confirmed_at` empty and sees the review on their first registration.
+
+| | |
+| --- | --- |
+| **Matching** | `CmpLearnerClaim` (CMP user id to site user id) only, never by name or email. Unclaimed CMP users and registrations without a user are counted and skipped |
+| **Writes** | Blank fields only. A profile confirmed on the site after the CMP evidence is left untouched |
+| **Idempotency** | Safe. Dry-run by default; `--apply` writes; a second `--apply` updates nothing |
+| **Output** | Counts only (JSON), never a payload or an id |
+
+```
+uv run --frozen python scripts/prod/import_cmp_learner_profiles.py \
+    --database .tmp/local.sqlite3 \
+    --source ~/prod/dtc-data/rds-export/cmp/rds-prod-20260910-182337.db          # dry run
+uv run --frozen python scripts/prod/import_cmp_learner_profiles.py ... --apply   # write
+```
+
+Measured 2026-11-26 on the local prep dataset (27,191 CMP accounts already imported)
+against `/data/tmp/rds-export/cmp/rds-prod-20261126-153117.db` (43,609 registrations,
+38,970 of them with no CMP user id, which are skipped): 3,700 profiles updated
+(company 1,866, years of experience 1,179, LinkedIn 644, role 638, country 637, GitHub
+531, region 476, name 365) and 3,700 `profile_confirmed_at` set; replay updated 0.
+Afterwards 3,398 profiles were complete, 3,372 of them confirmed within 180 days, so
+those members register without meeting a profile step at all.
 
 ### 13 — `zoomcamp-scoring`, pre-2024 history
 

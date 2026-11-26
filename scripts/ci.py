@@ -312,6 +312,17 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     # Site feedback 3.1: /courses catalogue facets, filters and reviews.
     "courses/catalog_facets.py",
     "courses/tests/test_course_catalog_feedback.py",
+    # Learner-profile gate, per-course registration questions, signup email
+    # consent and the CMP learner-profile reconciler.
+    "accounts/services/cmp_learner_profile_import.py",
+    "accounts/services/newsletter_consent.py",
+    "accounts/tests/test_cmp_learner_profile_import.py",
+    "accounts/tests/test_signup_newsletter_consent.py",
+    "accounts/views/newsletter.py",
+    "courses/registration_questions.py",
+    "courses/services/learner_profile_gate.py",
+    "courses/tests/test_learner_profile_gate.py",
+    "test_support/learner_profile.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",
@@ -322,6 +333,7 @@ PRODUCTION_IMPORT_PYTHON: Final = (
     "courses/services/cmp_learner_history_import.py",
     "courses/services/cmp_certificate_reconciliation.py",
     "scripts/prod/import_cmp_enrollment_certificates.py",
+    "scripts/prod/import_cmp_learner_profiles.py",
     # Listed after the directory so _dedupe_typecheck_paths drops the file
     # for mypy (the directory walk already covers it) while the adoption-gate
     # coverage test still sees the opt-in by path.

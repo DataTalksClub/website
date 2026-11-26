@@ -193,7 +193,10 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # in strict mypy (configuration only).
 # The email audience merge script and its tests join strict mypy (configuration
 # only, no dependency change); the pyproject seal moves with that reviewed pyproject.
-STUDIO_COURSES_PYPROJECT_SHA256 = "a83603658edfdd303877357ed2038047ab5ee572138a4688d882260946596df3"
+# The learner-profile gate enrolls its gate service, registration questions,
+# signup email consent, CMP learner-profile reconciler and their tests in
+# strict mypy (configuration only, no dependency change).
+STUDIO_COURSES_PYPROJECT_SHA256 = "937b58ef71aab82e1697f208f5665245d2eb0cca9be8f68e61d22c8ba113416d"
 # Issue #456's cb v0.5.28 pin bump moved the lock one advisory step
 # (urllib3 2.7.0 -> 2.8.0). Issue #462's v0.5.29 pin bump changes only the
 # community-base entry (tag and commit 22d5fcd0); the reviewed remediation

@@ -141,6 +141,9 @@ COURSE_CATALOGUE_ORDER = (
 CMP_LEARNER_ORDER = (
     "import_cmp_content",
     "import_cmp_learners",
+    # Fills the learner profiles (work data, confirmation time) from the CMP
+    # registrations through the claims the step before wrote.
+    "import_cmp_learner_profiles",
     "import_cmp_learner_history",
 )
 
