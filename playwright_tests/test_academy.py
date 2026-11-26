@@ -178,7 +178,9 @@ def test_waitlist_signup_and_quick_questions(
         "answers": {"german_level": "native"},
     }
     # Campaign parameters follow the reader to the other Academy pages.
-    link = page.get_by_role("link", name="Read about Agentic Engineering")
+    # The program card's name is its one link.
+    tracks = page.locator("[data-tracks]")
+    link = tracks.get_by_role("link", name="Agentic Engineering", exact=True)
     assert "utm_source=synthetic" in (link.get_attribute("href") or "")
     no_overflow(page)
     shot(page, f"home-signed-up-{suffix}")
