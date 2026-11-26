@@ -6106,16 +6106,38 @@ Rules for editing:
         padding: var(--space-5);
       }
 
+      /* The signup row is the search bar's pairing (Borders role "Search
+         field"): the email field takes the Subscribe button's ink edge,
+         radius and height, and the two stay on one row down to a phone. */
       .newsletter-form-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-3);
         align-items: stretch;
+        display: grid;
+        gap: var(--space-3);
+        grid-template-columns: minmax(0, 1fr) auto;
+        max-width: 34rem;
       }
 
-      .newsletter-email-input {
-        flex: 1 1 14rem;
+      .newsletter-form-row > .field-input {
+        border: var(--border-strong);
+        border-radius: var(--radius-control);
+        box-shadow: none;
+        font-size: 1.05rem;
+        min-height: 3.25rem;
         min-width: 0;
+        padding-inline: var(--space-4);
+        text-overflow: ellipsis;
+      }
+
+      .newsletter-form-row > .cta {
+        border-radius: var(--radius-control);
+        min-height: 3.25rem;
+        padding-inline: var(--space-5);
+      }
+
+      .newsletter-form-row > .field-input:focus-visible {
+        border-radius: var(--radius-control);
+        outline: var(--outline-focus);
+        outline-offset: 2px;
       }
 
       .newsletter-honeypot {

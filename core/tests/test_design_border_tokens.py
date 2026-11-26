@@ -297,3 +297,20 @@ class BorderTokenTests(SimpleTestCase):
             and 'type="search"' in path.read_text(encoding="utf-8")
         ]
         self.assertEqual(public_search_boxes, ["templates/core/_search_row.html"])
+
+    def test_the_newsletter_signup_is_the_search_fields_pairing(self):
+        """The signup row draws its field and Subscribe button exactly as the
+        search row draws its field and Search button."""
+        partial = (ROOT / "templates/core/_design_system.html").read_text(encoding="utf-8")
+
+        def block(selector: str) -> str:
+            start = partial.index("\n      " + selector + " {")
+            return partial[partial.index("{", start) : partial.index("}", start)]
+
+        for part in ("", " > .field-input", " > .cta", " > .field-input:focus-visible"):
+            search = block(".search-row" + part)
+            signup = block(".newsletter-form-row" + part)
+            if part:
+                self.assertEqual(search, signup, part)
+            else:
+                self.assertIn("grid-template-columns: minmax(0, 1fr) auto;", signup)

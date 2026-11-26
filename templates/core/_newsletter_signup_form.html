@@ -1,3 +1,9 @@
+{% comment %}
+  The newsletter signup: an email field and the Subscribe button on one row
+  (`.newsletter-form-row`, the search bar's pairing), posting to /newsletter
+  through core/newsletter_signup.js.  Parameters: input_id; hide_hint drops the
+  hint line where the page sets its own proof line under the form.
+{% endcomment %}
 {% url 'newsletter' as newsletter_url %}
 <div class="newsletter-signup">
   <form
@@ -13,7 +19,7 @@
         id="{{ input_id|default:'newsletter-email' }}"
         type="email"
         name="email"
-        class="field-input newsletter-email-input"
+        class="field-input"
         placeholder="Email address"
         autocomplete="email"
         value="{{ submitted_email|default:'' }}"
@@ -24,7 +30,7 @@
       </div>
       <button type="submit" class="cta cta-primary interactive-lift">Subscribe</button>
     </div>
-    <p class="cta-hint">One weekly email with community news, events, and courses.</p>
+    {% if not hide_hint %}<p class="cta-hint">One weekly email with community news, events, and courses.</p>{% endif %}
   </form>
   <p
     class="newsletter-status{% if newsletter_result %} {% if newsletter_result.ok %}is-success{% else %}is-error{% endif %}{% endif %}"
