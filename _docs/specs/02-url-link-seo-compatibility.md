@@ -39,12 +39,23 @@ application renders.
   `/books/<slug>.html`, and `/people/<slug>.html`. A book's public `<slug>` is its source slug
   without the leading `YYYYMMDD-` week date (`content.book_routes`); the stored identity keeps the
   dated slug, and every dated address (`/books/<YYYYMMDD-slug>.html`, bare, or with a trailing
-  slash) redirects permanently in one hop to the dateless canonical, preserving the query. Podcast episodes retain their established
-  `/podcast/<slug>.html` canonicals unless a reviewed hierarchical route is recorded; the
-  hierarchical-only `From GenAI Pilots to Production` episode is `/podcast/s24e04/from-genai-pilots-to-production`
-  and its flat-slug forms return `404` without a redirect. Clean and trailing-slash aliases for
+  slash) redirects permanently in one hop to the dateless canonical, preserving the query. Clean and trailing-slash aliases for
   supported details redirect permanently in one hop to the recorded final while preserving the raw
-  query. The bounded public course catalog uses `/courses/<slug>`; established
+  query.
+- Podcast seasons and episodes (`content.podcast_routes`, owner decision 2026-11-26): a season is
+  `/podcast/s18/` and an episode `/podcast/s18/e09-<slug>`, both numbers zero-padded to two digits.
+  The season and episode numbers are the episode's identity and the slug is cosmetic: the short
+  `/podcast/s18/e09` (or `/podcast/s18/e09/`), any other slug after `e09-`, a trailing slash, and an
+  unpadded or over-padded number redirect permanently in one hop to the canonical, preserving the
+  raw query. An episode's own `sNNeNN-` source-slug prefix is not repeated in the public tail. The
+  address is derived from season, episode and slug wherever a record is read
+  (`content.catalogue`), so the canonical, `og:url`, JSON-LD, breadcrumbs, sitemap, hub, season
+  pills, related-episode, person, wiki-graph and home links follow it without a re-sync. The
+  transcript download is `<episode canonical>/transcript.txt`. Generated episode pictures stay at
+  `/podcast/<source slug>/picture|poster|social`: they are images keyed by the source slug, not
+  pages. No older podcast URL shape is routed: `/podcast/s18e09/<slug>`, `/podcast/s18e09`,
+  `/podcast/s/18/`, `/podcast/<slug>.html`, `/podcast/sNNeNN-<slug>.html` and bare `/podcast/<slug>`
+  all return `404` without a redirect. An unknown season or episode returns `404`. The bounded public course catalog uses `/courses/<slug>`; established
   `/tools/<slug>.html` and `/conferences/<slug>.html` routes remain unchanged where they currently
   exist.
 - There is no public People catalogue. `/people`, `/people/`, and `/people.html` return `404`
@@ -59,8 +70,8 @@ application renders.
 - Path case, percent encoding, Unicode, query strings used by public behavior, and trailing-slash behavior are tested rather than normalized globally.
 - Links carrying a CDN-added trailing slash exist in the wild, so the single-trailing-slash
   spelling of each of the following extensionless page families is an explicit, per-route
-  compatibility alias: Event details (`/events/<id>/<slug>/` and `/events/<id>/`), hierarchical
-  podcast episodes (`/podcast/<sNeM>/<slug>/` and `/podcast/<sNeM>/`), Wiki pages, the Wiki graph
+  compatibility alias: Event details (`/events/<id>/<slug>/` and `/events/<id>/`), podcast
+  episodes (`/podcast/sNN/eNN-<slug>/` and `/podcast/sNN/eNN/`), Wiki pages, the Wiki graph
   and special-pages listings, the course-family page, the bare cohort and shared-module page
   (`/courses/<family>/<cohort-or-module>/`), the shared-lesson page
   (`/courses/<family>/<module>/<lesson>/`), `/courses/projects/`, and the `/slack/`, `/sponsors/`,
@@ -119,13 +130,17 @@ slug ascending as deterministic tie-breakers; genuine gaps and duplicates are pr
 `/podcast` path is a moving latest-season representation selected from the maximum validated numeric
 season, never a hard-coded season.
 
-The only selector the catalogue reads is one exact ASCII `season=[1-9][0-9]{0,8}` value; every
-other parameter in the raw query rides along under the split recorded below. An existing older season
-uses `/podcast?season=N`, an exact self-canonical, the title
+The season lives in the path: an existing older season is `/podcast/sNN/`
+(`content.podcast_routes.podcast_season_canonical_path`), and the query string selects nothing --
+any query on `/podcast` serves the clean latest-season page. The paragraphs below that describe a
+`?season=N` selector are historical (#196); the path replaced it. An older season page is an exact
+self-canonical, the title
 `DataTalks.Club Podcast — Season N — DataTalks.Club`, and sequence relations in descending catalogue
 order: `prev` targets the adjacent newer actual season and `next` targets the adjacent older actual
 season. Relations and navigation skip gaps in the actual inventory. A relation or control for the
-latest season uses clean `/podcast`; all older controls use their exact normalized season query.
+latest season uses clean `/podcast`; all older controls use their `/podcast/sNN/` path. The latest
+season's own `/podcast/sNN/` renders with the clean `/podcast` canonical, and a non-canonical
+spelling (`/podcast/s018/`) or an absent season returns `404`.
 
 An explicit query for the current latest season returns `200` but uses the clean canonical and
 latest-season title, and no internal link emits that query. Season controls list every actual season

@@ -34,7 +34,7 @@ to block indexing again. This runbook does not authorize DNS or CDN changes.
 
 Verify with curl that representative public pages have one apex canonical;
 every sitemap `<loc>` starts with `https://datatalks.club/`; the mentoring
-episode is `/podcast/s01e05/mentoring-in-tech-how-to-find-and-become-a-mentor`
+episode is `/podcast/s01/e05-mentoring-in-tech-how-to-find-and-become-a-mentor`
 without `.md`; and robots/header blocking still holds before cutover. At
 cutover verify the apex robots allows public paths and advertises the apex
 sitemap, with no public noindex header, while private routes stay blocked.

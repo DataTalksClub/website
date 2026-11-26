@@ -198,7 +198,7 @@ first-time visitors.
      AI practitioners who ship) and where to subscribe.
   2. **Episode browsing:** Season navigation and clean episode list.
 
-#### 4b. Episode detail (`/podcast/<slug>`, `templates/public/podcast_detail.html`)
+#### 4b. Episode detail (`/podcast/sNN/eNN-<slug>`, `templates/public/podcast_detail.html`)
 
 - **Primary goal:** **Play/listen to the episode** (or read its summary,
   timestamps, and transcript).
