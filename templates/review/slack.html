@@ -78,7 +78,11 @@
   }
 
   /* --- benefits: one card per thing members do, the channels it happens
-         in as plain chips holding mono literals. */
+         in as plain chips holding mono literals.  Two columns inside the
+         page's one content column (three made each card too narrow, so its
+         chips stacked one per line); the shared card's column flex keeps a
+         row's cards one height, and the chip row is pinned to the card foot
+         so the rows line up. */
   .slack-benefits {
     display: grid;
     gap: var(--space-grid);
@@ -86,22 +90,16 @@
     margin: 0;
     padding: 0;
   }
-  .slack-benefit {
-    align-content: start;
-    display: grid;
-    gap: var(--space-3);
-    padding: var(--space-5);
-  }
+  .slack-benefit { gap: var(--space-3); }
   .slack-benefit h3 { font-size: 1.1rem; }
   .slack-benefit p { color: var(--body-text); font-size: 0.95rem; margin: 0; }
   .channel-list {
-    align-self: end;
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
     list-style: none;
-    margin: 0;
-    padding: 0;
+    margin: auto 0 0;
+    padding: var(--space-2) 0 0;
   }
   .channel .mono-code {
     background: none;
@@ -175,9 +173,6 @@
     .slack-benefits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .slack-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .slack-close-panel { grid-template-columns: minmax(0, 1fr) auto; }
-  }
-  @media (min-width: 62rem) {
-    .slack-benefits { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
 
   /* --- narrow: reshape, not reflow */
