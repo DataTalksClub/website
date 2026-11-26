@@ -2430,9 +2430,16 @@ Rules for editing:
         text-decoration: underline;
       }
 
-      .person-chip:has(.person-chip-role) .person-chip-portrait {
+      .person-chip:has(.person-chip-role) .person-chip-portrait,
+      .podcast-episode-card .person-chip-portrait {
         height: 2.5rem;
         width: 2.5rem;
+      }
+
+      /* Every guest in an episode card wears the same face size, whether or
+         not the people record has a role line to show under the name. */
+      .podcast-episode-card .person-chip-initials {
+        font-size: 0.9rem;
       }
 
       /* The standalone treatment: one credited person who is the subject of the
