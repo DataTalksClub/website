@@ -18,9 +18,11 @@ each source holds, with timestamps:
   at its confirm (opt-in) time, unsubscribed is an opt-out, and cleaned is a
   bounce.  The API dump has no unsubscribe or clean time, so the member's
   ``last_changed`` stands in for it.
-* **Relay export** (``relay-contacts.csv`` and, optionally,
-  ``relay-category-preferences.csv``, in the shape described by
-  ``~/prod/dtc-data/requests/relay-audience-export-*.md``): a ``subscribed``
+* **Relay export**: either ``relay-contacts.csv`` (the read-only SQL export
+  described by ``~/prod/dtc-data/requests/relay-audience-export-*.md``) or one
+  ``relay operator contacts csv-export --full`` file per audience/client scope,
+  plus, optionally, ``relay-category-preferences.csv``.  The operator CSV has
+  the contact's suppressions as booleans, so they carry no time.  A ``subscribed``
   subscription in audience ``dtc`` is consent.  An unsubscribed subscription in
   any audience, a global unsubscribe, a hard bounce or a complaint is an
   opt-out.
@@ -202,6 +204,23 @@ RELAY_CONTACT_COLUMNS = frozenset(
         "complained_at",
     }
 )
+# ``relay operator contacts csv-export --full``, one file per audience/client
+# scope.  It carries the subscription's ``unsubscribed_at`` but the contact's
+# suppressions only as booleans, so those opt-outs come without a time.
+RELAY_OPERATOR_COLUMNS = frozenset(
+    {
+        "email",
+        "audience",
+        "client",
+        "subscription_status",
+        "verified_at",
+        "unsubscribed_at",
+        "global_unsubscribed",
+        "hard_bounced",
+        "complained",
+    }
+)
+TRUE_VALUES = frozenset({"1", "t", "true", "yes", "y", "on"})
 
 WRITE_BATCH_SIZE = 500
 _SHORT_OFFSET = re.compile(r"[+-]\d\d$")
@@ -432,57 +451,70 @@ def read_mailchimp(directory: Path, ledger: Ledger) -> None:
     }
 
 
-def read_relay(directory: Path, ledger: Ledger) -> None:
-    contacts_path = directory / RELAY_CONTACTS_FILE
-    if not contacts_path.is_file():
+def _relay_files(directory: Path) -> tuple[str, list[Path]]:
+    """``relay-contacts.csv`` (the SQL export) or the operator CSV exports."""
+
+    layouts: dict[str, list[Path]] = defaultdict(list)
+    for path in sorted(directory.glob("*.csv")):
+        if path.name == RELAY_CATEGORY_FILE:
+            continue
+        with path.open(newline="", encoding="utf-8-sig") as handle:
+            header = set(next(csv.reader(handle), []))
+        if RELAY_CONTACT_COLUMNS <= header:
+            layouts["sql"].append(path)
+        elif RELAY_OPERATOR_COLUMNS <= header:
+            layouts["operator-csv"].append(path)
+        else:
+            raise AudienceMergeError("relay-export-missing-columns")
+    if len(layouts) > 1:
+        raise AudienceMergeError("relay-export-mixed-layouts")
+    if not layouts:
         raise AudienceMergeError("relay-export-missing-contacts-file")
+    return next(iter(layouts.items()))
+
+
+def read_relay(directory: Path, ledger: Ledger) -> None:
+    layout, paths = _relay_files(directory)
     counts: Counter[str] = Counter()
     emails: set[str] = set()
-    with contacts_path.open(newline="", encoding="utf-8-sig") as handle:
-        reader = csv.DictReader(handle)
-        missing = RELAY_CONTACT_COLUMNS - set(reader.fieldnames or ())
-        if missing:
-            raise AudienceMergeError("relay-export-missing-columns")
-        for row in reader:
-            email = normalize_email(row.get("email"))
-            if not email:
-                counts["rows_without_email"] += 1
-                continue
-            emails.add(email)
-            audience = (row.get("audience") or "").strip()
-            client = (row.get("client") or "").strip()
-            scope = f"{audience or '-'}/{client or '-'}"
-            for column, kind in (
-                ("global_unsubscribed_at", UNSUBSCRIBED),
-                ("hard_bounced_at", BOUNCED),
-                ("complained_at", COMPLAINED),
-            ):
-                at = parse_timestamp(row.get(column))
-                if at is not None:
-                    ledger.add(email, Evidence("relay", kind, at, f"contact:{column}"))
-            status = (row.get("subscription_status") or "").strip().lower()
-            if not status:
-                continue
-            counts[f"subscriptions_{audience or '-'}_{status}"] += 1
-            if status == "unsubscribed":
-                at = parse_timestamp(row.get("unsubscribed_at"))
-                ledger.add(email, Evidence("relay", UNSUBSCRIBED, at, f"subscription:{scope}"))
-            elif status == "subscribed" and audience == NEWSLETTER_AUDIENCE:
-                at = parse_timestamp(row.get("subscription_verified_at")) or parse_timestamp(
-                    row.get("subscription_created_at")
-                )
-                ledger.add(email, Evidence("relay", CONSENT, at, f"subscription:{scope}"))
-            elif status == "subscribed":
-                at = parse_timestamp(row.get("subscription_created_at"))
-                ledger.add(
-                    email,
-                    Evidence(
-                        "relay", "relay_course_audience_subscribed", at, f"subscription:{scope}"
-                    ),
-                )
-            elif status == "pending":
-                at = parse_timestamp(row.get("subscription_created_at"))
-                ledger.add(email, Evidence("relay", "relay_pending", at, f"subscription:{scope}"))
+    for row in (row for path in paths for row in _csv_rows(path)):
+        email = normalize_email(row.get("email"))
+        if not email:
+            counts["rows_without_email"] += 1
+            continue
+        emails.add(email)
+        audience = (row.get("audience") or "").strip()
+        client = (row.get("client") or "").strip()
+        scope = f"{audience or '-'}/{client or '-'}"
+        for flag, kind in (
+            ("global_unsubscribed", UNSUBSCRIBED),
+            ("hard_bounced", BOUNCED),
+            ("complained", COMPLAINED),
+        ):
+            at = parse_timestamp(row.get(f"{flag}_at"))
+            if at is not None or (row.get(flag) or "").strip().lower() in TRUE_VALUES:
+                ledger.add(email, Evidence("relay", kind, at, f"contact:{flag}"))
+        status = (row.get("subscription_status") or "").strip().lower()
+        if not status:
+            continue
+        counts[f"subscriptions_{audience or '-'}_{status}"] += 1
+        if status == "unsubscribed":
+            at = parse_timestamp(row.get("unsubscribed_at"))
+            ledger.add(email, Evidence("relay", UNSUBSCRIBED, at, f"subscription:{scope}"))
+        elif status == "subscribed" and audience == NEWSLETTER_AUDIENCE:
+            at = _first_timestamp(
+                row, ("subscription_verified_at", "subscription_created_at", "verified_at")
+            )
+            ledger.add(email, Evidence("relay", CONSENT, at, f"subscription:{scope}"))
+        elif status == "subscribed":
+            at = _first_timestamp(row, ("subscription_created_at", "verified_at"))
+            ledger.add(
+                email,
+                Evidence("relay", "relay_course_audience_subscribed", at, f"subscription:{scope}"),
+            )
+        elif status == "pending":
+            at = _first_timestamp(row, ("subscription_created_at", "verified_at"))
+            ledger.add(email, Evidence("relay", "relay_pending", at, f"subscription:{scope}"))
     counts["contacts"] = len(emails)
 
     category_path = directory / RELAY_CATEGORY_FILE
@@ -502,7 +534,12 @@ def read_relay(directory: Path, ledger: Ledger) -> None:
                 )
     else:
         counts["category_preferences_file_missing"] = 1
-    ledger.inputs["relay"] = {"directory": directory.name, **dict(sorted(counts.items()))}
+    ledger.inputs["relay"] = {
+        "directory": directory.name,
+        "layout": layout,
+        "files": len(paths),
+        **dict(sorted(counts.items())),
+    }
 
 
 @dataclass(frozen=True)
@@ -848,7 +885,10 @@ def _parser() -> argparse.ArgumentParser:
         "--relay-export-dir",
         type=Path,
         default=None,
-        help=f"Directory with {RELAY_CONTACTS_FILE} (and optionally {RELAY_CATEGORY_FILE}).",
+        help=(
+            f"Directory with {RELAY_CONTACTS_FILE} or the operator --full CSV exports "
+            f"(and optionally {RELAY_CATEGORY_FILE})."
+        ),
     )
     parser.add_argument(
         "--output-dir",

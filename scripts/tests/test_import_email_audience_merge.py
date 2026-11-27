@@ -218,6 +218,115 @@ class MailchimpLayoutTests(SimpleTestCase):
             self._evidence(self.tmp / "partial")
 
 
+class RelayLayoutTests(SimpleTestCase):
+    OPERATOR_HEADER = [
+        "email",
+        "audience",
+        "client",
+        "tags",
+        "subscription_status",
+        "verified",
+        "verified_at",
+        "global_unsubscribed",
+        "hard_bounced",
+        "complained",
+        "unsubscribed",
+        "unsubscribed_at",
+        "unsubscribe_reason",
+        "updated_at",
+    ]
+
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp())
+
+    def _operator_row(self, email, audience, client, status, **flags) -> list[str]:
+        unsub_at = "2026-05-01T00:00:00+00:00" if status == "unsubscribed" else ""
+        return [
+            email,
+            audience,
+            client,
+            "",
+            status,
+            "True",
+            "2026-01-01T00:00:00+00:00",
+            str(flags.get("global_unsubscribed", False)),
+            str(flags.get("hard_bounced", False)),
+            str(flags.get("complained", False)),
+            str(status == "unsubscribed"),
+            unsub_at,
+            "",
+            "2026-06-01T00:00:00+00:00",
+        ]
+
+    def _read(self, directory: Path) -> tuple[dict, dict]:
+        ledger = merge.Ledger()
+        merge.read_relay(directory, ledger)
+        return dict(ledger.evidence), ledger.inputs["relay"]
+
+    def test_operator_full_csv_exports_read_per_scope(self) -> None:
+        directory = self.tmp / "relay"
+        directory.mkdir()
+        _csv(
+            directory / "relay-dtc-dtc-newsletter.csv",
+            self.OPERATOR_HEADER,
+            [
+                self._operator_row("sub@example.invalid", "dtc", "dtc-newsletter", "subscribed"),
+                self._operator_row("left@example.invalid", "dtc", "dtc-newsletter", "unsubscribed"),
+                self._operator_row(
+                    "global@example.invalid", "dtc", "dtc-newsletter", "", global_unsubscribed=True
+                ),
+            ],
+        )
+        _csv(
+            directory / "relay-dtc-courses-dtc-courses.csv",
+            self.OPERATOR_HEADER,
+            [
+                self._operator_row(
+                    "course@example.invalid", "dtc-courses", "dtc-courses", "subscribed"
+                ),
+                self._operator_row(
+                    "bounce@example.invalid",
+                    "dtc-courses",
+                    "dtc-courses",
+                    "subscribed",
+                    hard_bounced=True,
+                ),
+            ],
+        )
+        evidence, inputs = self._read(directory)
+        kinds = {e: {(i.kind, i.at) for i in items} for e, items in evidence.items()}
+        self.assertEqual(kinds["sub@example.invalid"], {(merge.CONSENT, T0)})
+        self.assertEqual(
+            kinds["left@example.invalid"],
+            {(merge.UNSUBSCRIBED, datetime(2026, 5, 1, tzinfo=UTC))},
+        )
+        # The operator CSV holds suppressions as booleans: an opt-out without a time.
+        self.assertEqual(kinds["global@example.invalid"], {(merge.UNSUBSCRIBED, None)})
+        self.assertEqual(merge.decide(evidence["global@example.invalid"]).status, "unsubscribed")
+        self.assertEqual(
+            kinds["course@example.invalid"], {("relay_course_audience_subscribed", T0)}
+        )
+        self.assertEqual(merge.decide(evidence["bounce@example.invalid"]).status, "suppressed")
+        self.assertEqual((inputs["layout"], inputs["files"]), ("operator-csv", 2))
+
+    def test_mixed_or_unknown_relay_files_are_refused(self) -> None:
+        directory = self.tmp / "mixed"
+        directory.mkdir()
+        _csv(directory / merge.RELAY_CONTACTS_FILE, RELAY_HEADER, [])
+        _csv(directory / "relay-dtc.csv", self.OPERATOR_HEADER, [])
+        with self.assertRaisesMessage(merge.AudienceMergeError, "mixed-layouts"):
+            self._read(directory)
+        unknown = self.tmp / "unknown"
+        unknown.mkdir()
+        _csv(unknown / "notes.csv", ["email"], [])
+        with self.assertRaisesMessage(merge.AudienceMergeError, "missing-columns"):
+            self._read(unknown)
+        empty = self.tmp / "empty"
+        empty.mkdir()
+        with self.assertRaisesMessage(merge.AudienceMergeError, "missing-contacts-file"):
+            self._read(empty)
+
+
 class MergeRunTests(TestCase):
     def setUp(self) -> None:
         self.tmp = Path(tempfile.mkdtemp())
