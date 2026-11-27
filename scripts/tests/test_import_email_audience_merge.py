@@ -77,6 +77,28 @@ def _mailchimp(directory: Path, subscribed=(), unsubscribed=(), cleaned=()) -> N
     )
 
 
+API_HEADER = ["id", "email_address", "status", "timestamp_signup", "timestamp_opt", "last_changed"]
+
+
+def _mailchimp_api(directory: Path, subscribed=(), unsubscribed=(), cleaned=()) -> None:
+    """A Marketing API members dump: one ``<audience>_<status>.csv`` per status."""
+
+    directory.mkdir()
+    for state, emails, changed in (
+        ("subscribed", subscribed, "2021-01-01T00:00:00+00:00"),
+        ("unsubscribed", unsubscribed, "2026-03-01T00:00:00+00:00"),
+        ("cleaned", cleaned, "2026-03-01T00:00:00+00:00"),
+    ):
+        _csv(
+            directory / f"DataTalks_{state}.csv",
+            API_HEADER,
+            [
+                [str(i), e, state, "", "2021-01-01T00:00:00+00:00", changed]
+                for i, e in enumerate(emails)
+            ],
+        )
+
+
 RELAY_HEADER = [
     "email",
     "audience",
@@ -138,6 +160,62 @@ class DecideTests(SimpleTestCase):
         self.assertEqual(merge.SYNC_MODEL, "one-time")
         self.assertFalse(merge.BOOTSTRAPS_EMPTY_DATABASE)
         self.assertIn("import_email_audience_merge", scripts.prod.SCRIPT_COMMAND_EXCLUSIONS)
+
+
+class MailchimpLayoutTests(SimpleTestCase):
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp())
+
+    def _evidence(self, directory: Path) -> tuple[dict, dict]:
+        ledger = merge.Ledger()
+        merge.read_mailchimp(directory, ledger)
+        return dict(ledger.evidence), ledger.inputs["mailchimp"]
+
+    def test_an_api_members_dump_reads_like_the_ui_export(self) -> None:
+        people = {
+            "subscribed": ["Sub@example.invalid"],
+            "unsubscribed": ["unsub@example.invalid"],
+            "cleaned": ["gone@example.invalid"],
+        }
+        _mailchimp(self.tmp / "ui", **people)
+        _mailchimp_api(self.tmp / "api", **people)
+        ui, ui_inputs = self._evidence(self.tmp / "ui")
+        api, api_inputs = self._evidence(self.tmp / "api")
+        strip = {e: {(i.kind, i.at) for i in items} for e, items in ui.items()}
+        self.assertEqual(strip, {e: {(i.kind, i.at) for i in items} for e, items in api.items()})
+        self.assertEqual(
+            strip["unsub@example.invalid"],
+            {(merge.UNSUBSCRIBED, datetime(2026, 3, 1, tzinfo=UTC))},
+        )
+        self.assertEqual((ui_inputs["layout"], api_inputs["layout"]), ("ui-export", "members-api"))
+        for key in ("subscribed", "unsubscribed", "cleaned"):
+            self.assertEqual(api_inputs[key], 1)
+        self.assertEqual(api_inputs["latest_member_change"], "2026-03-01")
+
+    def test_an_unsubscribed_file_is_never_read_as_the_subscribed_one(self) -> None:
+        _mailchimp_api(self.tmp / "api", unsubscribed=["unsub@example.invalid"])
+        evidence, _ = self._evidence(self.tmp / "api")
+        self.assertEqual({i.kind for i in evidence["unsub@example.invalid"]}, {merge.UNSUBSCRIBED})
+
+    def test_a_row_whose_status_disagrees_with_its_file_is_refused(self) -> None:
+        _mailchimp_api(self.tmp / "api", subscribed=["a@example.invalid"])
+        _csv(
+            self.tmp / "api" / "DataTalks_subscribed.csv",
+            API_HEADER,
+            [["1", "a@example.invalid", "unsubscribed", "", "", "2026-01-01T00:00:00+00:00"]],
+        )
+        with self.assertRaisesMessage(merge.AudienceMergeError, "status-mismatch-subscribed"):
+            self._evidence(self.tmp / "api")
+
+    def test_mixed_or_incomplete_exports_are_refused(self) -> None:
+        _mailchimp(self.tmp / "mixed")
+        _csv(self.tmp / "mixed" / "DataTalks_subscribed.csv", API_HEADER, [])
+        with self.assertRaisesMessage(merge.AudienceMergeError, "mixed-layouts"):
+            self._evidence(self.tmp / "mixed")
+        _mailchimp_api(self.tmp / "partial")
+        (self.tmp / "partial" / "DataTalks_cleaned.csv").unlink()
+        with self.assertRaisesMessage(merge.AudienceMergeError, "missing-cleaned"):
+            self._evidence(self.tmp / "partial")
 
 
 class MergeRunTests(TestCase):

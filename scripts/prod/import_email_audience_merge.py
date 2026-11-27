@@ -12,9 +12,12 @@ each source holds, with timestamps:
   unconfirmed addresses, are counted but are not consent.  The retired
   Datamailer contact events in the same export contribute unsubscribes, hard
   bounces and complaints.
-* **Mailchimp audience export** (``subscribed_*``/``unsubscribed_*``/
-  ``cleaned_*`` CSVs): subscribed is consent at its confirm time, unsubscribed
-  is an opt-out, and cleaned is a bounce.
+* **Mailchimp audience export**, either the UI's ``Export Audience`` ZIP
+  (``subscribed_*``/``unsubscribed_*``/``cleaned_*`` CSVs) or a Marketing API
+  members dump (``<audience>_subscribed.csv`` and so on): subscribed is consent
+  at its confirm (opt-in) time, unsubscribed is an opt-out, and cleaned is a
+  bounce.  The API dump has no unsubscribe or clean time, so the member's
+  ``last_changed`` stands in for it.
 * **Relay export** (``relay-contacts.csv`` and, optionally,
   ``relay-category-preferences.csv``, in the shape described by
   ``~/prod/dtc-data/requests/relay-audience-export-*.md``): a ``subscribed``
@@ -143,11 +146,46 @@ CMP_OPT_OUT_EVENTS = {
 # A synthetic load test wrote into the same table; it is not anyone's address.
 CMP_IGNORED_AUDIENCES = frozenset({"relay240-loadtest"})
 
-MAILCHIMP_FILES = {
-    "subscribed": "subscribed_email_audience_export_",
-    "unsubscribed": "unsubscribed_email_audience_export_",
-    "cleaned": "cleaned_email_audience_export_",
-}
+MAILCHIMP_STATES = ("subscribed", "unsubscribed", "cleaned")
+
+
+@dataclass(frozen=True)
+class MailchimpLayout:
+    """Where one shape of Mailchimp audience export keeps each fact."""
+
+    name: str
+    pattern: str  # glob per state, with ``{state}``
+    email: str
+    consent_at: tuple[str, ...]  # first non-empty wins
+    opt_out_at: dict[str, str]  # per opt-out state
+    changed_at: str | None  # the subscribed file's last change
+    status: str | None  # a per-row status column to check against the file
+
+
+MAILCHIMP_LAYOUTS = (
+    # Audience -> Export Audience in the Mailchimp UI.
+    MailchimpLayout(
+        name="ui-export",
+        pattern="{state}_email_audience_export_*.csv",
+        email="Email Address",
+        consent_at=("CONFIRM_TIME", "OPTIN_TIME"),
+        opt_out_at={"unsubscribed": "UNSUB_TIME", "cleaned": "CLEAN_TIME"},
+        changed_at="LAST_CHANGED",
+        status=None,
+    ),
+    # A members dump through the Marketing API (``<audience>_<status>.csv``).
+    # It has no unsubscribe or clean time; the member's ``last_changed`` is the
+    # nearest one, because the status change is the member's last change.
+    MailchimpLayout(
+        name="members-api",
+        pattern="*_{state}.csv",
+        email="email_address",
+        consent_at=("timestamp_opt", "timestamp_signup"),
+        opt_out_at={"unsubscribed": "last_changed", "cleaned": "last_changed"},
+        changed_at="last_changed",
+        status="status",
+    ),
+)
 RELAY_CONTACTS_FILE = "relay-contacts.csv"
 RELAY_CATEGORY_FILE = "relay-category-preferences.csv"
 RELAY_CONTACT_COLUMNS = frozenset(
@@ -314,15 +352,27 @@ def read_cmp(path: Path, ledger: Ledger) -> None:
     ledger.inputs["cmp"] = {"file": path.name, **dict(sorted(counts.items()))}
 
 
-def _one_file(directory: Path, prefix: str, *, required: bool) -> Path | None:
-    matches = sorted(directory.glob(f"{prefix}*.csv"))
-    if len(matches) > 1:
-        raise AudienceMergeError(f"mailchimp-export-ambiguous-{prefix.split('_')[0]}")
-    if not matches:
-        if required:
-            raise AudienceMergeError(f"mailchimp-export-missing-{prefix.split('_')[0]}")
-        return None
-    return matches[0]
+def _mailchimp_files(directory: Path) -> tuple[MailchimpLayout, dict[str, Path]]:
+    found: list[tuple[MailchimpLayout, dict[str, Path]]] = []
+    for layout in MAILCHIMP_LAYOUTS:
+        files: dict[str, Path] = {}
+        for state in MAILCHIMP_STATES:
+            matches = sorted(directory.glob(layout.pattern.format(state=state)))
+            if len(matches) > 1:
+                raise AudienceMergeError(f"mailchimp-export-ambiguous-{state}")
+            if matches:
+                files[state] = matches[0]
+        if files:
+            found.append((layout, files))
+    if len(found) > 1:
+        raise AudienceMergeError("mailchimp-export-mixed-layouts")
+    if not found:
+        raise AudienceMergeError("mailchimp-export-missing-subscribed")
+    layout, files = found[0]
+    for state in MAILCHIMP_STATES:
+        if state not in files:
+            raise AudienceMergeError(f"mailchimp-export-missing-{state}")
+    return layout, files
 
 
 def _csv_rows(path: Path) -> Iterator[dict[str, str]]:
@@ -330,37 +380,53 @@ def _csv_rows(path: Path) -> Iterator[dict[str, str]]:
         yield from csv.DictReader(handle)
 
 
+def _first_timestamp(row: dict[str, str], columns: Iterable[str]) -> datetime | None:
+    for column in columns:
+        at = parse_timestamp(row.get(column))
+        if at is not None:
+            return at
+    return None
+
+
 def read_mailchimp(directory: Path, ledger: Ledger) -> None:
+    layout, files = _mailchimp_files(directory)
     counts: Counter[str] = Counter()
     latest = None
-    for state, prefix in MAILCHIMP_FILES.items():
-        path = _one_file(directory, prefix, required=True)
-        assert path is not None
-        list_hash = path.stem.rsplit("_", 1)[-1]
-        for row in _csv_rows(path):
-            email = row.get("Email Address")
-            if not normalize_email(email):
-                counts[f"{state}_without_email"] += 1
-                continue
-            counts[state] += 1
-            if state == "subscribed":
-                at = parse_timestamp(row.get("CONFIRM_TIME")) or parse_timestamp(
-                    row.get("OPTIN_TIME")
-                )
-                ledger.add(email, Evidence("mailchimp", CONSENT, at, f"list:{list_hash}"))
-                changed = parse_timestamp(row.get("LAST_CHANGED"))
-            elif state == "unsubscribed":
-                at = parse_timestamp(row.get("UNSUB_TIME"))
-                ledger.add(email, Evidence("mailchimp", UNSUBSCRIBED, at, f"list:{list_hash}"))
-                changed = at
-            else:
-                at = parse_timestamp(row.get("CLEAN_TIME"))
-                ledger.add(email, Evidence("mailchimp", BOUNCED, at, f"list:{list_hash}"))
-                changed = at
-            if changed is not None and (latest is None or changed > latest):
-                latest = changed
+    for state, path in files.items():
+        # The list id (UI export) or the audience name (API dump); never PII.
+        if layout.name == "ui-export":
+            list_label = path.stem.rsplit("_", 1)[-1]
+        else:
+            list_label = path.stem.rsplit("_", 1)[0]
+        with path.open(newline="", encoding="utf-8-sig") as handle:
+            reader = csv.DictReader(handle)
+            time_column = layout.opt_out_at.get(state, layout.consent_at[0])
+            needed = {layout.email, time_column} | ({layout.status} if layout.status else set())
+            if needed - set(reader.fieldnames or ()):
+                raise AudienceMergeError(f"mailchimp-export-missing-columns-{state}")
+            for row in reader:
+                email = row.get(layout.email)
+                if not normalize_email(email):
+                    counts[f"{state}_without_email"] += 1
+                    continue
+                if layout.status and (row.get(layout.status) or "").strip() != state:
+                    raise AudienceMergeError(f"mailchimp-export-status-mismatch-{state}")
+                counts[state] += 1
+                detail = f"list:{list_label}"
+                if state == "subscribed":
+                    at = _first_timestamp(row, layout.consent_at)
+                    ledger.add(email, Evidence("mailchimp", CONSENT, at, detail))
+                    changed = parse_timestamp(row.get(layout.changed_at or ""))
+                else:
+                    at = parse_timestamp(row.get(layout.opt_out_at[state]))
+                    kind = UNSUBSCRIBED if state == "unsubscribed" else BOUNCED
+                    ledger.add(email, Evidence("mailchimp", kind, at, detail))
+                    changed = at
+                if changed is not None and (latest is None or changed > latest):
+                    latest = changed
     ledger.inputs["mailchimp"] = {
         "directory": directory.name,
+        "layout": layout.name,
         "latest_member_change": latest.date().isoformat() if latest else None,
         **dict(sorted(counts.items())),
     }
