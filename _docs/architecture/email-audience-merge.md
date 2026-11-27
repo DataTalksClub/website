@@ -14,7 +14,7 @@ run. Account identity itself is in
 | Source | Newsletter consent | Opt-outs | Course mail |
 | --- | --- | --- | --- |
 | **CMP** (`courses_courseregistration`) | `accepted_newsletter`, with the registration's `created_at` and campaign (course). The form field is `required=True` and `clean_accepted_newsletter` refuses an unticked box, so **every registration made through the form carries consent**. The box reads "I agree to be added to the DataTalks.Club newsletter and receive course updates". | The retired Datamailer contact events in `data_datamailercontactevent` (`subscription.unsubscribed`, `contact.hard_bounced`). | The three category opt-outs left CMP's account in migration 0010 and live in Relay's `category_preferences` (audience `dtc-courses`). |
-| **Mailchimp** (list `97178021aa`) | The subscribed export, with `OPTIN_TIME` and `CONFIRM_TIME` (double opt-in). | The unsubscribed export (`UNSUB_TIME`, reason) and the cleaned export (`CLEAN_TIME`, i.e. bounced). | none |
+| **Mailchimp** (list `97178021aa`) | The subscribed export, with `OPTIN_TIME` and `CONFIRM_TIME` (double opt-in). A Marketing API members dump (`<audience>_subscribed.csv`) has `timestamp_opt` instead. | The unsubscribed export (`UNSUB_TIME`, reason) and the cleaned export (`CLEAN_TIME`, i.e. bounced). The API dump has neither time, so the member's `last_changed` stands in for it. | none |
 | **Relay** (org `datatalksclub`) | `subscriptions.status = subscribed` in audience `dtc`: client `dtc-newsletter` holds the imported Mailchimp list and the public double-opt-in list behind the website's newsletter form; client `dtc-website` holds course registrations the website syncs. `pending` means the double opt-in was not confirmed. | `subscriptions.unsubscribed_at` per audience/client, and on the contact `global_unsubscribed_at`, `hard_bounced_at` and `complained_at`. | Audience `dtc-courses` (client `dtc-courses`), with `category_preferences`. |
 | **Website** | `EventRegistration.newsletter_consent` (with version, source and `newsletter_consented_at`), and `CourseRegistration.accepted_newsletter` for registrations made on the site (`courses.services.registration_contacts` pushes those to Relay `dtc`/`dtc-website`). The newsletter page posts straight to Relay's public list and stores nothing locally. | `User.newsletter_subscribed`, plus `newsletter_preference_changed_at` when the member decided it. | `User.email_submission_confirmations`, `email_deadline_reminders` and `email_course_updates` (`None` means allowed). |
 
@@ -31,12 +31,25 @@ run. Account identity itself is in
   - Datamailer remnants: 23 unsubscribe events (13 addresses) and 49
     hard-bounce events (46 addresses). The 6,000 `relay240-loadtest` rows are a
     synthetic load test and are ignored.
-- **Mailchimp** export `mailchimp-export/` (latest change 2026-09-03): 130,854
-  subscribed, 7,247 unsubscribed and 1,354 cleaned. It is stale; see the
-  request below.
-- **Relay**: no export exists on this machine. The staged
-  `rds-export/relay/*.db` is 0 bytes. The read-only export is specified in
-  `~/prod/dtc-data/requests/relay-audience-export-2026-11-26.md`.
+- **Mailchimp**, two captures, both read in place under `~/prod/dtc-data`:
+  - `mailchimp-export/` (UI export, latest change 2026-09-03): 130,854
+    subscribed, 7,247 unsubscribed and 1,354 cleaned.
+  - `mailchimp-export-2026-11-26/` (Marketing API members dump, taken
+    2026-11-26, latest change that day): 131,228 subscribed, 11,627
+    unsubscribed and 2,365 cleaned. It is the one the merge reads. It holds all
+    but 3 of the September addresses, and both captures' unsubscribes start on
+    2026-04-29, so September holds no opt-out the fresh one lacks. Since
+    September, 4,000 subscribers unsubscribed and 854 were cleaned; of the
+    addresses added since, 391 unsubscribed and 157 were cleaned; 11
+    resubscribed.
+- **Relay**: no production export exists on this machine.
+  `rds-export/relay/*.db` is 0 bytes, and `~/relay-exports/` (2026-10-02) is
+  the sandbox (two contacts). Either read-only export works: the SQL export
+  specified in `~/prod/dtc-data/requests/relay-audience-export-2026-11-26.md`,
+  or one `relay operator contacts csv-export --full` file per audience/client
+  scope (Relay #163). The CLI export has the contact's suppressions as booleans
+  without their times, which only affects the `consent_newer_than_latest_opt_out`
+  count.
 - **Website**, local dataset copy of 2026-11-26:
   - 30,251 accounts, and **all 30,251 have `newsletter_subscribed = true`**,
     because the field defaults to true and no import has written false.
@@ -150,13 +163,13 @@ opted-out address keeps rule 3.
 
 ## Open decisions for the owner
 
-1. **The 20,722 bulk-imported CMP registrations without the box (11,839
+1. **The 20,722 bulk-imported CMP registrations without the box (11,796
    addresses with no other evidence).** Did their original forms require
    consent? If they did and that can be shown, they become consent evidence
    with their registration time. Until then they stay out.
-2. **Consent after an opt-out (83 addresses in the 2026-11-26 dry run).** These
-   registered for a course, ticking the box, after unsubscribing from
-   Mailchimp. Rule 3 keeps them out. The alternative is to accept the newer
+2. **Consent after an opt-out (88 addresses in the 2026-11-27 dry run, 83 on
+   2026-11-26).** These registered for a course, ticking the box, after
+   unsubscribing from Mailchimp (85) or bouncing there (3). Rule 3 keeps them out. The alternative is to accept the newer
    consent.
 3. **Resolved 2026-11-26: `User.newsletter_subscribed` defaults to false**
    (`accounts` migration 0012). A new account is not subscribed until it

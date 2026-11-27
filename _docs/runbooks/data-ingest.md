@@ -1604,7 +1604,7 @@ after the CMP learners (§12), because it reconciles onto existing accounts.
 
 | | |
 | --- | --- |
-| **Upstream** | A CMP SQLite export (`/data/tmp/rds-export/cmp/rds-prod-<ts>.db`; pick it deliberately and record it), a full Mailchimp audience export (subscribed, unsubscribed and cleaned CSVs) and a Relay export (`relay-contacts.csv`, `relay-category-preferences.csv`). All are read in place under `~/prod`. Missing exports are requested in `~/prod/dtc-data/requests/relay-audience-export-2026-11-26.md` and `~/prod/dtc-data/requests/mailchimp-export.md` |
+| **Upstream** | A CMP SQLite export (`/data/tmp/rds-export/cmp/rds-prod-<ts>.db`; pick it deliberately and record it), a full Mailchimp audience export (subscribed, unsubscribed and cleaned CSVs, either the UI's Export Audience ZIP or a Marketing API members dump; the latest is `~/prod/dtc-data/mailchimp-export-2026-11-26/`) and a Relay export (`relay-contacts.csv` from the SQL export, or one `relay operator contacts csv-export --full` file per audience/client scope; optionally `relay-category-preferences.csv`). All are read in place under `~/prod`. Missing exports are requested in `~/prod/dtc-data/requests/relay-audience-export-2026-11-26.md` and `~/prod/dtc-data/requests/mailchimp-export.md` |
 | **Script** | `scripts/prod/import_email_audience_merge.py`. A typed operator command, never part of a dataset rebuild |
 | **Writes** | Into `--output-dir`, which is refused inside the repository: `report.json` (counts only), `relay-import-dtc.csv`, `evidence.jsonl` (real addresses), `site-account-changes.json` (ids). With `--apply`, also `User.newsletter_subscribed`, through `bulk_update`, never stamping `newsletter_preference_changed_at` |
 | **Idempotency** | Safe. The output files are byte-identical for the same inputs. A second `--apply` changes no row. It never creates an account and never resubscribes an opt-out |
@@ -1667,6 +1667,27 @@ On the website it would set 9,282 accounts to not subscribed and 0 to
 subscribed. 20,968 subscribed addresses have an account, and 124,080 are
 newsletter-only contacts. The `--apply` rehearsal on a scratch copy changed
 9,282 rows, and a second run changed 0.
+
+Dry run of 2026-11-27, with the same CMP export and site copy but the Mailchimp
+members dump `mailchimp-export-2026-11-26/` (taken 2026-11-26), still with **no
+Relay export**. The counts are for 170,167 addresses:
+
+| Bucket | Addresses | Change from 2026-11-26 |
+| --- | ---: | ---: |
+| Subscribed, total | 144,275 | −773 |
+| — CMP only | 13,051 | −1,144 |
+| — Mailchimp only | 125,667 | −631 |
+| — CMP and Mailchimp | 5,557 | +1,002 |
+| Unsubscribed somewhere | 11,640 | +4,380 |
+| Bounced or complained | 2,410 | +1,010 |
+| Conflicting (consent in one source, opt-out in another) | 254 | +145 |
+| — of which consent is newer than the opt-out | 88 | +5 |
+| No consent evidence | 11,842 | −44 |
+
+Per address, 4,054 that were subscribed are now unsubscribed and 856 are
+suppressed; 4,089 new addresses are subscribed, 40 that had no evidence now
+have Mailchimp consent, and 11 resubscribed in Mailchimp. On the website it
+would set 9,607 accounts to not subscribed (+325) and 0 to subscribed.
 
 ---
 
