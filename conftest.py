@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from playwright.sync_api import Browser, BrowserContext, Route
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from pytest_django import live_server_helper
 
 from test_support.email_backend import SYNTHETIC_EMAIL_BACKEND
@@ -1012,8 +1013,25 @@ def context(
             if report is not None and report.failed:
                 pages = context.pages
                 if pages:
-                    pages[0].wait_for_function("() => true", timeout=_FAILURE_CAPTURE_PROBE_MS)
-                    pages[0].screenshot(path=screenshot_path, full_page=True)
+                    try:
+                        pages[0].wait_for_function("() => true", timeout=_FAILURE_CAPTURE_PROBE_MS)
+                        pages[0].screenshot(
+                            path=screenshot_path,
+                            full_page=True,
+                            timeout=_FAILURE_CAPTURE_PROBE_MS,
+                        )
+                    except PlaywrightTimeoutError:
+                        # The page is stuck (for example a navigation that never
+                        # commits).  The test already failed; a page that cannot
+                        # answer is left without a screenshot instead of adding a
+                        # teardown error that hides the real failure.
+                        request.node.add_report_section(
+                            "teardown",
+                            "browser failure capture",
+                            f"skipped: the page did not answer within "
+                            f"{_FAILURE_CAPTURE_PROBE_MS} ms "
+                            f"(page url {urlsplit(pages[0].url).path})",
+                        )
         except BaseException as error:
             cleanup_errors.append(
                 f"browser failure capture failed ({type(error).__name__}; "
