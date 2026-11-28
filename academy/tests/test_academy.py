@@ -376,8 +376,10 @@ class AcademyPageTests(TestCase):
             json.loads(match)
             for match in re.findall(r'<script type="application/ld\+json">(.*?)</script>', body)
         ]
-        self.assertEqual([document["@type"] for document in documents], ["Article", "FAQPage"])
-        self.assertEqual(documents[1]["mainEntity"][0]["name"], "Synthetic recap question?")
+        self.assertEqual(
+            [document["@type"] for document in documents], ["Article", "BreadcrumbList", "FAQPage"]
+        )
+        self.assertEqual(documents[2]["mainEntity"][0]["name"], "Synthetic recap question?")
         article = documents[0]
         self.assertEqual(article["headline"], "Synthetic recap heading")
         self.assertEqual(article["datePublished"], "2026-11-23")
@@ -388,7 +390,10 @@ class AcademyPageTests(TestCase):
         pages = fixture.pages_copy()
         guide = pages["guides-synthetic"][0]
         del guide["author"], guide["published"]
-        guide["alternates"] = [{"lang": "de", "path": "/academy/bildungsgutschein/"}]
+        guide["alternates"] = [
+            {"lang": "de", "path": "/academy/bildungsgutschein/"},
+            {"lang": "x-default", "path": "/academy/guides/synthetic/"},
+        ]
         guide["join"] = {
             "heading": "Synthetic guide closing",
             "text": "Synthetic guide closing text.",
@@ -428,6 +433,13 @@ class AcademyPageTests(TestCase):
             '<a href="/academy/bildungsgutschein/" hreflang="de" lang="de">Deutsch</a>', switch
         )
         self.assertLess(switch.index("Deutsch"), switch.index("English"))
+        # ``x-default`` is a crawler's alternate, not a language to switch to.
+        self.assertEqual(switch.count("<a "), 1)
+        self.assertIn(
+            '<link rel="alternate" hreflang="x-default" '
+            'href="https://datatalks.club/academy/guides/synthetic/">',
+            body,
+        )
         # Each fenced element is drawn by the site's component for it.
         self.assertIn(
             '<dl class="spec-strip prose-facts shell-breakout shell-breakout-cards" '
@@ -493,6 +505,11 @@ class AcademyPageTests(TestCase):
         )
         self.assertIn(
             '<link rel="alternate" hreflang="en" href="https://datatalks.club/academy/guides/synthetic/">',
+            guide,
+        )
+        self.assertIn(
+            '<link rel="alternate" hreflang="x-default" '
+            'href="https://datatalks.club/academy/guides/synthetic/">',
             guide,
         )
 
@@ -587,15 +604,27 @@ class AcademyPageTests(TestCase):
         )
         self.assertNotContains(self.client.get("/academy/faq/"), 'content="noindex"')
 
-    def test_structured_data_follows_the_content(self) -> None:
-        body = self.client.get("/academy/ai-engineering/").content.decode()
-        documents = [
+    def _documents(self, path: str) -> list[dict]:
+        body = self.client.get(path).content.decode()
+        return [
             json.loads(match)
-            for match in re.findall(r'<script type="application/ld\+json">(.*?)</script>', body)
+            for match in re.findall(
+                r'<script type="application/ld\+json">(.*?)</script>', body, re.DOTALL
+            )
         ]
+
+    def test_structured_data_follows_the_content(self) -> None:
+        documents = self._documents("/academy/ai-engineering/")
         kinds = [document["@type"] for document in documents]
-        self.assertEqual(kinds, ["Course", "FAQPage"])
-        answers = [item["acceptedAnswer"]["text"] for item in documents[1]["mainEntity"]]
+        self.assertEqual(kinds, ["Course", "BreadcrumbList", "FAQPage"])
+        instance = documents[0]["hasCourseInstance"][0]
+        self.assertEqual(instance["courseWorkload"], "Synthetic weekdays, 13 weeks")
+        self.assertEqual(instance["startDate"], "2027-04")
+        self.assertEqual(
+            instance["instructor"], {"@type": "Person", "name": "Synthetic Instructor"}
+        )
+        self.assertNotIn("offers", documents[0])
+        answers = [item["acceptedAnswer"]["text"] for item in documents[2]["mainEntity"]]
         # Markdown links read as their label; a missing answer is the prerequisites.
         self.assertEqual(
             answers, ["See the privacy notice.", "AI Engineering synthetic prerequisites."]
@@ -603,6 +632,81 @@ class AcademyPageTests(TestCase):
         sessions = self.client.get("/academy/sessions/").content.decode()
         self.assertEqual(sessions.count('"@type":"Event"'), 3)
         self.assertIn('"startDate":"2026-11-21T17:00:00+01:00"', sessions)
+
+    def test_every_trailed_page_publishes_the_trail_it_draws(self) -> None:
+        for path in ALL_PAGES:
+            with self.subTest(path=path):
+                trails = [
+                    document
+                    for document in self._documents(path)
+                    if document.get("@type") == "BreadcrumbList"
+                ]
+                if path in {"/academy/", "/academy/confirm/"}:
+                    self.assertEqual(trails, [])
+                    continue
+                self.assertEqual(len(trails), 1)
+                items = trails[0]["itemListElement"]
+                self.assertEqual(
+                    [item["position"] for item in items], list(range(1, len(items) + 1))
+                )
+                self.assertEqual(
+                    [item["item"] for item in items[:2]],
+                    ["https://datatalks.club/", "https://datatalks.club/academy/"],
+                )
+                self.assertEqual(items[-1]["item"], f"https://datatalks.club{path}")
+        recap = self._documents("/academy/sessions/recap/")
+        trail = next(item for item in recap if item.get("@type") == "BreadcrumbList")
+        self.assertEqual(
+            [item["item"] for item in trail["itemListElement"]],
+            [
+                "https://datatalks.club/",
+                "https://datatalks.club/academy/",
+                "https://datatalks.club/academy/sessions/",
+                "https://datatalks.club/academy/sessions/recap/",
+            ],
+        )
+
+    def test_the_home_lists_the_courses_in_the_order_its_content_names(self) -> None:
+        documents = self._documents("/academy/")
+        kinds = [document["@type"] for document in documents]
+        self.assertEqual(kinds, ["Organization", "ItemList", "FAQPage"])
+        elements = documents[1]["itemListElement"]
+        self.assertEqual(
+            [(item["position"], item["name"], item["url"]) for item in elements],
+            [
+                (1, "AI Engineering", "https://datatalks.club/academy/ai-engineering/"),
+                (2, "Agentic Engineering", "https://datatalks.club/academy/agentic-engineering/"),
+            ],
+        )
+        self.assertEqual(
+            elements[0]["item"],
+            {
+                "@type": "Course",
+                "name": "AI Engineering",
+                "description": "AI Engineering synthetic lead.",
+                "url": "https://datatalks.club/academy/ai-engineering/",
+                "provider": {
+                    "@type": "Organization",
+                    "name": "DataTalks.Club",
+                    "url": "https://datatalks.club",
+                },
+            },
+        )
+
+    def test_the_german_guide_draws_and_publishes_its_questions(self) -> None:
+        body = self.client.get("/academy/bildungsgutschein/").content.decode()
+        self.assertIn('<h2 id="faq-heading">Synthetische Fragen</h2>', body)
+        self.assertIn('<h3 class="faq-list-question">Synthetische Frage eins?</h3>', body)
+        self.assertLess(body.index('id="faq-heading"'), body.index('id="join-heading"'))
+        documents = self._documents("/academy/bildungsgutschein/")
+        faq = next(item for item in documents if item.get("@type") == "FAQPage")
+        self.assertEqual(
+            [(item["name"], item["acceptedAnswer"]["text"]) for item in faq["mainEntity"]],
+            [
+                ("Synthetische Frage eins?", "Synthetische Antwort eins."),
+                ("Synthetische Frage zwei?", "Siehe die Fragen."),
+            ],
+        )
 
     def test_copy_is_the_synced_content(self) -> None:
         home = self.client.get("/academy/")
@@ -759,6 +863,11 @@ class AcademyPageTests(TestCase):
         redirect = self.client.get("/academy/layoff-proof/?utm_source=x&utm_content=b")
         self.assertEqual(redirect.status_code, 301)
         self.assertEqual(redirect["Location"], "/academy/sessions/?utm_source=x&utm_content=b")
+        moved = self.client.get("/academy/ai-courses-germany/")
+        self.assertEqual(moved.status_code, 301)
+        self.assertEqual(
+            moved["Location"], "/academy/guides/ai-bootcamps-germany-experienced-developers/"
+        )
 
     def test_the_retired_build_images_move_permanently(self) -> None:
         moved = (
@@ -896,6 +1005,16 @@ class AcademyParserTests(TestCase):
                 0
             ].update(href="/academy/a/b/c/d/"),
             "program path": lambda pages: pages["ai-engineering"][0].update(path="/academy/other/"),
+            "unknown course in the list": lambda pages: pages["index"][0]["schema"].update(
+                courses=["ai-engineering", "data-engineering"]
+            ),
+            "course listed twice": lambda pages: pages["index"][0]["schema"].update(
+                courses=["ai-engineering", "ai-engineering"]
+            ),
+            "unknown alternate language": lambda pages: pages["bildungsgutschein"][0]["alternates"][
+                1
+            ].update(lang="fr"),
+            "page in the default language": lambda pages: pages["faq"][0].update(lang="x-default"),
             "body on a structured page": lambda pages: pages.update(faq=(pages["faq"][0], "Body")),
             "duplicate session": lambda pages: pages["sessions"][0]["sessions"][1].update(
                 id="session-1"

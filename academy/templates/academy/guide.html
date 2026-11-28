@@ -7,8 +7,9 @@
   the same programs and funding facts, the answer in one paragraph, and the
   facts as the spec strip at its foot.  Below the seam every chapter is the
   same frame: who it is for, the two programs as cards (each leading to its
-  English page), how the voucher works, and the closing mint panel holding
-  the page's one waitlist action, one per program.  Copy:
+  English page), how the voucher works, the page's questions (with their
+  structured data from the shared block) when it has them, and the closing
+  mint panel holding the page's one waitlist action, one per program.  Copy:
   academy/bildungsgutschein.md.
 {% endcomment %}
 
@@ -126,6 +127,17 @@
       </div>
     </div>
   </section>
+
+  {% if faq_items %}
+    <section class="academy-section" id="questions" aria-labelledby="faq-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="faq-heading">{{ data.faq.heading }}</h2>
+        </div>
+      </div>
+      {% include "core/_faq.html" with items=faq_items %}
+    </section>
+  {% endif %}
 
   <section class="academy-section" aria-labelledby="join-heading">
     <div class="panel panel-mint panel-outlined academy-closing academy-closing-stacked">

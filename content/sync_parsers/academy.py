@@ -70,7 +70,8 @@ class Optional:
 # "url" an https URL, "key" a lower-case identifier, "image" a file below
 # images/academy/, "document" a PDF below images/academy/, "youtube" an https
 # youtube.com or youtu.be video link, "utc" an ISO UTC instant, "date" an ISO
-# calendar date (quoted, so YAML keeps it a string), "int", "bool".
+# calendar date (quoted, so YAML keeps it a string), "int", "bool", "lang" a
+# language a page is written in, "hreflang" one of those or ``x-default``.
 LINK = {"label": "text", "href": "href"}
 QUESTION = {"question": "text", "answer": "markdown"}
 FACTS = {"label": "text", "items": [{"label": "text", "value": "text"}]}
@@ -96,8 +97,9 @@ COMMON = {
     "sitemap": Optional("int"),
     "og_image": Optional("image"),
     # The same page in another language, declared both ways as hreflang
-    # alternates (the German Bildungsgutschein guide and its English one).
-    "alternates": Optional([{"lang": "lang", "path": "path"}]),
+    # alternates (the German Bildungsgutschein guide and its English one);
+    # ``x-default`` names the page for readers in neither language.
+    "alternates": Optional([{"lang": "hreflang", "path": "path"}]),
 }
 
 LAYOUTS: dict[str, dict[str, Any]] = {
@@ -130,6 +132,9 @@ LAYOUTS: dict[str, dict[str, Any]] = {
         "faq": Optional({"heading": "text", "picks": ["int"], "link_label": "text"}),
         "schema": {
             "organization": {"name": "text", "url": "url", "same_as": ["url"]},
+            # The programs, by slug, in the order the course list publishes
+            # them; it can differ from the order the page draws them in.
+            "courses": Optional(["key"]),
         },
     },
     "program": {
@@ -166,6 +171,9 @@ LAYOUTS: dict[str, dict[str, Any]] = {
             "instructor": "text",
             "provider": "text",
             "provider_url": "url",
+            # The class hours as the page states them, published as the
+            # instance's courseWorkload.
+            "workload": Optional("text"),
         },
     },
     "sessions": {
@@ -344,6 +352,8 @@ LAYOUTS: dict[str, dict[str, Any]] = {
             "actions": [LINK],
             "sessions_label": "text",
         },
+        # Questions drawn above the closing panel and published as FAQPage.
+        "faq": Optional({"heading": "text", "items": [QUESTION]}),
     },
     "faq": {
         "eyebrow": "text",
@@ -557,6 +567,9 @@ class _Validator:
         elif spec == "lang":
             if value not in LANGUAGES:
                 self.fail(field)
+        elif spec == "hreflang":
+            if value not in (*LANGUAGES, "x-default"):
+                self.fail(field)
         elif spec == "path":
             if not _PATH.fullmatch(value):
                 self.fail(field)
@@ -748,6 +761,10 @@ class AcademyPageParser:
                 for program in record["data"]["programs"]["items"]:
                     if program["slug"] not in programs:
                         base.fail("academy guide names an unknown program", item.path)
+            if record["layout"] == "home":
+                courses = record["data"]["schema"].get("courses") or []
+                if len(set(courses)) != len(courses) or not set(courses) <= programs:
+                    base.fail("academy course list names an unknown program", item.path)
         return sorted(items, key=lambda item: item.key)
 
     def upsert(self, item, source, media):
