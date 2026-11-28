@@ -213,10 +213,15 @@ def language_switch(page: Record, by_path: Mapping[str, Record]) -> list[dict[st
     """The page's languages for the switch at the top of an article.
 
     The page and the pages its ``alternates`` name, each by its own name; the
-    page being read has no link.  A page in one language has no switch.
+    page being read has no link.  A page in one language has no switch, and
+    the ``x-default`` alternate is a language of its own only to a crawler.
     """
 
-    alternates = page["data"].get("alternates") or []
+    alternates = [
+        alternate
+        for alternate in page["data"].get("alternates") or []
+        if alternate["lang"] in LANGUAGE_NAMES
+    ]
     if not alternates:
         return []
     entries = [{"lang": page["lang"], "label": LANGUAGE_NAMES[page["lang"]], "href": ""}]
@@ -438,6 +443,52 @@ def page_trail(page: Record, shared: Record, pages: Sequence[Record]) -> Trail |
     return trail(*levels)
 
 
+def breadcrumb_list(breadcrumbs: Trail) -> dict[str, Any]:
+    """The trail the page draws, as the ``BreadcrumbList`` the blog and course pages publish."""
+
+    return {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {"@type": "ListItem", "position": position, "name": name, "item": absolute(path)}
+            for position, (name, path) in enumerate(breadcrumbs.published_items(), start=1)
+        ],
+    }
+
+
+def course_list(slugs: Sequence[str], pages: Sequence[Record]) -> dict[str, Any]:
+    """The programs named by ``slugs``, in that order, as an ``ItemList`` of courses."""
+
+    by_slug = {
+        page["data"]["program"]["slug"]: page for page in pages if page.get("layout") == "program"
+    }
+    elements = []
+    for position, slug in enumerate((slug for slug in slugs if slug in by_slug), start=1):
+        program = by_slug[slug]
+        data = program["data"]
+        url = absolute(program["public_path"])
+        elements.append(
+            {
+                "@type": "ListItem",
+                "position": position,
+                "name": data["program"]["name"],
+                "url": url,
+                "item": {
+                    "@type": "Course",
+                    "name": data["program"]["name"],
+                    "description": data["hero"]["lead"],
+                    "url": url,
+                    "provider": {
+                        "@type": "Organization",
+                        "name": data["schema"]["provider"],
+                        "url": data["schema"]["provider_url"],
+                    },
+                },
+            }
+        )
+    return {"@context": "https://schema.org", "@type": "ItemList", "itemListElement": elements}
+
+
 def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[str, Any]:
     data = page["data"]
     layout = page["layout"]
@@ -471,6 +522,8 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
                 "sameAs": organization["same_as"],
             }
         )
+        if data["schema"].get("courses"):
+            schema.append(course_list(data["schema"]["courses"], pages))
         picks = data["tracks"]["outcomes"]
         context["tracks"] = [
             {
@@ -549,6 +602,9 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
                         "courseMode": course["course_modes"],
                         "inLanguage": page["lang"],
                         "startDate": course["start_date"],
+                        **(
+                            {"courseWorkload": course["workload"]} if course.get("workload") else {}
+                        ),
                         "location": [
                             {"@type": "VirtualLocation", "url": course_url},
                             {
@@ -609,6 +665,8 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
         context["guide_programs"] = [
             {**item, "path": f"{ACADEMY_ROOT}{item['slug']}/"} for item in data["programs"]["items"]
         ]
+        if data.get("faq"):
+            context["faq_items"] = faq_items(data["faq"]["items"], "faq")
 
     elif layout == "faq":
         context["faq_items"] = faq_items(data["items"], "question")
@@ -694,6 +752,8 @@ def page_context(page: Record, shared: Record, pages: Sequence[Record]) -> dict[
         {"lang": item["lang"], "href": absolute(item["path"])}
         for item in data.get("alternates") or []
     ]
+    if context["breadcrumbs"] is not None:
+        schema.append(breadcrumb_list(context["breadcrumbs"]))
     context["json_ld"] = json_ld(schema)
     context["articles_path"] = next(
         (path for path, item in by_path.items() if item.get("layout") == "articles"), ""

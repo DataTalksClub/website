@@ -222,6 +222,7 @@ def _program(slug: str, name: str, position: int) -> dict[str, Any]:
             "instructor": "Synthetic Instructor",
             "provider": "DataTalks.Club",
             "provider_url": "https://datatalks.club",
+            "workload": "Synthetic weekdays, 13 weeks",
         },
     }
 
@@ -280,7 +281,8 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
                     "name": "DataTalks.Club",
                     "url": "https://datatalks.club",
                     "same_as": ["https://example.invalid/profile"],
-                }
+                },
+                "courses": ["ai-engineering", "agentic-engineering"],
             },
         },
         "",
@@ -442,7 +444,10 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
             "path": "/academy/bildungsgutschein/",
             "lang": "de",
             "hreflang": True,
-            "alternates": [{"lang": "en", "path": "/academy/guides/synthetic/"}],
+            "alternates": [
+                {"lang": "en", "path": "/academy/guides/synthetic/"},
+                {"lang": "x-default", "path": "/academy/guides/synthetic/"},
+            ],
             "title": "Synthetischer Leitfaden",
             "description": "Synthetische Beschreibung.",
             "sitemap": 5,
@@ -497,6 +502,19 @@ PAGES: dict[str, tuple[dict[str, Any], str]] = {
                     }
                 ],
                 "sessions_label": "Synthetische Sessions",
+            },
+            "faq": {
+                "heading": "Synthetische Fragen",
+                "items": [
+                    {
+                        "question": "Synthetische Frage eins?",
+                        "answer": "Synthetische Antwort eins.",
+                    },
+                    {
+                        "question": "Synthetische Frage zwei?",
+                        "answer": "Siehe [die Fragen](/academy/faq/).",
+                    },
+                ],
             },
         },
         "",
